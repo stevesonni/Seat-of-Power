@@ -4,17 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>The Seat of Power — Nigerian Governor Simulator</title>
-  <meta name="description" content="A political strategy simulator where you govern a Nigerian state across 8 turns, navigating budgets, elections, courts, and the godfather." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=JetBrains+Mono:wght@400;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Outfit', sans-serif; background: #f8faf5; }
-    #root { min-height: 100vh; }
-  </style>
+  <style>* { margin: 0; padding: 0; box-sizing: border-box; } body { font-family: 'Outfit', sans-serif; background: #f8faf5; }</style>
 </head>
 <body>
   <div id="root"></div>
@@ -425,11 +420,60 @@ const HOUSE_BILLS = [
 ];
 
 // ─── GODFATHER ───
+const STATE_GODFATHERS = {
+  // SOUTH WEST
+  Lagos: { nm: "Chief Bola Tinubu", title: "The Jagaban", power: 95, aggression: 70, loyalty_demand: 90, desc: "Controls Lagos like a boardroom. Every governor is his protégé. Cross him and you're finished." },
+  Oyo: { nm: "Chief Rasheed Ladoja", title: "The Ibadan Strongman", power: 65, aggression: 55, loyalty_demand: 60, desc: "Heir to the Adedibu machine. Ibadan politics runs through him." },
+  Ogun: { nm: "Chief Olusegun Osoba", title: "The Abeokuta Elder", power: 60, aggression: 40, loyalty_demand: 55, desc: "Former governor. Quiet influence. Prefers negotiation over threats." },
+  Osun: { nm: "Ogbeni Rauf Aregbesola", title: "The Organiser", power: 55, aggression: 60, loyalty_demand: 65, desc: "Built the grassroots machine. Still controls ward-level structures." },
+  Ondo: { nm: "Dr. Olusegun Mimiko", title: "The Iroko", power: 50, aggression: 45, loyalty_demand: 50, desc: "Medical doctor turned political strategist. Knows every village." },
+  Ekiti: { nm: "Dr. Kayode Fayemi", title: "The Intellectual", power: 55, aggression: 35, loyalty_demand: 50, desc: "Cerebral. Prefers policy influence over raw power. But don't test him." },
+  // SOUTH SOUTH
+  Rivers: { nm: "Chief Nyesom Wike", title: "Mr. Projects", power: 90, aggression: 90, loyalty_demand: 95, desc: "The most aggressive godfather in Nigeria. Controls Rivers with iron fist. Demands TOTAL loyalty." },
+  Delta: { nm: "Chief James Ibori", title: "The Delta Lord", power: 75, aggression: 65, loyalty_demand: 80, desc: "Even prison couldn't break his grip. Delta politics still runs through Oghara." },
+  Akwa_Ibom: { nm: "Sen. Godswill Akpabio", title: "The Uncommon Man", power: 70, aggression: 60, loyalty_demand: 70, desc: "Senate leader. Federal connections. Can make or break careers." },
+  Bayelsa: { nm: "Chief Timipre Sylva", title: "The Bayelsa Boss", power: 60, aggression: 55, loyalty_demand: 65, desc: "Oil money and federal connections. Controls the creek politics." },
+  Cross_River: { nm: "Chief Donald Duke", title: "The Calabar Gentleman", power: 40, aggression: 25, loyalty_demand: 35, desc: "Fading influence. More celebrity than kingmaker now. Manageable." },
+  Edo: { nm: "Comrade Adams Oshiomhole", title: "The Comrade", power: 75, aggression: 80, loyalty_demand: 85, desc: "Labour leader turned godfather. Fights dirty when crossed. Ask Obaseki." },
+  // SOUTH EAST
+  Anambra: { nm: "Chief Chris Uba", title: "The Original Godfather", power: 50, aggression: 70, loyalty_demand: 80, desc: "Nigeria's most notorious godfather case. Fragmented now but the archetype." },
+  Abia: { nm: "Chief Orji Uzor Kalu", title: "OUK", power: 65, aggression: 55, loyalty_demand: 65, desc: "Business mogul and senator. Abia politics flows through Igbere." },
+  Imo: { nm: "Chief Rochas Okorocha", title: "Owelle", power: 60, aggression: 65, loyalty_demand: 75, desc: "Free education was his weapon. Still commands a cult following." },
+  Enugu: { nm: "Sen. Chimaroke Nnamani", title: "The Enugu Godfather", power: 55, aggression: 50, loyalty_demand: 60, desc: "Medical doctor. Controls Enugu quietly from the Senate." },
+  Ebonyi: { nm: "Engr. Dave Umahi", title: "The Ebonyi Builder", power: 70, aggression: 60, loyalty_demand: 70, desc: "Engineering contractor turned governor. Infrastructure is his weapon." },
+  // NORTH CENTRAL
+  Kwara: { nm: "Dr. Bukola Saraki", title: "The Saraki Dynasty", power: 80, aggression: 65, loyalty_demand: 85, desc: "Textbook political dynasty. Father was Senate Leader. He was Senate President. Kwara IS Saraki." },
+  Benue: { nm: "Sen. George Akume", title: "The Benue Patriarch", power: 60, aggression: 50, loyalty_demand: 55, desc: "SGF and former governor. Tiv politics runs through him." },
+  Plateau: { nm: "Chief Joshua Dariye", title: "The Plateau Man", power: 45, aggression: 40, loyalty_demand: 50, desc: "Pardoned ex-governor. Diminished but not forgotten." },
+  Nasarawa: { nm: "Sen. Abdullahi Adamu", title: "The Chairman", power: 55, aggression: 45, loyalty_demand: 55, desc: "Former APC national chairman. Federal connections still active." },
+  Niger: { nm: "Dr. Babangida Aliyu", title: "The Chief Servant", power: 50, aggression: 35, loyalty_demand: 45, desc: "Former governor. Intellectual influence more than raw power." },
+  Kogi: { nm: "Alhaji Ibrahim Idris", title: "The Kogi Strongman", power: 50, aggression: 55, loyalty_demand: 60, desc: "Former governor. Ebira politics power broker." },
+  // NORTH WEST
+  Kano: { nm: "Sen. Rabiu Musa Kwankwaso", title: "Kwankwasiyya", power: 85, aggression: 70, loyalty_demand: 80, desc: "Built the largest grassroots movement in the North. Red cap army. NNPP founder." },
+  Kaduna: { nm: "Malam Nasir El-Rufai", title: "El-Rufai", power: 75, aggression: 85, loyalty_demand: 80, desc: "Ruthless reformer. Transformed Kaduna. Makes enemies easily. Very dangerous when crossed." },
+  Katsina: { nm: "Gov. Aminu Masari", title: "The Katsina Voice", power: 55, aggression: 40, loyalty_demand: 50, desc: "Former speaker. Moderate influence. Katsina is relatively open." },
+  Sokoto: { nm: "Sen. Aliyu Wamakko", title: "The Sokoto Overlord", power: 65, aggression: 55, loyalty_demand: 65, desc: "Former governor. Controls Sokoto APC machinery." },
+  Zamfara: { nm: "Abdulaziz Yari", title: "The Zamfara Boss", power: 60, aggression: 60, loyalty_demand: 65, desc: "Former governor. Controls state structures despite banditry crisis." },
+  Kebbi: { nm: "Sen. Atiku Bagudu", title: "The Kebbi Man", power: 55, aggression: 40, loyalty_demand: 50, desc: "Former governor and minister. Moderate influence." },
+  Jigawa: { nm: "Sen. Sule Lamido", title: "The Jigawa Godfather", power: 65, aggression: 55, loyalty_demand: 70, desc: "Former governor and PDP stalwart. Deep grassroots." },
+  // NORTH EAST
+  Borno: { nm: "Sen. Ali Modu Sheriff", title: "The Sheriff", power: 70, aggression: 75, loyalty_demand: 80, desc: "The most powerful man in Borno politics. Survived everything including Boko Haram era scrutiny." },
+  Adamawa: { nm: "Alhaji Atiku Abubakar", title: "The Waziri", power: 85, aggression: 50, loyalty_demand: 60, desc: "Former VP and perennial presidential candidate. Adamawa is his base. Massive nationwide network." },
+  Bauchi: { nm: "Chief Adamu Muazu", title: "The Bauchi Elder", power: 50, aggression: 40, loyalty_demand: 50, desc: "Former governor and PDP chairman. Declining influence." },
+  Taraba: { nm: "Rev. Danbaba Suntai", title: "The Taraba Memory", power: 30, aggression: 20, loyalty_demand: 30, desc: "Weakest godfather influence. Taraba is relatively open territory." },
+  Gombe: { nm: "Sen. Danjuma Goje", title: "The Gombe Emperor", power: 65, aggression: 60, loyalty_demand: 70, desc: "Former governor. Gombe politics doesn't move without his nod." },
+  Yobe: { nm: "Alhaji Bukar Ibrahim", title: "The Yobe Pioneer", power: 50, aggression: 35, loyalty_demand: 45, desc: "Former governor. Declining but still consulted." },
+  // FCT
+  FCT: { nm: "Political Cabals", title: "The Aso Rock Circle", power: 80, aggression: 60, loyalty_demand: 70, desc: "The FCT has no single godfather — it's controlled by whoever holds federal power." },
+};
+
 const GODFATHER_DEMANDS = [
-  { id: "gf_contract", d: "I need that ₦3B road contract awarded to my company. No bidding.", acceptFx: { corM: .06, pStab: 8, app: -3 }, acceptLog: "Awarded ₦3B no-bid contract to Godfather's company.", rejectFx: { pStab: -10 }, rejectLog: "Refused Godfather's contract demand. He's furious." },
-  { id: "gf_land", d: "There's prime government land in the capital. I want 50 hectares. For free.", acceptFx: { corM: .05, pStab: 6, app: -4 }, acceptLog: "Gave Godfather 50 hectares of government land.", rejectFx: { pStab: -8, app: 2 }, rejectLog: "Denied Godfather's land grab. Public approves. He doesn't." },
-  { id: "gf_appointment", d: "My nephew needs to be commissioner. Put him in Works.", acceptFx: { corM: .03, pStab: 10 }, acceptLog: "Appointed Godfather's nephew as commissioner. Party happy.", rejectFx: { pStab: -12 }, rejectLog: "Refused to appoint Godfather's nephew. Party crisis." },
-  { id: "gf_money", d: "I funded your campaign. I need ₦2B returned. Call it a security vote.", acceptFx: { corM: .08, pStab: 5 }, acceptLog: "Paid ₦2B 'security vote' to Godfather. Campaign debt settled.", rejectFx: { pStab: -15 }, rejectLog: "Refused to repay Godfather. 'You'll regret this' he said." },
+  { id: "gf_contract", d: "I need that ₦3B road contract awarded to my company. No bidding.", acceptFx: { corM: .06, pStab: 8, app: -3 }, acceptLog: "Awarded ₦3B no-bid contract.", rejectFx: { pStab: -10 }, rejectLog: "Refused contract demand. He's furious." },
+  { id: "gf_land", d: "There's prime government land in the capital. I want 50 hectares. For free.", acceptFx: { corM: .05, pStab: 6, app: -4 }, acceptLog: "Gave 50 hectares of government land.", rejectFx: { pStab: -8, app: 2 }, rejectLog: "Denied land grab. Public approves." },
+  { id: "gf_appointment", d: "My nephew needs to be commissioner. Put him in Works.", acceptFx: { corM: .03, pStab: 10 }, acceptLog: "Appointed godfather's nephew as commissioner.", rejectFx: { pStab: -12 }, rejectLog: "Refused appointment. Party crisis." },
+  { id: "gf_money", d: "I funded your campaign. I need ₦2B returned. Call it a security vote.", acceptFx: { corM: .08, pStab: 5 }, acceptLog: "Paid ₦2B 'security vote'. Campaign debt settled.", rejectFx: { pStab: -15 }, rejectLog: "Refused to repay. 'You'll regret this.'" },
+  { id: "gf_assembly", d: "I need you to support my candidate for Speaker of the House. He's loyal to ME, not you.", acceptFx: { corM: .02, pStab: 12, app: -2 }, acceptLog: "Installed godfather's candidate as Speaker.", rejectFx: { pStab: -10, app: 3 }, rejectLog: "Fought for independent Speaker. Party furious." },
+  { id: "gf_revenue", d: "I want 10% of the state's IGR channeled through my company as 'consultancy fees'.", acceptFx: { corM: .10, pStab: 8, app: -5 }, acceptLog: "10% of IGR now goes to godfather's 'consultancy'.", rejectFx: { pStab: -15, app: 4 }, rejectLog: "Refused to share IGR. He's declared war." },
 ];
 
 // 6 new dilemmas (adding to existing 6)
@@ -1350,7 +1394,8 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
   const [intlInvites, setIntlInvites] = useState(ld?.intlInvites || []);
   const [curInvite, setCurInvite] = useState(null);
   const [completedProjects, setCompletedProjects] = useState(ld?.completedProjects || []);
-  const [godfatherPower, setGodfatherPower] = useState(ld?.godfatherPower || 70);
+  const stateGF = STATE_GODFATHERS[state] || { power: 60, aggression: 50, loyalty_demand: 60 };
+  const [godfatherPower, setGodfatherPower] = useState(ld?.godfatherPower || stateGF.power);
   const [godfatherRel, setGodfatherRel] = useState(ld?.godfatherRel || 50);
   const [godfatherDemand, setGodfatherDemand] = useState(null);
   const [godfatherSeen, setGodfatherSeen] = useState(ld?.godfatherSeen || []);
@@ -1636,7 +1681,23 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
         addL("✅ PROJECT COMPLETE: " + p.nm + " — " + desc + (p.jobsAdd ? " (+" + p.jobsAdd.toLocaleString() + " jobs)" : ""), "success");
         if (p.cr > 0 && Math.random() < p.cr) { n.cor = cl(n.cor + .05); setCorW(w => w + p.c * .2); addL("💀 Scandal: Procurement fraud on " + p.nm + " project! ₦" + (p.c * .2).toFixed(1) + "B missing.", "scandal"); }
       });
-      n.infra = cl(n.infra - .008); n.app = cl100(n.app - .5); n.pStab = cl100(n.pStab + (n.app > 50 ? 1 : -2));
+      n.infra = cl(n.infra - .008);
+      // ── APPROVAL REALISM ──
+      // 1. Natural drift: governance is HARD. Approval naturally decays every turn.
+      n.app = cl100(n.app - 1.5);
+      // 2. Corruption drag: higher corruption = lower approval ceiling
+      if (n.cor > .40) n.app = cl100(n.app - 2);
+      if (n.cor > .55) n.app = cl100(n.app - 3);
+      // 3. Insecurity drag: poor security costs approval
+      if (n.sec < .35) n.app = cl100(n.app - 2);
+      // 4. Soft ceiling: approval above 75% faces increasing resistance (the higher you go, the harder it is)
+      if (n.app > 85) n.app = cl100(n.app - 3); // above 85 = very hard to sustain
+      else if (n.app > 75) n.app = cl100(n.app - 1.5); // above 75 = moderate resistance
+      // 5. Hard ceiling: no governor in Nigeria sustains 92%+ approval. Ever.
+      if (n.app > 92) n.app = 92;
+      // 6. Opposition effect: there is ALWAYS opposition. The better you do, the more they attack.
+      if (n.app > 70 && Math.random() < .3) { n.app = cl100(n.app - 2); addL("📰 Opposition attacks: \"Governor is all PR, no substance.\" -2 approval.", "political"); }
+      n.pStab = cl100(n.pStab + (n.app > 50 ? 1 : -2));
 
       // ── PERSONAL FUND — Governor's salary + crowdfunding ──
       // Governor earns ₦60M per half-year (₦10M/month)
@@ -2656,20 +2717,24 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "godfather" && !!godfatherDemand}>
-          {godfatherDemand && <Cd style={{ borderColor: CL.org + "44" }}>
+          {godfatherDemand && (() => {
+            const gf = STATE_GODFATHERS[state] || { nm: "The Godfather", title: "Political Kingmaker", power: 60, aggression: 50, loyalty_demand: 60, desc: "A powerful figure who funded your campaign." };
+            return <Cd style={{ borderColor: CL.org + "44" }}>
             <AdvBubble text={ADV.godfather} saName={setup?.saName} />
             <div style={{ textAlign: "center", marginBottom: 8 }}>
               <div style={{ fontSize: 32, marginBottom: 6 }}>🎩</div>
-              <Bg text="The Godfather" color={CL.org} />
-              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "6px 0", fontSize: 18, fontWeight: 600 }}>A Visit from the Godfather</h3>
-              <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6 }}>
+              <Bg text={gf.title} color={CL.org} />
+              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "6px 0", fontSize: 18, fontWeight: 600 }}>{gf.nm}</h3>
+              <div style={{ fontSize: 9, color: CL.tm, fontStyle: "italic", marginBottom: 6, maxWidth: 400, margin: "0 auto 6px" }}>{gf.desc}</div>
+              <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 6, flexWrap: "wrap" }}>
                 <Bg text={"Power: " + godfatherPower} color={godfatherPower > 50 ? CL.red : CL.org} />
                 <Bg text={"Relationship: " + godfatherRel} color={godfatherRel > 50 ? CL.grn : CL.red} />
+                <Bg text={"Aggression: " + gf.aggression} color={gf.aggression > 60 ? CL.red : CL.org} />
               </div>
               <p style={{ color: CL.tm, fontSize: 11, lineHeight: 1.5, marginBottom: 6, textAlign: "left", maxWidth: 420, margin: "0 auto 10px" }}>
-                The man who funded your campaign sits across from you. He doesn't ask — he tells. "{godfatherDemand.d}"
+                {gf.nm.split(" ").pop()} sits across from you in Government House. He doesn't ask — he tells. "{godfatherDemand.d}"
               </p>
-              <p style={{ color: CL.td, fontSize: 9, marginBottom: 10 }}>In Nigerian politics, godfathers wield enormous backroom power. They fund campaigns, control party structures, and expect returns. Defying them has consequences.</p>
+              <p style={{ color: CL.td, fontSize: 9, marginBottom: 10 }}>In Nigerian politics, godfathers wield enormous backroom power. They fund campaigns, control party structures, and expect returns. Defying them has consequences — {gf.aggression > 70 ? "and " + gf.nm.split(" ").pop() + " is VERY aggressive when crossed." : gf.aggression > 50 ? "and " + gf.nm.split(" ").pop() + " will push back." : "though " + gf.nm.split(" ").pop() + " may be manageable."}</p>
             </div>
             <div style={{ display: "grid", gap: 8, maxWidth: 420, margin: "0 auto" }}>
               <Cd onClick={() => {
@@ -2681,12 +2746,16 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
                   return n;
                 });
                 setGodfatherRel(r2 => Math.min(100, r2 + 15));
-                addL("🎩 " + godfatherDemand.acceptLog + " Godfather pleased.", "political");
-                setGodfatherDemand(null);
-                nextEvent();
+                addL("🎩 " + gf.nm + ": " + godfatherDemand.acceptLog + " He's satisfied — for now.", "political");
+                showResult({ icon: "🎩", title: gf.nm + " — Appeased", narrative: gf.nm.split(" ").pop() + " nods slowly. \"Good. You understand how this works.\" He leaves Government House with what he came for. Your party is stable. But your integrity — and your EFCC file — just got heavier.", effects: [
+                  godfatherDemand.acceptFx.corM ? { icon: "💀", text: "Corruption rises", value: "+" + Math.round(godfatherDemand.acceptFx.corM * 100) + "%", bad: true } : null,
+                  godfatherDemand.acceptFx.pStab ? { icon: "🏛️", text: "Party stability", value: "+" + godfatherDemand.acceptFx.pStab, good: true } : null,
+                  godfatherDemand.acceptFx.app ? { icon: "📉", text: "Approval", value: godfatherDemand.acceptFx.app + "%", bad: true } : null,
+                  { icon: "🤝", text: "Godfather relationship", value: "+15", good: true },
+                ].filter(Boolean), tone: "neutral", nextFn: () => { setGodfatherDemand(null); nextEvent(); } });
               }} style={{ padding: 12, borderColor: CL.org + "33" }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: CL.org, marginBottom: 3 }}>🤝 Give Him What He Wants</div>
-                <div style={{ fontSize: 9.5, color: CL.td, marginBottom: 4 }}>The easy path. He stays happy. Your party stays stable. But corruption rises and the people notice.</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: CL.org, marginBottom: 3 }}>🤝 Give {gf.nm.split(" ").pop()} What He Wants</div>
+                <div style={{ fontSize: 9.5, color: CL.td, marginBottom: 4 }}>The easy path. He stays happy. Party stays stable. But corruption rises.</div>
                 <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
                   {godfatherDemand.acceptFx.corM && <Bg text={"+" + Math.round(godfatherDemand.acceptFx.corM * 100) + "% corruption"} color={CL.red} />}
                   {godfatherDemand.acceptFx.pStab && <Bg text={"+" + godfatherDemand.acceptFx.pStab + " party"} color={CL.grn} />}
@@ -2695,29 +2764,35 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
               </Cd>
 
               <Cd onClick={() => {
+                const aggrMult = gf.aggression > 70 ? 1.5 : gf.aggression > 50 ? 1.2 : 1;
                 setS(p => {
                   const n = { ...p };
-                  if (godfatherDemand.rejectFx.pStab) n.pStab = cl100(n.pStab + godfatherDemand.rejectFx.pStab);
+                  if (godfatherDemand.rejectFx.pStab) n.pStab = cl100(n.pStab + Math.round(godfatherDemand.rejectFx.pStab * aggrMult));
                   if (godfatherDemand.rejectFx.app) n.app = cl100(n.app + (godfatherDemand.rejectFx.app || 0));
                   return n;
                 });
                 setGodfatherRel(r2 => Math.max(0, r2 - 20));
                 setGodfatherPower(p => Math.max(0, p - 10));
-                addL("🎩 " + godfatherDemand.rejectLog + " He's mobilizing against you.", "political");
-                setGodfatherDemand(null);
-                nextEvent();
+                const retaliation = gf.aggression > 70 ? " He's making phone calls. Expect House of Assembly trouble." : gf.aggression > 50 ? " He's unhappy but calculating his next move." : " He retreats — for now.";
+                addL("🎩 " + gf.nm + ": " + godfatherDemand.rejectLog + retaliation, "political");
+                showResult({ icon: "✊", title: "You Defied " + gf.nm, narrative: "\"You think you can govern without me?\" " + gf.nm.split(" ").pop() + " stands. " + (gf.aggression > 70 ? "His eyes are cold. 'I made you, Governor. I can unmake you.' He storms out. Your phone will ring all night — he's already working the Assembly members." : gf.aggression > 50 ? "He's quiet. That's worse than shouting. He leaves without shaking your hand." : "He shrugs. 'We'll see.' He's not happy but he's not at war — yet."), effects: [
+                  { icon: "🏛️", text: "Party stability hit" + (aggrMult > 1 ? " (aggression ×" + aggrMult + ")" : ""), value: Math.round(godfatherDemand.rejectFx.pStab * aggrMult), bad: true },
+                  godfatherDemand.rejectFx.app > 0 ? { icon: "📈", text: "Public approves your stand", value: "+" + godfatherDemand.rejectFx.app, good: true } : null,
+                  { icon: "💔", text: "Godfather relationship", value: "-20", bad: true },
+                  { icon: "📉", text: "His power weakened", value: "-10", good: true },
+                ].filter(Boolean), tone: gf.aggression > 70 ? "bad" : "neutral", nextFn: () => { setGodfatherDemand(null); nextEvent(); } });
               }} style={{ padding: 12 }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: CL.grn, marginBottom: 3 }}>✊ Refuse</div>
-                <div style={{ fontSize: 9.5, color: CL.td, marginBottom: 4 }}>Stand on principle. He'll fund your opposition and destabilize your party. But your integrity stays intact.</div>
+                <div style={{ fontWeight: 600, fontSize: 13, color: CL.grn, marginBottom: 3 }}>✊ Refuse {gf.nm.split(" ").pop()}</div>
+                <div style={{ fontSize: 9.5, color: CL.td, marginBottom: 4 }}>Stand on principle. He'll destabilize your party. {gf.aggression > 70 ? "WARNING: He is VERY aggressive. Party damage will be severe." : "His retaliation will be proportional to his aggression."}</div>
                 <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
-                  {godfatherDemand.rejectFx.pStab && <Bg text={godfatherDemand.rejectFx.pStab + " party"} color={CL.red} />}
-                  {godfatherDemand.rejectFx.app && godfatherDemand.rejectFx.app > 0 && <Bg text={"+" + godfatherDemand.rejectFx.app + " approval"} color={CL.grn} />}
+                  {godfatherDemand.rejectFx.pStab && <Bg text={Math.round(godfatherDemand.rejectFx.pStab * (gf.aggression > 70 ? 1.5 : gf.aggression > 50 ? 1.2 : 1)) + " party"} color={CL.red} />}
+                  {godfatherDemand.rejectFx.app > 0 && <Bg text={"+" + godfatherDemand.rejectFx.app + " approval"} color={CL.grn} />}
                   <Bg text="-20 relationship" color={CL.red} />
-                  <Bg text="-10 his power" color={CL.grn} />
                 </div>
               </Cd>
             </div>
-          </Cd>}
+          </Cd>;
+          })()}
         </OL>
 
         <OL show={phase === "nic_ruling" && !!nicPending}>
@@ -3366,8 +3441,18 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
                 });
                 setSkApp(p => { const n = { ...p }; Object.entries(curInvite.goSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
                 addL("🌍 " + curInvite.goLog, "policy");
+                const goEffects = [];
+                if (curInvite.goFx.igr) goEffects.push({ icon: "💰", text: "IGR boosted", value: "+₦" + curInvite.goFx.igr + "B", good: true });
+                if (curInvite.goFx.app) goEffects.push({ icon: "📈", text: "Approval rises", value: "+" + curInvite.goFx.app + "%", good: true });
+                if (curInvite.goFx.infra) goEffects.push({ icon: "🏗️", text: "Infrastructure improved", value: "+" + Math.round(curInvite.goFx.infra * 100) + "%", good: true });
+                if (curInvite.goFx.lit) goEffects.push({ icon: "📚", text: "Education improved", good: true });
+                if (curInvite.goFx.hp) goEffects.push({ icon: "🏥", text: "Health improved", good: true });
+                if (curInvite.goFx.agr) goEffects.push({ icon: "🌾", text: "Agriculture improved", good: true });
+                if (curInvite.goCost) goEffects.push({ icon: "💸", text: "Travel costs", value: "₦" + curInvite.goCost + "B", bad: true });
+                Object.entries(curInvite.goSk || {}).forEach(([k, v]) => { if (v > 0) goEffects.push({ icon: "👥", text: k + " stakeholders pleased", value: "+" + v, good: true }); });
+                const invRef = curInvite;
                 setCurInvite(null);
-                nextEvent();
+                showResult({ icon: invRef.icon, title: "International Visit — " + invRef.from.split(",")[0], narrative: invRef.goLog + " Your personal presence opened doors that a delegation never could. International media covered your visit, boosting your state's global profile.", effects: goEffects, tone: "good", nextFn: () => nextEvent() });
               }} style={{ padding: 12 }}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: CL.grn, marginBottom: 3 }}>✈️ Go in Person</div>
                 <div style={{ fontSize: 9.5, color: CL.td, marginBottom: 4 }}>Represent your state at the highest level. Personal presence opens doors that delegations cannot.</div>
@@ -3389,8 +3474,12 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
                 });
                 setSkApp(p => { const n = { ...p }; Object.entries(curInvite.delSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
                 addL("📤 " + curInvite.delLog, "political");
+                const delEffects = [{ icon: "📤", text: "Delegation sent — reduced impact", bad: true }];
+                if (curInvite.delFx.app) delEffects.push({ icon: curInvite.delFx.app > 0 ? "📈" : "📉", text: "Approval", value: (curInvite.delFx.app > 0 ? "+" : "") + curInvite.delFx.app + "%", good: curInvite.delFx.app > 0 });
+                Object.entries(curInvite.delSk || {}).forEach(([k, v]) => { delEffects.push({ icon: "👥", text: k + " stakeholders", value: (v > 0 ? "+" : "") + v, good: v > 0, bad: v < 0 }); });
+                const invRef2 = curInvite;
                 setCurInvite(null);
-                nextEvent();
+                showResult({ icon: "📤", title: "Delegation Sent — " + invRef2.from.split(",")[0], narrative: invRef2.delLog + " Your deputy represented the state adequately, but some doors that would have opened for a sitting governor remained closed.", effects: delEffects, tone: "neutral", nextFn: () => nextEvent() });
               }} style={{ padding: 12 }}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: CL.blu, marginBottom: 3 }}>📤 Send a Delegation</div>
                 <div style={{ fontSize: 9.5, color: CL.td, marginBottom: 4 }}>Your deputy or commissioner attends on your behalf. You stay focused on governance. Some doors stay closed.</div>
@@ -3408,8 +3497,12 @@ const GovScreen = ({ setup, onEnd, onHelp, loadedSave }) => {
                 });
                 setSkApp(p => { const n = { ...p }; Object.entries(curInvite.decSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
                 addL("❌ " + curInvite.decLog, "political");
+                const decEffects = [{ icon: "❌", text: "Invitation declined", bad: true }];
+                if (curInvite.decFx.app) decEffects.push({ icon: "📉", text: "Approval", value: curInvite.decFx.app + "%", bad: true });
+                Object.entries(curInvite.decSk || {}).forEach(([k, v]) => { decEffects.push({ icon: "⚠️", text: k + " stakeholders", value: v, bad: v < 0 }); });
+                const invRef3 = curInvite;
                 setCurInvite(null);
-                nextEvent();
+                showResult({ icon: "❌", title: "Declined — " + invRef3.from.split(",")[0], narrative: invRef3.decLog + " Some see focus. Others see a missed opportunity for your state.", effects: decEffects, tone: "bad", nextFn: () => nextEvent() });
               }} style={{ padding: 12, borderColor: CL.bdr }}>
                 <div style={{ fontWeight: 600, fontSize: 13, color: CL.org, marginBottom: 3 }}>❌ Decline</div>
                 <div style={{ fontSize: 9.5, color: CL.td, marginBottom: 4 }}>"I have a state to run." Some will respect the focus. Others will see a missed opportunity.</div>
