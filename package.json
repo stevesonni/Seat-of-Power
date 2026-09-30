@@ -4,9 +4,10 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "dev": "vite dev",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "dev": "vite build -c vite.game.config.ts && vite dev",
+    "build:game": "vite build -c vite.game.config.ts",
+    "build": "vite build -c vite.game.config.ts && vite build",
+    "build:dev": "vite build -c vite.game.config.ts && vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
@@ -80,6 +81,8 @@
     "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
     "prettier": "^3.7.3",
+    "react-dom18": "npm:react-dom@18.2.0",
+    "react18": "npm:react@18.2.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1"
