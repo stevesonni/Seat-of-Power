@@ -2596,7 +2596,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   const [appH, setAppH] = useState(ld?.appH || [55]);
   const [pApp, setPApp] = useState(() => ld?.pApp || Object.fromEntries(PERSONAS.map(p => [p.id, 50])));
-  const [skApp, setSkApp] = useState(() => {
+  const lastAct = React.useRef(null);       // the latest news line, set by addL
+  const skBlame = React.useRef({});         // stakeholder -> { turn, what } that last cut their support
+  const skCrisisSeen = React.useRef(new Set());
+  const [skApp, _setSkApp] = useState(() => {
     if (ld?.skApp) return ld.skApp;
     const base = Object.fromEntries(STAKEHOLDERS.map(x => [x.id, x.b]));
     if (!partyAccepted) { base.party = 35; }
@@ -2724,6 +2727,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       SNAMES: window.SNAMES_PATCHED || null, CL: window.CL_REF || null, F: window.F_REF || null,
       ledger: window.SOP_LEDGER ? window.SOP_LEDGER.all() : [],
       ledgerAppend: (entry) => (window.SOP_LEDGER ? window.SOP_LEDGER.append(entry) : null),
+      story: () => story(),
       gEnd, setTurn,
       federalAlignment: fgRelation > 65,
       desk: desk.current,
@@ -2770,7 +2774,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const termNum = turn <= 4 ? 1 : 2;
   const termTurn = turn <= 4 ? turn : turn - 4;
   const yr = (termNum === 1 ? "1st Term" : "2nd Term") + " — Year " + Math.ceil(termTurn / 2) + ", " + (termTurn % 2 === 1 ? "H1" : "H2");
-  const addL = (tx, tp = "info") => { setLogs(p => [{ t: turn, tx, tp }, ...p].slice(0, 40)); try { window.SOP && (window.SOP._lastLog = { t: turn, tx, tp }); window.dispatchEvent(new CustomEvent('sop-log', { detail: { t: turn, tx, tp } })); } catch(e){} };
+  const setSkApp = (u) => _setSkApp(prev => {
+    const next = typeof u === "function" ? u(prev) : u;
+    try { Object.keys(next || {}).forEach(k => { if ((next[k] || 0) < (prev[k] || 0) - 0.5 && lastAct.current) skBlame.current[k] = lastAct.current; }); } catch (e) {}
+    return next;
+  });
+  const efccSaid = React.useRef(new Set());
+  const efccCause = () => { try { const M = window.SOP_MEMORY; const e = M && M.did(["godfather_contract", "nepotism_flag", "house_deal", "budget_forced", "press_suppression", "contract_awarded"], x => (x.corruptionDelta || 0) > 0 || /godfather|nepotism|house_deal|budget_forced|press/.test(x.kind)); return e ? " The file starts with \u201c" + String(e.kind === "godfather_contract" && e.note && !/^DAY/.test(e.location || "") ? "Gave " + cast.godfather.name + " what he wanted: " + e.note : (e.decision || e.note || e.kind)).replace(/^[^A-Za-z0-9"\u201c₦]+/u, "").slice(0, 100) + "\u201d (turn " + e.t + ")." : " Investigators cite corruption at " + Math.round((s.cor || 0) * 100) + "%."; } catch (e) { return ""; } };
+  const blameOf = (k) => { const b = skBlame.current[k]; return b ? " They point to \u201c" + String(b.what).replace(/^[^A-Za-z0-9"\u201c₦]+/u, "").slice(0, 110) + "\u201d (turn " + b.turn + ")." : ""; };
+  const addL = (tx, tp = "info") => { if (tp !== "info" && tp !== "crisis" && tp !== "success") lastAct.current = { turn, what: tx }; setLogs(p => [{ t: turn, tx, tp }, ...p].slice(0, 40)); try { window.SOP && (window.SOP._lastLog = { t: turn, tx, tp }); window.dispatchEvent(new CustomEvent('sop-log', { detail: { t: turn, tx, tp } })); } catch(e){} };
   const goTab = (k) => setNav(k);
   const fireAdviser = () => {
     if (!saOffice.adviser) { setSaPickerOpen(true); return; }
@@ -2997,20 +3009,24 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   // Judiciary — can trigger after certain actions
+  // Each case comes to court once a game, and says what started it.
+  const judSeen = React.useRef(new Set());
+  const courtDone = (ev) => { if (judSeen.current.has(ev.id)) return true; try { return !!(window.SOP_MEMORY && window.SOP_MEMORY.did(["court_compliance", "court_defiance", "court_appeal"], e => e.target === ev.nm)); } catch (e) { return false; } };
+  const openCourt = (ev) => { judSeen.current.add(ev.id); setJudEvent(ev); return true; };
   const checkJudiciary = () => {
     const r = rng(turn * 333 + Date.now() % 5000);
-    if (forcedBudget && r() < .4) {
-      setJudEvent({ ...JUDICIARY_EVENTS[0], penalty: { pStab: -8, app: -3 } });
-      return true;
+    const M = window.SOP_MEMORY;
+    if (forcedBudget && !courtDone(JUDICIARY_EVENTS[0]) && r() < .4) {
+      const f = M && M.did("budget_forced");
+      return openCourt({ ...JUDICIARY_EVENTS[0], penalty: { pStab: -8, app: -3 }, cause: "You forced the budget through without the House" + (f ? " in turn " + f.t : "") + "." });
     }
-    if (s.cor > .4 && r() < .3) {
-      setJudEvent({ ...JUDICIARY_EVENTS[1], penalty: { corM: -.02, app: -4 } });
-      return true;
+    if (s.cor > .4 && !courtDone(JUDICIARY_EVENTS[1]) && r() < .3) {
+      const land = M && (M.did("godfather_contract") || M.did("contract_awarded") || M.did("nepotism_flag"));
+      return openCourt({ ...JUDICIARY_EVENTS[1], penalty: { corM: -.02, app: -4 }, cause: land ? "Filed after " + String(land.decision || land.note || "a contract you approved").replace(/\.$/, "") + " (turn " + land.t + ")." : "Filed because corruption in your government is at " + Math.round(s.cor * 100) + "%." });
     }
-    if (pol.length > 2 && r() < .15) {
+    if (pol.length > 2 && !courtDone(JUDICIARY_EVENTS[2]) && r() < .15) {
       const target = pol[Math.floor(r() * pol.length)];
-      setJudEvent({ ...JUDICIARY_EVENTS[2], penalty: { app: -2 }, target: target?.nm });
-      return true;
+      return openCourt({ ...JUDICIARY_EVENTS[2], penalty: { app: -2 }, target: target?.nm, cause: "Filed against the " + String(target?.nm || "policy").replace(/^⭐\s*/, "") + ", which you enacted." });
     }
     return false;
   };
@@ -3067,6 +3083,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setS(p => { let n = { ...p }; Object.entries(ch.fx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (n[k] !== undefined) n[k] = cl(n[k] + v); }); if (ch.dc) n.debt += ch.dc; return n; });
     setSkApp(p => { const n = { ...p }; Object.entries(ch.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
     addL("⚖️ " + curD.nm + " → " + ch.l, "dilemma");
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "dilemma_choice", actor: "governor", gravity: 1, evidence: 2, decision: curD.nm + ": " + ch.l, note: ch.rk || "", meta: { id: curD.id } }); } catch (e) {}
     const effects = [];
     if (ch.fx?.app) effects.push({ icon: ch.fx.app > 0 ? "📈" : "📉", text: "Approval " + (ch.fx.app > 0 ? "rises" : "drops"), value: (ch.fx.app > 0 ? "+" : "") + ch.fx.app + "%", good: ch.fx.app > 0, bad: ch.fx.app < 0 });
     if (ch.fx?.sec) effects.push({ icon: "🛡️", text: "Security " + (ch.fx.sec > 0 ? "improved" : "weakened"), value: (ch.fx.sec > 0 ? "+" : "") + Math.round(ch.fx.sec * 100) + "%", good: ch.fx.sec > 0, bad: ch.fx.sec < 0 });
@@ -3242,7 +3259,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // 2. Corruption drag
       if (n.cor > .40) n.app = cl100(n.app - 2 * _D.corMul);
       if (n.cor > .55) n.app = cl100(n.app - 3 * _D.corMul);
-      if (n.cor > .70) { n.app = cl100(n.app - 3); addL("💀 EFCC chairman names your state in a public briefing on 'concerning patterns'.", "scandal"); }
+      if (n.cor > .70) { n.app = cl100(n.app - 3); if (!efccSaid.current.has("briefing")) { efccSaid.current.add("briefing"); addL("💀 EFCC chairman names your state in a public briefing on 'concerning patterns'." + efccCause(), "scandal"); } }
       // 3. Insecurity drag
       if (n.sec < .35) n.app = cl100(n.app - 2 * _D.secMul);
       if (n.sec < .20) { n.app = cl100(n.app - 3); addL("🪖 Mass casualty incident reported. National media camped at Government House.", "crisis"); }
@@ -3304,7 +3321,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // ASUU/NLC/NUT strike threat
       if (Math.random() < _D.shockP * .25) {
         n.app = cl100(n.app - 3); n.pStab = cl100(n.pStab - 4);
-        _shocks.push({ t: "✊ NLC declares 3-day warning strike over unpaid salaries & subsidy. Workers down tools.", k: "crisis" });
+        const lastBud = (() => { try { return window.SOP_MEMORY && window.SOP_MEMORY.did("budget_passed"); } catch (e) { return null; } })();
+        const salShare = lastBud && lastBud.meta && lastBud.meta.bud ? lastBud.meta.bud.salaries : bud.salaries;
+        _shocks.push({ t: "✊ NLC declares 3-day warning strike over unpaid salaries & subsidy. Workers down tools." + (salShare != null && salShare < 18 ? " The union says salaries got only " + salShare + "% of your last budget." : " The union cites food prices; salaries got " + salShare + "% of your last budget."), k: "crisis" });
       }
       // ASUU strike (state university)
       if (Math.random() < _D.shockP * .2 && n.lit < .65) {
@@ -3324,7 +3343,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // EFCC/ICPC probe scales with corruption + low FG relations
       if (n.cor > .35 && Math.random() < _D.shockP * (n.cor + (fgRelation < 40 ? .25 : 0))) {
         n.app = cl100(n.app - 4); n.pStab = cl100(n.pStab - 5);
-        _shocks.push({ t: "🚨 EFCC operatives raid Government House annex. Documents carted away. Front-page nationwide.", k: "scandal" });
+        if (!efccSaid.current.has("raid")) { efccSaid.current.add("raid"); _shocks.push({ t: "🚨 EFCC operatives raid Government House annex. Documents carted away. Front-page nationwide." + efccCause(), k: "scandal" }); }
       }
       // Godfather pressure intensifies on hard
       if (_lv === "hard" && godfatherPower > 30 && Math.random() < .25) {
@@ -3540,14 +3559,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     // Crisis triggers for very low stakeholders — WITH TRUST NETWORK CASCADE
     skEntries.forEach(([k, v]) => {
-      if (v < 30) {
-        if (k === "media") { setS(p => ({ ...p, app: cl100(p.app - 4) })); addL("📰 MEDIA CRISIS: Damning exposé published. -4 approval.", "crisis"); }
-        if (k === "business") { setS(p => ({ ...p, igr: p.igr - 0.5 })); addL("📉 BUSINESS PULLOUT: Investors withdraw ₦0.5B from " + state.replace("_", " ") + ".", "crisis"); }
-        if (k === "unions") { setS(p => ({ ...p, app: cl100(p.app - 5) })); addL("✊ WORKERS STRIKE: Government services paralyzed. -5 approval.", "crisis"); }
-        if (k === "traditional") { setS(p => ({ ...p, pStab: cl100(p.pStab - 6) })); addL("👑 ROYAL SNUB: Traditional rulers boycott government events. -6 party.", "crisis"); }
-        if (k === "party") { setS(p => ({ ...p, pStab: cl100(p.pStab - 8) })); addL("🏛️ PARTY REVOLT: Factions threaten to destabilize " + party + ". -8 party.", "crisis"); }
-        if (k === "youth") { setS(p => ({ ...p, app: cl100(p.app - 3), sec: cl(p.sec - .01) })); addL("🔥 YOUTH PROTEST: Streets blocked across 5 LGAs. -3 approval.", "crisis"); }
-        if (k === "religious") { setS(p => ({ ...p, app: cl100(p.app - 3) })); addL("🕌 RELIGIOUS DENOUNCEMENT: Clerics call governor 'wicked'. -3 approval.", "crisis"); }
+      const crisisKey = k + ":" + (turn <= 4 ? 1 : 2);
+      if (v < 30 && !skCrisisSeen.current.has(crisisKey)) {
+        skCrisisSeen.current.add(crisisKey);
+        if (k === "media") { setS(p => ({ ...p, app: cl100(p.app - 4) })); addL("📰 MEDIA CRISIS: Damning exposé published. -4 approval." + blameOf("media"), "crisis"); }
+        if (k === "business") { setS(p => ({ ...p, igr: p.igr - 0.5 })); addL("📉 BUSINESS PULLOUT: Investors withdraw ₦0.5B from " + state.replace("_", " ") + "." + blameOf("business"), "crisis"); }
+        if (k === "unions") { setS(p => ({ ...p, app: cl100(p.app - 5) })); addL("✊ WORKERS STRIKE: Government services paralyzed. -5 approval." + blameOf("unions"), "crisis"); }
+        if (k === "traditional") { setS(p => ({ ...p, pStab: cl100(p.pStab - 6) })); addL("👑 ROYAL SNUB: Traditional rulers boycott government events. -6 party." + blameOf("traditional"), "crisis"); }
+        if (k === "party") { setS(p => ({ ...p, pStab: cl100(p.pStab - 8) })); addL("🏛️ PARTY REVOLT: Factions threaten to destabilize " + party + ". -8 party." + blameOf("party"), "crisis"); }
+        if (k === "youth") { setS(p => ({ ...p, app: cl100(p.app - 3), sec: cl(p.sec - .01) })); addL("🔥 YOUTH PROTEST: Streets blocked across 5 LGAs. -3 approval." + blameOf("youth"), "crisis"); }
+        if (k === "religious") { setS(p => ({ ...p, app: cl100(p.app - 3) })); addL("🕌 RELIGIOUS DENOUNCEMENT: Clerics call governor 'wicked'. -3 approval." + blameOf("religious"), "crisis"); }
         // TRUST CASCADE — one stakeholder crisis pulls others down
         setSkApp(p => {
           const cascaded = applyCascade(p, k, -(30 - v));
@@ -3626,7 +3647,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (s.econ?.manufacturing?.out > .4) hlOpts.push("INDUSTRIAL REVOLUTION: " + state.replace("_", " ") + " manufacturing sector booming");
     if (s.econ?.tech?.out > .25) hlOpts.push("TECH HUB: " + state.replace("_", " ") + " emerges as technology destination");
     if (hlOpts.length === 0) hlOpts.push(state.replace("_", " ").toUpperCase() + " WATCH: What is the governor up to?");
-    setHeadline(hlOpts[Math.floor(Math.random() * hlOpts.length)]);
+    // What the governor promised comes first: the flagship's yearly verdict, then
+    // a resident on a policy you took.
+    const hlFirst = [];
+    try {
+      const M = window.SOP_MEMORY, FG = FLAGSHIP[setup?.agenda];
+      const fm = M && M.did("flagship_milestone", e => e.t === turn);
+      if (fm && FG) hlFirst.push(fm.meta && fm.meta.delivered ? (fm.meta.corners ? "ON PAPER: " + FG.nm + " target \u201cmet\u201d, but the work is thin" : "PROMISE KEPT: " + FG.nm + " meets this year's target") : "BROKEN PROMISE? " + FG.nm + " target missed. \u201c" + (setup?.slogan || "") + "\u201d rings hollow");
+      const ec = M && M.did("policy_echo", e => e.t === turn);
+      if (ec) hlFirst.push("ON THE GROUND: " + String(ec.decision || "").replace(/^Reaction to /, "") + ", in residents' words");
+    } catch (e) {}
+    setHeadline(hlFirst[0] || hlOpts[Math.floor(Math.random() * hlOpts.length)]);
 
     // Achievements: no list of them exists yet. The old check referenced an
     // undefined ACHIEVEMENTS and threw here, skipping the bankruptcy,
@@ -3775,6 +3806,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     } catch (e) {}
   };
 
+  // ── THE STORY, from one place ──
+  // Slogan, flagship (and its record), party, deputy and the key decisions,
+  // read from the setup and the ledger. News, the adviser, bills, the wiki
+  // and the ending all use this, and modules read it as window.SOP.story().
+  const FLAG_KEYS = { education: /school|educat|teacher|pupil/i, health: /health|hospital|clinic|pension|caesarean/i, infrastructure: /road|infra|market|works|bridge|water/i, security: /secur|police|vigilan|guard|amotekun/i, agriculture: /farm|agric|grazing|irrigat|ranch/i, anticorruption: /corrupt|fiscal|audit|procure|transparen/i, youth: /youth|employ|job/i, women: /women|girl|gender/i, technology: /digital|tech|broadband|online/i, housing: /housing|land|estate/i };
+  const touchesFlagship = (txt) => { const k = FLAG_KEYS[setup?.agenda]; return !!(k && k.test(String(txt || ""))); };
+  const story = () => {
+    const M = window.SOP_MEMORY; const L = (() => { try { return M ? M.all() : []; } catch (e) { return []; } })();
+    const flag = FLAGSHIP[setup?.agenda];
+    const fm = L.filter(e => e.kind === "flagship_milestone");
+    const met = fm.filter(e => e.meta && e.meta.delivered).length;
+    const key = L.filter(e => e.gravity >= 2 && e.decision && !/^Reaction to /.test(e.decision)).slice(-4).map(e => ({ t: e.t, what: String(e.decision).replace(/^[^A-Za-z0-9"\u201c₦]+/u, "") }));
+    return { governor: pName, state: state.replace(/_/g, " "), party, partyName: PARTIES.find(x => x.id === party)?.nm || party, deputy: depGov?.nm || null, slogan: setup?.slogan || null, flagship: flag ? { ...flag, id: setup.agenda, targets: fm.length, met } : null, keyDecisions: key, election: setup?.election || null };
+  };
+
   // ── THE WIKIPEDIA ARTICLE, from the record ──
   const buildWiki = (final) => {
     const M = window.SOP_MEMORY;
@@ -3782,9 +3828,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const stName = state.replace(/_/g, " ");
     const fem = setup?.avatar === "female";
     const He = fem ? "She" : "He", he = fem ? "she" : "he", his = fem ? "her" : "his", His = fem ? "Her" : "His", him = fem ? "her" : "him";
-    // Sworn in May 2027: turn 1 is the half-year to November 2027, turn 2 to May 2028.
-    const yearOf = (t) => 2027 + Math.floor((t || 1) / 2);
-    const whenOf = (t) => (((t || 1) % 2) === 1 ? "November" : "May") + " " + yearOf(t);
+    // Eight turns make two four-year terms, so a turn is a year of the
+    // calendar: sworn in May 2027, turn 1 runs to May 2028.
+    const yearOf = (t) => 2026 + (t || 1);
+    const whenOf = (t) => "November " + yearOf(t);
     const paper = "The " + stName + " Daily Tribune";
     const pa = PARTIES.find(x => x.id === party);
     const flag = FLAGSHIP[setup?.agenda];
@@ -3797,7 +3844,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (refKey[key]) return { ref: refKey[key] };
       const t = (e && e.t) || turn;
       const log = e && logs.find(l => l.t === t && ((e.target && l.tx.includes(e.target)) || (e.decision && l.tx.toLowerCase().includes(String(e.decision).toLowerCase().slice(0, 18)))));
-      const head = plain(log ? log.tx : (e ? (e.decision || e.note || e.kind) + (e.note && e.decision ? ": " + e.note : "") : fallbackHead));
+      const body = e ? (/^DAY \d+ — /.test(e.location || "") ? e.location.replace(/^DAY (\d+) — /, "Day $1: ") + ". The governor chose: " + e.decision : e.note && e.decision && String(e.note).indexOf(String(e.decision).slice(0, 20)) < 0 ? e.decision + ": " + e.note : (e.note || e.decision || e.kind)) : fallbackHead;
+      const head = plain(log ? log.tx : body);
       const n = refs.length + 1; refKey[key] = n;
       refs.push({ n, head: head.replace(/[.\s]+$/, ""), src: e && /court|unconst/.test(e.kind || "") ? "State House Report" : paper, when: whenOf(t) });
       return { ref: n };
@@ -3814,7 +3862,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const courts = ofKind(["court_compliance", "court_appeal"]);
     const startYear = 2027;
     const ended = final && gEnd;
-    const endYear = yearOf(turn);
+    const endYear = gEnd === "complete" ? 2035 : (gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid") ? (turn <= 4 ? 2031 : 2035) : yearOf(turn);
     const ini = (n) => String(n || "").replace(/^(Hon\.|Chief|Rt\. Hon\.|Dr\.|Comrade)\s+/, "");
     const pre = "Chief " + gN(rng(state.length * 991 + 5), sd?.zone, state);
     const successor = !ended ? "Incumbent" : gEnd === "defeated" ? ini(cast.rival.name) : gEnd === "impeached" ? (depGov?.nm || "Deputy governor") : gN(rng(state.length * 733 + turn), sd?.zone, state);
@@ -3896,7 +3944,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       title: pName, stub: !final && turn <= 2, startYear,
       portrait: av ? AVATAR_IMGS[av.id] : null,
       office: "Governor of " + stName + " State",
-      inOffice: "In office · 29 May " + startYear + " – " + (ended ? (gEnd === "complete" ? "29 May " + (startYear + 8) : endYear) : "present"),
+      inOffice: "In office · 29 May " + startYear + " – " + (ended ? (endYear === 2031 || endYear === 2035 ? "29 May " + endYear : endYear) : "present"),
       rows: [["Deputy", depGov?.nm || "—"], ["Preceded by", pre], ["Succeeded by", successor], ["Political party", pa?.nm || party], ["Term", termStr]].concat(flag ? [["Flagship", flag.nm]] : []).concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
       lead, sections, refs,
       cats: ["Governors of " + stName + " State", (pa?.nm || party) + " politicians", "Living people"].concat(gEnd === "impeached" ? ["Impeached Nigerian governors"] : []),
@@ -4067,6 +4115,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (judTrigger) {
         const jd = { ...judTrigger };
         jd.desc = jd.desc.replace("{company}", investorsApproved.length > 0 ? (INVESTORS.find(inv => inv.id === investorsApproved[investorsApproved.length - 1])?.co || "the investor") : "the company").replace("{corruption}", Math.round(s.cor * 100)).replace("{policy}", pol.length > 0 ? pol[0].nm : "your");
+        jd.cause = jd.id === "jud_land" ? "You approved " + (INVESTORS.find(inv => inv.id === investorsApproved[investorsApproved.length - 1])?.nm || "an investor's land deal") + "." : jd.id === "jud_budget" ? "You forced the budget through without the House." : jd.id === "jud_corrupt" ? "Corruption in your government reached " + Math.round(s.cor * 100) + "%." : jd.id === "jud_policy" ? "You enacted " + pol.slice(-1).map(x => x.nm.replace(/^⭐\s*/, ""))[0] + "." : jd.id === "jud_mining" ? "You approved the gold mining operation." : "";
         setCurCourt(jd);
         setCourtStage(0);
         setCourtsSeen(p => [...p, jd.id]);
@@ -4104,12 +4153,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                        : s.cor > 0.45 ? ["corruption","scandal","land","contract"]
                        : s.app < 40 ? ["labour","strike","protest","salary"]
                        : null;
-      let pool = ALL_DILEMMAS;
+      const faced = new Set(); try { (window.SOP_MEMORY ? window.SOP_MEMORY.all("dilemma_choice") : []).forEach(e => e.meta && faced.add(e.meta.id)); } catch (e) {}
+      logs.filter(l => l.tp === "dilemma").forEach(l => { const d0 = ALL_DILEMMAS.find(d => l.tx.indexOf(d.nm + " →") >= 0); if (d0) faced.add(d0.id); });
+      const fresh = ALL_DILEMMAS.filter(d => !faced.has(d.id));
+      let pool = fresh;
       if (themePref) {
-        const filt = ALL_DILEMMAS.filter(d => themePref.some(t => ((d.nm||"") + " " + (d.d||"") + " " + (d.id||"")).toLowerCase().includes(t)));
+        const filt = fresh.filter(d => themePref.some(t => ((d.nm||"") + " " + (d.d||"") + " " + (d.id||"")).toLowerCase().includes(t)));
         if (filt.length) pool = filt;
       }
-      setCurD(pick(pool, rE)); q.push("dilemma");
+      if (pool.length) { setCurD(pick(pool, rE)); q.push("dilemma"); }
     }
 
     // Module cards join after the core events, minus duplicates.
@@ -4318,6 +4370,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <Cd style={{ minWidth: 192, textAlign: "center" }}><div style={{ fontSize: TS(72), fontFamily: F.m, color: s.app > 50 ? CL.grn : CL.red }}>{Math.round(s.app)}%</div><div style={{ fontSize: TS(29), color: CL.td }}>APPROVAL</div></Cd>
           </div>
           <Spark data={appH} color={s.app > 50 ? CL.grn : CL.red} w={180} h={32} />
+          {(() => { const st0 = story(); return <Cd style={{ textAlign: "left", margin: "29px auto 0", maxWidth: 900 }}>
+            <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 10 }}>YOUR STORY</div>
+            <div style={{ fontSize: TS(34), color: CL.txt, lineHeight: 1.5 }}>
+              You ran for the {st0.partyName} with {st0.deputy || "your deputy"} on the slogan “{st0.slogan}”{st0.election ? ", and beat " + String(st0.election.opp).replace(/^Hon\. /, "") + " in " + st0.election.zonesWon + " of 3 districts" : ""}.
+              {st0.flagship ? " You promised " + st0.flagship.nm + ": " + (st0.flagship.targets ? st0.flagship.met + " of " + st0.flagship.targets + " yearly targets met." : "no yearly target was ever judged.") : ""}
+            </div>
+            {st0.keyDecisions.length > 0 && <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10 }}>Decisions people remember: {st0.keyDecisions.map(k => k.what).join(" · ")}</div>}
+          </Cd>; })()}
           <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "43px 0" }}>
             <Bt onClick={() => setShowWiki(true)}>📖 Wikipedia Bio</Bt>
             <Bt onClick={() => navigator.clipboard?.writeText(shareT)} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>
@@ -4542,20 +4602,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <Bg text={stage} color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curCourt.title}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curCourt.desc}</p>
+                {curCourt.cause && <p style={{ color: CL.txt, fontSize: TS(34), textAlign: "left", marginBottom: 14 }}><b>Why this case:</b> {curCourt.cause}</p>}
                 <div style={{ background: CL.pur + "08", borderRadius: 8, padding: "14px 29px", marginBottom: 29, fontSize: TS(34), color: CL.pur }}>📖 Statute: {curCourt.statute}</div>
               </div>
               <div style={{ display: "grid", gap: 22 }}>
                 {/* Fight the case */}
                 <Cd onClick={() => {
                   if (won) {
-                    addL("⚖️ " + stage + ": CASE DISMISSED! Court ruled in your favour.", "policy");
+                    addL("⚖️ " + stage + " on " + curCourt.title.replace(/^[^A-Za-z]+/u, "") + ": CASE DISMISSED! Court ruled in your favour.", "policy");
                     showResult({ icon: "⚖️", title: stage + " — You Win!", narrative: "The court dismissed the case. Your administration's position is upheld. But the legal challenge sent a signal — people are watching.", effects: [
                       { icon: "✅", text: "Case dismissed in your favour", value: "WON", good: true },
                       { icon: "📈", text: "Legal vindication boosts confidence", value: "+3 approval", good: true },
                     ], tone: "good", nextFn: () => { setCurCourt(null); setCourtStage(0); setS(p => ({ ...p, app: cl100(p.app + 3) })); nextEvent(); } });
                   } else {
                     if (courtStage < 2) {
-                      addL("⚖️ " + stage + ": RULING AGAINST YOU. " + (courtStage === 0 ? "You can appeal." : "Final appeal available at Supreme Court."), "crisis");
+                      addL("⚖️ " + stage + " on " + curCourt.title.replace(/^[^A-Za-z]+/u, "") + ": RULING AGAINST YOU. " + (courtStage === 0 ? "You can appeal." : "Final appeal available at Supreme Court."), "crisis");
                       showResult({ icon: "⚖️", title: stage + " — You Lose", narrative: "The court ruled against your administration citing " + curCourt.statute + ". You have the right to appeal to the " + stages[courtStage + 1] + ".", effects: [
                         { icon: "❌", text: "Court rules against you", value: "LOST", bad: true },
                         { icon: "📉", text: "Public confidence shaken", value: "-3 approval", bad: true },
@@ -4762,7 +4823,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <Bg text="Judicial Review" color={CL.pur} />
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{judEvent.nm}</h3>
             <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{judEvent.d}</p>
-            {judEvent.target && <p style={{ color: CL.org, fontSize: TS(36), marginBottom: 29 }}>Affected policy: {judEvent.target}</p>}
+            {judEvent.target && <p style={{ color: CL.org, fontSize: TS(36), marginBottom: 14 }}>Affected policy: {judEvent.target}</p>}
+            {judEvent.cause && <p style={{ color: CL.txt, fontSize: TS(34), marginBottom: 29 }}><b>Why this case:</b> {judEvent.cause}</p>}
             <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 43 }}>Under S.6 of the Constitution, the judiciary has power of review over executive actions. You must decide whether to comply or defy the ruling.</p>
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => resolveJudiciary(true)} style={{ padding: 36 }}>
@@ -4862,6 +4924,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22, textAlign: "left", maxWidth: 804, margin: "0 auto 36px" }}>
                 {gf.nm.split(" ").pop()} sits across from you in Government House. He doesn't ask — he tells. "{godfatherDemand.d}"
               </p>
+              {(() => { const M = window.SOP_MEMORY; if (!M) return null; let why = null; try { const owed = M.owed("godfather"); const refused = M.did("godfather_betrayal"); const took = M.did("godfather_contract"); why = owed.length ? "He says you still owe him " + owed[0].what + (owed[0].dueBy ? ", due by turn " + owed[0].dueBy : "") + "." : refused ? "He has not forgotten that you refused him in turn " + refused.t + "." : took ? "You gave him what he wanted in turn " + took.t + ". He has come back for more." : "He funded the party machine that put you on the ballot."; } catch (e) {} return why ? <p style={{ color: CL.txt, fontSize: TS(34), maxWidth: 804, margin: "0 auto 22px", textAlign: "left" }}><b>Why he is here:</b> {why}</p> : null; })()}
               <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 36 }}>In Nigerian politics, godfathers wield enormous backroom power. They fund campaigns, control party structures, and expect returns. Defying them has consequences — {gf.aggression > 70 ? "and " + gf.nm.split(" ").pop() + " is VERY aggressive when crossed." : gf.aggression > 50 ? "and " + gf.nm.split(" ").pop() + " will push back." : "though " + gf.nm.split(" ").pop() + " may be manageable."}</p>
             </div>
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
@@ -6253,6 +6316,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <Bg text="Bill from House of Assembly" color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{pendingHouseBill.nm}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22 }}>{pendingHouseBill.d}</p>
+                {touchesFlagship(pendingHouseBill.nm + " " + pendingHouseBill.d) && <p style={{ color: CL.grn, fontSize: TS(34), marginBottom: 22 }}>This touches your flagship, {FLAGSHIP[setup.agenda].nm}. Vetoing it will be read as walking back your own promise.</p>}
               </div>
 
               {hasClauses && <div style={{ textAlign: "left", margin: "0 auto 36px", maxWidth: 840 }}>
@@ -6748,7 +6812,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 addL={addL} />
             </Cd>}
             {phase === "policy" && <Cd>
-              <AdvBubble text={ADV.policy} saName={cast.adviser.name} />
+              <AdvBubble text={(() => { const st0 = story(); return st0.flagship ? "Your Excellency, you campaigned on \u201c" + (st0.slogan || "") + "\u201d and promised " + st0.flagship.nm + ". " + (st0.flagship.targets ? st0.flagship.met + " of " + st0.flagship.targets + " yearly targets met so far. " : "") + "Pick policies that serve it; each one is paid every half-year it runs." : ADV.policy; })()} saName={cast.adviser.name} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 8px", fontSize: TS(53), fontWeight: 600 }}>Policies</h3>
               <p style={{ color: CL.td, fontSize: TS(32), margin: "0 0 18px" }}>Each one is paid every half-year it runs, from borrowing. People remember who it helped.</p>
               {pol.length > 0 && <Fold title={"In force (" + pol.length + ")"} summary={pol.slice(0, 3).map(x => x.nm.replace(/^⭐\s*/, "")).join(", ") + (pol.length > 3 ? "…" : "")}>
@@ -6781,6 +6845,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     <Cd key={b.id} onClick={() => sponsorBill(b)} style={{ padding: 24 }}>
                       <div style={{ fontWeight: 600, fontSize: TS(36), color: CL.pur, marginBottom: 7 }}>{b.nm}</div>
                       <div style={{ fontSize: TS(29), color: CL.td, marginBottom: 10 }}>{b.d}</div>
+                      {touchesFlagship(b.nm + " " + b.d) && <div style={{ fontSize: TS(29), color: CL.grn, marginBottom: 8 }}>Serves your flagship, {FLAGSHIP[setup.agenda].nm}.</div>}
                       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                         {b.cost > 0 && <Bg text={naira(b.cost)} color={CL.gold} />}
                         <Bg text={s.pStab < 25 ? "Caucus too weak" : s.pStab < 40 ? "Tense vote" : "Likely to pass"} color={s.pStab < 25 ? CL.red : s.pStab < 40 ? CL.org : CL.grn} />

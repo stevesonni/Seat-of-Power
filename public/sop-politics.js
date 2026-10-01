@@ -375,7 +375,7 @@
       const o = d.options[+b.getAttribute("data-i")];
       let outcome = "";
       try { outcome = o.apply() || ""; } catch (er) { outcome = ""; }
-      P.history.push({ turn: (S && S.turn) || 0, title: d.title, choice: o.label, outcome: outcome });
+      P.history.push({ turn: (S && S.turn) || 0, title: d.title, who: d.who, choice: o.label, outcome: outcome });
       try { S && S.addL && S.addL(d.title + " — " + o.label + ". " + outcome, "info"); } catch (er) {}
       ledger({
         turn: (S && S.turn) || 0,
@@ -453,6 +453,8 @@
     advance(S);
     if (turn % 2 === 0 || Math.random() < .55) {
       const d = buildPressure(S);
+      // The same pressure, from the same person, is never put to you twice.
+      if (P.history.some(function (h) { return h.title === d.title && h.who === d.who; })) return;
       // Hand the card to the Desk, which shows it with the half-year's other
       // decisions and drops it if a core event already covers the topic.
       if (S.desk && S.desk.offer) {
