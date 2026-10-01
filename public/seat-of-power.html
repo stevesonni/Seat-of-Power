@@ -114,6 +114,15 @@
     .ds-option:active { transform: translateY(1px); box-shadow: 0 2px 0 rgba(0,0,0,.14); }
     .ds-option-label { font-size: var(--t-lead); font-weight: 700; color: var(--ink); line-height: 1.3; }
     .ds-option-note  { font-size: var(--t-label); color: var(--ink-dim); margin-top: var(--s-2); }
+    /* ---- Phone type: three sizes (see TS in the stage script) ---------- */
+    body.sop-portrait #sop-stage {
+      --t-micro: 20px; --t-meta: 20px; --t-label: 20px;
+      --t-body: 25px; --t-lead: 25px;
+      --t-title: 32px; --t-screen: 32px; --t-hero: 32px;
+    }
+    /* The text-size / fullscreen pill moves into the ☰ menu on phones. */
+    body.sop-portrait #sop-fs, body.sop-portrait #sop-tx { display: none !important; }
+
     /* ---- Phone (tall stage): card-first --------------------------------
        One decision fills the screen as a sheet; options are big, thumb-sized
        tiles. Values are artboard px on the 600-wide portrait stage. */
@@ -121,10 +130,10 @@
     #sop-stage.sop-tall .ds-card { border-radius: 26px; padding: 26px 22px; border-width: 1px; box-shadow: 0 14px 34px rgba(10,40,20,.16); }
     #sop-stage.sop-tall .ds-option { border-radius: 20px; padding: 22px 22px; min-height: 96px; border-width: 1px; box-shadow: 0 6px 0 rgba(10,40,20,.12), 0 10px 22px rgba(10,40,20,.08); }
     #sop-stage.sop-tall .ds-option:active { transform: scale(.985); }
-    #sop-stage.sop-tall .ds-option-label { font-size: 30px; }
-    #sop-stage.sop-tall .ds-option-note { font-size: 24px; }
-    #sop-stage.sop-tall .ds-title { font-size: 42px; }
-    #sop-stage.sop-tall .ds-body { font-size: 27px; }
+    #sop-stage.sop-tall .ds-option-label { font-size: 25px; }
+    #sop-stage.sop-tall .ds-option-note { font-size: 20px; }
+    #sop-stage.sop-tall .ds-title { font-size: 32px; }
+    #sop-stage.sop-tall .ds-body { font-size: 25px; }
     @keyframes sopSheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
     .sop-sheet { animation: sopSheetUp .32s cubic-bezier(.2,.8,.2,1); }
     .sop-tabbar button:active { transform: scale(.96); }
@@ -259,8 +268,18 @@
      (function () {
        var LADDER = [16, 18, 21, 24, 27, 30, 34, 38, 42, 48, 52, 64, 76];
        var cache = {};
+       /* Phone (portrait): one type scale with three sizes, in artboard px on
+          the 600-wide stage. Every inline size snaps to small, body or
+          headline, and nothing is larger than headline. */
+       var PHONE = { small: 20, body: 25, headline: 32 };
+       window.SOP_PHONE_TYPE = PHONE;
+       var phoneCache = {};
        window.TS = function (n) {
          if (typeof n !== 'number' || !isFinite(n)) return 24;
+         if (document.body && document.body.classList.contains('sop-portrait')) {
+           if (phoneCache[n] !== undefined) return phoneCache[n];
+           return (phoneCache[n] = n <= 22 ? PHONE.small : n <= 42 ? PHONE.body : PHONE.headline);
+         }
          if (cache[n] !== undefined) return cache[n];
          var v = n < 14 ? 14 : n, best = LADDER[0];
          for (var i = 0; i < LADDER.length; i++) {
@@ -338,7 +357,8 @@
         txLabel();
       });
 
-      document.getElementById('sop-fs').addEventListener('click', function () {
+      /* Fullscreen toggle; also offered in the game's ☰ menu on phones. */
+      window.SOP_fullscreen = function () {
         try {
           if (!document.fullscreenElement) {
             var p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
@@ -348,7 +368,8 @@
           } else if (document.exitFullscreen) { document.exitFullscreen(); }
         } catch (e) {}
         setTimeout(fit, 200);
-      });
+      };
+      document.getElementById('sop-fs').addEventListener('click', window.SOP_fullscreen);
     })();
   </script>
 

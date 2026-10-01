@@ -86,11 +86,19 @@ window.CL_REF = CL; window.F_REF = F;
 const DS = {
   /* compact landscape-phone ladder — overlay modules read these so their
      panels never drift back to the old oversized scale. */
-  t: { micro: 16, meta: 18, label: 21, body: 24, lead: 27, title: 34, screen: 48, hero: 68 },
+  t: {}, // filled below: landscape ladder, or three sizes on phones
   s: [0, 6, 10, 16, 24, 36, 52],
   r: { sm: 8, md: 14, lg: 22, pill: 999 },
   ctl: { h: 64, cta: 78, pad: "16px 36px" },
 };
+// Type sizes. On phones (portrait) every role maps to one of three sizes,
+// small / body / headline, matching TS() in the page shell.
+const DS_T_WIDE = { micro: 16, meta: 18, label: 21, body: 24, lead: 27, title: 34, screen: 48, hero: 68 };
+const DS_T_PHONE = { micro: "small", meta: "small", label: "small", body: "body", lead: "body", title: "headline", screen: "headline", hero: "headline" };
+Object.keys(DS_T_WIDE).forEach(k => Object.defineProperty(DS.t, k, {
+  enumerable: true,
+  get: () => (TALL() && window.SOP_PHONE_TYPE ? window.SOP_PHONE_TYPE[DS_T_PHONE[k]] : DS_T_WIDE[k]),
+}));
 window.SOP_DS = DS;
 
 /* Visual mode — public (out among the people), admin (behind the desk),
@@ -944,6 +952,21 @@ const Cd = ({ children, style: st, onClick, active }) => {
   }, children);
 };
 
+// Phone: a section that starts closed and shows its title and one summary
+// line; tap to open. In landscape it renders its content unchanged.
+const Fold = ({ title, summary, children, open: startOpen = false }) => {
+  const [open, setOpen] = React.useState(startOpen);
+  if (!TALL()) return React.createElement(React.Fragment, null, children);
+  return React.createElement("div", { style: { background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 18, marginBottom: 14, overflow: "hidden" } },
+    React.createElement("button", { onClick: () => setOpen(o => !o), "aria-expanded": open,
+      style: { width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", background: "transparent", border: 0, cursor: "pointer", textAlign: "left", color: CL.txt, fontFamily: F.b } },
+      React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+        React.createElement("div", { style: { fontSize: TS(25), fontWeight: 700 } }, title),
+        summary ? React.createElement("div", { style: { fontSize: TS(20), color: CL.td, marginTop: 2 } }, summary) : null),
+      React.createElement("span", { style: { fontSize: TS(20), color: CL.td, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" } }, "▼")),
+    open ? React.createElement("div", { style: { padding: "0 14px 14px" } }, children) : null);
+};
+
 const Bg = ({ text, color = CL.grn }) => React.createElement("span", { className: "ds-chip", style: { background: color + "15", color, borderColor: color + "40" } }, text);
 
 const Bt = ({ children, onClick, v = "primary", disabled, style: st }) => {
@@ -1042,7 +1065,7 @@ const PillBtn = ({ children, onClick, tone = "green", disabled, style: st }) => 
     onMouseEnter: () => setH(true), onMouseLeave: () => setH(false),
     style: {
       background: g, color: col, border: "2px solid rgba(0,0,0,.18)",
-      borderRadius: DS.r.pill, minHeight: DS.ctl.cta, padding: "34px 88px", fontFamily: F.c, fontWeight: 800,
+      borderRadius: DS.r.pill, minHeight: DS.ctl.cta, padding: TALL() ? "16px 28px" : "34px 88px", fontFamily: F.c, fontWeight: 800,
       fontSize: DS.t.lead, letterSpacing: .4, cursor: disabled ? "not-allowed" : "pointer",
       opacity: disabled ? .45 : 1, textShadow: tone === "plain" ? "none" : "0 1px 0 rgba(0,0,0,.25)",
       boxShadow: h && !disabled ? "0 6px 0 rgba(0,0,0,.22), 0 10px 18px rgba(0,0,0,.18)" : "0 4px 0 rgba(0,0,0,.22), 0 6px 12px rgba(0,0,0,.14)",
@@ -1327,6 +1350,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
   const [agenda, setAgenda] = useState(null);
   const [slogan, setSlogan] = useState(null);
   const [zf, setZf] = useState(null);
+  const [openZone, setOpenZone] = useState(null); // phone: the one region open in the state list
   const [step, setStep] = useState(1);
   const [showFCT, setShowFCT] = useState(false);
   const [sCampRound, setSCampRound] = useState(0);
@@ -1408,6 +1432,34 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
           </div>
           <p style={{ color: CL.td, fontSize: TS(18), marginTop: 4 }}>36 states available. FCT is not playable — tap it to learn why.</p>
         </div>
+        {TALL() ? <div style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
+          {/* Phone: states grouped by region, one region open at a time. */}
+          {Object.entries(ZONES).map(([zk, zname]) => {
+            const list = Object.entries(STATES).filter(([, d]) => d.zone === zk);
+            const open = openZone === zk;
+            const picked = list.find(([n]) => n === st);
+            return <div key={zk} style={{ background: CL.card, border: "1px solid " + (picked ? CL.grn : CL.bdr), borderRadius: 18, marginBottom: 12, overflow: "hidden" }}>
+              <button onClick={() => setOpenZone(open ? null : zk)} aria-expanded={open} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", background: "transparent", border: 0, cursor: "pointer", textAlign: "left", color: CL.txt, minHeight: 64 }}>
+                <span style={{ width: 14, height: 14, borderRadius: 7, background: ZC[zk], flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: "block", fontSize: TS(25), fontWeight: 700 }}>{zname}</span>
+                  <span style={{ display: "block", fontSize: TS(20), color: picked ? CL.grn : CL.td }}>{picked ? "Chosen: " + picked[0].replace("_", " ") : list.length + " states · " + list.slice(0, 3).map(([n]) => n.replace("_", " ")).join(", ") + "…"}</span>
+                </span>
+                <span style={{ fontSize: TS(20), color: CL.td, transform: open ? "rotate(180deg)" : "none" }}>▼</span>
+              </button>
+              {open && <div style={{ padding: "0 10px 10px" }}>
+                {list.map(([n, d]) => {
+                  const isFCT = n === "FCT";
+                  const on = !isFCT && st === n;
+                  return <button key={n} onClick={() => isFCT ? setShowFCT(true) : setSt(n)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 12px", minHeight: 56, marginTop: 6, borderRadius: 14, border: "1px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn + "14" : "transparent", cursor: "pointer", textAlign: "left", color: CL.txt, opacity: isFCT ? .6 : 1 }}>
+                    <span style={{ flex: 1, minWidth: 0, fontSize: TS(25), fontWeight: on ? 700 : 500 }}>{on ? "✓ " : ""}{n.replace("_", " ")}</span>
+                    <span style={{ fontSize: TS(20), color: isFCT ? CL.td : dc[d.diff], fontWeight: 700 }}>{isFCT ? "Not playable" : d.diff}</span>
+                  </button>;
+                })}
+              </div>}
+            </div>;
+          })}
+        </div> : <>
         <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
           <button onClick={() => setZf(null)} style={{ padding: "5px 18px", borderRadius: 14, border: "1px solid " + (zf ? CL.bdr : CL.grn), background: zf ? "transparent" : CL.grn + "15", color: zf ? CL.td : CL.grn, fontSize: TS(16), cursor: "pointer", fontFamily: F.b }}>All</button>
           {Object.entries(ZONES).map(([k, v]) => (
@@ -1431,6 +1483,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
             );
           })}
         </div>
+        </>}
         <OL show={showFCT}>
           <Cd style={{ borderColor: CL.gold + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: TS(48), marginBottom: 10 }}>🏛️</div><h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(34), fontWeight: 600, margin: "0 0 10px" }}>Federal Capital Territory</h3><Bg text="Not a State" color={CL.org} /></div>
@@ -1440,7 +1493,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
             <div style={{ textAlign: "center", marginTop: 16 }}><Bt v="ghost" onClick={() => setShowFCT(false)}>← Back</Bt></div>
           </Cd>
         </OL>
-        {st && <div style={{ textAlign: "center", marginTop: 50 }}><PillBtn onClick={() => setStep(2)}>NEXT</PillBtn></div>}
+        {st && <div style={{ textAlign: "center", marginTop: TALL() ? 12 : 50 }}><PillBtn onClick={() => setStep(2)} style={TALL() ? { width: "100%", padding: "18px 24px" } : undefined}>NEXT{TALL() ? ": " + st.replace("_", " ") : ""}</PillBtn></div>}
       </div>
     </div>
   );
@@ -2310,6 +2363,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [phase, setPhase] = useState(ld ? "budget" : "budget");
   const [nav, setNav] = useState("gov");
   const navMemory = React.useRef({}); // last sub-tab opened on each screen
+  const [menuOpen, setMenuOpen] = useState(false); // phone ☰ menu
+  const [sosOpen, setSosOpen] = useState(false);   // phone "State of the state" sheet
+  const [budOpen, setBudOpen] = useState(null);    // phone: budget sector whose details are open
 
   /* Visual mode follows where the player is standing:
      - public: media, campaign, the crowd, the anchors
@@ -2487,7 +2543,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   // Auto-save every turn change
-  useEffect(() => { if (turn > 1) { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch(e) {} } }, [turn]);
+  useEffect(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch(e) {} }, [turn]);
 
   const tb = Math.max(0, s.igr + s.faac - s.debt * .08);
   const bs = Object.values(bud).reduce((a, b) => a + b, 0);
@@ -4010,34 +4066,44 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     <div style={{ minHeight: "100%", background: CL.bg }}>
       <Flag />
       <div style={{ padding: TALL() ? "20px 20px 190px" : 36, maxWidth: 1488, margin: "0 auto" }}>
-        {/* Phone: a slim dark stats bar pinned to the top, with the current
-            screen's sub-tabs inside it. The four screens sit in a tab bar at
-            the bottom (see the nav below). */}
-        {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 18px", padding: "16px 20px 12px", background: "linear-gradient(180deg,#0b3d23 0%,#0f5132 100%)", color: "#f3f7ef", boxShadow: "0 8px 22px rgba(0,0,0,.22)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, paddingRight: 120 }}>
-            <div style={{ fontFamily: F.c, fontWeight: 800, fontSize: TS(21), letterSpacing: 2, textTransform: "uppercase", opacity: .85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Gov. {pName.split(" ").pop()} · {state.replace("_", " ")}</div>
-            <div style={{ fontFamily: F.m, fontSize: TS(18), opacity: .8, whiteSpace: "nowrap" }}>{yr.replace(/^.*Year/, "Year")}</div>
+        {/* Phone: one slim row pinned to the top. Name and turn on the left,
+            approval on the right; tap it for the "State of the state" sheet.
+            The ☰ menu holds Save, Help, text size and fullscreen. */}
+        {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+            <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}>☰</button>
+            <button onClick={() => { setSosOpen(o => !o); setMenuOpen(false); }} aria-expanded={sosOpen} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, color: "#f3f7ef", cursor: "pointer", padding: 0, minHeight: 56 }}>
+              <div style={{ fontFamily: F.c, fontWeight: 800, fontSize: TS(20), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Gov. {pName.split(" ").pop()} · {state.replace("_", " ")}</div>
+              <div style={{ fontSize: TS(20), opacity: .75 }}>Turn {turn} of {MT} · State of the state {sosOpen ? "▲" : "▼"}</div>
+            </button>
+            <div onClick={() => { setSosOpen(o => !o); setMenuOpen(false); }} style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 999, background: s.app > 60 ? "#1f7a46" : s.app > 40 ? "#8a6400" : "#8b1a1a", fontFamily: F.m, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>Approval {Math.round(s.app)}%</div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 12 }}>
+          {sosOpen && <div style={{ padding: "4px 16px 16px", borderTop: "1px solid rgba(255,255,255,.12)" }}>
             {[
-              { l: "Approval", v: Math.round(s.app) + "%", c: s.app > 60 ? "#7ee2a8" : s.app > 40 ? "#ffd166" : "#ff8a80" },
-              { l: "Treasury", v: naira(tb), c: "#ffe08a" },
-              { l: "Debt", v: naira(s.debt), c: s.debt > 10 ? "#ff8a80" : "#e6efe2" },
-              { l: "Party", v: Math.round(s.pStab), c: s.pStab > 50 ? "#7ee2a8" : s.pStab > 30 ? "#ffd166" : "#ff8a80" },
-            ].map(x => <div key={x.l} style={{ background: "rgba(255,255,255,.08)", borderRadius: 14, padding: "8px 6px", textAlign: "center" }}>
-              <div style={{ fontFamily: F.m, fontWeight: 700, fontSize: TS(27), color: x.c, lineHeight: 1.1 }}>{x.v}</div>
-              <div style={{ fontSize: TS(16), letterSpacing: 1.5, textTransform: "uppercase", opacity: .75, marginTop: 2 }}>{x.l}</div>
-            </div>)}
-          </div>
-          <div style={{ display: "flex", gap: 6, marginTop: 12, alignItems: "center" }}>
-            {Array.from({ length: MT }).map((_, k) => <div key={k} style={{ flex: 1, height: 6, borderRadius: 3, background: k < turn - 1 ? "#7ee2a8" : k === turn - 1 ? "#ffd166" : "rgba(255,255,255,.18)" }} />)}
-            <div style={{ fontFamily: F.m, fontSize: TS(16), opacity: .8, marginLeft: 6, whiteSpace: "nowrap" }}>Turn {turn}/{MT}</div>
-          </div>
-          {curScreen.subs.length > 1 && <div style={{ display: "flex", gap: 8, overflowX: "auto", marginTop: 12, paddingBottom: 2 }}>
-            {curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ flex: "0 0 auto", padding: "8px 18px", borderRadius: 999, border: "1px solid " + (nav === t.k ? "#ffd166" : "rgba(255,255,255,.25)"), background: nav === t.k ? "#ffd166" : "transparent", color: nav === t.k ? "#1a2e05" : "#f3f7ef", fontFamily: F.c, fontWeight: 700, fontSize: TS(21), cursor: "pointer", whiteSpace: "nowrap" }}>{t.l}</button>)}
-            {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={{ flex: "0 0 auto", padding: "8px 18px", borderRadius: 999, border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#f3f7ef", fontFamily: F.c, fontWeight: 700, fontSize: TS(21), cursor: "pointer" }}>Standing</button>}
-            {curScreen.id === "wiki" && <button onClick={onHelp} style={{ flex: "0 0 auto", padding: "8px 18px", borderRadius: 999, border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#f3f7ef", fontFamily: F.c, fontWeight: 700, fontSize: TS(21), cursor: "pointer" }}>Help</button>}
+              ["Treasury this half-year", naira(tb)],
+              ["State debt", naira(s.debt)],
+              ["Party support", Math.round(s.pStab) + "%"],
+              ["State economy (GDP)", naira(s.gdp || 0)],
+              ["Corruption exposure", Math.round((s.cor || 0) * 100) + "%"],
+            ].map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,.08)", fontSize: TS(20) }}><span style={{ opacity: .8 }}>{k}</span><b style={{ fontFamily: F.m }}>{v}</b></div>)}
+            <div style={{ display: "flex", gap: 6, marginTop: 12, alignItems: "center" }}>
+              {Array.from({ length: MT }).map((_, k) => <div key={k} style={{ flex: 1, height: 6, borderRadius: 3, background: k < turn - 1 ? "#7ee2a8" : k === turn - 1 ? "#ffd166" : "rgba(255,255,255,.18)" }} />)}
+              <span style={{ fontSize: TS(20), opacity: .8, marginLeft: 6, whiteSpace: "nowrap" }}>{yr.replace(/^.*Year/, "Year")}</span>
+            </div>
           </div>}
+          {menuOpen && <div style={{ padding: "4px 16px 14px", borderTop: "1px solid rgba(255,255,255,.12)", display: "grid", gap: 8 }}>
+            {[
+              ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
+              ["📖 Help", () => onHelp()],
+              ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
+              ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
+            ].map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
+            <div style={{ fontSize: TS(20), opacity: .7, padding: "2px 4px" }}>The game also saves itself every turn.</div>
+          </div>}
+        </div>}
+        {TALL() && curScreen.subs.length > 1 && <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "0 -20px 16px", padding: "0 20px 2px" }}>
+          {curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + (nav === t.k ? CL.grn : CL.bdr), background: nav === t.k ? CL.grn : CL.card, color: nav === t.k ? "#fff" : CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>{t.l}</button>)}
+          {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + CL.bdr, background: CL.card, color: CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>Standing</button>}
         </div>}
         {!TALL() && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, flexWrap: "wrap", gap: 14 }}>
@@ -4057,17 +4123,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <div style={{ height: 10, background: "#e0e5d5", borderRadius: 6, marginBottom: 29, overflow: "hidden" }}><div style={{ width: (turn / MT * 100) + "%", height: "100%", background: CL.grn, transition: "width .5s" }} /></div>
         </>}
         {!flagUsed && s.app < 50 && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
-        {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(4,1fr) 0.8fr", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
+        {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
           {SCREENS.map(sc => {
             const on = sc.id === curScreen.id;
             return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
               style={{ border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
-              <span style={{ fontSize: TS(34), lineHeight: 1 }}>{sc.i}</span>{sc.l}
+              <span style={{ fontSize: TS(32), lineHeight: 1 }}>{sc.i}</span>{sc.l}
             </button>;
           })}
-          <button onClick={saveGame} style={{ border: "1px solid rgba(255,255,255,.2)", borderRadius: 16, background: "transparent", color: "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(18), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
-            <span style={{ fontSize: TS(27), lineHeight: 1 }}>💾</span>Save
-          </button>
         </div> : <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
             {SCREENS.map(sc => {
@@ -5935,6 +5998,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           };
           const AG = AG_MAP[setup.agenda];
           if (!AG) return null;
+          if (TALL()) return <Fold title={AG.i + " Flagship: " + AG.nm} summary="Applied every quarter · tap for the effect"><div style={{ fontSize: TS(20), color: CL.tm, padding: "4px 4px 0" }}>{AG.bonus}</div></Fold>;
           return <div style={{ margin: "0 0 22px", padding: "22px 36px", background: CL.grn + "10", border: "1px solid " + CL.grn + "44", borderRadius: 13, display: "flex", alignItems: "center", gap: 29, fontSize: TS(36) }}>
             <span style={{ fontSize: TS(58) }}>{AG.i}</span>
             <div style={{ flex: 1, minWidth: 1 }}>
@@ -5947,9 +6011,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
 
 
-        {nav === "gov" && <div className="sop-gov-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,200px) 1fr", gap: 29 }}>
-          <div style={{ minWidth: 1 }}>
+        {nav === "gov" && <div className="sop-gov-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,200px) 1fr", gap: TALL() ? 0 : 29 }}>
+          <div style={{ minWidth: 1, order: TALL() ? 2 : 0 }}>
+            <Fold title="State indicators" summary={"Literacy " + Math.round(s.lit * 100) + "% · Health " + Math.round(s.hp * 100) + "% · Security " + Math.round(s.sec * 100) + "% · Corruption " + Math.round(s.cor * 100) + "%"}>
             <Cd style={{ marginBottom: 22 }}><div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 14 }}>INDICATORS</div><SB label="Literacy" value={s.lit} color={CL.blu} icon="📖" /><SB label="Health" value={s.hp} color={CL.grn} icon="🏥" /><SB label="Infra" value={s.infra} color={CL.org} icon="🏗️" /><SB label="Security" value={s.sec} color={CL.red} icon="🛡️" /><SB label="Agriculture" value={s.agr} color="#16a34a" icon="🌾" /><div style={{ borderTop: "1px solid " + CL.bdr, marginTop: 10, paddingTop: 10 }}><SB label="Corruption" value={s.cor} color={CL.red} icon="⚠️" /></div></Cd>
+            </Fold>
+            <Fold title={"Programmes in progress (" + pol.length + ")"} summary={pol.length ? pol.map(p => p.nm).slice(0, 2).join(" · ") + (pol.length > 2 ? " …" : "") : "Nothing running yet" + (completedProjects.length ? " · " + completedProjects.length + " completed" : "")}>
             <Cd>
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 10 }}>🏗️ IN PROGRESS ({pol.length})</div>
               {pol.length === 0 ? <div style={{ color: CL.td, fontSize: TS(31) }}>No active projects</div> : pol.map(p => {
@@ -5982,6 +6049,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>)}
               </div>}
             </Cd>
+            </Fold>
           </div>
           <div>
             {phase === "mda" && mdaEnv && (() => {
@@ -6072,6 +6140,62 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setBud(presets[preset]);
               };
               const remaining = 100 - bs;
+              if (TALL()) {
+                // Phone: the total as one sentence, one row per sector, details on tap.
+                const chip = (txt, col) => <span style={{ display: "inline-block", padding: "6px 14px", borderRadius: 999, background: col + "18", color: col, fontFamily: F.m, fontWeight: 700, fontSize: TS(20) }}>{txt}</span>;
+                const step = (k, d) => setBud(p => ({ ...p, [k]: Math.max(0, Math.min(100, (p[k] || 0) + d)) }));
+                const stepBtn = { width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, color: CL.txt, fontSize: TS(25), fontWeight: 700, cursor: "pointer", flexShrink: 0 };
+                return <Cd style={{ padding: "20px 16px" }}>
+                  {s.igr + s.faac < 3 && <div style={{ fontSize: TS(20), color: CL.red, fontWeight: 700, marginBottom: 10 }}>🚨 Revenue has collapsed to {naira(s.igr + s.faac)}. The state is close to bankrupt.</div>}
+                  <div style={{ fontSize: TS(20), color: CL.td, textTransform: "uppercase", letterSpacing: 1 }}>Appropriation bill · Year {Math.ceil(turn / 2)}, half {((turn - 1) % 2) + 1}</div>
+                  <div style={{ fontFamily: F.d, fontSize: TS(32), fontWeight: 700, color: CL.txt, margin: "6px 0 4px", lineHeight: 1.2 }}>{naira(tb)} to spend this half-year</div>
+                  <div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.4 }}>IGR {naira(s.igr)} (money the state raises itself) + FAAC {naira(s.faac)} (its federal share){s.debt > 0 ? " − " + naira(s.debt * .08) + " debt service" : ""}.</div>
+                  <div style={{ margin: "12px 0" }}>{bs === 100 ? chip("✓ Balanced: 100% allocated", CL.grn) : bs > 100 ? chip("Over by " + (bs - 100) + "% (" + naira(tb * (bs - 100) / 100) + ")", CL.red) : chip(bs + "% allocated · " + naira(tb * remaining / 100) + " left", CL.org)}</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+                    <span style={{ fontSize: TS(20), color: CL.td }}>Start from:</span>
+                    {[["recommended", "Balanced", CL.grn], ["populist", "Populist", CL.org], ["reformer", "Reformer", CL.blu], ["godfather", "Godfather", CL.pur]].map(([k, l, c]) =>
+                      <button key={k} onClick={() => applyPreset(k)} style={{ padding: "6px 14px", minHeight: 44, borderRadius: 999, border: "1px solid " + c + "60", background: c + "12", color: c, fontSize: TS(20), fontWeight: 700, cursor: "pointer" }}>{l}</button>)}
+                  </div>
+                  {grpOrder.map(gname => {
+                    const items = BSECTORS.filter(sec => (SEC_META[sec.k]?.grp) === gname);
+                    const gsum = items.reduce((a, sec) => a + (bud[sec.k] || 0), 0);
+                    return <div key={gname} style={{ marginBottom: 14 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: TS(20), color: grpColor[gname], fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, padding: "6px 2px" }}><span>{gname}</span><span style={{ fontFamily: F.m }}>{gsum}%</span></div>
+                      {items.map(sec => {
+                        const meta = SEC_META[sec.k] || { min: 5, max: 20, funds: "", low: "", high: "" };
+                        const pct2 = bud[sec.k] || 0;
+                        const status = pct2 < meta.min ? "low" : pct2 > meta.max ? "high" : "ok";
+                        const sc = status === "ok" ? CL.grn : status === "low" ? CL.red : CL.org;
+                        const open = budOpen === sec.k;
+                        return <div key={sec.k} style={{ borderTop: "1px solid " + CL.bdr, padding: "10px 0" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <button onClick={() => setBudOpen(open ? null : sec.k)} aria-expanded={open} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: 0, cursor: "pointer", textAlign: "left", color: CL.txt, minHeight: 56 }}>
+                              <span style={{ fontSize: TS(25) }}>{sec.i}</span>
+                              <span style={{ flex: 1, minWidth: 0 }}>
+                                <span style={{ display: "block", fontSize: TS(25), fontWeight: 700 }}>{sec.l}</span>
+                                <span style={{ display: "block", fontSize: TS(20), color: sc }}>{status === "ok" ? "In range" : status === "low" ? "Underfunded" : "Too much"} · {naira(tb * pct2 / 100)}</span>
+                              </span>
+                              <span style={{ fontFamily: F.m, fontWeight: 700, fontSize: TS(25), color: sc }}>{pct2}%</span>
+                            </button>
+                            <button onClick={() => step(sec.k, -1)} aria-label={"Less " + sec.l} style={stepBtn}>−</button>
+                            <button onClick={() => step(sec.k, 1)} aria-label={"More " + sec.l} style={stepBtn}>+</button>
+                          </div>
+                          {open && <div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45, padding: "6px 4px 2px" }}>
+                            <div>{meta.funds}</div>
+                            <div style={{ color: CL.td, marginTop: 4 }}>Healthy range {meta.min}–{meta.max}%.</div>
+                            {status !== "ok" && <div style={{ color: sc, marginTop: 4 }}>{status === "low" ? "If you submit this: " + meta.low : "Waste flag: " + meta.high}</div>}
+                          </div>}
+                        </div>;
+                      })}
+                    </div>;
+                  })}
+                  {s.debt > 0 && <Fold title={"State debt " + naira(s.debt)} summary={naira(s.debt * .08) + " service due this half-year"}><div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45 }}>Service is taken off the pot before you see it. Extra money you put into Debt above reduces the principal.{s.debt > 15 ? " Debt is dangerously high: creditors will call soon." : ""}</div></Fold>}
+                  <Fold title="Why the House votes on this" summary="Section 121 of the 1999 Constitution"><div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45 }}>The Governor lays the appropriation bill before the House of Assembly. Members can pass it, amend it, or force you into horse-trading.</div></Fold>
+                  <Bt onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} style={{ width: "100%", marginTop: 6, opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
+                    {bs === 100 ? "SUBMIT TO HOUSE OF ASSEMBLY →" : bs > 100 ? "Reduce: over by " + (bs - 100) + "%" : "Allocate the remaining " + remaining + "%"}
+                  </Bt>
+                </Cd>;
+              }
               return <Cd>
                 {s.igr + s.faac < 3 && <div style={{ background: "#fef2f2", border: "1px solid " + CL.red + "30", borderRadius: 13, padding: "22px 36px", marginBottom: 29 }}>
                   <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red }}>🚨 BANKRUPTCY WARNING</div>
