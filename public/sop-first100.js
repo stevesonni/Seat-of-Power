@@ -69,6 +69,40 @@
   function beats(ctx) {
     const gfName = ctx.gfName;
     const nominee = ctx.nominee, technocrat = ctx.technocrat, loyalist = ctx.loyalist;
+
+    // Memory. The beats are rebuilt every time one is shown, so each day can
+    // react to what the player chose on the days before it (read back from
+    // the ledger, where applyOption records every choice) and to anything
+    // else on the record, like the campaign loan.
+    const M = window.SOP_MEMORY;
+    const chose = (day) => {
+      if (!M) return "";
+      const e = M.did(null, x => (x.location || "").indexOf(day + " — ") === 0);
+      return (e && e.decision) || "";
+    };
+    const d1 = chose("DAY 1"), d4 = chose("DAY 4"), d21 = chose("DAY 21"), d40 = chose("DAY 40"), d55 = chose("DAY 55");
+    const loan = M ? M.owed("godfather").find(d => d.kind === "campaign_loan") : null;
+    const pledgedProbe = d1.indexOf("Declare war") === 0;
+    const pledgedSalaries = d1.indexOf("Announce salaries") === 0;
+    const pledgedContinuity = d1.indexOf("Thank the party") === 0;
+    const gaveWorks = d4.indexOf("Give him Works") === 0;
+    const refusedHim = d4.indexOf("Refuse") === 0;
+
+    const verandaEcho =
+      pledgedProbe ? ` Then, before anyone brings tea: "Three days ago you stood on that parade ground and told forty thousand people about a missing ₦40 billion. Be careful whose money you go looking for."`
+      : pledgedContinuity ? ` "Continuity," he says. "Good speech. Then we continue."`
+      : pledgedSalaries ? ` "Salaries by the 25th," he says. "With whose money? Works is where the money is."`
+      : "";
+    const loanEcho = loan ? ` The ₦${loan.amount} billion he lent your campaign is still in the books.` : "";
+
+    const pressFile =
+      d55.indexOf("Emergency certificate") === 0 ? `the emergency certificate for the ${ctx.roadName} and the name of the company that got it`
+      : d21.indexOf(loyalist) === 0 ? "the party treasurer's signature on your first quarter of state releases"
+      : d40.indexOf("Take a") === 0 ? "the terms of your 27% bridge loan"
+      : gaveWorks ? `the minutes of the morning Works was handed to ${gfName}'s nominee`
+      : pledgedProbe ? "proof that the ₦40bn probe you promised on Day 1 has no investigator, no budget and no date"
+      : "documents from your first 78 days";
+
     return [
 
       // ── DAY 1 ──────────────────────────────────────────────────────────
@@ -113,7 +147,7 @@
       {
         day: "DAY 4", mode: "admin", kicker: "THE VERANDA",
         title: `${gfName} did not come to congratulate you`,
-        body: `He arrives at 6am, before the aides. He does not sit. "I spent ₦2.1 billion on you," he says. "Works. That ministry is mine. My man is outside in the car." Through the window you can see the car.`,
+        body: `He arrives at 6am, before the aides. He does not sit. "I spent ₦2.1 billion on you," he says. "Works. That ministry is mine. My man is outside in the car." Through the window you can see the car.${verandaEcho}${loanEcho}`,
         aside: `"Sir — he is not asking. Works is where the contracts are. That is the whole conversation."`,
         options: [
           {
@@ -158,7 +192,9 @@
         day: "DAY 21", mode: "admin", kicker: "CABINET",
         title: "Who holds the money?",
         body: "Commissioner for Finance signs every release from the treasury. Three files are on your desk. Only one of these people will tell you the truth about the balance.",
-        aside: `"Whoever you pick here decides whether the numbers I bring you are real."`,
+        aside: gaveWorks ? `"With ${gfName}'s man in Works, whoever holds Finance is the only person left who can say no to him."`
+          : refusedHim ? `"He is already calling Assembly members. A Finance Commissioner he trusts would calm him. That is the only argument for the treasurer."`
+          : `"Whoever you pick here decides whether the numbers I bring you are real."`,
         options: [
           {
             label: `${technocrat} — ex-World Bank, no political base`,
@@ -196,7 +232,8 @@
         day: "DAY 40", mode: "admin", kicker: "THE VAULT",
         title: "FAAC came in short",
         body: `The federation account allocation landed ${nB(ctx.shortfall)} below projection — oil at a bad price, and the deductions were taken at source. Salaries are due in eleven days. Contractors from the last administration are owed ${nB(ctx.arrears)} and two of them have gone to court.`,
-        aside: `"Sir, we cannot do both. Whatever you skip, somebody outside this building will hold a press conference about it."`,
+        aside: pledgedSalaries ? `"Sir, you promised the 25th from the podium. Forty thousand people heard the date."`
+          : `"Sir, we cannot do both. Whatever you skip, somebody outside this building will hold a press conference about it."`,
         options: [
           {
             label: "Pay salaries in full. Let the contractors wait.",
@@ -211,7 +248,7 @@
           {
             label: "Pay half salaries. Settle the loudest contractor.",
             note: "Nobody riots. Nobody is satisfied.",
-            chips: [["Approval −6", "bad"], ["Party stability +3", "good"]],
+            chips: [["Approval −6", "bad"], ["Party stability +3", "good"]].concat(pledgedSalaries ? [["Breaks your Day 1 promise", "bad"]] : []),
             fx: { app: -6, pStab: +3 },
             outcome: "Half salaries land. The NLC state chapter calls an emergency meeting.",
             delayed: { turn: 2, label: "NLC warning strike over the half-month", fx: { app: -5 }, log: "✊ NLC three-day warning strike over unpaid balance. Approval −5." },
@@ -234,7 +271,8 @@
         day: "DAY 55", mode: "admin", kicker: "FIRST CONTRACT",
         title: `The ${ctx.roadName}`,
         body: `Eighteen kilometres, ${nB(ctx.roadCost)}, the road every campaign in this state has promised since 1999. It needs a NESREA environmental impact assessment — the alignment crosses farmland and a seasonal stream. The assessment takes one full quarter.`,
-        aside: `"Do the EIA and you cut a ribbon in year three. Skip it and you cut it in year one — until a judge stops you."`,
+        aside: gaveWorks ? `"Sir, your Commissioner for Works is ${gfName}'s man. The emergency certificate is already drafted and waiting for your signature."`
+          : `"Do the EIA and you cut a ribbon in year three. Skip it and you cut it in year one — until a judge stops you."`,
         options: [
           {
             label: "Open competitive tender, EIA completed first",
@@ -256,7 +294,7 @@
           },
           {
             label: `Emergency certificate to ${gfName}'s firm. Break ground next week.`,
-            note: "No tender, no EIA. A ribbon before the rains. 35% will not reach the road.",
+            note: "No tender, no EIA. A ribbon before the rains. 35% will not reach the road." + (refusedHim ? " He would take it as an apology. So would everyone else." : ""),
             chips: [["Approval +6", "good"], ["Corruption +12%", "bad"], ["Court injunction likely", "bad"]],
             fx: { app: +6, cor: +0.12, gf: +15 },
             project: { method: "emergency", eiaDone: false, contractor: `${gfName} & Sons Ltd`, leakage: 0.35, nepotism: true },
@@ -272,7 +310,7 @@
       {
         day: "DAY 78", mode: "admin", kicker: "THE PRESS",
         title: `${ctx.reporter} has the file`,
-        body: `A reporter from ${ctx.paper} calls your Chief Press Secretary at 9pm. She has documents from your first 78 days and she is running the story on Sunday whether you speak or not. She wants twenty minutes.`,
+        body: `A reporter from ${ctx.paper} calls your Chief Press Secretary at 9pm. She has ${pressFile}, and she is running the story on Sunday whether you speak or not. She wants twenty minutes.`,
         aside: `"She already has it, sir. The only question is whose version sits beside hers."`,
         options: [
           {
@@ -489,6 +527,7 @@
   }
 
   function render() {
+    run.beats = beats(run.ctx);
     const list = run.beats;
     const b = list[run.i];
     const S = window.SOP || {};
@@ -598,6 +637,8 @@
     } catch (e) {}
     wrap.remove();
     wrap = null;
+    const done = run.done; run.done = null;
+    if (done) done();
   }
 
   /* ───────────────────────── MOUNT ───────────────────────── */
@@ -626,11 +667,12 @@
     };
   }
 
-  function mount() {
+  function mount(done) {
     const S = window.SOP;
-    if (!S || wrap) return;
+    if (!S || wrap) { if (done) done(); return; }
     const ctx = buildCtx();
     run = { i: 0, log: [], owed: [], exposed: [], pending: [], gfShift: 0, lastLedgerId: null, ctx, startApp: Math.round((S.s && S.s.app) || 55) };
+    run.done = done || null;
     run.beats = beats(ctx);
     wrap = document.createElement("div");
     wrap.id = "sop-f100";
@@ -648,8 +690,15 @@
     if ((S.wikiEvents && S.wikiEvents.length) || (S.ministries && S.ministries.length)) { done = true; return; }
     if (!S.setS || !S.s) return;
     done = true;
-    setTimeout(mount, 400);
+    // Opens through the Desk, which keeps it from sharing the screen with
+    // another card. Falls back to opening directly without one.
+    if (S.desk && S.desk.present) {
+      S.desk.present({ key: "first100", topic: "first100", source: "first100", title: "The First 100 Days",
+        open: (finish) => setTimeout(() => mount(finish), 400) });
+    } else setTimeout(mount, 400);
   });
+  // A new run in the same tab gets its own First 100 Days.
+  window.addEventListener("sop-new-game", () => { done = false; });
 
   window.SOP_F100_replay = () => { done = true; if (!wrap) mount(); };
 

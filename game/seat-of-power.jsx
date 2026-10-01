@@ -3274,8 +3274,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskCourtFirst = React.useRef(false);
   const deskCards = React.useRef({});
   const [deskActive, setDeskActive] = useState(null);
+  // Cards that must open now (the First 100 Days opening) come through
+  // desk.present(card). They wait while another card or an end-of-turn
+  // sitting holds the screen, and each key opens once per run.
+  const deskNow = React.useRef({ busy: false, queue: [], shown: new Set() });
+  const phaseRef = React.useRef(null);
+  const deskPump = () => {
+    const N = deskNow.current;
+    if (N.busy || !N.queue.length) return;
+    if (phaseRef.current === "desk") { setTimeout(deskPump, 500); return; }
+    const card = N.queue.shift();
+    N.busy = true; N.shown.add(card.key);
+    let finished = false;
+    const done = () => { if (finished) return; finished = true; N.busy = false; setTimeout(deskPump, 0); };
+    try { card.open(done); } catch (e) { console.error("[Desk] card failed to open", card.key, e); done(); }
+  };
   const desk = React.useRef(null);
   if (!desk.current) desk.current = {
+    present: (card) => {
+      if (!card || typeof card.open !== "function" || !card.key) return false;
+      const N = deskNow.current;
+      if (N.shown.has(card.key) || N.queue.some(c => c.key === card.key)) return false;
+      N.queue.push(card);
+      deskPump();
+      return true;
+    },
     offer: (card) => {
       if (!card || typeof card.open !== "function" || !card.key) return false;
       if (deskOffers.current.some(c => c.key === card.key)) return false;
@@ -3302,9 +3325,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!M) return unseen.length ? pick(unseen, r) : null;
     const owed = M.owed("godfather");
     const holdsWorks = !!M.did("godfather_contract", { relatedEntity: "ministry:works" });
+    const holdsRoad = !!M.did(null, e => e.relatedEntity === "project:signature_road" && (e.beneficiaries || []).includes("godfather"));
     const pool = unseen.filter(d => {
       if (d.id === "gf_money") return owed.some(o => o.kind === "campaign_loan");
       if (d.id === "gf_appointment") return !holdsWorks;
+      // His road: once the First 100 Days handed him the signature road
+      // (emergency certificate), he doesn't ask for a road contract again.
+      if (d.id === "gf_contract") return !holdsRoad;
       return true;
     });
     if (!pool.length) return null;
@@ -3554,8 +3581,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // latest nextEvent through a ref rather than a stale closure.
   const nextEventRef = React.useRef(null);
   nextEventRef.current = nextEvent;
+  phaseRef.current = phase;
   useEffect(() => {
     if (phase !== "desk") return;
+    if (deskNow.current.busy) { const t = setTimeout(() => setDeskActive(a => a ? { ...a } : a), 500); return () => clearTimeout(t); }
     const card = deskActive;
     if (!card) { nextEventRef.current(); return; }
     if (card._opened) return;
