@@ -1,14 +1,15 @@
 /* ============================================================================
    sop-first100.js — THE FIRST 100 DAYS
    ----------------------------------------------------------------------------
-   A scripted, hand-authored opening sequence that runs ONCE, immediately after
-   the Government House welcome and BEFORE the first appropriation screen.
+   Six hand-authored scenes (oath, godfather, cabinet, empty vault, first
+   contract, the story breaking). They are ordinary Desk decisions: three sit
+   on the Desk in turn 1 and three in turn 2, each opening as one card and
+   closing with what it set in motion. There is no separate screen.
 
    Why it exists (spec §"vertical slice"): the systems in this game are deep but
    the player used to meet them as a wall of tabs. The First 100 Days walks them
-   through one beat at a time — oath, godfather, cabinet, empty vault, first
-   contract, the story breaking, the adviser's read — and then shows a report
-   that names, in plain language, what they now owe and what is now exposed.
+   through one beat at a time, and each beat names what the player now owes
+   and what is now exposed.
 
    Design rules this file obeys:
      1. Every option moves at least one number AND writes one ledger entry.
@@ -444,8 +445,9 @@
      arrive, named and attributed, on a turn they were told about. We hold the
      schedule here and fire it when the bridge reports that turn.               */
   const scheduled = [];
-  function schedulePending() {
-    run.pending.forEach(p => scheduled.push(p));
+  function schedulePending(list) {
+    const now = (window.SOP && window.SOP.turn) || 1;
+    (list || []).forEach(p => scheduled.push(Object.assign({}, p, { turn: Math.max(p.turn, now + 1) })));
   }
   window.addEventListener("sop-state", () => {
     const S = window.SOP;
@@ -483,10 +485,6 @@
         background:var(--sf-bg,#f8faf5);color:var(--ink,#1a2e05);
         font-family:'Outfit',sans-serif;padding:var(--s-5,52px) var(--s-4,34px);box-sizing:border-box}
       #sop-f100 .f-wrap{max-width:1500px;margin:0 auto}
-      #sop-f100 .f-rail{display:flex;align-items:center;gap:var(--s-2,14px);margin-bottom:var(--s-4,34px);flex-wrap:wrap}
-      #sop-f100 .f-dot{width:20px;height:20px;border-radius:999px;background:var(--sf-bdr,#d0d8c4)}
-      #sop-f100 .f-dot.on{background:var(--accent,#008751)}
-      #sop-f100 .f-dot.now{background:var(--accent,#008751);box-shadow:0 0 0 8px rgba(0,135,81,.18)}
       #sop-f100 .f-day{font-family:'JetBrains Mono',monospace;font-size:var(--t-meta,30px);
         letter-spacing:2px;color:var(--ink-dim,#7a8b6a);text-transform:uppercase}
       #sop-f100 .f-card{background:var(--sf-card,#fff);border:2px solid var(--sf-bdr,#d0d8c4);
@@ -526,91 +524,72 @@
     `;
   }
 
-  function render() {
+  // One scene = one ordinary Desk decision. No progress rail, no separate
+  // screen: the beat is rebuilt from memory when its card opens, the choice
+  // is applied, and a short outcome (with anything it set in motion) closes it.
+  function renderBeat(idx, done) {
     run.beats = beats(run.ctx);
-    const list = run.beats;
-    const b = list[run.i];
-    const S = window.SOP || {};
-    const rail = list.map((_, i) => `<span class="f-dot ${i < run.i ? "on" : i === run.i ? "now" : ""}"></span>`).join("");
-
-    if (b) {
-      try { window.SOP_setMode && window.SOP_setMode(b.mode); } catch (e) {}
-      wrap.innerHTML = `<style>${css()}</style>
-        <div class="f-wrap">
-          <div class="f-rail"><span class="f-day">The First 100 Days · ${esc(b.day)}</span>${rail}</div>
-          <div class="f-card">
-            <div class="f-day">${esc(b.kicker)}</div>
-            <h2>${esc(b.title)}</h2>
-            <div class="f-body">${esc(b.body)}</div>
-            <div class="f-aside">
-              <img src="./art/characters/special-adviser.webp" alt="" onerror="this.style.display='none'"/>
-              <div>
-                <div class="n">${esc(run.ctx.saName)} · Special Adviser</div>
-                <div class="q">${esc(b.aside)}</div>
-              </div>
-            </div>
-            ${b.options.map((o, i) => `
-              <button class="f-opt" data-i="${i}">
-                <div class="l">${esc(o.label)}</div>
-                <div class="s">${esc(o.note)}</div>
-                <div class="f-chips">${(o.chips || []).map(c => `<span class="f-chip ${c[1]}">${esc(c[0])}</span>`).join("")}</div>
-              </button>`).join("")}
-          </div>
-        </div>`;
-      wrap.querySelectorAll(".f-opt").forEach(btn => btn.addEventListener("click", () => {
-        applyOption(b, b.options[parseInt(btn.dataset.i, 10)]);
-        run.i++;
-        wrap.scrollTop = 0;
-        render();
-      }));
-      return;
-    }
-
-    // ── THE REPORT ─────────────────────────────────────────────────────────
-    try { window.SOP_setMode && window.SOP_setMode("admin"); } catch (e) {}
-    const appNow = Math.round((S.s && S.s.app) || 0);
-    const drift = appNow - run.startApp;
-    schedulePending();
+    const b = run.beats[idx];
+    if (!b) { if (done) done(); return; }
+    try { window.SOP_setMode && window.SOP_setMode(b.mode); } catch (e) {}
+    wrap = document.createElement("div");
+    wrap.id = "sop-f100";
+    document.body.appendChild(wrap);
     wrap.innerHTML = `<style>${css()}</style>
       <div class="f-wrap">
-        <div class="f-rail"><span class="f-day">Day 100 · ${esc(run.ctx.stateName)}</span>${rail}</div>
         <div class="f-card">
-          <div class="f-day">Situation Report</div>
-          <h2>Your first 100 days</h2>
-          <div class="f-body">Six decisions. This is what they bought you, and what they cost.</div>
-
-          <div class="f-sec">
-            <h3>What you did</h3>
-            ${run.log.map(l => `<div class="f-row"><b>${esc(l.day)}</b> — ${esc(l.choice)}<br/><span style="font-size:var(--t-label,34px)">${esc(l.outcome)}</span></div>`).join("")}
-          </div>
-
-          <div class="f-sec">
-            <h3>Where you stand</h3>
-            <div class="f-row">Approval <b>${appNow}%</b> — ${drift >= 0 ? "up" : "down"} ${Math.abs(drift)} points since the oath.</div>
-            <div class="f-row">Party stability <b>${Math.round((S.s && S.s.pStab) || 0)}%</b> · Corruption exposure <b>${Math.round(((S.s && S.s.cor) || 0) * 100)}%</b> · Debt <b>${nB((S.s && S.s.debt) || 0)}</b></div>
-          </div>
-
-          ${run.owed.length ? `<div class="f-sec"><h3>What you owe</h3>
-            ${run.owed.map(o => `<div class="f-row"><b>${esc(o.to)}</b> — ${esc(o.what)}. He expects it by turn ${o.dueBy}.</div>`).join("")}</div>` : ""}
-
-          ${run.exposed.length ? `<div class="f-sec"><h3>What is on paper</h3>
-            ${run.exposed.map(x => `<div class="f-row">${esc(x)}</div>`).join("")}</div>` : ""}
-
-          ${run.pending.length ? `<div class="f-sec"><h3>What is coming</h3>
-            ${run.pending.map(p => `<div class="f-row f-pend"><b>Turn ${p.turn}</b> — ${esc(p.label)}</div>`).join("")}</div>` : `<div class="f-sec"><h3>What is coming</h3><div class="f-row">Nothing you set in motion is scheduled to explode. Yet.</div></div>`}
-
+          <div class="f-day">${esc(b.day)} in office · ${esc(b.kicker)}</div>
+          <h2>${esc(b.title)}</h2>
+          <div class="f-body">${esc(b.body)}</div>
           <div class="f-aside">
             <img src="./art/characters/special-adviser.webp" alt="" onerror="this.style.display='none'"/>
             <div>
               <div class="n">${esc(run.ctx.saName)} · Special Adviser</div>
-              <div class="q">"${esc(saRead())}"</div>
+              <div class="q">${esc(b.aside)}</div>
             </div>
           </div>
-
-          <button class="f-cta" data-act="done">Open the appropriation bill →</button>
+          ${b.options.map((o, i) => `
+            <button class="f-opt" data-i="${i}">
+              <div class="l">${esc(o.label)}</div>
+              <div class="s">${esc(o.note)}</div>
+              <div class="f-chips">${(o.chips || []).map(c => `<span class="f-chip ${c[1]}">${esc(c[0])}</span>`).join("")}</div>
+            </button>`).join("")}
         </div>
       </div>`;
-    wrap.querySelector("[data-act=done]").addEventListener("click", finish);
+    wrap.querySelectorAll(".f-opt").forEach(btn => btn.addEventListener("click", () => {
+      const o = b.options[parseInt(btn.dataset.i, 10)];
+      const nPend = run.pending.length;
+      applyOption(b, o);
+      const fresh = run.pending.slice(nPend);
+      schedulePending(fresh);
+      showOutcome(b, o, fresh, idx, done);
+    }));
+  }
+
+  function showOutcome(b, o, fresh, idx, done) {
+    const last = idx === 5;
+    wrap.scrollTop = 0;
+    wrap.innerHTML = `<style>${css()}</style>
+      <div class="f-wrap">
+        <div class="f-card">
+          <div class="f-day">${esc(b.day)} · ${esc(b.title)}</div>
+          <h2>${esc(o.label)}</h2>
+          <div class="f-body">${esc(o.outcome || "It is done.")}</div>
+          ${fresh.map(p => `<div class="f-row f-pend"><b>Turn ${p.turn}</b> — ${esc(p.label)}</div>`).join("")}
+          ${o.owed ? `<div class="f-row"><b>You now owe ${esc(o.owed.to)}</b> — ${esc(o.owed.what)}, by turn ${o.owed.dueBy}.</div>` : ""}
+          ${last ? `<div class="f-aside">
+            <img src="./art/characters/special-adviser.webp" alt="" onerror="this.style.display='none'"/>
+            <div><div class="n">${esc(run.ctx.saName)} · Day 100</div><div class="q">"${esc(saRead())}"</div></div>
+          </div>` : ""}
+          <button class="f-cta" data-act="ok">Continue</button>
+        </div>
+      </div>`;
+    wrap.querySelector("[data-act=ok]").addEventListener("click", () => {
+      try { window.SOP_setMode && window.SOP_setMode("admin"); } catch (e) {}
+      if (wrap) { wrap.remove(); wrap = null; }
+      if (last) conclude();
+      if (done) done();
+    });
   }
 
   // Halima's read is generated from what actually happened, not from a pool.
@@ -624,10 +603,9 @@
     return "A quiet hundred days. Quiet is not the same as safe — the Assembly has been watching and has not yet had to vote.";
   }
 
-  function finish() {
-    try { window.SOP_setMode && window.SOP_setMode("admin"); } catch (e) {}
+  function conclude() {
     const S = window.SOP;
-    if (S && S.addL) S.addL("🏛️ First 100 days concluded. The appropriation bill is now before you.", "info");
+    if (S && S.addL) S.addL("🏛️ The first 100 days are behind you.", "info");
     try {
       window.SOP_LEDGER && window.SOP_LEDGER.append({
         kind: "milestone", actor: "governor", gravity: 1, evidence: 1,
@@ -635,10 +613,6 @@
         outcome: `${run.log.length} decisions taken; ${run.pending.length} consequence(s) pending; ${run.owed.length} debt(s) outstanding.`,
       });
     } catch (e) {}
-    wrap.remove();
-    wrap = null;
-    const done = run.done; run.done = null;
-    if (done) done();
   }
 
   /* ───────────────────────── MOUNT ───────────────────────── */
@@ -673,40 +647,44 @@
     };
   }
 
-  function mount(done) {
+  function ensureRun() {
     const S = window.SOP;
-    if (!S || wrap) { if (done) done(); return; }
-    const ctx = buildCtx();
-    run = { i: 0, log: [], owed: [], exposed: [], pending: [], gfShift: 0, lastLedgerId: null, ctx, startApp: Math.round((S.s && S.s.app) || 55) };
-    run.done = done || null;
-    run.beats = beats(ctx);
-    wrap = document.createElement("div");
-    wrap.id = "sop-f100";
-    document.body.appendChild(wrap);   // redirected into the scaled stage by the shell
-    render();
+    if (run) return;
+    run = { log: [], owed: [], exposed: [], pending: [], gfShift: 0, lastLedgerId: null, ctx: buildCtx(), startApp: Math.round((S && S.s && S.s.app) || 55) };
   }
 
-  // Fires once, on the first turn of a genuinely new run. A loaded save already
-  // has wiki history or a cabinet, so it is skipped there.
-  let done = false;
+  // Three scenes sit on the Desk in turn 1 and three in turn 2, alongside the
+  // half-year's other decisions. A scene already on the record (a loaded save)
+  // is not offered again.
+  const PER_TURN = { 1: [0, 1, 2], 2: [3, 4, 5] };
+  const DAYS = ["DAY 1", "DAY 4", "DAY 21", "DAY 40", "DAY 55", "DAY 78"];
+  let active = false, offeredTurn = 0;
+  const played = (i) => {
+    try { return !!(window.SOP_MEMORY && window.SOP_MEMORY.did(null, x => (x.location || "").indexOf(DAYS[i] + " — ") === 0)); } catch (e) { return false; }
+  };
   window.addEventListener("sop-state", () => {
-    if (done) return;
     const S = window.SOP;
-    if (!S || S.turn !== 1) return;
-    if ((S.wikiEvents && S.wikiEvents.length) || (S.ministries && S.ministries.length)) { done = true; return; }
-    if (!S.setS || !S.s) return;
-    done = true;
-    // Opens through the Desk, which keeps it from sharing the screen with
-    // another card. Falls back to opening directly without one.
-    if (S.desk && S.desk.present) {
-      S.desk.present({ key: "first100", topic: "first100", source: "first100", title: "The First 100 Days",
-        open: (finish) => setTimeout(() => mount(finish), 400) });
-    } else setTimeout(mount, 400);
+    if (!S || !S.setS || !S.s || !S.desk || !S.desk.offer) return;
+    const turn = S.turn || 0;
+    if (!PER_TURN[turn] || offeredTurn === turn) return;
+    if (!active) {
+      // A genuinely new run (no cabinet, no history) or a save mid-way through.
+      const fresh = turn === 1 && !(S.wikiEvents && S.wikiEvents.length) && !(S.ministries && S.ministries.length);
+      if (!fresh && !DAYS.some((_, i) => played(i))) { offeredTurn = turn; return; }
+      active = true;
+    }
+    offeredTurn = turn;
+    ensureRun();
+    PER_TURN[turn].forEach(i => {
+      if (played(i)) return;
+      S.desk.offer({ key: "first100:" + i, source: "first100", title: "First 100 Days · " + DAYS[i],
+        open: (done) => setTimeout(() => renderBeat(i, done), 200) });
+    });
   });
   // A new run in the same tab gets its own First 100 Days.
-  window.addEventListener("sop-new-game", () => { done = false; });
+  window.addEventListener("sop-new-game", () => { active = false; offeredTurn = 0; run = null; scheduled.length = 0; });
 
-  window.SOP_F100_replay = () => { done = true; if (!wrap) mount(); };
+  window.SOP_F100_replay = (i) => { ensureRun(); if (!wrap) renderBeat(i || 0); };
 
   console.log("[SOP F100] First 100 Days slice ready");
 })();
