@@ -588,6 +588,37 @@ function gN(r, zone, stateId) {
   if (stateId && SNAMES[stateId]) { const z = SNAMES[stateId]; return pick(z.fn, r) + " " + pick(z.ln, r); }
   const z = ZNAMES[zone] || ZNAMES.SW; return pick(z.fn, r) + " " + pick(z.ln, r);
 }
+// ─── FLAGSHIP ───
+// The agenda picked at setup. Shown in the header, quoted by the anchors and
+// the adviser, given its own Desk decision every year ("flagship" phase) and
+// judged in the Wikipedia article from the "flagship_milestone" record.
+const FLAGSHIP = {
+  education: { i: "📚", nm: "Education for All", goal: "rehabilitate 120 primary schools" },
+  health: { i: "🏥", nm: "Healthcare Revolution", goal: "reopen 40 primary health centres" },
+  infrastructure: { i: "🏗️", nm: "Build, Build, Build", goal: "complete one trunk road in each senatorial zone" },
+  security: { i: "🛡️", nm: "Peace & Security", goal: "equip 2,000 community guards" },
+  agriculture: { i: "🌾", nm: "Agricultural Transformation", goal: "irrigate 5,000 hectares of farmland" },
+  anticorruption: { i: "⚖️", nm: "Clean Governance", goal: "publish every state contract online" },
+  youth: { i: "💼", nm: "Youth Empowerment", goal: "train and place 10,000 young people" },
+  women: { i: "👩", nm: "Women & Social Welfare", goal: "put 20,000 more girls in school" },
+  technology: { i: "💻", nm: "Digital Economy", goal: "connect 200 public schools to broadband" },
+  housing: { i: "🏠", nm: "Affordable Housing", goal: "hand over 1,000 low-cost homes" },
+};
+
+// ─── STATES IN ONE LINE ───
+// What a player feels in this state, from the state's own starting numbers
+// (own revenue, security, poverty) and its godfather. Replaces raw percentages.
+function stateLine(stateId, d) {
+  if (!d) return "";
+  const gf = STATE_GODFATHERS[stateId] || {};
+  const wealth = d.igr >= 15 ? "Rich state, high expectations" : d.igr >= 6 ? "Earns some of its own money, needs federal money too" : "Poor state, depends on federal money";
+  const bits = [wealth];
+  bits.push(d.sec < .35 ? "serious security pressure" : d.sec < .5 ? "some security pressure" : "relatively calm");
+  if ((gf.power || 0) >= 80) bits.push("a dominant godfather");
+  else if ((gf.power || 0) <= 45) bits.push("a weak godfather");
+  return bits.join(" · ");
+}
+
 // ─── THE CAST ───
 // Eight recurring people who carry the consequences. Built once when the
 // governor takes office and saved with the game, so every screen and module
@@ -974,6 +1005,14 @@ const Fold = ({ title, summary, children, open: startOpen = false }) => {
       React.createElement("span", { style: { fontSize: TS(20), color: CL.td, transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" } }, "▼")),
     open ? React.createElement("div", { style: { padding: "0 14px 14px" } }, children) : null);
 };
+
+// A scene banner: a background from public/art with a cast member in front.
+// Only cast members get portraits (see CAST_ART); other scenes get the
+// background alone.
+const SceneArt = ({ bg, who, alt, h = 230 }) => React.createElement("div", {
+  style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
+    background: "#1d2a22 url(./art/backgrounds/" + bg + ".webp) center/cover" } },
+  who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } }) : null);
 
 const Bg = ({ text, color = CL.grn }) => React.createElement("span", { className: "ds-chip", style: { background: color + "15", color, borderColor: color + "40" } }, text);
 
@@ -1438,7 +1477,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
               <button key={d.id} onClick={() => setLevel(d.id)} style={{ padding: "8px 24px", borderRadius: 18, border: "1px solid " + (level === d.id ? d.c : CL.bdr), background: level === d.id ? d.c + "15" : "transparent", color: level === d.id ? d.c : CL.td, fontSize: TS(18), fontWeight: level === d.id ? 700 : 400, cursor: "pointer", fontFamily: F.b }}>{d.l}</button>
             ))}
           </div>
-          <p style={{ color: CL.td, fontSize: TS(18), marginTop: 4 }}>36 states available. FCT is not playable — tap it to learn why.</p>
+          <p style={{ color: CL.td, fontSize: TS(18), marginTop: 4 }}>36 states. Each starts differently: how much money it raises itself (its IGR), how safe it is, and how strong its godfather is.</p>
         </div>
         {TALL() ? <div style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
           {/* Phone: states grouped by region, one region open at a time. */}
@@ -1460,8 +1499,10 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
                   const isFCT = n === "FCT";
                   const on = !isFCT && st === n;
                   return <button key={n} onClick={() => isFCT ? setShowFCT(true) : setSt(n)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 12px", minHeight: 56, marginTop: 6, borderRadius: 14, border: "1px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn + "14" : "transparent", cursor: "pointer", textAlign: "left", color: CL.txt, opacity: isFCT ? .6 : 1 }}>
-                    <span style={{ flex: 1, minWidth: 0, fontSize: TS(25), fontWeight: on ? 700 : 500 }}>{on ? "✓ " : ""}{n.replace("_", " ")}</span>
-                    <span style={{ fontSize: TS(20), color: isFCT ? CL.td : dc[d.diff], fontWeight: 700 }}>{isFCT ? "Not playable" : d.diff}</span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: "block", fontSize: TS(25), fontWeight: on ? 700 : 500 }}>{on ? "✓ " : ""}{n.replace("_", " ")}</span>
+                      <span style={{ display: "block", fontSize: TS(20), color: CL.td }}>{isFCT ? "Not playable · run by a federal minister" : stateLine(n, d)}</span>
+                    </span>
                   </button>;
                 })}
               </div>}
@@ -1481,11 +1522,10 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
               <Cd key={n} onClick={() => isFCT ? setShowFCT(true) : setSt(n)} active={!isFCT && st === n} style={{ padding: 14, opacity: isFCT ? .55 : 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <span style={{ fontFamily: F.d, color: isFCT ? CL.td : CL.txt, fontSize: TS(24), fontWeight: 600 }}>{n.replace("_", " ")}</span>
-                  {isFCT ? <Bg text="NOT PLAYABLE" color={CL.td} /> : <Bg text={d.diff} color={dc[d.diff]} />}
+                  {isFCT ? <Bg text="NOT PLAYABLE" color={CL.td} /> : null}
                 </div>
                 <div style={{ fontSize: TS(16), color: CL.td, fontFamily: F.m, marginBottom: 6 }}>{isFCT ? "Federal Capital Territory · Minister-run" : ZONES[d.zone] + " · " + d.pop + "M"}</div>
-                {!isFCT && <SB label="IGR" value={d.igr} max={55} color={CL.gold} icon="💰" />}
-                {!isFCT && <SB label="Security" value={d.sec} color={CL.red} icon="🛡️" />}
+                {!isFCT && <div style={{ fontSize: TS(18), color: CL.tm, lineHeight: 1.35 }}>{stateLine(n, d)}</div>}
                 {isFCT && <div style={{ fontSize: TS(16), color: CL.td, fontStyle: "italic" }}>Tap to learn why</div>}
               </Cd>
             );
@@ -1917,6 +1957,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
                 setStep(85);
               }} style={{ padding: "29px 50px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
             </div>}
+            <SceneArt bg="collation-centre" h={TALL() ? 180 : 240} />
             <Cd style={{ textAlign: "left", marginBottom: 36, background: "#fffef7", borderColor: CL.gold + "55" }}>
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 22, textAlign: "center", letterSpacing: 2 }}>INEC · FORM EC8D · FINAL COLLATED RESULT</div>
               <div style={{ fontSize: TS(34), color: CL.txt, textAlign: "center", marginBottom: 29, borderBottom: "1px solid " + CL.bdr, paddingBottom: 22 }}><b>Governorship Election — {st.replace("_", " ")} State</b><br/>Registered Voters: <b>{fmtVotesFull(collation.registeredTotal)}</b> · Total Cast: <b>{fmtVotesFull(collation.totalYou + collation.totalOpp)}</b></div>
@@ -2173,8 +2214,8 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       const pt = PARTIES.find(p => p.id === party);
       const anchorLines = [
         { who: "m", t: "Good evening. You're watching the State House Report, live from " + stNm + " State — and it's official: we have a new Governor-elect." },
-        { who: "f", t: "That's right, Tunde. INEC has returned " + (nm || "the candidate") + " of the " + (pt?.id || "party") + " as duly elected Governor of " + stNm + " State." },
-        { who: "m", t: "A campaign fought across every senatorial zone — and now the hard part begins. Empty treasury, restless unions, and a godfather who remembers every favour." },
+        { who: "f", t: "That's right, Tunde. INEC has returned " + (nm || "the candidate") + " of the " + (pt?.id || "party") + " as duly elected Governor of " + stNm + " State" + (slogan ? ", after a campaign fought on the slogan ‘" + slogan + "’." : ".") },
+        { who: "m", t: (FLAGSHIP[agenda] ? "The Governor-elect has promised to make " + FLAGSHIP[agenda].nm + " the centrepiece: to " + FLAGSHIP[agenda].goal + ". " : "") + "Now the hard part begins. Empty treasury, restless unions, and a godfather who remembers every favour." },
         { who: "f", t: "The swearing-in is done, the convoy is moving. Governor, Government House is waiting for you." },
       ];
       return <AnchorDesk lines={anchorLines} onDone={() => setAnchorsShown(true)} />;
@@ -2183,9 +2224,9 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       <div style={{ minHeight: "100%", background: "linear-gradient(180deg,#f0f5e8,#fafdf7)", padding: "72px 43px" }}>
         <Flag />
         <div style={{ maxWidth: 912, margin: "120px auto", textAlign: "center" }}>
-          <div style={{ fontSize: TS(124), marginBottom: 36 }}>🏛️</div>
+          <SceneArt bg="government-house" h={TALL() ? 220 : 300} />
           <h2 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(94), fontWeight: 700, margin: "0 0 36px" }}>Welcome to Government House</h2>
-          <AdvBubble text={ADV.govHouse(nm, st, saName)} saName={saName} />
+          <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
               <Bt onClick={() => onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest })} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
@@ -3410,7 +3451,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     netherlands: "travel", abuja: "travel", wedding: "travel", intl_invite: "travel",
     godfather: "godfather", house_bill: "house", investor: "investment", federal: "federal",
     shock: "shock", judiciary: "courts", media: "press", nic_ruling: "courts",
-    hidden_threat: "adviser", dilemma: "crisis",
+    hidden_threat: "adviser", dilemma: "crisis", flagship: "flagship",
   };
   // A new run starts with the campaign loan on the record, so the godfather
   // can ask for it back (and only then).
@@ -3550,6 +3591,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const q = [];
     const courtFirst = deskCourtFirst.current; deskCourtFirst.current = false;
     if (courtFirst) q.push("judiciary");
+    // Once a year the flagship programme comes back to the Desk.
+    if (turn % 2 === 0 && FLAGSHIP[setup?.agenda]) q.push("flagship");
     const lv = setup?.level || "hard";
 
     // LAYER 1: Major trip/visit (1 per turn, scheduled)
@@ -4082,7 +4125,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}>☰</button>
             <button onClick={() => { setSosOpen(o => !o); setMenuOpen(false); }} aria-expanded={sosOpen} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, color: "#f3f7ef", cursor: "pointer", padding: 0, minHeight: 56 }}>
               <div style={{ fontFamily: F.c, fontWeight: 800, fontSize: TS(20), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Gov. {pName.split(" ").pop()} · {state.replace("_", " ")}</div>
-              <div style={{ fontSize: TS(20), opacity: .75 }}>Turn {turn} of {MT} · State of the state {sosOpen ? "▲" : "▼"}</div>
+              <div style={{ fontSize: TS(20), opacity: .8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Turn {turn} of {MT} · {FLAGSHIP[setup?.agenda] ? FLAGSHIP[setup.agenda].i + " " + FLAGSHIP[setup.agenda].nm : "State of the state"} {sosOpen ? "▲" : "▼"}</div>
             </button>
             <div onClick={() => { setSosOpen(o => !o); setMenuOpen(false); }} style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 999, background: s.app > 60 ? "#1f7a46" : s.app > 40 ? "#8a6400" : "#8b1a1a", fontFamily: F.m, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>Approval {Math.round(s.app)}%</div>
           </div>
@@ -4118,6 +4161,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <div>
             <div style={{ fontSize: TS(29), letterSpacing: 7, color: CL.grn, fontFamily: F.m, textTransform: "uppercase", paddingRight: TALL() ? 140 : 0 }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
             <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), margin: 1, fontWeight: 600 }}>{yr}</h2>
+            {FLAGSHIP[setup?.agenda] && <div style={{ fontSize: TS(27), color: CL.grn, fontWeight: 700 }}>{FLAGSHIP[setup.agenda].i} Flagship: {FLAGSHIP[setup.agenda].nm}</div>}
           </div>
           <div style={TALL() ? { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px 10px", width: "100%", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: "16px 10px" } : { display: "flex", gap: 29, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: s.app > 60 ? CL.grn : s.app > 40 ? CL.org : CL.red }}>{Math.round(s.app)}%</div><div style={{ fontSize: TS(29), color: CL.td }}>APPR</div><Spark data={appH} color={s.app > 50 ? CL.grn : CL.red} w={50} h={14} /></div>
@@ -4168,7 +4212,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             return <Cd style={{ borderColor: CL.pur + "44" }}>
               <div style={{ textAlign: "center", marginBottom: 29 }}>
-                <div style={{ fontSize: TS(102), marginBottom: 14 }}>{stageIcons[courtStage]}</div>
+                <SceneArt bg="courtroom" h={TALL() ? 180 : 220} />
                 <Bg text={stage} color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curCourt.title}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curCourt.desc}</p>
@@ -4322,7 +4366,35 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </Cd>}
         </OL>
 
+        <OL show={phase === "flagship" && !!FLAGSHIP[setup?.agenda]}>
+          {phase === "flagship" && FLAGSHIP[setup?.agenda] && (() => {
+            const FG = FLAGSHIP[setup.agenda];
+            const year = Math.ceil(turn / 2);
+            const cost = Math.round((1.4 + turn * 0.15) * 10) / 10;
+            const done = (window.SOP_MEMORY ? window.SOP_MEMORY.all("flagship_milestone", e => e.meta && e.meta.delivered) : []).length;
+            const pick = (opt) => {
+              setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)), debt: p.debt + (opt.debt || 0) }));
+              addL(FG.i + " Flagship " + FG.nm + ": " + opt.log, opt.delivered ? "policy" : "political");
+              try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda } }); } catch (e) {}
+              nextEvent();
+            };
+            const opts = [
+              { label: "Fund it in full", note: "₦" + cost + "B from borrowing. Done properly.", delivered: true, app: 4, debt: cost, log: "year " + year + " target met in full: " + FG.goal + "." },
+              { label: "Cut corners to finish on time", note: "Half the money, a favoured contractor. It opens, but the work is thin.", delivered: true, app: 2, debt: Math.round(cost * 5) / 10, cor: .04, log: "year " + year + " target met on paper; the work is thin." },
+              { label: "Push it to next year", note: "No new money. The people notice.", delivered: false, app: -3, log: "year " + year + " target missed and pushed back." },
+            ];
+            return <DecisionCard kicker={"Flagship · Year " + year} kickerColor={CL.grn}
+              title={FG.i + " " + FG.nm}
+              brief={"You promised to " + FG.goal + ". This year's share of that promise is due. " + (done ? "So far " + done + " of " + (year - 1) + " yearly targets delivered." : year > 1 ? "Last year's target was missed." : "Nothing has been delivered yet.")}
+              stakes="This is the programme the Wikipedia article will judge you on."
+              aside={<AdvBubble text={"Your Excellency, the people heard you promise to " + FG.goal + ". This is the year they will count."} saName={cast.adviser.name} />}
+              options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "Debt +₦" + o.debt + "B", color: CL.red }] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
+              onPick={(o) => pick(o.raw)} />;
+          })()}
+        </OL>
+
         <OL show={phase === "dilemma" && !!curD}>
+          {curD && curD.id === "strike" && <SceneArt bg="rally" who="labour-leader" alt={cast.labour.name} h={TALL() ? 220 : 260} />}
           {curD && <DecisionCard
             kicker="Dilemma"
             kickerColor={CL.org}
@@ -4360,7 +4432,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={phase === "judiciary" && !!judEvent}>
           {judEvent && <Cd style={{ borderColor: CL.pur + "44", textAlign: "center" }}>
-            <div style={{ fontSize: TS(98), marginBottom: 22 }}>⚖️</div>
+            <SceneArt bg="courtroom" h={TALL() ? 180 : 220} />
             <Bg text="Judicial Review" color={CL.pur} />
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{judEvent.nm}</h3>
             <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{judEvent.d}</p>
@@ -4693,7 +4765,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "federal" && !!curFgEvent}>
           {curFgEvent && <Cd style={{ borderColor: curFgEvent.type === "reward" ? CL.grn + "44" : CL.red + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 14 }}>🇳🇬</div>
+              <SceneArt bg="governor-office" who={curFgEvent.id === "fg_efcc" ? "efcc-investigator" : null} alt={curFgEvent.id === "fg_efcc" ? cast.efcc.name : ""} h={TALL() ? 200 : 240} />
               <Bg text="Federal Government" color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curFgEvent.title}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curFgEvent.desc}</p>
@@ -4759,7 +4831,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "media" && !!curMedia}>
           {curMedia && <Cd style={{ borderColor: curMedia.severity === "positive" ? CL.grn + "44" : CL.org + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 14 }}>{curMedia.icon}</div>
+              <SceneArt bg="tv-studio" who="reporter" alt={cast.reporter.name} h={TALL() ? 220 : 260} />
               <Bg text={curMedia.type === "social" ? "Social Media" : curMedia.type === "newspaper" ? "Newspaper" : curMedia.type === "radio" ? "Radio" : curMedia.type === "tv" ? "Television" : "Blogger"} color={curMedia.severity === "positive" ? CL.grn : CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(62), fontWeight: 600 }}>{curMedia.title}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 29 }}>{curMedia.desc}</p>
@@ -5457,6 +5529,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (3 - collation.zonesWon) + "/3 zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
                   <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Petition filed within the 21-day window (S.285(5)). Case number GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(Math.abs(collation.margin)) }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
                 </div>}
+                <SceneArt bg="collation-centre" h={TALL() ? 180 : 240} />
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29, background: "#fffef7", borderColor: CL.gold + "55" }}>
                   <div style={{ fontSize: TS(29), fontWeight: 600, color: CL.grn, fontFamily: F.m, marginBottom: 14, textAlign: "center", letterSpacing: 2 }}>INEC · FORM EC8D · FINAL RESULT</div>
                   <div style={{ fontSize: TS(31), color: CL.txt, textAlign: "center", marginBottom: 22, borderBottom: "1px solid " + CL.bdr, paddingBottom: 14 }}><b>{state.replace("_", " ")} State</b> · Registered: {fmtVotesFull(collation.registeredTotal)} · Cast: {fmtVotesFull(collation.totalYou + collation.totalOpp)}</div>
@@ -6311,6 +6384,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             })()}
 
             {phase === "house_vote" && <Cd style={{ borderColor: CL.pur + "44" }}>
+              <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
               <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
@@ -6798,7 +6872,7 @@ const ADV = {
   convention: "Welcome to the party convention. The party has their preferred deputy — but remember, you are the candidate. Your choice here sets the political tone for your entire campaign.",
   conventionResult: (accepted) => accepted ? "Excellent choice. The party is united. That's a strong start." : "Bold move. You've made your point — but watch your back. The party elders won't forget this easily.",
   campaign: "Campaign time! Take your message to the people. Your slogan, your agenda, your deputy — everything comes together now. Win the hearts and minds of your state!",
-  govHouse: (name, state, saName) => "Congratulations, Your Excellency! Welcome to Government House, " + state.replace("_", " ") + " State. I'm " + saName + ", your Special Adviser, and I'm standing right beside you. The real work begins now. Let's make history!",
+  govHouse: (name, state, saName, flag) => "Congratulations, Your Excellency! Welcome to Government House, " + state.replace("_", " ") + " State. I'm " + saName + ", your Special Adviser, and I'm standing right beside you." + (flag ? " " + flag.nm + " starts on day one: the people heard you promise to " + flag.goal + ", and they will count." : "") + " Let's make history!",
   budget: (amount) => "Your Excellency, it's budget time. You have " + amount + " to allocate across 8 sectors. The House of Assembly will review your Appropriation Bill — make sure it's balanced.",
   house_vote: "The House of Assembly must approve your budget under Section 121. They'll tell you their concerns before voting. If they reject it, you can amend or force it through — though I wouldn't recommend the latter.",
   policy: "Time to choose your policies and projects. Each one has costs, timelines, and some carry corruption risk. You can also sponsor bills through the House.",
