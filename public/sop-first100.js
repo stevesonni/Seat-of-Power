@@ -543,7 +543,7 @@
             <h2>${esc(b.title)}</h2>
             <div class="f-body">${esc(b.body)}</div>
             <div class="f-aside">
-              <img src="./sa-halima.png" alt="" onerror="this.style.display='none'"/>
+              <img src="./art/characters/special-adviser.webp" alt="" onerror="this.style.display='none'"/>
               <div>
                 <div class="n">${esc(run.ctx.saName)} · Special Adviser</div>
                 <div class="q">${esc(b.aside)}</div>
@@ -600,7 +600,7 @@
             ${run.pending.map(p => `<div class="f-row f-pend"><b>Turn ${p.turn}</b> — ${esc(p.label)}</div>`).join("")}</div>` : `<div class="f-sec"><h3>What is coming</h3><div class="f-row">Nothing you set in motion is scheduled to explode. Yet.</div></div>`}
 
           <div class="f-aside">
-            <img src="./sa-halima.png" alt="" onerror="this.style.display='none'"/>
+            <img src="./art/characters/special-adviser.webp" alt="" onerror="this.style.display='none'"/>
             <div>
               <div class="n">${esc(run.ctx.saName)} · Special Adviser</div>
               <div class="q">"${esc(saRead())}"</div>

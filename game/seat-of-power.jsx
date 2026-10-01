@@ -605,6 +605,14 @@ function gfPersona(def) {
       : "A quieter power broker. He prefers favours to fights, until he doesn't.",
   };
 }
+// Portraits (public/art). The deputy's picture follows the deputy's first name.
+const CAST_ART = { godfather: "godfather", adviser: "special-adviser", speaker: "speaker", reporter: "reporter", efcc: "efcc-investigator", rival: "rival", labour: "labour-leader" };
+const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu", "Binta", "Bisola", "Bukola", "Chiamaka", "Chidinma", "Damilola", "Ekaette", "Fatima", "Folake", "Folashade", "Funmilayo", "Hadiza", "Halima", "Hannatu", "Hauwa", "Kemi", "Khadija", "Maryam", "Ngozi", "Sade", "Titi", "Yemisi", "Zainab", "Adeola", "Aishatu", "Aminat", "Falmata", "Bintu", "Yagana", "Ifeoma", "Chioma", "Nkechi", "Uche"];
+const castArt = (c) => {
+  if (!c) return null;
+  if (c.id === "deputy") return "./art/characters/" + (FEMALE_FIRST.includes(String(c.name).split(" ")[0]) ? "deputy-female" : "deputy-male") + ".webp";
+  return CAST_ART[c.id] ? "./art/characters/" + CAST_ART[c.id] + ".webp" : null;
+};
 const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
 function makeCast(setup, stateId, zone) {
   const r = rng((stateId || "").length * 131 + ((setup && setup.nm) || "").length * 17 + 7);
@@ -1036,7 +1044,7 @@ const AdvBubble = ({ text, saName }) => {
   if (!text) return null;
   return React.createElement("div", { className: "sop-slide-up", style: { display: "flex", gap: 1, alignItems: "stretch", marginBottom: DS.s[5], borderRadius: DS.r.lg, overflow: "hidden", border: "2px solid rgba(0,0,0,.18)", boxShadow: "0 6px 14px rgba(0,0,0,.14)", background: "#2a2a33" } },
     React.createElement("div", { style: { width: 185, flexShrink: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "radial-gradient(70% 70% at 50% 40%, #4a4a58, #23232b)", overflow: "hidden" } },
-      React.createElement("img", { src: "/__l5e/assets-v1/8987d3fc-869d-4cfd-9581-d8b1ce579f3e/sa-halima.png", alt: String(saName || "Special Adviser"), style: { width: "100%", height: 188, objectFit: "contain", objectPosition: "bottom", display: "block" } })),
+      React.createElement("img", { src: "./art/characters/special-adviser.webp", alt: String(saName || "Special Adviser"), style: { width: "100%", height: 188, objectFit: "contain", objectPosition: "bottom", display: "block" } })),
 
     React.createElement("div", { style: { flex: 1, background: "linear-gradient(180deg,#ffffff,#f2f4ec)", padding: DS.s[4] + "px " + DS.s[5] + "px", textAlign: "left" } },
       React.createElement("div", { style: { fontSize: DS.t.meta, fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: DS.s[1], letterSpacing: 2 } }, saName ? ("SA " + saName).toUpperCase() : "SPECIAL ADVISER"),
@@ -1237,7 +1245,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad }) => {
 
       {/* ── Foreground: crest, logo, buttons ── */}
       <div style={{ position: "relative", zIndex: 5, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "1% 40px", paddingBottom: `calc(${GRASS} - 14%)` }}>
-        <img src={CREST} alt="Coat of arms of Nigeria" style={{ width: 120, maxHeight: "10%", objectFit: "contain", display: "block", filter: "drop-shadow(0 6px 10px rgba(0,0,0,.3))" }} />
+        <img src={CREST} alt="State seal" style={{ width: 120, maxHeight: "10%", objectFit: "contain", display: "block", filter: "drop-shadow(0 6px 10px rgba(0,0,0,.3))" }} />
         <div style={{ background: "linear-gradient(180deg,#0e8b55,#04572f)", border: "3px solid #fff", borderRadius: 14, boxShadow: "0 6px 0 rgba(0,0,0,.2), 0 12px 24px rgba(0,0,0,.25)", padding: "12px 44px", textAlign: "center" }}>
           <h1 style={{ fontSize: TS(64), fontFamily: F.d, color: "#fff", margin: 0, lineHeight: .92, fontWeight: 700, letterSpacing: 2, textShadow: "0 2px 0 rgba(0,0,0,.32)" }}>THE SEAT<br />OF POWER</h1>
         </div>
@@ -1260,18 +1268,18 @@ const TitleScreen = ({ onStart, onHelp, onLoad }) => {
 // ─── SETUP ───
 // SVG Avatars — Nigerian attire
 const AVATAR_IMGS = {
-  agbada: "/__l5e/assets-v1/2a9d0740-2719-444c-a75d-f15a2ed65d51/av-agbada.png",
-  babariga: "/__l5e/assets-v1/b559d903-9d4a-439e-9ed2-ea58846e3596/av-babariga.png",
-  isiagu: "/__l5e/assets-v1/89dfb315-e69e-4f6e-824a-0e1e43bc3902/av-isiagu.png",
-  female: "/__l5e/assets-v1/950a415c-c745-4c68-a78b-c92c0e1456f2/av-female.png",
+  agbada: "./art/characters/governor-male-agbada.webp",
+  babariga: "./art/characters/governor-male-babariga.webp",
+  isiagu: "./art/characters/governor-male-isiagu.webp",
+  female: "./art/characters/governor-female-agbada.webp",
 };
 const TITLE_DUO = "/__l5e/assets-v1/cb3369c8-37de-4d02-8d08-5b71848e1c21/title-duo.png";
-const CREST = "/__l5e/assets-v1/fcca42b7-483b-4104-b5a8-d3aa0e321bca/crest.png";
-const HERO_MALE = "/__l5e/assets-v1/9cf4346c-7c67-4d44-b65f-6b4a4ced23e7/hero-male.png";
-const HERO_FEMALE = "/__l5e/assets-v1/147eb324-177f-40e7-bce8-3eed704e8b95/hero-female.png";
+const CREST = "./art/brand/state-seal.webp";
+const HERO_MALE = "./art/characters/governor-male-agbada.webp";
+const HERO_FEMALE = "./art/characters/governor-female-agbada.webp";
 const ANCHOR_MALE = "/__l5e/assets-v1/1a730b9b-2cbf-491c-b28a-b85d156aae72/anchor-male.png";
 const ANCHOR_FEMALE = "/__l5e/assets-v1/245edd35-729a-46da-9e16-cb8994f7ca3c/anchor-female.png";
-const ANCHOR_BACKDROP = "/__l5e/assets-v1/31a48f27-2cb0-4b3a-bf04-8d2735444058/anchor-backdrop.jpg";
+const ANCHOR_BACKDROP = "./art/backgrounds/tv-studio.webp";
 
 // ─── NEWS DESK CUTSCENE (iCivics-style two-anchor broadcast) ───
 const AnchorDesk = ({ lines, onDone }) => {
@@ -1325,7 +1333,7 @@ const AnchorDesk = ({ lines, onDone }) => {
   );
 };
 
-const SA_PORTRAIT = "/__l5e/assets-v1/8987d3fc-869d-4cfd-9581-d8b1ce579f3e/sa-halima.png";
+const SA_PORTRAIT = "./art/characters/special-adviser.webp";
 const AVATARS = [
   { id: "agbada", label: "Agbada", desc: "Yoruba formal attire",
     svg: '<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="sk1" cx="50%" cy="40%"><stop offset="0%" stop-color="#D4A76A"/><stop offset="100%" stop-color="#B8864E"/></radialGradient></defs><ellipse cx="60" cy="38" rx="22" ry="26" fill="url(#sk1)"/><ellipse cx="60" cy="32" rx="20" ry="8" fill="#2C1810" opacity=".9"/><ellipse cx="49" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><ellipse cx="71" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><circle cx="49" cy="37.5" r=".8" fill="#fff"/><circle cx="71" cy="37.5" r=".8" fill="#fff"/><ellipse cx="60" cy="42" rx="4" ry="1.5" fill="#B8864E" stroke="#996B3D" stroke-width=".5"/><path d="M53 48 Q60 52 67 48" stroke="#8B5E3C" fill="none" stroke-width="1.2" stroke-linecap="round"/><path d="M0 72 Q20 58 60 56 Q100 58 120 72 L120 150 L0 150Z" fill="#1B5E20"/><path d="M5 74 Q25 62 60 60 Q95 62 115 74 L115 148 L5 148Z" fill="#2E7D32"/><path d="M48 60 L60 82 L72 60" fill="#1B5E20" opacity=".6"/><rect x="56" y="60" width="8" height="28" rx="2" fill="#C9A227" opacity=".7"/><path d="M56 68 L64 68" stroke="#A68520" stroke-width="1"/><path d="M56 74 L64 74" stroke="#A68520" stroke-width="1"/><path d="M56 80 L64 80" stroke="#A68520" stroke-width="1"/><rect x="28" y="14" width="64" height="16" rx="8" fill="#FAFAFA" opacity=".95"/><rect x="34" y="10" width="52" height="10" rx="5" fill="#C9A227"/><rect x="38" y="12" width="44" height="6" rx="3" fill="#E0C068"/></svg>' },
@@ -4442,7 +4450,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             return <Cd style={{ borderColor: CL.org + "44" }}>
             <AdvBubble text={ADV.godfather} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 22 }}>🎩</div>
+              <div style={{ margin: "0 auto 22px", maxWidth: 520, borderRadius: 22, overflow: "hidden", background: "#13161c url(./art/backgrounds/veranda-night.webp) center/cover", display: "flex", justifyContent: "center", alignItems: "flex-end", height: 300 }}>
+                <img src="./art/characters/godfather.webp" alt={gf.nm} style={{ height: 290, width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
+              </div>
               <Bg text={gf.title} color={CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{gf.nm}</h3>
               <div style={{ fontSize: TS(34), color: CL.tm, fontStyle: "italic", marginBottom: 22, maxWidth: 768, margin: "0 auto 22px" }}>{gf.desc}</div>
@@ -6542,9 +6552,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {Object.values(cast).map(c => {
             const rec = (window.SOP_CAST ? window.SOP_CAST.history(c.id) : []).slice(-3).reverse();
             return <Cd key={c.id} style={{ padding: 29 }}>
-              <div style={{ fontFamily: F.m, fontSize: TS(21), letterSpacing: 3, color: CL.grn, textTransform: "uppercase" }}>{c.role}</div>
-              <div style={{ fontFamily: F.d, fontSize: TS(42), fontWeight: 700, color: CL.txt, margin: "6px 0 2px" }}>{c.name}</div>
-              <div style={{ fontSize: TS(24), color: CL.td, marginBottom: 14 }}>{c.title}</div>
+              <div style={{ display: "flex", gap: 18, alignItems: "flex-end", marginBottom: 14 }}>
+                {castArt(c) && <img src={castArt(c)} alt={c.name} loading="lazy" style={{ width: 120, height: 140, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: CL.grn + "14", flexShrink: 0 }} />}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: F.m, fontSize: TS(21), letterSpacing: 3, color: CL.grn, textTransform: "uppercase" }}>{c.role}</div>
+                  <div style={{ fontFamily: F.d, fontSize: TS(42), fontWeight: 700, color: CL.txt, margin: "6px 0 2px" }}>{c.name}</div>
+                  <div style={{ fontSize: TS(24), color: CL.td }}>{c.title}</div>
+                </div>
+              </div>
               {rec.length ? rec.map(e => <div key={e.id} style={{ fontSize: TS(24), color: CL.tm, lineHeight: 1.45, padding: "8px 0", borderTop: "1px solid " + CL.bdr }}>
                 <b style={{ color: CL.txt }}>Turn {e.t}</b> · {e.decision || e.note || e.kind.replace(/_/g, " ")}
               </div>) : <div style={{ fontSize: TS(24), color: CL.td, fontStyle: "italic", borderTop: "1px solid " + CL.bdr, paddingTop: 8 }}>Nothing between you yet.</div>}
