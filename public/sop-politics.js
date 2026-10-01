@@ -79,6 +79,7 @@
 
   /* ── per-turn simulation ───────────────────────────────────────── */
   function advance(S) {
+    syncCast();
     const st = (S && S.s) || {};
     const app = st.app != null ? st.app : 55;
     const cor = Math.round((st.cor || 0) * 100);
@@ -114,6 +115,17 @@
       i.pressure = clamp(Math.round(exposure * .6 + (100 - app) * .2), 0, 100);
       if (civic && civic.institutionalDamage > 40) i.independence = clamp(i.independence - 2, 5, 100);
       else i.independence = clamp(i.independence + 1, 5, 100);
+    });
+  }
+
+  // The Deputy Governor and the Speaker are cast members: use their names
+  // rather than inventing new people for the same seats.
+  const CAST_SEATS = { deputy_governor: "deputy", speaker_of_the_house: "speaker" };
+  function syncCast() {
+    const C = window.SOP_CAST; if (!C) return;
+    P.rivals.forEach(function (r) {
+      const c = CAST_SEATS[r.id] && C.get(CAST_SEATS[r.id]);
+      if (c) r.name = c.name;
     });
   }
 
@@ -401,6 +413,7 @@
 
   /* ── standing panel ────────────────────────────────────────────── */
   function openPanel() {
+    syncCast();
     const bar = function (v) { return '<div style="height:6px;background:#e4ddc8;border-radius:4px;overflow:hidden"><div style="height:100%;width:' + v + '%;background:#2d5a3d"></div></div>'; };
     const fac = Object.keys(P.factions).map(function (k) {
       const f = P.factions[k];

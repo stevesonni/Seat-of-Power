@@ -564,6 +564,32 @@ function gN(r, zone, stateId) {
   if (stateId && SNAMES[stateId]) { const z = SNAMES[stateId]; return pick(z.fn, r) + " " + pick(z.ln, r); }
   const z = ZNAMES[zone] || ZNAMES.SW; return pick(z.fn, r) + " " + pick(z.ln, r);
 }
+// ─── THE CAST ───
+// Eight recurring people who carry the consequences. Built once when the
+// governor takes office and saved with the game, so every screen and module
+// uses the same name for the same person. Their record is the ledger: any
+// entry whose target is their name (see SOP_CAST.history).
+const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
+function makeCast(setup, stateId, zone) {
+  const r = rng((stateId || "").length * 131 + ((setup && setup.nm) || "").length * 17 + 7);
+  const person = () => gN(r, zone, stateId);
+  const surname = () => person().split(" ").slice(1).join(" ");
+  const gfDef = STATE_GODFATHERS[stateId] || {};
+  // Same seed and call as the first campaign, so this is the opponent the
+  // player already met.
+  const opp = "Hon. " + gN(rng((stateId ? stateId.length : 5) * 77 + 99), zone, stateId);
+  const sa = (setup && setup.saName) || (SA_ROSTER[0] && SA_ROSTER[0].name) || "Special Adviser";
+  return {
+    godfather: { id: "godfather", role: "Godfather", title: gfDef.title || "Political Kingmaker", name: "Chief " + person() },
+    adviser: { id: "adviser", role: "Special Adviser", title: "Special Adviser", name: sa },
+    deputy: { id: "deputy", role: "Deputy Governor", title: "Deputy Governor", name: (setup && setup.depGov && setup.depGov.nm) || person() },
+    speaker: { id: "speaker", role: "Speaker", title: "Speaker, State House of Assembly", name: "Rt. Hon. " + person() },
+    reporter: { id: "reporter", role: "Reporter", title: "Investigative reporter", name: pick(CAST_FEMALE, r) + " " + surname() },
+    efcc: { id: "efcc", role: "EFCC investigator", title: "Head of Operations, EFCC zonal command", name: person() },
+    rival: { id: "rival", role: "Rival", title: "Leader of the opposition", name: opp },
+    labour: { id: "labour", role: "Labour leader", title: "NLC State Chairman", name: "Comrade " + person() },
+  };
+}
 function genBio(r) { return pick(BIO_JOBS, r) + ", " + pick(BIO_LINKS, r) + ". " + (r() > .5 ? "Known as a hard worker." : r() > .5 ? "Reputation for loyalty." : "Considered ambitious."); }
 const genCab = (st, seed, zone) => { const r = rng(seed + st.length * 42); const c = {}; CROLES.forEach(role => { c[role.k] = { nm: gN(r, zone, st), co: ri(35, 92, r), lo: ri(25, 90, r), cr: ri(5, 55, r), pu: ri(25, 85, r), role: role.k, bio: genBio(r) }; }); return c; };
 
@@ -2320,8 +2346,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [nepotismCount, setNepotismCount] = useState(ld?.nepotismCount || 0);
   const [pendingProc, setPendingProc] = useState(null); // procurement decision modal
   const [saMemory, setSaMemory] = useState(ld?.saMemory || []);
-  const [saOffice, setSaOffice] = useState(() => ld?.saOffice || { adviser: SA_ROSTER[Math.floor(Math.random() * SA_ROSTER.length)], firedTurn: -99, history: [] });
+  const [saOffice, setSaOffice] = useState(() => ld?.saOffice || { adviser: SA_ROSTER.find(a => a.name === setup?.saName) || SA_ROSTER[0], firedTurn: -99, history: [] });
   const [saPickerOpen, setSaPickerOpen] = useState(false);
+  // The cast (see makeCast). Saves from before the cast get one built now.
+  const [cast, setCast] = useState(() => ld?.cast || makeCast(setup, state, sd?.zone));
+  const castRef = React.useRef(cast);
+  castRef.current = cast;
+  // The Special Adviser seat follows whoever holds the office.
+  useEffect(() => {
+    const a = saOffice.adviser;
+    if (a && a.name !== cast.adviser.name) setCast(c => ({ ...c, adviser: { ...c.adviser, name: a.name, title: a.title || c.adviser.title } }));
+  }, [saOffice.adviser]);
+  useEffect(() => {
+    window.SOP_CAST = {
+      get: (id) => castRef.current[id] || null,
+      all: () => Object.values(castRef.current),
+      // Everything on the record about this person.
+      history: (id) => {
+        const c = castRef.current[id];
+        if (!c || !window.SOP_LEDGER) return [];
+        return window.SOP_LEDGER.all().filter(e => e.target === c.name || (e.meta && e.meta.cast === id));
+      },
+    };
+  }, []);
   const [ledgerVersion, setLedgerVersion] = useState(0);
 
   useEffect(() => { window.SOP = window.SOP || {}; window.SOP._bumpLedgerVersion = () => setLedgerVersion(v => v + 1); }, []);
@@ -2368,6 +2415,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       federalAlignment: fgRelation > 65,
       desk: desk.current,
       memory: window.SOP_MEMORY || null,
+      cast: window.SOP_CAST || null,
     });
     window.dispatchEvent(new CustomEvent('sop-state', { detail: { turn, phase, nav } }));
   });
@@ -2391,6 +2439,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
       houseBillsSeen, investorsSeen, investorsApproved, godfatherSeen, mediaSeen,
       ministries, projects, procLog, council, wikiEvents, nepotismCount, saMemory, saOffice, gEnd, setup,
+      cast,
     };
   };
   const saveGame = async () => {
@@ -2696,7 +2745,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       effects.push({ icon: "⚖️", text: "NATIONAL INDUSTRIAL COURT will be triggered", value: "S.254C", bad: true });
       effects.push({ icon: "⚠️", text: "Court ruling next turn — you'll have to choose: comply or defy", bad: true });
       setNicPending({ turn: turn + 1, type: curD.id === "asuu" ? "lecturers" : "workers", desc: curD.id === "asuu" ? "State university lecturers challenged mass sacking at the National Industrial Court. The court has ruled the sackings unlawful under the Trade Disputes Act and ordered reinstatement with full arrears." : "Government workers challenged mass sacking at the National Industrial Court. The court ruled the sackings violated the Labour Act and ordered reinstatement with payment of all arrears." });
-      addL("⚠️ SA " + (setup?.saName || "Adviser") + ": \"Your Excellency, the " + (curD.id === "asuu" ? "Academic Staff Union" : "labour unions") + " will file at the National Industrial Court immediately. Under S.254C of the Constitution, the NIC has EXCLUSIVE jurisdiction. You CANNOT avoid this court.\"", "crisis");
+      addL("⚠️ SA " + (cast.adviser.name) + ": \"Your Excellency, the " + (curD.id === "asuu" ? "Academic Staff Union" : "labour unions") + " will file at the National Industrial Court immediately. Under S.254C of the Constitution, the NIC has EXCLUSIVE jurisdiction. You CANNOT avoid this court.\"", "crisis");
     }
     const nm = curD.nm; setCurD(null);
     showResult({ icon: "⚖️", title: nm + " — Resolved", narrative: ch.rk || "Your decision has been implemented. The consequences will ripple through your state.", effects, tone: (ch.fx?.app || 0) >= 0 ? "good" : "bad", nextFn: () => nextEvent() });
@@ -3067,7 +3116,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     // ── CABINET REPORT — GUARANTEED every turn (your convened ministries only) ──
     const cabEntries = (ministries || []).map(m => [m.id, m]);
-    const saN = setup?.saName || "Adviser";
+    const saN = cast.adviser.name;
     const secToStat = { education: "lit", health: "hp", infrastructure: "infra", security: "sec", agriculture: "agr", administration: null };
 
     // Pick one convened ministry to spotlight each turn
@@ -4096,7 +4145,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             title={curD.nm}
             brief={curD.d}
             stakes="Every option below has a price and a risk. Nothing here is free."
-            aside={<AdvBubble text={ADV.dilemma} saName={setup?.saName} />}
+            aside={<AdvBubble text={ADV.dilemma} saName={cast.adviser.name} />}
             options={curD.ch.map(ch => ({
               label: ch.l,
               risk: ch.rk,
@@ -4212,9 +4261,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={phase === "godfather" && !!godfatherDemand}>
           {godfatherDemand && (() => {
-            const gf = STATE_GODFATHERS[state] || { nm: "The Godfather", title: "Political Kingmaker", power: 60, aggression: 50, loyalty_demand: 60, desc: "A powerful figure who funded your campaign." };
+            const gf0 = STATE_GODFATHERS[state] || { nm: "The Godfather", title: "Political Kingmaker", power: 60, aggression: 50, loyalty_demand: 60, desc: "A powerful figure who funded your campaign." };
+            const gf = { ...gf0, nm: cast.godfather.name }; // one godfather: the cast's
             return <Cd style={{ borderColor: CL.org + "44" }}>
-            <AdvBubble text={ADV.godfather} saName={setup?.saName} />
+            <AdvBubble text={ADV.godfather} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
               <div style={{ fontSize: TS(106), marginBottom: 22 }}>🎩</div>
               <Bg text={gf.title} color={CL.org} />
@@ -4362,7 +4412,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ fontSize: TS(106), marginBottom: 14 }}>🔍</div>
               <Bg text="Intelligence Report" color={CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>Something Isn't Right...</h3>
-              <AdvBubble text={"Your Excellency, I'm hearing whispers. Something feels off in the " + (hiddenThreats[0]?.ministry || "government") + " Ministry. I can't confirm anything yet, but... " + (hiddenThreats.length > 1 ? "And there may be " + (hiddenThreats.length - 1) + " other issue(s)." : "")} saName={setup?.saName} />
+              <AdvBubble text={"Your Excellency, I'm hearing whispers. Something feels off in the " + (hiddenThreats[0]?.ministry || "government") + " Ministry. I can't confirm anything yet, but... " + (hiddenThreats.length > 1 ? "And there may be " + (hiddenThreats.length - 1) + " other issue(s)." : "")} saName={cast.adviser.name} />
             </div>
             <div style={{ display: "grid", gap: 22 }}>
               <Cd onClick={() => {
@@ -5013,7 +5063,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={phase === "reelection"}>
           <Cd style={{ borderColor: CL.grn + "44" }}>
-            <AdvBubble text={ADV.reelection} saName={setup?.saName} />
+            <AdvBubble text={ADV.reelection} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
               <div style={{ fontSize: TS(106), marginBottom: 22 }}>🗳️</div>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px" }}>End of First Term</h3>
@@ -5095,7 +5145,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {(() => {
             const oppSeed = turn * 99 + state.length * 77;
             const oppR = rng(oppSeed);
-            const oppName = "Hon. " + gN(oppR, sd.zone, setup?.state);
+            gN(oppR, sd.zone, setup?.state); // keeps the party draw below unchanged
+            const oppName = cast.rival.name; // the rival from the first election comes back
             const oppParty = PARTIES.filter(p => p.id !== party)[Math.floor(oppR() * (PARTIES.length - 1))];
             const activeReZones = campZones || buildBattlegrounds(state, turn * 2027, party, oppParty?.id);
             const reSwing = activeReZones.reduce((a, b) => b.swing > a.swing ? b : a, activeReZones[0]);
@@ -6017,7 +6068,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 addL={addL} />
             </Cd>}
             {phase === "policy" && <Cd>
-              <AdvBubble text={ADV.policy} saName={setup?.saName} />
+              <AdvBubble text={ADV.policy} saName={cast.adviser.name} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 14px", fontSize: TS(53), fontWeight: 600 }}>Executive Policies</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 19 }}>{POLICIES.filter(p => !pol.find(a => a.id === p.id)).map(p => <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 24 }}><div style={{ fontWeight: 600, fontSize: TS(36), color: CL.txt, marginBottom: 7 }}>{p.nm}{isCapital(p) && <span style={{ marginLeft: 14, fontSize: TS(29), color: CL.org }}>· BUILD</span>}</div><div style={{ fontSize: TS(29), color: CL.td, marginBottom: 10 }}>{p.d}</div><div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}><Bg text={naira(p.c)} color={CL.gold} /><Bg text={p.t + "T"} color={CL.pur} />{p.cr > 0 && <Bg text={"Risk " + Math.round(p.cr * 100) + "%"} color={CL.red} />}{isCapital(p) && <Bg text="Procurement + EIA" color={CL.org} />}</div></Cd>)}</div>
 

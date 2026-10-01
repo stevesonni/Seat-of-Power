@@ -643,6 +643,10 @@
 
   /* ───────────────────────── MOUNT ───────────────────────── */
 
+  function castName(id) {
+    try { const c = window.SOP_CAST && window.SOP_CAST.get(id); return c ? c.name : null; } catch (e) { return null; }
+  }
+
   function buildCtx() {
     const S = window.SOP || {};
     const seed = ((S.state || "XX").length * 977) + ((S.pName || "").length * 31) + 7;
@@ -652,11 +656,13 @@
       stateName: (S.state || "the state").replace(/_/g, " "),
       capital: sd.capital || ((S.state || "the state").replace(/_/g, " ") + " city"),
       saName: (S.saOffice && S.saOffice.adviser && S.saOffice.adviser.name) || (S.setup && S.setup.saName) || "Halima Bala",
-      gfName: localName(seed * 3 + 5),
+      // The godfather and the reporter are cast members (window.SOP_CAST),
+      // so they keep the same name across the whole game.
+      gfName: castName("godfather") || localName(seed * 3 + 5),
       nominee: localName(seed * 11 + 2),
       technocrat: localName(seed * 17 + 9),
       loyalist: localName(seed * 23 + 4),
-      reporter: localName(seed * 29 + 6),
+      reporter: castName("reporter") || localName(seed * 29 + 6),
       paper: ["The Punch", "Premium Times", "Daily Trust", "The Cable", "Vanguard"][Math.abs(seed) % 5],
       roadName: (S.state || "State").replace(/_/g, " ") + " Ring Road (Phase 1)",
       roadCost: 12 + (Math.abs(seed) % 9),
