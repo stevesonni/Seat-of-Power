@@ -31,6 +31,23 @@ Object.keys(CL_VARS).forEach(k => {
   });
 });
 
+/* Save slot. The game reads and writes window.storage.get/set, which
+   nothing provided, so Save failed and Continue never appeared. Back it
+   with localStorage; every access is guarded (private mode, blocked
+   storage), and failures surface as rejected promises the callers catch. */
+if (!window.storage) {
+  window.storage = {
+    get: (k) => new Promise((resolve) => {
+      let v = null;
+      try { v = window.localStorage.getItem(k); } catch (e) {}
+      resolve(v == null ? null : { key: k, value: v });
+    }),
+    set: (k, v) => new Promise((resolve, reject) => {
+      try { window.localStorage.setItem(k, v); resolve({ key: k, value: v }); } catch (e) { reject(e); }
+    }),
+  };
+}
+
 /* ─────────────────────────────────────────────────────────────────
    SAVE FORMAT
    v1 → the original blob: no version marker, no ledger, autosave
@@ -2330,9 +2347,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
   }, [campRound, reEnightPlayed, state, phase]);
 
-  // Bridge to external realism module
+  // Bridge to the sop-*.js modules. Updated in place: modules attach their
+  // own fields and functions to this object, and replacing it on every
+  // render wiped them.
   useEffect(() => {
-    window.SOP = {
+    window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
       pName, party, state, sd, setup, turn, s, setS,
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
@@ -2343,7 +2362,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       pendingProc, setPendingProc, saMemory, setSaMemory, saOffice, setSaOffice, personalFund, setPersonalFund,
       phase, nav, pol,
       SNAMES: window.SNAMES_PATCHED || null, CL: window.CL_REF || null, F: window.F_REF || null,
-    };
+      ledger: window.SOP_LEDGER ? window.SOP_LEDGER.all() : [],
+      ledgerAppend: (entry) => (window.SOP_LEDGER ? window.SOP_LEDGER.append(entry) : null),
+      gEnd, setTurn,
+      federalAlignment: fgRelation > 65,
+    });
     window.dispatchEvent(new CustomEvent('sop-state', { detail: { turn, phase, nav } }));
   });
 
@@ -3196,9 +3219,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (hlOpts.length === 0) hlOpts.push(state.replace("_", " ").toUpperCase() + " WATCH: What is the governor up to?");
     setHeadline(hlOpts[Math.floor(Math.random() * hlOpts.length)]);
 
-    // Check achievements
-    const gData = { crises: nCris, corWealth: corW, impSurv, wasImp: false, reforms: nRef, allPersHappy: Object.values(pApp).every(v => v >= 60), wonPres: false };
-    ACHIEVEMENTS.forEach(a => { if (a.ck(s, gData) && !achPopup) setAchPopup(a); });
+    // Achievements: no list of them exists yet. The old check referenced an
+    // undefined ACHIEVEMENTS and threw here, skipping the bankruptcy,
+    // impeachment and court checks below.
 
     // Bankruptcy — state revenue collapses (threshold scales with difficulty)
     const _lvE = setup?.level || "medium";
@@ -3234,7 +3257,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       else if (!weddingVisited && (turn === 5 || turn === 6)) q.push("wedding");
       else if (intlInvites.length < 3 && (turn === 3 || turn === 5 || turn === 7)) {
         const unseen = INTL_INVITES.filter(inv => !intlInvites.includes(inv.id));
-        if (unseen.length > 0) { setCurInvite(pick(unseen, rE)); setIntlInvites(p => [...p, unseen[0].id]); q.push("intl_invite"); }
+        if (unseen.length > 0) { const inv = pick(unseen, rE); setCurInvite(inv); setIntlInvites(p => [...p, inv.id]); q.push("intl_invite"); }
       }
     } else {
       // Primary only gets Abuja
@@ -3244,7 +3267,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // LAYER 2: Godfather (every even turn) — NOT for Primary
     if (lv !== "easy" && godfatherPower > 20 && turn % 2 === 0) {
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
-      if (unseen.length > 0) { setGodfatherDemand(pick(unseen, rE)); setGodfatherSeen(p => [...p, unseen[0].id]); q.push("godfather"); }
+      if (unseen.length > 0) { const dem = pick(unseen, rE); setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); q.push("godfather"); }
     }
 
     // LAYER 3: House bill — Secondary+: most turns. Primary: only turn 3 and 6.
@@ -3365,12 +3388,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (next === "intl_invite" && !curInvite) {
       const rE = rng(turn * 111 + state.length * 53 + Date.now() % 5000);
       const unseen = INTL_INVITES.filter(inv => !intlInvites.includes(inv.id));
-      if (unseen.length > 0) { setCurInvite(pick(unseen, rE)); setIntlInvites(p => [...p, unseen[0].id]); }
+      if (unseen.length > 0) { const inv = pick(unseen, rE); setCurInvite(inv); setIntlInvites(p => [...p, inv.id]); }
     }
     if (next === "godfather" && !godfatherDemand) {
       const rE = rng(turn * 888 + state.length * 41);
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
-      if (unseen.length > 0) { setGodfatherDemand(pick(unseen, rE)); setGodfatherSeen(p => [...p, unseen[0].id]); }
+      if (unseen.length > 0) { const dem = pick(unseen, rE); setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); }
     }
     if (next === "house_bill" && !pendingHouseBill) {
       const rE = rng(turn * 444 + state.length * 23);
