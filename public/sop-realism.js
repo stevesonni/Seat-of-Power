@@ -85,6 +85,18 @@
   };
 
   // Patch base-game SNAMES with expanded pools so all existing genName calls upgrade.
+  // Names of serving and former politicians and other public figures. They
+  // are left out of every pool: every person in the game is invented.
+  const BLOCK = new Set(("Ajimobi Akande Ariwoola Awolowo Fajemirokun Falae Fashola Osoba Oyebanji Oyedepo Sanwo-Olu Soyinka Tinubu Aiyedatiwa Adeleke Babajide " +
+    "Abaribe Achebe Ararume Anyim Chime Ekweremadu Ekwueme Elechi Ezeife Ihedioha Ikpeazu Iwu Kalu Madumere Mbadinuju Mbah Nnamani Nwodo Nwobodo Nyerere Obi Obiano Ohaneze Ohakim Okorocha Onu Onyeama Orji Otti Soludo Ubah Ugwuanyi Umahi Uwazuruike Uzodinma Wabara Nwifuru Bakare " +
+    "Bagudu Balarabe Buhari Buni Dangote Dankwambo Dantata El-Rufai Fintiri Ganduje Geidam Gumel Hunkuyi Kwankwaso Lamido Maccido Masari Matawalle Muazu Namadi Ningi Radda Ribadu Saminaka Sanusi Shekarau Shema Sultan Tafawa-Balewa Tambuwal Wamakko Yakowa Yar'Adua Yari Yero Yuguda Marafa AbdulRazaq Muhammadu " +
+    "Alaibe Alamieyeseigha Asari Ateke Dickson Diri Dokpesi Dokubo Fubara Jonathan Sekibo Sylva Timipre Kanu Goodluck " +
+    "Akpabio Attah Ayade Imoke Udom Umana Akume Alia Ayu Gbillah Gemade Mark Ortom Suswam Tarzoor Hyacinth Ali-Modu Sheriff Shettima Zulum Bago Sani-Bello Ododo Wada " +
+    "Dariye Jang Lalong Mutfwang Pwajok Damishi Anenih Igbinedion Ize-Iyamu Obaseki Okpebholo Oshiomhole Aiyegbeni Ibori Ibru Oborevwori Ogboru Okowa Omo-Agege Otuaro Sagay Uduaghan " +
+    "Amaechi Odili Peterside Saro-Wiwa Wike Bwacha Ishaku Kefas Nyame Suntai Darius Jolly Nyesom Siminalayi").split(" "));
+  Object.values(POOLS).forEach(p => { p.fn = p.fn.filter(x => !BLOCK.has(x)); p.ln = p.ln.filter(x => !BLOCK.has(x)); });
+  window.SOP_NAME_BLOCK = BLOCK;
+
   function patchSNAMES() {
     const S = window.SNAMES_REF; if (!S) return;
     Object.entries(STATE_ETHNIC_MAP).forEach(([st, keys]) => {

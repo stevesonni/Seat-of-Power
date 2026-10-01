@@ -23,7 +23,7 @@
       if (window.SNAMES_PATCHED && window.SNAMES_PATCHED.person) return window.SNAMES_PATCHED.person();
     } catch (e) {}
     const f = ["Chidi", "Halima", "Emeka", "Bilkisu", "Tunde", "Ngozi", "Sanusi", "Adaeze", "Ibrahim", "Funmilayo", "Terhemba", "Ekaette", "Yakubu", "Chiamaka"];
-    const l = ["Okonkwo", "Bello", "Adeyemi", "Danladi", "Nwachukwu", "Obaseki", "Ajayi", "Musa", "Etim", "Gambo", "Iorbee", "Effiong"];
+    const l = ["Okonkwo", "Bello", "Adeyemi", "Danladi", "Nwachukwu", "Osagie", "Ajayi", "Musa", "Etim", "Gambo", "Iorbee", "Effiong"];
     return pick(f) + " " + pick(l);
   }
 

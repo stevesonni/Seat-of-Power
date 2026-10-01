@@ -525,63 +525,56 @@ const TRIBUNAL_GROUNDS = [
 
 // Zone fallback name pools
 const ZNAMES = {
-  SE: { fn: ["Chukwuemeka","Nkechi","Obinna","Adaeze","Ikenna","Chidinma","Ugochukwu","Ngozi","Chidi","Amaka","Ogechi","Ebuka","Uchenna","Chioma","Kelechi","Ifeoma"], ln: ["Mbam","Ukpai","Nweze","Eze","Okoro","Nwachukwu","Igwe","Ibe","Okafor","Ogbonnaya","Obi","Anya","Nwankwo","Ekuma","Agbo","Iheanacho","Nnamani","Umahi"] },
-  SW: { fn: ["Adewale","Funke","Olumide","Yetunde","Segun","Bukola","Tunde","Folake","Bode","Abiodun","Yinka","Omolara","Babatunde","Adunni","Kemi","Damilola","Olamide","Gbenga"], ln: ["Adeyemi","Ogundimu","Olawale","Adeleke","Bakare","Oladipo","Adekunle","Balogun","Owolabi","Akinyemi","Fashola","Ajayi","Sanwo-Olu","Bamidele","Oyetola","Tinubu","Soyinka"] },
-  SS: { fn: ["Edet","Iniobong","Oghenetega","Blessing","Edidiong","Oghenero","Mercy","Godwin","Itoro","Ese","Okon","Emem","Tonye","Preye","Boma","Osaze","Iyobosa","Oghenekaro"], ln: ["Etim","Okon","Udo","Bassey","Effiong","Ekpenyong","Omoruyi","Ogiemwonyi","Agbor","Akpan","Inyang","Idiaghe","Sylva","Dickson","Diri","Obaseki","Okowa","Ibori"] },
-  NW: { fn: ["Abubakar","Hauwa","Ibrahim","Amina","Musa","Fatima","Bashir","Zainab","Hamza","Halima","Sadiq","Hadiza","Aliyu","Sani","Yusuf","Maryam","Khadija","Binta"], ln: ["Bello","Abdullahi","Yakubu","Lawal","Garba","Yusuf","Danjuma","Mohammed","Suleiman","Aliyu","Usman","Abubakar","Yar'Adua","El-Rufai","Ganduje","Tambuwal","Matawalle","Bagudu"] },
-  NE: { fn: ["Abubakar","Hauwa","Musa","Aisha","Bukar","Falmata","Ibrahim","Bintu","Babagana","Yagana","Adamu","Halima","Kashim","Modu","Goni","Lawan","Kachalla","Maryam"], ln: ["Shettima","Modu","Bukar","Maina","Abba","Alkali","Monguno","Goni","Lawan","Kyari","Zulum","Mustapha","Buni","Dankwambo","Ibrahim","Yusuf"] },
-  NC: { fn: ["Danladi","Hannatu","Audu","Martha","Sani","Deborah","Yakubu","Grace","Tanko","Blessing","Ishaya","Laraba","Terhemen","Doosuur","Davou","Choji","Ndako","Tsado"], ln: ["Salihu","Idris","Bature","Ocholi","Danasabe","Agabi","Bako","Doma","Aliyu","Audu","Kolo","Zhiya","Ortom","Suswam","Lalong","Mutfwang","Bago","Sani-Bello"] },
+  SE: { fn: ["Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi","Chinedu","Nkechi","Ebuka","Adaobi","Ikenna","Chinyere","Tochukwu","Onyeka","Chidi","Amaka","Ogechi","Ugochukwu","Chidinma"], ln: ["Okonkwo","Nwosu","Eze","Okeke","Okafor","Nwachukwu","Chukwu","Onyeka","Nnaji","Ugwu","Okoro","Ezenwa","Nwankwo","Iheanacho","Onwuka","Agu","Udeh","Ibe","Nwafor","Ogbonna","Ezeani","Anozie","Umeh","Igwe","Agbo","Ukpai","Nweze","Mbam","Ekuma"] },
+  SW: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi"] },
+  SS: { fn: ["Edidiong","Mfon","Itoro","Aniefiok","Eno","Nsikan","Idongesit","Emem","Imaobong","Ubong","Iniobong","Edet","Oghenetega","Ovie","Avwerosuo","Ejiroghene","Efe","Oghenekaro","Tega","Ese","Oghenero","Mercy","Blessing","Osahon","Osaze","Iyobosa","Esosa","Imuetinyan","Ehis","Efosa","Ivie","Uyi","Godwin","Diepreye","Doubra","Ebipade","Preye","Boma","Tonye","Ibim","Ebiere","Timi","Ere","Ebi"], ln: ["Akpan","Bassey","Etim","Ekpenyong","Inyang","Udoh","Essien","Umoh","Effiong","Okon","Ekanem","Udofia","Okumagba","Akpobome","Emuobo","Edewor","Efe","Ighodaro","Onojakpor","Ukueku","Ogbe","Erhire","Omoruyi","Aigboje","Iyamu","Osagie","Igbinosa","Ehigiator","Osayande","Idahosa","Imasuen","Okojie","Ogiemwonyi","Idiaghe","Briggs","Tamuno","Ebiye","Ogoniba","Ekiyor","Amakiri","Igbiri","Bodiseowei","Alagoa","Opuene"] },
+  NW: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  NE: { fn: ["Babagana","Kashim","Bintu","Falmata","Modu","Yagana","Goni","Hauwa","Bukar","Fanna","Ali","Aisha","Musa","Kachalla","Abubakar","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Kyari","Monguno","Modu","Goni","Bukar","Lawan","Kachalla","Maina","Grema","Mustapha","Zanna","Bulama","Alkali","Abba","Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  NC: { fn: ["Danladi","Hannatu","Audu","Martha","Sani","Deborah","Yakubu","Grace","Tanko","Blessing","Ishaya","Laraba","Terhemen","Doosuur","Aondowase","Mngusoor","Iorwuese","Samuel","Msughter","Nguavese","Tersoo","Davou","Caleb","Choji","Hanatu","Dachung","Nanmwa","Joshua","Pam","Kaneng","Ladi","Umaru","Ndako","Tsado","Kolo","Liman","Garba","Yusuf","Hauwa","Fatima","Zainab"], ln: ["Salihu","Idris","Bature","Danasabe","Bako","Aliyu","Audu","Kolo","Zhiya","Ishaya","Iorpuu","Ahule","Iorliam","Tyokase","Akaa","Ayua","Ugbah","Orshi","Ikyaa","Agber","Gyang","Choji","Dalyop","Pam","Danboyi","Mwadkwon","Davou","Dung","Chuwang","Rwang","Ndako","Tsado","Kuta","Jiya","Gana","Mamudu","Baba","Ndagi","Mohammed"] },
 };
 
 // State-specific indigenous name pools (dominant ethnic group of each state).
 // Falls back to zone pool if a state is not listed.
 const SNAMES = {
-  // ── YORUBA (South-West + Kwara core) ──
-  Lagos:  { fn: ["Adebayo","Yemisi","Tunde","Folashade","Babajide","Adunni","Olumide","Bisola","Ayomide","Damilola","Kunle","Sade"], ln: ["Sanwo-Olu","Tinubu","Adeyemi","Bakare","Fashola","Ogundimu","Adeleke","Akinyemi","Bamidele","Adekunle","Balogun"] },
-  Oyo:    { fn: ["Adebayo","Bukola","Olamide","Folake","Gbenga","Adunni","Niyi","Yetunde","Tope","Wale"], ln: ["Ajimobi","Makinde","Adelabu","Olunloyo","Ladoja","Ajayi","Bamidele","Awolowo","Soyinka","Adesina"] },
-  Ogun:   { fn: ["Abiodun","Modupe","Tunde","Folake","Wale","Yewande","Segun","Adeola","Yemi","Subomi"], ln: ["Daniel","Amosun","Abiodun","Osoba","Obasanjo","Awolowo","Adetona","Akinkugbe","Adesina"] },
-  Osun:   { fn: ["Adeleke","Iyabo","Tope","Yemi","Gbenga","Damilola","Niyi","Bukola","Olamide"], ln: ["Adeleke","Aregbesola","Oyinlola","Akande","Aregbe","Bamidele","Adekunle","Owolabi"] },
-  Ondo:   { fn: ["Akeredolu","Aderotimi","Yetunde","Femi","Olu","Mimiko","Tope","Gbenga"], ln: ["Akeredolu","Mimiko","Agagu","Adefarati","Falae","Aiyedatiwa","Owolabi","Adesina"] },
-  Ekiti:  { fn: ["Kayode","Bisi","Niyi","Adunni","Tope","Femi","Folake","Bukola"], ln: ["Fayemi","Fayose","Oyebanji","Olukayode","Ajayi","Bamidele","Adekunle","Adebayo"] },
-  Kwara:  { fn: ["AbdulRazaq","Saraki","Bukola","Tope","Adunni","Yetunde","Sulaiman","Aminat"], ln: ["AbdulRazaq","Saraki","Lai","Mohammed","Aliyu","Bukola","Ahmed","Oyedepo"] },
-  // ── IGBO (South-East) ──
-  Anambra: { fn: ["Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi"], ln: ["Soludo","Obiano","Obi","Ngige","Ekwueme","Ezeife","Mbadinuju","Achebe","Ukpabi"] },
-  Imo:     { fn: ["Chukwuemeka","Ifeoma","Uche","Chinyere","Ikenna","Nkechi","Ebuka","Adaobi"], ln: ["Uzodinma","Okorocha","Ihedioha","Ohakim","Iwu","Ararume","Nwosu","Madumere"] },
-  Abia:    { fn: ["Otti","Chinedu","Ngozi","Onyeka","Ikechukwu","Chioma","Uchenna"], ln: ["Otti","Ikpeazu","Orji","Kalu","Abaribe","Wabara","Nyerere","Ekwueme"] },
-  Enugu:   { fn: ["Peter","Ifeanyi","Ngozi","Obinna","Adaeze","Chinwe","Tochi"], ln: ["Mbah","Ugwuanyi","Chime","Nnamani","Nwobodo","Ekweremadu","Anyim","Ohaneze"] },
-  Ebonyi:  { fn: ["Francis","Nwifuru","Uchenna","Chioma","Kelechi","Ngozi","Ebuka"], ln: ["Nwifuru","Umahi","Egwu","Elechi","Idah","Nweze","Ogbonnaya","Anyim"] },
-  // ── HAUSA-FULANI (North-West) ──
-  Kano:    { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf"], ln: ["Ganduje","Kwankwaso","Shekarau","Bayero","Yusuf","Sanusi","Dantata","Rabiu","Dangote"] },
-  Kaduna:  { fn: ["Nasir","Hauwa","Uba","Aishatu","Aliyu","Maryam","Bashir","Hadiza"], ln: ["El-Rufai","Sani","Yakowa","Makarfi","Yero","Balarabe","Hunkuyi","Yari"] },
-  Katsina: { fn: ["Aminu","Aisha","Dikko","Hadiza","Umar","Maryam","Bello","Zainab"], ln: ["Masari","Radda","Yar'Adua","Shema","Buhari","Umar","Dikko","Saulawa"] },
-  Sokoto:  { fn: ["Aminu","Bello","Ahmadu","Hauwa","Sa'idu","Maryam","Aliyu","Zainab"], ln: ["Tambuwal","Aliyu","Wamakko","Bafarawa","Dingyadi","Maccido","Abubakar"] },
-  Zamfara: { fn: ["Bello","Dauda","Aisha","Sani","Maryam","Yusuf","Hadiza"], ln: ["Matawalle","Yari","Sani","Lawali","Anka","Marafa","Kaura"] },
-  Kebbi:   { fn: ["Atiku","Nasiru","Hauwa","Aminu","Aishatu","Sa'idu","Halima"], ln: ["Bagudu","Idris","Aliero","Dakingari","Argungu","Sokoto","Marafa"] },
-  Jigawa:  { fn: ["Umar","Aisha","Sule","Halima","Aminu","Maryam","Bashir"], ln: ["Namadi","Badaru","Sule","Lamido","Birninkudu","Saminaka","Kazaure"] },
-  // ── KANURI (North-East) ──
-  Borno:   { fn: ["Babagana","Kashim","Bintu","Falmata","Modu","Yagana","Goni","Hauwa"], ln: ["Zulum","Shettima","Kyari","Monguno","Imam","Sheriff","Lawan","Ali-Modu"] },
-  Yobe:    { fn: ["Mai","Bukar","Aisha","Lawan","Yagana","Hassan","Falmata"], ln: ["Buni","Geidam","Lawan","Shettima","Maina","Goni","Bukar","Damaturu"] },
-  Adamawa: { fn: ["Ahmadu","Atiku","Bindow","Aisha","Boni","Hauwa","Murtala"], ln: ["Fintiri","Bindow","Nyako","Ribadu","Atiku","Abubakar","Lamido","Murtala"] },
-  Bauchi:  { fn: ["Bala","Adamu","Aisha","Yuguda","Hadiza","Sadiq","Maryam"], ln: ["Mohammed","Muazu","Yuguda","Ningi","Tafawa-Balewa","Lawal","Abubakar"] },
-  Gombe:   { fn: ["Inuwa","Hauwa","Danjuma","Yakubu","Aisha","Halima","Muhammadu"], ln: ["Yahaya","Dankwambo","Goje","Bayero","Kumo","Akko","Tula"] },
-  Taraba:  { fn: ["Darius","Agbu","Hauwa","Jolly","Suntai","Maryam","Ishaku"], ln: ["Kefas","Ishaku","Suntai","Nyame","Agbu","Bwacha","Bogoro"] },
-  // ── IBIBIO / ANNANG (Akwa Ibom) ──
-  Akwa_Ibom: { fn: ["Umo","Edidiong","Mfon","Itoro","Aniefiok","Eno","Nsikan","Idongesit","Emem"], ln: ["Eno","Emmanuel","Akpabio","Udom","Attah","Akpan","Bassey","Etim","Ekpenyong","Inyang"] },
-  // ── EFIK (Cross River) ──
-  Cross_River: { fn: ["Bassey","Asuquo","Iquo","Effiong","Nsa","Mbang","Etubom","Aniefiok"], ln: ["Otu","Ayade","Imoke","Duke","Donald","Ekpo","Nyong","Bassey"] },
-  // ── IJAW (Bayelsa, Rivers) / Edo / Delta ──
-  Bayelsa: { fn: ["Diepreye","Goodluck","Timipre","Doubra","Ebipade","Preye","Boma"], ln: ["Diri","Dickson","Sylva","Jonathan","Alamieyeseigha","Briggs","Asari"] },
-  Rivers:  { fn: ["Siminalayi","Nyesom","Tonye","Boma","Preye","Ibim","Magnus","Dakuku"], ln: ["Fubara","Wike","Amaechi","Odili","Abe","Peterside","Briggs","Sekibo"] },
-  Delta:   { fn: ["Sheriff","Ifeanyi","Oghenetega","Ovie","Avwerosuo","Ejiroghene","James"], ln: ["Oborevwori","Okowa","Uduaghan","Ibori","Omo-Agege","Ogboru","Otuaro","Onanefe"] },
-  Edo:     { fn: ["Monday","Godwin","Osahon","Osaze","Iyobosa","Esosa","Imuetinyan","Adams"], ln: ["Okpebholo","Obaseki","Oshiomhole","Igbinedion","Omoruyi","Ize-Iyamu","Aigboje","Iyamu"] },
-  // ── NORTH-CENTRAL / MIDDLE BELT ──
-  Benue:   { fn: ["Hyacinth","Terhemen","Doosuur","Aondowase","Mngusoor","Iorwuese","Samuel"], ln: ["Alia","Ortom","Suswam","Akume","Gemade","Iorpuu","Gbillah","Mark"] },
-  Plateau: { fn: ["Davou","Caleb","Choji","Mwadkwon","Hanatu","Dachung","Nanmwa","Joshua"], ln: ["Mutfwang","Lalong","Dariye","Jang","Bot","Gyang","Pwajok","Damishi"] },
-  Kogi:    { fn: ["Usman","Audu","Ochanya","Onyeche","Idakwo","Aliyu","Yahaya"], ln: ["Ododo","Bello","Wada","Audu","Onoja","Ocholi","Idris","Abubakar"] },
-  Niger:   { fn: ["Umaru","Ndako","Tsado","Kolo","Liman","Garba","Yusuf"], ln: ["Bago","Sani-Bello","Aliyu","Yahaya","Ahmed","Etsu","Mohammed","Kuta"] },
-  Nassarawa: { fn: ["Abdullahi","Sani","Tanko","Aisha","Ishaya","Hannatu","Yakubu"], ln: ["Sule","Al-Makura","Adamu","Akwe","Doma","Audu","Ochekpe","Agabi"] },
-  Kwara: { fn: ["AbdulRahman","Bukola","Saraki","Aminat","Yemi","Tope","Adunni"], ln: ["AbdulRazaq","Saraki","Lai","Ahmed","Aliyu","Bukola","Mohammed","Oyedepo"] },
-  FCT:   { fn: ["Nyesom","Aisha","Adamu","Hauwa","Tunde","Adunni","Chinedu"], ln: ["Wike","El-Rufai","Bello","Mohammed","Akinola","Nzeribe","Ojukwu","Mark"] },
+  // Ordinary given names and surnames of each state's main groups. No
+  // serving or former politician's name: every person in the game is invented.
+  Lagos: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi"] },
+  Oyo: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi"] },
+  Ogun: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi"] },
+  Osun: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi"] },
+  Ondo: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi"] },
+  Ekiti: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi"] },
+  Anambra: { fn: ["Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi","Chinedu","Nkechi","Ebuka","Adaobi","Ikenna","Chinyere","Tochukwu","Onyeka","Chidi","Amaka","Ogechi","Ugochukwu","Chidinma"], ln: ["Okonkwo","Nwosu","Eze","Okeke","Okafor","Nwachukwu","Chukwu","Onyeka","Nnaji","Ugwu","Okoro","Ezenwa","Nwankwo","Iheanacho","Onwuka","Agu","Udeh","Ibe","Nwafor","Ogbonna","Ezeani","Anozie","Umeh","Igwe","Agbo","Ukpai","Nweze","Mbam","Ekuma"] },
+  Imo: { fn: ["Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi","Chinedu","Nkechi","Ebuka","Adaobi","Ikenna","Chinyere","Tochukwu","Onyeka","Chidi","Amaka","Ogechi","Ugochukwu","Chidinma"], ln: ["Okonkwo","Nwosu","Eze","Okeke","Okafor","Nwachukwu","Chukwu","Onyeka","Nnaji","Ugwu","Okoro","Ezenwa","Nwankwo","Iheanacho","Onwuka","Agu","Udeh","Ibe","Nwafor","Ogbonna","Ezeani","Anozie","Umeh","Igwe","Agbo","Ukpai","Nweze","Mbam","Ekuma"] },
+  Abia: { fn: ["Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi","Chinedu","Nkechi","Ebuka","Adaobi","Ikenna","Chinyere","Tochukwu","Onyeka","Chidi","Amaka","Ogechi","Ugochukwu","Chidinma"], ln: ["Okonkwo","Nwosu","Eze","Okeke","Okafor","Nwachukwu","Chukwu","Onyeka","Nnaji","Ugwu","Okoro","Ezenwa","Nwankwo","Iheanacho","Onwuka","Agu","Udeh","Ibe","Nwafor","Ogbonna","Ezeani","Anozie","Umeh","Igwe","Agbo","Ukpai","Nweze","Mbam","Ekuma"] },
+  Enugu: { fn: ["Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi","Chinedu","Nkechi","Ebuka","Adaobi","Ikenna","Chinyere","Tochukwu","Onyeka","Chidi","Amaka","Ogechi","Ugochukwu","Chidinma"], ln: ["Okonkwo","Nwosu","Eze","Okeke","Okafor","Nwachukwu","Chukwu","Onyeka","Nnaji","Ugwu","Okoro","Ezenwa","Nwankwo","Iheanacho","Onwuka","Agu","Udeh","Ibe","Nwafor","Ogbonna","Ezeani","Anozie","Umeh","Igwe","Agbo","Ukpai","Nweze","Mbam","Ekuma"] },
+  Ebonyi: { fn: ["Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi","Chinedu","Nkechi","Ebuka","Adaobi","Ikenna","Chinyere","Tochukwu","Onyeka","Chidi","Amaka","Ogechi","Ugochukwu","Chidinma"], ln: ["Okonkwo","Nwosu","Eze","Okeke","Okafor","Nwachukwu","Chukwu","Onyeka","Nnaji","Ugwu","Okoro","Ezenwa","Nwankwo","Iheanacho","Onwuka","Agu","Udeh","Ibe","Nwafor","Ogbonna","Ezeani","Anozie","Umeh","Igwe","Agbo","Ukpai","Nweze","Mbam","Ekuma"] },
+  Kano: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Kaduna: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Katsina: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Sokoto: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Zamfara: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Kebbi: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Jigawa: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Borno: { fn: ["Babagana","Kashim","Bintu","Falmata","Modu","Yagana","Goni","Hauwa","Bukar","Fanna","Ali","Aisha","Musa","Kachalla"], ln: ["Kyari","Monguno","Modu","Goni","Bukar","Lawan","Kachalla","Maina","Grema","Mustapha","Zanna","Bulama","Alkali","Abba"] },
+  Yobe: { fn: ["Babagana","Kashim","Bintu","Falmata","Modu","Yagana","Goni","Hauwa","Bukar","Fanna","Ali","Aisha","Musa","Kachalla"], ln: ["Kyari","Monguno","Modu","Goni","Bukar","Lawan","Kachalla","Maina","Grema","Mustapha","Zanna","Bulama","Alkali","Abba"] },
+  Adamawa: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Bauchi: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Gombe: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu"] },
+  Taraba: { fn: ["Danladi","Hannatu","Audu","Martha","Sani","Deborah","Yakubu","Grace","Tanko","Blessing","Ishaya","Laraba"], ln: ["Salihu","Idris","Bature","Danasabe","Bako","Aliyu","Audu","Kolo","Zhiya","Ishaya"] },
+  Akwa_Ibom: { fn: ["Edidiong","Mfon","Itoro","Aniefiok","Eno","Nsikan","Idongesit","Emem","Imaobong","Ubong","Iniobong","Edet"], ln: ["Akpan","Bassey","Etim","Ekpenyong","Inyang","Udoh","Essien","Umoh","Effiong","Okon","Ekanem","Udofia"] },
+  Cross_River: { fn: ["Bassey","Asuquo","Iquo","Effiong","Nsa","Mbang","Ekaette","Ita","Edet","Okon"], ln: ["Bassey","Ekpo","Nyong","Asuquo","Effiong","Okon","Etim","Archibong","Henshaw","Agbor","Ita"] },
+  Bayelsa: { fn: ["Diepreye","Doubra","Ebipade","Preye","Boma","Tonye","Ibim","Ebiere","Timi","Ere","Ebi"], ln: ["Briggs","Tamuno","Ebiye","Ogoniba","Ekiyor","Amakiri","Igbiri","Bodiseowei","Alagoa","Opuene"] },
+  Rivers: { fn: ["Tonye","Boma","Preye","Ibim","Magnus","Soala","Ngozi","Data","Ibinabo","Chinwe","Barine"], ln: ["Briggs","Amadi","Nwala","Wokoma","Dagogo","Opara","Ihunwo","Kpea","Tamuno","Ohia","Nwiido"] },
+  Delta: { fn: ["Oghenetega","Ovie","Avwerosuo","Ejiroghene","Efe","Oghenekaro","Tega","Ese","Oghenero","Mercy","Blessing"], ln: ["Okumagba","Akpobome","Emuobo","Edewor","Efe","Ighodaro","Onojakpor","Ukueku","Ogbe","Erhire"] },
+  Edo: { fn: ["Osahon","Osaze","Iyobosa","Esosa","Imuetinyan","Ehis","Efosa","Ivie","Uyi","Godwin"], ln: ["Omoruyi","Aigboje","Iyamu","Osagie","Igbinosa","Ehigiator","Osayande","Idahosa","Imasuen","Okojie","Ogiemwonyi","Idiaghe"] },
+  Benue: { fn: ["Terhemen","Doosuur","Aondowase","Mngusoor","Iorwuese","Samuel","Msughter","Nguavese","Tersoo"], ln: ["Iorpuu","Ahule","Iorliam","Tyokase","Akaa","Ayua","Ugbah","Orshi","Ikyaa","Agber"] },
+  Plateau: { fn: ["Davou","Caleb","Choji","Hanatu","Dachung","Nanmwa","Joshua","Pam","Kaneng","Ladi"], ln: ["Gyang","Choji","Dalyop","Pam","Danboyi","Mwadkwon","Davou","Dung","Chuwang","Rwang"] },
+  Kogi: { fn: ["Usman","Ochanya","Onyeche","Aliyu","Ojochide","Ojone","Ene","Abu","Ozavize"], ln: ["Onoja","Ocholi","Idakwo","Ojonugwa","Itodo","Ameh","Achimugu","Ozigi","Ibrahim","Abah"] },
+  Niger: { fn: ["Umaru","Ndako","Tsado","Kolo","Liman","Garba","Yusuf","Hauwa","Fatima","Zainab"], ln: ["Ndako","Tsado","Kolo","Kuta","Jiya","Gana","Mamudu","Baba","Ndagi","Mohammed"] },
+  Nassarawa: { fn: ["Abdullahi","Sani","Tanko","Aisha","Ishaya","Hannatu","Yakubu","Laraba","Danladi"], ln: ["Ari","Tanko","Ishaya","Kigbu","Akolo","Mairiga","Agbo","Ogiri","Audu","Bako"] },
+  Kwara: { fn: ["Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale","Umaru","Ndako","Tsado","Kolo","Liman","Garba","Yusuf","Hauwa","Fatima","Zainab"], ln: ["Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi","Ndako","Tsado","Kolo","Kuta","Jiya","Gana","Mamudu","Baba","Ndagi","Mohammed"] },
+  FCT: { fn: ["Abubakar","Aisha","Aminu","Hadiza","Sani","Maryam","Bashir","Khadija","Yusuf","Hauwa","Umar","Zainab","Halima","Nasiru","Binta","Sa'idu","Bilkisu","Hannatu","Ibrahim","Fatima","Hamza","Sadiq","Adebayo","Yemisi","Tunde","Folashade","Kunle","Adunni","Olumide","Bisola","Ayomide","Damilola","Sade","Gbenga","Bukola","Wale","Yetunde","Tope","Niyi","Folake","Segun","Modupe","Femi","Kayode","Bisi","Funke","Bode","Yinka","Omolara","Kemi","Olamide","Adewale","Chukwuemeka","Ngozi","Obinna","Adaeze","Ifeanyi","Chioma","Uchenna","Ifeoma","Kelechi","Chinedu","Nkechi","Ebuka","Adaobi","Ikenna","Chinyere","Tochukwu","Onyeka","Chidi","Amaka","Ogechi","Ugochukwu","Chidinma","Danladi","Audu","Martha","Deborah","Yakubu","Grace","Tanko","Blessing","Ishaya","Laraba"], ln: ["Abubakar","Bello","Sani","Musa","Yusuf","Ibrahim","Garba","Lawal","Usman","Haruna","Abdullahi","Shehu","Aliyu","Tanko","Idris","Mohammed","Suleiman","Umar","Isah","Dauda","Mahmud","Kabir","Yakubu","Adeyemi","Adebowale","Ogundimu","Akinyemi","Bamidele","Adekunle","Balogun","Ogunleye","Adebiyi","Oladipo","Ojo","Afolabi","Olaniyan","Ilesanmi","Adegoke","Fasanya","Ogunbiyi","Oyediran","Adesanya","Olatunji","Akinwale","Ayodele","Owolabi","Olawale","Ajayi","Alabi","Okonkwo","Nwosu","Eze","Okeke","Okafor","Nwachukwu","Chukwu","Onyeka","Nnaji","Ugwu","Okoro","Ezenwa","Nwankwo","Iheanacho","Onwuka","Agu","Udeh","Ibe","Nwafor","Ogbonna","Ezeani","Anozie","Umeh","Igwe","Agbo","Ukpai","Nweze","Mbam","Ekuma","Salihu","Bature","Danasabe","Bako","Audu","Kolo","Zhiya","Ishaya"] },
 };
 window.SNAMES_REF = SNAMES;
 
@@ -629,8 +622,7 @@ function stateLine(stateId, d) {
 // uses the same name for the same person. Their record is the ledger: any
 // entry whose target is their name (see SOP_CAST.history).
 // The godfather's title and description come from the state's power and
-// aggression (STATE_GODFATHERS), not from the real politicians whose names,
-// nicknames and biographies that table also holds.
+// aggression (STATE_GODFATHERS).
 function gfPersona(def) {
   const p = (def && def.power) || 60, a = (def && def.aggression) || 50;
   return {
@@ -642,7 +634,7 @@ function gfPersona(def) {
 }
 // Portraits (public/art). The deputy's picture follows the deputy's first name.
 const CAST_ART = { godfather: "godfather", adviser: "special-adviser", speaker: "speaker", reporter: "reporter", efcc: "efcc-investigator", rival: "rival", labour: "labour-leader" };
-const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu", "Binta", "Bisola", "Bukola", "Chiamaka", "Chidinma", "Damilola", "Ekaette", "Fatima", "Folake", "Folashade", "Funmilayo", "Hadiza", "Halima", "Hannatu", "Hauwa", "Kemi", "Khadija", "Maryam", "Ngozi", "Sade", "Titi", "Yemisi", "Zainab", "Adeola", "Aishatu", "Aminat", "Falmata", "Bintu", "Yagana", "Ifeoma", "Chioma", "Nkechi", "Uche"];
+const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu", "Binta", "Bisola", "Bukola", "Chiamaka", "Chidinma", "Damilola", "Ekaette", "Fatima", "Folake", "Folashade", "Funmilayo", "Hadiza", "Halima", "Hannatu", "Hauwa", "Kemi", "Khadija", "Maryam", "Ngozi", "Sade", "Titi", "Yemisi", "Zainab", "Adeola", "Aishatu", "Aminat", "Falmata", "Bintu", "Yagana", "Ifeoma", "Chioma", "Nkechi", "Uche", "Modupe", "Bisi", "Funke", "Omolara", "Yetunde", "Adaobi", "Chinyere", "Amaka", "Ogechi", "Fanna", "Iquo", "Mbang", "Ebiere", "Ibinabo", "Chinwe", "Ivie", "Doosuur", "Nguavese", "Mngusoor", "Hanatu", "Kaneng", "Ladi", "Ochanya", "Onyeche", "Ojone", "Ene", "Ozavize", "Laraba", "Martha", "Deborah", "Grace", "Blessing", "Mercy", "Imaobong", "Emem"];
 const castArt = (c) => {
   if (!c) return null;
   if (c.id === "deputy") return "./art/characters/" + (FEMALE_FIRST.includes(String(c.name).split(" ")[0]) ? "deputy-female" : "deputy-male") + ".webp";
@@ -658,17 +650,21 @@ function makeCast(setup, stateId, zone) {
   // No two people in the cast share a name or a surname.
   const used = new Set([oppName, (setup && setup.nm) || "", (setup && setup.depGov && setup.depGov.nm) || ""].filter(Boolean));
   const usedSur = new Set([...used].map(n => n.split(" ").slice(1).join(" ")));
+  const usedFirst = new Set([...used].map(n => n.split(" ")[0]));
+  const taken = (n) => used.has(n) || usedSur.has(n.split(" ").slice(1).join(" ")) || usedFirst.has(n.split(" ")[0]);
   const person = () => {
     let n = gN(r, zone, stateId);
-    for (let i = 0; i < 12 && (used.has(n) || usedSur.has(n.split(" ").slice(1).join(" "))); i++) n = gN(r, zone, stateId);
-    used.add(n); usedSur.add(n.split(" ").slice(1).join(" "));
+    for (let i = 0; i < 20 && taken(n); i++) n = gN(r, zone, stateId);
+    used.add(n); usedSur.add(n.split(" ").slice(1).join(" ")); usedFirst.add(n.split(" ")[0]);
     return n;
   };
   const surname = () => person().split(" ").slice(1).join(" ");
+  // The godfather is written as "he" throughout.
+  const man = () => { let n = person(); for (let i = 0; i < 12 && FEMALE_FIRST.includes(n.split(" ")[0]); i++) n = person(); return n; };
   const gfDef = STATE_GODFATHERS[stateId] || {};
   const sa = (setup && setup.saName) || (SA_ROSTER[0] && SA_ROSTER[0].name) || "Special Adviser";
   return {
-    godfather: { id: "godfather", role: "Godfather", title: gfPersona(gfDef).title, name: "Chief " + person() },
+    godfather: { id: "godfather", role: "Godfather", title: gfPersona(gfDef).title, name: "Chief " + man() },
     adviser: { id: "adviser", role: "Special Adviser", title: "Special Adviser", name: sa },
     deputy: { id: "deputy", role: "Deputy Governor", title: "Deputy Governor", name: (setup && setup.depGov && setup.depGov.nm) || person() },
     speaker: { id: "speaker", role: "Speaker", title: "Speaker, State House of Assembly", name: "Rt. Hon. " + person() },
@@ -689,13 +685,13 @@ const PERSONAS = [
   { id: "mary", nm: "Sister Mary Etim", i: "👩‍⚕️", d: "Calabar PHC nurse. No drugs, no salary.", ks: ["health"] },
   { id: "emeka", nm: "Emeka Okafor", i: "💻", d: "Aba-born Yaba dev. Power and fibre or he 'japas'.", ks: ["education", "infrastructure"] },
   { id: "amina", nm: "Hajiya Amina Bashir", i: "🧕", d: "Kano girl-child education advocate.", ks: ["education", "health"] },
-  { id: "pastor", nm: "Pastor Iyobosa Obaseki", i: "⛪", d: "Benin megachurch pastor. Cult violence in Edo.", ks: ["security", "health"] },
+  { id: "pastor", nm: "Pastor Iyobosa Osagie", i: "⛪", d: "Benin megachurch pastor. Cult violence in Edo.", ks: ["security", "health"] },
   { id: "baba", nm: "Baba Adisa Ogundimu", i: "🚛", d: "Lagos-Kano trucker. Potholes, NURTW touts, police.", ks: ["infrastructure"] },
   { id: "ngozi", nm: "Ngozi Iwu", i: "🏪", d: "Onitsha Main Market wholesaler.", ks: ["infrastructure", "administration"] },
-  { id: "ahmed", nm: "Ahmed AbdulRazaq", i: "📚", d: "Ilorin ASUU strike victim, 7 yrs for a 4-yr degree.", ks: ["education"] },
+  { id: "ahmed", nm: "Ahmed Abdulkadir", i: "📚", d: "Ilorin ASUU strike victim, 7 yrs for a 4-yr degree.", ks: ["education"] },
   { id: "peace", nm: "Mama Peace Diri", i: "👵", d: "Retired Bayelsa teacher. ₦18k pension, paid 3 months late.", ks: ["education", "health", "security"] },
   { id: "tonye", nm: "Tonye Briggs", i: "🛢️", d: "Bonny boat-owner. Oil spills, no compensation.", ks: ["security", "infrastructure"] },
-  { id: "terhemen", nm: "Terhemen Suswam", i: "🧑‍🌾", d: "Tiv yam farmer in Guma — herder attacks, no recovery.", ks: ["agriculture", "security"] },
+  { id: "terhemen", nm: "Terhemen Iorliam", i: "🧑‍🌾", d: "Tiv yam farmer in Guma — herder attacks, no recovery.", ks: ["agriculture", "security"] },
   { id: "kashim", nm: "Kashim Modu", i: "🧕", d: "Maiduguri IDP returnee. Wants school for his kids.", ks: ["education", "security"] },
   { id: "davou", nm: "Davou Mwadkwon", i: "⛪", d: "Berom farmer in Bokkos. Survived 3 night raids.", ks: ["security", "agriculture"] },
 ];
@@ -816,51 +812,53 @@ const HOUSE_BILLS = [
 ];
 
 // ─── GODFATHER ───
+// How strong and how aggressive the state's godfather is. Names, titles and
+// descriptions are invented elsewhere (makeCast, gfPersona): no real person.
 const STATE_GODFATHERS = {
   // SOUTH WEST
-  Lagos: { nm: "Chief Bola Tinubu", title: "The Jagaban", power: 95, aggression: 70, loyalty_demand: 90, desc: "Controls Lagos like a boardroom. Every governor is his protégé. Cross him and you're finished." },
-  Oyo: { nm: "Chief Rasheed Ladoja", title: "The Ibadan Strongman", power: 65, aggression: 55, loyalty_demand: 60, desc: "Heir to the Adedibu machine. Ibadan politics runs through him." },
-  Ogun: { nm: "Chief Olusegun Osoba", title: "The Abeokuta Elder", power: 60, aggression: 40, loyalty_demand: 55, desc: "Former governor. Quiet influence. Prefers negotiation over threats." },
-  Osun: { nm: "Ogbeni Rauf Aregbesola", title: "The Organiser", power: 55, aggression: 60, loyalty_demand: 65, desc: "Built the grassroots machine. Still controls ward-level structures." },
-  Ondo: { nm: "Dr. Olusegun Mimiko", title: "The Iroko", power: 50, aggression: 45, loyalty_demand: 50, desc: "Medical doctor turned political strategist. Knows every village." },
-  Ekiti: { nm: "Dr. Kayode Fayemi", title: "The Intellectual", power: 55, aggression: 35, loyalty_demand: 50, desc: "Cerebral. Prefers policy influence over raw power. But don't test him." },
+  Lagos: { power: 95, aggression: 70, loyalty_demand: 90 },
+  Oyo: { power: 65, aggression: 55, loyalty_demand: 60 },
+  Ogun: { power: 60, aggression: 40, loyalty_demand: 55 },
+  Osun: { power: 55, aggression: 60, loyalty_demand: 65 },
+  Ondo: { power: 50, aggression: 45, loyalty_demand: 50 },
+  Ekiti: { power: 55, aggression: 35, loyalty_demand: 50 },
   // SOUTH SOUTH
-  Rivers: { nm: "Chief Nyesom Wike", title: "Mr. Projects", power: 90, aggression: 90, loyalty_demand: 95, desc: "The most aggressive godfather in Nigeria. Controls Rivers with iron fist. Demands TOTAL loyalty." },
-  Delta: { nm: "Chief James Ibori", title: "The Delta Lord", power: 75, aggression: 65, loyalty_demand: 80, desc: "Even prison couldn't break his grip. Delta politics still runs through Oghara." },
-  Akwa_Ibom: { nm: "Sen. Godswill Akpabio", title: "The Uncommon Man", power: 70, aggression: 60, loyalty_demand: 70, desc: "Senate leader. Federal connections. Can make or break careers." },
-  Bayelsa: { nm: "Chief Timipre Sylva", title: "The Bayelsa Boss", power: 60, aggression: 55, loyalty_demand: 65, desc: "Oil money and federal connections. Controls the creek politics." },
-  Cross_River: { nm: "Chief Donald Duke", title: "The Calabar Gentleman", power: 40, aggression: 25, loyalty_demand: 35, desc: "Fading influence. More celebrity than kingmaker now. Manageable." },
-  Edo: { nm: "Comrade Adams Oshiomhole", title: "The Comrade", power: 75, aggression: 80, loyalty_demand: 85, desc: "Labour leader turned godfather. Fights dirty when crossed. Ask Obaseki." },
+  Rivers: { power: 90, aggression: 90, loyalty_demand: 95 },
+  Delta: { power: 75, aggression: 65, loyalty_demand: 80 },
+  Akwa_Ibom: { power: 70, aggression: 60, loyalty_demand: 70 },
+  Bayelsa: { power: 60, aggression: 55, loyalty_demand: 65 },
+  Cross_River: { power: 40, aggression: 25, loyalty_demand: 35 },
+  Edo: { power: 75, aggression: 80, loyalty_demand: 85 },
   // SOUTH EAST
-  Anambra: { nm: "Chief Chris Uba", title: "The Original Godfather", power: 50, aggression: 70, loyalty_demand: 80, desc: "Nigeria's most notorious godfather case. Fragmented now but the archetype." },
-  Abia: { nm: "Chief Orji Uzor Kalu", title: "OUK", power: 65, aggression: 55, loyalty_demand: 65, desc: "Business mogul and senator. Abia politics flows through Igbere." },
-  Imo: { nm: "Chief Rochas Okorocha", title: "Owelle", power: 60, aggression: 65, loyalty_demand: 75, desc: "Free education was his weapon. Still commands a cult following." },
-  Enugu: { nm: "Sen. Chimaroke Nnamani", title: "The Enugu Godfather", power: 55, aggression: 50, loyalty_demand: 60, desc: "Medical doctor. Controls Enugu quietly from the Senate." },
-  Ebonyi: { nm: "Engr. Dave Umahi", title: "The Ebonyi Builder", power: 70, aggression: 60, loyalty_demand: 70, desc: "Engineering contractor turned governor. Infrastructure is his weapon." },
+  Anambra: { power: 50, aggression: 70, loyalty_demand: 80 },
+  Abia: { power: 65, aggression: 55, loyalty_demand: 65 },
+  Imo: { power: 60, aggression: 65, loyalty_demand: 75 },
+  Enugu: { power: 55, aggression: 50, loyalty_demand: 60 },
+  Ebonyi: { power: 70, aggression: 60, loyalty_demand: 70 },
   // NORTH CENTRAL
-  Kwara: { nm: "Dr. Bukola Saraki", title: "The Saraki Dynasty", power: 80, aggression: 65, loyalty_demand: 85, desc: "Textbook political dynasty. Father was Senate Leader. He was Senate President. Kwara IS Saraki." },
-  Benue: { nm: "Sen. George Akume", title: "The Benue Patriarch", power: 60, aggression: 50, loyalty_demand: 55, desc: "SGF and former governor. Tiv politics runs through him." },
-  Plateau: { nm: "Chief Joshua Dariye", title: "The Plateau Man", power: 45, aggression: 40, loyalty_demand: 50, desc: "Pardoned ex-governor. Diminished but not forgotten." },
-  Nasarawa: { nm: "Sen. Abdullahi Adamu", title: "The Chairman", power: 55, aggression: 45, loyalty_demand: 55, desc: "Former APC national chairman. Federal connections still active." },
-  Niger: { nm: "Dr. Babangida Aliyu", title: "The Chief Servant", power: 50, aggression: 35, loyalty_demand: 45, desc: "Former governor. Intellectual influence more than raw power." },
-  Kogi: { nm: "Alhaji Ibrahim Idris", title: "The Kogi Strongman", power: 50, aggression: 55, loyalty_demand: 60, desc: "Former governor. Ebira politics power broker." },
+  Kwara: { power: 80, aggression: 65, loyalty_demand: 85 },
+  Benue: { power: 60, aggression: 50, loyalty_demand: 55 },
+  Plateau: { power: 45, aggression: 40, loyalty_demand: 50 },
+  Nasarawa: { power: 55, aggression: 45, loyalty_demand: 55 },
+  Niger: { power: 50, aggression: 35, loyalty_demand: 45 },
+  Kogi: { power: 50, aggression: 55, loyalty_demand: 60 },
   // NORTH WEST
-  Kano: { nm: "Sen. Rabiu Musa Kwankwaso", title: "Kwankwasiyya", power: 85, aggression: 70, loyalty_demand: 80, desc: "Built the largest grassroots movement in the North. Red cap army. NNPP founder." },
-  Kaduna: { nm: "Malam Nasir El-Rufai", title: "El-Rufai", power: 75, aggression: 85, loyalty_demand: 80, desc: "Ruthless reformer. Transformed Kaduna. Makes enemies easily. Very dangerous when crossed." },
-  Katsina: { nm: "Gov. Aminu Masari", title: "The Katsina Voice", power: 55, aggression: 40, loyalty_demand: 50, desc: "Former speaker. Moderate influence. Katsina is relatively open." },
-  Sokoto: { nm: "Sen. Aliyu Wamakko", title: "The Sokoto Overlord", power: 65, aggression: 55, loyalty_demand: 65, desc: "Former governor. Controls Sokoto APC machinery." },
-  Zamfara: { nm: "Abdulaziz Yari", title: "The Zamfara Boss", power: 60, aggression: 60, loyalty_demand: 65, desc: "Former governor. Controls state structures despite banditry crisis." },
-  Kebbi: { nm: "Sen. Atiku Bagudu", title: "The Kebbi Man", power: 55, aggression: 40, loyalty_demand: 50, desc: "Former governor and minister. Moderate influence." },
-  Jigawa: { nm: "Sen. Sule Lamido", title: "The Jigawa Godfather", power: 65, aggression: 55, loyalty_demand: 70, desc: "Former governor and PDP stalwart. Deep grassroots." },
+  Kano: { power: 85, aggression: 70, loyalty_demand: 80 },
+  Kaduna: { power: 75, aggression: 85, loyalty_demand: 80 },
+  Katsina: { power: 55, aggression: 40, loyalty_demand: 50 },
+  Sokoto: { power: 65, aggression: 55, loyalty_demand: 65 },
+  Zamfara: { power: 60, aggression: 60, loyalty_demand: 65 },
+  Kebbi: { power: 55, aggression: 40, loyalty_demand: 50 },
+  Jigawa: { power: 65, aggression: 55, loyalty_demand: 70 },
   // NORTH EAST
-  Borno: { nm: "Sen. Ali Modu Sheriff", title: "The Sheriff", power: 70, aggression: 75, loyalty_demand: 80, desc: "The most powerful man in Borno politics. Survived everything including Boko Haram era scrutiny." },
-  Adamawa: { nm: "Alhaji Atiku Abubakar", title: "The Waziri", power: 85, aggression: 50, loyalty_demand: 60, desc: "Former VP and perennial presidential candidate. Adamawa is his base. Massive nationwide network." },
-  Bauchi: { nm: "Chief Adamu Muazu", title: "The Bauchi Elder", power: 50, aggression: 40, loyalty_demand: 50, desc: "Former governor and PDP chairman. Declining influence." },
-  Taraba: { nm: "Rev. Danbaba Suntai", title: "The Taraba Memory", power: 30, aggression: 20, loyalty_demand: 30, desc: "Weakest godfather influence. Taraba is relatively open territory." },
-  Gombe: { nm: "Sen. Danjuma Goje", title: "The Gombe Emperor", power: 65, aggression: 60, loyalty_demand: 70, desc: "Former governor. Gombe politics doesn't move without his nod." },
-  Yobe: { nm: "Alhaji Bukar Ibrahim", title: "The Yobe Pioneer", power: 50, aggression: 35, loyalty_demand: 45, desc: "Former governor. Declining but still consulted." },
+  Borno: { power: 70, aggression: 75, loyalty_demand: 80 },
+  Adamawa: { power: 85, aggression: 50, loyalty_demand: 60 },
+  Bauchi: { power: 50, aggression: 40, loyalty_demand: 50 },
+  Taraba: { power: 30, aggression: 20, loyalty_demand: 30 },
+  Gombe: { power: 65, aggression: 60, loyalty_demand: 70 },
+  Yobe: { power: 50, aggression: 35, loyalty_demand: 45 },
   // FCT
-  FCT: { nm: "Political Cabals", title: "The Aso Rock Circle", power: 80, aggression: 60, loyalty_demand: 70, desc: "The FCT has no single godfather — it's controlled by whoever holds federal power." },
+  FCT: { power: 80, aggression: 60, loyalty_demand: 70 },
 };
 
 const GODFATHER_DEMANDS = [
@@ -951,21 +949,21 @@ const MEDIA_EVENTS = [
 
 // ─── PRIVATE INVESTORS ───
 const INVESTORS = [
-  { id: "dangote_cement", nm: "Dangote Cement Expansion", co: "Dangote Industries", icon: "🏗️", sector: "manufacturing", desc: "Aliko Dangote wants to build a ₦15B cement factory in your state. 2,000 direct jobs. Needs 500 hectares of land and a 10-year tax holiday.", jobs: 2000, igrBoost: 1.2, envRisk: "High dust pollution. Community displacement.", corRisk: .15, appBoost: 5, appRisk: -3, landCost: "500 hectares" },
-  { id: "chinese_steel", nm: "Chinese Steel Factory", co: "Sinosteel Corporation", icon: "🇨🇳", sector: "manufacturing", desc: "A Chinese consortium proposes a ₦22B steel plant. 3,500 jobs but they want to bring 60% Chinese workers. Environmentalists are alarmed.", jobs: 3500, igrBoost: 1.8, envRisk: "Heavy pollution risk. River contamination concerns.", corRisk: .25, appBoost: 3, appRisk: -6, landCost: "800 hectares" },
-  { id: "fintech_hub", nm: "Fintech Startup Hub", co: "Flutterwave & Local VCs", icon: "💳", sector: "tech", desc: "A consortium of fintech companies wants to establish a tech campus. 800 tech jobs, mostly for graduates. They need reliable power and broadband.", jobs: 800, igrBoost: 0.6, envRisk: "None. Clean industry.", corRisk: .05, appBoost: 8, appRisk: 0, landCost: "50 hectares" },
-  { id: "agro_processing", nm: "Agro-Processing Plant", co: "Olam Nigeria", icon: "🌾", sector: "agriculture", desc: "Olam wants to build a cashew and sesame processing facility. 1,200 jobs. Directly benefits local farmers with guaranteed offtake.", jobs: 1200, igrBoost: 0.8, envRisk: "Minimal. Some water usage.", corRisk: .10, appBoost: 7, appRisk: -1, landCost: "200 hectares" },
-  { id: "shopping_mall", nm: "Mega Shopping Mall", co: "Shoprite & Local Developers", icon: "🏬", sector: "trade", desc: "A ₦8B modern shopping complex with Shoprite anchor tenant. 1,500 retail jobs. Small traders fear displacement.", jobs: 1500, igrBoost: 0.7, envRisk: "Traffic congestion. Small trader displacement.", corRisk: .12, appBoost: 4, appRisk: -4, landCost: "100 hectares" },
-  { id: "solar_farm", nm: "Solar Energy Farm", co: "Access Power / IFC", icon: "☀️", sector: "services", desc: "International Finance Corporation backs a 50MW solar farm. 300 construction jobs, 50 permanent. Solves part of your power crisis.", jobs: 350, igrBoost: 0.4, envRisk: "Land use change. Otherwise clean.", corRisk: .05, appBoost: 6, appRisk: 0, landCost: "400 hectares" },
+  { id: "dangote_cement", nm: "Cement Plant Expansion", co: "Northgate Cement", icon: "🏗️", sector: "manufacturing", desc: "Northgate Cement wants to build a ₦15B cement factory in your state. 2,000 direct jobs. Needs 500 hectares of land and a 10-year tax holiday.", jobs: 2000, igrBoost: 1.2, envRisk: "High dust pollution. Community displacement.", corRisk: .15, appBoost: 5, appRisk: -3, landCost: "500 hectares" },
+  { id: "chinese_steel", nm: "Chinese Steel Factory", co: "Eastern Star Steel Consortium", icon: "🇨🇳", sector: "manufacturing", desc: "A Chinese consortium proposes a ₦22B steel plant. 3,500 jobs but they want to bring 60% Chinese workers. Environmentalists are alarmed.", jobs: 3500, igrBoost: 1.8, envRisk: "Heavy pollution risk. River contamination concerns.", corRisk: .25, appBoost: 3, appRisk: -6, landCost: "800 hectares" },
+  { id: "fintech_hub", nm: "Fintech Startup Hub", co: "Fintech founders & local VCs", icon: "💳", sector: "tech", desc: "A consortium of fintech companies wants to establish a tech campus. 800 tech jobs, mostly for graduates. They need reliable power and broadband.", jobs: 800, igrBoost: 0.6, envRisk: "None. Clean industry.", corRisk: .05, appBoost: 8, appRisk: 0, landCost: "50 hectares" },
+  { id: "agro_processing", nm: "Agro-Processing Plant", co: "Savanna Agro Processing", icon: "🌾", sector: "agriculture", desc: "Savanna Agro wants to build a cashew and sesame processing facility. 1,200 jobs. Directly benefits local farmers with guaranteed offtake.", jobs: 1200, igrBoost: 0.8, envRisk: "Minimal. Some water usage.", corRisk: .10, appBoost: 7, appRisk: -1, landCost: "200 hectares" },
+  { id: "shopping_mall", nm: "Mega Shopping Mall", co: "A supermarket chain & local developers", icon: "🏬", sector: "trade", desc: "A ₦8B modern shopping complex with a national supermarket chain as anchor tenant. 1,500 retail jobs. Small traders fear displacement.", jobs: 1500, igrBoost: 0.7, envRisk: "Traffic congestion. Small trader displacement.", corRisk: .12, appBoost: 4, appRisk: -4, landCost: "100 hectares" },
+  { id: "solar_farm", nm: "Solar Energy Farm", co: "Sunline Power & development lenders", icon: "☀️", sector: "services", desc: "A development-finance lender backs a 50MW solar farm. 300 construction jobs, 50 permanent. Solves part of your power crisis.", jobs: 350, igrBoost: 0.4, envRisk: "Land use change. Otherwise clean.", corRisk: .05, appBoost: 6, appRisk: 0, landCost: "400 hectares" },
   { id: "oil_refinery", nm: "Modular Oil Refinery", co: "Private Nigerian Consortium", icon: "🛢️", sector: "oil", desc: "Local investors want to build a 5,000 bpd modular refinery. Huge revenue potential but regulatory minefield and explosion risk.", jobs: 500, igrBoost: 2.5, envRisk: "Explosion risk. Air pollution. Community concerns.", corRisk: .30, appBoost: 3, appRisk: -5, landCost: "300 hectares" },
   { id: "university", nm: "Private University Campus", co: "Wealthy Philanthropist", icon: "🎓", sector: "services", desc: "A billionaire philanthropist wants to establish a private university. 600 staff jobs. Could transform education in the state.", jobs: 600, igrBoost: 0.3, envRisk: "None.", corRisk: .08, appBoost: 9, appRisk: 0, landCost: "250 hectares" },
-  { id: "poultry_farm", nm: "Industrial Poultry Farm", co: "Chi Farms", icon: "🐔", sector: "agriculture", desc: "Chi Farms wants a large-scale poultry operation. 400 jobs. Cheap protein for locals. But smell and waste are issues.", jobs: 400, igrBoost: 0.4, envRisk: "Waste management. Smell complaints from neighbors.", corRisk: .08, appBoost: 5, appRisk: -2, landCost: "150 hectares" },
-  { id: "hotel_resort", nm: "International Hotel & Resort", co: "Marriott International", icon: "🏨", sector: "tourism", desc: "Marriott wants to build a 200-room hotel and conference centre. 500 hospitality jobs. Puts your state on the international map.", jobs: 500, igrBoost: 0.5, envRisk: "Minimal. Scenic area affected.", corRisk: .15, appBoost: 5, appRisk: -1, landCost: "80 hectares" },
-  { id: "mining_co", nm: "Gold Mining Operation", co: "Thor Explorations", icon: "⛏️", sector: "mining", desc: "A Canadian mining company has found gold deposits. 700 direct jobs. But artisanal miners will be displaced and environmental damage is certain.", jobs: 700, igrBoost: 1.5, envRisk: "Mercury contamination. Artisanal miner displacement. Deforestation.", corRisk: .20, appBoost: 2, appRisk: -6, landCost: "1000 hectares" },
+  { id: "poultry_farm", nm: "Industrial Poultry Farm", co: "Harvest Poultry Ltd", icon: "🐔", sector: "agriculture", desc: "Harvest Poultry wants a large-scale poultry operation. 400 jobs. Cheap protein for locals. But smell and waste are issues.", jobs: 400, igrBoost: 0.4, envRisk: "Waste management. Smell complaints from neighbors.", corRisk: .08, appBoost: 5, appRisk: -2, landCost: "150 hectares" },
+  { id: "hotel_resort", nm: "International Hotel & Resort", co: "An international hotel chain", icon: "🏨", sector: "tourism", desc: "An international hotel chain wants to build a 200-room hotel and conference centre. 500 hospitality jobs. Puts your state on the international map.", jobs: 500, igrBoost: 0.5, envRisk: "Minimal. Scenic area affected.", corRisk: .15, appBoost: 5, appRisk: -1, landCost: "80 hectares" },
+  { id: "mining_co", nm: "Gold Mining Operation", co: "Northstar Mining (Canada)", icon: "⛏️", sector: "mining", desc: "A Canadian mining company has found gold deposits. 700 direct jobs. But artisanal miners will be displaced and environmental damage is certain.", jobs: 700, igrBoost: 1.5, envRisk: "Mercury contamination. Artisanal miner displacement. Deforestation.", corRisk: .20, appBoost: 2, appRisk: -6, landCost: "1000 hectares" },
   { id: "garment_factory", nm: "Textile & Garment Factory", co: "Local Manufacturers Association", icon: "👕", sector: "manufacturing", desc: "Local textile manufacturers want support for a garment factory. 2,500 jobs, mostly women. Needs subsidized power.", jobs: 2500, igrBoost: 0.9, envRisk: "Dye waste water treatment needed.", corRisk: .10, appBoost: 8, appRisk: -1, landCost: "120 hectares" },
-  { id: "pharma_plant", nm: "Pharmaceutical Plant", co: "Emzor / May & Baker", icon: "💊", sector: "manufacturing", desc: "Nigerian pharma companies want to manufacture drugs locally. 600 jobs. Reduces import dependency. NAFDAC compliant.", jobs: 600, igrBoost: 0.7, envRisk: "Chemical waste management required.", corRisk: .08, appBoost: 7, appRisk: 0, landCost: "100 hectares" },
-  { id: "data_centre", nm: "Tier-3 Data Centre", co: "Africa Data Centres / Equinix", icon: "🖥️", sector: "tech", desc: "A major data centre operator wants your state. 200 direct jobs but massive digital infrastructure spillover. Needs guaranteed 24/7 power.", jobs: 200, igrBoost: 0.5, envRisk: "None. High power consumption.", corRisk: .05, appBoost: 4, appRisk: 0, landCost: "30 hectares" },
-  { id: "fertilizer", nm: "Fertilizer Blending Plant", co: "Notore / Indorama", icon: "🧪", sector: "agriculture", desc: "A fertilizer company wants to set up a blending plant. 300 jobs. Directly supports farmers statewide. Good politics.", jobs: 300, igrBoost: 0.5, envRisk: "Chemical handling. Requires buffer zone.", corRisk: .10, appBoost: 6, appRisk: -1, landCost: "180 hectares" },
+  { id: "pharma_plant", nm: "Pharmaceutical Plant", co: "Nigerian drug makers", icon: "💊", sector: "manufacturing", desc: "Nigerian pharma companies want to manufacture drugs locally. 600 jobs. Reduces import dependency. NAFDAC compliant.", jobs: 600, igrBoost: 0.7, envRisk: "Chemical waste management required.", corRisk: .08, appBoost: 7, appRisk: 0, landCost: "100 hectares" },
+  { id: "data_centre", nm: "Tier-3 Data Centre", co: "A regional data-centre operator", icon: "🖥️", sector: "tech", desc: "A major data centre operator wants your state. 200 direct jobs but massive digital infrastructure spillover. Needs guaranteed 24/7 power.", jobs: 200, igrBoost: 0.5, envRisk: "None. High power consumption.", corRisk: .05, appBoost: 4, appRisk: 0, landCost: "30 hectares" },
+  { id: "fertilizer", nm: "Fertilizer Blending Plant", co: "Greenfield Fertilizers", icon: "🧪", sector: "agriculture", desc: "A fertilizer company wants to set up a blending plant. 300 jobs. Directly supports farmers statewide. Good politics.", jobs: 300, igrBoost: 0.5, envRisk: "Chemical handling. Requires buffer zone.", corRisk: .10, appBoost: 6, appRisk: -1, landCost: "180 hectares" },
 ];
 
 // International invitations — pool of 8, each game triggers 1-2 randomly
@@ -1156,11 +1154,11 @@ const HowToPlay = ({ show, onClose }) => {
   if (!show) return null;
   const sections = [
     { t: "🎮 How to Play", c: "You are the Executive Governor of a Nigerian state. Before governing, you must fund your campaign, buy a party ticket, choose your deputy, and WIN an election — none of it is automatic.\n\nOnce in Government House, you govern for up to 8 half-year turns (2 terms of 4 years). Each turn brings: budget allocation, policies, projects, dilemmas, media events, federal government dynamics, shock events, court challenges, investor proposals, godfather demands, and hidden threats.\n\nImpeachment requires BOTH low approval (<30%) AND low party stability (<40%). Bankruptcy (revenue < ₦2B) ends your tenure immediately. Defying the Supreme Court is near-certain impeachment." },
-    { t: "💰 Campaign Finance & The Godfather", c: "You start with ₦800M in personal funds — your war chest. Party tickets cost money: APC ₦500M (strongest machinery), ADC ₦350M (Atiku/El-Rufai coalition), NDC ₦300M (Peter Obi's new vehicle), PDP ₦280M (legacy structure), LP ₦150M (post-Obi rump). The ticket is deducted from your war chest.\n\nIf you can't afford a ticket, the Godfather offers ₦1B — but you start governance with +5% corruption per billion borrowed. He WILL demand repayment through contracts, land, and positions.\n\nDuring the 8-round campaign, actions cost ₦25M-₦400M. Cheap options (radio, market visits) are weak. Expensive options (mega rally, door-to-door) win elections. If money runs out mid-campaign and the godfather won't help, you can withdraw from the race.\n\nIn office, you earn ₦60M salary per half-year. If approval reaches 85%+, citizens crowdfund ₦100-200M for your re-election. This personal fund becomes your war chest for the second campaign." },
+    { t: "💰 Campaign Finance & The Godfather", c: "You start with ₦800M in personal funds — your war chest. Party tickets cost money: APC ₦500M (the deepest campaign money), PDP, NDC, ADC and LP cost less. The ticket is deducted from your war chest.\n\nIf you can't afford a ticket, the Godfather offers a loan — but you start governance with +5% corruption per billion borrowed. He WILL demand repayment through contracts, land, and positions.\n\nThe campaign runs four weeks. Each week you see one poll line per senatorial zone, your money and your campaign days (6 a week), and three moves, each with its cost in money and days and the zone it affects. Every move costs money, time or both. The opponent strikes back every week. The result screen shows how each zone moved and which of your moves moved it." },
     { t: "🗳️ Elections & Campaigns", c: "Both elections (first and re-election) are 8-decision, 4-week campaigns. Each week: YOUR move → OPPONENT strikes → you respond. A named opponent from another party campaigns against you.\n\nParty strength multiplies your score: APC 1.15x, ADC 0.85x. Underdogs CAN win with perfect campaigns.\n\nOn Hard mode: your points are reduced by 2 per action, opponent gains +2 bonus every round, backfire chance is 60%. You can genuinely LOSE.\n\nFor re-election: if party stability ≥ 50%, you get an automatic ticket. If < 50%, your ticket is contested — you must buy it (godfather funds or self-fund) or switch to a cheaper party (-15 party stability)." },
     { t: "📊 Economic Production Engine", c: "8 economic sectors per state: Agriculture, Manufacturing, Services, Oil & Gas, Mining, Trade, Tourism, Technology. Each produces output, jobs, and tax revenue.\n\nIGR is derived from economic output: IGR = Σ(sector output × population × tax rate). Budget allocation, policies, security, and literacy all drive sector growth. Corruption and insecurity drag ALL sectors down.\n\nThe Economy tab shows State GDP, Total Jobs, IGR, and all 8 sectors with output bars and what drives each one." },
     { t: "🏗️ Infrastructure Projects", c: "20 projects in 3 tiers: Quick (1 turn), Medium (2 turns), Megaprojects (3-4 turns). Each has cost, corruption risk, economic sector linkage, and jobs created.\n\nCorruption causes project delays — if corruption is high, projects stall: 'Permanent secretary's office is the bottleneck.' The sidebar shows progress bars with % complete.\n\nCompleted projects boost economic sectors, create jobs, and appear in your Wikipedia biography." },
-    { t: "🏭 Private Investors", c: "15 real companies (Dangote Cement, Chinese Steel, Fintech Hub, etc.) appear every other turn. Three choices: Approve (jobs + IGR + community risk), Approve with Incentives (bigger boost but state bears costs), or Reject (no jobs, business angry).\n\nInvestor approvals can trigger judiciary challenges from displaced communities. 15% of new investment revenue automatically reduces state debt." },
+    { t: "🏭 Private Investors", c: "15 companies (a cement plant, a steel mill, a fintech hub and more) appear every other turn. Three choices: Approve (jobs + IGR + community risk), Approve with Incentives (bigger boost but state bears costs), or Reject (no jobs, business angry).\n\nInvestor approvals can trigger judiciary challenges from displaced communities. 15% of new investment revenue automatically reduces state debt." },
     { t: "📰 Media & Information Warfare", c: "10 media events across 5 types: social media (#GovernorFailed trending), newspapers (front page exposé), radio (angry callers), TV (documentary), bloggers (₦5M bribe demand).\n\nContextual: negative events when approval is low, positive when high. Options include press conferences, releasing data, ignoring, bribing media (corruption risk), or going live. Every response has a result screen showing consequences." },
     { t: "🇳🇬 Federal–State Power Struggle", c: "FG Relations stat (0-100%, starts 50%). The President can: cut FAAC allocation, send EFCC investigations, deploy military, approve federal roads, block loans, or demand party loyalty.\n\nLow FG relations (<30%) = FAAC erodes each turn. High (>70%) = FAAC bonus. The core tradeoff: loyalty to the President (money, roads) vs independence (approval, media love, but shrinking budget)." },
     { t: "⚡ Shock Events", c: "8 unpredictable national crises: oil price crash (FAAC -25%), naira devaluation, pandemic, #EndSARS protests, fuel subsidy removal, flooding, terrorist attack, banking crisis.\n\n30% chance each turn, max 2 per game. Auto-effects hit BEFORE you choose your response. No two playthroughs are the same." },
@@ -1359,7 +1357,7 @@ const AnchorDesk = ({ lines, onDone }) => {
       <div style={{ position: "relative", background: "linear-gradient(180deg,#b85a1a,#9a4515)", borderTop: "2px solid rgba(255,255,255,.15)", padding: "10px 0 6px", zIndex: 3 }}>
         {/* anchor name tags */}
         <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4% 4px", color: "rgba(255,255,255,.8)", fontFamily: F.b, fontSize: TS(18) }}>
-          <span style={{ fontWeight: active === "m" ? 700 : 400, opacity: active === "m" ? 1 : .5 }}>TUNDE BAKARE</span>
+          <span style={{ fontWeight: active === "m" ? 700 : 400, opacity: active === "m" ? 1 : .5 }}>TUNDE ADEYEMI</span>
           <span style={{ fontWeight: active === "f" ? 700 : 400, opacity: active === "f" ? 1 : .5 }}>ADAEZE NWOSU</span>
         </div>
         {/* dialogue bubble */}
@@ -2297,7 +2295,7 @@ const JUDICIARY_EVENTS = [
   { id: "election_petition", nm: "Election Petition", d: "Opposition challenges your re-election in the Election Tribunal.", trigger: "reelection" },
 ];
 
-const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, addL }) => {
+const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, onDrop, grudges = [], speakerName = "The Speaker", addL }) => {
   const [voted, setVoted] = useState(false);
   const [result, setResult] = useState(null);
   const [reasons, setReasons] = useState([]);
@@ -2330,7 +2328,14 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, addL }) => {
   if (pStab < 25) concerns.push({ t: "Party stability is " + Math.round(pStab) + "% — your own caucus can no longer guarantee quorum for an appropriation vote.", severity: "high", fix: "Repair party relations or negotiate with the Speaker." });
   else if (pStab < 40) concerns.push({ t: "Party stability is " + Math.round(pStab) + "% — the bill can pass, but only with observations and political bruising.", severity: "medium", fix: "Meet the caucus before the next bill." });
 
+  // Who objects, and whether it is a fair objection. Budget defects are fair;
+  // grudges come from the record (window.SOP_MEMORY) and are often leverage.
+  const whoOf = (t) => /^Salaries/.test(t) ? "The labour caucus" : /^Education/.test(t) ? "Members from teacher-heavy constituencies" : /^Health/.test(t) ? "The health committee" : /^Security/.test(t) ? "The security committee" : /admin overhead|^Administration/.test(t) ? "The Public Accounts Committee" : /^Party stability/.test(t) ? "Your own caucus" : /^Debt/.test(t) ? "Members lobbied by contractors" : "The Clerk of the House";
+  concerns.forEach(c => { c.who = whoOf(c.t); c.good = !/^Party stability/.test(c.t); });
+  grudges.forEach(g => concerns.push({ t: g.who + ": " + g.why, who: g.who, why: g.why, good: g.good, severity: g.block ? "high" : "medium", grudge: true }));
   const hardBlockers = concerns.filter(c => c.severity === "high");
+  const fixable = hardBlockers.some(c => !c.grudge);
+  const dealCost = Math.round((0.3 + 0.2 * hardBlockers.length) * 10) / 10;
   const statusLabel = hardBlockers.length ? "BLOCKED: " + hardBlockers.length + " fatal defect" + (hardBlockers.length === 1 ? "" : "s") : concerns.length ? "WILL PASS WITH OBSERVATIONS" : "WILL PASS CLEANLY";
   const statusColor = hardBlockers.length ? CL.red : concerns.length ? CL.org : CL.grn;
   const cleanDraft = { salaries: 18, debt: 8, administration: 7, health: 15, education: 15, security: 11, infrastructure: 16, agriculture: 10 };
@@ -2339,7 +2344,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, addL }) => {
     const passed = hardBlockers.length === 0;
     if (!passed) {
       setReasons(hardBlockers);
-      addL && addL("❌ House rejects Appropriation Bill: " + hardBlockers.map(r => r.t.split(" — ")[0]).slice(0, 2).join("; "), "political");
+      addL && addL("❌ House rejects Appropriation Bill. " + hardBlockers.slice(0, 2).map(r => r.who + " voted no: " + (r.why || r.t.split(" — ")[0])).join(" "), "political");
     } else if (concerns.length) {
       addL && addL("✅ Appropriation Bill passed with House observations: " + concerns[0].t, "policy");
     }
@@ -2356,7 +2361,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, addL }) => {
         <div style={{ textAlign: "left", margin: "0 auto 36px", maxWidth: 732, padding: 29, background: CL.org + "08", borderRadius: 13, border: "1px solid " + CL.org + "25" }}>
           <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.org, marginBottom: 14 }}>⚠️ HOUSE CONCERNS (may cause rejection):</div>
           {concerns.map((c, i) => (
-            <div key={i} style={{ fontSize: TS(34), color: c.severity === "high" ? CL.red : c.severity === "medium" ? CL.org : CL.tm, padding: "7px 0" }}>• {c.t}</div>
+            <div key={i} style={{ fontSize: TS(34), color: c.severity === "high" ? CL.red : c.severity === "medium" ? CL.org : CL.tm, padding: "7px 0" }}>• {c.grudge ? c.t : c.who + ": " + c.t}</div>
           ))}
         </div>
       )}
@@ -2381,20 +2386,31 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, addL }) => {
     <div style={{ textAlign: "center" }}>
       <div style={{ fontSize: TS(98), marginBottom: 22 }}>❌</div>
       <h3 style={{ fontFamily: F.d, color: CL.red, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>BILL REJECTED</h3>
-      <div style={{ textAlign: "left", margin: "29px auto 43px", maxWidth: 732, padding: 29, background: CL.red + "08", borderRadius: 13, border: "1px solid " + CL.red + "25" }}>
-        <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, marginBottom: 14 }}>REASONS FOR REJECTION:</div>
+      <div style={{ textAlign: "left", margin: "22px auto 36px", maxWidth: 732, padding: 29, background: CL.red + "08", borderRadius: 13, border: "1px solid " + CL.red + "25" }}>
+        <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, marginBottom: 14 }}>WHO VOTED AGAINST IT, AND WHY</div>
         {reasons.map((r2, i) => (
-          <div key={i} style={{ fontSize: TS(34), color: CL.red, padding: "7px 0" }}>• {r2.t}</div>
+          <div key={i} style={{ padding: "10px 0", borderTop: i ? "1px solid " + CL.red + "20" : "none" }}>
+            <div style={{ fontSize: TS(34), color: CL.txt, lineHeight: 1.4 }}><b>{r2.who}</b> — {r2.why || r2.t}</div>
+            <div style={{ fontSize: TS(30), color: r2.good ? CL.grn : CL.red, marginTop: 4 }}>{r2.good ? "Fair reason: the bill has a real problem." : r2.grudge ? "Leverage, not policy: this is about what you did, not what the bill says." : "Political: your own side is not with you."}</div>
+          </div>
         ))}
       </div>
-      <div style={{ display: "grid", gap: 29, maxWidth: 768, margin: "0 auto" }}>
-        <Cd onClick={() => onAmend(2, cleanDraft)} style={{ padding: 36 }}>
-          <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt, marginBottom: 7 }}>🔄 Adopt Clean Draft & Resubmit</div>
-          <div style={{ fontSize: TS(34), color: CL.td }}>Applies a safe 100% appropriation profile that fixes the listed blockers. -2 party stability.</div>
+      <div style={{ display: "grid", gap: 22, maxWidth: 768, margin: "0 auto", textAlign: "left" }}>
+        <Cd onClick={fixable ? () => onAmend(2, cleanDraft) : undefined} style={{ padding: 29, opacity: fixable ? 1 : .45 }}>
+          <div style={{ fontWeight: 600, fontSize: TS(40), color: CL.txt, marginBottom: 7 }}>✏️ Amend and resubmit</div>
+          <div style={{ fontSize: TS(32), color: CL.td }}>{fixable ? "Adopt a clean draft that fixes the defects above. Costs 2 points of party support." : "Nothing in the text to fix: the objection is to you, not the bill."}</div>
         </Cd>
-        <Cd onClick={onForce} style={{ padding: 36, borderColor: CL.red + "44" }}>
-          <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.red, marginBottom: 7 }}>⚠️ Force Through (Executive Order)</div>
-          <div style={{ fontSize: TS(34), color: CL.td }}>Unconstitutional. -15 party, -5 approval. May trigger judicial challenge.</div>
+        <Cd onClick={() => onNegotiate && onNegotiate(dealCost, reasons)} style={{ padding: 29 }}>
+          <div style={{ fontWeight: 600, fontSize: TS(40), color: CL.txt, marginBottom: 7 }}>🤝 Negotiate with {speakerName}</div>
+          <div style={{ fontSize: TS(32), color: CL.td }}>Constituency projects for the members who voted no. The bill passes as it is. Costs ₦{dealCost}B in new debt, a little corruption, and it goes on the record.</div>
+        </Cd>
+        <Cd onClick={onDrop} style={{ padding: 29 }}>
+          <div style={{ fontWeight: 600, fontSize: TS(40), color: CL.txt, marginBottom: 7 }}>🗑️ Drop it for this half-year</div>
+          <div style={{ fontSize: TS(32), color: CL.td }}>Run the state on last half-year's figures. Nothing new gets funded. Approval −3, party support −3.</div>
+        </Cd>
+        <Cd onClick={onForce} style={{ padding: 29, borderColor: CL.red + "44" }}>
+          <div style={{ fontWeight: 600, fontSize: TS(40), color: CL.red, marginBottom: 7 }}>⚠️ Force it through by executive order</div>
+          <div style={{ fontSize: TS(32), color: CL.td }}>Unconstitutional. Party support −15, approval −5. Likely court challenge.</div>
         </Cd>
       </div>
     </div>
@@ -2822,17 +2838,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fireCom = (k) => { const r = rng(Date.now()); const z = sd.zone; const oldName = cab[k]?.nm; setCab(p => ({ ...p, [k]: { nm: gN(r, z, setup?.state), co: ri(35, 92, r), lo: ri(25, 90, r), cr: ri(5, 55, r), pu: ri(25, 85, r), role: k, bio: genBio(r) } })); setS(p => ({ ...p, app: cl100(p.app - 3) })); addL("🔄 Fired " + (CROLES.find(c => c.k === k)?.t || "") + " (-3)", "political"); try { window.SOPX_onDecision && window.SOPX_onDecision("minister_sacked", { name: oldName || "the commissioner", ministerId: k }); } catch(e){} try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"minister_fired", target: oldName || "commissioner", gravity:2, evidence:2, approvalDelta:-3, note:"Fired "+(CROLES.find(c=>c.k===k)?.t||"commissioner"), meta:{ ministerId:k, godfather:false }}); } catch(e){} };
 
   // Bill sponsorship — goes through House vote
-  const sponsorBill = (bill) => {
+  const sponsorBill = (bill, force) => {
     if (billsPassed.find(b => b.id === bill.id)) return;
     const objections = [];
-    if (s.pStab < 25) objections.push("party stability is " + Math.round(s.pStab) + "% — your caucus cannot guarantee quorum");
-    if ((bill.cost || 0) > 0 && s.debt > 18) objections.push("debt is already " + naira(s.debt) + " — members refuse another unfunded mandate");
-    if (bill.id === "fiscal_resp" && s.debt > 20) objections.push("borrowing is already above the fiscal ceiling the bill tries to impose");
+    if (!force) {
+      if (s.pStab < 25) objections.push({ who: "Your own caucus", why: "party support is " + Math.round(s.pStab) + "%, so they cannot guarantee a quorum.", good: false, kind: "caucus" });
+      if ((bill.cost || 0) > 0 && s.debt > 18) objections.push({ who: "The finance committee", why: "the bill has no funding line and debt is already " + naira(s.debt) + ".", good: true, kind: "funding" });
+      if (bill.id === "fiscal_resp" && s.debt > 20) objections.push({ who: "The finance committee", why: "borrowing is already above the ceiling this bill would impose.", good: true, kind: "funding" });
+      houseGrudges().filter(g => g.block).forEach(g => objections.push({ ...g, grudge: true, kind: "grudge" }));
+    }
     if (objections.length) {
-      addL("❌ House REJECTS " + bill.nm + ": " + objections.join("; ") + ".", "political");
+      addL("❌ House rejects " + bill.nm + ". " + objections.slice(0, 2).map(o => o.who + " voted no: " + o.why).join(" "), "political");
       setS(p => ({ ...p, pStab: cl100(p.pStab - 3) }));
+      setBillReject({ bill, reasons: objections });
       return;
     }
+    setBillReject(null);
     setBillsPassed(p => [...p, bill]);
     setS(p => ({ ...p, debt: p.debt + (bill.cost || 0) }));
     Object.entries(bill.fx || {}).forEach(([k, v]) => {
@@ -3597,6 +3618,40 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (c && window.SOP_LEDGER) window.SOP_LEDGER.append({ kind, actor: "governor", target: c.name, gravity: 2, evidence: 2, decision, note, meta: { cast: castId } });
     } catch (e) {}
   };
+
+  // ── Why the House says no ──
+  // Read from the record, never rolled: each grudge names the earlier
+  // decision behind it and whether it is a fair objection or leverage.
+  // Only an overdue debt to the godfather, or refusing him while the party
+  // is weak, can block a bill on its own.
+  const houseGrudges = () => {
+    const M = window.SOP_MEMORY; const out = [];
+    if (!M) return out;
+    const short = (t) => { t = String(t || ""); return t.length > 90 ? t.slice(0, 88).replace(/\s+\S*$/, "") + "…" : t; };
+    const gfN = cast.godfather.name;
+    try {
+      const overdue = M.owed("godfather").filter(d => d.dueBy && d.dueBy <= turn);
+      if (overdue.length) out.push({ who: "Members loyal to " + gfN, why: "you still owe him " + overdue[0].what + ", due by turn " + overdue[0].dueBy + ".", good: false, block: true, debtId: overdue[0].id });
+      const betray = M.did("godfather_betrayal", e => (e.t || 0) >= turn - 2);
+      if (betray) out.push({ who: cast.speaker.name + " and " + gfN + "'s members", why: "you refused " + gfN + " in turn " + (betray.t || turn) + (betray.note ? " (" + short(betray.note) + ")" : "") + ".", good: false, block: s.pStab < 50 });
+      const defy = M.did("court_defiance");
+      if (defy) out.push({ who: "Opposition members", why: "you defied a court ruling (" + defy.target + ") in turn " + defy.t + ", so they will not sign off spending they cannot trust.", good: true, block: false });
+      const deal = M.did("house_deal");
+      if (deal) out.push({ who: "Opposition members", why: "you bought votes with constituency projects in turn " + deal.t + ".", good: true, block: false });
+      const nep = M.all("nepotism_flag").length;
+      if (nep) out.push({ who: "The opposition caucus", why: nep + " appointment" + (nep === 1 ? "" : "s") + " of relatives and allies are on the record.", good: true, block: false });
+    } catch (e) {}
+    if (forcedBudget) out.push({ who: "Members across the House", why: "you forced an earlier budget through without them.", good: true, block: false });
+    return out;
+  };
+  const houseDeal = (cost, reasons, what) => {
+    setS(p => ({ ...p, debt: p.debt + cost, cor: cl(p.cor + .01 + .005 * (reasons || []).length) }));
+    const who = (reasons || []).map(r => r.who.replace(/^The /, "the ")).filter((v, i, a) => a.indexOf(v) === i).slice(0, 2).join(" and ") || "the members who voted no";
+    addL("🤝 " + what + " passed after a deal with " + cast.speaker.name + ": " + naira(cost) + " in constituency projects for " + who + ".", "political");
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "house_deal", actor: "governor", target: cast.speaker.name, gravity: 2, evidence: 2, financial: cost, decision: "Negotiated " + what + " through the House", note: "Constituency projects worth " + naira(cost) + " for " + who, losers: ["public"], beneficiaries: ["members"], meta: { cast: "speaker" } }); } catch (e) {}
+  };
+  const [billReject, setBillReject] = useState(null);
+  useEffect(() => { setBillReject(null); }, [turn]);
 
   // Move offered cards onto a queue of core phase names, de-duplicating.
   const deskMerge = (q) => {
@@ -6455,6 +6510,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
+                onNegotiate={(cost, reasons) => { houseDeal(cost, reasons, "The appropriation bill"); setPhase("policy"); }}
+                onDrop={() => { setS(p => ({ ...p, app: cl100(p.app - 3), pStab: cl100(p.pStab - 3) })); addL("🗑️ Appropriation bill withdrawn. The state runs on last half-year's figures; nothing new is funded.", "political"); try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_withdrawn", actor: "governor", gravity: 1, evidence: 2, approvalDelta: -3, note: "Withdrew the appropriation bill after the House rejected it" }); } catch (e) {} setPhase("policy"); }}
+                grudges={houseGrudges()} speakerName={cast.speaker.name}
                 addL={addL} />
             </Cd>}
             {phase === "policy" && <Cd>
@@ -6464,7 +6522,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
               <div style={{ marginTop: 29, borderTop: "1px solid " + CL.bdr, paddingTop: 29 }}>
                 <h3 style={{ fontFamily: F.d, color: CL.pur, margin: "0 0 14px", fontSize: TS(50), fontWeight: 600 }}>📜 Sponsor a Bill (House Vote Required)</h3>
-                <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 22 }}>Bills now pass deterministically unless there is a clear blocker: party stability below 25%, dangerous debt, or a contradictory fiscal clause.</p>
+                <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 22 }}>A bill passes unless members have a reason to stop it: a weak caucus, no money to pay for it, or something you did that they have not forgotten.</p>
+                {billReject && <Cd style={{ padding: 26, marginBottom: 22, borderColor: CL.red + "55", background: CL.red + "06" }}>
+                  <div style={{ fontSize: TS(36), fontWeight: 700, color: CL.red, marginBottom: 10 }}>❌ The House rejected the {billReject.bill.nm}</div>
+                  {billReject.reasons.map((r2, i) => <div key={i} style={{ padding: "8px 0" }}>
+                    <div style={{ fontSize: TS(32), color: CL.txt, lineHeight: 1.4 }}><b>{r2.who}</b> — {r2.why}</div>
+                    <div style={{ fontSize: TS(29), color: r2.good ? CL.grn : CL.red }}>{r2.good ? "Fair reason." : r2.grudge ? "Leverage, not policy." : "Political: your own side is not with you."}</div>
+                  </div>)}
+                  <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
+                    {billReject.reasons.every(r2 => r2.kind === "funding") && billReject.bill.cost > 0 && <Bt onClick={() => { const b2 = { ...billReject.bill, cost: Math.round(billReject.bill.cost * 5) / 10, fx: Object.fromEntries(Object.entries(billReject.bill.fx || {}).map(([k, v]) => [k, typeof v === "number" ? Math.round(v * 60) / 100 : v])), nm: billReject.bill.nm + " (phased)" }; addL("✏️ Amended the " + billReject.bill.nm + ": phased over two years with a funding line.", "policy"); sponsorBill(b2, true); }} style={{ fontSize: TS(32) }}>✏️ Amend: phase it, half the cost</Bt>}
+                    <Bt onClick={() => { const c2 = Math.round((0.2 + 0.1 * billReject.reasons.length) * 10) / 10; houseDeal(c2, billReject.reasons, "The " + billReject.bill.nm); sponsorBill(billReject.bill, true); }} style={{ fontSize: TS(32), background: CL.gold, color: "#000" }}>🤝 Negotiate with {cast.speaker.name.replace(/^Rt\. Hon\. /, "the Speaker, ")}</Bt>
+                    <Bt v="ghost" onClick={() => { addL("🗑️ Dropped the " + billReject.bill.nm + ".", "info"); setBillReject(null); }} style={{ fontSize: TS(32) }}>🗑️ Drop it</Bt>
+                  </div>
+                </Cd>}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(264px,1fr))", gap: 19 }}>
                   {BILLS.filter(b => !billsPassed.find(bp => bp.id === b.id)).map(b => (
                     <Cd key={b.id} onClick={() => sponsorBill(b)} style={{ padding: 24 }}>
@@ -6472,7 +6542,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                       <div style={{ fontSize: TS(29), color: CL.td, marginBottom: 10 }}>{b.d}</div>
                       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                         {b.cost > 0 && <Bg text={naira(b.cost)} color={CL.gold} />}
-                        <Bg text={s.pStab < 25 ? "BLOCKED: caucus" : s.pStab < 40 ? "Will pass: tense" : "Will pass"} color={s.pStab < 25 ? CL.red : s.pStab < 40 ? CL.org : CL.grn} />
+                        <Bg text={s.pStab < 25 ? "Caucus too weak" : s.pStab < 40 ? "Tense vote" : "Likely to pass"} color={s.pStab < 25 ? CL.red : s.pStab < 40 ? CL.org : CL.grn} />
                         {Object.entries(b.fx || {}).map(([k, v]) => <Bg key={k} text={k + ":" + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v)} color={v > 0 ? CL.grn : CL.red} />)}
                       </div>
                     </Cd>
@@ -6956,7 +7026,7 @@ const SA_ROSTER = [
   { name: "Mallam Ibrahim Yusuf",      title: "SA, Security & Intergov Affairs",   zone: "NW", avatar: "👳🏾‍♂️", file: "Retired DIG · DSS liaison network" },
   { name: "Ms. Ngozi Okafor",          title: "SA, Delivery & Reform",             zone: "SE", avatar: "👩🏾‍💼", file: "McKinsey partner · procurement reform" },
   { name: "Prof. Bola Adekunle",       title: "SA, Economic Planning",             zone: "SW", avatar: "👨🏾‍🏫", file: "Public finance professor · debt desk" },
-  { name: "Alh. Abdullahi Bagudu",     title: "SA, Sub-national Diplomacy",        zone: "NW", avatar: "🧔🏾",   file: "Ex-NGF secretariat · Abuja fixer" },
+  { name: "Alh. Abdullahi Bawa",     title: "SA, Sub-national Diplomacy",        zone: "NW", avatar: "🧔🏾",   file: "Ex-NGF secretariat · Abuja fixer" },
   { name: "Dr. Ebele Nwosu",           title: "SA, Health & Social Welfare",       zone: "SE", avatar: "👩🏾‍⚕️", file: "Ex-NPHCDA · UCH consultant" },
   { name: "Engr. Tosin Ogundipe",      title: "SA, Works & Infrastructure",        zone: "SW", avatar: "👷🏾‍♂️", file: "COREN engineer · ex-FERMA" },
   { name: "Comrade Preye Dougibo",     title: "SA, Community Relations",           zone: "SS", avatar: "🧑🏾",   file: "Ijaw youth council · former DESOPADEC" },
