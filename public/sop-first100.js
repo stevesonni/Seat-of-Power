@@ -124,6 +124,7 @@
             appoint: { ministryId: "works", minister: nominee, mandate: true },
             outcome: `${nominee} is Commissioner for Works before lunch.`,
             owed: null,
+            settles: "godfather",
             exposed: `${gfName}'s nominee controls the capital budget.`,
             ledger: { kind: "godfather_contract", gravity: 4, evidence: 3, target: gfName, corruptionDelta: 6, beneficiaries: ["godfather"], losers: ["public"], relatedEntity: "ministry:works", futureRisk: "Every Works contract this term is traceable to a godfather mandate" },
           },
@@ -134,7 +135,7 @@
             fx: { pStab: +4, cor: +0.03, gf: -4 },
             appoint: { ministryId: "lg", minister: nominee, mandate: true },
             outcome: `He takes it, slowly. "For now," he says.`,
-            owed: { to: gfName, what: "The Works ministry he was promised", dueBy: 3 },
+            owed: { to: gfName, role: "godfather", what: "The Works ministry he was promised", dueBy: 3 },
             exposed: null,
             ledger: { kind: "godfather_contract", gravity: 3, evidence: 2, target: gfName, corruptionDelta: 3, beneficiaries: ["godfather"], relatedEntity: "ministry:lg", debtOwed: true, futureRisk: "A half-paid godfather returns with interest" },
           },
@@ -368,11 +369,23 @@
           approvalDelta: fx.app || 0,
           note: opt.ledger.note || (beat.title + " — " + opt.label),
           causedBy: run.lastLedgerId ? [run.lastLedgerId] : [],
-          debtOwed: opt.owed || (opt.ledger.debtOwed ? { to: run.ctx.gfName, what: "an unpaid mandate", dueBy: 3 } : null),
-        }, opt.ledger));
+        }, opt.ledger, {
+          // After opt.ledger: its `debtOwed: true` flag used to overwrite the
+          // obligation object, so the debt never reached the record.
+          debtOwed: opt.owed || (opt.ledger.debtOwed ? { to: run.ctx.gfName, role: "godfather", what: "an unpaid mandate", dueBy: 3 } : null),
+        }));
       } catch (e) { console.warn("[F100] ledger", e); }
     }
     if (lid) run.lastLedgerId = lid;
+
+    // "Settle the debt now": close what the player owed this person.
+    if (opt.settles && window.SOP_MEMORY) {
+      try {
+        window.SOP_MEMORY.owed(opt.settles).forEach(d => {
+          if (d.id !== lid) window.SOP_MEMORY.settle(d.id, beat.day + ": " + opt.label);
+        });
+      } catch (e) { console.warn("[F100] settle", e); }
+    }
 
     // Book-keeping for the report
     run.log.push({ day: beat.day, title: beat.title, choice: opt.label, outcome: opt.outcome || "" });

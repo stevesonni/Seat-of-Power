@@ -2367,6 +2367,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       gEnd, setTurn,
       federalAlignment: fgRelation > 65,
       desk: desk.current,
+      memory: window.SOP_MEMORY || null,
     });
     window.dispatchEvent(new CustomEvent('sop-state', { detail: { turn, phase, nav } }));
   });
@@ -3261,6 +3262,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     shock: "shock", judiciary: "courts", media: "press", nic_ruling: "courts",
     hidden_threat: "adviser", dilemma: "crisis",
   };
+  // A new run starts with the campaign loan on the record, so the godfather
+  // can ask for it back (and only then).
+  useEffect(() => {
+    const M = window.SOP_MEMORY;
+    if (ld || !M || campaignGfDebt <= 0 || M.did("campaign_loan")) return;
+    M.owe("godfather", "Campaign loan of ₦" + campaignGfDebt + "B", { kind: "campaign_loan", role: "godfather", amount: campaignGfDebt, gravity: 2, evidence: 2, relatedEntity: "money:campaign_loan" });
+  }, []);
+
   const deskOffers = React.useRef([]);
   const deskCourtFirst = React.useRef(false);
   const deskCards = React.useRef({});
@@ -3275,6 +3284,55 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     },
     pending: () => deskOffers.current.map(c => ({ key: c.key, topic: c.topic, source: c.source })),
   };
+  // ── Godfather demands read the memory (window.SOP_MEMORY, the ledger) ──
+  // He only asks for campaign money back while the loan is unpaid, never
+  // asks for Works once he holds it, and comes back first for what he is
+  // owed. Each demand's outcome goes on the record, and accepting settles
+  // the matching debt.
+  const GF_LINKS = {
+    gf_appointment: { relatedEntity: "ministry:works", settles: (d) => /works/i.test(d.what) },
+    gf_money: { relatedEntity: "money:campaign_loan", settles: (d) => d.kind === "campaign_loan" },
+    gf_contract: { relatedEntity: "contract:gf_road" },
+    gf_land: { relatedEntity: "land:capital" },
+    gf_assembly: { relatedEntity: "house:speaker" },
+    gf_revenue: { relatedEntity: "revenue:igr" },
+  };
+  const pickGfDemand = (unseen, r) => {
+    const M = window.SOP_MEMORY;
+    if (!M) return unseen.length ? pick(unseen, r) : null;
+    const owed = M.owed("godfather");
+    const holdsWorks = !!M.did("godfather_contract", { relatedEntity: "ministry:works" });
+    const pool = unseen.filter(d => {
+      if (d.id === "gf_money") return owed.some(o => o.kind === "campaign_loan");
+      if (d.id === "gf_appointment") return !holdsWorks;
+      return true;
+    });
+    if (!pool.length) return null;
+    const works = pool.find(d => d.id === "gf_appointment");
+    if (works && owed.some(o => /works/i.test(o.what))) return works;
+    const money = pool.find(d => d.id === "gf_money");
+    if (money) return money;
+    return pick(pool, r);
+  };
+  const recordGfDemand = (dem, accepted, gfName) => {
+    const L = window.SOP_LEDGER, M = window.SOP_MEMORY;
+    if (!L || !dem) return;
+    const link = GF_LINKS[dem.id] || {};
+    try {
+      L.append({
+        kind: accepted ? "godfather_contract" : "godfather_betrayal", actor: "governor", target: gfName,
+        gravity: accepted ? 3 : 2, evidence: 2,
+        corruptionDelta: accepted ? Math.round(((dem.acceptFx && dem.acceptFx.corM) || 0) * 100) : 0,
+        decision: accepted ? "Gave the godfather what he wanted" : "Refused the godfather",
+        note: (accepted ? dem.acceptLog : dem.rejectLog) || dem.d,
+        relatedEntity: link.relatedEntity || null,
+        beneficiaries: [accepted ? "godfather" : "public"], losers: [accepted ? "public" : "godfather"],
+        meta: { demand: dem.id },
+      });
+      if (accepted && M && link.settles) M.owed("godfather").filter(link.settles).forEach(d => M.settle(d.id, "Godfather demand: " + dem.id));
+    } catch (e) { console.warn("[memory] godfather record", e); }
+  };
+
   // Move offered cards onto a queue of core phase names, de-duplicating.
   const deskMerge = (q) => {
     const topics = new Set(q.map(k => DESK_TOPIC[k]).filter(Boolean));
@@ -3327,7 +3385,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // LAYER 2: Godfather (every even turn) — NOT for Primary
     if (lv !== "easy" && godfatherPower > 20 && turn % 2 === 0) {
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
-      if (unseen.length > 0) { const dem = pick(unseen, rE); setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); q.push("godfather"); }
+      const dem = pickGfDemand(unseen, rE);
+      if (dem) { setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); q.push("godfather"); }
     }
 
     // LAYER 3: House bill — Secondary+: most turns. Primary: only turn 3 and 6.
@@ -3456,7 +3515,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (next === "godfather" && !godfatherDemand) {
       const rE = rng(turn * 888 + state.length * 41);
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
-      if (unseen.length > 0) { const dem = pick(unseen, rE); setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); }
+      const dem = pickGfDemand(unseen, rE);
+      if (dem) { setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); }
     }
     if (next === "house_bill" && !pendingHouseBill) {
       const rE = rng(turn * 444 + state.length * 23);
@@ -4151,6 +4211,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   return n;
                 });
                 setGodfatherRel(r2 => Math.min(100, r2 + 15));
+                recordGfDemand(godfatherDemand, true, gf.nm);
                 addL("🎩 " + gf.nm + ": " + godfatherDemand.acceptLog + " He's satisfied — for now.", "political");
                 showResult({ icon: "🎩", title: gf.nm + " — Appeased", narrative: gf.nm.split(" ").pop() + " nods slowly. \"Good. You understand how this works.\" He leaves Government House with what he came for. Your party is stable. But your integrity — and your EFCC file — just got heavier.", effects: [
                   godfatherDemand.acceptFx.corM ? { icon: "💀", text: "Corruption rises", value: "+" + Math.round(godfatherDemand.acceptFx.corM * 100) + "%", bad: true } : null,
@@ -4178,6 +4239,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 });
                 setGodfatherRel(r2 => Math.max(0, r2 - 20));
                 setGodfatherPower(p => Math.max(0, p - 10));
+                recordGfDemand(godfatherDemand, false, gf.nm);
                 const retaliation = gf.aggression > 70 ? " He's making phone calls. Expect House of Assembly trouble." : gf.aggression > 50 ? " He's unhappy but calculating his next move." : " He retreats — for now.";
                 addL("🎩 " + gf.nm + ": " + godfatherDemand.rejectLog + retaliation, "political");
                 showResult({ icon: "✊", title: "You Defied " + gf.nm, narrative: "\"You think you can govern without me?\" " + gf.nm.split(" ").pop() + " stands. " + (gf.aggression > 70 ? "His eyes are cold. 'I made you, Governor. I can unmake you.' He storms out. Your phone will ring all night — he's already working the Assembly members." : gf.aggression > 50 ? "He's quiet. That's worse than shouting. He leaves without shaking your hand." : "He shrugs. 'We'll see.' He's not happy but he's not at war — yet."), effects: [

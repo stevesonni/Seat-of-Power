@@ -108,6 +108,73 @@
     return out.sort((a, b) => (a.t - b.t) || (a.ts - b.ts));
   }
 
+  // ── Memory: questions the rest of the game asks ───────────────────────
+  // The ledger is the one record of what the player did. These helpers turn
+  // it into plain questions so a later scene doesn't have to know which
+  // module wrote what:
+  //   did(kind, match)     latest entry of a kind (or kinds), optionally
+  //                        matching some fields or a predicate; null if none
+  //   all(kind, match)     every such entry, oldest first
+  //   promises()           public pledges on the record
+  //   owed(who)            open obligations, optionally for one role or name
+  //   owe(to, what, opts)  record a new obligation; returns its id
+  //   settle(id, how)      close an obligation; returns the settling entry id
+  // An obligation is any entry with debtOwed = { to, role?, what, dueBy?,
+  // amount? }. It stays open until a "debt_settled" entry names it.
+  function matches(e, kind, match) {
+    if (kind && (Array.isArray(kind) ? kind.indexOf(e.kind) < 0 : e.kind !== kind)) return false;
+    if (!match) return true;
+    if (typeof match === "function") return !!match(e);
+    return Object.keys(match).every(k => e[k] === match[k]);
+  }
+  function memAll(kind, match) { return ledger.filter(e => matches(e, kind, match)); }
+  function memDid(kind, match) {
+    for (let i = ledger.length - 1; i >= 0; i--) if (matches(ledger[i], kind, match)) return ledger[i];
+    return null;
+  }
+  function memPromises() { return memAll("public_pledge"); }
+  function roleOf(e) {
+    const d = e.debtOwed || {};
+    if (d.role) return d.role;
+    if (e.kind === "campaign_loan" || e.kind.indexOf("godfather") === 0) return "godfather";
+    return null;
+  }
+  function memOwed(who) {
+    const settled = new Set(ledger.filter(e => e.kind === "debt_settled" && e.meta && e.meta.settles).map(e => e.meta.settles));
+    return ledger
+      .filter(e => e.debtOwed && typeof e.debtOwed === "object" && !settled.has(e.id))
+      .map(e => ({ id: e.id, t: e.t, kind: e.kind, to: e.debtOwed.to || null, role: roleOf(e),
+                   what: e.debtOwed.what || "", dueBy: e.debtOwed.dueBy || null, amount: e.debtOwed.amount || 0 }))
+      .filter(d => !who || d.role === who || d.to === who);
+  }
+  function memOwe(to, what, opts) {
+    const o = opts || {};
+    return ledgerAppend({
+      kind: o.kind || "debt", actor: "governor", target: to, gravity: o.gravity || 1, evidence: o.evidence || 1,
+      note: o.note || ("Owes " + to + ": " + what),
+      debtOwed: { to: to, role: o.role || null, what: what, dueBy: o.dueBy || null, amount: o.amount || 0 },
+      relatedEntity: o.relatedEntity || null, financial: o.financial || 0,
+    });
+  }
+  function memSettle(id, how) {
+    const e = ledger.find(x => x.id === id);
+    if (!e || !e.debtOwed) return null;
+    return ledgerAppend({
+      kind: "debt_settled", actor: "governor", target: e.target || (e.debtOwed && e.debtOwed.to) || null,
+      gravity: 0, evidence: 1, note: "Settled: " + (e.debtOwed.what || e.id) + (how ? " — " + how : ""),
+      meta: { settles: id, how: how || null }, causedBy: [id],
+    });
+  }
+  const memory = { did: memDid, all: memAll, promises: memPromises, owed: memOwed, owe: memOwe, settle: memSettle };
+
+  // A new run starts with a clean record. (Loading a save hydrates instead.)
+  window.addEventListener("sop-new-game", () => {
+    ledger.length = 0;
+    discoveryMap.clear();
+    nextId = 1;
+    bumpVersion();
+  });
+
   // ── Persistence ────────────────────────────────────────────────────────
   // The ledger was previously lost on every save/load, taking tribunal
   // evidence, EFCC exposure and adviser memory with it. These two functions
@@ -320,8 +387,10 @@
     trace: ledgerTrace,
     serialize: ledgerSerialize,
     hydrate: ledgerHydrate,
+    memory: memory,
     SCHEMA: 2,
   };
+  window.SOP_MEMORY = memory;
   // Also mount onto SOP bridge once ready.
   const attach = setInterval(() => {
     if (window.SOP) {
