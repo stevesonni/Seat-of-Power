@@ -143,16 +143,16 @@
     { id:"wom", name:"Women Affairs & Social Welfare", icon:"👩", budget:0, staff:190, perf:50, cor:25, key:null },
   ];
 
-  // ─────────────────── CONTRACTORS (real-ish bidders) ───────────────────
+  // ─────────────────── CONTRACTORS (invented bidders) ───────────────────
   const CONTRACTOR_POOL = [
-    { name:"Julius Berger Nig. PLC", tier:"A", track:88, markup:1.00, note:"World-class delivery, transparent, expensive." },
-    { name:"CCECC (Chinese) Ltd", tier:"A", track:82, markup:0.92, note:"Fast, cheap, quality varies. Foreign loan strings." },
-    { name:"RCC (Reynolds Construction)", tier:"A", track:78, markup:1.03, note:"Old reliable. Nigerian-owned." },
-    { name:"Setraco Nigeria Ltd", tier:"A", track:80, markup:0.98, note:"Roads specialist. Solid track record." },
-    { name:"Dantata & Sawoe", tier:"B", track:70, markup:1.05, note:"Northern-owned, decent execution." },
+    { name:"Kestrel Construction Nig. PLC", tier:"A", track:88, markup:1.00, note:"World-class delivery, transparent, expensive." },
+    { name:"Great Wall Road & Rail (Nig.) Ltd", tier:"A", track:82, markup:0.92, note:"Fast, cheap, quality varies. Foreign loan strings." },
+    { name:"Riverside Construction Co.", tier:"A", track:78, markup:1.03, note:"Old reliable. Nigerian-owned." },
+    { name:"Sentinel Roads Nigeria Ltd", tier:"A", track:80, markup:0.98, note:"Roads specialist. Solid track record." },
+    { name:"Danbala & Partners", tier:"B", track:70, markup:1.05, note:"Northern-owned, decent execution." },
     { name:"Levant Construction Ltd", tier:"B", track:65, markup:1.08, note:"Lebanese-owned, mid-tier delivery." },
-    { name:"Craneburg Construction", tier:"B", track:72, markup:1.00, note:"Lagos-based, competitive on urban work." },
-    { name:"Bulletin Construction", tier:"C", track:52, markup:1.15, note:"Party-affiliated. Delivery patchy." },
+    { name:"Cranfield Builders", tier:"B", track:72, markup:1.00, note:"Lagos-based, competitive on urban work." },
+    { name:"Bastion Construction", tier:"C", track:52, markup:1.15, note:"Party-affiliated. Delivery patchy." },
     { name:"Rainbow Ventures Ltd (in-law owned)", tier:"D", track:35, markup:1.45, note:"⚠️ Owned by your wife's cousin. NEPOTISM.", nepotism:true },
     { name:"Alhaji Muhammad & Sons Ltd (godfather-linked)", tier:"D", track:42, markup:1.35, note:"⚠️ Godfather's front company.", nepotism:true },
     { name:"Continental Consortium (offshore Cayman)", tier:"C", track:48, markup:1.55, note:"⚠️ Beneficial owner unknown. FIU risk.", nepotism:true },

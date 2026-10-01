@@ -1451,6 +1451,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
   const [sCampLog, setSCampLog] = useState([]);
   const [sCampZones, setSCampZones] = useState(null);
   const [sCampDays, setSCampDays] = useState(0); // campaign days spent on this week's main move
+  const [election, setElection] = useState(null); // the first election's result, for the Wikipedia article
   const [warChest, setWarChest] = useState(0.8); // ₦800M starting campaign funds
   const [gfDebt, setGfDebt] = useState(0); // how much you owe the godfather
   const [gfBorrowed, setGfBorrowed] = useState(false);
@@ -2065,7 +2066,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
               {sCampLog.map((c2, i) => <div key={i} style={{ fontSize: TS(34), color: c2.includes("BACKFIRE") || c2.includes("GODFATHER") ? CL.red : CL.tm, padding: "5px 0" }}>{c2}</div>)}
             </Cd>
             <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>Campaign funds remaining: ₦{warChest.toFixed(1)}B</div>
-            {won ? <Bt onClick={() => { setSCampRound(0); setStep(9); }} style={{ padding: "43px 113px" }}>PROCEED TO GOVERNMENT HOUSE →</Bt>
+            {won ? <Bt onClick={() => { setElection({ opp: oName, oppParty: oParty?.id || "OPP", zonesWon: collation.zonesWon, marginPct: Math.round(marginPct * 10) / 10, votes: collation.totalYou, oppVotes: collation.totalOpp }); setSCampRound(0); setStep(9); }} style={{ padding: "43px 113px" }}>PROCEED TO GOVERNMENT HOUSE →</Bt>
               : <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                   <Bt onClick={() => { setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }} style={{ padding: "43px 86px" }}>😔 Try Again</Bt>
                   <Bt onClick={() => {
@@ -2298,7 +2299,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
           <h2 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(94), fontWeight: 700, margin: "0 0 36px" }}>Welcome to Government House</h2>
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest })} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest, election })} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -2449,6 +2450,87 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
       </div>
     </div>
   );
+};
+
+// ─── THE WIKIPEDIA ARTICLE ───
+// One article, built by buildWiki() in GovScreen from the record (the
+// ledger) and the setup: a stub after the First 100 Days that grows every
+// half-year, and the full biography at the end. A paragraph is a list of
+// strings and { ref: n } footnote markers; references point to the in-game
+// news story that reported each fact.
+const WIKI_SERIF = "'Linux Libertine','Georgia','Times New Roman',serif";
+const WikiPara = ({ parts }) => <p style={{ margin: "0 0 14px" }}>{parts.map((x, i) => typeof x === "string" ? <React.Fragment key={i}>{x}</React.Fragment> : <sup key={i} style={{ fontSize: "70%", lineHeight: 0 }}><a href={"#wref-" + x.ref} onClick={e => { e.preventDefault(); const el = document.getElementById("wref-" + x.ref); el && el.scrollIntoView({ block: "center", behavior: "smooth" }); }} style={{ color: "#3366cc", textDecoration: "none" }}>[{x.ref}]</a></sup>)}</p>;
+const WikiArticle = ({ w, onShare }) => {
+  const tall = TALL();
+  const box = <table style={{ float: tall ? "none" : "right", width: tall ? "100%" : 420, margin: tall ? "0 0 22px" : "0 0 22px 29px", border: "1px solid #a2a9b1", background: "#f8f9fa", borderCollapse: "collapse", fontSize: TS(29), fontFamily: "sans-serif", color: "#202122" }}>
+    <tbody>
+      <tr><th colSpan={2} style={{ fontSize: TS(36), padding: "10px 8px", textAlign: "center", fontFamily: WIKI_SERIF, fontWeight: 400 }}>{w.title}</th></tr>
+      {w.portrait && <tr><td colSpan={2} style={{ textAlign: "center", padding: 8 }}><img src={w.portrait} alt={w.title} style={{ maxWidth: "70%", maxHeight: 300, objectFit: "contain", background: "#eaecf0" }} /><div style={{ fontSize: TS(25), color: "#54595d" }}>{w.title} in {w.startYear}</div></td></tr>}
+      <tr><th colSpan={2} style={{ background: "#cee0f2", padding: "6px 8px", textAlign: "center" }}>{w.office}</th></tr>
+      <tr><td colSpan={2} style={{ textAlign: "center", padding: "6px 8px", fontWeight: 700 }}>{w.inOffice}</td></tr>
+      {w.rows.map(([k, v]) => <tr key={k}><th style={{ textAlign: "left", verticalAlign: "top", padding: "5px 8px", width: "38%" }}>{k}</th><td style={{ padding: "5px 8px" }}>{v}</td></tr>)}
+    </tbody>
+  </table>;
+  return <div style={{ background: "#fff", color: "#202122", border: "1px solid #a7d7f9", padding: tall ? "22px 18px" : "36px 50px", fontFamily: "sans-serif", fontSize: TS(32), lineHeight: 1.6 }}>
+    <h1 style={{ fontFamily: WIKI_SERIF, fontWeight: 400, fontSize: TS(58), margin: 0, borderBottom: "1px solid #a2a9b1", paddingBottom: 6 }}>{w.title}</h1>
+    <div style={{ fontSize: TS(27), color: "#54595d", margin: "6px 0 18px" }}>From Wikipedia, the free encyclopedia <span style={{ color: "#72777d" }}>(in the game)</span></div>
+    {w.stub && <div style={{ border: "1px solid #a2a9b1", background: "#f8f9fa", padding: "8px 12px", fontSize: TS(27), marginBottom: 18 }}>📄 This article about a Nigerian politician is a <i>stub</i>. It grows with every half-year in office.</div>}
+    {box}
+    {w.lead.map((pp, i) => <WikiPara key={i} parts={pp} />)}
+    {w.sections.map(sec => <div key={sec.h}>
+      <h2 style={{ fontFamily: WIKI_SERIF, fontWeight: 400, fontSize: TS(44), borderBottom: "1px solid #a2a9b1", margin: "29px 0 12px" }}>{sec.h}</h2>
+      {(sec.subs || []).map(sub => <div key={sub.h}>
+        <h3 style={{ fontSize: TS(34), fontWeight: 700, margin: "18px 0 8px" }}>{sub.h}</h3>
+        {sub.paras.map((pp, i) => <WikiPara key={i} parts={pp} />)}
+      </div>)}
+      {(sec.paras || []).map((pp, i) => <WikiPara key={i} parts={pp} />)}
+    </div>)}
+    <div style={{ clear: "both" }} />
+    {w.refs.length > 0 && <div>
+      <h2 style={{ fontFamily: WIKI_SERIF, fontWeight: 400, fontSize: TS(44), borderBottom: "1px solid #a2a9b1", margin: "29px 0 12px" }}>References</h2>
+      <ol style={{ fontSize: TS(27), paddingLeft: 32, margin: 0 }}>{w.refs.map(r => <li key={r.n} id={"wref-" + r.n} style={{ marginBottom: 6 }}>"{r.head}". <i>{r.src}</i>. {r.when}.</li>)}</ol>
+    </div>}
+    <div style={{ marginTop: 29, border: "1px solid #a2a9b1", background: "#f8f9fa", padding: "8px 12px", fontSize: TS(27) }}>Categories: {w.cats.join(" | ")}</div>
+    {onShare && <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
+      <Bt onClick={() => onShare("status")} style={{ fontSize: TS(30), background: "#25D366", color: "#fff" }}>Share card · WhatsApp status</Bt>
+      <Bt onClick={() => onShare("x")} style={{ fontSize: TS(30), background: "#000", color: "#fff" }}>Share card · X</Bt>
+    </div>}
+  </div>;
+};
+// The share card: the top of the article (title, infobox, lead) drawn on a
+// canvas. 1080×1920 for a WhatsApp status, 1200×675 for X. It says it is
+// from a game, and carries the link back.
+const wikiShareCard = async (w, kind) => {
+  const W = kind === "x" ? 1200 : 1080, H = kind === "x" ? 675 : 1920;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  const serif = "Georgia, 'Times New Roman', serif", sans = "Arial, Helvetica, sans-serif";
+  const wrap = (txt, x, y, maxW, lh, maxLines) => { const words = String(txt).split(/\s+/); let line = "", n = 0; for (let i = 0; i < words.length; i++) { const t = line ? line + " " + words[i] : words[i]; if (g.measureText(t).width > maxW && line) { g.fillText(line, x, y); y += lh; line = words[i]; if (++n >= maxLines - 1) { let rest = words.slice(i).join(" "); while (g.measureText(rest + "…").width > maxW && rest.length) rest = rest.slice(0, -1); g.fillText(rest + (rest.length < words.slice(i).join(" ").length ? "…" : ""), x, y); return y + lh; } } else line = t; } if (line) { g.fillText(line, x, y); y += lh; } return y; };
+  const img = await new Promise(res => { if (!w.portrait) return res(null); const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = w.portrait; });
+  g.fillStyle = "#ffffff"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#0b5d3b"; g.fillRect(0, 0, W, kind === "x" ? 46 : 90);
+  g.fillStyle = "#fff"; g.font = "bold " + (kind === "x" ? 22 : 36) + "px " + sans; g.fillText("THE SEAT OF POWER · a game · fictional", 24, kind === "x" ? 31 : 58);
+  const lead = w.leadText;
+  if (kind === "x") {
+    const bx = 760, bw = 410; g.strokeStyle = "#a2a9b1"; g.fillStyle = "#f8f9fa"; g.fillRect(bx, 70, bw, 560); g.strokeRect(bx, 70, bw, 560);
+    if (img) { const ih = 300, iw = img.width * ih / img.height; g.drawImage(img, bx + (bw - Math.min(iw, bw - 20)) / 2, 82, Math.min(iw, bw - 20), ih); }
+    g.fillStyle = "#cee0f2"; g.fillRect(bx + 1, 394, bw - 2, 34); g.fillStyle = "#202122"; g.font = "bold 20px " + sans; g.fillText(w.office, bx + 12, 418);
+    let y = 456; g.font = "18px " + sans; w.rows.slice(0, 5).forEach(([k, v]) => { g.font = "bold 18px " + sans; g.fillText(k, bx + 12, y); g.font = "18px " + sans; wrap(v, bx + 150, y, bw - 160, 22, 1); y += 34; });
+    g.fillStyle = "#202122"; g.font = "52px " + serif; wrap(w.title, 30, 120, 700, 58, 2);
+    g.fillStyle = "#54595d"; g.font = "20px " + sans; g.fillText("From the game's encyclopedia", 30, 200);
+    g.fillStyle = "#202122"; g.font = "24px " + serif; wrap(lead, 30, 250, 700, 34, 10);
+    g.fillStyle = "#3366cc"; g.font = "bold 22px " + sans; g.fillText(w.link, 30, 640);
+  } else {
+    g.fillStyle = "#202122"; g.font = "86px " + serif; let y = wrap(w.title, 60, 220, 960, 96, 2);
+    g.fillStyle = "#54595d"; g.font = "32px " + sans; g.fillText("From the game's encyclopedia", 60, y + 6);
+    const bx = 60, by = y + 50, bw = 960; g.fillStyle = "#f8f9fa"; g.fillRect(bx, by, bw, 780); g.strokeStyle = "#a2a9b1"; g.lineWidth = 2; g.strokeRect(bx, by, bw, 780);
+    if (img) { const ih = 470, iw = Math.min(img.width * ih / img.height, bw - 40); g.drawImage(img, bx + (bw - iw) / 2, by + 20, iw, ih); }
+    g.fillStyle = "#cee0f2"; g.fillRect(bx + 2, by + 506, bw - 4, 56); g.fillStyle = "#202122"; g.font = "bold 34px " + sans; g.fillText(w.office, bx + 24, by + 546);
+    let ry = by + 610; w.rows.slice(0, 4).forEach(([k, v]) => { g.font = "bold 30px " + sans; g.fillText(k, bx + 24, ry); g.font = "30px " + sans; wrap(v, bx + 300, ry, bw - 330, 34, 1); ry += 44; });
+    g.fillStyle = "#202122"; g.font = "38px " + serif; wrap(lead, 60, by + 860, 960, 54, 9);
+    g.fillStyle = "#3366cc"; g.font = "bold 34px " + sans; g.fillText(w.link, 60, H - 70);
+  }
+  return new Promise(res => c.toBlob(b => res(b), "image/png"));
 };
 
 // ─── GOVERNANCE ───
@@ -3693,6 +3775,149 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     } catch (e) {}
   };
 
+  // ── THE WIKIPEDIA ARTICLE, from the record ──
+  const buildWiki = (final) => {
+    const M = window.SOP_MEMORY;
+    const L = (() => { try { return M ? M.all() : []; } catch (e) { return []; } })();
+    const stName = state.replace(/_/g, " ");
+    const fem = setup?.avatar === "female";
+    const He = fem ? "She" : "He", he = fem ? "she" : "he", his = fem ? "her" : "his", His = fem ? "Her" : "His", him = fem ? "her" : "him";
+    // Sworn in May 2027: turn 1 is the half-year to November 2027, turn 2 to May 2028.
+    const yearOf = (t) => 2027 + Math.floor((t || 1) / 2);
+    const whenOf = (t) => (((t || 1) % 2) === 1 ? "November" : "May") + " " + yearOf(t);
+    const paper = "The " + stName + " Daily Tribune";
+    const pa = PARTIES.find(x => x.id === party);
+    const flag = FLAGSHIP[setup?.agenda];
+    const short = (t, n = 140) => { t = String(t || "").replace(/^[^A-Za-z0-9"'“₦(]+/u, "").trim(); return t.length > n ? t.slice(0, n - 2).replace(/\s+\S*$/, "") + "…" : t; };
+    const plain = (t) => short(t).replace(/^"|"$/g, "");
+    // References: each fact cites the news story that reported it.
+    const refs = [], refKey = {};
+    const cite = (e, fallbackHead) => {
+      const key = e && e.id ? e.id : fallbackHead;
+      if (refKey[key]) return { ref: refKey[key] };
+      const t = (e && e.t) || turn;
+      const log = e && logs.find(l => l.t === t && ((e.target && l.tx.includes(e.target)) || (e.decision && l.tx.toLowerCase().includes(String(e.decision).toLowerCase().slice(0, 18)))));
+      const head = plain(log ? log.tx : (e ? (e.decision || e.note || e.kind) + (e.note && e.decision ? ": " + e.note : "") : fallbackHead));
+      const n = refs.length + 1; refKey[key] = n;
+      refs.push({ n, head: head.replace(/[.\s]+$/, ""), src: e && /court|unconst/.test(e.kind || "") ? "State House Report" : paper, when: whenOf(t) });
+      return { ref: n };
+    };
+    const ofKind = (k) => L.filter(e => Array.isArray(k) ? k.includes(e.kind) : e.kind === k);
+    const loan = ofKind("campaign_loan")[0];
+    const f100 = L.filter(e => /^DAY \d+ — /.test(e.location || ""));
+    const pols = ofKind("policy_enacted");
+    const echoes = ofKind("policy_echo");
+    const flagM = ofKind("flagship_milestone");
+    const budgets = ofKind(["budget_passed", "budget_forced", "budget_withdrawn", "house_deal"]);
+    const gfC = ofKind("godfather_contract"), gfB = ofKind("godfather_betrayal");
+    const contro = ofKind(["court_defiance", "press_suppression", "nepotism_flag", "budget_forced", "unconst_order", "house_deal", "godfather_contract", "delayed_consequence"]);
+    const courts = ofKind(["court_compliance", "court_appeal"]);
+    const startYear = 2027;
+    const ended = final && gEnd;
+    const endYear = yearOf(turn);
+    const ini = (n) => String(n || "").replace(/^(Hon\.|Chief|Rt\. Hon\.|Dr\.|Comrade)\s+/, "");
+    const pre = "Chief " + gN(rng(state.length * 991 + 5), sd?.zone, state);
+    const successor = !ended ? "Incumbent" : gEnd === "defeated" ? ini(cast.rival.name) : gEnd === "impeached" ? (depGov?.nm || "Deputy governor") : gN(rng(state.length * 733 + turn), sd?.zone, state);
+    const termStr = turn > 4 ? "Two terms" : "First term";
+    const lead1 = [pName + " is a Nigerian politician who " + (ended ? "served" : "has served") + " as the Governor of " + stName + " State " + (ended ? "from " + startYear + " to " + endYear : "since May " + startYear) + ". A member of the " + (pa?.nm || party) + ", " + he + " was elected in " + startYear + " on the slogan \"" + (setup?.slogan || "") + "\"" + (setup?.election ? ", defeating " + ini(setup.election.opp) + " of the " + setup.election.oppParty : "") + ". "];
+    if (flag) lead1.push(His + " administration's flagship programme " + (ended ? "was" : "is") + " " + flag.nm + ", a promise to " + flag.goal + ". ");
+    const del = flagM.filter(e => e.meta && e.meta.delivered && !e.meta.corners).length, cut = flagM.filter(e => e.meta && e.meta.corners).length, miss = flagM.filter(e => e.meta && !e.meta.delivered).length;
+    if (flagM.length) { lead1.push("By " + yearOf(flagM[flagM.length - 1].t) + " it had met " + (del + cut) + " of " + flagM.length + " yearly targets" + (cut ? ", " + cut + " of them by cutting corners" : "") + ". "); lead1.push(cite(flagM[flagM.length - 1])); }
+    const lead = [lead1];
+    if (ended) {
+      const out = gEnd === "impeached" ? He + " was removed from office by the State House of Assembly under Section 188 of the Constitution." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182.";
+      lead.push([out + " " + His + " approval stood at " + Math.round(s.app) + "% when " + he + " left office."]);
+    }
+    const sections = [];
+    // Early life and campaign
+    const camp = [];
+    camp.push([pName + " entered politics through the " + (pa?.nm || party) + ". " + He + " won the party's governorship ticket in " + (startYear - 1) + " with " + (depGov?.nm || "a running mate") + " as running mate" + (setup?.partyAccepted === false ? ", a pick the party had not wanted" : setup?.partyAccepted ? ", the party's own choice" : "") + "."]);
+    const cp = [He + " campaigned on the slogan \"" + (setup?.slogan || "") + "\"" + (flag ? " and promised to " + flag.goal : "") + ". "];
+    if (setup?.election) cp.push("In the " + startYear + " election " + he + " carried " + setup.election.zonesWon + " of the state's three senatorial districts against " + ini(setup.election.opp) + " (" + setup.election.oppParty + "), winning by " + setup.election.marginPct + "%. ");
+    if (loan) { cp.push("The campaign was part-funded by a " + naira(loan.debtOwed?.amount || campaignGfDebt) + " loan from " + cast.godfather.name + ", a party financier."); cp.push(cite(loan)); }
+    camp.push(cp);
+    sections.push({ h: "Early life and campaign", paras: camp });
+    // Governorship
+    const subs = [];
+    if (f100.length || (ministries && ministries.length)) {
+      const pp = [He + " was sworn in on 29 May " + startYear + ". "];
+      f100.slice(0, 4).forEach(e => { const [d, ttl] = e.location.split(" — "); pp.push("On " + d.toLowerCase() + ", faced with \u201c" + short(ttl, 70).replace(/[.?]$/, "") + "\u201d, " + he + " chose: \u201c" + short(e.decision, 90).replace(/\.$/, "") + ".\u201d"); pp.push(cite(e)); pp.push(" "); });
+      const apps = (ministries || []).filter(m => m.minister).slice(0, 3);
+      if (apps.length) pp.push("Early appointments included " + apps.map(m => m.minister + " (" + m.name + ")").join(", ") + ".");
+      subs.push({ h: "First 100 days", paras: [pp] });
+    }
+    if (flag) {
+      const pp = [];
+      if (!flagM.length) pp.push("The " + flag.nm + " programme had no yearly target due yet.");
+      flagM.forEach(e => { pp.push("In " + yearOf(e.t) + ", " + (e.meta?.delivered ? (e.meta?.corners ? "the target was met on paper, with corners cut" : "the year's target was met in full") : "the year's target was missed") + ". "); pp.push(cite(e)); pp.push(" "); });
+      if (flagM.length) pp.push("In all, " + (del + cut) + " of " + flagM.length + " targets were met.");
+      subs.push({ h: "Flagship programme: " + flag.nm, paras: [pp] });
+    }
+    if (budgets.length) {
+      const pp = [];
+      const passed = budgets.filter(e => e.kind === "budget_passed"), forced = budgets.filter(e => e.kind === "budget_forced"), deals = budgets.filter(e => e.kind === "house_deal"), wd = budgets.filter(e => e.kind === "budget_withdrawn");
+      if (passed.length) { pp.push("The House of Assembly passed " + passed.length + " of " + his + " appropriation bills. The latest, " + short(passed[passed.length - 1].note, 90) + "."); pp.push(cite(passed[passed.length - 1])); pp.push(" "); }
+      if (deals.length) { pp.push(deals.length === 1 ? "One bill passed only after a deal with the Speaker. " : deals.length + " bills passed only after deals with the Speaker. "); pp.push(cite(deals[0])); pp.push(" "); }
+      if (wd.length) { pp.push("In " + yearOf(wd[0].t) + " " + he + " withdrew a rejected budget and ran the state on the previous year's figures."); pp.push(cite(wd[0])); pp.push(" "); }
+      if (forced.length) { pp.push(He + " forced " + (forced.length === 1 ? "one budget" : forced.length + " budgets") + " through by executive order, without the House."); pp.push(cite(forced[0])); }
+      subs.push({ h: "Budget", paras: [pp] });
+    }
+    if (pols.length || gfC.length || gfB.length || courts.length) {
+      const pp = [];
+      pols.slice(0, 5).forEach(e => { pp.push(He + " launched the " + String(e.decision || "").replace(/^(Enacted|Started) /, "").replace(/^⭐\s*/, "") + ", welcomed by " + ((e.beneficiaries || [])[0] || "supporters").toLowerCase() + " and opposed by " + ((e.losers || [])[0] || "critics").toLowerCase() + "."); pp.push(cite(e)); pp.push(" "); });
+      if (echoes.length) { const ec = echoes[echoes.length - 1]; pp.push("Residents later told reporters: \"" + short(ec.note, 100) + "\""); pp.push(cite(ec)); pp.push(" "); }
+      if (gfB.length) { pp.push(He + " refused " + gfB.length + (gfB.length === 1 ? " demand" : " demands") + " from " + cast.godfather.name + "."); pp.push(cite(gfB[0])); pp.push(" "); }
+      if (courts.length) { pp.push(He + " complied with " + courts.filter(e => e.kind === "court_compliance").length + " court ruling(s)."); pp.push(cite(courts[0])); }
+      subs.push({ h: "Key decisions", paras: [pp] });
+    }
+    sections.push({ h: "Governorship", subs: subs.length ? subs : [{ h: "Early months", paras: [["The administration had taken no recorded decisions yet."]] }] });
+    // Controversies
+    const cpp = [];
+    const said = new Set();
+    contro.forEach(e => {
+      if (said.has(e.kind + (e.target || ""))) return; said.add(e.kind + (e.target || ""));
+      const txt = e.kind === "godfather_contract" ? (/^DAY \d+/.test(e.location || "") ? "On " + e.location.split(" — ")[0].toLowerCase() + " " + he + " settled with " + cast.godfather.name + ": \u201c" + short(e.decision, 80).replace(/\.$/, "") + "\u201d" : He + " gave " + cast.godfather.name + " what he asked for: " + short(e.note, 90)) : e.kind === "court_defiance" ? He + " defied a court ruling (" + e.target + ")" : e.kind === "press_suppression" ? "The administration was accused of killing a press story about it" : e.kind === "nepotism_flag" ? "Appointments of relatives and allies were flagged" : e.kind === "budget_forced" ? "Spending without the House's approval drew a court challenge" : e.kind === "unconst_order" ? He + " issued an executive order the courts called unconstitutional: " + short(e.decision, 60).replace(/^Executive order: /, "") : e.kind === "house_deal" ? "Members were given constituency projects for their votes" : short(e.outcome || e.note, 110);
+      cpp.push(txt.replace(/\.?$/, ".")); cpp.push(cite(e)); cpp.push(" ");
+    });
+    if (M) { try { const owed = M.owed(); if (owed.length) cpp.push(owed.length + (owed.length === 1 ? " promise" : " promises") + " to power brokers remained unpaid" + (ended ? " when " + he + " left office." : ".")); } catch (e) {} }
+    sections.push({ h: "Controversies", paras: [cpp.length ? cpp : ["No controversy had been reported as of " + whenOf(turn) + "."]] });
+    // Legacy
+    if (ended) {
+      const lp = [];
+      lp.push("Analysts judged " + his + " record by the " + (flag ? flag.nm + " promise" : "promises") + ": " + (flagM.length ? (del + cut) + " of " + flagM.length + " yearly targets met" : "no yearly target was ever judged") + ". ");
+      lp.push("Approval moved from " + Math.round(appH[0] || 55) + "% to " + Math.round(s.app) + "%; state debt ended at " + naira(s.debt) + ". ");
+      lp.push(s.cor > .55 ? "After leaving office " + he + " faced EFCC questioning once immunity under Section 308 lapsed." : s.cor < .25 ? He + " left office with no corruption case against " + him + "." : "Questions about contracts outlived the administration.");
+      sections.push({ h: "Legacy", paras: [lp] });
+    } else if (turn > 2) {
+      sections.push({ h: "Assessment so far", paras: [["As of " + whenOf(turn) + ", " + his + " approval stood at " + Math.round(s.app) + "% and state debt at " + naira(s.debt) + "."]] });
+    }
+    const av = AVATARS.find(a => a.id === setup?.avatar);
+    const w = {
+      title: pName, stub: !final && turn <= 2, startYear,
+      portrait: av ? AVATAR_IMGS[av.id] : null,
+      office: "Governor of " + stName + " State",
+      inOffice: "In office · 29 May " + startYear + " – " + (ended ? (gEnd === "complete" ? "29 May " + (startYear + 8) : endYear) : "present"),
+      rows: [["Deputy", depGov?.nm || "—"], ["Preceded by", pre], ["Succeeded by", successor], ["Political party", pa?.nm || party], ["Term", termStr]].concat(flag ? [["Flagship", flag.nm]] : []).concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
+      lead, sections, refs,
+      cats: ["Governors of " + stName + " State", (pa?.nm || party) + " politicians", "Living people"].concat(gEnd === "impeached" ? ["Impeached Nigerian governors"] : []),
+      link: (location.origin + location.pathname).replace(/^https?:\/\//, ""),
+    };
+    w.leadText = lead.map(pp => pp.filter(x => typeof x === "string").join("")).join(" ");
+    return w;
+  };
+  const shareWiki = async (w, kind) => {
+    try {
+      const blob = await wikiShareCard(w, kind);
+      const file = new File([blob], "seat-of-power-" + kind + ".png", { type: "image/png" });
+      const url = location.origin + location.pathname;
+      const text = w.title + ", Governor of " + state.replace(/_/g, " ") + " State: my record in The Seat of Power. Play: " + url;
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text, url }); return; }
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+      try { navigator.clipboard && navigator.clipboard.writeText(text); } catch (e) {}
+      window.SOP_toast && window.SOP_toast("Card saved. Link copied: post it with the image.");
+    } catch (e) { console.warn("[wiki] share", e); }
+  };
+
   // ── Why the House says no ──
   // Read from the record, never rolled: each grudge names the earlier
   // decision behind it and whether it is a fair objection or leverage.
@@ -4056,75 +4281,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (showWiki) return (
       <div style={{ minHeight: "100%", background: "#f6f6f6", padding: "43px" }}>
         <Flag />
-        <div style={{ maxWidth: 1344, margin: "58px auto", background: "#fff", border: "1px solid #a7d7a7", fontFamily: "Georgia,serif" }}>
-          <div style={{ padding: "43px 58px", borderBottom: "1px solid #a7d7a7" }}>
-            <h1 style={{ fontSize: TS(79), fontWeight: 400, margin: 1, color: "#333" }}>{pName}</h1>
-            <div style={{ fontSize: TS(36), color: "#666", marginTop: 7 }}>From Wikipedia, the free encyclopedia</div>
-          </div>
-          <div style={{ float: "right", width: 426, margin: 36, border: "1px solid #a7d7a7", fontSize: TS(36), background: "#f8fff8" }}>
-            <div style={{ background: CL.grn, color: "#fff", padding: 19, textAlign: "center", fontWeight: 700, fontSize: TS(38) }}>{pName}</div>
-            {(() => { const av = AVATARS.find(a => a.id === setup?.avatar); return av ? <div style={{ padding: "29px 0", background: "#f0f8f0", textAlign: "center" }}><img src={AVATAR_IMGS[av.id]} alt={av.label} style={{ width: 192, height: "auto", borderRadius: 17 }} /></div> : null; })()}
-            <div style={{ padding: 22 }}>
-              {[["Office", "Governor of " + state.replace("_", " ")], ["Party", pa?.nm || party], ["Deputy", depGov ? depGov.nm : "N/A"], ["Term", termsServed], ["Policies", completedPolicies.length + " completed"], ["Crises", (dilemmasFaced.length + crisisEvents.length) + " faced"], ["Score", ov + "/100 (" + gr + ")"], ["Peak Approval", appPeak + "%"], ["Final Approval", Math.round(s.app) + "%"], ["Debt", naira(s.debt)], ["Outcome", gEnd === "complete" ? "Full tenure" : gEnd === "defeated" ? "Lost re-election" : gEnd === "impeached" ? "Impeached" : gEnd === "stepped_down" ? "Voluntarily stepped down" : gEnd === "pres_bid" ? "Resigned for presidency" : "N/A"]].map(([k, v]) => (
-                <div key={k} style={{ display: "flex", padding: "7px 0", borderBottom: "1px solid #e0e0e0" }}>
-                  <span style={{ fontWeight: 700, width: 192, color: "#333", fontSize: TS(34) }}>{k}</span>
-                  <span style={{ color: "#555", fontSize: TS(34) }}>{v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={{ padding: "43px 58px", fontSize: TS(43), lineHeight: 1.75, color: "#333" }}>
-            <p>{wikiIntro}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Early Tenure & Inherited Challenges</h3>
-            <p>{wikiEarlyTenure}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Policy Achievements</h3>
-            <p>{wikiPolicies}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Infrastructure & Development</h3>
-            <p>{wikiInfra}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Capital Projects & Procurement</h3>
-            <p>{wikiProjects}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Security</h3>
-            <p>{wikiSecurity}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Crises & Controversies</h3>
-            <p>{wikiCrises}</p>
-
-            {(scandals.length > 0 || s.cor > .25) && <div><h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Corruption & Accountability</h3><p>{wikiCorr}</p></div>}
-
-            {wikiConst && <div><h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Constitutional Violations</h3><p>{wikiConst}</p></div>}
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Cabinet & Legislative Relations</h3>
-            <p>{wikiCabinet}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Public Perception</h3>
-            <p>{wikiPeople}</p>
-            {wikiStk && <p>{wikiStk}</p>}
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Public Perception & Legacy</h3>
-            <p>{wikiNarrative}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Private Investment & Economic Development</h3>
-            <p>{wikiInvestors}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Post-Office & EFCC</h3>
-            <p>{wikiEFCC}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Fiscal Record</h3>
-            <p>{wikiFiscal}</p>
-
-            <h3 style={{ fontSize: TS(53), borderBottom: "1px solid #aaa", marginTop: 58, color: "#333" }}>Legacy & Historical Assessment</h3>
-            <p>{wikiLegacy}</p>
-
-            <div style={{ clear: "both" }} />
-            <div style={{ marginTop: 72, borderTop: "1px solid #ccc", paddingTop: 29, fontSize: TS(34), color: "#888" }}>
-              Categories: Nigerian governors | {state.replace("_", " ")} State politicians | {pa?.id || party} members | {gr}-rated administrations{gEnd === "impeached" ? " | Impeached Nigerian governors" : gEnd === "defeated" ? " | One-term governors" : gEnd === "stepped_down" ? " | One-term governors | Voluntarily retired governors" : gEnd === "pres_bid" ? " | Presidential candidates | Former governors" : " | Two-term governors"}{s.cor > .4 ? " | Politicians involved in corruption controversies" : ""}{ov > 70 ? " | Transformative governors" : ""}
-            </div>
-          </div>
+        <div style={{ maxWidth: 1344, margin: "29px auto" }}>
+          <WikiArticle w={buildWiki(true)} onShare={(k) => shareWiki(buildWiki(true), k)} />
         </div>
         <div style={{ textAlign: "center", marginTop: 43, display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
           <Bt onClick={() => {
@@ -6199,7 +6357,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <div style={{ fontSize: TS(36), color: CL.td }}>Base ₦{p.c.toFixed(1)}B · {p.t}T baseline · you pick contractor next</div>
               </div>
               <div style={{ fontSize: TS(36), color: CL.tm, marginBottom: 29, padding: 29, background: CL.org + "0c", borderRadius: 8, lineHeight: 1.5 }}>
-                Name the project, assign a ministry, decide on EIA. On <b>Next</b> you'll pick a bidder from the real contractor pool (Julius Berger, CCECC, RCC…) or a nepotism-flagged one. Every choice affects cost, delivery time, corruption index and your Wikipedia bio.
+                Name the project, assign a ministry, decide on EIA. On <b>Next</b> you'll pick a bidder from the contractor pool or a nepotism-flagged one. Every choice affects cost, delivery time, corruption index and your Wikipedia bio.
               </div>
 
               <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.grn, marginBottom: 10 }}>1. Project name</div>
@@ -6581,9 +6739,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             {phase === "house_vote" && <Cd style={{ borderColor: CL.pur + "44" }}>
               <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
-              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); setPhase("policy"); }}
+              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
-                onForce={() => { setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
+                onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
                 onNegotiate={(cost, reasons) => { houseDeal(cost, reasons, "The appropriation bill"); setPhase("policy"); }}
                 onDrop={() => { setS(p => ({ ...p, app: cl100(p.app - 3), pStab: cl100(p.pStab - 3) })); addL("🗑️ Appropriation bill withdrawn. The state runs on last half-year's figures; nothing new is funded.", "political"); try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_withdrawn", actor: "governor", gravity: 1, evidence: 2, approvalDelta: -3, note: "Withdrew the appropriation bill after the House rejected it" }); } catch (e) {} setPhase("policy"); }}
                 grudges={houseGrudges()} speakerName={cast.speaker.name}
@@ -6841,7 +6999,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "prj" && <div id="sop-realism-prj" data-nav="prj"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Projects module…</div></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
-        {nav === "bio" && <div id="sop-realism-bio" data-nav="bio"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Wikipedia bio…</div></div>}
+        {nav === "bio" && <WikiArticle w={buildWiki(false)} onShare={(k) => shareWiki(buildWiki(false), k)} />}
         {nav === "cast" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(420px,1fr))", gap: 22 }}>
           {Object.values(cast).map(c => {
             const rec = (window.SOP_CAST ? window.SOP_CAST.history(c.id) : []).slice(-3).reverse();
