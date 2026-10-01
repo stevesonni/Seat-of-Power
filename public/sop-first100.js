@@ -251,7 +251,7 @@
             chips: [["Approval −6", "bad"], ["Party stability +3", "good"]].concat(pledgedSalaries ? [["Breaks your Day 1 promise", "bad"]] : []),
             fx: { app: -6, pStab: +3 },
             outcome: "Half salaries land. The NLC state chapter calls an emergency meeting.",
-            delayed: { turn: 2, label: "NLC warning strike over the half-month", fx: { app: -5 }, log: "✊ NLC three-day warning strike over unpaid balance. Approval −5." },
+            delayed: { turn: 2, label: "NLC warning strike over the half-month", fx: { app: -5 }, log: `✊ ${castName("labour") || "The NLC state chairman"} calls a three-day warning strike over the unpaid balance. Approval −5.` },
             ledger: { kind: "fiscal_decision", gravity: 2, evidence: 3, losers: ["workers"], beneficiaries: ["contractors"], futureRisk: "Organised labour is now counting your months" },
           },
           {

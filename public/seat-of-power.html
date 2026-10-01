@@ -202,6 +202,23 @@
     /* Character art is served by the hosting platform. Where an image can't
        load (local runs, previews), show a neutral silhouette instead of a
        broken-image icon and alt text; emblems simply disappear. */
+    /* Toast: short notices that fade (delayed consequences, warnings).
+       Formerly part of sop-v2.js. Appended to body, which the stage script
+       below redirects into the scaled stage, so sizes are artboard px. */
+    window.SOP_V2_toast = window.SOP_toast = function (msg, kind) {
+      var wrap = document.getElementById('sop-toasts');
+      if (!wrap) {
+        wrap = document.createElement('div'); wrap.id = 'sop-toasts';
+        wrap.style.cssText = 'position:fixed;top:16px;left:16px;right:16px;z-index:9800;display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none';
+        document.body.appendChild(wrap);
+      }
+      var bg = kind === 'warn' ? '#a06a00' : kind === 'bad' ? '#8b1a1a' : kind === 'ok' ? '#0f5132' : '#0f2a1e';
+      var t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'pointer-events:auto;background:' + bg + ';color:#fdf7d8;padding:16px 24px;border-radius:16px;font:600 28px/1.35 Outfit,sans-serif;box-shadow:0 6px 22px rgba(15,42,30,.25);max-width:680px;text-align:center;transition:opacity .3s';
+      wrap.appendChild(t);
+      setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 3400);
+    };
     (function () {
       var SIL = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160"><circle cx="60" cy="46" r="28" fill="#5b4a3a"/><path d="M8 160c4-46 26-70 52-70s48 24 52 70z" fill="#0f6b3d"/><path d="M44 96l16 30 16-30" fill="#e8e4dc"/></svg>');
       window.addEventListener('error', function (e) {
@@ -321,37 +338,24 @@
     })();
   </script>
 
-  <!-- Unified integration layer. Only two files — no more overlay stack.
-       sop-realism.js: indigenous names, minister roster, procurement helpers.
-       sop-v2.js:      the single bottom command bar (Briefing / Agenda / Budget /
-                       House / Courts / Cabinet / Projects / Wiki), consequence
-                       ledger, NPC memory, first-term tribunal, house budget cycle. -->
+  <!-- Modules. Each talks to the game through window.SOP; decisions go
+       through the Desk (SOP.desk), records through the ledger (SOP_MEMORY),
+       and people through the cast (SOP_CAST).
+       sop-realism.js       names, ministries, projects, procurement, council, wiki bio
+       sop-ledger.js        the record of what the player did (memory)
+       sop-electionnight.js playable count night at the end of the campaign
+       sop-first100.js      the scripted First 100 Days on turn 1
+       sop-civic.js         Civic Lens explainers and the end-of-turn review
+       sop-politics.js      rivals, factions, institutions; one pressure card a turn
+       Parked (kept, not loaded): sop-replay.js (career dossier, run modifiers).
+       Removed: sop-v2.js (its toast now lives above), sop-efcc.js, sop-phase4.js. -->
   <script src="./sop-realism.js"></script>
-  <script src="./sop-v2.js"></script>
-  <!-- Phase-1 Historic Ledger shim (append-only, dev tab, read-only consumers). -->
   <script src="./sop-ledger.js"></script>
-  <!-- Phase 2 §1 — Playable Election Night overlay. Ledger-only writes; the
-       tribunal consumer picks them up with no new tribunal code. -->
-  <!-- Phase 3 §1 — Visible EFCC Case File (pure ledger consumer + 2 write sites). -->
-  <script src="./sop-efcc.js"></script>
-  <!-- Phase 4 — UX & feel: type tokens, quarter-end newspaper, certificate popup,
-       shame-line helper. Ledger-consumer only; safe to load last. -->
-   <script src="./sop-phase4.js"></script>
-   <style>#sop-efcc-badge,#sop-ledger-btn,#sop-ledger-panel{display:none !important}</style>
-  <!-- Replay Value Layer — career dossier, run-modifier deck, scenarios, achievements. -->
-  <script src="./sop-replay.js"></script>
-  <!-- THE FIRST 100 DAYS — scripted opening slice. Runs once, on turn 1 of a
-       new run, between the Government House welcome and the first budget.
-       Writes only through window.SOP and the ledger; adds no save fields. -->
-   <script src="./sop-first100.js"></script>
-   <!-- CIVIC EDUCATION & POLITICAL REALISM — Civic Lens explainers,
-        multi-dimensional corruption tracking, four-part end-of-turn
-        civic review, multi-directional accountability. Pure overlay;
-        writes through window.SOP and the ledger. -->
-   <script src="./sop-civic.js"></script>
-   <!-- RIVALS / FACTIONS / INSTITUTIONS — per-turn political simulation and the
-        nine-question DecisionCard contract for every pressure decision. -->
-   <script src="./sop-politics.js"></script>
+  <style>#sop-ledger-btn,#sop-ledger-panel{display:none !important}</style>
+  <script src="./sop-electionnight.js"></script>
+  <script src="./sop-first100.js"></script>
+  <script src="./sop-civic.js"></script>
+  <script src="./sop-politics.js"></script>
    <!-- THE GAME — precompiled from game/seat-of-power.jsx by `bun run build:game`
         (vite.game.config.ts). Bundles React 18.2 as window.React / window.ReactDOM
         and starts the game on DOMContentLoaded, after the overlays above.

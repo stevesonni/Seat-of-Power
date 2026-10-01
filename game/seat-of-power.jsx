@@ -573,6 +573,18 @@ function gN(r, zone, stateId) {
 // governor takes office and saved with the game, so every screen and module
 // uses the same name for the same person. Their record is the ledger: any
 // entry whose target is their name (see SOP_CAST.history).
+// The godfather's title and description come from the state's power and
+// aggression (STATE_GODFATHERS), not from the real politicians whose names,
+// nicknames and biographies that table also holds.
+function gfPersona(def) {
+  const p = (def && def.power) || 60, a = (def && def.aggression) || 50;
+  return {
+    title: p >= 80 ? "The Kingmaker" : p >= 60 ? "The Party Financier" : "The Old Guard Boss",
+    desc: a > 70 ? "Funds campaigns, owns the party structure, and punishes disloyalty in public."
+      : a > 50 ? "Funds campaigns and controls the party machinery. He collects what he is owed."
+      : "A quieter power broker. He prefers favours to fights, until he doesn't.",
+  };
+}
 const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
 function makeCast(setup, stateId, zone) {
   const r = rng((stateId || "").length * 131 + ((setup && setup.nm) || "").length * 17 + 7);
@@ -584,7 +596,7 @@ function makeCast(setup, stateId, zone) {
   const opp = "Hon. " + gN(rng((stateId ? stateId.length : 5) * 77 + 99), zone, stateId);
   const sa = (setup && setup.saName) || (SA_ROSTER[0] && SA_ROSTER[0].name) || "Special Adviser";
   return {
-    godfather: { id: "godfather", role: "Godfather", title: gfDef.title || "Political Kingmaker", name: "Chief " + person() },
+    godfather: { id: "godfather", role: "Godfather", title: gfPersona(gfDef).title, name: "Chief " + person() },
     adviser: { id: "adviser", role: "Special Adviser", title: "Special Adviser", name: sa },
     deputy: { id: "deputy", role: "Deputy Governor", title: "Deputy Governor", name: (setup && setup.depGov && setup.depGov.nm) || person() },
     speaker: { id: "speaker", role: "Speaker", title: "Speaker, State House of Assembly", name: "Rt. Hon. " + person() },
@@ -2354,7 +2366,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [saOffice, setSaOffice] = useState(() => ld?.saOffice || { adviser: SA_ROSTER.find(a => a.name === setup?.saName) || SA_ROSTER[0], firedTurn: -99, history: [] });
   const [saPickerOpen, setSaPickerOpen] = useState(false);
   // The cast (see makeCast). Saves from before the cast get one built now.
-  const [cast, setCast] = useState(() => ld?.cast || makeCast(setup, state, sd?.zone));
+  const [cast, setCast] = useState(() => {
+    const c = ld?.cast || makeCast(setup, state, sd?.zone);
+    return { ...c, godfather: { ...c.godfather, title: gfPersona(STATE_GODFATHERS[state]).title } };
+  });
   const castRef = React.useRef(cast);
   castRef.current = cast;
   // The Special Adviser seat follows whoever holds the office.
@@ -3414,6 +3429,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     } catch (e) { console.warn("[memory] godfather record", e); }
   };
 
+  // Record a decision that involves a cast member, so it shows on their page.
+  const recordWithCast = (castId, kind, decision, note) => {
+    try {
+      const c = cast[castId];
+      if (c && window.SOP_LEDGER) window.SOP_LEDGER.append({ kind, actor: "governor", target: c.name, gravity: 2, evidence: 2, decision, note, meta: { cast: castId } });
+    } catch (e) {}
+  };
+
   // Move offered cards onto a queue of core phase names, de-duplicating.
   const deskMerge = (q) => {
     const topics = new Set(q.map(k => DESK_TOPIC[k]).filter(Boolean));
@@ -3972,7 +3995,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <div style={{ padding: TALL() ? "20px 20px 36px" : 36, maxWidth: 1488, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, flexWrap: "wrap", gap: 14 }}>
           <div>
-            <div style={{ fontSize: TS(29), letterSpacing: 7, color: CL.grn, fontFamily: F.m, textTransform: "uppercase" }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
+            <div style={{ fontSize: TS(29), letterSpacing: 7, color: CL.grn, fontFamily: F.m, textTransform: "uppercase", paddingRight: TALL() ? 140 : 0 }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
             <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), margin: 1, fontWeight: 600 }}>{yr}</h2>
           </div>
           <div style={TALL() ? { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px 10px", width: "100%", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: "16px 10px" } : { display: "flex", gap: 29, alignItems: "center", flexWrap: "wrap" }}>
@@ -4174,7 +4197,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             kicker="Dilemma"
             kickerColor={CL.org}
             title={curD.nm}
-            brief={curD.d}
+            brief={curD.id === "strike" ? curD.d + " " + cast.labour.name + ", " + cast.labour.title + ", is leading the walkout." : curD.d}
             stakes="Every option below has a price and a risk. Nothing here is free."
             aside={<AdvBubble text={ADV.dilemma} saName={cast.adviser.name} />}
             options={curD.ch.map(ch => ({
@@ -4186,7 +4209,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 ...(ch.dc ? [{ text: "Debt +" + naira(ch.dc), color: CL.red }] : []),
               ],
             }))}
-            onPick={(o) => dChoice(o.raw)}
+            onPick={(o) => { if (curD.id === "strike") recordWithCast("labour", "labour_settlement", o.raw.l, curD.nm); dChoice(o.raw); }}
           />}
 
         </OL>
@@ -4293,7 +4316,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "godfather" && !!godfatherDemand}>
           {godfatherDemand && (() => {
             const gf0 = STATE_GODFATHERS[state] || { nm: "The Godfather", title: "Political Kingmaker", power: 60, aggression: 50, loyalty_demand: 60, desc: "A powerful figure who funded your campaign." };
-            const gf = { ...gf0, nm: cast.godfather.name }; // one godfather: the cast's
+            const gf = { ...gf0, nm: cast.godfather.name, ...gfPersona(gf0) }; // one godfather: the cast's
             return <Cd style={{ borderColor: CL.org + "44" }}>
             <AdvBubble text={ADV.godfather} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
@@ -4542,6 +4565,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Bg text="Federal Government" color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curFgEvent.title}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curFgEvent.desc}</p>
+              {curFgEvent.id === "fg_efcc" && <p style={{ color: CL.txt, fontSize: TS(34), lineHeight: 1.45, textAlign: "left", marginBottom: 22 }}>The case officer is <b>{cast.efcc.name}</b>, {cast.efcc.title}. {window.SOP_CAST && window.SOP_CAST.history("efcc").length ? "You have met before." : "Nobody in your government has met this officer yet."}</p>}
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 22 }}>
                 <Bg text={"FG Relations: " + fgRelation + "%"} color={fgRelation > 55 ? CL.grn : fgRelation > 35 ? CL.org : CL.red} />
                 <Bg text={curFgEvent.type === "reward" ? "Opportunity" : "Pressure"} color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
@@ -4550,6 +4574,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 22 }}>
               {curFgEvent.opts.map((opt, i) => (
                 <Cd key={i} onClick={() => {
+                  if (curFgEvent.id === "fg_efcc") recordWithCast("efcc", "efcc_response", opt.l, curFgEvent.title);
                   setS(p => {
                     const n2 = { ...p };
                     if (opt.fx.app) n2.app = cl100(n2.app + opt.fx.app);
@@ -6685,6 +6710,9 @@ function App() {
           .sop-gov-grid { grid-template-columns: 1fr !important; }
           .sop-2col { grid-template-columns: 1fr !important; }
         }
+        /* Portrait: the stage is 720 design px wide, so the media query above
+           never fires; stack the two-column pages here instead. */
+        #sop-stage.sop-tall .sop-gov-grid, #sop-stage.sop-tall .sop-2col { grid-template-columns: 1fr !important; }
         .sop-fade-in { animation: sopFadeIn .4s ease-out; }
         .sop-slide-up { animation: sopSlideUp .35s ease-out; }
         @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
