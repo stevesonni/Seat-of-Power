@@ -3,6 +3,10 @@ const { useState, useEffect, useMemo } = React;
 
 /* THE SEAT OF POWER V3 */
 
+/* Portrait layout: the shell gives tall screens a narrow (720px) artboard.
+   Components that need a different arrangement there ask TALL(). */
+const TALL = () => typeof window !== "undefined" && window.innerHeight > window.innerWidth;
+
 const F = { d: "'Cormorant Garamond',serif", b: "'Outfit',sans-serif", m: "'JetBrains Mono',monospace", c: "'Montserrat','Outfit',sans-serif" };
 /* CL — the colour handles used by ~700 inline styles. The six structural
    ones are no longer fixed hexes: they read live from the stage's CSS
@@ -1227,7 +1231,7 @@ const AnchorDesk = ({ lines, onDone }) => {
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: "linear-gradient(180deg,#1a4d62 0%,#246880 40%,#5a7a52 100%)" }}>
       {/* ── Backdrop screen centered behind anchors ── */}
-      <div style={{ position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)", width: "min(600px,50%)", aspectRatio: "16/9", border: "3px solid rgba(255,255,255,.7)", borderRadius: 6, background: `url(${ANCHOR_BACKDROP}) center/cover`, boxShadow: "0 8px 24px rgba(0,0,0,.35)", opacity: .85 }} />
+      <div style={{ position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)", width: TALL() ? "84%" : "min(600px,50%)", aspectRatio: "16/9", border: "3px solid rgba(255,255,255,.7)", borderRadius: 6, background: `url(${ANCHOR_BACKDROP}) center/cover`, boxShadow: "0 8px 24px rgba(0,0,0,.35)", opacity: .85 }} />
 
       {/* ── Anchors flanking the backdrop ── */}
       <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "0 2%", zIndex: 2 }}>
@@ -1247,8 +1251,8 @@ const AnchorDesk = ({ lines, onDone }) => {
           <span style={{ fontWeight: active === "f" ? 700 : 400, opacity: active === "f" ? 1 : .5 }}>ADAEZE NWOSU</span>
         </div>
         {/* dialogue bubble */}
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, padding: "0 4%" }}>
-          <div style={{ position: "relative", background: "#e8e4dc", borderRadius: 12, padding: "12px 24px 12px 56px", maxWidth: "70%", boxShadow: "0 4px 12px rgba(0,0,0,.25)", fontSize: TS(24), lineHeight: 1.35, color: "#22201c", fontFamily: F.b }}>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, padding: TALL() ? "0 4% 12px" : "0 4%", flexDirection: TALL() ? "column" : "row" }}>
+          <div style={{ position: "relative", background: "#e8e4dc", borderRadius: 12, padding: "12px 24px 12px 56px", maxWidth: TALL() ? "100%" : "70%", boxShadow: "0 4px 12px rgba(0,0,0,.25)", fontSize: TS(TALL() ? 30 : 24), lineHeight: 1.35, color: "#22201c", fontFamily: F.b }}>
             <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", fontSize: TS(24), opacity: .5 }}>🔊</span>
             {line.t}
             {/* tail */}
@@ -1381,7 +1385,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
             <button key={k} onClick={() => setZf(k)} style={{ padding: "5px 18px", borderRadius: 14, border: "1px solid " + (zf === k ? ZC[k] : CL.bdr), background: zf === k ? ZC[k] + "15" : "transparent", color: zf === k ? ZC[k] : CL.td, fontSize: TS(16), cursor: "pointer", fontFamily: F.b }}>{v}</button>
           ))}
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 8, overflowY: "auto", maxHeight: "880px", minHeight: 0, paddingRight: 4 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 8, overflowY: "auto", flex: 1, minHeight: 0, paddingRight: 4 }}>
           {fs.map(([n, d]) => {
             const isFCT = n === "FCT";
             return (
@@ -2276,6 +2280,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [logs, setLogs] = useState(ld?.logs || []);
   const [phase, setPhase] = useState(ld ? "budget" : "budget");
   const [nav, setNav] = useState("gov");
+  const navMemory = React.useRef({}); // last sub-tab opened on each screen
 
   /* Visual mode follows where the player is standing:
      - public: media, campaign, the crowd, the anchors
@@ -3949,18 +3954,28 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     );
   }
 
-  const TABS = [{ k: "gov", i: "⚡", l: "Govern" }, { k: "econ", i: "📊", l: "Economy" }, { k: "min", i: "🏛️", l: "Ministries" }, { k: "prj", i: "🏗️", l: "Projects" }, { k: "proc", i: "📋", l: "Procurement" }, { k: "coun", i: "👑", l: "Trad. Council" }, { k: "bio", i: "📖", l: "Wiki Bio" }, { k: "ppl", i: "👥", l: "Personas" }, { k: "stk", i: "🏛️", l: "Stakeholders" }, { k: "cab", i: "👔", l: "Cabinet" }, { k: "cs", i: "🏛️", l: "Civil Service" }, { k: "con", i: "📜", l: "Constitution" }, { k: "log", i: "📰", l: "News" }];
+  // Four screens. Each keeps the existing pages (nav keys) as sub-tabs, so
+  // anything that opens a page by key still works.
+  const SCREENS = [
+    { id: "desk", i: "🗂️", l: "Desk", subs: [{ k: "gov", l: "Govern" }, { k: "log", l: "News" }] },
+    { id: "map", i: "🗺️", l: "Map", subs: [{ k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Procurement" }] },
+    { id: "people", i: "👥", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "cs", l: "Civil Service" }, { k: "coun", l: "Trad. Council" }, { k: "ppl", l: "Personas" }, { k: "stk", l: "Stakeholders" }] },
+    { id: "wiki", i: "📖", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] },
+  ];
+  const curScreen = SCREENS.find(sc => sc.subs.some(t => t.k === nav)) || SCREENS[0];
+  navMemory.current[curScreen.id] = nav;
+  const subBtn = (on, color) => ({ padding: "10px 26px", borderRadius: 21, border: "1px solid " + (on ? color : CL.bdr), background: on ? color + "12" : "transparent", color: on ? color : CL.td, fontSize: TS(31), fontFamily: F.b, cursor: "pointer", whiteSpace: "nowrap", flex: "0 0 auto" });
 
   return (
     <div style={{ minHeight: "100%", background: CL.bg }}>
       <Flag />
-      <div style={{ padding: 36, maxWidth: 1488, margin: "0 auto" }}>
+      <div style={{ padding: TALL() ? "20px 20px 36px" : 36, maxWidth: 1488, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, flexWrap: "wrap", gap: 14 }}>
           <div>
             <div style={{ fontSize: TS(29), letterSpacing: 7, color: CL.grn, fontFamily: F.m, textTransform: "uppercase" }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
             <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), margin: 1, fontWeight: 600 }}>{yr}</h2>
           </div>
-          <div style={{ display: "flex", gap: 29, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={TALL() ? { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px 10px", width: "100%", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: "16px 10px" } : { display: "flex", gap: 29, alignItems: "center", flexWrap: "wrap" }}>
             <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: s.app > 60 ? CL.grn : s.app > 40 ? CL.org : CL.red }}>{Math.round(s.app)}%</div><div style={{ fontSize: TS(29), color: CL.td }}>APPR</div><Spark data={appH} color={s.app > 50 ? CL.grn : CL.red} w={50} h={14} /></div>
             <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: CL.gold }}>{naira(tb)}</div><div style={{ fontSize: TS(29), color: CL.td }}>BUDGET</div></div>
             <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: CL.blu }}>{naira(s.gdp || 0)}</div><div style={{ fontSize: TS(29), color: CL.td }}>GDP</div></div>
@@ -3971,7 +3986,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>
         <div style={{ height: 10, background: "#e0e5d5", borderRadius: 6, marginBottom: 29, overflow: "hidden" }}><div style={{ width: (turn / MT * 100) + "%", height: "100%", background: CL.grn, transition: "width .5s" }} /></div>
         {!flagUsed && s.app < 50 && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
-        <div data-sop-nav style={{ display: "flex", gap: 7, flexWrap: "wrap", marginBottom: 29 }}>{TABS.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ padding: "10px 29px", borderRadius: 21, border: "1px solid " + (nav === t.k ? CL.grn : CL.bdr), background: nav === t.k ? CL.grn + "12" : "transparent", color: nav === t.k ? CL.grn : CL.td, fontSize: TS(31), fontFamily: F.b, cursor: "pointer" }}>{t.i} {t.l}</button>)}<button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={{ padding: "10px 29px", borderRadius: 21, border: "1px solid " + CL.gold, background: "transparent", color: CL.gold, fontSize: TS(31), fontFamily: F.b, cursor: "pointer" }}>🤝 Standing</button><button onClick={saveGame} style={{ padding: "10px 29px", borderRadius: 21, border: "1px solid " + CL.teal, background: CL.teal + "10", color: CL.teal, fontSize: TS(31), fontFamily: F.b, cursor: "pointer", marginLeft: "auto" }}>💾 Save</button><button onClick={onHelp} style={{ padding: "10px 29px", borderRadius: 21, border: "1px solid " + CL.bdr, background: "transparent", color: CL.td, fontSize: TS(31), fontFamily: F.b, cursor: "pointer" }}>📖 Help</button></div>
+        <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+            {SCREENS.map(sc => {
+              const on = sc.id === curScreen.id;
+              return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
+                style={{ padding: "14px 6px", borderRadius: 16, border: "2px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn : CL.card, color: on ? "#fff" : CL.txt, fontFamily: F.c, fontWeight: 800, fontSize: TS(30), letterSpacing: .5, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, boxShadow: on ? "0 3px 0 rgba(0,0,0,.18)" : "none" }}>
+                <span style={{ fontSize: TS(38), lineHeight: 1 }}>{sc.i}</span>{sc.l}
+              </button>;
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 7, flexWrap: TALL() ? "nowrap" : "wrap", overflowX: TALL() ? "auto" : "visible", marginTop: 12, paddingBottom: 2 }}>
+            {curScreen.subs.length > 1 && curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={subBtn(nav === t.k, CL.grn)}>{t.l}</button>)}
+            {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={subBtn(false, CL.gold)}>Standing</button>}
+            {curScreen.id === "wiki" && <button onClick={onHelp} style={subBtn(false, CL.grn)}>Help</button>}
+            <button onClick={saveGame} style={{ ...subBtn(true, CL.teal), marginLeft: "auto" }}>💾 Save</button>
+          </div>
+        </div>
         <ExecutiveCommandSA adviser={saOffice.adviser} brief={saBrief} inbox={saInbox} vacantTurns={Math.max(0, 3 - (turn - saOffice.firedTurn))} onFire={fireAdviser} />
 
         <OL show={phase === "judiciary" && !!curCourt}>
@@ -6299,6 +6330,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
         {nav === "bio" && <div id="sop-realism-bio" data-nav="bio"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Wikipedia bio…</div></div>}
+        {nav === "cast" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(420px,1fr))", gap: 22 }}>
+          {Object.values(cast).map(c => {
+            const rec = (window.SOP_CAST ? window.SOP_CAST.history(c.id) : []).slice(-3).reverse();
+            return <Cd key={c.id} style={{ padding: 29 }}>
+              <div style={{ fontFamily: F.m, fontSize: TS(21), letterSpacing: 3, color: CL.grn, textTransform: "uppercase" }}>{c.role}</div>
+              <div style={{ fontFamily: F.d, fontSize: TS(42), fontWeight: 700, color: CL.txt, margin: "6px 0 2px" }}>{c.name}</div>
+              <div style={{ fontSize: TS(24), color: CL.td, marginBottom: 14 }}>{c.title}</div>
+              {rec.length ? rec.map(e => <div key={e.id} style={{ fontSize: TS(24), color: CL.tm, lineHeight: 1.45, padding: "8px 0", borderTop: "1px solid " + CL.bdr }}>
+                <b style={{ color: CL.txt }}>Turn {e.t}</b> · {e.decision || e.note || e.kind.replace(/_/g, " ")}
+              </div>) : <div style={{ fontSize: TS(24), color: CL.td, fontStyle: "italic", borderTop: "1px solid " + CL.bdr, paddingTop: 8 }}>Nothing between you yet.</div>}
+            </Cd>;
+          })}
+        </div>}
         {nav === "log" && <Cd><h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>📰 News</h3>{logs.length === 0 ? <div style={{ color: CL.td, fontSize: TS(34) }}>No news.</div> : logs.map((e, i) => { const tc = { policy: CL.grn, crisis: CL.red, political: CL.org, dilemma: CL.pur, success: CL.teal, scandal: CL.red, flagship: CL.org, "const": CL.red }; return <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid " + CL.bdr, display: "flex", gap: 19 }}><Bg text={"T" + e.t} color={CL.td} /><span style={{ color: tc[e.tp] || CL.tm, fontSize: TS(34) }}>{e.tx}</span></div>; })}</Cd>}
       </div>
     </div>
@@ -6569,13 +6613,13 @@ const ExecutiveCommandSA = ({ adviser, brief, inbox, vacantTurns, onFire }) => {
   const doneCount = inbox.filter(i => i.done).length;
   return (
     <div style={{ background: "#fffef5", border: "1px solid " + tone + "77", borderRadius: 17, padding: "22px 29px", marginBottom: 29, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
-      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", gap: 29, alignItems: "center", cursor: "pointer" }}>
+      <div onClick={() => setOpen(o => !o)} style={{ display: "flex", gap: TALL() ? 18 : 29, alignItems: "center", cursor: "pointer", flexWrap: TALL() ? "wrap" : "nowrap" }}>
         <div style={{ width: 98, height: 98, borderRadius: "50%", background: tone + "22", border: "1.5px solid " + tone, fontSize: TS(58), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{adviser ? adviser.avatar : "🪑"}</div>
         <div style={{ flex: 1, minWidth: 1 }}>
           <div style={{ fontSize: TS(29), letterSpacing: 3, color: tone, fontFamily: F.m, fontWeight: 800, textTransform: "uppercase" }}>SA · Executive Command {urgentCount > 0 && <span style={{ background: CL.red, color: "#fff", padding: "0 14px", borderRadius: 13, marginLeft: 14 }}>{urgentCount}</span>}</div>
           <div style={{ color: CL.txt, fontWeight: 700, fontSize: TS(38), lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{brief?.icon} {brief?.title || (adviser ? adviser.name : "SA seat vacant")}</div>
         </div>
-        {brief?.action && <button onClick={(e) => { e.stopPropagation(); brief.action(); }} style={{ border: 0, background: tone, color: "#fff", borderRadius: 11, padding: "19px 34px", fontSize: TS(34), fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>→ {brief.actionLabel}</button>}
+        {brief?.action && <button onClick={(e) => { e.stopPropagation(); brief.action(); }} style={{ ...(TALL() ? { order: 3, flexBasis: "100%" } : {}), border: 0, background: tone, color: "#fff", borderRadius: 11, padding: "19px 34px", fontSize: TS(34), fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>→ {brief.actionLabel}</button>}
         <div style={{ fontSize: TS(29), color: CL.td, marginLeft: 14 }}>{open ? "▲" : "▼"}</div>
       </div>
       {open && <div style={{ marginTop: 29, borderTop: "1px dashed " + CL.bdr, paddingTop: 29 }}>
@@ -6600,6 +6644,13 @@ const ExecutiveCommandSA = ({ adviser, brief, inbox, vacantTurns, onFire }) => {
 
 
 function App() {
+  // Re-render on rotation so TALL() layouts switch with the screen.
+  const [, setShape] = useState(TALL());
+  useEffect(() => {
+    const on = () => setShape(TALL());
+    window.addEventListener("resize", on);
+    return () => window.removeEventListener("resize", on);
+  }, []);
   const [scr, setScr] = useState("title");
   const [level, setLevel] = useState("medium");
   const [setup, setSetup] = useState(null);

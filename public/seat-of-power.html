@@ -150,8 +150,6 @@
       flex-direction: column; align-items: center; justify-content: center; gap: 18px;
       padding: 32px; font-family: 'Outfit', sans-serif;
     }
-    body.sop-portrait #sop-rotate { display: flex; }
-    body.sop-portrait #sop-viewport { visibility: hidden; }
     #sop-rotate img { width: 96px; height: 96px; object-fit: contain; opacity: .95; }
     /* NOTE: #sop-rotate and #sop-fs sit OUTSIDE the scaled stage, so these are
        real screen pixels, not artboard pixels — they are exempt from the ladder. */
@@ -178,6 +176,13 @@
       font-family: 'Montserrat', sans-serif; font-weight: 800;
     }
     body.sop-touch #sop-fs { display: flex; }
+    /* Portrait: tuck the two utility buttons into a small pill at the top
+       right so they stop covering choices at the bottom of the screen. */
+    body.sop-portrait #sop-fs, body.sop-portrait #sop-tx {
+      top: calc(env(safe-area-inset-top, 0px) + 6px); bottom: auto; width: 30px; height: 30px; min-height: 30px;
+      font-size: 14px; border-radius: 8px; opacity: .7;
+    }
+    body.sop-portrait #sop-tx { right: 44px; }
   </style>
 </head>
 <body>
@@ -193,6 +198,24 @@
     <div class="sop-rot-t">Turn your phone sideways</div>
     <div class="sop-rot-s">The Seat of Power is played in landscape — rotate your device to take office.</div>
   </div>
+  <script>
+    /* Character art is served by the hosting platform. Where an image can't
+       load (local runs, previews), show a neutral silhouette instead of a
+       broken-image icon and alt text; emblems simply disappear. */
+    (function () {
+      var SIL = 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160"><circle cx="60" cy="46" r="28" fill="#5b4a3a"/><path d="M8 160c4-46 26-70 52-70s48 24 52 70z" fill="#0f6b3d"/><path d="M44 96l16 30 16-30" fill="#e8e4dc"/></svg>');
+      window.addEventListener('error', function (e) {
+        var img = e.target;
+        if (!img || img.tagName !== 'IMG' || img.dataset.sopFallback) return;
+        img.dataset.sopFallback = '1';
+        if (/coat|crest|arms|logo|duo|backdrop|statehouse/i.test(img.alt + ' ' + img.src)) { img.style.visibility = 'hidden'; return; }
+        img.alt = '';
+        img.style.objectFit = 'contain';
+        img.style.background = 'linear-gradient(180deg,#d9d2c3,#bfb5a2)';
+        img.src = SIL;
+      }, true);
+    })();
+  </script>
   <script>
      /* ====================================================================
         TS(n) — the type snapper.
@@ -240,24 +263,31 @@
          artboard: a 1080 design mapped onto the viewport at scale 1.0 becomes a
          ~830 design at 1.3, so every rung of the ladder occupies a bigger share
          of the screen. Layout stays identical; the whole game just gets bigger. */
-      var TXT = parseFloat(localStorage.getItem('sop_text_scale') || '1') || 1;
+      var TXT = 1; try { TXT = parseFloat(localStorage.getItem('sop_text_scale') || '1') || 1; } catch (e) {}
       window.SOP_textScale = function (v) {
         if (typeof v === 'number') { TXT = v; try { localStorage.setItem('sop_text_scale', String(v)); } catch (e) {} fit(); }
         return TXT;
       };
 
       function fit() {
-        var H = 1080 / TXT;
         var w = vp.clientWidth, h = vp.clientHeight;
-        var portrait = isTouch && h > w;
+        /* Portrait-first. A tall screen gets a narrow artboard (PW design px
+           across) mapped to the viewport width, and the stage grows downward
+           to fill the height. Wide screens keep the landscape artboard. */
+        var portrait = h > w;
         document.body.classList.toggle('sop-portrait', portrait);
-        /* Height-driven fluid stage (iCivics model): the 1080 artboard height
-           always maps to the viewport height, so type keeps a constant share of
-           the screen. Width is fluid — wide screens get more design px across
-           instead of letterbox bars. */
-        var s = h / H;
-        /* don't let the design area get narrower than the 1200 safe zone + air */
-        if (w / s < 1400) s = w / 1400;
+        document.getElementById('sop-stage').classList.toggle('sop-tall', portrait);
+        var s;
+        if (portrait) {
+          var PW = 720 / TXT;
+          s = w / PW;
+        } else {
+          /* Height-driven fluid stage: the 1080 artboard height maps to the
+             viewport height; wide screens get more design px across. */
+          var H = 1080 / TXT;
+          s = h / H;
+          if (w / s < 1400) s = w / 1400;
+        }
         if (s > 2.2) s = 2.2;
         var sw = Math.round(w / s), sh = Math.round(h / s);
         stage.style.width = sw + 'px';
@@ -282,7 +312,7 @@
           if (!document.fullscreenElement) {
             var p = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
             if (p && p.then) p.then(function () {
-              try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); } catch (e) {}
+              try { screen.orientation && screen.orientation.lock && screen.orientation.lock('portrait'); } catch (e) {}
             }).catch(function () {});
           } else if (document.exitFullscreen) { document.exitFullscreen(); }
         } catch (e) {}
