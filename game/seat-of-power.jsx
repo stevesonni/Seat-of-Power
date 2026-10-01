@@ -743,6 +743,40 @@ const UNCONST = [
   { id: "u3", nm: "Close State Borders", r: "S.41: Right to free movement.", ruling: "The Supreme Court rules: 'Section 41 guarantees every citizen the right to move freely throughout Nigeria and to reside in any part thereof. A state governor cannot restrict interstate movement — this power does not exist in the Concurrent Legislative List.'" },
 ];
 
+// Who is for and against each policy. Sector defaults, then specifics.
+const SIDES_BY_SECTOR = {
+  education: ["Parents and teachers", "Private school owners"],
+  health: ["Nurses and patients", "Private clinic owners"],
+  security: ["Communities hit by kidnapping", "Civil liberties groups"],
+  agriculture: ["Farmers", "Food importers"],
+  infrastructure: ["Traders and commuters", "Families facing demolition"],
+  administration: ["Business groups and the press", "Officials who lose their side income"],
+};
+const POLICY_SIDES = {
+  school_feed: ["Parents and food vendors", "Critics who call it a contractors' feast"],
+  comm_pol: ["Communities hit by kidnapping", "The police command"],
+  farm_sub: ["Farmers", "Critics who say subsidies get stolen"],
+  anti_cor: ["The press and civil society", "Party financiers"],
+  health_ins: ["Patients and nurses", "Workers who resent the monthly deduction"],
+  rural_elec: ["Villages off the grid", "Generator dealers"],
+  water: ["Households without taps", "Water vendors"],
+  sec_outfit: ["Communities hit by kidnapping", "Federal police headquarters"],
+  amotekun: ["Communities hit by kidnapping", "Federal police headquarters"],
+  digi_gov: ["Business groups and the press", "Civil servants who collect cash fees"],
+  irrigation: ["Dry-season farmers", "Herders who lose grazing routes"],
+  kpa_irrigation: ["Dry-season farmers", "Herders who lose grazing routes"],
+  tech_hub: ["Students and young graduates", "Families on the site"],
+  uni: ["Students and lecturers", "Private university owners"],
+  mega_airport: ["Exporters and traders", "Farmers on the site"],
+  free_csec: ["Mothers and midwives", "Private clinic owners"],
+  land_digitise: ["Home buyers and banks", "Land speculators and registry officials"],
+  okada_kit: ["Commuters and road-safety groups", "Okada riders' unions"],
+  abandoned_audit: ["Communities with half-built projects", "The Federal Ministry of Works"],
+};
+const policySides = (p) => POLICY_SIDES[p.id] || SIDES_BY_SECTOR[p.s] || ["Some residents", "Others"];
+// Which people (PERSONAS) feel a policy, by sector.
+const PERSONA_SECTOR = { education: "education", health: "health", security: "security", agriculture: "agriculture", infrastructure: "infrastructure", administration: "administration" };
+
 const DILEMMAS = [
   { id: "herder", nm: "Herder-Farmer Crisis", d: "Fulani herders and farmers clash. 12 dead.", ch: [{ l: "Deploy force", fx: { sec: .04, app: 5 }, sk: { traditional: -10 }, rk: "Ethnic backlash" }, { l: "Peace dialogue", fx: { sec: .01, app: 2 }, sk: { traditional: 8 }, rk: "Seen as weak" }, { l: "Grazing reserves", fx: { agr: .03 }, sk: { business: 5 }, rk: "Land conflicts" }] },
   { id: "strike", nm: "Salary Strike", d: "3 months unpaid. Workers shut down government.", ch: [{ l: "Pay all arrears", fx: { app: 8 }, sk: { unions: 15 }, rk: "₦4B debt increase", dc: 4 }, { l: "Pay 50% + negotiate", fx: { app: 3 }, sk: { unions: -3 }, rk: "Trust deficit — they'll strike again", dc: 2 }, { l: "Sack striking workers", fx: { app: -10, sec: -.02 }, sk: { unions: -25, youth: -12, media: -10 }, rk: "NIC WILL intervene. S.254C gives them jurisdiction. Expect court-ordered reinstatement and compensation.", dc: 0, nicTrigger: true }] },
@@ -2760,7 +2794,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // If serialization fails, silently skip this snapshot.
     }
   }, [turn, phase, nav, state, party, pName, depGov, setup, s, bud, cab, logs, headline, completedProjects, godfatherRel, godfatherPower, tribunal, curCourt, saOffice.adviser, saBrief]);
-  const enactP = (p) => { if (pol.find(a => a.id === p.id)) return; setPol(pp => [...pp, { ...p, tl: p.t }]); setS(pr => ({ ...pr, debt: pr.debt + p.c })); addL("📋 " + p.nm + " enacted", "policy"); try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Launched " + p.nm + " (₦" + p.c.toFixed(1) + "B) as part of the flagship agenda — projected " + p.t + "-turn delivery window." }, ...w]); } catch(e){} if (p.id === "anti_cor" || p.id === "digi_gov") setNRef(r => r + 1);
+  const enactP = (p) => {
+    if (pol.find(a => a.id === p.id)) return;
+    // The cost is paid each half-year the policy runs, not all at once.
+    const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100;
+    const [forS, againstS] = policySides(p);
+    setPol(pp => [...pp, { ...p, tl: p.t, perH }]);
+    setS(pr => ({ ...pr, debt: pr.debt + perH }));
+    addL("📋 " + p.nm + " enacted (" + naira(perH) + " a half-year for " + p.t + (p.t === 1 ? " half-year" : " half-years") + "). " + forS + " welcome it; " + againstS.toLowerCase() + " object.", "policy");
+    const flag = FLAGSHIP[setup?.agenda];
+    const onFlag = setup?.agenda === p.s || (setup?.agenda === "housing" && p.id === "housing") || (setup?.agenda === "technology" && (p.id === "tech_hub" || p.id === "digi_gov")) || (setup?.agenda === "anticorruption" && (p.id === "anti_cor" || p.id === "digi_gov" || p.id === "land_digitise"));
+    try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Launched the " + p.nm.replace(/^⭐\s*/, "") + " (" + naira(p.c) + " over " + p.t + (p.t === 1 ? " half-year" : " half-years") + ")" + (onFlag && flag ? ", part of the " + flag.nm + " programme" : "") + ". " + forS + " welcomed it; " + againstS.toLowerCase() + " opposed it." }, ...w]); } catch(e){}
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "policy_enacted", actor: "governor", gravity: 1, evidence: 3, financial: p.c, decision: "Enacted " + p.nm, note: p.d, beneficiaries: [forS], losers: [againstS], relatedEntity: "policy:" + p.id, meta: { id: p.id, sector: p.s, flagship: !!onFlag } }); } catch (e) {}
+    if (p.id === "anti_cor" || p.id === "digi_gov") setNRef(r => r + 1);
     // TIME DELAY: some policies have delayed payoffs
     if (p.s === "education") setDelayedFx(d => [...d, { turn: turn + 3, fx: { lit: .03, app: 5 }, desc: p.nm + " is showing results — literacy rising, schools improving." }]);
     if (p.s === "health") setDelayedFx(d => [...d, { turn: turn + 2, fx: { hp: .02, app: 3 }, desc: p.nm + " impact: health outcomes improving across the state." }]);
@@ -2804,6 +2850,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setProjects(prev => [ ...(prev || []), proj ]);
     // Mirror into enacted policies so the built-in policy list shows it as taken.
     setPol(pp => [...pp, { ...p, pending: true, projectId: proj.id }]);
+    try { const [forS, againstS] = policySides(p); window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "policy_enacted", actor: "governor", gravity: 1, evidence: 3, financial: p.c, decision: "Started " + title, note: p.d, beneficiaries: [forS], losers: [againstS], relatedEntity: "policy:" + p.id, meta: { id: p.id, sector: p.s, project: proj.id } }); } catch (e) {}
     addL("🏗️ PROJECT INITIATED: " + title + " under " + (min?.name || "state ministry") + ". Proceed to bidder selection.", "policy");
     try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Initiated " + title + " under " + (min?.name || "a state ministry") + ", estimated at ₦" + (+p.c).toFixed(1) + "B" + (proj.needsEIA ? (eia ? " after commissioning an EIA." : ", despite requiring an EIA.") : ".") }, ...w]); } catch(e){}
     // Hand off to the shared procurement modal in sop-realism.js — user picks a contractor next.
@@ -2812,7 +2859,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   const [constChallenge, setConstChallenge] = useState(null);
+  const uTried = (u) => { try { return !!(window.SOP_MEMORY && window.SOP_MEMORY.did("unconst_order", e => e.meta && e.meta.id === u.id)); } catch (e) { return false; } };
   const tryU = (u) => {
+    if (uTried(u)) return;
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "unconst_order", actor: "governor", gravity: 3, evidence: 4, decision: "Executive order: " + u.nm, note: u.r, meta: { id: u.id } }); } catch (e) {}
     addL("⚠️ EXECUTIVE ORDER: Governor attempts to " + u.nm + "!", "political");
     setConstChallenge(u);
     setPhase("const_challenge");
@@ -3082,6 +3132,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           addL("🚧 PROJECT DELAYED: " + p.nm + " stalled." + culprit + " (corruption: " + Math.round(n.cor * 100) + "%, PS efficiency: " + Math.round(avgPSEff) + "%)", "crisis");
           try { window.SOPX_onDecision && window.SOPX_onDecision("project_abandoned", { project: p.nm, zone: sd?.zone }); } catch(e){}
         }
+        if (p.perH && newTl < p.tl && newTl > 0) n.debt = n.debt + p.perH;
         return { ...p, tl: newTl };
       }).filter(p => { if (p.tl <= 0) { completed.push(p); return false; } return true; }));
       completed.forEach(p => {
@@ -3268,6 +3319,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         });
         return later;
       });
+
+      // ── POLICIES COME BACK ── one policy enacted earlier is heard from each
+      // half-year: someone it touches says what it changed, in the news.
+      try {
+        const M = window.SOP_MEMORY;
+        if (M) {
+          const echoed = new Set(M.all("policy_echo").map(e => e.meta && e.meta.id));
+          const due = M.all("policy_enacted").filter(e => e.meta && !echoed.has(e.meta.id) && (e.t || 0) < turn);
+          const e0 = due[0];
+          const pdef = e0 && POLICIES.find(x => x.id === e0.meta.id);
+          if (pdef) {
+            const sec = PERSONA_SECTOR[pdef.s];
+            const cands = PERSONAS.filter(x => x.ks.includes(sec));
+            const who = cands.length ? cands[(pdef.id.length + turn) % cands.length] : PERSONAS[0];
+            const [forS, againstS] = policySides(pdef);
+            const running = pol.find(x => x.id === pdef.id);
+            const quote = running ? "We can see the " + pdef.nm.replace(/^⭐\s*/, "") + " starting. Let them finish it." : "The " + pdef.nm.replace(/^⭐\s*/, "") + " has changed things here. We feel it.";
+            addL("🗣️ " + who.nm + " (" + who.d.split(".")[0] + "): \"" + quote + "\" " + againstS + " are still complaining.", "info");
+            setPApp(pa => ({ ...pa, [who.id]: cl100((pa[who.id] || 50) + 4) }));
+            window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "policy_echo", actor: who.nm, gravity: 1, evidence: 2, decision: "Reaction to " + pdef.nm, note: quote, relatedEntity: "policy:" + pdef.id, beneficiaries: [forS], losers: [againstS], meta: { id: pdef.id, persona: who.id } });
+          }
+        }
+      } catch (e) {}
 
       // ── NARRATIVE ENGINE — update dominant narrative ──
       const activeNarrs = NARRATIVES.filter(nr => nr.trigger(n));
@@ -6517,8 +6591,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </Cd>}
             {phase === "policy" && <Cd>
               <AdvBubble text={ADV.policy} saName={cast.adviser.name} />
-              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 14px", fontSize: TS(53), fontWeight: 600 }}>Executive Policies</h3>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 19 }}>{POLICIES.filter(p => !pol.find(a => a.id === p.id)).map(p => <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 24 }}><div style={{ fontWeight: 600, fontSize: TS(36), color: CL.txt, marginBottom: 7 }}>{p.nm}{isCapital(p) && <span style={{ marginLeft: 14, fontSize: TS(29), color: CL.org }}>· BUILD</span>}</div><div style={{ fontSize: TS(29), color: CL.td, marginBottom: 10 }}>{p.d}</div><div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}><Bg text={naira(p.c)} color={CL.gold} /><Bg text={p.t + "T"} color={CL.pur} />{p.cr > 0 && <Bg text={"Risk " + Math.round(p.cr * 100) + "%"} color={CL.red} />}{isCapital(p) && <Bg text="Procurement + EIA" color={CL.org} />}</div></Cd>)}</div>
+              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 8px", fontSize: TS(53), fontWeight: 600 }}>Policies</h3>
+              <p style={{ color: CL.td, fontSize: TS(32), margin: "0 0 18px" }}>Each one is paid every half-year it runs, from borrowing. People remember who it helped.</p>
+              {pol.length > 0 && <Fold title={"In force (" + pol.length + ")"} summary={pol.slice(0, 3).map(x => x.nm.replace(/^⭐\s*/, "")).join(", ") + (pol.length > 3 ? "…" : "")}>
+                {pol.map(x => <div key={x.id} style={{ fontSize: TS(30), color: CL.tm, padding: "6px 0", borderBottom: "1px solid " + CL.bdr + "66" }}><b style={{ color: CL.txt }}>{x.nm.replace(/^⭐\s*/, "")}</b> · {x.pending ? "in procurement" : x.tl > 0 ? x.tl + (x.tl === 1 ? " half-year" : " half-years") + " to go" : "delivered"}{x.perH ? " · " + naira(x.perH) + " a half-year" : ""}</div>)}
+              </Fold>}
+              <div style={{ display: "grid", gap: 12 }}>{POLICIES.filter(p => !pol.find(a => a.id === p.id)).map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: TS(36), color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: TS(30), color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)}/half-year</span></div>
+                <div style={{ fontSize: TS(31), color: CL.tm, margin: "4px 0" }}>{p.d}</div>
+                <div style={{ fontSize: TS(29), color: CL.td }}>{p.t === 1 ? "One half-year" : p.t + " half-years (" + naira(p.c) + " in all)"}{isCapital(p) ? " · goes to tender, may need an environmental assessment" : ""}{p.cr > .09 ? " · money can leak" : ""}</div>
+                <div style={{ fontSize: TS(29), marginTop: 4 }}><span style={{ color: CL.grn }}>For: {forS}</span> · <span style={{ color: CL.red }}>Against: {againstS}</span></div>
+              </Cd>; })}</div>
 
               <div style={{ marginTop: 29, borderTop: "1px solid " + CL.bdr, paddingTop: 29 }}>
                 <h3 style={{ fontFamily: F.d, color: CL.pur, margin: "0 0 14px", fontSize: TS(50), fontWeight: 600 }}>📜 Sponsor a Bill (House Vote Required)</h3>
@@ -6551,7 +6634,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>
               </div>
 
-              <div style={{ marginTop: 22, borderTop: "1px solid " + CL.bdr, paddingTop: 22 }}><div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, marginBottom: 10 }}>⚠️ RISKY EXECUTIVE ORDERS (May be unconstitutional)</div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 19, borderColor: CL.red + "33" }}><div style={{ fontSize: TS(34), color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: TS(29), color: CL.td }}>{u.r}</div></Cd>)}</div></div>
+              <div style={{ marginTop: 22, borderTop: "1px solid " + CL.bdr, paddingTop: 22 }}><div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, marginBottom: 10 }}>⚠️ RISKY EXECUTIVE ORDERS (May be unconstitutional)</div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 19, borderColor: CL.red + "33" }}><div style={{ fontSize: TS(34), color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: TS(29), color: CL.td }}>{u.r}</div></Cd>)}</div></div>
               <div style={{ textAlign: "right", marginTop: 22 }}><Bt onClick={() => { setPhase("end_turn"); endTurn(); }}>END HALF-YEAR →</Bt></div>
             </Cd>}
             {phase === "end_turn" && !curD && <Cd style={{ textAlign: "center", padding: 58 }}>
