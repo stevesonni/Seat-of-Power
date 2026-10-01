@@ -106,7 +106,19 @@ function setMode(m) {
   try { window.SOP_clearColorCache && window.SOP_clearColorCache(); } catch (e) {}
 }
 window.SOP_setMode = setMode;
-const useMode = (m) => { React.useEffect(() => { setMode(m); }, [m]); };
+// Keeps the stage in mode m. Runs after every render (cheap when nothing
+// changed) so a mode set elsewhere (First 100 Days) is corrected, and
+// re-renders once on a switch: inline colours read CL, which is only
+// refreshed after the class changes, so the first paint would otherwise
+// mix one mode's ink with another's surfaces.
+const useMode = (m) => {
+  const [, bump] = React.useState(0);
+  React.useEffect(() => {
+    const st = document.getElementById("sop-stage");
+    if (document.getElementById("sop-f100")) return; // First 100 Days sets its own mode per day
+    if (st && !st.classList.contains("mode-" + m)) { setMode(m); bump(x => x + 1); }
+  });
+};
 
 const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const cl100 = (v) => Math.max(0, Math.min(100, v));
@@ -987,6 +999,11 @@ const Flag = () => React.createElement("div", { style: { display: "flex", height
 
 const OL = ({ children, show }) => {
   if (!show) return null;
+  if (TALL()) {
+    // Phone: one decision fills the screen as a sheet that slides up.
+    return React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(180deg," + CL.bg + " 0%," + CL.card + " 100%)", padding: "28px 18px 48px" } },
+      React.createElement("div", { className: "sop-sheet", style: { width: "100%" } }, children));
+  }
   return React.createElement("div", { className: "sop-fade-in", style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "43px 29px", overflowY: "auto", WebkitOverflowScrolling: "touch" } },
     React.createElement("div", { className: "sop-slide-up", style: { maxWidth: 984, width: "100%", margin: "auto 0" } }, children));
 };
@@ -1501,7 +1518,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       <div style={{ maxWidth: 1056, margin: "72px auto" }}>
         <AdvBubble text={ADV.agenda} saName={saName} />
         <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 36px", textAlign: "center" }}>Your Flagship Agenda</h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(240px,1fr))", gap: 22 }}>
           {AGENDAS.map(a => (
             <Cd key={a.id} onClick={() => setAgenda(a.id)} active={agenda === a.id} style={{ padding: 29 }}>
               <span style={{ fontSize: TS(65) }}>{a.i}</span>
@@ -2299,7 +2316,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      - admin:  the desk — budget, ministries, projects, the register
      - private: the back room — godfather, adviser, the ledger */
   const MODE_BY_PHASE = { media: "public", anchor: "public", election: "public", campaign: "public", godfather: "private", adviser: "private", ledger: "private", dilemma: "private", scandal: "private" };
-  const MODE_BY_NAV = { news: "public", media: "public", budget: "admin", projects: "admin", ministries: "admin", economy: "admin", civil: "admin", gov: "admin", wiki: "admin", godfather: "private", log: "private" };
+  const MODE_BY_NAV = { news: "public", media: "public", budget: "admin", projects: "admin", ministries: "admin", economy: "admin", civil: "admin", gov: "admin", wiki: "admin", godfather: "private", log: "public" };
   useMode(MODE_BY_PHASE[phase] || MODE_BY_NAV[nav] || "admin");
 
   const [appH, setAppH] = useState(ld?.appH || [55]);
@@ -3992,7 +4009,37 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   return (
     <div style={{ minHeight: "100%", background: CL.bg }}>
       <Flag />
-      <div style={{ padding: TALL() ? "20px 20px 36px" : 36, maxWidth: 1488, margin: "0 auto" }}>
+      <div style={{ padding: TALL() ? "20px 20px 190px" : 36, maxWidth: 1488, margin: "0 auto" }}>
+        {/* Phone: a slim dark stats bar pinned to the top, with the current
+            screen's sub-tabs inside it. The four screens sit in a tab bar at
+            the bottom (see the nav below). */}
+        {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 18px", padding: "16px 20px 12px", background: "linear-gradient(180deg,#0b3d23 0%,#0f5132 100%)", color: "#f3f7ef", boxShadow: "0 8px 22px rgba(0,0,0,.22)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, paddingRight: 120 }}>
+            <div style={{ fontFamily: F.c, fontWeight: 800, fontSize: TS(21), letterSpacing: 2, textTransform: "uppercase", opacity: .85, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Gov. {pName.split(" ").pop()} · {state.replace("_", " ")}</div>
+            <div style={{ fontFamily: F.m, fontSize: TS(18), opacity: .8, whiteSpace: "nowrap" }}>{yr.replace(/^.*Year/, "Year")}</div>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, marginTop: 12 }}>
+            {[
+              { l: "Approval", v: Math.round(s.app) + "%", c: s.app > 60 ? "#7ee2a8" : s.app > 40 ? "#ffd166" : "#ff8a80" },
+              { l: "Treasury", v: naira(tb), c: "#ffe08a" },
+              { l: "Debt", v: naira(s.debt), c: s.debt > 10 ? "#ff8a80" : "#e6efe2" },
+              { l: "Party", v: Math.round(s.pStab), c: s.pStab > 50 ? "#7ee2a8" : s.pStab > 30 ? "#ffd166" : "#ff8a80" },
+            ].map(x => <div key={x.l} style={{ background: "rgba(255,255,255,.08)", borderRadius: 14, padding: "8px 6px", textAlign: "center" }}>
+              <div style={{ fontFamily: F.m, fontWeight: 700, fontSize: TS(27), color: x.c, lineHeight: 1.1 }}>{x.v}</div>
+              <div style={{ fontSize: TS(16), letterSpacing: 1.5, textTransform: "uppercase", opacity: .75, marginTop: 2 }}>{x.l}</div>
+            </div>)}
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 12, alignItems: "center" }}>
+            {Array.from({ length: MT }).map((_, k) => <div key={k} style={{ flex: 1, height: 6, borderRadius: 3, background: k < turn - 1 ? "#7ee2a8" : k === turn - 1 ? "#ffd166" : "rgba(255,255,255,.18)" }} />)}
+            <div style={{ fontFamily: F.m, fontSize: TS(16), opacity: .8, marginLeft: 6, whiteSpace: "nowrap" }}>Turn {turn}/{MT}</div>
+          </div>
+          {curScreen.subs.length > 1 && <div style={{ display: "flex", gap: 8, overflowX: "auto", marginTop: 12, paddingBottom: 2 }}>
+            {curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ flex: "0 0 auto", padding: "8px 18px", borderRadius: 999, border: "1px solid " + (nav === t.k ? "#ffd166" : "rgba(255,255,255,.25)"), background: nav === t.k ? "#ffd166" : "transparent", color: nav === t.k ? "#1a2e05" : "#f3f7ef", fontFamily: F.c, fontWeight: 700, fontSize: TS(21), cursor: "pointer", whiteSpace: "nowrap" }}>{t.l}</button>)}
+            {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={{ flex: "0 0 auto", padding: "8px 18px", borderRadius: 999, border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#f3f7ef", fontFamily: F.c, fontWeight: 700, fontSize: TS(21), cursor: "pointer" }}>Standing</button>}
+            {curScreen.id === "wiki" && <button onClick={onHelp} style={{ flex: "0 0 auto", padding: "8px 18px", borderRadius: 999, border: "1px solid rgba(255,255,255,.25)", background: "transparent", color: "#f3f7ef", fontFamily: F.c, fontWeight: 700, fontSize: TS(21), cursor: "pointer" }}>Help</button>}
+          </div>}
+        </div>}
+        {!TALL() && <>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, flexWrap: "wrap", gap: 14 }}>
           <div>
             <div style={{ fontSize: TS(29), letterSpacing: 7, color: CL.grn, fontFamily: F.m, textTransform: "uppercase", paddingRight: TALL() ? 140 : 0 }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
@@ -4008,8 +4055,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
         </div>
         <div style={{ height: 10, background: "#e0e5d5", borderRadius: 6, marginBottom: 29, overflow: "hidden" }}><div style={{ width: (turn / MT * 100) + "%", height: "100%", background: CL.grn, transition: "width .5s" }} /></div>
+        </>}
         {!flagUsed && s.app < 50 && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
-        <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
+        {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(4,1fr) 0.8fr", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
+          {SCREENS.map(sc => {
+            const on = sc.id === curScreen.id;
+            return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
+              style={{ border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
+              <span style={{ fontSize: TS(34), lineHeight: 1 }}>{sc.i}</span>{sc.l}
+            </button>;
+          })}
+          <button onClick={saveGame} style={{ border: "1px solid rgba(255,255,255,.2)", borderRadius: 16, background: "transparent", color: "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(18), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4 }}>
+            <span style={{ fontSize: TS(27), lineHeight: 1 }}>💾</span>Save
+          </button>
+        </div> : <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
             {SCREENS.map(sc => {
               const on = sc.id === curScreen.id;
@@ -4025,8 +4084,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {curScreen.id === "wiki" && <button onClick={onHelp} style={subBtn(false, CL.grn)}>Help</button>}
             <button onClick={saveGame} style={{ ...subBtn(true, CL.teal), marginLeft: "auto" }}>💾 Save</button>
           </div>
-        </div>
-        <ExecutiveCommandSA adviser={saOffice.adviser} brief={saBrief} inbox={saInbox} vacantTurns={Math.max(0, 3 - (turn - saOffice.firedTurn))} onFire={fireAdviser} />
+        </div>}
+        {(!TALL() || curScreen.id === "desk") && <ExecutiveCommandSA adviser={saOffice.adviser} brief={saBrief} inbox={saInbox} vacantTurns={Math.max(0, 3 - (turn - saOffice.firedTurn))} onFire={fireAdviser} />}
 
         <OL show={phase === "judiciary" && !!curCourt}>
           {curCourt && (() => {
@@ -6229,9 +6288,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
         </div>}
 
-        {nav === "ppl" && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{PERSONAS.map(p => { const v = pApp[p.id] || 50; return <Cd key={p.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{p.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{p.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /><div style={{ fontSize: TS(29), color: CL.td }}>{p.d}</div></Cd>; })}</div>}
+        {nav === "ppl" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{PERSONAS.map(p => { const v = pApp[p.id] || 50; return <Cd key={p.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{p.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{p.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /><div style={{ fontSize: TS(29), color: CL.td }}>{p.d}</div></Cd>; })}</div>}
 
-        {nav === "stk" && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{STAKEHOLDERS.map(x => { const v = skApp[x.id] || 50; return <Cd key={x.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{x.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{x.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /></Cd>; })}</div>}
+        {nav === "stk" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{STAKEHOLDERS.map(x => { const v = skApp[x.id] || 50; return <Cd key={x.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{x.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{x.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /></Cd>; })}</div>}
 
         {nav === "cab" && <div>
           {ministries && ministries.length > 0 && <div style={{ marginBottom: 50 }}>
@@ -6311,7 +6370,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     setS(p => ({ ...p, app: cl100(p.app - 3), pStab: cl100(p.pStab - 5) }));
                     addL("🏛️ COMPULSORY RETIREMENT: Old Guard forced out. -3 approval, -5 party.", "political");
                     setNicPending({ turn: turn + 1, type: "retired officers", desc: "Forcibly retired civil servants filed suit at the National Industrial Court challenging their compulsory retirement. The NIC ruled that the process violated Public Service Rules — officers above Grade Level 14 cannot be retired without due process. The court ordered reinstatement or full severance compensation." });
-                    addL("⚠️ SA " + saN + ": \"Your Excellency, the retired officers will challenge this at the NIC. S.254C gives the court exclusive jurisdiction. Expect a ruling next turn.\"", "political");
+                    addL("⚠️ SA " + cast.adviser.name + ": \"Your Excellency, the retired officers will challenge this at the NIC. S.254C gives the court exclusive jurisdiction. Expect a ruling next turn.\"", "political");
                   }
                   if (ref.id === "cs_training") {
                     setPS(p => { const n2 = { ...p }; Object.entries(n2).forEach(([k, v]) => { n2[k] = { ...v, eff: Math.min(95, v.eff + 15) }; }); return n2; });
@@ -6332,7 +6391,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) - 15) }));
                     addL("🏛️ ALL PERMANENT SECRETARIES REPLACED. +5 party, -5 approval, -15 unions.", "political");
                     setNicPending({ turn: turn + 1, type: "permanent secretaries", desc: "All six removed permanent secretaries jointly filed at the National Industrial Court. The NIC found the mass replacement arbitrary and in violation of the Public Service Rules. The court ordered either reinstatement or payment of full terminal benefits plus damages." });
-                    addL("⚠️ SA " + saN + ": \"Your Excellency, replacing ALL permanent secretaries at once WILL trigger the NIC. Under S.254C, you cannot avoid their jurisdiction. The unions are already with their lawyers.\"", "crisis");
+                    addL("⚠️ SA " + cast.adviser.name + ": \"Your Excellency, replacing ALL permanent secretaries at once WILL trigger the NIC. Under S.254C, you cannot avoid their jurisdiction. The unions are already with their lawyers.\"", "crisis");
                   }
                 }} style={{ padding: 24, opacity: done ? .4 : 1 }}>
                   <div style={{ fontWeight: 600, fontSize: TS(36), color: done ? CL.td : CL.txt }}>{done ? "✅ " : ""}{ref.nm}</div>
