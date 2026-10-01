@@ -651,12 +651,21 @@ const castArt = (c) => {
 const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
 function makeCast(setup, stateId, zone) {
   const r = rng((stateId || "").length * 131 + ((setup && setup.nm) || "").length * 17 + 7);
-  const person = () => gN(r, zone, stateId);
-  const surname = () => person().split(" ").slice(1).join(" ");
-  const gfDef = STATE_GODFATHERS[stateId] || {};
   // Same seed and call as the first campaign, so this is the opponent the
   // player already met.
-  const opp = "Hon. " + gN(rng((stateId ? stateId.length : 5) * 77 + 99), zone, stateId);
+  const oppName = gN(rng((stateId ? stateId.length : 5) * 77 + 99), zone, stateId);
+  const opp = "Hon. " + oppName;
+  // No two people in the cast share a name or a surname.
+  const used = new Set([oppName, (setup && setup.nm) || "", (setup && setup.depGov && setup.depGov.nm) || ""].filter(Boolean));
+  const usedSur = new Set([...used].map(n => n.split(" ").slice(1).join(" ")));
+  const person = () => {
+    let n = gN(r, zone, stateId);
+    for (let i = 0; i < 12 && (used.has(n) || usedSur.has(n.split(" ").slice(1).join(" "))); i++) n = gN(r, zone, stateId);
+    used.add(n); usedSur.add(n.split(" ").slice(1).join(" "));
+    return n;
+  };
+  const surname = () => person().split(" ").slice(1).join(" ");
+  const gfDef = STATE_GODFATHERS[stateId] || {};
   const sa = (setup && setup.saName) || (SA_ROSTER[0] && SA_ROSTER[0].name) || "Special Adviser";
   return {
     godfather: { id: "godfather", role: "Godfather", title: gfPersona(gfDef).title, name: "Chief " + person() },
@@ -3495,7 +3504,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskCourtFirst = React.useRef(false);
   const deskCards = React.useRef({});
   const [deskActive, setDeskActive] = useState(null);
-  // Cards that must open now (the First 100 Days opening) come through
+  // Cards that must open now (not at the end-of-turn sitting) come through
   // desk.present(card). They wait while another card or an end-of-turn
   // sitting holds the screen, and each key opens once per run.
   const deskNow = React.useRef({ busy: false, queue: [], shown: new Set() });
@@ -6261,6 +6270,30 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setBud(presets[preset]);
               };
               const remaining = 100 - bs;
+              // What this split means, in plain words, before it goes to the House
+              const SAYS = {
+                salaries:       ["Salaries will fall into arrears. Expect a strike.", "Teachers and civil servants will be paid on time.", "Wages will eat money meant for building."],
+                debt:           ["Debt will pile up and contractors will down tools.", "Creditors will be kept quiet.", "Paying debt early will starve services this half-year."],
+                administration: ["Government offices will struggle to run.", "Government House will run without waste.", "The press will call you a spendthrift."],
+                health:         ["Clinics will run out of drugs.", "Clinics will stay stocked.", "Extra health money will start to leak."],
+                education:      ["More children will drop out of school.", "Schools will stay open and staffed.", "New classrooms will outpace teachers."],
+                security:       ["Kidnappings and banditry will rise.", "Security will hold.", "Critics will call it a police state."],
+                infrastructure: ["Roads will slow down.", "Roads and drains will keep moving.", "Big contracts invite kickbacks unless you watch them."],
+                agriculture:    ["Food prices will climb.", "Farmers will get seed and fertiliser.", "Farm money will show diminishing returns."],
+              };
+              const budgetSays = () => {
+                const bad = [], good = [];
+                BSECTORS.forEach(sec => {
+                  const m = SEC_META[sec.k], t = SAYS[sec.k]; if (!m || !t) return;
+                  const v = bud[sec.k] || 0;
+                  if (v < m.min) bad.push(t[0]); else if (v > m.max) bad.push(t[2]); else good.push(t[1]);
+                });
+                return [...good.slice(0, Math.max(1, 3 - bad.length)), ...bad].slice(0, 4);
+              };
+              const SaysBox = ({ fs }) => bs !== 100 ? null : <div style={{ background: CL.grn + "0c", border: "1px solid " + CL.grn + "33", borderRadius: 12, padding: "12px 14px", margin: "10px 0" }}>
+                <div style={{ fontSize: fs, color: CL.td, fontWeight: 700, marginBottom: 4 }}>If the House passes this</div>
+                {budgetSays().map((l, i) => <div key={i} style={{ fontSize: fs, color: CL.txt, lineHeight: 1.4 }}>{l}</div>)}
+              </div>;
               if (TALL()) {
                 // Phone: the total as one sentence, one row per sector, details on tap.
                 const chip = (txt, col) => <span style={{ display: "inline-block", padding: "6px 14px", borderRadius: 999, background: col + "18", color: col, fontFamily: F.m, fontWeight: 700, fontSize: TS(20) }}>{txt}</span>;
@@ -6298,7 +6331,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                               </span>
                               <span style={{ fontFamily: F.m, fontWeight: 700, fontSize: TS(25), color: sc }}>{pct2}%</span>
                             </button>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                             <button onClick={() => step(sec.k, -1)} aria-label={"Less " + sec.l} style={stepBtn}>−</button>
+                            <input type="range" min={0} max={40} value={pct2} aria-label={sec.l + " share"} onChange={e => { const v = +e.target.value; setBud(p => ({ ...p, [sec.k]: v })); }} style={{ flex: 1, minWidth: 0, accentColor: sc, height: 32 }} />
                             <button onClick={() => step(sec.k, 1)} aria-label={"More " + sec.l} style={stepBtn}>+</button>
                           </div>
                           {open && <div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45, padding: "6px 4px 2px" }}>
@@ -6312,6 +6348,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   })}
                   {s.debt > 0 && <Fold title={"State debt " + naira(s.debt)} summary={naira(s.debt * .08) + " service due this half-year"}><div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45 }}>Service is taken off the pot before you see it. Extra money you put into Debt above reduces the principal.{s.debt > 15 ? " Debt is dangerously high: creditors will call soon." : ""}</div></Fold>}
                   <Fold title="Why the House votes on this" summary="Section 121 of the 1999 Constitution"><div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45 }}>The Governor lays the appropriation bill before the House of Assembly. Members can pass it, amend it, or force you into horse-trading.</div></Fold>
+                  <SaysBox fs={TS(20)} />
                   <Bt onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} style={{ width: "100%", marginTop: 6, opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
                     {bs === 100 ? "SUBMIT TO HOUSE OF ASSEMBLY →" : bs > 100 ? "Reduce: over by " + (bs - 100) + "%" : "Allocate the remaining " + remaining + "%"}
                   </Bt>
@@ -6342,12 +6379,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 19, flexWrap: "wrap", marginBottom: 36 }}>
-                  <span style={{ fontSize: TS(34), color: CL.td, alignSelf: "center", fontWeight: 700 }}>Load template:</span>
-                  <button onClick={() => applyPreset("recommended")} style={{ padding: "10px 29px", borderRadius: 8, border: "1px solid " + CL.grn + "50", background: CL.grn + "10", color: CL.grn, fontSize: TS(34), cursor: "pointer", fontWeight: 600 }}>⚖️ Balanced (World Bank)</button>
-                  <button onClick={() => applyPreset("populist")} style={{ padding: "10px 29px", borderRadius: 8, border: "1px solid " + CL.org + "50", background: CL.org + "10", color: CL.org, fontSize: TS(34), cursor: "pointer", fontWeight: 600 }}>📣 Populist (heavy salaries)</button>
-                  <button onClick={() => applyPreset("reformer")} style={{ padding: "10px 29px", borderRadius: 8, border: "1px solid " + CL.blu + "50", background: CL.blu + "10", color: CL.blu, fontSize: TS(34), cursor: "pointer", fontWeight: 600 }}>📚 Reformer (health/edu heavy)</button>
-                  <button onClick={() => applyPreset("godfather")} style={{ padding: "10px 29px", borderRadius: 8, border: "1px solid " + CL.pur + "50", background: CL.pur + "10", color: CL.pur, fontSize: TS(34), cursor: "pointer", fontWeight: 600 }}>🎩 Godfather (contracts fat)</button>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", marginBottom: 29 }}>
+                  <span style={{ fontSize: TS(31), color: CL.td }}>Start from:</span>
+                  {[["recommended", "Balanced", CL.grn], ["populist", "Populist", CL.org], ["reformer", "Reformer", CL.blu], ["godfather", "Godfather", CL.pur]].map(([k, l, c]) =>
+                    <button key={k} onClick={() => applyPreset(k)} style={{ padding: "6px 22px", borderRadius: 999, border: "1px solid " + c + "60", background: c + "12", color: c, fontSize: TS(31), fontWeight: 700, cursor: "pointer" }}>{l}</button>)}
                 </div>
 
                 {grpOrder.map(gname => {
@@ -6386,14 +6421,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                           </div>
                           <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 10 }}>
                             <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.max(0, (p[sec.k] || 0) - 1) }))} style={{ width: 79, height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "#fff", color: CL.red, cursor: "pointer", fontSize: TS(43), fontWeight: 700 }}>−</button>
-                            <div style={{ flex: 1, position: "relative", height: 50 }}>
-                              <div style={{ position: "absolute", left: meta.min + "%", width: (meta.max - meta.min) + "%", top: 14, height: 22, background: CL.grn + "25", borderLeft: "1px dashed " + CL.grn, borderRight: "1px dashed " + CL.grn }} />
-                              <div style={{ position: "absolute", left: 1, right: 1, top: 14, height: 22, background: "#eee8db", borderRadius: 6, overflow: "hidden" }}>
-                                <div style={{ width: Math.min(pct2, 100) + "%", height: "100%", background: statusColor, transition: "width .15s" }} />
-                              </div>
-                              <div style={{ position: "absolute", left: meta.min + "%", top: 1, fontSize: TS(29), color: CL.grn, transform: "translateX(-50%)" }}>{meta.min}</div>
-                              <div style={{ position: "absolute", left: meta.max + "%", top: 1, fontSize: TS(29), color: CL.grn, transform: "translateX(-50%)" }}>{meta.max}</div>
-                            </div>
+                            <input type="range" min={0} max={40} value={pct2} aria-label={sec.l + " share"} onChange={e => { const v = +e.target.value; setBud(p => ({ ...p, [sec.k]: v })); }} style={{ flex: 1, minWidth: 0, accentColor: statusColor, height: 40 }} />
                             <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.min(100, (p[sec.k] || 0) + 1) }))} style={{ width: 79, height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "#fff", color: CL.grn, cursor: "pointer", fontSize: TS(43), fontWeight: 700 }}>+</button>
                             <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.max(0, (p[sec.k] || 0) - 5) }))} style={{ padding: "0 22px", height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "transparent", color: CL.td, cursor: "pointer", fontSize: TS(34) }}>−5</button>
                             <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.min(100, (p[sec.k] || 0) + 5) }))} style={{ padding: "0 22px", height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "transparent", color: CL.td, cursor: "pointer", fontSize: TS(34) }}>+5</button>
@@ -6412,6 +6440,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   {s.debt > 15 ? " ⚠️ Debt is dangerously high — creditors will call soon." : s.debt < 3 ? " ✅ Debt is manageable." : ""}
                 </div>}
 
+                <SaysBox fs={TS(34)} />
                 <div style={{ borderTop: "1px solid " + CL.bdr, paddingTop: 29, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 29, flexWrap: "wrap" }}>
                   <div style={{ fontSize: TS(31), color: CL.td, flex: "1 1 200px" }}>📜 S.121, 1999 Constitution: Governor shall lay this bill before the House of Assembly. They can reject, amend, or force you into horse-trading.</div>
                   <Bt onClick={() => { if (bs > 100 || bs < 100) return; setPhase("house_vote"); }} style={{ opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
