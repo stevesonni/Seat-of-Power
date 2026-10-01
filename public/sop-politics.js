@@ -323,7 +323,7 @@
   let cardEl = null;
   function closeCard() { if (cardEl) { cardEl.remove(); cardEl = null; } }
 
-  function renderCard(d) {
+  function renderCard(d, done) {
     closeCard();
     const S = window.SOP;
     cardEl = document.createElement("div");
@@ -377,11 +377,11 @@
         relatedEntity: d.who,
         note: o.record,
       });
-      showOutcome(d.title, o, outcome);
+      showOutcome(d.title, o, outcome, done);
     });
   }
 
-  function showOutcome(title, o, outcome) {
+  function showOutcome(title, o, outcome, done) {
     closeCard();
     const el = document.createElement("div");
     el.style.cssText = "position:fixed;inset:0;z-index:11500;background:rgba(18,16,12,.78);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Outfit',sans-serif;";
@@ -394,7 +394,9 @@
       '<div style="text-align:right;margin-top:12px"><button id="sop-pol-ok" style="background:#2d5a3d;color:#fff;border:none;border-radius:8px;padding:10px 26px;font-size:21px;font-weight:700;cursor:pointer;font-family:inherit">CONTINUE</button></div>' +
       '</div>';
     document.body.appendChild(el);
-    el.addEventListener("click", function (e) { if (e.target.id === "sop-pol-ok" || e.target === el) el.remove(); });
+    el.addEventListener("click", function (e) {
+      if (e.target.id === "sop-pol-ok" || e.target === el) { el.remove(); if (done) done(); }
+    });
   }
 
   /* ── standing panel ────────────────────────────────────────────── */
@@ -437,10 +439,23 @@
     if (turn < 1) return;
     advance(S);
     if (turn % 2 === 0 || Math.random() < .55) {
-      setTimeout(function () {
-        if (document.getElementById("sop-politics-card")) return;
-        renderCard(buildPressure(S));
-      }, 900);
+      const d = buildPressure(S);
+      // Hand the card to the Desk, which shows it with the half-year's other
+      // decisions and drops it if a core event already covers the topic.
+      if (S.desk && S.desk.offer) {
+        S.desk.offer({
+          key: "politics:" + d.kind + ":" + turn,
+          topic: d.kind === "rival" ? "rivals" : d.kind === "faction" ? "factions" : "house",
+          source: "politics",
+          title: d.title,
+          open: function (done) { renderCard(d, done); },
+        });
+      } else {
+        setTimeout(function () {
+          if (document.getElementById("sop-politics-card")) return;
+          renderCard(d);
+        }, 900);
+      }
     }
   });
 

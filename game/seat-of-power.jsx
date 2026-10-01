@@ -2366,6 +2366,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       ledgerAppend: (entry) => (window.SOP_LEDGER ? window.SOP_LEDGER.append(entry) : null),
       gEnd, setTurn,
       federalAlignment: fgRelation > 65,
+      desk: desk.current,
     });
     window.dispatchEvent(new CustomEvent('sop-state', { detail: { turn, phase, nav } }));
   });
@@ -2674,7 +2675,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_defiance", target: judEvent.nm, gravity:5, evidence:5, approvalDelta:-5, corruptionDelta:+5, note:"Defied court ruling: "+judEvent.nm }); } catch(e){}
     }
     setJudEvent(null);
-    advance();
+    nextEvent();
   };
 
   const dChoice = (ch) => {
@@ -3232,7 +3233,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const _impS = _lvE === "hard" ? 48 : _lvE === "easy" ? 35 : 40;
     if (s.app < _impA && s.pStab < _impS) { setPhase("impeach"); return; }
     // Check judiciary
-    if (checkJudiciary()) { setPhase("judiciary"); return; }
+    // A court ruling goes first on this half-year's Desk instead of
+    // replacing it (it used to skip every other event of the turn).
+    if (checkJudiciary()) deskCourtFirst.current = true;
 
     // Stats processed, headline generated — show end_turn screen
     // Events will fire when player clicks CONTINUE
@@ -3243,10 +3246,67 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── EVENT QUEUE — multiple events per turn ──
   const [eventQueue, setEventQueue] = useState([]);
 
+  // ── THE DESK ──
+  // One queue for every decision of the half-year. The core layers below
+  // push phase names; the sop-*.js modules offer cards through
+  // window.SOP.desk.offer(card) instead of opening their own pop-ups:
+  //   { key, topic, source, open(done) }
+  // Offers wait until the next queue is built. A card is dropped when its
+  // key is already queued or a core event already covers its topic, so the
+  // player never gets two House or two godfather decisions in one sitting.
+  // A card calls done() when the player has finished with it.
+  const DESK_TOPIC = {
+    netherlands: "travel", abuja: "travel", wedding: "travel", intl_invite: "travel",
+    godfather: "godfather", house_bill: "house", investor: "investment", federal: "federal",
+    shock: "shock", judiciary: "courts", media: "press", nic_ruling: "courts",
+    hidden_threat: "adviser", dilemma: "crisis",
+  };
+  const deskOffers = React.useRef([]);
+  const deskCourtFirst = React.useRef(false);
+  const deskCards = React.useRef({});
+  const [deskActive, setDeskActive] = useState(null);
+  const desk = React.useRef(null);
+  if (!desk.current) desk.current = {
+    offer: (card) => {
+      if (!card || typeof card.open !== "function" || !card.key) return false;
+      if (deskOffers.current.some(c => c.key === card.key)) return false;
+      deskOffers.current.push(card);
+      return true;
+    },
+    pending: () => deskOffers.current.map(c => ({ key: c.key, topic: c.topic, source: c.source })),
+  };
+  // Move offered cards onto a queue of core phase names, de-duplicating.
+  const deskMerge = (q) => {
+    const topics = new Set(q.map(k => DESK_TOPIC[k]).filter(Boolean));
+    const keys = new Set();
+    const offers = deskOffers.current; deskOffers.current = [];
+    deskCards.current = {};
+    offers.forEach((c, i) => {
+      if (keys.has(c.key) || (c.topic && topics.has(c.topic))) {
+        addL("🗂️ Desk: set aside \"" + (c.title || c.key) + "\" (already covered this half-year).", "info");
+        return;
+      }
+      keys.add(c.key); if (c.topic) topics.add(c.topic);
+      const id = "desk:" + i;
+      deskCards.current[id] = c;
+      q.push(id);
+    });
+    return q;
+  };
+  // Show a queue entry: core entries are phases; desk entries open the card.
+  const deskGo = (next) => {
+    if (typeof next === "string" && next.startsWith("desk:")) {
+      setDeskActive(deskCards.current[next] || null);
+      setPhase("desk");
+    } else setPhase(next);
+  };
+
   const buildEventQueue = () => {
     setHeadline(null); setAchPopup(null);
     const rE = rng(turn * 777 + state.length * 13 + Date.now() % 10000);
     const q = [];
+    const courtFirst = deskCourtFirst.current; deskCourtFirst.current = false;
+    if (courtFirst) q.push("judiciary");
     const lv = setup?.level || "hard";
 
     // LAYER 1: Major trip/visit (1 per turn, scheduled)
@@ -3317,7 +3377,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
 
     // LAYER 7: JUDICIARY CHALLENGE — triggered by player actions
-    if (courtsSeen.length < 3) {
+    if (!courtFirst && courtsSeen.length < 3) {
       let judTrigger = null;
       if (investorsApproved.length > 0 && !courtsSeen.includes("jud_land") && rE() < .4) judTrigger = JUDICIARY_TRIGGERS.find(j => j.id === "jud_land");
       else if (forcedBudget && !courtsSeen.includes("jud_budget")) judTrigger = JUDICIARY_TRIGGERS.find(j => j.id === "jud_budget");
@@ -3372,9 +3432,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setCurD(pick(pool, rE)); q.push("dilemma");
     }
 
+    // Module cards join after the core events, minus duplicates.
+    deskMerge(q);
+
     // Set queue and fire first event
     setEventQueue(q.slice(1));
-    if (q.length > 0) setPhase(q[0]);
+    if (q.length > 0) deskGo(q[0]);
     else advance();
   };
 
@@ -3424,8 +3487,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const rE = rng(turn * 999 + Date.now() % 3000);
       setCurD(pick(ALL_DILEMMAS, rE));
     }
-    setPhase(next);
+    deskGo(next);
   };
+
+  // A desk card finishes asynchronously (its own DOM), so it calls the
+  // latest nextEvent through a ref rather than a stale closure.
+  const nextEventRef = React.useRef(null);
+  nextEventRef.current = nextEvent;
+  useEffect(() => {
+    if (phase !== "desk") return;
+    const card = deskActive;
+    if (!card) { nextEventRef.current(); return; }
+    if (card._opened) return;
+    card._opened = true;
+    let finished = false;
+    const done = () => { if (finished) return; finished = true; setDeskActive(null); nextEventRef.current(); };
+    try { card.open(done); } catch (e) { console.error("[Desk] card failed to open", card.key, e); done(); }
+  }, [phase, deskActive]);
 
   if (gEnd) {
     const di = ((s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100).toFixed(1);
