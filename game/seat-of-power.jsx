@@ -264,6 +264,9 @@ const buildBattlegrounds = (state, seed, partyId, oppPartyId) => {
     return { id: idx, zone, names, key: names.slice(0, 4).join(", "), support: cl100(base), opp: cl100(opp), turnout: cl100(44 + Math.round(r() * 28)), swing: cl100(100 - Math.abs(base - opp) * 2), visits: 0 };
   });
 };
+// Poll share: you vs the main opponent, always adding to 100
+const pollShare = (z) => { const t = (z.support || 0) + (z.opp || 0); return t > 0 ? Math.round(100 * z.support / t) : 50; };
+const sgnN = (n) => (n > 0 ? "+" : n < 0 ? "\u2212" : "\u00b1") + Math.abs(n);
 const shiftZones = (zones, target, your = 0, opp = 0, turnout = 0) => zones.map(z => {
   const hit = target === "all" || target === z.id;
   return hit ? { ...z, support: cl100(z.support + your), opp: cl100(z.opp + opp), turnout: cl100(z.turnout + turnout), visits: z.visits + (your > 0 || turnout > 0 ? 1 : 0) } : z;
@@ -1406,6 +1409,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
   const [sCampOpp, setSCampOpp] = useState(0);
   const [sCampLog, setSCampLog] = useState([]);
   const [sCampZones, setSCampZones] = useState(null);
+  const [sCampDays, setSCampDays] = useState(0); // campaign days spent on this week's main move
   const [warChest, setWarChest] = useState(0.8); // ₦800M starting campaign funds
   const [gfDebt, setGfDebt] = useState(0); // how much you owe the godfather
   const [gfBorrowed, setGfBorrowed] = useState(false);
@@ -1804,76 +1808,92 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     const isOpp = sCampRound % 2 === 1 && sCampRound < 8;
     const isResult = sCampRound >= 8;
 
-    const renderZones = (zones = activeZones) => <Cd style={{ padding: 24, margin: "22px 0", background: "#fbfcf8" }}>
-      <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.grn, fontFamily: F.m, letterSpacing: 2, marginBottom: 14 }}>REAL LGA BATTLEGROUNDS</div>
-      {zones.map(z => <div key={z.id} style={{ marginBottom: 19 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 22, fontSize: TS(31), color: CL.tm }}><b>{z.zone}</b><span>{z.key}</span></div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 42px", gap: 14, alignItems: "center" }}>
-          <SB label={party} value={z.support} max={100} color={CL.grn} />
-          <SB label={oParty?.id || "OPP"} value={z.opp} max={100} color={CL.red} />
-          <span style={{ fontSize: TS(29), color: CL.pur, fontFamily: F.m, textAlign: "right" }}>{z.turnout}% TO</span>
-        </div>
-      </div>)}
+    // Part 1 — where you stand: one poll line per senatorial zone, shares add to 100
+    const renderZones = (zones = activeZones) => <Cd style={{ padding: 24, margin: "18px 0", background: "#fbfcf8" }}>
+      <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.grn, fontFamily: F.m, letterSpacing: 2, marginBottom: 12 }}>WHERE YOU STAND</div>
+      {zones.map(z => { const you = pollShare(z); return <div key={z.id} style={{ marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: TS(31), color: CL.txt }}><b>{z.zone.replace(" Senatorial", "")}</b><span style={{ fontFamily: F.m }}><b style={{ color: you >= 50 ? CL.grn : CL.txt }}>You {you}%</b> · <span style={{ color: you < 50 ? CL.red : CL.tm }}>{oParty?.id || "Opponent"} {100 - you}%</span></span></div>
+        <div style={{ display: "flex", height: 10, borderRadius: 5, overflow: "hidden", margin: "6px 0 4px", background: CL.red + "55" }}><div style={{ width: you + "%", background: CL.grn }} /></div>
+        <div style={{ fontSize: TS(27), color: CL.td }}>{z.key}</div>
+      </div>; })}
+      <div style={{ fontSize: TS(27), color: CL.td }}>Poll, margin ±4. Turnout and money decide close zones.</div>
     </Cd>;
 
     const mkActs = () => [[
-      { l: "📢 Three-Zone Rally Tour", d: "Hit " + activeZones.map(z => z.key.split(", ")[0]).join(", ") + ". Strong statewide signal.", pts: 5, oppPts: 1, cost: 0.25, target: "all", your: 3, turnout: 4, risk: "Broad, costly, visible." },
-      { l: "📺 Live Governorship Debate", d: "No map gimmick — statewide TV/radio. You can move undecided voters everywhere.", pts: 7, oppPts: -3, cost: 0, target: "all", your: 2, opp: -2, risk: "One bad answer becomes tomorrow's headline." },
-      { l: "📋 Ward Manifesto Drop", d: "Target " + swingZone.zone + ": " + swingZone.key + ". Cheap policy operation.", pts: 3, oppPts: 0, cost: 0.03, target: swingZone.id, your: 4, turnout: 1, risk: "Good for swing LGAs, weak for momentum." },
+      { l: "📢 Three-Zone Rally Tour", days: 3, d: "Hit " + activeZones.map(z => z.key.split(", ")[0]).join(", ") + ". Strong statewide signal.", pts: 5, oppPts: 1, cost: 0.25, target: "all", your: 3, turnout: 4, risk: "Broad, costly, visible." },
+      { l: "📺 Live Governorship Debate", days: 4, d: "No map gimmick — statewide TV/radio. You can move undecided voters everywhere.", pts: 7, oppPts: -3, cost: 0, target: "all", your: 2, opp: -2, risk: "One bad answer becomes tomorrow's headline." },
+      { l: "📋 Ward Manifesto Drop", days: 2, d: "Target " + swingZone.zone + ": " + swingZone.key + ". Cheap policy operation.", pts: 3, oppPts: 0, cost: 0.03, target: swingZone.id, your: 4, turnout: 1, risk: "Good for swing LGAs, weak for momentum." },
     ],[
-      { l: "🏘️ Door-to-Door Canvass", d: "Deploy ward agents in " + swingZone.key + ". Converts actual voters, not vibes.", pts: 6, oppPts: 0, cost: 0.35, target: swingZone.id, your: 8, turnout: 6, risk: "Expensive ground game." },
-      { l: "🤝 LGA Chair Coalition", d: "Negotiate structures in your weakest zone: " + weakZone.key + ".", pts: 4, oppPts: -4, cost: 0, target: weakZone.id, your: 7, opp: -3, corAdd: .03, risk: "Patronage promises follow you into office." },
-      { l: "📻 Community Radio Blitz", d: "Local-language radio across " + baseZone.key + ". Protect your base cheaply.", pts: 3, oppPts: 0, cost: 0.05, target: baseZone.id, your: 4, turnout: 3, risk: "Defensive, not transformative." },
+      { l: "🏘️ Door-to-Door Canvass", days: 2, d: "Deploy ward agents in " + swingZone.key + ". Converts actual voters, not vibes.", pts: 6, oppPts: 0, cost: 0.35, target: swingZone.id, your: 8, turnout: 6, risk: "Expensive ground game." },
+      { l: "🤝 LGA Chair Coalition", days: 4, d: "Negotiate structures in your weakest zone: " + weakZone.key + ".", pts: 4, oppPts: -4, cost: 0, target: weakZone.id, your: 7, opp: -3, corAdd: .03, risk: "Patronage promises follow you into office." },
+      { l: "📻 Community Radio Blitz", days: 2, d: "Local-language radio across " + baseZone.key + ". Protect your base cheaply.", pts: 3, oppPts: 0, cost: 0.05, target: baseZone.id, your: 4, turnout: 3, risk: "Defensive, not transformative." },
     ],[
-      { l: "🎤 Youth Town Hall Circuit", d: "Campus, market, creators, unions — focused on " + swingZone.zone + ".", pts: 6, oppPts: -1, cost: 0.15, target: swingZone.id, your: 7, opp: -1, turnout: 4, risk: "Youth ask brutal questions." },
-      { l: "⚔️ Opposition Research Drop", d: "Expose " + oName + ". Free, dirty, high backfire risk.", pts: 3, oppPts: -6, cost: 0, target: "all", your: 1, opp: -4, appRisk: -3, risk: "Negative politics can poison your mandate." },
-      { l: "🤲 Market & Motor-Park Walk", d: "Retail politics in " + weakZone.key + ".", pts: 2, oppPts: 0, cost: 0.02, target: weakZone.id, your: 4, turnout: 2, risk: "Warm photos, limited reach." },
+      { l: "🎤 Youth Town Hall Circuit", days: 3, d: "Campus, market, creators, unions — focused on " + swingZone.zone + ".", pts: 6, oppPts: -1, cost: 0.15, target: swingZone.id, your: 7, opp: -1, turnout: 4, risk: "Youth ask brutal questions." },
+      { l: "⚔️ Opposition Research Drop", days: 4, d: "Expose " + oName + ". Free, dirty, high backfire risk.", pts: 3, oppPts: -6, cost: 0, target: "all", your: 1, opp: -4, appRisk: -3, risk: "Negative politics can poison your mandate." },
+      { l: "🤲 Market & Motor-Park Walk", days: 2, d: "Retail politics in " + weakZone.key + ".", pts: 2, oppPts: 0, cost: 0.02, target: weakZone.id, your: 4, turnout: 2, risk: "Warm photos, limited reach." },
     ],[
-      { l: "🏟️ Final Mega Rally", d: "Close with spectacle; buses from all real LGAs.", pts: 8, oppPts: 1, cost: 0.4, target: "all", your: 4, turnout: 5, risk: "Win-or-lose defining image." },
-      { l: "🚪 Swing-LGA GOTV", d: "Election-eve agents in " + swingZone.key + ".", pts: 6, oppPts: 0, cost: 0.15, target: swingZone.id, your: 6, turnout: 9, risk: "Neglects your base if turnout collapses elsewhere." },
-      { l: "🗳️ Polling Unit Agents", d: "Minimal agents across collation centres. Cheap but thin.", pts: 3, oppPts: 0, cost: 0.08, target: "all", your: 1, turnout: 2, corAdd: .01, risk: "Opponent may overpower weak wards." },
+      { l: "🏟️ Final Mega Rally", days: 3, d: "Close with spectacle; buses from all real LGAs.", pts: 8, oppPts: 1, cost: 0.4, target: "all", your: 4, turnout: 5, risk: "Win-or-lose defining image." },
+      { l: "🚪 Swing-LGA GOTV", days: 3, d: "Election-eve agents in " + swingZone.key + ".", pts: 6, oppPts: 0, cost: 0.15, target: swingZone.id, your: 6, turnout: 9, risk: "Neglects your base if turnout collapses elsewhere." },
+      { l: "🗳️ Polling Unit Agents", days: 2, d: "Minimal agents across collation centres. Cheap but thin.", pts: 3, oppPts: 0, cost: 0.08, target: "all", your: 1, turnout: 2, corAdd: .01, risk: "Opponent may overpower weak wards." },
     ]];
 
     const oppEvts = [
       { t: "📰 Opponent Questions Your Credentials", d: oName + " attacks your qualifications in " + weakZone.key + ".", opts: [
-        { l: "📊 Publish Receipts", d: "Counter with verifiable records and named community endorsers.", pts: 5, oppPts: -2, target: weakZone.id, your: 5, opp: -2 },
-        { l: "🤫 Ignore", d: "Stay above it.", pts: 0, oppPts: 3, target: weakZone.id, opp: 4 },
-        { l: "⚔️ Attack Back", d: "Dig up their failures.", pts: 3, oppPts: -3, target: "all", opp: -2, appRisk: -2 },
+        { l: "📊 Publish Receipts", days: 2, dc: .02, d: "Counter with verifiable records and named community endorsers.", pts: 5, oppPts: -2, target: weakZone.id, your: 5, opp: -2 },
+        { l: "🤫 Ignore", days: 1, d: "Stay above it. Costs a day of holding your team back.", pts: 0, oppPts: 3, target: weakZone.id, opp: 4 },
+        { l: "⚔️ Attack Back", days: 3, d: "Dig up their failures.", pts: 3, oppPts: -3, target: "all", opp: -2, appRisk: -2 },
       ]},
       { t: "🎤 Opponent's Rally Outdraws Yours", d: oName + " fills a venue near " + swingZone.key + ". Momentum shifts.", opts: [
-        { l: "🏟️ Organize a Bigger One", d: "Outdo them. Costs money.", pts: 5, oppPts: -1, dc: .3, target: swingZone.id, your: 6, turnout: 3 },
-        { l: "📱 Local Influencer Counter", d: "Short videos from traders, students, religious youth.", pts: 4, oppPts: 0, target: swingZone.id, your: 4 },
-        { l: "😤 Question Their Crowd", d: "Claim they rented supporters.", pts: 2, oppPts: 1, target: "all", opp: 2 },
+        { l: "🏟️ Organize a Bigger One", days: 2, d: "Outdo them. Costs money.", pts: 5, oppPts: -1, dc: .3, target: swingZone.id, your: 6, turnout: 3 },
+        { l: "📱 Local Influencer Counter", days: 2, dc: 0.05, d: "Short videos from traders, students, religious youth.", pts: 4, oppPts: 0, target: swingZone.id, your: 4 },
+        { l: "😤 Question Their Crowd", days: 1, d: "Claim they rented supporters.", pts: 2, oppPts: 1, target: "all", opp: 2 },
       ]},
       { t: "💀 Smear Campaign Against You", d: "Anonymous flyers spread across " + baseZone.key + ".", opts: [
-        { l: "📢 Immediate Press Conference", d: "Deny publicly. Show your real plans.", pts: 6, oppPts: -2, target: "all", your: 2, opp: -2 },
-        { l: "📋 Signed Market Pledge", d: "Ward leaders distribute signed commitments.", pts: 5, oppPts: -1, target: baseZone.id, your: 6, opp: -1 },
-        { l: "🤷 Let It Die Down", d: "Assume voters won't believe it.", pts: 1, oppPts: 4, target: baseZone.id, opp: 5 },
+        { l: "📢 Immediate Press Conference", days: 2, d: "Deny publicly. Show your real plans.", pts: 6, oppPts: -2, target: "all", your: 2, opp: -2 },
+        { l: "📋 Signed Market Pledge", days: 3, dc: 0.05, d: "Ward leaders distribute signed commitments.", pts: 5, oppPts: -1, target: baseZone.id, your: 6, opp: -1 },
+        { l: "🤷 Let It Die Down", days: 1, d: "Assume voters won't believe it.", pts: 1, oppPts: 4, target: baseZone.id, opp: 5 },
       ]},
       { t: "🤝 Key Endorsement Goes to Opponent", d: "A major traditional ruler endorses " + oName + ".", opts: [
-        { l: "📞 Secure Other Endorsements", d: "Lock down chiefs and community heads.", pts: 4, oppPts: -2, target: "all", your: 2, opp: -2 },
-        { l: "💪 People, Not Chiefs", d: "Populist angle in youth-heavy LGAs.", pts: 5, oppPts: 0, target: swingZone.id, your: 5 },
-        { l: "💰 Visit with Gifts", d: "Show respect the old way.", pts: 3, oppPts: -1, target: weakZone.id, your: 4, opp: -1, corAdd: .01 },
+        { l: "📞 Secure Other Endorsements", days: 3, dc: 0.1, d: "Lock down chiefs and community heads.", pts: 4, oppPts: -2, target: "all", your: 2, opp: -2 },
+        { l: "💪 People, Not Chiefs", days: 2, d: "Populist angle in youth-heavy LGAs.", pts: 5, oppPts: 0, target: swingZone.id, your: 5 },
+        { l: "💰 Visit with Gifts", days: 2, dc: 0.12, d: "Show respect the old way.", pts: 3, oppPts: -1, target: weakZone.id, your: 4, opp: -1, corAdd: .01 },
       ]},
     ];
 
+    const WEEK_DAYS = 6;
+    const daysLeft = isOpp ? WEEK_DAYS - sCampDays : WEEK_DAYS;
+    const optCost = (opt) => opt.cost || opt.dc || 0;
+    const canTake = (opt) => optCost(opt) <= warChest + 1e-9 && (opt.days || 1) <= daysLeft;
+    const zoneLabel = (t) => t === "all" || t === undefined ? "All zones" : (activeZones.find(z => z.id === t)?.zone || "").replace(" Senatorial", "") + " zone";
+
     const handleSC = (opt) => {
-      const cost = opt.cost || opt.dc || 0;
-      if (cost > warChest) return;
-      setWarChest(w => w - cost);
+      const cost = optCost(opt);
+      if (!canTake(opt)) return;
+      setWarChest(w => Math.max(0, w - cost));
+      setSCampDays(isOpp ? 0 : (opt.days || 1));
       const hm = level === "hard";
       // TOUGHER CAMPAIGNS: opponent gets a per-round bonus always, harsher on hard mode
       const yourPts = hm ? Math.max(opt.pts - 3, -4) : Math.max(opt.pts - 1, -2);
       const oppGain = hm ? (opt.oppPts || 0) + 3 : (opt.oppPts || 0) + 1;
       setSCampScore(cs => cs + yourPts);
       setSCampOpp(co => co + oppGain);
-      // Reduce your zone push, boost opponent zone drift
-      setSCampZones(prev => shiftZones(prev || activeZones, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1), (opt.opp || 0) - 1, opt.turnout || 0));
+      // Reduce your zone push, boost opponent zone drift; remember what moved each zone
+      const moveName = opt.l.replace(/^[^\s]+ /, "");
+      setSCampZones(prev => {
+        const before = prev || activeZones;
+        const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1), (opt.opp || 0) - 1, opt.turnout || 0);
+        return after.map((z, i) => {
+          const d = pollShare(z) - pollShare(before[i]);
+          return d !== 0 ? { ...z, moves: [...(before[i].moves || []), { w: week, l: moveName, d }] } : z;
+        });
+      });
       if (opt.corAdd) setGfDebt(d => d + opt.corAdd * 3);
-      if (opt.appRisk && Math.random() < (hm ? .75 : .55)) { setSCampScore(cs => cs - 4); setSCampLog(c => [...c, "⚠️ BACKFIRE! Negative tactics cost you -4 points."]); }
-      setSCampLog(c => [...c, (isOpp ? "↩️ " : "▶️ ") + "W" + week + ": " + opt.l.replace(/^[^\s]+ /, "") + " (" + (yourPts >= 0 ? "+" : "") + yourPts + ")" + (cost > 0 ? " [₦" + cost.toFixed(2) + "B]" : " [FREE]") + (opt.target !== "all" && opt.target !== undefined ? " · " + activeZones.find(z => z.id === opt.target)?.zone : " · statewide") + " · OPP +" + oppGain]);
+      if (opt.appRisk && Math.random() < (hm ? .75 : .55)) { setSCampScore(cs => cs - 4); setSCampLog(c => [...c, "⚠️ Backfire: the negative campaign cost you support (\u22124)."]); }
+      setSCampLog(c => [...c, (isOpp ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + (opt.days || 1) + (opt.days === 1 ? " day" : " days") + " · " + zoneLabel(opt.target)]);
       setSCampRound(r => r + 1);
     };
+    // Nothing affordable this week: sit it out (costs the remaining days; the opponent gains ground)
+    const sitOut = { l: "🪑 Sit this one out", d: "No money or time for anything better. The opponent gains ground everywhere.", days: Math.max(1, daysLeft), pts: 0, oppPts: 3, target: "all", opp: 3 };
 
     const makeGfEducationMandate = () => {
       const existing = gfMandates.find(m => m.type === "commissioner" && m.ministryId === "educ");
@@ -1924,11 +1944,13 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       const partyStrength = PARTIES.find(p => p.id === party)?.strength || 1;
       const oppStrength = oParty?.strength || 1;
       // Campaign efforts sway zone support before final collation
+      // Seeded from the campaign itself, so the result does not change when the screen re-renders
+      const eDay = rng((st?.length || 5) * 131 + sCampScore * 7 + sCampOpp * 13 + sCampLog.length * 29);
       const swayedZones = activeZones.map(z => {
         // Tougher collation: bigger noise, opponent gets a natural +3 baseline push (party machine)
         const swing = (sCampScore - sCampOpp) * 0.32;
-        const jitter = (Math.random() - 0.5) * (hardMode ? 10 : 7);
-        return { ...z, support: cl100(z.support + swing + jitter - 2), opp: cl100(z.opp - swing * 0.4 + 3 + (Math.random() - 0.5) * (hardMode ? 8 : 5)) };
+        const jitter = (eDay() - 0.5) * (hardMode ? 10 : 7);
+        return { ...z, support: cl100(z.support + swing + jitter - 2), opp: cl100(z.opp - swing * 0.4 + 3 + (eDay() - 0.5) * (hardMode ? 8 : 5)) };
       });
       const collation = lgaElectionSummary(swayedZones, partyStrength, oppStrength, st);
       const won = collation.totalYou > collation.totalOpp && collation.zonesWon >= 2;
@@ -1958,6 +1980,19 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
                 setStep(85);
               }} style={{ padding: "29px 50px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
             </div>}
+            <Cd style={{ textAlign: "left", marginBottom: 29 }}>
+              <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14, letterSpacing: 2 }}>HOW THE ZONES MOVED</div>
+              {(() => { const start = buildBattlegrounds(st, 2026, party, oParty?.id); return collation.rows.map((rw, i) => {
+                const s0 = pollShare(start[i] || rw), s1 = pollShare(activeZones[i] || rw);
+                const res = rw.yourVotes + rw.oppVotes > 0 ? Math.round(1000 * rw.yourVotes / (rw.yourVotes + rw.oppVotes)) / 10 : 50;
+                const moves = (activeZones[i]?.moves || []).filter(m => m.d !== 0);
+                return <div key={rw.id} style={{ padding: "14px 0", borderBottom: "1px solid " + CL.bdr + "66" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: TS(33), color: CL.txt }}><b>{rw.zone.replace(" Senatorial", "")}</b><span style={{ fontFamily: F.m, color: rw.won ? CL.grn : CL.red }}>{rw.won ? "Won" : "Lost"}</span></div>
+                  <div style={{ fontSize: TS(30), color: CL.tm, fontFamily: F.m, margin: "4px 0" }}>Start {s0}% → final poll {s1}% ({sgnN(s1 - s0)}) → result {res}%</div>
+                  {moves.length ? <div style={{ fontSize: TS(28), color: CL.td, lineHeight: 1.35 }}>{moves.map(m => m.l + " " + sgnN(m.d)).join(" · ")}</div>
+                    : <div style={{ fontSize: TS(28), color: CL.td }}>You never campaigned here directly.</div>}
+                </div>; }); })()}
+            </Cd>
             <SceneArt bg="collation-centre" h={TALL() ? 180 : 240} />
             <Cd style={{ textAlign: "left", marginBottom: 36, background: "#fffef7", borderColor: CL.gold + "55" }}>
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 22, textAlign: "center", letterSpacing: 2 }}>INEC · FORM EC8D · FINAL COLLATED RESULT</div>
@@ -2017,17 +2052,16 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
         <Flag />
         <div style={{ maxWidth: 948, margin: "72px auto" }}>
-          {isOpp ? <Bg text={"Week " + week + " — OPPONENT STRIKES"} color={CL.red} /> : <Bg text={"Week " + week + " — YOUR MOVE"} color={CL.grn} />}
-          <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), fontWeight: 600, margin: "22px 0" }}>{isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.t || "Opponent Moves") : "Campaign Strategy"}</h3>
+          {isOpp ? <Bg text={"Week " + week + " of 4 — the opponent strikes"} color={CL.red} /> : <Bg text={"Week " + week + " of 4 — your move"} color={CL.grn} />}
+          <SceneArt bg="rally" who={isOpp ? "rival" : undefined} alt={isOpp ? oName : undefined} h={TALL() ? 170 : 220} />
+          <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), fontWeight: 600, margin: "22px 0" }}>{isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.t || "Opponent Moves") : "Pick this week's main move"}</h3>
           {isOpp && <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 22 }}>{oppEvts[Math.floor(sCampRound / 2)]?.d || ""}</p>}
           {!isOpp && <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 22 }}>Ticket: <b style={{ color: CL.grn, letterSpacing: 1 }}>{(lastNm || "YOU").toUpperCase()}/{(depGov?.nm.split(" ").pop() || "DEP").toUpperCase()}</b> ({party}) vs <strong>{oName}</strong> ({oParty?.id || "OPP"}) · Slogan: "{slogan}"</p>}
           {renderZones()}
-          <div style={{ display: "flex", gap: 29, justifyContent: "center", marginBottom: 14 }}>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.grn, fontFamily: F.m }}>+{sCampScore}</div><div style={{ fontSize: TS(29), color: CL.td }}>YOU</div></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.red, fontFamily: F.m }}>+{sCampOpp}</div><div style={{ fontSize: TS(29), color: CL.td }}>OPP</div></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>₦{warChest.toFixed(1)}B</div><div style={{ fontSize: TS(29), color: CL.td }}>WAR CHEST</div></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.pur, fontFamily: F.m }}>W{week}/4</div><div style={{ fontSize: TS(29), color: CL.td }}>WEEK</div></div>
-          </div>
+          <Cd style={{ padding: 22, marginBottom: 18, display: "flex", justifyContent: "space-around", gap: 14, textAlign: "center" }}>
+            <div><div style={{ fontSize: TS(44), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>₦{warChest.toFixed(2)}B</div><div style={{ fontSize: TS(27), color: CL.td }}>money left</div></div>
+            <div><div style={{ fontSize: TS(44), fontWeight: 700, color: CL.pur, fontFamily: F.m }}>{daysLeft} of {WEEK_DAYS}</div><div style={{ fontSize: TS(27), color: CL.td }}>campaign days left this week</div></div>
+          </Cd>
           {!isOpp && warChest < 0.2 && !gfBorrowed && level !== "easy" && <Cd onClick={borrowFromGF} style={{ padding: 22, borderColor: CL.red + "44", marginBottom: 22, textAlign: "center" }}>
             <div style={{ fontSize: TS(36), fontWeight: 600, color: CL.red }}>🎩 Running low? Borrow ₦0.8B from the Godfather</div>
             <div style={{ fontSize: TS(29), color: CL.td }}>He'll fund your campaign — but the debt follows you into office. He WILL demand repayment.</div>
@@ -2054,22 +2088,16 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
           </Cd>}
           {gfDebt > 0 && <div style={{ fontSize: TS(29), color: CL.red, textAlign: "center", marginBottom: 14 }}>🎩 Godfather debt: ₦{gfDebt}B</div>}
           <div style={{ display: "grid", gap: 22 }}>
-            {(isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.opts || []) : (mkActs()[Math.floor(sCampRound / 2)] || [])).map((opt, i) => {
-              const canAfford = !(opt.cost || opt.dc) || (opt.cost || opt.dc) <= warChest;
-              return <Cd key={i} onClick={canAfford ? () => handleSC(opt) : undefined} style={{ padding: 29, opacity: canAfford ? 1 : .35 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(38), color: canAfford ? CL.txt : CL.td, marginBottom: 7 }}>{opt.l}</div>
-                <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.3 }}>{opt.d}</div>
-                <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
-                  <Bg text={"+" + opt.pts} color={CL.grn} />
-                  {(opt.cost || opt.dc) > 0 && <Bg text={"₦" + (opt.cost || opt.dc) + "B"} color={canAfford ? CL.org : CL.red} />}
-                  {!(opt.cost || opt.dc) && <Bg text="FREE" color={CL.grn} />}
-                  {opt.target !== undefined && <Bg text={opt.target === "all" ? "STATEWIDE" : activeZones.find(z => z.id === opt.target)?.zone.replace(" Senatorial", "")} color={CL.pur} />}
-                  {opt.oppPts < 0 && <Bg text={opt.oppPts + " opp"} color={CL.grn} />}
-                  {opt.oppPts > 0 && <Bg text={"+" + opt.oppPts + " opp"} color={CL.red} />}
-                  {opt.corAdd && <Bg text="Corruption!" color={CL.red} />}
-                  {!canAfford && <Bg text="CAN'T AFFORD" color={CL.red} />}
-                </div>
-                {opt.risk && <div style={{ fontSize: TS(29), color: CL.org, marginTop: 7 }}>⚠️ {opt.risk}</div>}
+            {(() => { const opts = isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.opts || []) : (mkActs()[Math.floor(sCampRound / 2)] || []); return opts.some(canTake) ? opts : [...opts, sitOut]; })().map((opt, i) => {
+              const ok = opt === sitOut || canTake(opt);
+              const cost = optCost(opt);
+              const why = optCost(opt) > warChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days left" : "";
+              return <Cd key={i} onClick={ok ? () => handleSC(opt) : undefined} style={{ padding: 26, opacity: ok ? 1 : .45 }}>
+                <div style={{ fontWeight: 600, fontSize: TS(36), color: ok ? CL.txt : CL.td, marginBottom: 6 }}>{opt.l}</div>
+                <div style={{ fontSize: TS(32), color: CL.tm, lineHeight: 1.3 }}>{opt.d}</div>
+                <div style={{ fontSize: TS(30), color: CL.txt, fontFamily: F.m, marginTop: 10 }}>{cost > 0 ? "₦" + cost.toFixed(2) + "B" : "No money"} · {opt.days || 1} {(opt.days || 1) === 1 ? "day" : "days"} · {zoneLabel(opt.target)}</div>
+                {(opt.risk || opt.corAdd || opt.appRisk) && <div style={{ fontSize: TS(28), color: CL.org, marginTop: 6 }}>⚠️ {[opt.risk, opt.corAdd && "Promises to power brokers follow you into office.", opt.appRisk && !opt.risk && "Can backfire."].filter(Boolean).join(" ")}</div>}
+                {!ok && <div style={{ fontSize: TS(28), color: CL.red, marginTop: 6 }}>{why}</div>}
               </Cd>;
             })}
             <div style={{ textAlign: "center", marginTop: 29 }}><Bt v="ghost" onClick={restartElectionSetup} style={{ fontSize: TS(34) }}>↻ Restart election setup</Bt></div>
@@ -2467,6 +2495,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [campOpp, setCampOpp] = useState(0);
   const [campLog, setCampLog] = useState([]);
   const [campZones, setCampZones] = useState(null);
+  const [campDays, setCampDays] = useState(0); // days spent on this week's main move
   const [campWarChest, setCampWarChest] = useState(1.0);
   const [personalFund, setPersonalFund] = useState(ld?.personalFund || (setup?.warChestRemaining || 0)); // carries over from first campaign
   const [campGfDebt, setCampGfDebt] = useState(0);
@@ -5418,84 +5447,106 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const isOppEvent = campRound % 2 === 1 && campRound < 8;
             const isResult = campRound >= 8;
 
-            const ReZoneBoard = () => <Cd style={{ padding: 24, margin: "22px 0", background: "#fbfcf8" }}>
-              <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.grn, fontFamily: F.m, letterSpacing: 2, marginBottom: 14 }}>RE-ELECTION BATTLEGROUNDS · REAL LGAS</div>
-              {activeReZones.map(z => <div key={z.id} style={{ marginBottom: 19 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 22, fontSize: TS(31), color: CL.tm }}><b>{z.zone}</b><span>{z.key}</span></div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 42px", gap: 14, alignItems: "center" }}>
-                  <SB label={party} value={z.support} max={100} color={CL.grn} />
-                  <SB label={oppParty?.id || "OPP"} value={z.opp} max={100} color={CL.red} />
-                  <span style={{ fontSize: TS(29), color: CL.pur, fontFamily: F.m, textAlign: "right" }}>{z.turnout}% TO</span>
-                </div>
-              </div>)}
+            const ReZoneBoard = () => <Cd style={{ padding: 24, margin: "18px 0", background: "#fbfcf8", textAlign: "left" }}>
+              <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.grn, fontFamily: F.m, letterSpacing: 2, marginBottom: 12 }}>WHERE YOU STAND</div>
+              {activeReZones.map(z => { const you = pollShare(z); return <div key={z.id} style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 14, fontSize: TS(31), color: CL.txt }}><b>{z.zone.replace(" Senatorial", "")}</b><span style={{ fontFamily: F.m }}><b style={{ color: you >= 50 ? CL.grn : CL.txt }}>You {you}%</b> · <span style={{ color: you < 50 ? CL.red : CL.tm }}>{oppParty?.id || "Opponent"} {100 - you}%</span></span></div>
+                <div style={{ display: "flex", height: 10, borderRadius: 5, overflow: "hidden", margin: "6px 0 4px", background: CL.red + "55" }}><div style={{ width: you + "%", background: CL.grn }} /></div>
+                <div style={{ fontSize: TS(27), color: CL.td }}>{z.key}</div>
+              </div>; })}
+              <div style={{ fontSize: TS(27), color: CL.td }}>Poll, margin ±4. Your record, turnout and money decide close zones.</div>
             </Cd>;
 
             const acts = [
               [
-                { l: "📢 Town Hall Tours", d: "Visit all 3 senatorial zones, opening in " + reBase.key + ".", pts: 6, oppPts: 1, cost: 0.25, sk: { traditional: 5, youth: 4 }, target: "all", your: 3, turnout: 4, risk: "Expensive but incumbents must be visible." },
-                { l: "📺 TV Debate Challenge", d: "Defend your record live across the state.", pts: 8, oppPts: -3, cost: 0, sk: { media: 8, youth: 6 }, target: "all", your: 2, opp: -2, risk: "Your record will be scrutinised." },
-                { l: "📋 Policy Manifesto (Cheap)", d: "Print a ward-level 2nd term agenda for " + reSwing.key + ".", pts: 3, oppPts: 0, cost: 0.03, sk: { media: 4, business: 4 }, target: reSwing.id, your: 4, risk: "Documents don't win elections." },
+                { l: "📢 Town Hall Tours", days: 3, d: "Visit all 3 senatorial zones, opening in " + reBase.key + ".", pts: 6, oppPts: 1, cost: 0.25, sk: { traditional: 5, youth: 4 }, target: "all", your: 3, turnout: 4, risk: "Expensive but incumbents must be visible." },
+                { l: "📺 TV Debate Challenge", days: 4, d: "Defend your record live across the state.", pts: 8, oppPts: -3, cost: 0, sk: { media: 8, youth: 6 }, target: "all", your: 2, opp: -2, risk: "Your record will be scrutinised." },
+                { l: "📋 Policy Manifesto (Cheap)", days: 2, d: "Print a ward-level 2nd term agenda for " + reSwing.key + ".", pts: 3, oppPts: 0, cost: 0.03, sk: { media: 4, business: 4 }, target: reSwing.id, your: 4, risk: "Documents don't win elections." },
               ],[
-                { l: "🏘️ LGA Grassroots Rally", d: "500 buses through " + reSwing.key + ".", pts: 7, oppPts: 1, cost: 0.35, sk: { youth: 8, traditional: 4 }, target: reSwing.id, your: 8, turnout: 6, risk: "Expensive grassroots push." },
-                { l: "🤝 Defector Recruitment", d: "Pull ward structures from opposition in " + reWeak.key + ".", pts: 5, oppPts: -4, cost: 0, sk: { party: 8 }, target: reWeak.id, your: 6, opp: -4, corAdd: .02, risk: "Horse-trading." },
-                { l: "📻 Radio + Social Blitz (Cheap)", d: "Radio ads and WhatsApp in your base: " + reBase.key + ".", pts: 3, oppPts: 0, cost: 0.05, sk: { media: 3, youth: 3 }, target: reBase.id, your: 4, risk: "Opponent is on TV." },
+                { l: "🏘️ LGA Grassroots Rally", days: 2, d: "500 buses through " + reSwing.key + ".", pts: 7, oppPts: 1, cost: 0.35, sk: { youth: 8, traditional: 4 }, target: reSwing.id, your: 8, turnout: 6, risk: "Expensive grassroots push." },
+                { l: "🤝 Defector Recruitment", days: 4, d: "Pull ward structures from opposition in " + reWeak.key + ".", pts: 5, oppPts: -4, cost: 0, sk: { party: 8 }, target: reWeak.id, your: 6, opp: -4, corAdd: .02, risk: "Horse-trading." },
+                { l: "📻 Radio + Social Blitz (Cheap)", days: 2, d: "Radio ads and WhatsApp in your base: " + reBase.key + ".", pts: 3, oppPts: 0, cost: 0.05, sk: { media: 3, youth: 3 }, target: reBase.id, your: 4, risk: "Opponent is on TV." },
               ],[
-                { l: "🛡️ Defend Your Record", d: "Release project receipts by LGA.", pts: 6, oppPts: -1, cost: 0.1, sk: { media: 6, business: 5 }, target: "all", your: 2, risk: "Only works if numbers are good." },
-                { l: "⚔️ Go Negative", d: "Attack opponent. Free but risky.", pts: 3, oppPts: -6, cost: 0, sk: { media: -5, youth: -4 }, target: "all", opp: -4, appRisk: -4, risk: "Could backfire badly." },
-                { l: "🙏 Stay Positive (Cheap)", d: "Faith and peace message in " + reWeak.key + ".", pts: 2, oppPts: 2, cost: 0, sk: { religious: 6, traditional: 5 }, target: reWeak.id, your: 3, risk: "Noble but weak." },
+                { l: "🛡️ Defend Your Record", days: 2, d: "Release project receipts by LGA.", pts: 6, oppPts: -1, cost: 0.1, sk: { media: 6, business: 5 }, target: "all", your: 2, risk: "Only works if numbers are good." },
+                { l: "⚔️ Go Negative", days: 4, d: "Attack opponent. Free but risky.", pts: 3, oppPts: -6, cost: 0, sk: { media: -5, youth: -4 }, target: "all", opp: -4, appRisk: -4, risk: "Could backfire badly." },
+                { l: "🙏 Stay Positive (Cheap)", days: 3, d: "Faith and peace message in " + reWeak.key + ".", pts: 2, oppPts: 2, cost: 0, sk: { religious: 6, traditional: 5 }, target: reWeak.id, your: 3, risk: "Noble but weak." },
               ],[
-                { l: "🏟️ Mega Rally", d: "100K closeout, buses from every listed LGA.", pts: 9, oppPts: 1, cost: 0.4, sk: { youth: 10, party: 5 }, target: "all", your: 4, turnout: 5, risk: "This defines your campaign." },
-                { l: "🚪 Door-to-Door (Moderate)", d: "Volunteers in swing LGAs: " + reSwing.key + ".", pts: 6, oppPts: 0, cost: 0.15, sk: { traditional: 6 }, target: reSwing.id, your: 6, turnout: 8, risk: "Slow. Opponent at rallies." },
-                { l: "🗳️ Election Day Agents", d: "Polling-unit agents in all collation areas.", pts: 3, oppPts: 0, cost: 0.08, sk: { party: 3 }, target: "all", your: 1, turnout: 2, corAdd: .01, risk: "Opponent spending 5x more." },
+                { l: "🏟️ Mega Rally", days: 3, d: "100K closeout, buses from every listed LGA.", pts: 9, oppPts: 1, cost: 0.4, sk: { youth: 10, party: 5 }, target: "all", your: 4, turnout: 5, risk: "This defines your campaign." },
+                { l: "🚪 Door-to-Door (Moderate)", days: 3, d: "Volunteers in swing LGAs: " + reSwing.key + ".", pts: 6, oppPts: 0, cost: 0.15, sk: { traditional: 6 }, target: reSwing.id, your: 6, turnout: 8, risk: "Slow. Opponent at rallies." },
+                { l: "🗳️ Election Day Agents", days: 2, d: "Polling-unit agents in all collation areas.", pts: 3, oppPts: 0, cost: 0.08, sk: { party: 3 }, target: "all", your: 1, turnout: 2, corAdd: .01, risk: "Opponent spending 5x more." },
               ],
             ];
 
             const oppEvs = [
               { t: "📰 Opponent Releases Damning Report", d: oppName + " publishes '4 Years of Failure' and pushes it through " + reWeak.key + ".", opts: [
-                { l: "📊 Counter with Data", d: "Release your LGA scorecard.", pts: 4, oppPts: -2, sk: { media: 5 }, target: reWeak.id, your: 4, opp: -2 },
-                { l: "🤫 Ignore", d: "Don't dignify it.", pts: 0, oppPts: 3, sk: { media: -3 }, target: reWeak.id, opp: 4 },
-                { l: "⚖️ Threaten Lawsuit", d: "Send lawyers.", pts: 1, oppPts: -1, sk: { media: -8, youth: -4 }, target: "all", opp: -1 },
+                { l: "📊 Counter with Data", days: 2, dc: 0.02, d: "Release your LGA scorecard.", pts: 4, oppPts: -2, sk: { media: 5 }, target: reWeak.id, your: 4, opp: -2 },
+                { l: "🤫 Ignore", days: 1, d: "Don't dignify it. A day spent holding your team back.", pts: 0, oppPts: 3, sk: { media: -3 }, target: reWeak.id, opp: 4 },
+                { l: "⚖️ Threaten Lawsuit", days: 2, dc: 0.05, d: "Send lawyers.", pts: 1, oppPts: -1, sk: { media: -8, youth: -4 }, target: "all", opp: -1 },
               ]},
               { t: "🎤 Opponent Rally Goes Viral", d: oppName + "'s rally near " + reSwing.key + " hits 500K views. Momentum shifting.", opts: [
-                { l: "🏟️ Bigger Rally", d: "Match their energy. Costs ₦0.3B.", pts: 5, oppPts: -1, sk: { youth: 5 }, dc: .3, target: reSwing.id, your: 6, turnout: 3 },
-                { l: "📺 Buy TV Airtime", d: "Outspend them statewide.", pts: 3, oppPts: 0, sk: { media: 4 }, dc: .2, target: "all", your: 2 },
-                { l: "🚪 Go Grassroots", d: "Let them have spectacle; knock doors in " + reSwing.key + ".", pts: 4, oppPts: 1, sk: { traditional: 5 }, target: reSwing.id, your: 5 },
+                { l: "🏟️ Bigger Rally", days: 2, d: "Match their energy with a bigger crowd.", pts: 5, oppPts: -1, sk: { youth: 5 }, dc: .3, target: reSwing.id, your: 6, turnout: 3 },
+                { l: "📺 Buy TV Airtime", days: 1, d: "Outspend them statewide.", pts: 3, oppPts: 0, sk: { media: 4 }, dc: .2, target: "all", your: 2 },
+                { l: "🚪 Go Grassroots", days: 3, d: "Let them have spectacle; knock doors in " + reSwing.key + ".", pts: 4, oppPts: 1, sk: { traditional: 5 }, target: reSwing.id, your: 5 },
               ]},
               { t: "💀 Corruption Allegations", d: "Newspaper 'evidence' of corruption circulates from ward groups to radio.", opts: [
-                { l: "📋 Open Books", d: "Full transparency.", pts: 6, oppPts: -3, sk: { media: 10, business: 5 }, target: "all", your: 3, opp: -3 },
-                { l: "🗣️ 'Fake News!'", d: "Deny everything.", pts: 2, oppPts: 2, sk: { media: -6 }, target: "all", opp: 3 },
-                { l: "🔄 Pivot to Projects", d: "Talk roads, not corruption.", pts: 3, oppPts: 1, sk: { youth: -3 }, target: reBase.id, your: 3 },
+                { l: "📋 Open Books", days: 2, dc: 0.03, d: "Full transparency.", pts: 6, oppPts: -3, sk: { media: 10, business: 5 }, target: "all", your: 3, opp: -3 },
+                { l: "🗣️ 'Fake News!'", days: 1, d: "Deny everything.", pts: 2, oppPts: 2, sk: { media: -6 }, target: "all", opp: 3 },
+                { l: "🔄 Pivot to Projects", days: 2, d: "Talk roads, not corruption.", pts: 3, oppPts: 1, sk: { youth: -3 }, target: reBase.id, your: 3 },
               ]},
               { t: "🤝 Major Endorsement for Opponent", d: "A former governor endorses " + oppName + " and claims your base is collapsing.", opts: [
-                { l: "📞 Counter-Endorsements", d: "Call everyone. Secure your own.", pts: 4, oppPts: -2, sk: { party: 5 }, target: "all", your: 2, opp: -2 },
-                { l: "💪 People Are My Endorsement", d: "Populist message in " + reSwing.key + ".", pts: 5, oppPts: 0, sk: { youth: 8, media: 4 }, target: reSwing.id, your: 5 },
-                { l: "💰 Offer Better Deals", d: "Match their offers.", pts: 3, oppPts: -3, sk: { party: 6 }, target: reWeak.id, your: 4, opp: -3, corAdd: .02 },
+                { l: "📞 Counter-Endorsements", days: 3, dc: 0.1, d: "Call everyone. Secure your own.", pts: 4, oppPts: -2, sk: { party: 5 }, target: "all", your: 2, opp: -2 },
+                { l: "💪 People Are My Endorsement", days: 2, d: "Populist message in " + reSwing.key + ".", pts: 5, oppPts: 0, sk: { youth: 8, media: 4 }, target: reSwing.id, your: 5 },
+                { l: "💰 Offer Better Deals", days: 2, dc: 0.15, d: "Match their offers.", pts: 3, oppPts: -3, sk: { party: 6 }, target: reWeak.id, your: 4, opp: -3, corAdd: .02 },
               ]},
             ];
 
-            // SCOREBOARD component
-            const ScoreBoard = () => <div style={{ display: "flex", gap: 29, justifyContent: "center", margin: "29px 0" }}>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.grn, fontFamily: F.m }}>+{campScore}</div><div style={{ fontSize: TS(29), color: CL.td }}>YOUR PTS</div></div>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.red, fontFamily: F.m }}>+{campOpp}</div><div style={{ fontSize: TS(29), color: CL.td }}>OPP PTS</div></div>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.blu, fontFamily: F.m }}>{Math.round(s.app)}%</div><div style={{ fontSize: TS(29), color: CL.td }}>BASE</div></div>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(53), fontWeight: 700, color: CL.pur, fontFamily: F.m }}>W{week}/4</div><div style={{ fontSize: TS(29), color: CL.td }}>WEEK</div></div>
-            </div>;
+            // Part 2 — resources this week: money and campaign days
+            const WEEK_DAYS = 6;
+            const daysLeft = isOppEvent ? WEEK_DAYS - campDays : WEEK_DAYS;
+            const optCost = (opt) => opt.cost || opt.dc || 0;
+            const canTake = (opt) => optCost(opt) <= campWarChest + 1e-9 && (opt.days || 1) <= daysLeft;
+            const zoneLabel = (t) => t === "all" || t === undefined ? "All zones" : (activeReZones.find(z => z.id === t)?.zone || "").replace(" Senatorial", "") + " zone";
+            const ScoreBoard = () => <Cd style={{ padding: 22, marginBottom: 18, display: "flex", justifyContent: "space-around", gap: 14, textAlign: "center" }}>
+              <div><div style={{ fontSize: TS(44), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>₦{campWarChest.toFixed(2)}B</div><div style={{ fontSize: TS(27), color: CL.td }}>money left</div></div>
+              <div><div style={{ fontSize: TS(44), fontWeight: 700, color: CL.pur, fontFamily: F.m }}>{daysLeft} of {WEEK_DAYS}</div><div style={{ fontSize: TS(27), color: CL.td }}>campaign days left this week</div></div>
+            </Cd>;
+            const sitOut = { l: "🪑 Sit this one out", d: "No money or time for anything better. The opponent gains ground everywhere.", days: Math.max(1, daysLeft), pts: 0, oppPts: 3, target: "all", opp: 3 };
+            // Part 3 — three option cards, same layout every week
+            const OptCard = ({ opt }) => {
+              const ok = opt === sitOut || canTake(opt);
+              const cost = optCost(opt);
+              const why = cost > campWarChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days left" : "";
+              return <Cd onClick={ok ? () => handleChoice(opt) : undefined} style={{ padding: 26, opacity: ok ? 1 : .45, textAlign: "left" }}>
+                <div style={{ fontWeight: 600, fontSize: TS(36), color: ok ? CL.txt : CL.td, marginBottom: 6 }}>{opt.l}</div>
+                <div style={{ fontSize: TS(32), color: CL.tm, lineHeight: 1.3 }}>{opt.d}</div>
+                <div style={{ fontSize: TS(30), color: CL.txt, fontFamily: F.m, marginTop: 10 }}>{cost > 0 ? "₦" + cost.toFixed(2) + "B" : "No money"} · {opt.days || 1} {(opt.days || 1) === 1 ? "day" : "days"} · {zoneLabel(opt.target)}</div>
+                {(opt.risk || opt.corAdd || opt.appRisk) && <div style={{ fontSize: TS(28), color: CL.org, marginTop: 6 }}>⚠️ {[opt.risk, opt.corAdd && "Promises to power brokers follow you into the next term.", opt.appRisk && !opt.risk && "Can backfire."].filter(Boolean).join(" ")}</div>}
+                {!ok && <div style={{ fontSize: TS(28), color: CL.red, marginTop: 6 }}>{why}</div>}
+              </Cd>;
+            };
+            const withFallback = (opts) => opts.some(canTake) ? opts : [...opts, sitOut];
 
             const handleChoice = (opt) => {
-              const cost = opt.cost || opt.dc || 0;
-              if (cost > campWarChest) return; // can't afford
-              setCampWarChest(w => w - cost);
+              const cost = optCost(opt);
+              if (opt !== sitOut && !canTake(opt)) return;
+              setCampWarChest(w => Math.max(0, w - cost));
+              setCampDays(isOppEvent ? 0 : (opt.days || 1));
               const hm2 = setup?.level === "hard";
               // TOUGHER re-election: incumbency fatigue — opponent always gets a bonus, sharper on hard
               const yourPts = hm2 ? Math.max(opt.pts - 3, -4) : Math.max(opt.pts - 1, -2);
               const oppGain = hm2 ? (opt.oppPts || 0) + 3 : (opt.oppPts || 0) + 1;
               setCampScore(cs => cs + yourPts);
               setCampOpp(co => co + oppGain);
-              setCampZones(prev => shiftZones(prev || activeReZones, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1), (opt.opp || 0) - 1, opt.turnout || 0));
+              const moveName = opt.l.replace(/^[^\s]+ /, "");
+              setCampZones(prev => {
+                const before = prev || activeReZones;
+                const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1), (opt.opp || 0) - 1, opt.turnout || 0);
+                return after.map((z, i) => { const d = pollShare(z) - pollShare(before[i]); return d !== 0 ? { ...z, moves: [...(before[i].moves || []), { w: week, l: moveName, d }] } : z; });
+              });
               if (opt.sk) setSkApp(p => { const n2 = { ...p }; Object.entries(opt.sk).forEach(([k, v]) => { if (n2[k] !== undefined) n2[k] = cl100(n2[k] + v); }); return n2; });
               if (opt.corAdd) setS(p => ({ ...p, cor: cl(p.cor + opt.corAdd) }));
-              if (opt.appRisk && Math.random() < (hm2 ? .75 : .55)) { setS(p => ({ ...p, app: cl100(p.app + opt.appRisk) })); setCampLog(c2 => [...c2, "⚠️ BACKFIRE! -" + Math.abs(opt.appRisk) + " approval."]); }
-              setCampLog(c2 => [...c2, (isOppEvent ? "↩️ " : "▶️ ") + "W" + week + ": " + opt.l.replace(/^[^\s]+ /, "") + " (+" + yourPts + ")" + (cost > 0 ? " [₦" + cost + "B]" : " [FREE]") + (opt.target !== "all" && opt.target !== undefined ? " · " + activeReZones.find(z => z.id === opt.target)?.zone : " · statewide") + " · OPP +" + oppGain]);
+              if (opt.appRisk && Math.random() < (hm2 ? .75 : .55)) { setS(p => ({ ...p, app: cl100(p.app + opt.appRisk) })); setCampLog(c2 => [...c2, "⚠️ Backfire: approval " + sgnN(opt.appRisk) + "."]); }
+              setCampLog(c2 => [...c2, (isOppEvent ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + (opt.days || 1) + (opt.days === 1 ? " day" : " days") + " · " + zoneLabel(opt.target)]);
               setCampRound(r => r + 1);
             };
 
@@ -5516,7 +5567,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               // Incumbency fatigue: baseline anti-incumbent drag, bigger jitter, opponent boost
               const antiIncumbent = -3 - (turn - 4) * 0.5;
               const recordBoost = (s.app - 50) * 0.22 + (s.pStab - 50) * 0.08 + (0.4 - s.cor) * 22 + narrBonus + (campScore - campOpp) * 0.32 + antiIncumbent;
-              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (Math.random() - 0.5) * (hm2 ? 10 : 7)), opp: cl100(z.opp - recordBoost * 0.35 + 3 + (Math.random() - 0.5) * (hm2 ? 8 : 5)) }));
+              const eDay = rng(turn * 977 + (state?.length || 5) * 131 + campScore * 7 + campOpp * 13 + campLog.length * 29);
+              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 10 : 7)), opp: cl100(z.opp - recordBoost * 0.35 + 3 + (eDay() - 0.5) * (hm2 ? 8 : 5)) }));
               const collation = lgaElectionSummary(swayedReZones, rePartyStrength, reOppStrength, state);
               const won = collation.totalYou > collation.totalOpp && collation.zonesWon >= 2;
               const marginPct = (collation.totalYou + collation.totalOpp) > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
@@ -5530,6 +5582,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (3 - collation.zonesWon) + "/3 zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
                   <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Petition filed within the 21-day window (S.285(5)). Case number GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(Math.abs(collation.margin)) }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
                 </div>}
+                <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29 }}>
+                  <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14, letterSpacing: 2 }}>HOW THE ZONES MOVED</div>
+                  {(() => { const start = buildBattlegrounds(state, turn * 2027, party, oppParty?.id); return collation.rows.map((rw, i) => {
+                    const s0 = pollShare(start[i] || rw), s1 = pollShare(activeReZones[i] || rw);
+                    const res = rw.yourVotes + rw.oppVotes > 0 ? Math.round(1000 * rw.yourVotes / (rw.yourVotes + rw.oppVotes)) / 10 : 50;
+                    const moves = (activeReZones[i]?.moves || []).filter(m => m.d !== 0);
+                    return <div key={rw.id} style={{ padding: "14px 0", borderBottom: "1px solid " + CL.bdr + "66" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: TS(33), color: CL.txt }}><b>{rw.zone.replace(" Senatorial", "")}</b><span style={{ fontFamily: F.m, color: rw.won ? CL.grn : CL.red }}>{rw.won ? "Won" : "Lost"}</span></div>
+                      <div style={{ fontSize: TS(30), color: CL.tm, fontFamily: F.m, margin: "4px 0" }}>Start {s0}% → final poll {s1}% ({sgnN(s1 - s0)}) → result {res}%</div>
+                      {moves.length ? <div style={{ fontSize: TS(28), color: CL.td, lineHeight: 1.35 }}>{moves.map(m => m.l + " " + sgnN(m.d)).join(" · ")}</div>
+                        : <div style={{ fontSize: TS(28), color: CL.td }}>You never campaigned here directly.</div>}
+                    </div>; }); })()}
+                  <div style={{ fontSize: TS(28), color: CL.td, marginTop: 10 }}>Between the final poll and the result: your record in office ({recordBoost >= 0 ? "helped" : "hurt"}, {sgnN(Math.round(recordBoost))} points) and election-day turnout.</div>
+                </Cd>
                 <SceneArt bg="collation-centre" h={TALL() ? 180 : 240} />
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29, background: "#fffef7", borderColor: CL.gold + "55" }}>
                   <div style={{ fontSize: TS(29), fontWeight: 600, color: CL.grn, fontFamily: F.m, marginBottom: 14, textAlign: "center", letterSpacing: 2 }}>INEC · FORM EC8D · FINAL RESULT</div>
@@ -5566,7 +5632,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const ev = oppEvs[Math.floor(campRound / 2)] || oppEvs[0];
               return <Cd>
                 <div style={{ textAlign: "center", marginBottom: 22 }}>
-                  <Bg text={"Week " + week + " — OPPONENT STRIKES"} color={CL.red} />
+                  <Bg text={"Week " + week + " of 4 — the opponent strikes"} color={CL.red} />
+                  <SceneArt bg="rally" who="rival" alt={oppName} h={TALL() ? 170 : 220} />
                   <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{ev.t}</h3>
                   <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, textAlign: "left" }}>{ev.d}</p>
                   <ReZoneBoard />
@@ -5574,17 +5641,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <div style={{ fontSize: TS(34), color: CL.org, marginBottom: 22 }}>How do you respond?</div>
                 </div>
                 <div style={{ display: "grid", gap: 22 }}>
-                  {ev.opts.map((opt, i) => <Cd key={i} onClick={() => handleChoice(opt)} style={{ padding: 29 }}>
-                    <div style={{ fontWeight: 600, fontSize: TS(38), color: CL.txt, marginBottom: 7 }}>{opt.l}</div>
-                    <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.3 }}>{opt.d}</div>
-                    <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
-                      <Bg text={"+" + opt.pts} color={CL.grn} />
-                      {opt.oppPts < 0 && <Bg text={opt.oppPts + " opp"} color={CL.grn} />}
-                      {opt.oppPts > 0 && <Bg text={"+" + opt.oppPts + " opp"} color={CL.red} />}
-                      {opt.dc && <Bg text={"₦" + opt.dc + "B"} color={CL.org} />}
-                      {opt.corAdd && <Bg text="Corruption!" color={CL.red} />}
-                    </div>
-                  </Cd>)}
+                  {withFallback(ev.opts).map((opt, i) => <OptCard key={i} opt={opt} />)}
                 </div>
               </Cd>;
             }
@@ -5593,16 +5650,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const weekActs = acts[Math.floor(campRound / 2)] || acts[0];
             return <Cd>
               <div style={{ textAlign: "center", marginBottom: 22 }}>
-                <Bg text={"Week " + week + " — YOUR MOVE"} color={CL.grn} />
-                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>Campaign Strategy</h3>
+                <Bg text={"Week " + week + " of 4 — your move"} color={CL.grn} />
+                <SceneArt bg="rally" h={TALL() ? 170 : 220} />
+                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>Pick this week's main move</h3>
                 <div style={{ fontSize: TS(34), color: CL.td }}>Opponent: <strong>{oppName}</strong> ({oppParty?.id || "OPP"})</div>
                 <ReZoneBoard />
-                <div style={{ display: "flex", gap: 29, justifyContent: "center", margin: "22px 0" }}>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontWeight: 700, color: CL.grn, fontFamily: F.m }}>+{campScore}</div><div style={{ fontSize: TS(29), color: CL.td }}>YOU</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontWeight: 700, color: CL.red, fontFamily: F.m }}>+{campOpp}</div><div style={{ fontSize: TS(29), color: CL.td }}>OPP</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>₦{campWarChest.toFixed(1)}B</div><div style={{ fontSize: TS(29), color: CL.td }}>WAR CHEST</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontWeight: 700, color: CL.pur, fontFamily: F.m }}>W{week}/4</div><div style={{ fontSize: TS(29), color: CL.td }}>WEEK</div></div>
-                </div>
+                <ScoreBoard />
                 {campWarChest < 0.2 && !campGfBorrowed && setup?.level !== "easy" && (() => {
                   const gfWilling = godfatherRel > 30;
                   return gfWilling ? <Cd onClick={borrowGF2} style={{ padding: 19, borderColor: CL.red + "44", marginBottom: 14, textAlign: "center" }}>
@@ -5626,23 +5679,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 {campGfDebt > 0 && <div style={{ fontSize: TS(29), color: CL.red, marginBottom: 14 }}>🎩 Godfather debt: ₦{campGfDebt}B</div>}
               </div>
               <div style={{ display: "grid", gap: 22 }}>
-                {weekActs.map((act, i) => {
-                  const canAfford2 = !act.cost || act.cost <= campWarChest;
-                  return <Cd key={i} onClick={canAfford2 ? () => handleChoice(act) : undefined} style={{ padding: 29, opacity: canAfford2 ? 1 : .35 }}>
-                    <div style={{ fontWeight: 600, fontSize: TS(38), color: canAfford2 ? CL.txt : CL.td, marginBottom: 7 }}>{act.l}</div>
-                    <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.3 }}>{act.d}</div>
-                    <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
-                      <Bg text={"+" + act.pts} color={CL.grn} />
-                      {act.cost > 0 && <Bg text={"₦" + act.cost + "B"} color={canAfford2 ? CL.org : CL.red} />}
-                      {act.cost === 0 && <Bg text="FREE" color={CL.grn} />}
-                      {act.oppPts < 0 && <Bg text={act.oppPts + " opp"} color={CL.grn} />}
-                      {act.oppPts > 0 && <Bg text={"+" + act.oppPts + " opp"} color={CL.red} />}
-                      {act.corAdd && <Bg text="Corruption!" color={CL.red} />}
-                      {!canAfford2 && <Bg text="CAN'T AFFORD" color={CL.red} />}
-                    </div>
-                    <div style={{ fontSize: TS(29), color: CL.org, marginTop: 7 }}>⚠️ {act.risk}</div>
-                  </Cd>;
-                })}
+                {withFallback(weekActs).map((act, i) => <OptCard key={i} opt={act} />)}
               </div>
               {/* Broke — choose to withdraw OR run with no funds (80/20 loss) */}
               {campWarChest < 0.05 && (campGfBorrowed || godfatherRel <= 30) && <div style={{ display: "grid", gap: 22, marginTop: 22 }}>
