@@ -192,11 +192,12 @@ const STATES = {
 };
 
 const PARTIES = [
-  { id: "APC", nm: "All Progressives Congress", c: "#1a6d2e", i: "🟢", ticket: 0.5, strength: 1.15, desc: "Ruling party since 2015. ₦500M ticket — most expensive. Aso Rock backing, Progressive Governors Forum, and the deepest 2027-cycle war chest." },
-  { id: "ADC", nm: "African Democratic Congress", c: "#0d9488", i: "🩵", ticket: 0.35, strength: 1.08, desc: "The new opposition coalition vehicle — Atiku, El-Rufai and other heavyweights. ₦350M ticket. Riding real 2025 momentum, but internal tribal fights over the presidential ticket." },
-  { id: "NDC", nm: "National Democratic Coalition", c: "#f59e0b", i: "🟡", ticket: 0.3, strength: 1.05, desc: "Peter Obi's new political vehicle after exiting Labour Party. ₦300M ticket. Rides the Obidient movement — huge urban and youth appeal, especially South-East, South-South and Lagos." },
-  { id: "PDP", nm: "Peoples Democratic Party", c: "#cc3333", i: "🔴", ticket: 0.28, strength: 0.95, desc: "The legacy party — bruised by the Wike/Atiku wars and mass defections to ADC and NDC. ₦280M ticket. Structure remains in the South-South and North-Central." },
-  { id: "LP", nm: "Labour Party", c: "#2563eb", i: "🔵", ticket: 0.15, strength: 0.85, desc: "Post-Obi Labour Party — hollowed out by NDC defections. ₦150M ticket. Still holds some NLC and TUC muscle, but the Abure/Usman leadership crisis lingers." },
+  // Order: APC, PDP, NDC, ADC, LP. Descriptions describe the parties only.
+  { id: "APC", nm: "All Progressives Congress", c: "#1a6d2e", i: "🟢", ticket: 0.5, strength: 1.15, desc: "The governing party at the centre. ₦500M ticket, the most expensive. Strong federal backing and the deepest campaign money." },
+  { id: "PDP", nm: "Peoples Democratic Party", c: "#cc3333", i: "🔴", ticket: 0.28, strength: 0.95, desc: "The oldest national opposition party. ₦280M ticket. Weakened by defections, but its structures still hold in the South-South and North-Central." },
+  { id: "NDC", nm: "National Democratic Coalition", c: "#f59e0b", i: "🟡", ticket: 0.3, strength: 1.05, desc: "A newer party with strong urban and youth appeal, especially in the South-East, South-South and Lagos. ₦300M ticket." },
+  { id: "ADC", nm: "African Democratic Congress", c: "#0d9488", i: "🩵", ticket: 0.35, strength: 1.08, desc: "An established opposition party that has grown quickly. ₦350M ticket. Rising support, with open disputes over who leads it." },
+  { id: "LP", nm: "Labour Party", c: "#2563eb", i: "🔵", ticket: 0.15, strength: 0.85, desc: "A labour-aligned party with links to the trade unions. ₦150M ticket. Smaller after defections and a leadership dispute." },
 ];
 
 const STATE_LGAS = {
