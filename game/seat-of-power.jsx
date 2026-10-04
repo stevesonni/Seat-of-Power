@@ -652,6 +652,14 @@ const sloganDef = (sl) => SLOGAN_DEFS.find(d => d.m.test(String(sl || ""))) || n
 // The agenda picked at setup. Shown in the header, quoted by the anchors and
 // the adviser, given its own Desk decision every year ("flagship" phase) and
 // judged in the Wikipedia article from the "flagship_milestone" record.
+// What each flagship does every quarter (shown on the State sheet).
+const FLAGSHIP_BONUS = {
+  education: "+50% literacy growth · +2 youth/turn", health: "+50% health growth · +2 women/turn",
+  infrastructure: "+50% infra growth · +10% project speed", security: "+50% security · -20% shock damage",
+  agriculture: "+50% agr · +₦0.3B IGR/turn", anticorruption: "-40% corruption drift · +3 media/turn",
+  youth: "+3 youth/turn · MSME IGR boost", women: "+25% health & literacy",
+  technology: "+₦0.4B IGR/turn · +5 business", housing: "+3 approval/turn if treasury > ₦5B",
+};
 const FLAGSHIP = {
   education: { i: "📚", nm: "Education for All", goal: "rehabilitate 120 primary schools" },
   health: { i: "🏥", nm: "Healthcare Revolution", goal: "reopen 40 primary health centres" },
@@ -2623,7 +2631,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const navMemory = React.useRef({}); // last sub-tab opened on each screen
   const [menuOpen, setMenuOpen] = useState(false); // phone ☰ menu
   const [sosOpen, setSosOpen] = useState(false);   // phone "State of the state" sheet
-  const [budOpen, setBudOpen] = useState(null);    // phone: budget sector whose details are open
+  const [budOpen, setBudOpen] = useState(null);    // budget sector whose details are open
+  const [budTune, setBudTune] = useState(false);   // budget: the eight sector rows are showing
+  const [budInfo, setBudInfo] = useState(false);   // budget: "What's in the pot?" is open
+  const [polTab, setPolTab] = useState("pol");     // policies step: programmes, bills or executive orders
+  const [polAll, setPolAll] = useState(false);     // policies step: every programme, not just the first five
 
   /* Visual mode follows where the player is standing:
      - public: media, campaign, the crowd, the anchors
@@ -2869,8 +2881,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const titleChanged = lastBriefRef.current.title !== saBrief.title;
     const turnChanged = lastBriefRef.current.turn !== turn;
     if (saBrief.urgent && (titleChanged || turnChanged)) {
-      const msg = "SA " + (saOffice.adviser.name.split(" ").slice(-1)[0]) + ": " + saBrief.icon + " " + saBrief.title;
-      try { window.SOP_V2_toast ? window.SOP_V2_toast(msg, "warn") : addL(msg, "warn"); } catch (e) { addL(msg, "warn"); }
     }
     lastBriefRef.current = { title: saBrief.title, turn };
   }, [saBrief.title, turn, saOffice.adviser]);
@@ -4544,6 +4554,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   navMemory.current[curScreen.id] = nav;
   const subBtn = (on, color) => ({ padding: "10px 26px", borderRadius: 21, border: "1px solid " + (on ? color : CL.bdr), background: on ? color + "12" : "transparent", color: on ? color : CL.td, fontSize: TS(31), fontFamily: F.b, cursor: "pointer", whiteSpace: "nowrap", flex: "0 0 auto" });
 
+  // The four numbers that matter, always in view. Tapping opens the State sheet.
+  const tone = (v, good, warn) => v >= good ? "#2fa866" : v >= warn ? "#d9a21b" : "#e0574c";
+  const STRIP = [
+    ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40)],
+    ["Treasury", naira(tb), null],
+    ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30)],
+    ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55)],
+  ];
+  const statusStrip = (dark) => <button onClick={() => { setSosOpen(true); setMenuOpen(false); }} aria-label="Open the State sheet" style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, background: dark ? "transparent" : CL.card, border: dark ? 0 : "1px solid " + CL.bdr, borderRadius: 16, padding: dark ? 0 : "12px 10px", cursor: "pointer", color: dark ? "#f3f7ef" : CL.txt, fontFamily: F.b }}>
+    {STRIP.map(([l, v, c]) => <span key={l} style={{ display: "grid", justifyItems: "center", gap: 2, minWidth: 0 }}>
+      <b style={{ fontFamily: F.m, fontSize: TALL() ? TS(24) : TS(40), lineHeight: 1.1, whiteSpace: "nowrap" }}>{c && <span style={{ display: "inline-block", width: TALL() ? 8 : 12, height: TALL() ? 8 : 12, borderRadius: "50%", background: c, marginRight: 5, verticalAlign: TALL() ? 2 : 4 }} />}{v}</b>
+      <span style={{ fontSize: TALL() ? TS(16) : TS(24), opacity: .75, whiteSpace: "nowrap" }}>{l}</span>
+    </span>)}
+  </button>;
+  // One type scale for the policies step.
+  const PFS = { s: TALL() ? TS(20) : TS(30), m: TALL() ? TS(24) : TS(36), l: TALL() ? TS(30) : TS(52) };
+  // The half-year as a short checklist, in the order the game runs it.
+  const STEP_OF = { budget: 0, house_vote: 1, policy: 2, end_turn: 3 };
+  const stepNow = STEP_OF[phase] !== undefined ? STEP_OF[phase] : 4;
+  const deskSteps = () => <div aria-label="This half-year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
+    {(!ministries || ministries.length === 0) && <button onClick={() => goTab("min")} style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", minHeight: 36, fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>Ministries: to do</button>}
+    {["Budget", "House vote", "Policies", "Review", "Events"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
+      background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
+  </div>;
+
   return (
     <div style={{ minHeight: "100%", background: CL.bg }}>
       <Flag />
@@ -4554,26 +4589,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
             <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}>☰</button>
-            <button onClick={() => { setSosOpen(o => !o); setMenuOpen(false); }} aria-expanded={sosOpen} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, color: "#f3f7ef", cursor: "pointer", padding: 0, minHeight: 56 }}>
-              <div style={{ fontFamily: F.c, fontWeight: 800, fontSize: TS(20), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Gov. {pName.split(" ").pop()} · {state.replace("_", " ")}</div>
-              <div style={{ fontSize: TS(20), opacity: .8, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Turn {turn} of {MT} · {FLAGSHIP[setup?.agenda] ? FLAGSHIP[setup.agenda].i + " " + FLAGSHIP[setup.agenda].nm : "State of the state"} {sosOpen ? "▲" : "▼"}</div>
-            </button>
-            <div onClick={() => { setSosOpen(o => !o); setMenuOpen(false); }} style={{ flexShrink: 0, padding: "8px 14px", borderRadius: 999, background: s.app > 60 ? "#1f7a46" : s.app > 40 ? "#8a6400" : "#8b1a1a", fontFamily: F.m, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>Approval {Math.round(s.app)}%</div>
+            {statusStrip(true)}
           </div>
-          {sosOpen && <div style={{ padding: "4px 16px 16px", borderTop: "1px solid rgba(255,255,255,.12)" }}>
-            {[
-              ["Treasury this half-year", naira(tb)],
-              ["State debt", naira(s.debt)],
-              ["Party support", Math.round(s.pStab) + "%"],
-              ["State economy (GDP)", naira(s.gdp || 0)],
-              ["Corruption exposure", Math.round((s.cor || 0) * 100) + "%"],
-            ].map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,.08)", fontSize: TS(20) }}><span style={{ opacity: .8 }}>{k}</span><b style={{ fontFamily: F.m }}>{v}</b></div>)}
-            <div style={{ display: "flex", gap: 6, marginTop: 12, alignItems: "center" }}>
-              {Array.from({ length: MT }).map((_, k) => <div key={k} style={{ flex: 1, height: 6, borderRadius: 3, background: k < turn - 1 ? "#7ee2a8" : k === turn - 1 ? "#ffd166" : "rgba(255,255,255,.18)" }} />)}
-              <span style={{ fontSize: TS(20), opacity: .8, marginLeft: 6, whiteSpace: "nowrap" }}>{yr.replace(/^.*Year/, "Year")}</span>
-            </div>
-          </div>}
-          {menuOpen && <div style={{ padding: "4px 16px 14px", borderTop: "1px solid rgba(255,255,255,.12)", display: "grid", gap: 8 }}>
+                    {menuOpen && <div style={{ padding: "4px 16px 14px", borderTop: "1px solid rgba(255,255,255,.12)", display: "grid", gap: 8 }}>
             {[
               ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
               ["📖 Help", () => onHelp()],
@@ -4587,24 +4605,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + (nav === t.k ? CL.grn : CL.bdr), background: nav === t.k ? CL.grn : CL.card, color: nav === t.k ? "#fff" : CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>{t.l}</button>)}
           {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + CL.bdr, background: CL.card, color: CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>Standing</button>}
         </div>}
-        {!TALL() && <>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22, flexWrap: "wrap", gap: 14 }}>
-          <div>
-            <div style={{ fontSize: TS(29), letterSpacing: 7, color: CL.grn, fontFamily: F.m, textTransform: "uppercase", paddingRight: TALL() ? 140 : 0 }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
-            <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), margin: 1, fontWeight: 600 }}>{yr}</h2>
-            {FLAGSHIP[setup?.agenda] && <div style={{ fontSize: TS(27), color: CL.grn, fontWeight: 700 }}>{FLAGSHIP[setup.agenda].i} Flagship: {FLAGSHIP[setup.agenda].nm}</div>}
+        {!TALL() && <div style={{ display: "flex", alignItems: "center", gap: 29, marginBottom: 22 }}>
+          <div style={{ flexShrink: 0 }}>
+            <div style={{ fontSize: TS(27), color: CL.td, fontWeight: 700 }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
+            <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(50), margin: 0, fontWeight: 700 }}>{yr}</h2>
           </div>
-          <div style={TALL() ? { display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "14px 10px", width: "100%", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: "16px 10px" } : { display: "flex", gap: 29, alignItems: "center", flexWrap: "wrap" }}>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: s.app > 60 ? CL.grn : s.app > 40 ? CL.org : CL.red }}>{Math.round(s.app)}%</div><div style={{ fontSize: TS(29), color: CL.td }}>APPR</div><Spark data={appH} color={s.app > 50 ? CL.grn : CL.red} w={50} h={14} /></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: CL.gold }}>{naira(tb)}</div><div style={{ fontSize: TS(29), color: CL.td }}>BUDGET</div></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: CL.blu }}>{naira(s.gdp || 0)}</div><div style={{ fontSize: TS(29), color: CL.td }}>GDP</div></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(50), fontFamily: F.m, color: s.debt > 10 ? CL.red : CL.tm }}>{naira(s.debt)}</div><div style={{ fontSize: TS(29), color: CL.td }}>DEBT</div></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(43), fontFamily: F.m, color: CL.pur }}>{turn}/{MT}</div><div style={{ fontSize: TS(29), color: CL.td }}>TURN</div></div>
-            <div style={{ textAlign: "center" }}><div style={{ fontSize: TS(38) }}>{(NARRATIVES.find(n => n.id === narrative) || NARRATIVES[7]).icon}</div><div style={{ fontSize: TS(29), color: CL.td }}>{(NARRATIVES.find(n => n.id === narrative) || NARRATIVES[7]).nm.split(" ").pop()}</div></div>
-          </div>
-        </div>
-        <div style={{ height: 10, background: "#e0e5d5", borderRadius: 6, marginBottom: 29, overflow: "hidden" }}><div style={{ width: (turn / MT * 100) + "%", height: "100%", background: CL.grn, transition: "width .5s" }} /></div>
-        </>}
+          {statusStrip(false)}
+        </div>}
         {!flagUsed && s.app < 50 && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
         {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
           {SCREENS.map(sc => {
@@ -4631,7 +4638,75 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <button onClick={saveGame} style={{ ...subBtn(true, CL.teal), marginLeft: "auto" }}>💾 Save</button>
           </div>
         </div>}
-        {(!TALL() || curScreen.id === "desk") && <ExecutiveCommandSA adviser={saOffice.adviser} brief={saBrief} inbox={saInbox} vacantTurns={Math.max(0, 3 - (turn - saOffice.firedTurn))} onFire={fireAdviser} />}
+        {nav === "gov" && deskSteps()}
+        {nav === "gov" && saBrief.urgent && !/^Balance the Appropriation/.test(saBrief.title) && <div style={{ display: "flex", gap: 12, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 20px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, margin: TALL() ? "0 0 14px" : "0 auto 22px", maxWidth: TALL() ? 900 : 1320 }}>
+          {saOffice.adviser ? <img src={SA_PORTRAIT} alt="" style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "18", flexShrink: 0 }} /> : null}
+          <div style={{ flex: 1, minWidth: 0, fontSize: TALL() ? TS(20) : TS(31), color: CL.tm, lineHeight: 1.35 }}><b style={{ color: CL.txt }}>{saOffice.adviser ? saOffice.adviser.name.split(" ").slice(-1)[0] : "Adviser's desk"}:</b> {saBrief.title}.</div>
+          {saBrief.action && <button onClick={saBrief.action} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: CL.grn, color: "#fff", padding: TALL() ? "10px 14px" : "12px 22px", minHeight: 44, fontSize: TALL() ? TS(20) : TS(29), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>{saBrief.actionLabel}</button>}
+        </div>}
+
+        <OL show={sosOpen}>
+          <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: 0, fontSize: TALL() ? TS(32) : TS(56), fontWeight: 700 }}>State of {state.replace("_", " ")}</h3>
+              <button onClick={() => setSosOpen(false)} aria-label="Close" style={{ width: 48, height: 48, minHeight: 48, borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.bg, color: CL.txt, fontSize: TS(24), cursor: "pointer" }}>✕</button>
+            </div>
+            <div style={{ fontSize: TALL() ? TS(20) : TS(30), color: CL.td, marginBottom: 8 }}>Gov. {pName} · {party} · {yr}</div>
+            <div style={{ display: "flex", gap: 6, margin: "4px 0 14px" }}>
+              {Array.from({ length: MT }).map((_, k) => <div key={k} style={{ flex: 1, height: 6, borderRadius: 3, background: k < turn - 1 ? CL.grn : k === turn - 1 ? CL.gold : CL.bdr }} />)}
+            </div>
+            {[
+              ["Treasury this half-year", naira(tb)],
+              ["State debt", naira(s.debt) + (s.debt > 0 ? " · " + naira(s.debt * .08) + " service due" : "")],
+              ["Party support", Math.round(s.pStab) + "%"],
+              ["State economy (GDP)", naira(s.gdp || 0)],
+              ["Corruption exposure", Math.round((s.cor || 0) * 100) + "%"],
+            ].map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 0", borderBottom: "1px solid " + CL.bdr, fontSize: TALL() ? TS(20) : TS(31) }}><span style={{ color: CL.tm }}>{k}</span><b style={{ color: CL.txt, fontFamily: F.m }}>{v}</b></div>)}
+            {FLAGSHIP[setup?.agenda] && <div style={{ margin: "14px 0", padding: TALL() ? "12px 14px" : "16px 22px", background: CL.grn + "0d", borderRadius: 14, fontSize: TALL() ? TS(20) : TS(31), color: CL.tm }}>
+              <b style={{ color: CL.grn }}>Flagship: {FLAGSHIP[setup.agenda].nm}</b><br />{FLAGSHIP_BONUS[setup.agenda]}, applied every quarter.
+            </div>}
+            <div style={{ marginTop: 14 }}>
+            <Fold title="State indicators" summary={"Literacy " + Math.round(s.lit * 100) + "% · Health " + Math.round(s.hp * 100) + "% · Security " + Math.round(s.sec * 100) + "% · Corruption " + Math.round(s.cor * 100) + "%"}>
+            <Cd style={{ marginBottom: 22 }}><div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 14 }}>INDICATORS</div><SB label="Literacy" value={s.lit} color={CL.blu} icon="📖" /><SB label="Health" value={s.hp} color={CL.grn} icon="🏥" /><SB label="Infra" value={s.infra} color={CL.org} icon="🏗️" /><SB label="Security" value={s.sec} color={CL.red} icon="🛡️" /><SB label="Agriculture" value={s.agr} color="#16a34a" icon="🌾" /><div style={{ borderTop: "1px solid " + CL.bdr, marginTop: 10, paddingTop: 10 }}><SB label="Corruption" value={s.cor} color={CL.red} icon="⚠️" /></div></Cd>
+            </Fold>
+            <Fold title={"Programmes in progress (" + pol.length + ")"} summary={pol.length ? pol.map(p => p.nm).slice(0, 2).join(" · ") + (pol.length > 2 ? " …" : "") : "Nothing running yet" + (completedProjects.length ? " · " + completedProjects.length + " completed" : "")}>
+            <Cd>
+              <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 10 }}>🏗️ IN PROGRESS ({pol.length})</div>
+              {pol.length === 0 ? <div style={{ color: CL.td, fontSize: TS(31) }}>No active projects</div> : pol.map(p => {
+                const orig = POLICIES.find(pp => pp.id === p.id);
+                const totalT = orig?.t || p.tl + 1;
+                const pctDone = Math.round((1 - p.tl / totalT) * 100);
+                return <div key={p.id} style={{ padding: "10px 0", borderBottom: "1px solid " + CL.bdr }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ color: CL.txt, fontSize: TS(34), fontWeight: 600 }}>{p.nm}</span>
+                    <span style={{ fontSize: TS(29), color: CL.pur, fontFamily: F.m }}>{p.tl}T left</span>
+                  </div>
+                  <div style={{ height: 14, background: "#e8ece0", borderRadius: 6, overflow: "hidden", marginTop: 7 }}><div style={{ width: pctDone + "%", height: "100%", background: CL.grn, transition: "width .3s" }} /></div>
+                  <div style={{ display: "flex", gap: 7, marginTop: 7 }}>
+                    <span style={{ fontSize: TS(29), color: CL.td }}>{pctDone}% done</span>
+                    {p.cr > 0 && <span style={{ fontSize: TS(29), color: CL.red }}>· {Math.round(p.cr * 100)}% risk</span>}
+                    <span style={{ fontSize: TS(29), color: CL.gold }}>· {naira(p.c)}</span>
+                  </div>
+                </div>;
+              })}
+              {completedProjects.length > 0 && <div style={{ marginTop: 22, borderTop: "1px solid " + CL.bdr, paddingTop: 14 }}>
+                <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.teal, fontFamily: F.m, marginBottom: 10 }}>✅ COMPLETED ({completedProjects.length})</div>
+                {completedProjects.map((cp, i) => <div key={i} style={{ padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>
+                  <div style={{ fontSize: TS(31), color: CL.grn, fontWeight: 600 }}>{cp.nm}</div>
+                  <div style={{ fontSize: TS(29), color: CL.td }}>{cp.desc}</div>
+                  <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
+                    <span style={{ fontSize: TS(29), color: CL.gold }}>{naira(cp.cost)}</span>
+                    {cp.jobs > 0 && <span style={{ fontSize: TS(29), color: CL.blu }}>+{cp.jobs.toLocaleString()} jobs</span>}
+                    {cp.sector && <span style={{ fontSize: TS(29), color: CL.pur }}>{cp.sector}</span>}
+                  </div>
+                </div>)}
+              </div>}
+            </Cd>
+            </Fold>
+</div>
+            <div style={{ marginTop: 14 }}><ExecutiveCommandSA adviser={saOffice.adviser} brief={saBrief} inbox={saInbox} vacantTurns={Math.max(0, 3 - (turn - saOffice.firedTurn))} onFire={fireAdviser} /></div>
+          </Cd>
+        </OL>
 
         <OL show={phase === "judiciary" && !!curCourt}>
           {curCourt && (() => {
@@ -6509,75 +6584,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
 
 
-        {/* Flagship Agenda ribbon — always visible when playing so the choice has weight */}
-        {setup?.agenda && nav === "gov" && (() => {
-          const AG_MAP = {
-            education: { i: "📚", nm: "Education for All", bonus: "+50% literacy growth · +2 youth/turn" },
-            health: { i: "🏥", nm: "Healthcare Revolution", bonus: "+50% health growth · +2 women/turn" },
-            infrastructure: { i: "🏗️", nm: "Build, Build, Build", bonus: "+50% infra growth · +10% project speed" },
-            security: { i: "🛡️", nm: "Peace & Security", bonus: "+50% security · -20% shock damage" },
-            agriculture: { i: "🌾", nm: "Agricultural Transformation", bonus: "+50% agr · +₦0.3B IGR/turn" },
-            anticorruption: { i: "⚖️", nm: "Clean Governance", bonus: "-40% corruption drift · +3 media/turn" },
-            youth: { i: "💼", nm: "Youth Empowerment", bonus: "+3 youth/turn · MSME IGR boost" },
-            women: { i: "👩", nm: "Women & Social Welfare", bonus: "+25% health & literacy" },
-            technology: { i: "💻", nm: "Digital Economy", bonus: "+₦0.4B IGR/turn · +5 business" },
-            housing: { i: "🏠", nm: "Affordable Housing", bonus: "+3 approval/turn if treasury > ₦5B" },
-          };
-          const AG = AG_MAP[setup.agenda];
-          if (!AG) return null;
-          if (TALL()) return <Fold title={AG.i + " Flagship: " + AG.nm} summary="Applied every quarter · tap for the effect"><div style={{ fontSize: TS(20), color: CL.tm, padding: "4px 4px 0" }}>{AG.bonus}</div></Fold>;
-          return <div style={{ margin: "0 0 22px", padding: "22px 36px", background: CL.grn + "10", border: "1px solid " + CL.grn + "44", borderRadius: 13, display: "flex", alignItems: "center", gap: 29, fontSize: TS(36) }}>
-            <span style={{ fontSize: TS(58) }}>{AG.i}</span>
-            <div style={{ flex: 1, minWidth: 1 }}>
-              <div style={{ fontWeight: 700, color: CL.grn }}>Flagship in effect: {AG.nm}</div>
-              <div style={{ color: CL.tm, fontSize: TS(34) }}>{AG.bonus} — applied every quarter</div>
-            </div>
-          </div>;
-        })()}
 
 
 
 
-        {nav === "gov" && <div className="sop-gov-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,200px) 1fr", gap: TALL() ? 0 : 29 }}>
-          <div style={{ minWidth: 1, order: TALL() ? 2 : 0 }}>
-            <Fold title="State indicators" summary={"Literacy " + Math.round(s.lit * 100) + "% · Health " + Math.round(s.hp * 100) + "% · Security " + Math.round(s.sec * 100) + "% · Corruption " + Math.round(s.cor * 100) + "%"}>
-            <Cd style={{ marginBottom: 22 }}><div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 14 }}>INDICATORS</div><SB label="Literacy" value={s.lit} color={CL.blu} icon="📖" /><SB label="Health" value={s.hp} color={CL.grn} icon="🏥" /><SB label="Infra" value={s.infra} color={CL.org} icon="🏗️" /><SB label="Security" value={s.sec} color={CL.red} icon="🛡️" /><SB label="Agriculture" value={s.agr} color="#16a34a" icon="🌾" /><div style={{ borderTop: "1px solid " + CL.bdr, marginTop: 10, paddingTop: 10 }}><SB label="Corruption" value={s.cor} color={CL.red} icon="⚠️" /></div></Cd>
-            </Fold>
-            <Fold title={"Programmes in progress (" + pol.length + ")"} summary={pol.length ? pol.map(p => p.nm).slice(0, 2).join(" · ") + (pol.length > 2 ? " …" : "") : "Nothing running yet" + (completedProjects.length ? " · " + completedProjects.length + " completed" : "")}>
-            <Cd>
-              <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 10 }}>🏗️ IN PROGRESS ({pol.length})</div>
-              {pol.length === 0 ? <div style={{ color: CL.td, fontSize: TS(31) }}>No active projects</div> : pol.map(p => {
-                const orig = POLICIES.find(pp => pp.id === p.id);
-                const totalT = orig?.t || p.tl + 1;
-                const pctDone = Math.round((1 - p.tl / totalT) * 100);
-                return <div key={p.id} style={{ padding: "10px 0", borderBottom: "1px solid " + CL.bdr }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ color: CL.txt, fontSize: TS(34), fontWeight: 600 }}>{p.nm}</span>
-                    <span style={{ fontSize: TS(29), color: CL.pur, fontFamily: F.m }}>{p.tl}T left</span>
-                  </div>
-                  <div style={{ height: 14, background: "#e8ece0", borderRadius: 6, overflow: "hidden", marginTop: 7 }}><div style={{ width: pctDone + "%", height: "100%", background: CL.grn, transition: "width .3s" }} /></div>
-                  <div style={{ display: "flex", gap: 7, marginTop: 7 }}>
-                    <span style={{ fontSize: TS(29), color: CL.td }}>{pctDone}% done</span>
-                    {p.cr > 0 && <span style={{ fontSize: TS(29), color: CL.red }}>· {Math.round(p.cr * 100)}% risk</span>}
-                    <span style={{ fontSize: TS(29), color: CL.gold }}>· {naira(p.c)}</span>
-                  </div>
-                </div>;
-              })}
-              {completedProjects.length > 0 && <div style={{ marginTop: 22, borderTop: "1px solid " + CL.bdr, paddingTop: 14 }}>
-                <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.teal, fontFamily: F.m, marginBottom: 10 }}>✅ COMPLETED ({completedProjects.length})</div>
-                {completedProjects.map((cp, i) => <div key={i} style={{ padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>
-                  <div style={{ fontSize: TS(31), color: CL.grn, fontWeight: 600 }}>{cp.nm}</div>
-                  <div style={{ fontSize: TS(29), color: CL.td }}>{cp.desc}</div>
-                  <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
-                    <span style={{ fontSize: TS(29), color: CL.gold }}>{naira(cp.cost)}</span>
-                    {cp.jobs > 0 && <span style={{ fontSize: TS(29), color: CL.blu }}>+{cp.jobs.toLocaleString()} jobs</span>}
-                    {cp.sector && <span style={{ fontSize: TS(29), color: CL.pur }}>{cp.sector}</span>}
-                  </div>
-                </div>)}
-              </div>}
-            </Cd>
-            </Fold>
-          </div>
+        {nav === "gov" && <div className="sop-gov-grid" style={{ maxWidth: TALL() ? 900 : 1320, margin: "0 auto" }}>
           <div>
 
             {phase === "budget" && (() => {
@@ -6593,14 +6604,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               };
               const grpOrder = ["Human Development", "Growth Engines", "Obligations"];
               const grpColor = { "Human Development": CL.blu, "Growth Engines": CL.grn, "Obligations": CL.pur };
-              const applyPreset = (preset) => {
-                const presets = {
+              const presets = {
                   recommended: { salaries: 18, debt: 8,  administration: 7,  health: 15, education: 15, security: 11, infrastructure: 16, agriculture: 10 },
                   populist:    { salaries: 22, debt: 4,  administration: 9,  health: 14, education: 13, security: 10, infrastructure: 18, agriculture: 10 },
                   reformer:    { salaries: 17, debt: 12, administration: 5,  health: 17, education: 17, security: 10, infrastructure: 14, agriculture: 8  },
                   godfather:   { salaries: 18, debt: 5,  administration: 12, health: 10, education: 10, security: 12, infrastructure: 22, agriculture: 11 },
-                };
-                setBud(presets[preset]);
               };
               const remaining = 100 - bs;
               // What this split means, in plain words, before it goes to the House
@@ -6627,159 +6635,80 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <div style={{ fontSize: fs, color: CL.td, fontWeight: 700, marginBottom: 4 }}>If the House passes this</div>
                 {budgetSays().map((l, i) => <div key={i} style={{ fontSize: fs, color: CL.txt, lineHeight: 1.4 }}>{l}</div>)}
               </div>;
-              if (TALL()) {
-                // Phone: the total as one sentence, one row per sector, details on tap.
-                const chip = (txt, col) => <span style={{ display: "inline-block", padding: "6px 14px", borderRadius: 999, background: col + "18", color: col, fontFamily: F.m, fontWeight: 700, fontSize: TS(20) }}>{txt}</span>;
-                const step = (k, d) => setBud(p => ({ ...p, [k]: Math.max(0, Math.min(100, (p[k] || 0) + d)) }));
-                const stepBtn = { width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, color: CL.txt, fontSize: TS(25), fontWeight: 700, cursor: "pointer", flexShrink: 0 };
-                return <Cd style={{ padding: "20px 16px" }}>
-                  {s.igr + s.faac < 3 && <div style={{ fontSize: TS(20), color: CL.red, fontWeight: 700, marginBottom: 10 }}>🚨 Revenue has collapsed to {naira(s.igr + s.faac)}. The state is close to bankrupt.</div>}
-                  <div style={{ fontSize: TS(20), color: CL.td, textTransform: "uppercase", letterSpacing: 1 }}>Appropriation bill · Year {Math.ceil(turn / 2)}, half {((turn - 1) % 2) + 1}</div>
-                  <div style={{ fontFamily: F.d, fontSize: TS(32), fontWeight: 700, color: CL.txt, margin: "6px 0 4px", lineHeight: 1.2 }}>{naira(tb)} to spend this half-year</div>
-                  <div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.4 }}>IGR {naira(s.igr)} (money the state raises itself) + FAAC {naira(s.faac)} (its federal share){s.debt > 0 ? " − " + naira(s.debt * .08) + " debt service" : ""}.</div>
-                  <div style={{ margin: "12px 0" }}>{bs === 100 ? chip("✓ Balanced: 100% allocated", CL.grn) : bs > 100 ? chip("Over by " + (bs - 100) + "% (" + naira(tb * (bs - 100) / 100) + ")", CL.red) : chip(bs + "% allocated · " + naira(tb * remaining / 100) + " left", CL.org)}</div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-                    <span style={{ fontSize: TS(20), color: CL.td }}>Start from:</span>
-                    {[["recommended", "Balanced", CL.grn], ["populist", "Populist", CL.org], ["reformer", "Reformer", CL.blu], ["godfather", "Godfather", CL.pur]].map(([k, l, c]) =>
-                      <button key={k} onClick={() => applyPreset(k)} style={{ padding: "6px 14px", minHeight: 44, borderRadius: 999, border: "1px solid " + c + "60", background: c + "12", color: c, fontSize: TS(20), fontWeight: 700, cursor: "pointer" }}>{l}</button>)}
-                  </div>
-                  {grpOrder.map(gname => {
-                    const items = BSECTORS.filter(sec => (SEC_META[sec.k]?.grp) === gname);
-                    const gsum = items.reduce((a, sec) => a + (bud[sec.k] || 0), 0);
-                    return <div key={gname} style={{ marginBottom: 14 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: TS(20), color: grpColor[gname], fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, padding: "6px 2px" }}><span>{gname}</span><span style={{ fontFamily: F.m }}>{gsum}%</span></div>
-                      {items.map(sec => {
-                        const meta = SEC_META[sec.k] || { min: 5, max: 20, funds: "", low: "", high: "" };
-                        const pct2 = bud[sec.k] || 0;
-                        const status = pct2 < meta.min ? "low" : pct2 > meta.max ? "high" : "ok";
-                        const sc = status === "ok" ? CL.grn : status === "low" ? CL.red : CL.org;
-                        const open = budOpen === sec.k;
-                        return <div key={sec.k} style={{ borderTop: "1px solid " + CL.bdr, padding: "10px 0" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <button onClick={() => setBudOpen(open ? null : sec.k)} aria-expanded={open} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: 0, cursor: "pointer", textAlign: "left", color: CL.txt, minHeight: 56 }}>
-                              <span style={{ fontSize: TS(25) }}>{sec.i}</span>
-                              <span style={{ flex: 1, minWidth: 0 }}>
-                                <span style={{ display: "block", fontSize: TS(25), fontWeight: 700 }}>{sec.l}</span>
-                                <span style={{ display: "block", fontSize: TS(20), color: sc }}>{status === "ok" ? "In range" : status === "low" ? "Underfunded" : "Too much"} · {naira(tb * pct2 / 100)}</span>
-                              </span>
-                              <span style={{ fontFamily: F.m, fontWeight: 700, fontSize: TS(25), color: sc }}>{pct2}%</span>
-                            </button>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <button onClick={() => step(sec.k, -1)} aria-label={"Less " + sec.l} style={stepBtn}>−</button>
-                            <input type="range" min={0} max={40} value={pct2} aria-label={sec.l + " share"} onChange={e => { const v = +e.target.value; setBud(p => ({ ...p, [sec.k]: v })); }} style={{ flex: 1, minWidth: 0, accentColor: sc, height: 32 }} />
-                            <button onClick={() => step(sec.k, 1)} aria-label={"More " + sec.l} style={stepBtn}>+</button>
-                          </div>
-                          {open && <div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45, padding: "6px 4px 2px" }}>
-                            <div>{meta.funds}</div>
-                            <div style={{ color: CL.td, marginTop: 4 }}>Healthy range {meta.min}–{meta.max}%.</div>
-                            {status !== "ok" && <div style={{ color: sc, marginTop: 4 }}>{status === "low" ? "If you submit this: " + meta.low : "Waste flag: " + meta.high}</div>}
-                          </div>}
-                        </div>;
-                      })}
+              // One decision first: pick a stance. The eight sectors are one
+              // tap away under "Fine-tune"; the explanations sit behind "What's in the pot?".
+              const tall = TALL();
+              const fs = { s: tall ? TS(20) : TS(30), m: tall ? TS(24) : TS(36), l: tall ? TS(32) : TS(56) };
+              const STANCES = [
+                ["recommended", "Balanced", "Every sector in its healthy range."],
+                ["populist", "Populist", "Wages and roads first; debt waits."],
+                ["reformer", "Reformer", "Pay down debt, cut the overheads."],
+                ["godfather", "Godfather's budget", "Big contracts and a fat Government House."],
+              ];
+              const same = (a, b) => BSECTORS.every(sec => (a[sec.k] || 0) === (b[sec.k] || 0));
+              const warnCount = (v) => BSECTORS.filter(sec => { const m = SEC_META[sec.k], x = v[sec.k] || 0; return m && (x < m.min || x > m.max); }).length;
+              const grpBar = (v, h = 10) => <div style={{ display: "flex", height: h, borderRadius: h, overflow: "hidden", background: CL.bdr }}>
+                {grpOrder.map(g => <span key={g} style={{ width: BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (v[sec.k] || 0), 0) + "%", background: grpColor[g] }} />)}
+              </div>;
+              const GRP_SHORT = { "Human Development": "People", "Growth Engines": "Growth", "Obligations": "Running costs" };
+              const cards = (STANCES.some(([k]) => same(bud, presets[k])) ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "The split on your desk now." : "Not balanced: " + bs + "% given out.", bud]])
+                .concat(STANCES.map(([k, l, d]) => [k, l, d, presets[k]]));
+              const step = (k, d) => setBud(p => ({ ...p, [k]: Math.max(0, Math.min(40, (p[k] || 0) + d)) }));
+              const stepBtn = { width: tall ? 48 : 64, height: tall ? 48 : 64, minHeight: tall ? 48 : 64, borderRadius: 12, border: "1px solid " + CL.bdr, background: CL.bg, color: CL.txt, fontSize: fs.m, fontWeight: 800, cursor: "pointer", flexShrink: 0 };
+              return <Cd style={{ padding: tall ? "18px 16px" : "32px 36px" }}>
+                {s.igr + s.faac < 3 && <div style={{ fontSize: fs.s, color: CL.red, fontWeight: 700, marginBottom: 10 }}>Revenue has collapsed to {naira(s.igr + s.faac)}. The state is close to bankrupt.</div>}
+                <div style={{ fontSize: fs.s, color: CL.td }}>Year {Math.ceil(turn / 2)}, {((turn - 1) % 2) ? "second" : "first"} half</div>
+                <div style={{ fontFamily: F.d, fontSize: fs.l, fontWeight: 700, color: CL.txt, margin: "4px 0 6px", lineHeight: 1.15 }}>Split {naira(tb)} for the next six months</div>
+                <button onClick={() => setBudInfo(o => !o)} aria-expanded={budInfo} style={{ background: "none", border: 0, padding: "4px 0", color: CL.grn, fontSize: fs.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{budInfo ? "Hide the details" : "What's in the pot?"}</button>
+                {budInfo && <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.5, margin: "8px 0 4px", padding: tall ? "12px 14px" : "18px 22px", background: CL.bg, borderRadius: 12, display: "grid", gap: 8 }}>
+                  <div>{naira(s.igr)} the state raises itself (IGR) + {naira(s.faac)} from the federal share (FAAC){s.debt > 0 ? ", minus " + naira(s.debt * .08) + " debt service" : ""}.</div>
+                  {s.debt > 0 && <div>State debt stands at {naira(s.debt)}. Its service comes off the pot before you see it; money you put into Debt reduces what you owe.{s.debt > 15 ? " Debt is dangerously high: creditors will call soon." : ""}</div>}
+                  <div>Under Section 121 of the 1999 Constitution you lay this bill before the House of Assembly. Members can pass it, amend it, or force you into horse-trading.</div>
+                </div>}
+                <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: tall ? 8 : 14, margin: tall ? "12px 0" : "20px 0" }}>
+                  {cards.map(([k, l, d, v]) => {
+                    const on = same(bud, v), w = warnCount(v);
+                    return <button key={k} onClick={() => setBud({ ...v })} aria-pressed={on} style={{ textAlign: "left", display: "grid", gap: 6, padding: tall ? "12px 14px" : "18px 22px", borderRadius: 16, cursor: "pointer", fontFamily: F.b, color: CL.txt,
+                      border: "1.5px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn + "0d" : CL.card, boxShadow: on ? "inset 0 0 0 1px " + CL.grn : "none" }}>
+                      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+                        <b style={{ fontSize: fs.m }}>{on ? "✓ " : ""}{l}</b>
+                        <span style={{ fontSize: fs.s, color: w ? CL.org : CL.grn, fontWeight: 700, whiteSpace: "nowrap" }}>{w ? w + (w > 1 ? " warnings" : " warning") : "No warnings"}</span>
+                      </span>
+                      {grpBar(v)}
+                      <span style={{ fontSize: fs.s, color: CL.td }}>{d}</span>
+                    </button>;
+                  })}
+                </div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: fs.s, color: CL.tm, marginBottom: 8 }}>
+                  {grpOrder.map(g => <span key={g}><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: grpColor[g], marginRight: 6 }} />{GRP_SHORT[g]} {BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (bud[sec.k] || 0), 0)}%</span>)}
+                </div>
+                <button onClick={() => setBudTune(o => !o)} aria-expanded={budTune} style={{ background: "none", border: 0, padding: "8px 0", color: CL.grn, fontSize: fs.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{budTune ? "Hide the eight sectors" : "Fine-tune the eight sectors"}</button>
+                {budTune && <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1fr 1fr", columnGap: 48, margin: "4px 0 8px" }}>
+                  {grpOrder.flatMap(g => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g)).map(sec => {
+                    const meta = SEC_META[sec.k], v = bud[sec.k] || 0;
+                    const st = v < meta.min ? "low" : v > meta.max ? "high" : "ok";
+                    const sc = st === "ok" ? CL.grn : st === "low" ? CL.red : CL.org;
+                    const open = budOpen === sec.k;
+                    return <div key={sec.k} style={{ borderTop: "1px solid " + CL.bdr, padding: "8px 0" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <button onClick={() => setBudOpen(open ? null : sec.k)} aria-expanded={open} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, padding: 0, cursor: "pointer", color: CL.txt, fontFamily: F.b }}>
+                          <span style={{ display: "block", fontSize: fs.m, fontWeight: 700 }}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: grpColor[meta.grp], marginRight: 8, verticalAlign: 2 }} />{sec.l}</span>
+                          <span style={{ display: "block", fontSize: fs.s, color: sc }}>{st === "ok" ? "In range" : st === "low" ? "Underfunded" : "Too much"} · {naira(tb * v / 100)}</span>
+                        </button>
+                        <button onClick={() => step(sec.k, -1)} aria-label={"Less " + sec.l} style={stepBtn}>−</button>
+                        <span style={{ width: tall ? 44 : 64, textAlign: "center", fontFamily: F.m, fontWeight: 800, fontSize: fs.m, color: sc }}>{v}%</span>
+                        <button onClick={() => step(sec.k, 1)} aria-label={"More " + sec.l} style={stepBtn}>+</button>
+                      </div>
+                      {open && <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.45, padding: "6px 0 2px" }}>
+                        {meta.funds} Healthy range {meta.min}–{meta.max}%.{st !== "ok" ? " " + (st === "low" ? "If you submit this: " + meta.low : "Waste flag: " + meta.high) : ""}
+                      </div>}
                     </div>;
                   })}
-                  {s.debt > 0 && <Fold title={"State debt " + naira(s.debt)} summary={naira(s.debt * .08) + " service due this half-year"}><div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45 }}>Service is taken off the pot before you see it. Extra money you put into Debt above reduces the principal.{s.debt > 15 ? " Debt is dangerously high: creditors will call soon." : ""}</div></Fold>}
-                  <Fold title="Why the House votes on this" summary="Section 121 of the 1999 Constitution"><div style={{ fontSize: TS(20), color: CL.tm, lineHeight: 1.45 }}>The Governor lays the appropriation bill before the House of Assembly. Members can pass it, amend it, or force you into horse-trading.</div></Fold>
-                  <SaysBox fs={TS(20)} />
-                  <Bt onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} style={{ width: "100%", marginTop: 6, opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
-                    {bs === 100 ? "SUBMIT TO HOUSE OF ASSEMBLY →" : bs > 100 ? "Reduce: over by " + (bs - 100) + "%" : "Allocate the remaining " + remaining + "%"}
-                  </Bt>
-                </Cd>;
-              }
-              return <Cd>
-                {s.igr + s.faac < 3 && <div style={{ background: "#fef2f2", border: "1px solid " + CL.red + "30", borderRadius: 13, padding: "22px 36px", marginBottom: 29 }}>
-                  <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red }}>🚨 BANKRUPTCY WARNING</div>
-                  <div style={{ fontSize: TS(34), color: CL.red }}>Your state revenue has collapsed to {naira(s.igr + s.faac)}. You cannot sustain governance.</div>
                 </div>}
-
-                <div style={{ background: "linear-gradient(135deg, " + CL.grn + "10, " + CL.blu + "08)", border: "1px solid " + CL.grn + "30", borderRadius: 17, padding: "36px 43px", marginBottom: 36 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 36, flexWrap: "wrap" }}>
-                    <div>
-                      <div style={{ fontSize: TS(36), color: CL.td, textTransform: "uppercase", letterSpacing: .5, fontWeight: 700 }}>Appropriation Bill · Y{Math.ceil(turn/2)} H{((turn-1)%2)+1}</div>
-                      <div style={{ fontFamily: F.d, fontSize: TS(79), fontWeight: 700, color: CL.txt, marginTop: 7 }}>{naira(tb)} <span style={{ fontSize: TS(36), color: CL.td, fontWeight: 400 }}>to spend this half-year</span></div>
-                      <div style={{ fontSize: TS(34), color: CL.tm, marginTop: 10 }}>
-                        <b style={{ color: CL.grn }}>IGR {naira(s.igr)}</b> (what you earned) + <b style={{ color: CL.blu }}>FAAC {naira(s.faac)}</b> (federal share){s.debt > 0 ? <> − <b style={{ color: CL.red }}>Debt service {naira(s.debt * .08)}</b></> : null}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: TS(36), color: CL.td, fontWeight: 700 }}>ALLOCATED</div>
-                      <div style={{ fontFamily: F.m, fontSize: TS(79), fontWeight: 700, color: bs === 100 ? CL.grn : bs > 100 ? CL.red : CL.org }}>{bs}%</div>
-                      <div style={{ fontSize: TS(34), color: bs === 100 ? CL.grn : bs > 100 ? CL.red : CL.org, fontFamily: F.m }}>
-                        {bs === 100 ? "✓ Balanced" : bs > 100 ? "Over by " + (bs - 100) + "% — " + naira(tb * (bs - 100) / 100) : remaining + "% left = " + naira(tb * remaining / 100)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center", marginBottom: 29 }}>
-                  <span style={{ fontSize: TS(31), color: CL.td }}>Start from:</span>
-                  {[["recommended", "Balanced", CL.grn], ["populist", "Populist", CL.org], ["reformer", "Reformer", CL.blu], ["godfather", "Godfather", CL.pur]].map(([k, l, c]) =>
-                    <button key={k} onClick={() => applyPreset(k)} style={{ padding: "6px 22px", borderRadius: 999, border: "1px solid " + c + "60", background: c + "12", color: c, fontSize: TS(31), fontWeight: 700, cursor: "pointer" }}>{l}</button>)}
-                </div>
-
-                {grpOrder.map(gname => {
-                  const items = BSECTORS.filter(sec => (SEC_META[sec.k]?.grp) === gname);
-                  const gsum = items.reduce((a, sec) => a + (bud[sec.k] || 0), 0);
-                  return <div key={gname} style={{ marginBottom: 36, border: "1px solid " + CL.bdr, borderRadius: 13, overflow: "hidden" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "19px 29px", background: grpColor[gname] + "12", borderBottom: "1px solid " + CL.bdr }}>
-                      <span style={{ fontSize: TS(36), fontWeight: 700, color: grpColor[gname], textTransform: "uppercase", letterSpacing: .5 }}>
-                        {gname === "Human Development" ? "🧑‍🎓 " : gname === "Growth Engines" ? "⚙️ " : "📋 "}{gname}
-                      </span>
-                      <span style={{ fontSize: TS(34), fontFamily: F.m, color: CL.tm }}>{gsum}% · {naira(tb * gsum / 100)}</span>
-                    </div>
-                    <div style={{ padding: "22px 29px" }}>
-                      {items.map(sec => {
-                        const meta = SEC_META[sec.k] || { min: 5, max: 20, funds: "", low: "", high: "" };
-                        const pct2 = bud[sec.k] || 0;
-                        const amt = tb * pct2 / 100;
-                        const status = pct2 < meta.min ? "low" : pct2 > meta.max ? "high" : "ok";
-                        const statusColor = status === "ok" ? CL.grn : status === "low" ? CL.red : CL.org;
-                        const statusLabel = status === "ok" ? "In range" : status === "low" ? "UNDERFUNDED" : "EXCESSIVE";
-                        return <div key={sec.k} style={{ padding: "22px 14px", borderBottom: "1px dotted " + CL.bdr }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 22, marginBottom: 10 }}>
-                            <span style={{ fontSize: TS(50) }}>{sec.i}</span>
-                            <div style={{ flex: 1, minWidth: 1 }}>
-                              <div style={{ display: "flex", alignItems: "baseline", gap: 22, flexWrap: "wrap" }}>
-                                <span style={{ fontSize: TS(38), fontWeight: 700, color: CL.txt }}>{sec.l}</span>
-                                <span style={{ fontSize: TS(34), fontFamily: F.m, color: statusColor, fontWeight: 700 }}>{statusLabel}</span>
-                                <span style={{ fontSize: TS(31), color: CL.td }}>· healthy {meta.min}–{meta.max}%</span>
-                              </div>
-                              <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 5, lineHeight: 1.3 }}>{meta.funds}</div>
-                            </div>
-                            <div style={{ textAlign: "right", minWidth: 174 }}>
-                              <div style={{ fontFamily: F.m, fontSize: TS(48), fontWeight: 700, color: statusColor }}>{pct2}%</div>
-                              <div style={{ fontFamily: F.m, fontSize: TS(34), color: CL.txt, fontWeight: 600 }}>{naira(amt)}</div>
-                            </div>
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: 22, marginTop: 10 }}>
-                            <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.max(0, (p[sec.k] || 0) - 1) }))} style={{ width: 79, height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "#fff", color: CL.red, cursor: "pointer", fontSize: TS(43), fontWeight: 700 }}>−</button>
-                            <input type="range" min={0} max={40} value={pct2} aria-label={sec.l + " share"} onChange={e => { const v = +e.target.value; setBud(p => ({ ...p, [sec.k]: v })); }} style={{ flex: 1, minWidth: 0, accentColor: statusColor, height: 40 }} />
-                            <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.min(100, (p[sec.k] || 0) + 1) }))} style={{ width: 79, height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "#fff", color: CL.grn, cursor: "pointer", fontSize: TS(43), fontWeight: 700 }}>+</button>
-                            <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.max(0, (p[sec.k] || 0) - 5) }))} style={{ padding: "0 22px", height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "transparent", color: CL.td, cursor: "pointer", fontSize: TS(34) }}>−5</button>
-                            <button onClick={() => setBud(p => ({ ...p, [sec.k]: Math.min(100, (p[sec.k] || 0) + 5) }))} style={{ padding: "0 22px", height: 79, borderRadius: 8, border: "1px solid " + CL.bdr, background: "transparent", color: CL.td, cursor: "pointer", fontSize: TS(34) }}>+5</button>
-                          </div>
-                          {status !== "ok" && <div style={{ marginTop: 14, padding: "14px 22px", background: statusColor + "10", borderLeft: "2px solid " + statusColor, borderRadius: 6, fontSize: TS(31), color: statusColor, lineHeight: 1.35 }}>
-                            <b>{status === "low" ? "⚠️ If you submit this:" : "🚩 Waste flag:"}</b> {status === "low" ? meta.low : meta.high}
-                          </div>}
-                        </div>;
-                      })}
-                    </div>
-                  </div>;
-                })}
-
-                {s.debt > 0 && <div style={{ background: s.debt > 15 ? CL.red + "08" : CL.org + "08", border: "1px solid " + (s.debt > 15 ? CL.red : CL.org) + "20", borderRadius: 8, padding: "22px 36px", marginBottom: 29, fontSize: TS(31), color: s.debt > 15 ? CL.red : CL.org, lineHeight: 1.4 }}>
-                  💳 <strong>State debt: {naira(s.debt)}</strong> · Service due this half-year: <b>{naira(s.debt * .08)}</b> (auto-deducted before you see the pot). Extra you allocate to <b>Debt</b> above reduces principal.
-                  {s.debt > 15 ? " ⚠️ Debt is dangerously high — creditors will call soon." : s.debt < 3 ? " ✅ Debt is manageable." : ""}
-                </div>}
-
-                <SaysBox fs={TS(34)} />
-                <div style={{ borderTop: "1px solid " + CL.bdr, paddingTop: 29, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 29, flexWrap: "wrap" }}>
-                  <div style={{ fontSize: TS(31), color: CL.td, flex: "1 1 200px" }}>📜 S.121, 1999 Constitution: Governor shall lay this bill before the House of Assembly. They can reject, amend, or force you into horse-trading.</div>
-                  <Bt onClick={() => { if (bs > 100 || bs < 100) return; setPhase("house_vote"); }} style={{ opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
-                    {bs === 100 ? "SUBMIT TO HOUSE OF ASSEMBLY →" : bs > 100 ? "REDUCE (over by " + (bs - 100) + "%)" : "ALLOCATE REMAINING " + remaining + "%"}
-                  </Bt>
-                </div>
+                <SaysBox fs={fs.s} />
+                <Bt onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} style={{ width: "100%", marginTop: 6, opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
+                  {bs === 100 ? "Submit to the House of Assembly →" : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
+                </Bt>
               </Cd>;
             })()}
 
@@ -6793,41 +6722,49 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 grudges={houseGrudges()} speakerName={cast.speaker.name}
                 addL={addL} />
             </Cd>}
-            {phase === "policy" && <Cd>
+            {phase === "policy" && <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
               <AdvBubble text={(() => { const st0 = story(); return st0.flagship ? "Your Excellency, you campaigned on \u201c" + (st0.slogan || "") + "\u201d and promised " + st0.flagship.nm + ". " + (st0.flagship.targets ? st0.flagship.met + " of " + st0.flagship.targets + " yearly targets met so far. " : "") + "Pick policies that serve it; each one is paid every half-year it runs." : ADV.policy; })()} saName={cast.adviser.name} />
-              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 8px", fontSize: TS(53), fontWeight: 600 }}>Policies</h3>
-              <p style={{ color: CL.td, fontSize: TS(32), margin: "0 0 18px" }}>Each one is paid every half-year it runs, from borrowing. People remember who it helped.</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, margin: "4px 0 12px" }}>
+                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: 0, fontSize: PFS.l, fontWeight: 700 }}>What will you do this half-year?</h3>
+              </div>
+              <div role="tablist" style={{ display: "flex", gap: 6, background: CL.bg, borderRadius: 999, padding: 4, marginBottom: 16 }}>
+                {[["pol", "Programmes"], ["bill", "Bills"], ["eo", "Executive orders"]].map(([k, l]) => <button key={k} role="tab" aria-selected={polTab === k} onClick={() => setPolTab(k)} style={{ flex: 1, border: 0, borderRadius: 999, padding: TALL() ? "10px 6px" : "12px 10px", minHeight: 44, background: polTab === k ? "#12301f" : "transparent", color: polTab === k ? "#fff" : CL.tm, fontWeight: 800, fontSize: PFS.s, cursor: "pointer", fontFamily: F.b }}>{l}</button>)}
+              </div>
+              {polTab === "pol" && <div>
+              <p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 18px" }}>Each one is paid every half-year it runs, from borrowing. People remember who it helped.</p>
               {pol.length > 0 && <Fold title={"In force (" + pol.length + ")"} summary={pol.slice(0, 3).map(x => x.nm.replace(/^⭐\s*/, "")).join(", ") + (pol.length > 3 ? "…" : "")}>
-                {pol.map(x => <div key={x.id} style={{ fontSize: TS(30), color: CL.tm, padding: "6px 0", borderBottom: "1px solid " + CL.bdr + "66" }}><b style={{ color: CL.txt }}>{x.nm.replace(/^⭐\s*/, "")}</b> · {x.pending ? "in procurement" : x.tl > 0 ? x.tl + (x.tl === 1 ? " half-year" : " half-years") + " to go" : "delivered"}{x.perH ? " · " + naira(x.perH) + " a half-year" : ""}</div>)}
+                {pol.map(x => <div key={x.id} style={{ fontSize: PFS.s, color: CL.tm, padding: "6px 0", borderBottom: "1px solid " + CL.bdr + "66" }}><b style={{ color: CL.txt }}>{x.nm.replace(/^⭐\s*/, "")}</b> · {x.pending ? "in procurement" : x.tl > 0 ? x.tl + (x.tl === 1 ? " half-year" : " half-years") + " to go" : "delivered"}{x.perH ? " · " + naira(x.perH) + " a half-year" : ""}</div>)}
               </Fold>}
-              <div style={{ display: "grid", gap: 12 }}>{POLICIES.filter(p => !pol.find(a => a.id === p.id)).map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: TS(36), color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: TS(30), color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)}/half-year</span></div>
-                <div style={{ fontSize: TS(31), color: CL.tm, margin: "4px 0" }}>{p.d}</div>
-                <div style={{ fontSize: TS(29), color: CL.td }}>{p.t === 1 ? "One half-year" : p.t + " half-years (" + naira(p.c) + " in all)"}{isCapital(p) ? " · goes to tender, may need an environmental assessment" : ""}{p.cr > .09 ? " · money can leak" : ""}</div>
-                <div style={{ fontSize: TS(29), marginTop: 4 }}><span style={{ color: CL.grn }}>For: {forS}</span> · <span style={{ color: CL.red }}>Against: {againstS}</span></div>
+              {(() => { const avail = POLICIES.filter(p => !pol.find(a => a.id === p.id)); const ranked = avail.filter(p => touchesFlagship(p.nm + " " + p.d)).concat(avail.filter(p => !touchesFlagship(p.nm + " " + p.d))); const shown = polAll ? ranked : ranked.slice(0, 5); return <><div style={{ display: "grid", gap: 12 }}>{shown.map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)}/half-year</span></div>
+                <div style={{ fontSize: PFS.s, color: CL.tm, margin: "4px 0" }}>{p.d}</div>
+                <div style={{ fontSize: PFS.s, color: CL.td }}>{p.t === 1 ? "One half-year" : p.t + " half-years (" + naira(p.c) + " in all)"}{isCapital(p) ? " · goes to tender, may need an environmental assessment" : ""}{p.cr > .09 ? " · money can leak" : ""}</div>
+                <div style={{ fontSize: PFS.s, marginTop: 4 }}><span style={{ color: CL.grn }}>For: {forS}</span> · <span style={{ color: CL.red }}>Against: {againstS}</span></div>
               </Cd>; })}</div>
+                {ranked.length > 5 && <button onClick={() => setPolAll(o => !o)} style={{ background: "none", border: 0, padding: "12px 0 0", color: CL.grn, fontSize: PFS.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{polAll ? "Show fewer" : "Show all " + ranked.length + " programmes"}</button>}
+              </>; })()}
 
-              <div style={{ marginTop: 29, borderTop: "1px solid " + CL.bdr, paddingTop: 29 }}>
-                <h3 style={{ fontFamily: F.d, color: CL.pur, margin: "0 0 14px", fontSize: TS(50), fontWeight: 600 }}>📜 Sponsor a Bill (House Vote Required)</h3>
-                <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 22 }}>A bill passes unless members have a reason to stop it: a weak caucus, no money to pay for it, or something you did that they have not forgotten.</p>
+              </div>}
+              {polTab === "bill" &&               <div>
+                                <p style={{ color: CL.td, fontSize: PFS.s, marginBottom: 22 }}>A bill passes unless members have a reason to stop it: a weak caucus, no money to pay for it, or something you did that they have not forgotten.</p>
                 {billReject && <Cd style={{ padding: 26, marginBottom: 22, borderColor: CL.red + "55", background: CL.red + "06" }}>
-                  <div style={{ fontSize: TS(36), fontWeight: 700, color: CL.red, marginBottom: 10 }}>❌ The House rejected the {billReject.bill.nm}</div>
+                  <div style={{ fontSize: PFS.m, fontWeight: 700, color: CL.red, marginBottom: 10 }}>❌ The House rejected the {billReject.bill.nm}</div>
                   {billReject.reasons.map((r2, i) => <div key={i} style={{ padding: "8px 0" }}>
-                    <div style={{ fontSize: TS(32), color: CL.txt, lineHeight: 1.4 }}><b>{r2.who}</b> — {r2.why}</div>
-                    <div style={{ fontSize: TS(29), color: r2.good ? CL.grn : CL.red }}>{r2.good ? "Fair reason." : r2.grudge ? "Leverage, not policy." : "Political: your own side is not with you."}</div>
+                    <div style={{ fontSize: PFS.s, color: CL.txt, lineHeight: 1.4 }}><b>{r2.who}</b> — {r2.why}</div>
+                    <div style={{ fontSize: PFS.s, color: r2.good ? CL.grn : CL.red }}>{r2.good ? "Fair reason." : r2.grudge ? "Leverage, not policy." : "Political: your own side is not with you."}</div>
                   </div>)}
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
-                    {billReject.reasons.every(r2 => r2.kind === "funding") && billReject.bill.cost > 0 && <Bt onClick={() => { const b2 = { ...billReject.bill, cost: Math.round(billReject.bill.cost * 5) / 10, fx: Object.fromEntries(Object.entries(billReject.bill.fx || {}).map(([k, v]) => [k, typeof v === "number" ? Math.round(v * 60) / 100 : v])), nm: billReject.bill.nm + " (phased)" }; addL("✏️ Amended the " + billReject.bill.nm + ": phased over two years with a funding line.", "policy"); sponsorBill(b2, true); }} style={{ fontSize: TS(32) }}>✏️ Amend: phase it, half the cost</Bt>}
-                    <Bt onClick={() => { const c2 = Math.round((0.2 + 0.1 * billReject.reasons.length) * 10) / 10; houseDeal(c2, billReject.reasons, "The " + billReject.bill.nm); sponsorBill(billReject.bill, true); }} style={{ fontSize: TS(32), background: CL.gold, color: "#000" }}>🤝 Negotiate with {cast.speaker.name.replace(/^Rt\. Hon\. /, "the Speaker, ")}</Bt>
-                    <Bt v="ghost" onClick={() => { addL("🗑️ Dropped the " + billReject.bill.nm + ".", "info"); setBillReject(null); }} style={{ fontSize: TS(32) }}>🗑️ Drop it</Bt>
+                    {billReject.reasons.every(r2 => r2.kind === "funding") && billReject.bill.cost > 0 && <Bt onClick={() => { const b2 = { ...billReject.bill, cost: Math.round(billReject.bill.cost * 5) / 10, fx: Object.fromEntries(Object.entries(billReject.bill.fx || {}).map(([k, v]) => [k, typeof v === "number" ? Math.round(v * 60) / 100 : v])), nm: billReject.bill.nm + " (phased)" }; addL("✏️ Amended the " + billReject.bill.nm + ": phased over two years with a funding line.", "policy"); sponsorBill(b2, true); }} style={{ fontSize: PFS.s }}>✏️ Amend: phase it, half the cost</Bt>}
+                    <Bt onClick={() => { const c2 = Math.round((0.2 + 0.1 * billReject.reasons.length) * 10) / 10; houseDeal(c2, billReject.reasons, "The " + billReject.bill.nm); sponsorBill(billReject.bill, true); }} style={{ fontSize: PFS.s, background: CL.gold, color: "#000" }}>🤝 Negotiate with {cast.speaker.name.replace(/^Rt\. Hon\. /, "the Speaker, ")}</Bt>
+                    <Bt v="ghost" onClick={() => { addL("🗑️ Dropped the " + billReject.bill.nm + ".", "info"); setBillReject(null); }} style={{ fontSize: PFS.s }}>🗑️ Drop it</Bt>
                   </div>
                 </Cd>}
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(264px,1fr))", gap: 19 }}>
                   {BILLS.filter(b => !billsPassed.find(bp => bp.id === b.id)).map(b => (
                     <Cd key={b.id} onClick={() => sponsorBill(b)} style={{ padding: 24 }}>
-                      <div style={{ fontWeight: 600, fontSize: TS(36), color: CL.pur, marginBottom: 7 }}>{b.nm}</div>
-                      <div style={{ fontSize: TS(29), color: CL.td, marginBottom: 10 }}>{b.d}</div>
-                      {touchesFlagship(b.nm + " " + b.d) && <div style={{ fontSize: TS(29), color: CL.grn, marginBottom: 8 }}>Serves your flagship, {FLAGSHIP[setup.agenda].nm}.</div>}
+                      <div style={{ fontWeight: 600, fontSize: PFS.m, color: CL.pur, marginBottom: 7 }}>{b.nm}</div>
+                      <div style={{ fontSize: PFS.s, color: CL.td, marginBottom: 10 }}>{b.d}</div>
+                      {touchesFlagship(b.nm + " " + b.d) && <div style={{ fontSize: PFS.s, color: CL.grn, marginBottom: 8 }}>Serves your flagship, {FLAGSHIP[setup.agenda].nm}.</div>}
                       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                         {b.cost > 0 && <Bg text={naira(b.cost)} color={CL.gold} />}
                         <Bg text={s.pStab < 25 ? "Caucus too weak" : s.pStab < 40 ? "Tense vote" : "Likely to pass"} color={s.pStab < 25 ? CL.red : s.pStab < 40 ? CL.org : CL.grn} />
@@ -6835,12 +6772,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                       </div>
                     </Cd>
                   ))}
-                  {BILLS.filter(b => !billsPassed.find(bp => bp.id === b.id)).length === 0 && <div style={{ fontSize: TS(34), color: CL.td }}>All bills have been passed.</div>}
+                  {BILLS.filter(b => !billsPassed.find(bp => bp.id === b.id)).length === 0 && <div style={{ fontSize: PFS.s, color: CL.td }}>All bills have been passed.</div>}
                 </div>
-              </div>
-
-              <div style={{ marginTop: 22, borderTop: "1px solid " + CL.bdr, paddingTop: 22 }}><div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, marginBottom: 10 }}>⚠️ RISKY EXECUTIVE ORDERS (May be unconstitutional)</div><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 19, borderColor: CL.red + "33" }}><div style={{ fontSize: TS(34), color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: TS(29), color: CL.td }}>{u.r}</div></Cd>)}</div></div>
-              <div style={{ textAlign: "right", marginTop: 22 }}><Bt onClick={() => { setPhase("end_turn"); endTurn(); }}>END HALF-YEAR →</Bt></div>
+              </div>}
+              {polTab === "eo" &&               <div><p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 14px" }}>Orders you can sign without the House. Each may be unconstitutional, and a court can strike it down.</p><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 19, borderColor: CL.red + "33" }}><div style={{ fontSize: PFS.s, color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: PFS.s, color: CL.td }}>{u.r}</div></Cd>)}</div></div>}
+              <Bt onClick={() => { setPhase("end_turn"); endTurn(); }} style={{ width: "100%", marginTop: 22 }}>Done: end the half-year →</Bt>
             </Cd>}
             {phase === "end_turn" && !curD && <Cd style={{ textAlign: "center", padding: 58 }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(53), fontWeight: 600, marginBottom: 22 }}>{yr} Complete</h3>
@@ -7337,14 +7273,14 @@ const ExecutiveCommandSA = ({ adviser, brief, inbox, vacantTurns, onFire }) => {
   const urgentCount = inbox.filter(i => i.urgent && !i.done).length;
   const doneCount = inbox.filter(i => i.done).length;
   return (
-    <div style={{ background: "#fffef5", border: "1px solid " + tone + "77", borderRadius: 17, padding: "22px 29px", marginBottom: 29, boxShadow: "0 2px 8px rgba(0,0,0,.05)" }}>
+    <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 17, padding: TALL() ? "14px 14px" : "22px 29px", marginBottom: 8 }}>
       <div onClick={() => setOpen(o => !o)} style={{ display: "flex", gap: TALL() ? 18 : 29, alignItems: "center", cursor: "pointer", flexWrap: TALL() ? "wrap" : "nowrap" }}>
-        <div style={{ width: 98, height: 98, borderRadius: "50%", background: tone + "22", border: "1.5px solid " + tone, fontSize: TS(58), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{adviser ? adviser.avatar : "🪑"}</div>
+        <div style={{ width: TALL() ? 56 : 98, height: TALL() ? 56 : 98, borderRadius: "50%", background: CL.grn + "18", overflow: "hidden", fontSize: TS(40), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{adviser ? <img src={SA_PORTRAIT} alt="" style={{ width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" }} /> : "🪑"}</div>
         <div style={{ flex: 1, minWidth: 1 }}>
-          <div style={{ fontSize: TS(29), letterSpacing: 3, color: tone, fontFamily: F.m, fontWeight: 800, textTransform: "uppercase" }}>SA · Executive Command {urgentCount > 0 && <span style={{ background: CL.red, color: "#fff", padding: "0 14px", borderRadius: 13, marginLeft: 14 }}>{urgentCount}</span>}</div>
-          <div style={{ color: CL.txt, fontWeight: 700, fontSize: TS(38), lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{brief?.icon} {brief?.title || (adviser ? adviser.name : "SA seat vacant")}</div>
+          <div style={{ fontSize: TALL() ? TS(18) : TS(27), color: CL.td, fontWeight: 700 }}>Adviser's agenda {urgentCount > 0 && <span style={{ background: CL.red, color: "#fff", padding: "0 14px", borderRadius: 13, marginLeft: 14 }}>{urgentCount}</span>}</div>
+          <div style={{ color: CL.txt, fontWeight: 700, fontSize: TALL() ? TS(22) : TS(36), lineHeight: 1.25 }}>{brief?.title || (adviser ? adviser.name : "SA seat vacant")}</div>
         </div>
-        {brief?.action && <button onClick={(e) => { e.stopPropagation(); brief.action(); }} style={{ ...(TALL() ? { order: 3, flexBasis: "100%" } : {}), border: 0, background: tone, color: "#fff", borderRadius: 11, padding: "19px 34px", fontSize: TS(34), fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>→ {brief.actionLabel}</button>}
+        {brief?.action && <button onClick={(e) => { e.stopPropagation(); brief.action(); }} style={{ ...(TALL() ? { order: 3, flexBasis: "100%" } : {}), border: 0, background: CL.grn, color: "#fff", borderRadius: 999, padding: TALL() ? "10px 16px" : "14px 26px", minHeight: 44, fontSize: TALL() ? TS(20) : TS(29), fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap" }}>{brief.actionLabel}</button>}
         <div style={{ fontSize: TS(29), color: CL.td, marginLeft: 14 }}>{open ? "▲" : "▼"}</div>
       </div>
       {open && <div style={{ marginTop: 29, borderTop: "1px dashed " + CL.bdr, paddingTop: 29 }}>

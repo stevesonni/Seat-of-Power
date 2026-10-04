@@ -32,3 +32,19 @@
 - Kano (landscape) and Edo and Lagos (phone) runs: 0 console errors, no missing images.
 - Not used: the governor, deputy, godfather and adviser mood variants. They show different people from the neutral portraits, so the face would change mid-game. Also not used: `opposition-candidate-alt` and `doctor-male`.
 - Still open: the national coat of arms and real-organisation text in some images (see `public/art/README.md`).
+
+## Tribunal fixes
+- Each setup screen and each court stage now opens at the top. The election tribunal used to open at the scroll position of the long results page, which put it past its own content on a phone.
+- The re-election tribunal stored the losing margin as a raw vote count, so it showed "796872 points" and always applied the worst odds. It now uses the percentage margin.
+
+## Calmer Desk (proposal A + budget B1, chosen by Steve)
+- **Status strip:** approval, treasury, party support and corruption, each with a coloured dot. It replaces the phone header and the big laptop header; tap it for the State sheet.
+- **State sheet:** turn progress, treasury, debt and debt service, party support, GDP, corruption, the flagship's quarterly bonus, indicators, programmes in progress, and the adviser's full agenda (including "Fire adviser"). The flagship ribbon, the left-hand indicator and programme column, and the old dropdown all moved here.
+- **Half-year checklist:** Budget, House vote, Policies, Review, Events, with the current step highlighted. "Ministries: to do" shows until a ministry is convened.
+- **Adviser:** one line on the Desk when something is urgent, with its action button. The red Executive Command card and the adviser pop-ups are gone.
+- **Budget:**
+  - Stance cards for the Budget Office draft (or your current split), Balanced, Populist, Reformer and Godfather's budget. Each shows a People/Growth/Running costs bar and its number of warnings.
+  - "Fine-tune the eight sectors" shows one-line − / + rows in place of the sliders.
+  - "What's in the pot?" holds the IGR/FAAC, debt and Section 121 explanations.
+- **Policies:** three tabs (Programmes, Bills, Executive orders), one type scale, and a single "Done: end the half-year" button. Programmes shows five at a time, flagship-serving ones first, with "Show all".
+- **Tested:** a full two-term tenure each as Edo on a phone and Lagos on a laptop, with no console errors.
