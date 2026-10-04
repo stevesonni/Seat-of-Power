@@ -162,6 +162,17 @@
       overflow: hidden;
     }
     #root { position: relative; width: 100%; height: 100%; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+    /* ---- Phones: the page itself scrolls --------------------------------
+       The stage is zoomed (not transformed) to the screen width and grows
+       with its content, so the browser does the scrolling and the bottom
+       bars pin to the real bottom of the screen. Nothing depends on the
+       frame reporting its height correctly (the claude.ai viewer on
+       iPhone does not). */
+    html.sop-flow, html.sop-flow body { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+    html.sop-flow #sop-viewport { position: static; overflow: visible; }
+    html.sop-flow #sop-stage { position: relative; overflow: visible; transform: none !important; height: auto !important;
+      --stage-h: calc(100dvh / var(--z, 1)); min-height: calc(100vh / var(--z, 1)); min-height: calc(100dvh / var(--z, 1)); }
+    html.sop-flow #root { height: auto; min-height: inherit; overflow: visible; }
     #root::-webkit-scrollbar { width: 8px; }
     #root::-webkit-scrollbar-thumb { background: rgba(0,0,0,.22); border-radius: 8px; }
 
@@ -325,12 +336,20 @@
       };
 
       var lastFit = null;
+      var ZOOM_OK = !!(window.CSS && CSS.supports && CSS.supports('zoom', '0.5'));
       function typing() { var a = document.activeElement; return isTouch && a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
       function fit() {
-        var w = vp.clientWidth, h = Math.max(vp.clientHeight, window.innerHeight || 0);
+        /* Measure the window, not #sop-viewport: on phones the page scrolls and
+           the viewport box is as tall as the content. */
+        var w = document.documentElement.clientWidth || vp.clientWidth;
+        var h = window.innerHeight || vp.clientHeight;
+        var mq = window.matchMedia ? window.matchMedia('(orientation: portrait)').matches : false;
         /* The on-screen keyboard shortens the viewport. Keep the layout and
            scale the player was looking at; only the scrollable height
            changes, so nothing shrinks or flips to landscape while typing. */
+        /* Phones (page scrolls): only a width change (rotation) needs a refit.
+           Height changes (keyboard, browser bars, the host frame) need nothing. */
+        if (lastFit && lastFit.flow && Math.abs(w - lastFit.w) < 4) return;
         if (typing() && lastFit && Math.abs(w - lastFit.w) < 4) {
           stage.style.height = Math.round(h / lastFit.s) + 'px';
           stage.style.setProperty('--stage-h', Math.round(h / lastFit.s) + 'px');
@@ -339,7 +358,7 @@
         /* Portrait-first. A tall screen gets a narrow artboard (PW design px
            across) mapped to the viewport width, and the stage grows downward
            to fill the height. Wide screens keep the landscape artboard. */
-        var portrait = h > w;
+        var portrait = h > w || mq;
         document.body.classList.toggle('sop-portrait', portrait);
         document.getElementById('sop-stage').classList.toggle('sop-tall', portrait);
         var s;
@@ -355,6 +374,19 @@
         }
         if (s > 2.2) s = 2.2;
         var sw = Math.round(w / s), sh = Math.round(h / s);
+        var flow = portrait && ZOOM_OK;
+        document.documentElement.classList.toggle('sop-flow', flow);
+        if (flow) {
+          stage.style.transform = ''; stage.style.height = '';
+          stage.style.zoom = s;
+          stage.style.width = sw + 'px';
+          stage.style.setProperty('--z', s);
+          stage.style.removeProperty('--stage-h');
+          stage.style.setProperty('--in-fs', Math.ceil(16.5 / s) + 'px');
+          lastFit = { w: w, h: h, s: s, flow: true };
+          return;
+        }
+        stage.style.zoom = '';
         stage.style.width = sw + 'px';
         stage.style.height = sh + 'px';
         stage.style.transform = 'scale(' + s + ')';
@@ -376,8 +408,10 @@
          keyboard shrank it, or the host resized the frame silently), refit. */
       setInterval(function () {
         if (!lastFit || typing()) return;
-        var h = Math.max(vp.clientHeight, window.innerHeight || 0);
-        if (Math.abs(vp.clientWidth - lastFit.w) > 1 || Math.abs(h - lastFit.h) > 1 || Math.abs(parseFloat(stage.style.height) - h / lastFit.s) > 2) fit();
+        var h = window.innerHeight || vp.clientHeight;
+        if (Math.abs((document.documentElement.clientWidth || vp.clientWidth) - lastFit.w) > 1) { fit(); return; }
+        if (lastFit.flow) return;
+        if (Math.abs(h - lastFit.h) > 1 || Math.abs(parseFloat(stage.style.height) - h / lastFit.s) > 2) fit();
       }, 500);
       window.addEventListener('load', function () { fit(); setTimeout(fit, 400); setTimeout(fit, 1500); });
       window.addEventListener('pageshow', function () { setTimeout(fit, 100); });

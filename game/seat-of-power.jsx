@@ -5,7 +5,15 @@ const { useState, useEffect, useMemo } = React;
 
 /* Portrait layout: the shell gives tall screens a narrow (720px) artboard.
    Components that need a different arrangement there ask TALL(). */
-const TALL = () => typeof window !== "undefined" && window.innerHeight > window.innerWidth;
+// Follows the page shell's decision (body.sop-portrait), so the keyboard or
+// a host frame of the wrong height cannot flip the layout mid-game.
+const TALL = () => {
+  if (typeof window === "undefined") return false;
+  const b = document.body;
+  if (b && b.classList.contains("sop-portrait")) return true;
+  if (b && document.getElementById("sop-stage")) return false;
+  return window.innerHeight > window.innerWidth;
+};
 
 const F = { d: "'Fraunces',Georgia,serif", b: "'Plus Jakarta Sans',sans-serif", m: "'Plus Jakarta Sans',sans-serif", c: "'Plus Jakarta Sans',sans-serif" };
 /* CL — the colour handles used by ~700 inline styles. The six structural
@@ -1348,57 +1356,58 @@ const CREST = "./art/brand/state-seal.webp";
 const TITLE_LOGO = "./art/brand/title-logo.webp";
 const HERO_MALE = "./art/characters/governor-male-agbada.webp";
 const HERO_FEMALE = "./art/characters/governor-female-agbada.webp";
-const ANCHOR_MALE = "/__l5e/assets-v1/1a730b9b-2cbf-491c-b28a-b85d156aae72/anchor-male.png";
-const ANCHOR_FEMALE = "/__l5e/assets-v1/245edd35-729a-46da-9e16-cb8994f7ca3c/anchor-female.png";
+const ANCHOR_MALE = "./art/characters/anchor-male.webp";
+const ANCHOR_FEMALE = "./art/characters/anchor-female.webp";
 const ANCHOR_BACKDROP = "./art/backgrounds/tv-studio.webp";
+// The two State House Report anchors, the same in every game.
+const ANCHORS = { m: { first: "Ibrahim", last: "Danjuma" }, f: { first: "Funmi", last: "Okeowo" } };
 
 // ─── NEWS DESK CUTSCENE (iCivics-style two-anchor broadcast) ───
+// A screen behind the desk, an anchor at each end, the line being read in
+// a bubble pointing at whoever is speaking, and their names on the bar.
 const AnchorDesk = ({ lines, onDone }) => {
   useMode("public");
   const [i, setI] = useState(0);
   const line = lines[Math.min(i, lines.length - 1)];
   const last = i >= lines.length - 1;
   const active = line.who;
+  const tall = TALL();
+  const anchor = (k) => <div style={{ position: "relative", flex: "0 0 auto", width: tall ? "52%" : "28%", maxWidth: 420, display: "flex", justifyContent: "center", alignItems: "flex-end", transition: "transform .3s, filter .3s", transform: active === k ? "translateY(0)" : "translateY(4%)", filter: active === k ? "none" : "brightness(.82) saturate(.85)" }}>
+    <img src={k === "m" ? ANCHOR_MALE : ANCHOR_FEMALE} alt={ANCHORS[k].first + " " + ANCHORS[k].last} style={{ width: "100%", height: "auto", display: "block" }} />
+  </div>;
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: "linear-gradient(180deg,#1a4d62 0%,#246880 40%,#5a7a52 100%)" }}>
-      {/* ── Backdrop screen centered behind anchors ── */}
-      <div style={{ position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)", width: TALL() ? "84%" : "min(600px,50%)", aspectRatio: "16/9", border: "3px solid rgba(255,255,255,.7)", borderRadius: 6, background: `url(${ANCHOR_BACKDROP}) center/cover`, boxShadow: "0 8px 24px rgba(0,0,0,.35)", opacity: .85 }} />
-
-      {/* ── Anchors flanking the backdrop ── */}
-      <div style={{ position: "relative", flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "0 2%", zIndex: 2 }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <img src={ANCHOR_MALE} alt="Anchor Tunde" style={{ height: "58%", maxHeight: 560, objectFit: "contain", objectPosition: "bottom", opacity: active === "m" ? 1 : .75, transition: "opacity .3s" }} />
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <img src={ANCHOR_FEMALE} alt="Anchor Adaeze" style={{ height: "58%", maxHeight: 560, objectFit: "contain", objectPosition: "bottom", opacity: active === "f" ? 1 : .75, transition: "opacity .3s" }} />
-        </div>
+    <div style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", flexDirection: "column", background: "linear-gradient(180deg,#123c4c 0%,#1f5a6d 45%,#2f6f7d 100%)", overflow: "hidden", fontFamily: F.b }}>
+      {/* studio light bands */}
+      <div style={{ position: "absolute", inset: 0, background: "repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 60px, rgba(255,255,255,0) 60px 140px)" }} />
+      {/* the screen behind the desk */}
+      <div style={{ position: "relative", zIndex: 1, margin: tall ? "8% auto 0" : "3% auto 0", width: tall ? "86%" : "min(760px,46%)", aspectRatio: "16/9", border: "4px solid #f2f2f2", borderRadius: 8, background: `#0d2a33 url(${ANCHOR_BACKDROP}) center/cover`, boxShadow: "0 12px 30px rgba(0,0,0,.35)" }}>
+        <div style={{ position: "absolute", left: 10, bottom: 10, background: "#12301f", color: "#e9c46a", fontWeight: 800, fontSize: TS(18), letterSpacing: 1.5, padding: "4px 10px", borderRadius: 6 }}>STATE HOUSE REPORT · LIVE</div>
       </div>
-
-      {/* ── Desk bar + dialogue bubble + continue (compact, horizontal) ── */}
-      <div style={{ position: "relative", background: "linear-gradient(180deg,#b85a1a,#9a4515)", borderTop: "2px solid rgba(255,255,255,.15)", padding: "10px 0 6px", zIndex: 3 }}>
-        {/* anchor name tags */}
-        <div style={{ display: "flex", justifyContent: "space-between", padding: "0 4% 4px", color: "rgba(255,255,255,.8)", fontFamily: F.b, fontSize: TS(18) }}>
-          <span style={{ fontWeight: active === "m" ? 700 : 400, opacity: active === "m" ? 1 : .5 }}>TUNDE ADEYEMI</span>
-          <span style={{ fontWeight: active === "f" ? 700 : 400, opacity: active === "f" ? 1 : .5 }}>ADAEZE NWOSU</span>
+      {/* anchors at the desk */}
+      <div style={{ position: "relative", zIndex: 2, flex: 1, minHeight: 0, display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: tall ? "0 0" : "0 8%", marginTop: tall ? "-6%" : "-8%" }}>
+        {anchor("m")}
+        {anchor("f")}
+      </div>
+      {/* the desk */}
+      <div style={{ position: "relative", zIndex: 3, background: "linear-gradient(180deg,#c56a22 0%,#a5521a 100%)", borderTop: "6px solid #e0904a", padding: tall ? "14px 16px 10px" : "16px 24px 12px" }}>
+        <div style={{ position: "relative", maxWidth: 820, margin: "0 auto", background: "#efe9df", borderRadius: 14, padding: tall ? "14px 16px" : "16px 22px", boxShadow: "0 6px 16px rgba(0,0,0,.25)", color: "#1d2420", fontSize: tall ? 24 : TS(24), lineHeight: 1.45 }}>
+          <div style={{ position: "absolute", top: -12, [active === "m" ? "left" : "right"]: "18%", width: 0, height: 0, borderBottom: "14px solid #efe9df", borderLeft: "12px solid transparent", borderRight: "12px solid transparent" }} />
+          <div style={{ fontSize: TS(18), fontWeight: 800, color: "#7a4a1a", letterSpacing: 1, textTransform: "uppercase", marginBottom: 4 }}>{ANCHORS[active].first} {ANCHORS[active].last}</div>
+          {line.t}
         </div>
-        {/* dialogue bubble */}
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 16, padding: TALL() ? "0 4% 12px" : "0 4%", flexDirection: TALL() ? "column" : "row" }}>
-          <div style={{ position: "relative", background: "#e8e4dc", borderRadius: 12, padding: "12px 24px 12px 56px", maxWidth: TALL() ? "100%" : "70%", boxShadow: "0 4px 12px rgba(0,0,0,.25)", fontSize: TS(TALL() ? 30 : 24), lineHeight: 1.35, color: "#22201c", fontFamily: F.b }}>
-            <span style={{ position: "absolute", left: 18, top: "50%", transform: "translateY(-50%)", fontSize: TS(24), opacity: .5 }}>🔊</span>
-            {line.t}
-            {/* tail */}
-            <div style={{
-              position: "absolute", top: -10, [active === "m" ? "left" : "right"]: "12%",
-              width: 0, height: 0,
-              borderBottom: "12px solid #e8e4dc",
-              [active === "m" ? "borderLeft" : "borderRight"]: "16px solid transparent",
-            }} />
-          </div>
+        <div style={{ textAlign: "center", marginTop: 12 }}>
           <button onClick={() => { if (last) onDone(); else setI(i + 1); }}
-            style={{ background: "#2f9be0", color: "#fff", border: "none", borderBottom: "3px solid #1d6fa6", borderRadius: 10, padding: "12px 28px", fontWeight: 700, letterSpacing: 1, fontSize: TS(21), cursor: "pointer", fontFamily: F.b, whiteSpace: "nowrap", minHeight: 48 }}>
-            {last ? "FINISH ▸" : "NEXT ▸"}
+            style={{ background: "#12301f", color: "#fff", border: "none", borderRadius: 999, padding: "12px 40px", minHeight: 52, fontWeight: 800, letterSpacing: .5, fontSize: TS(22), cursor: "pointer", fontFamily: F.b, boxShadow: "0 4px 12px rgba(0,0,0,.25)" }}>
+            {last ? "Finish" : "Continue"}
           </button>
         </div>
+      </div>
+      {/* name bar */}
+      <div style={{ position: "relative", zIndex: 3, background: "#2c6f7c", display: "flex", justifyContent: "space-around", padding: "10px 0 calc(10px + env(safe-area-inset-bottom))", color: "#fff", textAlign: "center" }}>
+        {["m", "f"].map(k => <div key={k} style={{ opacity: active === k ? 1 : .6 }}>
+          <div style={{ fontWeight: 800, fontSize: TS(26), letterSpacing: 1, textTransform: "uppercase", lineHeight: 1.1 }}>{ANCHORS[k].first}</div>
+          <div style={{ fontSize: TS(18), letterSpacing: 1, textTransform: "uppercase" }}>{ANCHORS[k].last}</div>
+        </div>)}
       </div>
     </div>
   );
@@ -2250,7 +2259,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       const pt = PARTIES.find(p => p.id === party);
       const anchorLines = [
         { who: "m", t: "Good evening. You're watching the State House Report, live from " + stNm + " State — and it's official: we have a new Governor-elect." },
-        { who: "f", t: "That's right, Tunde. INEC has returned " + (nm || "the candidate") + " of the " + (pt?.id || "party") + " as duly elected Governor of " + stNm + " State" + (slogan ? ", after a campaign fought on the slogan ‘" + slogan + "’." : ".") },
+        { who: "f", t: "That's right, " + ANCHORS.m.first + ". INEC has returned " + (nm || "the candidate") + " of the " + (pt?.id || "party") + " as duly elected Governor of " + stNm + " State" + (slogan ? ", after a campaign fought on the slogan ‘" + slogan + "’." : ".") },
         { who: "m", t: (FLAGSHIP[agenda] ? "The Governor-elect has promised to make " + FLAGSHIP[agenda].nm + " the centrepiece: to " + FLAGSHIP[agenda].goal + ". " : "") + "Now the hard part begins. Empty treasury, restless unions, and a godfather who remembers every favour." },
         { who: "f", t: "The swearing-in is done, the convoy is moving. Governor, Government House is waiting for you." },
       ];
