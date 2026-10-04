@@ -80,6 +80,40 @@ function migrateSave(d) {
     d._migratedFrom = 1;
   }
   d.sv = SAVE_VERSION;
+  scrubRemovedContent(d);
+  return d;
+}
+/* Removed content (4 Oct, Steve's decision): the First 100 Days /
+   inauguration scenes and the budget-padding ("Budget Assembly")
+   decisions. A save made before that may still carry their traces: drop
+   them on load so nothing refers to a choice the player can no longer
+   have made, and so a save paused in the old padding phase resumes on the
+   budget instead. */
+const REMOVED_LOG = /^📋 DAY \d+:|First 100 days|envelope as submitted|Padding untouched|envelope by \d+%|real-need envelope|padding proved|padding referral|constituency projects\. House delighted|Negotiated down to ₦[\d.]+B constituency|Refused Speaker's demand|Recorded conversation leaked|Speaker's constituency/i;
+function scrubRemovedContent(d) {
+  try {
+    if (d.phase === "mda") d.phase = "budget";
+    delete d.mdaEnv;
+    const L = Array.isArray(d.ledger) ? d.ledger : d.ledger && Array.isArray(d.ledger.entries) ? d.ledger.entries : null;
+    if (L) {
+      const gone = new Set();
+      L.forEach(e => {
+        if (!e) return;
+        if (/^DAY \d+ — /.test(e.location || "") || e.note === "First 100 days concluded" || e.kind === "budget_padding" || e.relatedEntity === "project:signature_road" || /Ring Road \(Phase 1\)/.test(e.target || "")) gone.add(e.id);
+      });
+      // Consequences and settlements that hang off a removed entry go too.
+      L.forEach(e => {
+        if (e && ((e.causedBy || []).some(id => gone.has(id)) || (e.kind === "debt_settled" && e.meta && gone.has(e.meta.settles)))) gone.add(e.id);
+      });
+      const kept = L.filter(e => e && !gone.has(e.id));
+      if (Array.isArray(d.ledger)) d.ledger = kept; else d.ledger.entries = kept;
+    }
+    if (Array.isArray(d.logs)) d.logs = d.logs.filter(l => !REMOVED_LOG.test(String(l && l.tx || "")));
+    if (Array.isArray(d.saMemory)) d.saMemory = d.saMemory.filter(m => !/^DAY \d+:/.test(String(m && m.txt || "")));
+    if (Array.isArray(d.wikiEvents)) d.wikiEvents = d.wikiEvents.filter(w => !/Ring Road \(Phase 1\)|party-financier nomination/.test(String(w && w.txt || "")));
+    if (Array.isArray(d.projects)) d.projects = d.projects.filter(p => p && p.id !== "signature_road");
+    if (Array.isArray(d.procLog)) d.procLog = d.procLog.filter(x => !/Ring Road \(Phase 1\)/.test(String(x && x.txt || "")));
+  } catch (e) { console.warn("[save] scrub", e); }
   return d;
 }
 window.SOP_migrateSave = migrateSave;
@@ -123,7 +157,7 @@ function setMode(m) {
 }
 window.SOP_setMode = setMode;
 // Keeps the stage in mode m. Runs after every render (cheap when nothing
-// changed) so a mode set elsewhere (First 100 Days) is corrected, and
+// changed) so a mode set elsewhere is corrected, and
 // re-renders once on a switch: inline colours read CL, which is only
 // refreshed after the class changes, so the first paint would otherwise
 // mix one mode's ink with another's surfaces.
@@ -131,7 +165,6 @@ const useMode = (m) => {
   const [, bump] = React.useState(0);
   React.useEffect(() => {
     const st = document.getElementById("sop-stage");
-    if (document.getElementById("sop-f100")) return; // First 100 Days sets its own mode per day
     if (st && !st.classList.contains("mode-" + m)) { setMode(m); bump(x => x + 1); }
   });
 };
@@ -527,16 +560,6 @@ const BSECTORS = [
   { k: "salaries", l: "Salaries", i: "💰" }, { k: "debt", l: "Debt", i: "📉" },
 ];
 
-// ── BUDGET ASSEMBLY: MDA envelope requests (inflated asks from ministries) ──
-const MDA_ENVELOPES = [
-  { k: "health", nm: "Ministry of Health", i: "🏥", ask: 22, need: 12, pad: "New SUVs for 12 medical directors, ₦2.5B 'sensitization' campaign, ₦1.8B for a fresh Commissioner's guest house.", real: "Primary Health Centres are collapsing. Only 3 of 21 LGAs have functional immunisation cold chains." },
-  { k: "education", nm: "Ministry of Education", i: "📚", ask: 20, need: 14, pad: "₦4B 'monitoring & evaluation', ₦1.2B annual retreat in Dubai for SUBEB, procurement of 400 laptops at ₦2.8m each.", real: "70,000 out-of-school children. WAEC pass rate at 38%. Teachers unpaid for 4 months in 6 LGAs." },
-  { k: "infrastructure", nm: "Ministry of Works", i: "🏗️", ask: 25, need: 16, pad: "Grading rural roads twice under two contracts, ₦6B for a 400m 'flyover' where a roundabout would do.", real: "Federal roads collapsing in the state. 4 bridges rated structurally unsafe by COREN." },
-  { k: "security", nm: "State Security Trust Fund", i: "🛡️", ask: 15, need: 11, pad: "₦3B 'operational logistics' with no receipts, buying 40 armoured vehicles from a company owned by the DSS director's brother.", real: "Banditry displacing 12 rural communities. Amotekun/Ebube Agu need real fuel and radios." },
-  { k: "agriculture", nm: "Ministry of Agriculture", i: "🌾", ask: 12, need: 8, pad: "'Fertilizer distribution' to phantom cooperatives run by party faithful, tractor hire at 3× market rate.", real: "Farmer-herder clashes down 40% of arable land. Seeds and irrigation genuinely needed." },
-  { k: "administration", nm: "Government House", i: "🏛️", ask: 14, need: 6, pad: "Deputy Governor's convoy upgrade (₦900m), First Lady 'Pet Project' office (₦1.5B), foreign trips (₦2B).", real: "Basic salaries, utilities, secretariat maintenance." },
-];
-
 // ── ELECTION TRIBUNAL: grounds a losing candidate can plead ──
 const TRIBUNAL_GROUNDS = [
   { id: "overvoting", nm: "Over-voting in 214 polling units", desc: "Number of votes cast exceeded accredited voters in 3 LGAs — clear violation of S.51 Electoral Act 2022. If proven, INEC must cancel and rerun.", baseChance: .55, req: "You need collated Form EC8As from those units + BVAS backend data. INEC will resist." },
@@ -822,7 +845,7 @@ const DILEMMAS = [
   { id: "strike", nm: "Salary Strike", d: "3 months unpaid. Workers shut down government.", ch: [{ l: "Pay all arrears", fx: { app: 8 }, sk: { unions: 15 }, rk: "₦4B debt increase", dc: 4 }, { l: "Pay 50% + negotiate", fx: { app: 3 }, sk: { unions: -3 }, rk: "Trust deficit — they'll strike again", dc: 2 }, { l: "Sack striking workers", fx: { app: -10, sec: -.02 }, sk: { unions: -25, youth: -12, media: -10 }, rk: "NIC WILL intervene. S.254C gives them jurisdiction. Expect court-ordered reinstatement and compensation.", dc: 0, nicTrigger: true }] },
   { id: "land", nm: "Land Scandal", d: "Commissioner sold gov land.", ch: [{ l: "Fire publicly", fx: { app: 8, corM: -.05 }, sk: { media: 10, party: -10 }, rk: "Party revolt" }, { l: "Bury it", fx: { corM: .05 }, sk: { media: -15 }, rk: "Leak" }, { l: "Refer to EFCC", fx: { app: 5 }, sk: { media: 8 }, rk: "Slow" }] },
   { id: "flood", nm: "Catastrophic Floods", d: "200,000 displaced.", ch: [{ l: "Full emergency", fx: { app: 10 }, sk: { media: 8 }, rk: "Budget blown", dc: 5 }, { l: "Wait for FG", fx: { app: -5 }, sk: { media: -8 }, rk: "Suffering" }, { l: "Targeted relief", fx: { app: 5, infra: .02 }, sk: {}, rk: "Slow", dc: 2 }] },
-  { id: "whistle", nm: "Whistleblower", d: "₦8B padding exposed.", ch: [{ l: "Accept + reform", fx: { app: 6, corM: -.06 }, sk: { media: 12, party: -8 }, rk: "Party revolt" }, { l: "Discredit", fx: { corM: .05, app: -5 }, sk: { media: -15 }, rk: "Int'l focus" }, { l: "Quiet fix", fx: { corM: -.02 }, sk: { party: 3 }, rk: "Partial" }] },
+  { id: "whistle", nm: "Whistleblower", d: "₦8B in inflated contracts exposed.", ch: [{ l: "Accept + reform", fx: { app: 6, corM: -.06 }, sk: { media: 12, party: -8 }, rk: "Party revolt" }, { l: "Discredit", fx: { corM: .05, app: -5 }, sk: { media: -15 }, rk: "Int'l focus" }, { l: "Quiet fix", fx: { corM: -.02 }, sk: { party: 3 }, rk: "Partial" }] },
   { id: "smear", nm: "Opposition Smear", d: "Fake bribe video.", ch: [{ l: "Sue them", fx: { app: 3 }, sk: { media: 5 }, rk: "Court drags" }, { l: "Ignore it", fx: { app: -5 }, sk: { youth: -8 }, rk: "Believed" }, { l: "Transparency report", fx: { app: 8, corM: -.02 }, sk: { media: 10, youth: 8 }, rk: "None" }] },
 ];
 
@@ -841,7 +864,7 @@ const HOUSE_BILLS = [
   { id: "hb_min_wage", nm: "State Minimum Wage Bill", d: "Proposes ₦70,000 minimum wage for state workers. Above federal level.", signFx: { app: 8 }, signCost: 3.5, vetoFx: { app: -6 }, sk: { unions: 15, youth: 8 }, vetoSk: { unions: -15, youth: -8 }, civic: "While the National Minimum Wage Act sets a floor, states can legislate higher minimums. The fiscal implications are significant — salaries are often 50-70% of state budgets.",
     clauses: [
       { t: "Section 2: Minimum wage for all state civil servants set at ₦70,000.", ok: true },
-      { t: "Section 5: Implementation committee of 15 members to receive ₦5M monthly allowance each.", ok: false, flag: "₦75M/month for a committee? That's ₦900M/year in 'allowances' alone — classic budget padding disguised as implementation costs." },
+      { t: "Section 5: Implementation committee of 15 members to receive ₦5M monthly allowance each.", ok: false, flag: "₦75M/month for a committee? That's ₦900M/year in 'allowances' alone — classic budget inflation disguised as implementation costs." },
       { t: "Section 8: Wage review every 3 years indexed to inflation.", ok: true },
     ] },
   { id: "hb_open_gov", nm: "Open Government Bill", d: "Requires all state contracts above ₦50M to be published online.", signFx: { app: 5, corM: -.04 }, signCost: 0.3, vetoFx: { corM: .03, app: -3 }, sk: { media: 12, business: 5, youth: 8 }, vetoSk: { media: -15, youth: -10 }, civic: "Transparency legislation strengthens accountability. Nigeria's Freedom of Information Act (2011) provides a federal framework, but state-level open governance laws can go further." },
@@ -2124,7 +2147,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     );
   }
 
-  // STEP 85: PRE-INAUGURATION ELECTION TRIBUNAL (first-election defeat only)
+  // STEP 85: ELECTION TRIBUNAL BEFORE TAKING OFFICE (first-election defeat only)
   if (step === 85 && preTrib) {
     const LVLS = [
       { nm: "Governorship Election Tribunal", tag: "S.285(1)(b) · 180 days to judgment", winBonus: 0, appealCost: 0.6 },
@@ -2330,7 +2353,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
   if (secPct < 5) concerns.push({ t: "Security vote below " + secPct.toFixed(0) + "% leaves the state exposed; even opposition members fear kidnappings.", severity: "high", fix: "Raise Security to at least 8%." });
   else if (secPct > 22) concerns.push({ t: "Security vote at " + secPct.toFixed(0) + "% is too opaque — Speaker demands line-item disclosure before approval.", severity: "high", fix: "Cut Security below 20% or publish a sub-vote schedule." });
   else if (secPct > 16) concerns.push({ t: "Security vote at " + secPct.toFixed(0) + "% will pass with uncomfortable questions about receipts.", severity: "medium", fix: "Keep Security near 8–14% unless insecurity is severe." });
-  if (adminPct > 18) concerns.push({ t: "Government House/admin overhead is " + adminPct.toFixed(0) + "% — members see padding, convoys and foreign trips.", severity: "high", fix: "Trim Administration to 10% or less." });
+  if (adminPct > 18) concerns.push({ t: "Government House/admin overhead is " + adminPct.toFixed(0) + "% — members see waste, convoys and foreign trips.", severity: "high", fix: "Trim Administration to 10% or less." });
   else if (adminPct > 12) concerns.push({ t: "Administration at " + adminPct.toFixed(0) + "% will pass, but the press will call it wasteful.", severity: "medium", fix: "5–10% is safer." });
   if (debtPct < 3 && debtPct > 0) concerns.push({ t: "Debt service is light; contractors may keep lobbying members over unpaid certificates.", severity: "low", fix: "5–12% keeps creditors quieter." });
   if (pStab < 25) concerns.push({ t: "Party stability is " + Math.round(pStab) + "% — your own caucus can no longer guarantee quorum for an appropriation vote.", severity: "high", fix: "Repair party relations or negotiate with the Speaker." });
@@ -2427,7 +2450,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
 
 // ─── THE WIKIPEDIA ARTICLE ───
 // One article, built by buildWiki() in GovScreen from the record (the
-// ledger) and the setup: a stub after the First 100 Days that grows every
+// ledger) and the setup: a stub in the first year that grows every
 // half-year, and the full biography at the end. A paragraph is a list of
 // strings and { ref: n } footnote markers; references point to the in-game
 // news story that reported each fact.
@@ -2604,7 +2627,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [investorsSeen, setInvestorsSeen] = useState(ld?.investorsSeen || []);
   const [investorsApproved, setInvestorsApproved] = useState(ld?.investorsApproved || []);
   const [curMedia, setCurMedia] = useState(null);
-  const [mdaEnv, setMdaEnv] = useState(null); // { list, idx, decisions, speakerAsk }
   const [tribunal, setTribunal] = useState(null); // { level, groundId, cost, spent, log, oppName, oppPartyId, margin }
   const [mediaSeen, setMediaSeen] = useState(ld?.mediaSeen || []);
   const [campRound, setCampRound] = useState(0);
@@ -2753,7 +2775,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return next;
   });
   const efccSaid = React.useRef(new Set());
-  const efccCause = () => { try { const M = window.SOP_MEMORY; const e = M && M.did(["godfather_contract", "nepotism_flag", "house_deal", "budget_forced", "press_suppression", "contract_awarded"], x => (x.corruptionDelta || 0) > 0 || /godfather|nepotism|house_deal|budget_forced|press/.test(x.kind)); return e ? " The file starts with \u201c" + String(e.kind === "godfather_contract" && e.note && !/^DAY/.test(e.location || "") ? "Gave " + cast.godfather.name + " what he wanted: " + e.note : (e.decision || e.note || e.kind)).replace(/^[^A-Za-z0-9"\u201c₦]+/u, "").slice(0, 100) + "\u201d (turn " + e.t + ")." : " Investigators cite corruption at " + Math.round((s.cor || 0) * 100) + "%."; } catch (e) { return ""; } };
+  const efccCause = () => { try { const M = window.SOP_MEMORY; const e = M && M.did(["godfather_contract", "nepotism_flag", "house_deal", "budget_forced", "press_suppression", "contract_awarded"], x => (x.corruptionDelta || 0) > 0 || /godfather|nepotism|house_deal|budget_forced|press/.test(x.kind)); return e ? " The file starts with \u201c" + String(e.kind === "godfather_contract" && e.note ? "Gave " + cast.godfather.name + " what he wanted: " + e.note : (e.decision || e.note || e.kind)).replace(/^[^A-Za-z0-9"\u201c₦]+/u, "").slice(0, 100) + "\u201d (turn " + e.t + ")." : " Investigators cite corruption at " + Math.round((s.cor || 0) * 100) + "%."; } catch (e) { return ""; } };
   const blameOf = (k) => { const b = skBlame.current[k]; return b ? " They point to \u201c" + String(b.what).replace(/^[^A-Za-z0-9"\u201c₦]+/u, "").slice(0, 110) + "\u201d (turn " + b.turn + ")." : ""; };
   const addL = (tx, tp = "info") => { if (tp !== "info" && tp !== "crisis" && tp !== "success") lastAct.current = { turn, what: tx }; setLogs(p => [{ t: turn, tx, tp }, ...p].slice(0, 40)); try { window.SOP && (window.SOP._lastLog = { t: turn, tx, tp }); window.dispatchEvent(new CustomEvent('sop-log', { detail: { t: turn, tx, tp } })); } catch(e){} };
   const goTab = (k) => setNav(k);
@@ -3091,11 +3113,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Party collapse triggers impeachment only if approval also low (House needs justification)
     if (s.pStab < 20 && s.app < 50) { setPhase("impeach"); addL("⚠️ Party stability collapsed AND approval low! House of Assembly moves to impeach.", "crisis"); return; }
     setTurn(t => t + 1);
-    // From turn 2 onward, ministries submit inflated envelopes before you draft the Appropriation Bill
-    const envList = MDA_ENVELOPES.map(e => ({ ...e, ask: e.ask + Math.floor((Math.random() - .3) * 4) })).sort(() => Math.random() - .5).slice(0, 4);
-    const speakerAsk = Math.round(1 + Math.random() * 2.5 * 10) / 10; // ₦1B–₦3.5B
-    setMdaEnv({ list: envList, idx: 0, decisions: [], speakerAsk, speakerHandled: false });
-    setPhase("mda");
+    setPhase("budget");
   };
   const handleImp = (surv) => {
     // Fight chance scales with approval — high approval = almost guaranteed survival
@@ -3755,13 +3773,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!M) return unseen.length ? pick(unseen, r) : null;
     const owed = M.owed("godfather");
     const holdsWorks = !!M.did("godfather_contract", { relatedEntity: "ministry:works" });
-    const holdsRoad = !!M.did(null, e => e.relatedEntity === "project:signature_road" && (e.beneficiaries || []).includes("godfather"));
     const pool = unseen.filter(d => {
       if (d.id === "gf_money") return owed.some(o => o.kind === "campaign_loan");
       if (d.id === "gf_appointment") return !holdsWorks;
-      // His road: once the First 100 Days handed him the signature road
-      // (emergency certificate), he doesn't ask for a road contract again.
-      if (d.id === "gf_contract") return !holdsRoad;
       return true;
     });
     if (!pool.length) return null;
@@ -3836,7 +3850,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (refKey[key]) return { ref: refKey[key] };
       const t = (e && e.t) || turn;
       const log = e && logs.find(l => l.t === t && ((e.target && l.tx.includes(e.target)) || (e.decision && l.tx.toLowerCase().includes(String(e.decision).toLowerCase().slice(0, 18)))));
-      const body = e ? (/^DAY \d+ — /.test(e.location || "") ? e.location.replace(/^DAY (\d+) — /, "Day $1: ") + ". The governor chose: " + e.decision : e.note && e.decision && String(e.note).indexOf(String(e.decision).slice(0, 20)) < 0 ? e.decision + ": " + e.note : (e.note || e.decision || e.kind)) : fallbackHead;
+      const body = e ? (e.note && e.decision && String(e.note).indexOf(String(e.decision).slice(0, 20)) < 0 ? e.decision + ": " + e.note : (e.note || e.decision || e.kind)) : fallbackHead;
       const head = plain(log ? log.tx : body);
       const n = refs.length + 1; refKey[key] = n;
       refs.push({ n, head: head.replace(/[.\s]+$/, ""), src: e && /court|unconst/.test(e.kind || "") ? "State House Report" : paper, when: whenOf(t) });
@@ -3844,7 +3858,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     };
     const ofKind = (k) => L.filter(e => Array.isArray(k) ? k.includes(e.kind) : e.kind === k);
     const loan = ofKind("campaign_loan")[0];
-    const f100 = L.filter(e => /^DAY \d+ — /.test(e.location || ""));
     const pols = ofKind("policy_enacted");
     const echoes = ofKind("policy_echo");
     const flagM = ofKind("flagship_milestone");
@@ -3879,12 +3892,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     sections.push({ h: "Early life and campaign", paras: camp });
     // Governorship
     const subs = [];
-    if (f100.length || (ministries && ministries.length)) {
-      const pp = [He + " was sworn in on 29 May " + startYear + ". "];
-      f100.slice(0, 4).forEach(e => { const [d, ttl] = e.location.split(" — "); pp.push("On " + d.toLowerCase() + ", faced with \u201c" + short(ttl, 70).replace(/[.?]$/, "") + "\u201d, " + he + " chose: \u201c" + short(e.decision, 90).replace(/\.$/, "") + ".\u201d"); pp.push(cite(e)); pp.push(" "); });
-      const apps = (ministries || []).filter(m => m.minister).slice(0, 3);
-      if (apps.length) pp.push("Early appointments included " + apps.map(m => m.minister + " (" + m.name + ")").join(", ") + ".");
-      subs.push({ h: "First 100 days", paras: [pp] });
+    if (ministries && ministries.some(m => m.minister)) {
+      const apps = ministries.filter(m => m.minister).slice(0, 4);
+      subs.push({ h: "Cabinet", paras: [[He + " was sworn in on 29 May " + startYear + ". " + His + " cabinet included " + apps.map(m => m.minister + " (" + m.name + ")").join(", ") + "."]] });
     }
     if (flag) {
       const pp = [];
@@ -3916,7 +3926,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const said = new Set();
     contro.forEach(e => {
       if (said.has(e.kind + (e.target || ""))) return; said.add(e.kind + (e.target || ""));
-      const txt = e.kind === "godfather_contract" ? (/^DAY \d+/.test(e.location || "") ? "On " + e.location.split(" — ")[0].toLowerCase() + " " + he + " settled with " + cast.godfather.name + ": \u201c" + short(e.decision, 80).replace(/\.$/, "") + "\u201d" : He + " gave " + cast.godfather.name + " what he asked for: " + short(e.note, 90)) : e.kind === "court_defiance" ? He + " defied a court ruling (" + e.target + ")" : e.kind === "press_suppression" ? "The administration was accused of killing a press story about it" : e.kind === "nepotism_flag" ? "Appointments of relatives and allies were flagged" : e.kind === "budget_forced" ? "Spending without the House's approval drew a court challenge" : e.kind === "unconst_order" ? He + " issued an executive order the courts called unconstitutional: " + short(e.decision, 60).replace(/^Executive order: /, "") : e.kind === "house_deal" ? "Members were given constituency projects for their votes" : short(e.outcome || e.note, 110);
+      const txt = e.kind === "godfather_contract" ? He + " gave " + cast.godfather.name + " what he asked for: " + short(e.note, 90) : e.kind === "court_defiance" ? He + " defied a court ruling (" + e.target + ")" : e.kind === "press_suppression" ? "The administration was accused of killing a press story about it" : e.kind === "nepotism_flag" ? "Appointments of relatives and allies were flagged" : e.kind === "budget_forced" ? "Spending without the House's approval drew a court challenge" : e.kind === "unconst_order" ? He + " issued an executive order the courts called unconstitutional: " + short(e.decision, 60).replace(/^Executive order: /, "") : e.kind === "house_deal" ? "Members were given constituency projects for their votes" : short(e.outcome || e.note, 110);
       cpp.push(txt.replace(/\.?$/, ".")); cpp.push(cite(e)); cpp.push(" ");
     });
     if (M) { try { const owed = M.owed(); if (owed.length) cpp.push(owed.length + (owed.length === 1 ? " promise" : " promises") + " to power brokers remained unpaid" + (ended ? " when " + he + " left office." : ".")); } catch (e) {} }
@@ -5576,7 +5586,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 nextEvent();
               }} style={{ padding: 43 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.grn, marginBottom: 10 }}>🏠 Skip It — Stay and Work</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>"I didn't take an oath to attend weddings." Post photos of yourself inspecting projects instead.</div>
+                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>"I wasn't elected to attend weddings." Post photos of yourself inspecting projects instead.</div>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                   <Bg text="-3 party" color={CL.red} />
                   <Bg text="+5 approval" color={CL.grn} />
@@ -6525,77 +6535,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </Fold>
           </div>
           <div>
-            {phase === "mda" && mdaEnv && (() => {
-              const totalPad = mdaEnv.decisions.reduce((a, d) => a + (d.pad || 0), 0);
-              const totalSaved = mdaEnv.decisions.reduce((a, d) => a + (d.saved || 0), 0);
-              const exposed = mdaEnv.decisions.filter(d => d.exposed).length;
-              if (mdaEnv.idx < mdaEnv.list.length) {
-                const env = mdaEnv.list[mdaEnv.idx];
-                const decide = (label, budDelta, padAdd, savedAdd, fx) => {
-                  const dec = { k: env.k, label, pad: padAdd, saved: savedAdd, exposed: fx?.exposed };
-                  setMdaEnv(m => ({ ...m, idx: m.idx + 1, decisions: [...m.decisions, dec] }));
-                  setBud(p => ({ ...p, [env.k]: Math.max(0, Math.min(100, (p[env.k] || 0) + budDelta)) }));
-                  if (fx) {
-                    setS(p => ({ ...p, cor: cl(p.cor + (fx.cor || 0), 0, 1), pStab: cl100(p.pStab + (fx.pStab || 0)), app: cl100(p.app + (fx.app || 0)) }));
-                    if (fx.log) addL(fx.log, fx.tp || "policy");
-                  }
-                };
-                return <Cd style={{ borderColor: CL.pur + "55" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 22, marginBottom: 14 }}>
-                    <Bg text={"BUDGET ASSEMBLY " + (mdaEnv.idx + 1) + "/" + mdaEnv.list.length} color={CL.pur} />
-                    <Bg text={"₦ padding exposed: " + totalPad.toFixed(1) + "B"} color={totalPad > 0 ? CL.red : CL.td} />
-                    <Bg text={"₦ saved: " + totalSaved.toFixed(1) + "B"} color={CL.grn} />
-                  </div>
-                  <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 14px", fontSize: TS(53), fontWeight: 600 }}>{env.i} {env.nm}</h3>
-                  <div style={{ background: CL.red + "10", border: "1px solid " + CL.red + "30", borderRadius: 8, padding: "22px 29px", marginBottom: 22, fontSize: TS(34), color: CL.red, lineHeight: 1.4 }}>
-                    <b>Envelope submitted: {env.ask}% of total budget.</b> The Permanent Secretary walks in with a bulky file and a nervous smile.
-                  </div>
-                  <div style={{ fontSize: TS(34), color: CL.tm, marginBottom: 14 }}><b>Padding your PA flagged:</b> {env.pad}</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 29, fontStyle: "italic" }}>Actual field reality: {env.real}</div>
-                  <div style={{ display: "grid", gap: 19 }}>
-                    <Bt onClick={() => decide("Approved as submitted", env.ask - (bud[env.k] || 0), 0, 0, { cor: .015, pStab: 3, log: "🏛️ Approved " + env.nm + " envelope as submitted — PS smiles. Padding untouched.", tp: "political" })} style={{ background: CL.red }}>💰 Approve full ₦ envelope ({env.ask}%) · +party loyalty, +corruption</Bt>
-                    <Bt onClick={() => { const cut = Math.round((env.ask - env.need) * .5); decide("Cut 50% of padding", (env.ask - cut) - (bud[env.k] || 0), 0, cut * .3, { pStab: -1, app: 1, log: "✂️ Trimmed " + env.nm + " envelope by " + cut + "%. Saved public funds." }); }}>✂️ Cut half the padding · realistic middle ground</Bt>
-                    <Bt onClick={() => decide("Fund only real need", env.need - (bud[env.k] || 0), 0, (env.ask - env.need) * .5, { pStab: -4, app: 3, cor: -.01, log: "📉 Cut " + env.nm + " to real-need envelope (" + env.need + "%). PS is furious." })} style={{ background: CL.grn }}>📉 Fund only the {env.need}% real need · lean & clean</Bt>
-                    <Bt onClick={() => { const caught = Math.random() < .55; if (caught) { decide("EFCC referral — padding proved", env.need - (bud[env.k] || 0), env.ask - env.need, (env.ask - env.need) * .8, { pStab: -8, cor: -.03, app: 5, log: "🚔 EFCC probe on " + env.nm + " uncovered ₦" + ((env.ask - env.need) * .8).toFixed(1) + "B in inflated line items. PS suspended.", tp: "success" }); } else { decide("EFCC referral — nothing proven", env.ask - (bud[env.k] || 0), 0, 0, { pStab: -5, cor: .01, app: -2, log: "😑 EFCC found nothing on " + env.nm + ". PS returns emboldened. Ministry stability shaken.", tp: "crisis" }); } }} style={{ background: CL.org }}>🚔 Refer padding to EFCC · risky — may prove nothing</Bt>
-                  </div>
-                </Cd>;
-              }
-              // Speaker's constituency-project padding demand
-              if (!mdaEnv.speakerHandled) {
-                const ask = mdaEnv.speakerAsk;
-                const handle = (fx, logTx, tp) => { addL(logTx, tp); setMdaEnv(m => ({ ...m, speakerHandled: true })); setS(p => ({ ...p, pStab: cl100(p.pStab + (fx.pStab || 0)), cor: cl(p.cor + (fx.cor || 0), 0, 1), app: cl100(p.app + (fx.app || 0)), debt: p.debt + (fx.debt || 0) })); };
-                return <Cd style={{ borderColor: CL.org + "55" }}>
-                  <Bg text="SPEAKER'S CHAMBER" color={CL.org} />
-                  <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0 14px", fontSize: TS(53), fontWeight: 600 }}>🎩 The Speaker calls at 11pm</h3>
-                  <p style={{ color: CL.tm, fontSize: TS(36), lineHeight: 1.5, marginBottom: 29 }}>"Your Excellency, the House cannot approve the Appropriation Bill without <b>constituency projects</b> for our 24 members. We need <b>₦{ask}B</b> inserted — culverts, boreholes, empowerment items. Anything less, and the bill dies on the floor."</p>
-                  <div style={{ display: "grid", gap: 19 }}>
-                    <Bt onClick={() => handle({ pStab: 12, cor: .02, debt: ask, app: -2 }, "🤝 Inserted ₦" + ask + "B in constituency projects. House delighted. Debt +₦" + ask + "B.", "political")} style={{ background: CL.grn }}>🤝 Insert the ₦{ask}B · smooth passage guaranteed</Bt>
-                    <Bt onClick={() => handle({ pStab: 4, cor: .005, debt: ask * .5, app: 1 }, "📎 Negotiated down to ₦" + (ask * .5).toFixed(1) + "B constituency projects.", "political")}>📎 Negotiate down to ₦{(ask * .5).toFixed(1)}B</Bt>
-                    <Bt onClick={() => handle({ pStab: -14, app: 6 }, "🚫 Refused Speaker's demand. He walked out threatening to reject the bill.", "political")} style={{ background: CL.red }}>🚫 Refuse — you'll defend the clean budget</Bt>
-                    <Bt onClick={() => { const caught = Math.random() < .5; if (caught) handle({ pStab: -22, app: 10, cor: -.02 }, "🚨 Recorded conversation leaked! Speaker faces EFCC. House swears vengeance.", "success"); else handle({ pStab: -12, app: -1, cor: .01 }, "🕵️ Attempted sting failed — Speaker is now your enemy for life.", "crisis"); }} style={{ background: CL.org }}>🕵️ Record him and leak it · high-risk sting</Bt>
-                  </div>
-                </Cd>;
-              }
-              // Summary → proceed to draft budget
-              return <Cd>
-                <Bg text="BUDGET ASSEMBLY COMPLETE" color={CL.grn} />
-                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(53), fontWeight: 600 }}>📊 Envelope decisions ready for drafting</h3>
-                <div style={{ background: "#f9f5ee", border: "1px solid " + CL.bdr, borderRadius: 8, padding: "29px 36px", marginBottom: 29, fontSize: TS(34), color: CL.tm }}>
-                  {mdaEnv.decisions.map((d, i) => <div key={i} style={{ padding: "10px 0", borderBottom: "1px dotted " + CL.bdr }}><b>{MDA_ENVELOPES.find(e => e.k === d.k)?.i} {d.k}:</b> {d.label}{d.saved > 0 ? " — saved ₦" + d.saved.toFixed(1) + "B" : ""}{d.exposed ? " · EFCC" : ""}</div>)}
-                  <div style={{ marginTop: 14, fontWeight: 700, color: CL.grn }}>Total public funds preserved: ₦{totalSaved.toFixed(1)}B{exposed ? " · " + exposed + " ministries under EFCC scrutiny" : ""}</div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <Bt onClick={() => { setMdaEnv(null); setPhase("budget"); }}>DRAFT APPROPRIATION BILL →</Bt>
-                </div>
-              </Cd>;
-            })()}
 
             {phase === "budget" && (() => {
               const SEC_META = {
                 salaries:       { grp: "Obligations",         min: 15, max: 22, funds: "Civil servant wages, pensions, LGA subventions, teachers, doctors, police stipend top-ups.", low: "Salary arrears → NLC/ASUU strike, party revolt, approval crash.", high: "Bloated payroll consumes capex — nothing left to build." },
                 debt:           { grp: "Obligations",         min: 5,  max: 12, funds: "Repayment of state bonds, contractor arrears, World Bank / AfDB loans, unpaid contractor certificates.", low: "Debt compounds — credit downgrade, contractors down tools.", high: "Overpaying debt starves services this quarter." },
                 administration: { grp: "Obligations",         min: 5,  max: 10, funds: "Government House, Deputy Gov office, protocol, official vehicles, foreign trips, utilities, secretariat maintenance.", low: "Basic government machinery grinds to a halt.", high: "Optics disaster — media brands you a spendthrift, corruption index rises." },
-                health:         { grp: "Human Development",   min: 12, max: 18, funds: "Doctor & nurse salaries, drug procurement, primary health centres, immunisation cold chain, teaching hospital subsidies.", low: "Drug stockouts, infant mortality, strike by NARD/NMA.", high: "Diminishing returns — money starts padding retreats." },
+                health:         { grp: "Human Development",   min: 12, max: 18, funds: "Doctor & nurse salaries, drug procurement, primary health centres, immunisation cold chain, teaching hospital subsidies.", low: "Drug stockouts, infant mortality, strike by NARD/NMA.", high: "Diminishing returns — the extra money starts paying for retreats." },
                 education:      { grp: "Human Development",   min: 12, max: 18, funds: "Teacher salaries, SUBEB, WAEC subsidy, school feeding, tertiary subventions, scholarships, classroom construction.", low: "Out-of-school children rise, WAEC pass rate collapses.", high: "Marginal gains — building schools without teachers." },
                 security:       { grp: "Human Development",   min: 8,  max: 14, funds: "Security vote (opaque), Amotekun/Ebube Agu, police logistics, DSS collaboration, CCTV, vigilante grants.", low: "Banditry / kidnapping surges; investors flee.", high: "Militarisation — media & youth accuse you of a police state." },
                 infrastructure: { grp: "Growth Engines",      min: 12, max: 20, funds: "Roads, bridges, drainage, street lights, water works, housing estates, rural electrification, IPP power.", low: "Potholes viral on Twitter, IGR flatlines, contractors default.", high: "Cash cow for kickbacks if unmatched by monitoring." },

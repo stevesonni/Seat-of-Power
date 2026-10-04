@@ -10,10 +10,10 @@ Older art (anchors, av-agbada/babariga/isiagu/female, hero-*, sa-adebayo/halima,
 - governor-female-agbada (aso-oke + gele) / -isiagu / -kaftan / -suit
 - special-adviser — the single SA for the whole game
 - godfather, deputy-male, deputy-female, speaker, reporter, efcc-investigator, rival, labour-leader
-- anchor-male (Ibrahim Danjuma, grey kaftan) and anchor-female (Funmi Okeowo, purple gele): the State House Report desk. Their badges were repainted from a deputy-governor plate and a coat-of-arms pin to State House Report press badges.
+- anchor-male (Ibrahim Danjuma, navy suit, glasses) and anchor-female (Funmi Okeowo, burgundy suit): the permanent State House Report anchors.
 
 ## backgrounds/ (1920x1088 JPG, landscape)
-- Public: rally, tv-studio, collation-centre, government-house (title + inauguration)
+- Public: rally, tv-studio, collation-centre, government-house (title + taking office)
 - Administrative: governor-office, assembly-chamber, courtroom
 - Private: veranda-night, back-room
 
@@ -25,5 +25,5 @@ state-seal (invented — use instead of the old national "crest"), title-logo, a
 
 ## Known issues to fix later
 - Some images still show the national coat of arms (governor-female-agbada, governor-female-kaftan, deputy-male, deputy-female, speaker mace, collation-centre, governor-office, assembly-chamber, courtroom). Regenerate or edit before shipping.
-- labour-leader shirt reads "Nigeria Labour Union"; deputy-male badge says "Kaduna State" (the grey-kaftan source image was reused for the male anchor with a new badge).
+- labour-leader shirt reads "Nigeria Labour Union"; deputy-male badge says "Kaduna State".
 - Not yet made: pleased/angry expression variants, LGA SVG map (Lagos), Wikipedia share card template.

@@ -269,9 +269,6 @@
     let delta = 0;
     const nepot = ledgerByKind("nepotism_flag").length;
     if (nepot >= 1) { delta -= 6 * Math.min(nepot, 4); items.push({ ok:false, txt:`${nepot} nepotism flag(s) on record — opposing counsel will cite them` }); }
-    const padded = ledgerByKind("budget_padding").length;
-    if (padded >= 2) { delta -= 5; items.push({ ok:false, txt:`${padded} padded budget lines approved — treasury paper trail` }); }
-    else if (padded === 0 && ledgerByKind("budget_character").length) { delta += 4; items.push({ ok:true, txt:"No padded envelopes signed — clean fiscal record" }); }
     const defiance = ledgerByKind("court_defiance").length;
     if (defiance) { delta -= 10 * defiance; items.push({ ok:false, txt:`${defiance} court defiance event(s) — bench remembers` }); }
     const compliance = ledgerByKind("court_compliance").length;
@@ -295,8 +292,6 @@
     if (nepot >= 2) out.push({ tone:"red", txt:`${nepot} nepotism awards this quarter — the press will notice soon.` });
     const defiance = recent.filter(e => e.kind === "court_defiance").length;
     if (defiance) out.push({ tone:"red", txt:"You defied a court order recently. Judiciary is now hostile." });
-    const padding = recent.filter(e => e.kind === "budget_padding").length;
-    if (padding >= 2) out.push({ tone:"amber", txt:`${padding} padded lines signed off — House will corner you on this.` });
     const fired = recent.filter(e => e.kind === "minister_fired" && e.meta && e.meta.godfather).length;
     if (fired) out.push({ tone:"red", txt:"You sacked a godfather-imposed commissioner. Expect retaliation." });
     return out;
@@ -413,7 +408,6 @@
      Every setter that moves corruption or harms a named NPC:
        ✓ sop-realism.js awardProject       → contract_awarded, nepotism_flag, eia_bypass
        ✓ sop-realism.js fire minister      → minister_fired (godfather flag)
-       ✓ sop-v2.js openBudget submit       → budget_padding, budget_character
        ✓ seat-of-power.html fireCom        → minister_fired
        ✓ seat-of-power.html court_defied   → court_defiance
        ✓ seat-of-power.html court_complied → court_compliance

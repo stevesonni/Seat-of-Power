@@ -3,7 +3,7 @@
 ## Completed
 - [x] Step 0: Safe foundations — ledger schema v2, save persistence, save migration, dead code removal
 - [x] Step 1: Design-system binding — TS(n) font ladder, 788 font sizes converted, text-size control, mode-aware structural colors
-- [x] Step 2: First 100 Days slice — six scripted decision beats before first budget, visible costs/effects, delayed consequences, ledger attribution
+- [x] ~~Step 2: First 100 Days slice~~ — deleted on 4 Oct by Steve's decision, together with the budget padding ("Budget Assembly") decisions. See docs/SEAT-OF-POWER-CORRECTIONS.md, Batch E.
 
 ## In Progress
 - [ ] Migrate visible screens from legacy HTML into shared React components (large, staged)
