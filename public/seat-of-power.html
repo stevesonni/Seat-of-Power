@@ -327,12 +327,13 @@
       var lastFit = null;
       function typing() { var a = document.activeElement; return isTouch && a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }
       function fit() {
-        var w = vp.clientWidth, h = vp.clientHeight;
+        var w = vp.clientWidth, h = Math.max(vp.clientHeight, window.innerHeight || 0);
         /* The on-screen keyboard shortens the viewport. Keep the layout and
            scale the player was looking at; only the scrollable height
            changes, so nothing shrinks or flips to landscape while typing. */
         if (typing() && lastFit && Math.abs(w - lastFit.w) < 4) {
           stage.style.height = Math.round(h / lastFit.s) + 'px';
+          stage.style.setProperty('--stage-h', Math.round(h / lastFit.s) + 'px');
           return;
         }
         /* Portrait-first. A tall screen gets a narrow artboard (PW design px
@@ -359,9 +360,19 @@
         stage.style.transform = 'scale(' + s + ')';
         /* Inputs: at least 16 real px, so phones never zoom on focus. */
         stage.style.setProperty('--in-fs', Math.ceil(16.5 / s) + 'px');
+        /* Screens that fill the screen (the setup flow) read this. */
+        stage.style.setProperty('--stage-h', sh + 'px');
         lastFit = { w: w, h: h, s: s };
       }
       document.addEventListener('focusout', function () { setTimeout(fit, 250); });
+      /* Some hosts (the claude.ai viewer on phones) size the frame after the
+         page has loaded without telling it. Re-measure whenever the frame
+         changes size, and check twice a second as a backstop, so the bottom
+         button bar always sits at the real bottom of the screen. */
+      try { if (window.ResizeObserver) new ResizeObserver(function () { fit(); }).observe(vp); } catch (e) {}
+      setInterval(function () { if (!lastFit || typing()) return; if (Math.abs(vp.clientWidth - lastFit.w) > 1 || Math.abs(Math.max(vp.clientHeight, window.innerHeight || 0) - lastFit.h) > 1) fit(); }, 500);
+      window.addEventListener('load', function () { fit(); setTimeout(fit, 400); setTimeout(fit, 1500); });
+      window.addEventListener('pageshow', function () { setTimeout(fit, 100); });
       fit();
       window.addEventListener('resize', fit);
       window.addEventListener('orientationchange', function () { setTimeout(fit, 120); });
