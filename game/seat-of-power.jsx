@@ -7,7 +7,7 @@ const { useState, useEffect, useMemo } = React;
    Components that need a different arrangement there ask TALL(). */
 const TALL = () => typeof window !== "undefined" && window.innerHeight > window.innerWidth;
 
-const F = { d: "'Cormorant Garamond',serif", b: "'Outfit',sans-serif", m: "'JetBrains Mono',monospace", c: "'Montserrat','Outfit',sans-serif" };
+const F = { d: "'Fraunces',Georgia,serif", b: "'Plus Jakarta Sans',sans-serif", m: "'Plus Jakarta Sans',sans-serif", c: "'Plus Jakarta Sans',sans-serif" };
 /* CL — the colour handles used by ~700 inline styles. The six structural
    ones are no longer fixed hexes: they read live from the stage's CSS
    custom properties, so switching to admin or private mode re-skins every
@@ -455,11 +455,14 @@ const JUDICIARY_TRIGGERS = [
 // Deputy Governor candidates (player chooses one during setup)
 const genDepGov = (state, seed, zone) => {
   const r = rng(seed + state.length * 71);
+  const usedSur = new Set();
+  // Distinct surnames: two candidates called "Afolabi" read as one family.
+  const fresh = () => { let n = gN(r, zone, state); for (let i = 0; i < 12 && usedSur.has(n.split(" ").slice(1).join(" ")); i++) n = gN(r, zone, state); usedSur.add(n.split(" ").slice(1).join(" ")); return n; };
   return Array.from({ length: 3 }, () => {
     const co = ri(40, 88, r), lo = ri(30, 92, r), cr = ri(5, 45, r), pu = ri(35, 85, r);
     const bg = co > 70 ? "Technocrat" : lo > 75 ? "Party Loyalist" : pu > 70 ? "Popular Figure" : cr < 15 ? "Clean Image" : "Political Insider";
     const bio = genBio(r);
-    return { nm: gN(r, zone, state), co, lo, cr, pu, bg, bio, desc: bg === "Technocrat" ? "Strong on policy. Weak on politics." : bg === "Party Loyalist" ? "Keeps the party happy. May lack vision." : bg === "Popular Figure" ? "Loved by the people. Independent-minded." : bg === "Clean Image" ? "No baggage. Untested." : "Connected. Knows where the bodies are buried." };
+    return { nm: fresh(), co, lo, cr, pu, bg, bio, desc: bg === "Technocrat" ? "Strong on policy. Weak on politics." : bg === "Party Loyalist" ? "Keeps the party happy. May lack vision." : bg === "Popular Figure" ? "Loved by the people. Independent-minded." : bg === "Clean Image" ? "No baggage. Untested." : "Connected. Knows where the bodies are buried." };
   });
 };
 
@@ -1061,9 +1064,29 @@ const SceneArt = ({ bg, who, alt, h = 230 }) => React.createElement("div", {
 
 const Bg = ({ text, color = CL.grn }) => React.createElement("span", { className: "ds-chip", style: { background: color + "15", color, borderColor: color + "40" } }, text);
 
+// Buttons read in sentence case: "PROCEED TO POLICIES →" becomes
+// "Proceed to policies →", keeping acronyms (APC, INEC, EFCC…) as they are.
+const KEEP_CAPS = /^(APC|PDP|NDC|ADC|LP|INEC|EFCC|ICPC|NLC|SA|FG|FCT|FAAC|IGR|EIA|LGA|LGAS|EC8D|PS|II|UK|UN|UAE|US|NIC|BPP|AI|X|OK)$/;
+const sentence = (t) => {
+  if (typeof t !== "string") return t;
+  const letters = t.replace(/[^A-Za-z]/g, "");
+  if (letters.length < 4 || letters !== letters.toUpperCase()) return t;
+  let first = true;
+  return t.split(/(\s+)/).map(w => {
+    const core = w.replace(/[^A-Za-z0-9]/g, "");
+    if (!core) return w;
+    if (KEEP_CAPS.test(core.toUpperCase()) && /[A-Z]/.test(core)) { first = false; return w; }
+    const low = w.toLowerCase();
+    if (first) { first = false; return low.replace(/[a-z]/, c => c.toUpperCase()); }
+    return low;
+  }).join("");
+};
+const kids = (c) => Array.isArray(c) ? c.map(sentence) : sentence(c);
+const UI = { cream: "#f6f2ea", ink: "#13261c", sub: "#5b665f", dim: "#8a928b", line: "#e6dfd2", dark: "#12301f", green: "#0b7a4b", gold: "#e9c46a",
+  tints: ["#dcebff", "#ffdccf", "#e7defa", "#fbefc4", "#d6eedb", "#ffe1e6"] };
 const Bt = ({ children, onClick, v = "primary", disabled, style: st }) => {
-  const vs = { primary: { background: CL.grn, color: "#fff", fontWeight: 700 }, secondary: { background: "transparent", color: CL.grn, border: "2px solid " + CL.grn }, danger: { background: CL.red, color: "#fff", fontWeight: 700 }, ghost: { background: "transparent", color: CL.tm, border: "2px solid " + CL.bdr } };
-  return React.createElement("button", { onClick, disabled, style: { minHeight: DS.ctl.h, padding: DS.ctl.pad, borderRadius: DS.r.sm, border: "none", cursor: disabled ? "not-allowed" : "pointer", fontFamily: F.c, fontWeight: 700, fontSize: DS.t.body, transition: "all .2s", opacity: disabled ? .35 : 1, ...vs[v], ...st } }, children);
+  const vs = { primary: { background: UI.dark, color: "#fff" }, secondary: { background: "#fff", color: UI.ink, border: "1px solid " + UI.line }, danger: { background: CL.red, color: "#fff" }, ghost: { background: "transparent", color: UI.sub, border: "1px solid " + UI.line } };
+  return React.createElement("button", { onClick, disabled, style: { minHeight: DS.ctl.h, padding: TALL() ? "14px 26px" : "16px 40px", borderRadius: 999, border: "none", cursor: disabled ? "not-allowed" : "pointer", fontFamily: F.b, fontWeight: 700, fontSize: DS.t.body, letterSpacing: .1, transition: "transform .15s, opacity .2s", opacity: disabled ? .35 : 1, ...vs[v], ...st } }, kids(children));
 };
 
 /* ─── DecisionCard ──────────────────────────────────────────────────
@@ -1106,10 +1129,10 @@ const Spark = ({ data, color = CL.grn, w = 100, h = 20 }) => {
   );
 };
 
-const Flag = () => React.createElement("div", { style: { display: "flex", height: 14, width: "100%" } },
-  React.createElement("div", { style: { flex: 1, background: CL.grn } }),
+const Flag = () => React.createElement("div", { style: { display: "flex", height: 4, width: 72, margin: "0 auto", borderRadius: 4, overflow: "hidden", opacity: .9 } },
+  React.createElement("div", { style: { flex: 1, background: UI.green } }),
   React.createElement("div", { style: { flex: 1, background: "#fff" } }),
-  React.createElement("div", { style: { flex: 1, background: CL.grn } })
+  React.createElement("div", { style: { flex: 1, background: UI.green } })
 );
 
 const OL = ({ children, show }) => {
@@ -1126,18 +1149,15 @@ const OL = ({ children, show }) => {
 // Special Adviser speech bubble — shows for ALL levels
 const AdvBubble = ({ text, saName }) => {
   if (!text) return null;
-  return React.createElement("div", { className: "sop-slide-up", style: { display: "flex", gap: 1, alignItems: "stretch", marginBottom: DS.s[5], borderRadius: DS.r.lg, overflow: "hidden", border: "2px solid rgba(0,0,0,.18)", boxShadow: "0 6px 14px rgba(0,0,0,.14)", background: "#2a2a33" } },
-    React.createElement("div", { style: { width: 185, flexShrink: 0, display: "flex", alignItems: "flex-end", justifyContent: "center", background: "radial-gradient(70% 70% at 50% 40%, #4a4a58, #23232b)", overflow: "hidden" } },
-      React.createElement("img", { src: "./art/characters/special-adviser.webp", alt: String(saName || "Special Adviser"), style: { width: "100%", height: 188, objectFit: "contain", objectPosition: "bottom", display: "block" } })),
-
-    React.createElement("div", { style: { flex: 1, background: "linear-gradient(180deg,#ffffff,#f2f4ec)", padding: DS.s[4] + "px " + DS.s[5] + "px", textAlign: "left" } },
-      React.createElement("div", { style: { fontSize: DS.t.meta, fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: DS.s[1], letterSpacing: 2 } }, saName ? ("SA " + saName).toUpperCase() : "SPECIAL ADVISER"),
-      React.createElement("div", { style: { fontSize: DS.t.body, color: "#22301a", lineHeight: 1.55, fontFamily: F.b } }, text)
+  return React.createElement("div", { className: "sop-slide-up", style: { display: "flex", gap: 14, alignItems: "flex-start", marginBottom: DS.s[4], borderRadius: 24, background: "#fff", border: "1px solid " + UI.line, padding: TALL() ? "14px 16px" : "18px 22px", textAlign: "left" } },
+    React.createElement("div", { style: { width: 64, height: 64, flexShrink: 0, borderRadius: 32, overflow: "hidden", background: UI.tints[2] } },
+      React.createElement("img", { src: "./art/characters/special-adviser.webp", alt: String(saName || "Special Adviser"), style: { width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" } })),
+    React.createElement("div", { style: { flex: 1, minWidth: 0 } },
+      React.createElement("div", { style: { fontSize: DS.t.meta, fontWeight: 700, color: UI.green, marginBottom: 4 } }, saName ? "Your adviser, " + saName : "Your adviser"),
+      React.createElement("div", { style: { fontSize: DS.t.body, color: UI.ink, lineHeight: 1.5, fontFamily: F.b } }, text)
     )
-
   );
 };
-
 
 // ─── CIVIC SKIN (iCivics-style chrome for the opening pages) ───
 const SK = {
@@ -1149,36 +1169,27 @@ const SK = {
 };
 
 const PillBtn = ({ children, onClick, tone = "green", disabled, style: st }) => {
-  const [h, setH] = useState(false);
-  const g = tone === "gold" ? SK.btnAlt : tone === "plain" ? "linear-gradient(180deg,#ffffff,#e6ebdd)" : SK.btn;
-  const col = tone === "plain" ? CL.txt : "#fff";
+  const look = tone === "gold" ? { background: UI.gold, color: UI.ink, border: "0" } : tone === "plain" ? { background: "#fff", color: UI.ink, border: "1px solid " + UI.line } : { background: UI.dark, color: "#fff", border: "0" };
   return React.createElement("button", {
     onClick, disabled,
-    onMouseEnter: () => setH(true), onMouseLeave: () => setH(false),
     style: {
-      background: g, color: col, border: "2px solid rgba(0,0,0,.18)",
-      borderRadius: DS.r.pill, minHeight: DS.ctl.cta, padding: TALL() ? "16px 28px" : "34px 88px", fontFamily: F.c, fontWeight: 800,
-      fontSize: DS.t.lead, letterSpacing: .4, cursor: disabled ? "not-allowed" : "pointer",
-      opacity: disabled ? .45 : 1, textShadow: tone === "plain" ? "none" : "0 1px 0 rgba(0,0,0,.25)",
-      boxShadow: h && !disabled ? "0 6px 0 rgba(0,0,0,.22), 0 10px 18px rgba(0,0,0,.18)" : "0 4px 0 rgba(0,0,0,.22), 0 6px 12px rgba(0,0,0,.14)",
-      transform: h && !disabled ? "translateY(-1px)" : "none", transition: "all .15s", ...st
+      ...look, borderRadius: 999, minHeight: TALL() ? 64 : DS.ctl.cta, padding: TALL() ? "16px 28px" : "20px 56px", fontFamily: F.b, fontWeight: 700,
+      fontSize: DS.t.lead, letterSpacing: .1, cursor: disabled ? "not-allowed" : "pointer",
+      opacity: disabled ? .4 : 1, boxShadow: tone === "plain" ? "none" : "0 6px 16px rgba(18,48,31,.18)", transition: "transform .15s, opacity .2s", ...st
     }
-  }, children);
+  }, kids(children));
 };
 
 const TopBar = ({ title, onBack, onHelp, right }) => React.createElement("div", {
-  style: { background: SK.bar, borderBottom: "3px solid rgba(0,0,0,.25)", padding: DS.s[2] + "px " + DS.s[4] + "px", display: "flex", alignItems: "center", gap: DS.s[3], position: "sticky", top: 1, zIndex: 40, boxShadow: "0 4px 14px rgba(0,0,0,.18)" }
+  style: { background: UI.cream, padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, position: "sticky", top: 0, zIndex: 40 }
 },
-  onBack ? React.createElement(PillBtn, { tone: "plain", onClick: onBack, style: { padding: "14px 34px", fontSize: DS.t.label, minHeight: 72 } }, "Back") : React.createElement("div", { style: { width: 110 } }),
-  React.createElement("div", { style: { flex: 1, textAlign: "center", fontFamily: F.c, color: "#fff", fontSize: DS.t.title, fontWeight: 900, letterSpacing: .5, textTransform: "uppercase", textShadow: "0 2px 3px rgba(0,0,0,.35)" } }, title),
-  right || (onHelp ? React.createElement("button", {
-    onClick: onHelp,
-    style: { width: 72, height: 72, minHeight: 72, borderRadius: DS.r.pill, border: "2px solid rgba(0,0,0,.18)", background: "linear-gradient(180deg,#ffffff,#e6ebdd)", color: CL.txt, fontWeight: 700, cursor: "pointer", fontFamily: F.b, fontSize: DS.t.label, boxShadow: "0 3px 0 rgba(0,0,0,.2)" }
-  }, "?") : React.createElement("div", { style: { width: 110 } }))
+  onBack ? React.createElement("button", { onClick: onBack, "aria-label": "Back", style: { width: 48, height: 48, minHeight: 48, borderRadius: 24, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontSize: 26, cursor: "pointer", lineHeight: 1 } }, "‹") : React.createElement("div", { style: { width: 48 } }),
+  React.createElement("div", { style: { flex: 1, textAlign: "center", fontFamily: F.b, color: UI.ink, fontSize: DS.t.label, fontWeight: 700 } }, title),
+  right || (onHelp ? React.createElement("button", { onClick: onHelp, "aria-label": "How to play", style: { width: 48, height: 48, minHeight: 48, borderRadius: 24, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontWeight: 700, cursor: "pointer", fontSize: 20 } }, "?") : React.createElement("div", { style: { width: 48 } }))
 );
 
 const CivicPanel = ({ children, style: st }) => React.createElement("div", {
-  style: { background: "var(--sf-panel)", border: "2px solid var(--sf-bdr)", borderRadius: DS.r.lg, boxShadow: "var(--shadow-card)", padding: DS.s[4], color: "var(--ink)", ...st }
+  style: { background: "#fff", border: "1px solid " + UI.line, borderRadius: 28, padding: DS.s[4], color: UI.ink, ...st }
 }, children);
 
 
@@ -1256,109 +1267,56 @@ const TitleScreen = ({ onStart, onHelp, onLoad }) => {
       } catch (e) {}
     })();
   }, []);
-  const GRASS = "26%";
+  // One clean front screen: the logo, the people you can play, and three
+  // ways in. "How to play" is the only help button.
+  const tall = TALL();
+  const lineup = ["female", "babariga", "f_isiagu", "m_suit", "f_kaftan"];
   return (
-    <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#f3efe7 0%,#e6e0d6 55%,#d6cfc3 100%)", opacity: op, transition: "opacity .8s", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-
-      {/* ── Top chrome bar ── */}
-      <div style={{ position: "relative", zIndex: 6, background: "linear-gradient(180deg,#0f7f4e 0%,#0a5f3a 100%)", borderBottom: "3px solid rgba(0,0,0,.25)", boxShadow: "0 4px 14px rgba(0,0,0,.18)", padding: "16px 30px", display: "flex", alignItems: "center", gap: 26 }}>
-        <button onClick={onHelp} aria-label="Menu" style={{ width: 92, height: 82, borderRadius: 14, border: "2px solid rgba(0,0,0,.18)", background: "linear-gradient(180deg,#ffffff,#e8ede1)", cursor: "pointer", display: "grid", placeItems: "center", gap: 4, padding: 0, boxShadow: "0 3px 0 rgba(0,0,0,.2)" }}>
-          <div style={{ display: "grid", gap: 7 }}>
-            {[0, 1, 2].map(i => <span key={i} style={{ display: "block", width: 42, height: 7, borderRadius: 6, background: "#0a5f3a" }} />)}
-          </div>
-        </button>
-        <PillBtn tone="plain" onClick={onHelp} style={{ padding: "19px 38px", fontSize: TS(26), letterSpacing: .8 }}>HOW TO PLAY</PillBtn>
+    <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ display: "flex", justifyContent: "flex-end", padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
+        <button onClick={onHelp} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "10px 20px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer" }}>How to play</button>
       </div>
-
-      {/* ── Backdrop: State House silhouette ── */}
-      <svg viewBox="0 0 900 300" preserveAspectRatio="xMidYMax meet" style={{ position: "absolute", left: "50%", transform: "translateX(-50%)", bottom: `calc(${GRASS} - 10px)`, width: 1350, height: 500, opacity: .42, zIndex: 1 }}>
-        <g fill="#bdb5a8">
-          {/* left wing */}
-          <rect x="40" y="150" width="230" height="150" />
-          {/* right wing */}
-          <rect x="630" y="150" width="230" height="150" />
-          {/* central block */}
-          <rect x="270" y="118" width="360" height="182" />
-          {/* roof balustrades */}
-          <rect x="34" y="142" width="242" height="10" />
-          <rect x="624" y="142" width="242" height="10" />
-          <rect x="264" y="110" width="372" height="10" />
-        </g>
-        {/* portico pediment */}
-        <g fill="#cac2b5">
-          <polygon points="450,44 610,112 290,112" />
-          <rect x="286" y="112" width="328" height="14" />
-        </g>
-        {/* portico columns */}
-        <g fill="#cac2b5">
-          {[318, 372, 426, 480, 534, 588].map(x => (
-            <g key={x}>
-              <rect x={x} y="126" width="26" height="174" />
-              <rect x={x - 4} y="126" width="34" height="8" />
-              <rect x={x - 4} y="292" width="34" height="8" />
-            </g>
-          ))}
-        </g>
-        {/* wing windows */}
-        <g fill="#a79e90">
-          {[62, 104, 146, 188, 230, 652, 694, 736, 778, 820].map(x => (
-            <g key={x}>
-              <rect x={x} y="176" width="24" height="40" rx="2" />
-              <rect x={x} y="234" width="24" height="40" rx="2" />
-            </g>
-          ))}
-        </g>
-        {/* dome / flag */}
-        <g fill="#cac2b5">
-          <path d="M450 12 q34 18 34 32 h-68 q0-14 34-32Z" />
-          <rect x="447" y="0" width="6" height="16" />
-        </g>
-        {/* steps */}
-        <g fill="#b6ada0">
-          <rect x="276" y="286" width="348" height="7" />
-          <rect x="262" y="293" width="376" height="7" />
-        </g>
-      </svg>
-
-      {/* ── Grass band ── */}
-      <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: GRASS, background: "linear-gradient(180deg,#8fbf5e 0%,#6ea845 45%,#4f8a31 100%)", borderTop: "3px solid rgba(255,255,255,.45)", zIndex: 2 }} />
-
-      {/* ── Characters ── */}
-      <img src={HERO_MALE} alt="" style={{ position: "absolute", left: "4%", bottom: `calc(${GRASS} - 18px)`, width: 470, maxWidth: "24%", maxHeight: "52%", objectFit: "contain", objectPosition: "bottom", pointerEvents: "none", zIndex: 3 }} />
-      <img src={HERO_FEMALE} alt="" style={{ position: "absolute", right: "4%", bottom: `calc(${GRASS} - 18px)`, width: 470, maxWidth: "24%", maxHeight: "52%", objectFit: "contain", objectPosition: "bottom", pointerEvents: "none", zIndex: 3 }} />
-
-      {/* ── Foreground: crest, logo, buttons ── */}
-      <div style={{ position: "relative", zIndex: 5, flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, padding: "1% 40px", paddingBottom: `calc(${GRASS} - 14%)` }}>
-        <img src={CREST} alt="State seal" style={{ width: 120, maxHeight: "10%", objectFit: "contain", display: "block", filter: "drop-shadow(0 6px 10px rgba(0,0,0,.3))" }} />
-        <div style={{ background: "linear-gradient(180deg,#0e8b55,#04572f)", border: "3px solid #fff", borderRadius: 14, boxShadow: "0 6px 0 rgba(0,0,0,.2), 0 12px 24px rgba(0,0,0,.25)", padding: "12px 44px", textAlign: "center" }}>
-          <h1 style={{ fontSize: TS(64), fontFamily: F.d, color: "#fff", margin: 0, lineHeight: .92, fontWeight: 700, letterSpacing: 2, textShadow: "0 2px 0 rgba(0,0,0,.32)" }}>THE SEAT<br />OF POWER</h1>
-        </div>
-        <div style={{ fontSize: TS(18), letterSpacing: 6, color: "#5c5346", fontFamily: F.m, textTransform: "uppercase", textAlign: "center" }}>Nigerian Governance Simulator</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, justifyContent: "center", marginTop: 6 }}>
-          <PillBtn onClick={onStart} style={{ padding: "12px 32px", fontSize: TS(21), letterSpacing: .6 }}>NEW GAME</PillBtn>
-          {hasSave && <PillBtn tone="gold" onClick={onLoad} style={{ padding: "12px 28px", fontSize: TS(21), letterSpacing: .6 }}>CONTINUE</PillBtn>}
-          <PillBtn tone="plain" onClick={onHelp} style={{ padding: "12px 28px", fontSize: TS(21), letterSpacing: .6 }}>CREDITS</PillBtn>
-        </div>
-        {hasSave && <div style={{ position: "absolute", bottom: 68, fontSize: TS(18), color: "#f0f7e8", fontFamily: F.m, textShadow: "0 1px 2px rgba(0,0,0,.4)" }}>{saveName}</div>}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: tall ? "flex-start" : "center", padding: tall ? "4% 20px 0" : "0 40px" }}>
+        <img src={TITLE_LOGO} alt="The Seat of Power" style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
+        <div style={{ marginTop: tall ? 8 : 12, fontSize: DS.t.label, letterSpacing: 2, textTransform: "uppercase", color: UI.sub, fontWeight: 700, textAlign: "center" }}>Campaign · Govern · Survive</div>
+        <div style={{ marginTop: 6, fontFamily: F.d, fontSize: TS(30), color: UI.ink, textAlign: "center", maxWidth: 560, lineHeight: 1.3 }}>Win a governorship in Nigeria, then live with every promise you made.</div>
       </div>
-
-
+      <div style={{ position: "relative", height: tall ? "34%" : "38%", minHeight: 0, display: "flex", justifyContent: "center", alignItems: "flex-end", pointerEvents: "none" }}>
+        {lineup.map((id, i) => {
+          const mid = (lineup.length - 1) / 2, d = i - mid;
+          return <img key={id} src={AVATAR_IMGS[id]} alt="" style={{ height: (100 - Math.abs(d) * 9) + "%", width: "auto", marginLeft: i ? (tall ? -42 : -70) : 0, zIndex: 10 - Math.abs(d), objectFit: "contain", objectPosition: "bottom", filter: Math.abs(d) ? "saturate(.9)" : "none" }} />;
+        })}
+        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "38%", background: "linear-gradient(180deg, rgba(246,242,234,0), " + UI.cream + " 85%)", zIndex: 20 }} />
+      </div>
+      <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
+        <PillBtn onClick={onStart} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
+        {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
+        <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
+      </div>
     </div>
   );
-
 };
 
 
 // ─── SETUP ───
 // SVG Avatars — Nigerian attire
+// The candidate portraits (public/art/characters). Old saves used the first
+// four ids, so they keep their meaning.
 const AVATAR_IMGS = {
   agbada: "./art/characters/governor-male-agbada.webp",
   babariga: "./art/characters/governor-male-babariga.webp",
   isiagu: "./art/characters/governor-male-isiagu.webp",
   female: "./art/characters/governor-female-agbada.webp",
+  m_kaftan: "./art/characters/governor-male-kaftan.webp",
+  m_suit: "./art/characters/governor-male-suit.webp",
+  f_isiagu: "./art/characters/governor-female-isiagu.webp",
+  f_kaftan: "./art/characters/governor-female-kaftan.webp",
+  f_suit: "./art/characters/governor-female-suit.webp",
 };
+const isFemaleAvatar = (id) => id === "female" || /^f_/.test(String(id || ""));
 const TITLE_DUO = "/__l5e/assets-v1/cb3369c8-37de-4d02-8d08-5b71848e1c21/title-duo.png";
 const CREST = "./art/brand/state-seal.webp";
+const TITLE_LOGO = "./art/brand/title-logo.webp";
 const HERO_MALE = "./art/characters/governor-male-agbada.webp";
 const HERO_FEMALE = "./art/characters/governor-female-agbada.webp";
 const ANCHOR_MALE = "/__l5e/assets-v1/1a730b9b-2cbf-491c-b28a-b85d156aae72/anchor-male.png";
@@ -1419,15 +1377,68 @@ const AnchorDesk = ({ lines, onDone }) => {
 
 const SA_PORTRAIT = "./art/characters/special-adviser.webp";
 const AVATARS = [
-  { id: "agbada", label: "Agbada", desc: "Yoruba formal attire",
-    svg: '<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="sk1" cx="50%" cy="40%"><stop offset="0%" stop-color="#D4A76A"/><stop offset="100%" stop-color="#B8864E"/></radialGradient></defs><ellipse cx="60" cy="38" rx="22" ry="26" fill="url(#sk1)"/><ellipse cx="60" cy="32" rx="20" ry="8" fill="#2C1810" opacity=".9"/><ellipse cx="49" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><ellipse cx="71" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><circle cx="49" cy="37.5" r=".8" fill="#fff"/><circle cx="71" cy="37.5" r=".8" fill="#fff"/><ellipse cx="60" cy="42" rx="4" ry="1.5" fill="#B8864E" stroke="#996B3D" stroke-width=".5"/><path d="M53 48 Q60 52 67 48" stroke="#8B5E3C" fill="none" stroke-width="1.2" stroke-linecap="round"/><path d="M0 72 Q20 58 60 56 Q100 58 120 72 L120 150 L0 150Z" fill="#1B5E20"/><path d="M5 74 Q25 62 60 60 Q95 62 115 74 L115 148 L5 148Z" fill="#2E7D32"/><path d="M48 60 L60 82 L72 60" fill="#1B5E20" opacity=".6"/><rect x="56" y="60" width="8" height="28" rx="2" fill="#C9A227" opacity=".7"/><path d="M56 68 L64 68" stroke="#A68520" stroke-width="1"/><path d="M56 74 L64 74" stroke="#A68520" stroke-width="1"/><path d="M56 80 L64 80" stroke="#A68520" stroke-width="1"/><rect x="28" y="14" width="64" height="16" rx="8" fill="#FAFAFA" opacity=".95"/><rect x="34" y="10" width="52" height="10" rx="5" fill="#C9A227"/><rect x="38" y="12" width="44" height="6" rx="3" fill="#E0C068"/></svg>' },
-  { id: "babariga", label: "Babanriga", desc: "Northern flowing robe",
-    svg: '<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="sk2" cx="50%" cy="40%"><stop offset="0%" stop-color="#C4956A"/><stop offset="100%" stop-color="#A67B5B"/></radialGradient></defs><ellipse cx="60" cy="38" rx="22" ry="26" fill="url(#sk2)"/><rect x="42" y="22" width="36" height="4" rx="2" fill="#1a1a1a" opacity=".3"/><ellipse cx="49" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><ellipse cx="71" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><circle cx="49" cy="37.5" r=".8" fill="#fff"/><circle cx="71" cy="37.5" r=".8" fill="#fff"/><ellipse cx="60" cy="42" rx="4" ry="1.5" fill="#A67B5B" stroke="#8B6548" stroke-width=".5"/><path d="M53 48 Q60 52 67 48" stroke="#8B5E3C" fill="none" stroke-width="1.2" stroke-linecap="round"/><path d="M8 68 Q30 56 60 54 Q90 56 112 68 L116 150 L4 150Z" fill="#E8E8E8"/><path d="M12 70 Q34 60 60 58 Q86 60 108 70 L112 148 L8 148Z" fill="#F5F5F5"/><rect x="52" y="58" width="16" height="40" rx="4" fill="#C9A227" opacity=".25"/><path d="M52 66 L68 66" stroke="#C9A227" stroke-width=".8" opacity=".5"/><path d="M52 72 L68 72" stroke="#C9A227" stroke-width=".8" opacity=".5"/><path d="M52 78 L68 78" stroke="#C9A227" stroke-width=".8" opacity=".5"/><path d="M52 84 L68 84" stroke="#C9A227" stroke-width=".8" opacity=".5"/><ellipse cx="60" cy="14" rx="18" ry="12" fill="#FAFAFA"/><ellipse cx="60" cy="14" rx="15" ry="9" fill="#F0F0F0"/><ellipse cx="60" cy="14" rx="10" ry="5" fill="#E8E8E8"/></svg>' },
-  { id: "isiagu", label: "Isiagu", desc: "Igbo lion-head shirt",
-    svg: '<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="sk3" cx="50%" cy="40%"><stop offset="0%" stop-color="#D4A76A"/><stop offset="100%" stop-color="#B8864E"/></radialGradient><pattern id="lions" x="0" y="0" width="18" height="18" patternUnits="userSpaceOnUse"><circle cx="9" cy="9" r="4" fill="#C9A227" opacity=".5"/><circle cx="9" cy="9" r="2" fill="#A68520" opacity=".4"/></pattern></defs><ellipse cx="60" cy="38" rx="22" ry="26" fill="url(#sk3)"/><ellipse cx="60" cy="30" rx="18" ry="6" fill="#2C1810" opacity=".8"/><ellipse cx="49" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><ellipse cx="71" cy="38" rx="2.5" ry="1.8" fill="#1a1a1a"/><circle cx="49" cy="37.5" r=".8" fill="#fff"/><circle cx="71" cy="37.5" r=".8" fill="#fff"/><ellipse cx="60" cy="42" rx="4" ry="1.5" fill="#B8864E" stroke="#996B3D" stroke-width=".5"/><path d="M53 48 Q60 52 67 48" stroke="#8B5E3C" fill="none" stroke-width="1.2" stroke-linecap="round"/><rect x="18" y="60" width="84" height="82" rx="6" fill="#8B0000"/><rect x="18" y="60" width="84" height="82" rx="6" fill="url(#lions)"/><rect x="18" y="60" width="84" height="82" rx="6" fill="#8B0000" opacity=".3"/><path d="M18 60 L60 60 L60 80 L48 70 L36 80 L24 70Z" fill="#6B0000" opacity=".4"/><path d="M60 60 L102 60 L96 70 L84 80 L72 70 L60 80Z" fill="#6B0000" opacity=".4"/><rect x="42" y="8" width="36" height="20" rx="10" fill="#CC3333"/><rect x="46" y="10" width="28" height="16" rx="8" fill="#E04040"/><path d="M52 18 L60 12 L68 18" fill="#CC3333" opacity=".6"/></svg>' },
-  { id: "female", label: "Gele & Wrapper", desc: "Women's formal attire",
-    svg: '<svg viewBox="0 0 120 150" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="sk4" cx="50%" cy="40%"><stop offset="0%" stop-color="#D4A76A"/><stop offset="100%" stop-color="#B8864E"/></radialGradient></defs><ellipse cx="60" cy="42" rx="20" ry="24" fill="url(#sk4)"/><path d="M28 10 Q36 -4 48 6 Q54 -2 60 4 Q66 -2 72 6 Q84 -4 92 10 Q96 22 88 20 Q82 26 74 18 Q68 24 60 16 Q52 24 46 18 Q38 26 32 20 Q24 22 28 10Z" fill="#7C3AED"/><path d="M32 12 Q38 0 48 8 Q54 2 60 6 Q66 2 72 8 Q82 0 88 12 Q86 18 80 16 Q74 22 66 14 Q60 18 54 14 Q46 22 40 16 Q34 18 32 12Z" fill="#8B5CF6"/><path d="M44 8 Q52 2 60 5 Q68 2 76 8" fill="none" stroke="#A78BFA" stroke-width="1.5"/><ellipse cx="49" cy="40" rx="2.2" ry="1.8" fill="#1a1a1a"/><ellipse cx="71" cy="40" rx="2.2" ry="1.8" fill="#1a1a1a"/><circle cx="49" cy="39.5" r=".7" fill="#fff"/><circle cx="71" cy="39.5" r=".7" fill="#fff"/><path d="M55 50 Q60 54 65 50" stroke="#8B5E3C" fill="none" stroke-width="1.2" stroke-linecap="round"/><path d="M48 52 Q52 48 56 52" fill="none" stroke="#C9A227" stroke-width="1.5"/><circle cx="52" cy="49" r="1.5" fill="#C9A227"/><path d="M20 68 Q40 58 60 56 Q80 58 100 68 L104 150 L16 150Z" fill="#7C3AED"/><path d="M24 70 Q42 62 60 60 Q78 62 96 70 L100 148 L20 148Z" fill="#8B5CF6"/><rect x="54" y="60" width="12" height="88" fill="#C9A227" opacity=".3"/><path d="M20 88 L100 88" stroke="#C9A227" stroke-width="1" opacity=".4"/><path d="M20 108 L100 108" stroke="#C9A227" stroke-width="1" opacity=".4"/><path d="M20 128 L100 128" stroke="#C9A227" stroke-width="1" opacity=".4"/></svg>' },
+  { id: "agbada", label: "Agbada", desc: "Yoruba formal attire" },
+  { id: "female", label: "Gele & iro", desc: "Yoruba formal attire" },
+  { id: "babariga", label: "Babban riga", desc: "Northern flowing robe" },
+  { id: "f_kaftan", label: "Kaftan & hijab", desc: "Northern formal attire" },
+  { id: "isiagu", label: "Isiagu", desc: "Igbo lion-head shirt" },
+  { id: "f_isiagu", label: "Isiagu & gele", desc: "Igbo formal attire" },
+  { id: "m_kaftan", label: "Kaftan & cap", desc: "Everyday formal" },
+  { id: "m_suit", label: "Suit & cap", desc: "Modern formal" },
+  { id: "f_suit", label: "Suit", desc: "Modern formal" },
 ];
+
+// ─── THE SETUP FLOW: one look for every pre-game screen ───
+// A slim header (back + progress), a kicker, a serif headline, one line of
+// context, the choices as soft cards, and the next step in a bar that stays
+// at the bottom of the screen.
+const FLOW_STEPS = 7;
+const Flow = ({ n, kicker, title, sub, onBack, onHelp, children, cta, ctaLabel, ctaDisabled, ctaNote, ctaTone, wide }) => {
+  const tall = TALL();
+  return <div style={{ minHeight: "100%", background: UI.cream, display: "flex", flexDirection: "column", color: UI.ink, fontFamily: F.b }}>
+    <div style={{ width: "100%", maxWidth: wide && !tall ? 1100 : 760, margin: "0 auto", padding: tall ? "16px 18px 24px" : "26px 32px 28px", flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: tall ? 18 : 24 }}>
+        {onBack ? <button onClick={onBack} aria-label="Back" style={{ width: 48, height: 48, minHeight: 48, borderRadius: 24, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontSize: 28, lineHeight: 1, cursor: "pointer", flexShrink: 0 }}>‹</button> : <span style={{ width: 48, flexShrink: 0 }} />}
+        <div style={{ flex: 1, display: "flex", gap: 6 }}>
+          {Array.from({ length: FLOW_STEPS }).map((_, i) => <span key={i} style={{ flex: 1, height: 6, borderRadius: 3, background: n && i < n ? UI.dark : UI.line }} />)}
+        </div>
+        {onHelp ? <button onClick={onHelp} aria-label="How to play" style={{ width: 48, height: 48, minHeight: 48, borderRadius: 24, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontWeight: 700, fontSize: 20, cursor: "pointer", flexShrink: 0 }}>?</button> : <span style={{ width: 48, flexShrink: 0 }} />}
+      </div>
+      {kicker && <div style={{ fontSize: DS.t.meta, letterSpacing: 1.6, textTransform: "uppercase", color: UI.sub, fontWeight: 700 }}>{kicker}</div>}
+      {title && <h1 style={{ fontFamily: F.d, fontWeight: 700, fontSize: tall ? 40 : 52, lineHeight: 1.12, margin: "6px 0 8px", color: UI.ink, letterSpacing: -.3 }}>{title}</h1>}
+      {sub && <p style={{ fontSize: DS.t.body, color: UI.sub, lineHeight: 1.45, margin: "0 0 18px" }}>{sub}</p>}
+      {children}
+    </div>
+    {cta && <div style={{ position: "sticky", bottom: 0, zIndex: 30, padding: tall ? "18px 18px calc(16px + env(safe-area-inset-bottom))" : "18px 32px 24px", background: "linear-gradient(180deg, rgba(246,242,234,0) 0%, " + UI.cream + " 38%)" }}>
+      <div style={{ maxWidth: wide && !tall ? 1100 : 760, margin: "0 auto", textAlign: "center" }}>
+        {ctaNote && <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 10 }}>{ctaNote}</div>}
+        <button onClick={ctaDisabled ? undefined : cta} disabled={ctaDisabled} style={{ width: "100%", maxWidth: 560, minHeight: 64, borderRadius: 999, border: 0, background: ctaTone === "warn" ? CL.org : UI.dark, color: "#fff", fontFamily: F.b, fontWeight: 700, fontSize: DS.t.lead, cursor: ctaDisabled ? "not-allowed" : "pointer", opacity: ctaDisabled ? .35 : 1, boxShadow: ctaDisabled ? "none" : "0 8px 20px rgba(18,48,31,.22)" }}>{ctaLabel}</button>
+      </div>
+    </div>}
+  </div>;
+};
+// A soft card in the style of the reference: tinted, rounded, an icon in a
+// white circle, a bold title and one grey line; a dark ring when chosen.
+const Tile = ({ tint = "#fff", icon, title, sub, on, onClick, children, style: st, disabled }) => <button onClick={disabled ? undefined : onClick} style={{
+  textAlign: "left", background: tint, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 28, padding: TALL() ? "16px 16px" : "20px 20px",
+  display: "flex", flexDirection: "column", gap: 6, cursor: disabled ? "default" : "pointer", position: "relative", color: UI.ink, fontFamily: F.b, fontWeight: 400,
+  boxShadow: on ? "0 10px 24px rgba(18,48,31,.14)" : "none", opacity: disabled ? .5 : 1, transition: "box-shadow .15s, border-color .15s", minHeight: 0, ...st }}>
+  {icon && <span style={{ width: 46, height: 46, borderRadius: 23, background: "rgba(255,255,255,.75)", display: "grid", placeItems: "center", fontSize: 24, marginBottom: 6 }}>{icon}</span>}
+  {title && <span style={{ fontWeight: 700, fontSize: DS.t.body, lineHeight: 1.22 }}>{title}</span>}
+  {sub && <span style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.35 }}>{sub}</span>}
+  {children}
+  {on && <span style={{ position: "absolute", top: 12, right: 12, width: 30, height: 30, borderRadius: 15, background: UI.dark, color: "#fff", display: "grid", placeItems: "center", fontSize: 16, fontWeight: 700 }}>✓</span>}
+</button>;
+// Pill filters: the active one is filled dark, the rest are plain text.
+const Seg = ({ items, value, onChange, style: st }) => <div style={{ display: "flex", gap: 4, overflowX: "auto", margin: "4px 0 16px", paddingBottom: 2, WebkitOverflowScrolling: "touch", ...st }}>
+  {items.map(([k, l]) => <button key={String(k)} onClick={() => onChange(k)} style={{ flexShrink: 0, padding: "10px 18px", minHeight: 44, borderRadius: 999, border: 0, background: value === k ? UI.dark : "transparent", color: value === k ? "#fff" : UI.ink, fontWeight: 700, fontSize: DS.t.label, fontFamily: F.b, cursor: "pointer" }}>{l}</button>)}
+</div>;
+const Grid2 = ({ children, min = 220 }) => <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(auto-fill,minmax(" + min + "px,1fr))", gap: 12 }}>{children}</div>;
+const Field = ({ label, value, onChange, placeholder, autoFocus }) => <label style={{ display: "block", textAlign: "left" }}>
+  <span style={{ display: "block", fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>{label}</span>
+  <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus} autoComplete="off" autoCapitalize="words" spellCheck={false}
+    style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, outline: "none", fontFamily: F.b, fontWeight: 600, boxSizing: "border-box" }} />
+</label>;
 
 const SetupScreen = ({ onDone, level, setLevel }) => {
   useMode("public");
@@ -1482,7 +1493,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     }
   }, [sCampRound, enightPlayed.first, st]);
   const fs = useMemo(() => { const e = Object.entries(STATES); return zf ? e.filter(([, d]) => d.zone === zf) : e; }, [zf]);
-  const depCands = useMemo(() => st ? genDepGov(st, 999, STATES[st]?.zone).concat([(() => { const r2 = rng(st.length * 88); return { nm: gN(r2, STATES[st]?.zone, st), co: ri(50, 85, r2), lo: ri(40, 80, r2), cr: ri(5, 30, r2), pu: ri(50, 90, r2), bg: "Wildcard", bio: genBio(r2), desc: "Unknown quantity. Could be brilliant or a disaster." }; })()]) : [], [st]);
+  const depCands = useMemo(() => st ? (() => { const base = genDepGov(st, 999, STATES[st]?.zone); const surs = new Set(base.map(c => c.nm.split(" ").slice(1).join(" "))); return base.concat([(() => { const r2 = rng(st.length * 88); let wn = gN(r2, STATES[st]?.zone, st); for (let i = 0; i < 12 && surs.has(wn.split(" ").slice(1).join(" ")); i++) wn = gN(r2, STATES[st]?.zone, st); return { nm: wn, co: ri(50, 85, r2), lo: ri(40, 80, r2), cr: ri(5, 30, r2), pu: ri(50, 90, r2), bg: "Wildcard", bio: genBio(r2), desc: "Unknown quantity. Could be brilliant or a disaster." }; })()]); })() : [], [st]);
   const dc = { "Medium": CL.grn, "Hard": CL.org, "Very Hard": CL.red, "Extreme": "#8b0000" };
   const saName = (typeof SA_ROSTER !== "undefined" && SA_ROSTER[0]) ? SA_ROSTER[0].name : "Adviser";
 
@@ -1512,301 +1523,158 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     "A Future We Can Trust",
   ];
 
+  // The look of every setup screen comes from Flow / Tile / Seg (above).
+  const ZTINT = { SW: UI.tints[3], SS: UI.tints[0], SE: UI.tints[4], NW: UI.tints[1], NE: UI.tints[2], NC: UI.tints[5] };
+
   // STEP 1: Choose State
-  if (step === 1) return (
-    <div style={{ height: "100%", background: CL.bg, display: "flex", flexDirection: "column" }}>
-      <TopBar title="Choose Your State" />
-      <div style={{ maxWidth: 1800, margin: "0 auto", padding: "8px 16px 12px", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-
-        <div style={{ textAlign: "center", marginBottom: 8 }}>
-          <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 12 }}>
-            {[{ id: "easy", l: "🟢 Easy", c: CL.grn }, { id: "medium", l: "🟡 Medium", c: CL.org }, { id: "hard", l: "🔴 Hard", c: CL.red }].map(d => (
-              <button key={d.id} onClick={() => setLevel(d.id)} style={{ padding: "8px 24px", borderRadius: 18, border: "1px solid " + (level === d.id ? d.c : CL.bdr), background: level === d.id ? d.c + "15" : "transparent", color: level === d.id ? d.c : CL.td, fontSize: TS(18), fontWeight: level === d.id ? 700 : 400, cursor: "pointer", fontFamily: F.b }}>{d.l}</button>
-            ))}
-          </div>
-          <p style={{ color: CL.td, fontSize: TS(18), marginTop: 4 }}>36 states. Each starts differently: how much money it raises itself (its IGR), how safe it is, and how strong its godfather is.</p>
-        </div>
-        {TALL() ? <div style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
-          {/* Phone: states grouped by region, one region open at a time. */}
-          {Object.entries(ZONES).map(([zk, zname]) => {
-            const list = Object.entries(STATES).filter(([, d]) => d.zone === zk);
-            const open = openZone === zk;
-            const picked = list.find(([n]) => n === st);
-            return <div key={zk} style={{ background: CL.card, border: "1px solid " + (picked ? CL.grn : CL.bdr), borderRadius: 18, marginBottom: 12, overflow: "hidden" }}>
-              <button onClick={() => setOpenZone(open ? null : zk)} aria-expanded={open} style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "16px 18px", background: "transparent", border: 0, cursor: "pointer", textAlign: "left", color: CL.txt, minHeight: 64 }}>
-                <span style={{ width: 14, height: 14, borderRadius: 7, background: ZC[zk], flexShrink: 0 }} />
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: "block", fontSize: TS(25), fontWeight: 700 }}>{zname}</span>
-                  <span style={{ display: "block", fontSize: TS(20), color: picked ? CL.grn : CL.td }}>{picked ? "Chosen: " + picked[0].replace("_", " ") : list.length + " states · " + list.slice(0, 3).map(([n]) => n.replace("_", " ")).join(", ") + "…"}</span>
-                </span>
-                <span style={{ fontSize: TS(20), color: CL.td, transform: open ? "rotate(180deg)" : "none" }}>▼</span>
-              </button>
-              {open && <div style={{ padding: "0 10px 10px" }}>
-                {list.map(([n, d]) => {
-                  const isFCT = n === "FCT";
-                  const on = !isFCT && st === n;
-                  return <button key={n} onClick={() => isFCT ? setShowFCT(true) : setSt(n)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "12px 12px", minHeight: 56, marginTop: 6, borderRadius: 14, border: "1px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn + "14" : "transparent", cursor: "pointer", textAlign: "left", color: CL.txt, opacity: isFCT ? .6 : 1 }}>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: "block", fontSize: TS(25), fontWeight: on ? 700 : 500 }}>{on ? "✓ " : ""}{n.replace("_", " ")}</span>
-                      <span style={{ display: "block", fontSize: TS(20), color: CL.td }}>{isFCT ? "Not playable · run by a federal minister" : stateLine(n, d)}</span>
-                    </span>
-                  </button>;
-                })}
-              </div>}
-            </div>;
-          })}
-        </div> : <>
-        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16, flexWrap: "wrap" }}>
-          <button onClick={() => setZf(null)} style={{ padding: "5px 18px", borderRadius: 14, border: "1px solid " + (zf ? CL.bdr : CL.grn), background: zf ? "transparent" : CL.grn + "15", color: zf ? CL.td : CL.grn, fontSize: TS(16), cursor: "pointer", fontFamily: F.b }}>All</button>
-          {Object.entries(ZONES).map(([k, v]) => (
-            <button key={k} onClick={() => setZf(k)} style={{ padding: "5px 18px", borderRadius: 14, border: "1px solid " + (zf === k ? ZC[k] : CL.bdr), background: zf === k ? ZC[k] + "15" : "transparent", color: zf === k ? ZC[k] : CL.td, fontSize: TS(16), cursor: "pointer", fontFamily: F.b }}>{v}</button>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 8, overflowY: "auto", flex: 1, minHeight: 0, paddingRight: 4 }}>
-          {fs.map(([n, d]) => {
-            const isFCT = n === "FCT";
-            return (
-              <Cd key={n} onClick={() => isFCT ? setShowFCT(true) : setSt(n)} active={!isFCT && st === n} style={{ padding: 14, opacity: isFCT ? .55 : 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                  <span style={{ fontFamily: F.d, color: isFCT ? CL.td : CL.txt, fontSize: TS(24), fontWeight: 600 }}>{n.replace("_", " ")}</span>
-                  {isFCT ? <Bg text="NOT PLAYABLE" color={CL.td} /> : null}
-                </div>
-                <div style={{ fontSize: TS(16), color: CL.td, fontFamily: F.m, marginBottom: 6 }}>{isFCT ? "Federal Capital Territory · Minister-run" : ZONES[d.zone] + " · " + d.pop + "M"}</div>
-                {!isFCT && <div style={{ fontSize: TS(18), color: CL.tm, lineHeight: 1.35 }}>{stateLine(n, d)}</div>}
-                {isFCT && <div style={{ fontSize: TS(16), color: CL.td, fontStyle: "italic" }}>Tap to learn why</div>}
-              </Cd>
-            );
-          })}
-        </div>
-        </>}
-        <OL show={showFCT}>
-          <Cd style={{ borderColor: CL.gold + "44" }}>
-            <div style={{ textAlign: "center", marginBottom: 14 }}><div style={{ fontSize: TS(48), marginBottom: 10 }}>🏛️</div><h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(34), fontWeight: 600, margin: "0 0 10px" }}>Federal Capital Territory</h3><Bg text="Not a State" color={CL.org} /></div>
-            <div style={{ fontSize: TS(18), color: CL.tm, lineHeight: 1.5, textAlign: "left" }}>
-              <p style={{ marginBottom: 14 }}>The FCT (Abuja) is <strong>not a state</strong>. It is administered by a <strong>Minister</strong> appointed by the President. Under <strong>Section 299</strong>, the President exercises the powers of a governor. No elected governor, no House of Assembly, no deputy governor.</p>
-            </div>
-            <div style={{ textAlign: "center", marginTop: 16 }}><Bt v="ghost" onClick={() => setShowFCT(false)}>← Back</Bt></div>
-          </Cd>
-        </OL>
-        {st && <div style={{ textAlign: "center", marginTop: TALL() ? 12 : 50 }}><PillBtn onClick={() => setStep(2)} style={TALL() ? { width: "100%", padding: "18px 24px" } : undefined}>NEXT{TALL() ? ": " + st.replace("_", " ") : ""}</PillBtn></div>}
-      </div>
-    </div>
-  );
-
-  // STEP 2: Appearance & Name (no adviser here — she gets her own scene)
-  if (step === 2) {
-    const avIdx = Math.max(0, AVATARS.findIndex(a => a.id === avatar));
-    const cur = AVATARS[avIdx];
-    const go = (d) => setAvatar(AVATARS[(avIdx + d + AVATARS.length) % AVATARS.length].id);
-    return (
-    <div style={{ minHeight: "100%", background: CL.bg }}>
-      <TopBar title="Create Your Candidate" onBack={() => setStep(1)} />
-      {/* Character stage */}
-      <div style={{ background: SK.stage, position: "relative", padding: "36px 36px 0", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(60% 55% at 50% 55%, rgba(255,255,255,.30), rgba(255,255,255,0) 70%)" }} />
-        <div style={{ position: "relative", maxWidth: 1164, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: 29 }}>
-          <PillBtn tone="plain" onClick={() => go(-1)} style={{ padding: "36px 58px", fontSize: TS(58) }}>‹</PillBtn>
-          <div style={{ textAlign: "center", flex: "0 0 auto" }}>
-            <img key={cur.id} src={AVATAR_IMGS[cur.id]} alt={cur.label} className="sop-fade-in" style={{ width: 462, height: "auto", display: "block", filter: avatar ? "drop-shadow(0 14px 18px rgba(0,0,0,.35))" : "grayscale(.5) opacity(.75)" }} />
-          </div>
-          <PillBtn tone="plain" onClick={() => go(1)} style={{ padding: "36px 58px", fontSize: TS(58) }}>›</PillBtn>
-        </div>
-        <div style={{ position: "relative", textAlign: "center", paddingBottom: 43 }}>
-          <div style={{ display: "flex", gap: 19, justifyContent: "center", marginTop: 29 }}>
-            {AVATARS.map((a, i) => <span key={a.id} onClick={() => setAvatar(a.id)} style={{ width: 29, height: 29, borderRadius: 1247, cursor: "pointer", background: i === avIdx && avatar ? "#f7c948" : "rgba(255,255,255,.45)" }} />)}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ maxWidth: 1056, margin: "1px auto 0", padding: "0 43px 102px", position: "relative" }}>
-        <CivicPanel>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 50 }}>
-            <PillBtn tone="gold" onClick={() => setAvatar(AVATARS[Math.floor(Math.random() * AVATARS.length)].id)} style={{ padding: "29px 94px", fontSize: TS(43) }}>Random</PillBtn>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 36, marginBottom: 29 }}>
-            <input value={firstNm} onChange={e => setFirstNm(e.target.value)} placeholder="First Name" style={{ width: "100%", padding: "43px 50px", borderRadius: 21, border: "2px solid " + CL.bdr, fontSize: TS(53), fontFamily: F.d, background: "#fff", color: CL.txt, outline: "none", boxShadow: "inset 0 2px 4px rgba(0,0,0,.06)" }} />
-            <input value={lastNm} onChange={e => setLastNm(e.target.value)} placeholder="Last Name" style={{ width: "100%", padding: "43px 50px", borderRadius: 21, border: "2px solid " + CL.bdr, fontSize: TS(53), fontFamily: F.d, background: "#fff", color: CL.txt, outline: "none", boxShadow: "inset 0 2px 4px rgba(0,0,0,.06)" }} />
-          </div>
-          <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 43, textAlign: "left", lineHeight: 1.5 }}>Your surname becomes your ticket half — <b>{(lastNm || "SURNAME").toUpperCase()}/DEPUTY</b>. Your full name goes on the ballot paper and into your Wikipedia bio.</div>
-          <div style={{ textAlign: "center" }}>
-            <PillBtn onClick={() => setStep(25)} disabled={!(firstNm.trim() && lastNm.trim() && avatar)}>CONTINUE</PillBtn>
-            {firstNm.trim() && lastNm.trim() && !avatar && <div style={{ fontSize: TS(34), color: CL.org, marginTop: 22 }}>☝️ Use the arrows to choose your look</div>}
-            {(!firstNm.trim() || !lastNm.trim()) && <div style={{ fontSize: TS(34), color: CL.td, marginTop: 22 }}>Enter both first and last name to continue.</div>}
-          </div>
+  if (step === 1) {
+    const zoneKey = zf || "all";
+    const list = Object.entries(STATES).filter(([, d]) => !zf || d.zone === zf);
+    return <Flow n={1} kicker="Step 1 of 7 · Your state" title="Where will you run?" wide
+      sub="Each state starts differently: how much money it raises itself, how safe it is, and how strong its godfather is."
+      cta={() => setStep(2)} ctaDisabled={!st} ctaLabel={st ? "Run in " + st.replace("_", " ") : "Pick a state"}>
+      <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "4px 0 2px" }}>Difficulty</div>
+      <Seg items={[["easy", "Easy"], ["medium", "Medium"], ["hard", "Hard"]]} value={level} onChange={setLevel} />
+      <Seg items={[["all", "All"], ...Object.entries(ZONES)]} value={zoneKey} onChange={k => setZf(k === "all" ? null : k)} />
+      <Grid2 min={210}>
+        {list.map(([n, d]) => {
+          const isFCT = n === "FCT";
+          return <Tile key={n} tint={ZTINT[d.zone] || "#fff"} on={!isFCT && st === n} onClick={() => isFCT ? setShowFCT(true) : setSt(n)} style={{ minHeight: TALL() ? 132 : 150, opacity: isFCT ? .6 : 1 }}
+            title={n.replace("_", " ")} sub={isFCT ? "Not a state · run by a minister" : stateLine(n, d)} />;
+        })}
+      </Grid2>
+      <OL show={showFCT}>
+        <CivicPanel style={{ textAlign: "left" }}>
+          <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase" }}>Not playable</div>
+          <h3 style={{ fontFamily: F.d, fontSize: 34, margin: "6px 0 10px" }}>Federal Capital Territory</h3>
+          <p style={{ fontSize: DS.t.body, color: UI.sub, lineHeight: 1.5 }}>The FCT (Abuja) is not a state. A minister appointed by the President runs it (Section 299). There is no elected governor, no House of Assembly and no deputy governor.</p>
+          <div style={{ marginTop: 16 }}><Bt onClick={() => setShowFCT(false)} style={{ width: "100%" }}>Back to the states</Bt></div>
         </CivicPanel>
-      </div>
-    </div>
-    );
+      </OL>
+    </Flow>;
   }
 
-  // STEP 2.5: Meet your Special Adviser — dedicated character scene
-  if (step === 25) return (
-    <div style={{ minHeight: "100%", background: SK.stage, position: "relative", overflow: "hidden" }}>
-      <TopBar title="Your Special Adviser" onBack={() => setStep(2)} />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(70% 55% at 50% 45%, rgba(255,255,255,.25), rgba(255,255,255,0) 70%)" }} />
-      <div style={{ position: "relative", maxWidth: 1164, margin: "0 auto", padding: "36px 43px 98px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <img src={SA_PORTRAIT} alt={saName} className="sop-fade-in" style={{ width: 588, height: "auto", filter: "drop-shadow(0 16px 20px rgba(0,0,0,.35))" }} />
-        <div className="sop-slide-up" style={{ width: "100%", marginTop: -12 }}>
-          <CivicPanel style={{ textAlign: "left" }}>
-            <div style={{ fontFamily: F.m, fontSize: TS(31), letterSpacing: 3, color: CL.grn, fontWeight: 800, marginBottom: 14 }}>{("SA " + saName).toUpperCase()} · SPECIAL ADVISER</div>
-            <div style={{ fontFamily: F.b, fontSize: TS(46), color: CL.txt, lineHeight: 1.65 }}>{ADV.welcome(nm, st, saName)}</div>
-            <div style={{ textAlign: "center", marginTop: 50 }}>
-              <PillBtn onClick={() => setStep(3)}>CONTINUE</PillBtn>
-            </div>
-          </CivicPanel>
-        </div>
+  // STEP 2: Your candidate — every portrait, and the name on the ballot
+  if (step === 2) {
+    const cur = AVATARS.find(a => a.id === avatar);
+    const ready = firstNm.trim() && lastNm.trim() && avatar;
+    return <Flow n={2} kicker="Step 2 of 7 · Your candidate" title="Who is running?" onBack={() => setStep(1)}
+      sub="Pick a portrait and type the name that goes on the ballot."
+      cta={() => setStep(25)} ctaDisabled={!ready} ctaLabel="Continue"
+      ctaNote={!avatar ? "Pick a portrait" : !(firstNm.trim() && lastNm.trim()) ? "Type a first and last name" : <span>On the ticket: <b style={{ color: UI.ink }}>{lastNm.trim().toUpperCase()} / DEPUTY</b></span>}>
+      <div style={{ display: "grid", gridTemplateColumns: TALL() ? "repeat(3,1fr)" : "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 20 }}>
+        {AVATARS.map((a, i) => {
+          const on = avatar === a.id;
+          return <button key={a.id} onClick={() => setAvatar(a.id)} aria-label={a.label} style={{ position: "relative", padding: 0, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 24, background: UI.tints[i % UI.tints.length], overflow: "hidden", cursor: "pointer", aspectRatio: "3 / 4", boxShadow: on ? "0 10px 22px rgba(18,48,31,.16)" : "none" }}>
+            <img src={AVATAR_IMGS[a.id]} alt="" style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+            <span style={{ position: "absolute", left: 8, right: 8, bottom: 8, background: "rgba(255,255,255,.88)", borderRadius: 12, padding: "4px 6px", fontSize: DS.t.meta, fontWeight: 700, color: UI.ink, textAlign: "center" }}>{a.label}</span>
+            {on && <span style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, background: UI.dark, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, fontWeight: 700 }}>✓</span>}
+          </button>;
+        })}
       </div>
-    </div>
+      <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 12 }}>
+        <Field label="First name" value={firstNm} onChange={setFirstNm} placeholder="e.g. Adaeze" />
+        <Field label="Last name" value={lastNm} onChange={setLastNm} placeholder="e.g. Okonkwo" />
+      </div>
+      {cur && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 12 }}>{cur.label} · {cur.desc}</div>}
+    </Flow>;
+  }
+
+  // STEP 2.5: Meet your Special Adviser
+  if (step === 25) return (
+    <Flow n={2} kicker="Your team" title={"Meet " + saName} onBack={() => setStep(2)} cta={() => setStep(3)} ctaLabel="Let's get to work">
+      <div style={{ display: "flex", flexDirection: TALL() ? "column" : "row", gap: 18, alignItems: TALL() ? "stretch" : "flex-start" }}>
+        <div style={{ background: UI.tints[2], borderRadius: 28, display: "flex", justifyContent: "center", alignItems: "flex-end", height: TALL() ? 300 : 360, flex: TALL() ? "none" : "0 0 300px", overflow: "hidden" }}>
+          <img src={SA_PORTRAIT} alt={saName} className="sop-fade-in" style={{ height: "100%", width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
+        </div>
+        <CivicPanel style={{ flex: 1 }}>
+          <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.green, marginBottom: 6 }}>Special Adviser to the candidate</div>
+          <div style={{ fontSize: DS.t.body, lineHeight: 1.6, color: UI.ink }}>{ADV.welcome(nm, st, saName)}</div>
+        </CivicPanel>
+      </div>
+    </Flow>
   );
 
   // STEP 3: Agenda (10 options)
-  if (step === 3) return (
-    <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-      <Flag />
-      <div style={{ maxWidth: 1056, margin: "72px auto" }}>
-        <AdvBubble text={ADV.agenda} saName={saName} />
-        <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 36px", textAlign: "center" }}>Your Flagship Agenda</h2>
-        <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(240px,1fr))", gap: 22 }}>
-          {AGENDAS.map(a => (
-            <Cd key={a.id} onClick={() => setAgenda(a.id)} active={agenda === a.id} style={{ padding: 29 }}>
-              <span style={{ fontSize: TS(65) }}>{a.i}</span>
-              <div style={{ fontWeight: 700, fontSize: TS(38), color: CL.txt, marginTop: 7 }}>{a.nm}</div>
-              <div style={{ fontSize: TS(31), color: CL.td, lineHeight: 1.3, marginTop: 7 }}>{a.d}</div>
-              <Bg text={a.bonus} color={CL.grn} />
-            </Cd>
-          ))}
-        </div>
-        {agenda && <div style={{ textAlign: "center", marginTop: 43 }}>
-          <AdvBubble text={"Excellent choice! " + AGENDAS.find(a => a.id === agenda)?.nm + " — the people of " + st.replace("_", " ") + " will love this. Now, let's get your party ticket."} saName={saName} />
-          <Bt onClick={() => setStep(4)}>PARTY PRIMARIES →</Bt>
-          <div style={{ marginTop: 22 }}><Bt v="ghost" onClick={() => setStep(2)} style={{ fontSize: TS(34) }}>← Back</Bt></div>
-        </div>}
-      </div>
-    </div>
-  );
+  if (step === 3) {
+    const ag = AGENDAS.find(a => a.id === agenda);
+    return <Flow n={3} kicker="Step 3 of 7 · Your promise" title="What is your one big promise?" onBack={() => setStep(25)} wide
+      sub="Your flagship. The adviser, the news and your Wikipedia page will judge you by it."
+      cta={() => setStep(4)} ctaDisabled={!agenda} ctaLabel={ag ? "Promise " + ag.nm : "Pick a promise"} ctaNote={ag ? ag.bonus : null}>
+      <Grid2 min={220}>
+        {AGENDAS.map((a, i) => <Tile key={a.id} tint={UI.tints[i % UI.tints.length]} icon={a.i} title={a.nm} sub={a.d} on={agenda === a.id} onClick={() => setAgenda(a.id)} style={{ minHeight: TALL() ? 170 : 190 }} />)}
+      </Grid2>
+    </Flow>;
+  }
 
-  // STEP 4: Party Selection + Primaries (civic education)
+  // STEP 4: Party Selection + Primaries
   if (step === 4) {
     const selectedParty = PARTIES.find(p => p.id === party);
     const canAffordTicket = selectedParty ? warChest >= selectedParty.ticket : true;
-    return (
-    <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-      <Flag />
-      <div style={{ maxWidth: 984, margin: "72px auto" }}>
-        <AdvBubble text={ADV.primaries} saName={saName} />
-        <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px", textAlign: "center" }}>Party Primaries</h2>
-        <div style={{ textAlign: "center", marginBottom: 22 }}>
-          <div style={{ display: "inline-block", background: CL.gold + "12", border: "1px solid " + CL.gold + "30", borderRadius: 13, padding: "14px 43px" }}>
-            <span style={{ fontSize: TS(34), color: CL.td }}>💰 Your War Chest: </span>
-            <span style={{ fontSize: TS(50), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>₦{warChest.toFixed(1)}B</span>
-            {gfDebt > 0 && <span style={{ fontSize: TS(34), color: CL.red, marginLeft: 22 }}>🎩 Godfather: ₦{gfDebt}B owed</span>}
-          </div>
-        </div>
-        <div style={{ background: CL.blu + "08", border: "1px solid " + CL.blu + "20", borderRadius: 13, padding: "29px 36px", marginBottom: 36 }}>
-          <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.blu, marginBottom: 7 }}>📖 HOW PRIMARIES WORK</div>
-          <div style={{ fontSize: TS(34), color: CL.tm, lineHeight: 1.4 }}>Under the Electoral Act 2022, parties conduct primaries to select candidates. Each party charges a nomination fee — the bigger parties charge more but have stronger structures. Your war chest must cover the ticket AND your campaign. Choose wisely.</div>
-        </div>
-        <div style={{ display: "grid", gap: 22, marginBottom: 36 }}>
-          {PARTIES.map(p => {
-            const afford = warChest >= p.ticket;
-            return <Cd key={p.id} onClick={() => setParty(p.id)} active={party === p.id} style={{ padding: 29, opacity: afford || gfBorrowed ? 1 : .7 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <span style={{ fontSize: TS(50), marginRight: 14 }}>{p.i}</span>
-                  <span style={{ fontWeight: 700, fontSize: TS(48), color: p.c }}>{p.id}</span>
-                  <span style={{ fontSize: TS(34), color: CL.td, marginLeft: 14 }}>{p.nm}</span>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: TS(43), fontWeight: 700, color: afford ? CL.gold : CL.red, fontFamily: F.m }}>₦{p.ticket}B</div>
-                  <div style={{ fontSize: TS(29), color: CL.td }}>ticket</div>
-                </div>
-              </div>
-              <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10, lineHeight: 1.3 }}>{p.desc}</div>
-              <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
-                <Bg text={"Strength: " + (p.strength >= 1 ? "Strong" : p.strength >= 0.8 ? "Moderate" : "Weak")} color={p.strength >= 1 ? CL.grn : p.strength >= 0.8 ? CL.org : CL.red} />
-                <Bg text={afford ? "Can afford" : "Can't afford"} color={afford ? CL.grn : CL.red} />
-              </div>
-            </Cd>;
-          })}
-        </div>
-        {!gfBorrowed && (warChest < 0.5 || (party && !canAffordTicket)) && <Cd onClick={() => { setWarChest(w => w + 1); setGfDebt(d => d + 1); setGfBorrowed(true); }} style={{ padding: 22, borderColor: CL.red + "44", marginBottom: 29, textAlign: "center" }}>
-          <div style={{ fontSize: TS(36), fontWeight: 600, color: CL.red }}>🎩 Need more money? Borrow ₦1B from the Godfather</div>
-          <div style={{ fontSize: TS(29), color: CL.td }}>He'll fund your ticket AND campaign. But he owns you. +5% starting corruption. He WILL collect. {party && !canAffordTicket ? "You need this to afford the " + party + " ticket." : "This opens ALL parties to you."}</div>
-        </Cd>}
-        {party && <div style={{ textAlign: "center" }}>
-          {canAffordTicket ? <Cd style={{ borderColor: CL.grn + "44", marginBottom: 29, padding: 36 }}>
-            <div style={{ fontSize: TS(36), color: CL.grn, fontWeight: 700, marginBottom: 14 }}>🗳️ PRIMARY RESULT</div>
-            <div style={{ fontSize: TS(43), color: CL.txt }}>{nm} wins the {party} primary for {st.replace("_", " ")} State!</div>
-            <div style={{ fontSize: TS(34), color: CL.td, marginTop: 10 }}>Ticket cost: ₦{selectedParty.ticket}B. Remaining war chest: ₦{(warChest - selectedParty.ticket).toFixed(1)}B for the campaign.</div>
-          </Cd> : <Cd style={{ borderColor: CL.red + "44", marginBottom: 29, padding: 36 }}>
-            <div style={{ fontSize: TS(36), color: CL.red, fontWeight: 700, marginBottom: 14 }}>❌ CAN'T AFFORD THIS TICKET</div>
-            <div style={{ fontSize: TS(34), color: CL.td }}>You need ₦{selectedParty.ticket}B but only have ₦{warChest.toFixed(1)}B. Borrow from the godfather or choose a cheaper party.</div>
-          </Cd>}
-          {canAffordTicket && <Bt onClick={() => { setWarChest(w => w - selectedParty.ticket); setStep(5); }}>CHOOSE YOUR SLOGAN →</Bt>}
-          <div style={{ marginTop: 22 }}><Bt v="ghost" onClick={() => { setParty(null); setStep(3); }} style={{ fontSize: TS(34) }}>← Back</Bt></div>
-        </div>}
+    return <Flow n={4} kicker="Step 4 of 7 · Your party" title="Which party's ticket?" onBack={() => { setParty(null); setStep(3); }}
+      sub="Each party charges a nomination fee. Bigger parties cost more and have stronger machines. What is left pays for your campaign."
+      cta={() => { setWarChest(w => w - selectedParty.ticket); setStep(5); }} ctaDisabled={!selectedParty || !canAffordTicket}
+      ctaLabel={!selectedParty ? "Pick a party" : canAffordTicket ? "Pay ₦" + selectedParty.ticket + "B and win the " + selectedParty.id + " primary" : "You can't afford the " + selectedParty.id + " ticket"}
+      ctaNote={selectedParty && canAffordTicket ? "₦" + (warChest - selectedParty.ticket).toFixed(1) + "B left for the campaign" : null}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+        <span style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>💰 War chest ₦{warChest.toFixed(1)}B</span>
+        {gfDebt > 0 && <span style={{ background: UI.tints[1], borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>🎩 Owed to the godfather ₦{gfDebt}B</span>}
       </div>
-    </div>
-  );
+      <div style={{ display: "grid", gap: 12 }}>
+        {PARTIES.map((p, i) => {
+          const afford = warChest >= p.ticket;
+          return <Tile key={p.id} tint={party === p.id ? "#fff" : UI.tints[i % UI.tints.length]} on={party === p.id} onClick={() => setParty(p.id)}>
+            <span style={{ display: "flex", alignItems: "center", gap: 10, paddingRight: 34 }}>
+              <span style={{ width: 14, height: 14, borderRadius: 7, background: p.c, flexShrink: 0 }} />
+              <span style={{ fontWeight: 800, fontSize: DS.t.body }}>{p.id}</span>
+              <span style={{ fontSize: DS.t.label, color: UI.sub, flex: 1, minWidth: 0 }}>{p.nm}</span>
+              <span style={{ fontWeight: 800, fontSize: DS.t.body, color: afford ? UI.ink : CL.red }}>₦{p.ticket}B</span>
+            </span>
+            <span style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.4 }}>{p.desc}</span>
+            <span style={{ fontSize: DS.t.meta, fontWeight: 700, color: p.strength >= 1 ? UI.green : p.strength >= .8 ? CL.org : CL.red }}>{p.strength >= 1 ? "Strong machine" : p.strength >= .8 ? "Moderate machine" : "Weak machine"}{afford ? "" : " · more than you have"}</span>
+          </Tile>;
+        })}
+      </div>
+      {!gfBorrowed && (warChest < 0.5 || (party && !canAffordTicket)) && <Tile tint={UI.tints[1]} icon="🎩" onClick={() => { setWarChest(w => w + 1); setGfDebt(d => d + 1); setGfBorrowed(true); }} style={{ marginTop: 14 }}
+        title="Borrow ₦1B from the godfather" sub={"It pays for the ticket and the campaign. You start in office owing him, with +5% corruption, and he will collect." + (party && !canAffordTicket ? " You need it for the " + party + " ticket." : "")} />}
+    </Flow>;
   }
 
   // STEP 5: Campaign Slogan
   if (step === 5) return (
-    <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-      <Flag />
-      <div style={{ maxWidth: 912, margin: "86px auto" }}>
-        <AdvBubble text={ADV.slogan} saName={saName} />
-        <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 36px", textAlign: "center" }}>Your Campaign Slogan</h2>
-        <div style={{ display: "grid", gap: 22 }}>
-          {SLOGANS.map((sl, i) => (
-            <Cd key={i} onClick={() => setSlogan(sl)} active={slogan === sl} style={{ padding: 36, textAlign: "center" }}>
-              <div style={{ fontFamily: F.d, fontSize: TS(53), fontWeight: 600, color: CL.txt }}>"{sl}"</div>
-            </Cd>
-          ))}
-        </div>
-        {slogan && <div style={{ textAlign: "center", marginTop: 43 }}><Bt onClick={() => setStep(6)}>PARTY CONVENTION →</Bt><div style={{ marginTop: 22 }}><Bt v="ghost" onClick={() => { setSlogan(null); setStep(4); }} style={{ fontSize: TS(34) }}>← Back</Bt></div></div>}
+    <Flow n={5} kicker="Step 5 of 7 · Your slogan" title="What will the crowds chant?" onBack={() => { setSlogan(null); setStep(4); }}
+      sub="The news will quote it, and so will your Wikipedia page."
+      cta={() => setStep(6)} ctaDisabled={!slogan} ctaLabel={slogan ? "Go with this slogan" : "Pick a slogan"}>
+      <div style={{ display: "grid", gap: 10 }}>
+        {SLOGANS.map((sl, i) => <Tile key={i} tint={slogan === sl ? "#fff" : UI.tints[i % UI.tints.length]} on={slogan === sl} onClick={() => setSlogan(sl)}>
+          <span style={{ fontFamily: F.d, fontSize: TALL() ? 28 : 34, fontWeight: 600, lineHeight: 1.2, paddingRight: 34 }}>“{sl}”</span>
+        </Tile>)}
       </div>
-    </div>
+    </Flow>
   );
 
-  // STEP 6: Party Convention (4 deputy options)
+  // STEP 6: Party Convention (deputy)
   if (step === 6) {
     const partyFav = depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]);
-    const partyFavIdx = depCands.indexOf(partyFav);
-    return (
-      <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-        <Flag />
-        <div style={{ maxWidth: 1164, margin: "72px auto" }}>
-          <AdvBubble text={ADV.convention} saName={saName} />
-          <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 36px", textAlign: "center" }}>Deputy Governor Selection</h2>
-          <Cd style={{ marginBottom: 36, borderColor: CL.pur + "44", background: CL.pur + "06" }}>
-            <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14 }}>🗳️ PARTY RECOMMENDS:</div>
-            <div style={{ fontWeight: 700, fontSize: TS(50), color: CL.txt }}>{partyFav.nm}</div>
-            <Bg text={partyFav.bg} color={CL.pur} />
-            {partyFav.bio && <div style={{ fontSize: TS(34), color: CL.tm, marginTop: 10, fontStyle: "italic" }}>{partyFav.bio}</div>}
-            <div style={{ marginTop: 22 }}><Bt onClick={() => { setDepGov(partyFav); setStep(7); }} style={{ width: "100%" }}>✅ ACCEPT (+10 party stability)</Bt></div>
-          </Cd>
-          <div style={{ fontSize: TS(36), fontWeight: 700, color: CL.org, marginBottom: 22 }}>OR CHOOSE YOUR OWN:</div>
-          <div style={{ display: "grid", gap: 22 }}>
-            {depCands.filter((_, i) => i !== partyFavIdx).map((c, i) => (
-              <Cd key={i} onClick={() => setDepGov(c)} active={depGov?.nm === c.nm} style={{ padding: 29 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <div><div style={{ fontWeight: 700, fontSize: TS(48), color: CL.txt }}>{c.nm}</div><Bg text={c.bg} color={CL.org} /></div>
-                  {depGov?.nm === c.nm && <span style={{ color: CL.grn, fontSize: TS(58) }}>✓</span>}
-                </div>
-                {c.bio && <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10, fontStyle: "italic" }}>{c.bio}</div>}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
-                  <SB label="Competence" value={c.co} max={100} color={CL.blu} />
-                  <SB label="Loyalty" value={c.lo} max={100} color={CL.pur} />
-                </div>
-              </Cd>
-            ))}
-          </div>
-          <div style={{ textAlign: "center", marginTop: 22 }}><Bt v="ghost" onClick={() => { setDepGov(null); setStep(5); }} style={{ fontSize: TS(34) }}>← Back</Bt></div>
-          {depGov && depGov.nm !== partyFav.nm && <div style={{ textAlign: "center", marginTop: 36 }}><Bt v="danger" onClick={() => setStep(7)}>INSIST ON {depGov.nm.split(" ").pop().toUpperCase()} →</Bt></div>}
-        </div>
+    const chosen = depGov || partyFav; // the party's choice is selected until you pick another
+    const insist = chosen && chosen.nm !== partyFav.nm;
+    const meter = (l, v, c) => <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: DS.t.meta, color: UI.sub }}><span style={{ flex: "0 0 auto", minWidth: TALL() ? 130 : 110 }}>{l}</span><span style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(255,255,255,.8)", overflow: "hidden" }}><span style={{ display: "block", width: v + "%", height: "100%", background: c }} /></span></span>;
+    return <Flow n={6} kicker="Step 6 of 7 · Your running mate" title="Who will be your deputy?" onBack={() => { setDepGov(null); setStep(5); }}
+      sub="The party has a favourite. Taking them keeps the party together; insisting on your own pick costs you party support."
+      cta={() => { if (!depGov) setDepGov(partyFav); setStep(7); }} ctaDisabled={!chosen} ctaTone={insist ? "warn" : null}
+      ctaLabel={!chosen ? "Pick a running mate" : insist ? "Insist on " + chosen.nm.split(" ").pop() : "Accept " + chosen.nm.split(" ").pop() + " (+10 party unity)"}>
+      <div style={{ display: "grid", gap: 12 }}>
+        {[partyFav, ...depCands.filter(c => c !== partyFav)].map((c, i) => <Tile key={c.nm} tint={chosen?.nm === c.nm ? "#fff" : UI.tints[(i + 2) % UI.tints.length]} on={chosen?.nm === c.nm} onClick={() => setDepGov(c)}>
+          <span style={{ display: "flex", gap: 8, alignItems: "center", paddingRight: 34, flexWrap: "wrap" }}>
+            <span style={{ fontWeight: 800, fontSize: DS.t.body }}>{c.nm}</span>
+            {c === partyFav && <span style={{ background: UI.dark, color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 700 }}>Party's choice</span>}
+          </span>
+          <span style={{ fontSize: DS.t.label, color: UI.sub }}>{c.bg}{c.bio ? " · " + c.bio : ""}</span>
+          {meter("Competence", c.co, CL.blu)}
+          {meter("Loyalty", c.lo, CL.pur)}
+        </Tile>)}
       </div>
-    );
+    </Flow>;
   }
 
   // STEP 7: Convention Result
@@ -1814,26 +1682,23 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     const partyFav = depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]);
     const accepted = depGov?.nm === partyFav.nm;
     const startingStab = accepted ? 75 : 65 - (depGov?.lo < 40 ? 15 : depGov?.lo < 60 ? 12 : 8);
-    return (
-      <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-        <Flag />
-        <div style={{ maxWidth: 948, margin: "102px auto", textAlign: "center" }}>
-          <div style={{ fontSize: TS(113), marginBottom: 29 }}>{accepted ? "🤝" : "⚡"}</div>
-          <h2 style={{ fontFamily: F.d, color: accepted ? CL.grn : CL.org, fontSize: TS(79), fontWeight: 700, margin: "0 0 22px" }}>{accepted ? "Unity Ticket" : "Convention Split"}</h2>
-          <div style={{ display: "inline-block", background: CL.gold + "18", border: "1.5px solid " + CL.gold, borderRadius: 17, padding: "29px 58px", margin: "22px 0 36px", fontFamily: F.d, fontSize: TS(72), fontWeight: 700, color: CL.txt, letterSpacing: 2 }}>
-            {(lastNm || "SURNAME").toUpperCase()} / {(depGov?.nm.split(" ").pop() || "DEPUTY").toUpperCase()}
-            <div style={{ fontSize: TS(31), letterSpacing: 1, color: CL.td, fontWeight: 500, fontFamily: F.b, marginTop: 7 }}>{PARTIES.find(p => p.id === party)?.nm} · {st.replace("_", " ")} 2027</div>
-          </div>
-          <AdvBubble text={ADV.conventionResult(accepted)} saName={saName} />
-          <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 43, flexWrap: "wrap" }}>
-            <Bg text={"Full name: " + nm} color={CL.blu} />
-            <Bg text={"Deputy: " + depGov?.nm} color={CL.grn} />
-            <Bg text={"Party Stability: " + startingStab + "%"} color={startingStab > 60 ? CL.grn : CL.org} />
-          </div>
-          <Bt onClick={() => setStep(8)}>LAUNCH CAMPAIGN →</Bt>
+    return <Flow n={7} kicker="Step 7 of 7 · The ticket" title={accepted ? "A unity ticket" : "The convention split"} onBack={() => setStep(6)}
+      sub={accepted ? "The party got its deputy. The machine is behind you." : "You got your deputy. Some party leaders walked out."}
+      cta={() => setStep(8)} ctaLabel="Launch the campaign">
+      <div style={{ background: UI.dark, color: "#fff", borderRadius: 28, padding: TALL() ? "22px 20px" : "28px 32px", display: "flex", gap: 16, alignItems: "center" }}>
+        {avatar && <img src={AVATAR_IMGS[avatar]} alt="" style={{ width: TALL() ? 96 : 120, height: TALL() ? 128 : 160, objectFit: "cover", objectPosition: "top", borderRadius: 20, background: UI.tints[3] }} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: DS.t.meta, letterSpacing: 1.5, textTransform: "uppercase", opacity: .75, fontWeight: 700 }}>{PARTIES.find(p => p.id === party)?.nm} · {st.replace("_", " ")} 2027</div>
+          <div style={{ fontFamily: F.d, fontSize: TALL() ? 34 : 44, fontWeight: 700, lineHeight: 1.1, margin: "6px 0" }}>{(lastNm || "").toUpperCase()} / {(depGov?.nm.split(" ").pop() || "").toUpperCase()}</div>
+          <div style={{ fontSize: DS.t.label, opacity: .85 }}>“{slogan}”</div>
         </div>
       </div>
-    );
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
+        <Tile tint={UI.tints[4]} title={startingStab + "%"} sub="Party support at the start" />
+        <Tile tint={UI.tints[0]} title={"₦" + warChest.toFixed(1) + "B"} sub="Left for the campaign" />
+      </div>
+      <div style={{ marginTop: 14 }}><AdvBubble text={ADV.conventionResult(accepted)} saName={saName} /></div>
+    </Flow>;
   }
 
   // STEP 8: Full Campaign Simulation — real LGA battlegrounds, no fake maps
@@ -1999,9 +1864,8 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       const marginPct = collation.registeredTotal > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
       const yourTicket = (lastNm || "SURNAME").toUpperCase() + "/" + (depGov?.nm.split(" ").pop() || "DEP").toUpperCase();
       return (
-        <div style={{ minHeight: "100%", background: won ? "#f0fff0" : CL.bg, padding: "72px 43px" }}>
-          <Flag />
-          <div style={{ maxWidth: 984, margin: "58px auto", textAlign: "center" }}>
+        <div style={{ minHeight: "100%", background: won ? "#f0fff0" : CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
+            <div style={{ maxWidth: 984, margin: "8px auto", textAlign: "center" }}>
             <div style={{ fontSize: TS(86), marginBottom: 7 }}>{won ? "🎉" : "😔"}</div>
             <h2 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(58), fontWeight: 700, margin: "7px 0" }}>{won ? "GOVERNOR-ELECT!" : "DEFEATED"}</h2>
             <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 29 }}>{won ? "INEC Returning Officer declares " + nm + " (" + party + ") duly elected — carrying " + collation.zonesWon + " of 3 senatorial zones with a " + marginPct.toFixed(1) + "% margin." : oName + " (" + (oParty?.id || "OPP") + ") wins. You carried only " + collation.zonesWon + "/3 zones. Margin against you: " + marginPct.toFixed(1) + "%."}</p>
@@ -2091,9 +1955,8 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     }
 
     return (
-      <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-        <Flag />
-        <div style={{ maxWidth: 948, margin: "72px auto" }}>
+      <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
+        <div style={{ maxWidth: 948, margin: "8px auto" }}>
           {isOpp ? <Bg text={"Week " + week + " of 4 — the opponent strikes"} color={CL.red} /> : <Bg text={"Week " + week + " of 4 — your move"} color={CL.grn} />}
           <SceneArt bg="rally" who={isOpp ? "rival" : undefined} alt={isOpp ? oName : undefined} h={TALL() ? 170 : 220} />
           <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), fontWeight: 600, margin: "22px 0" }}>{isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.t || "Opponent Moves") : "Pick this week's main move"}</h3>
@@ -2197,9 +2060,8 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     };
 
     return (
-      <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-        <Flag />
-        <div style={{ maxWidth: 1164, margin: "72px auto" }}>
+      <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
+        <div style={{ maxWidth: 1164, margin: "8px auto" }}>
           <div style={{ textAlign: "center", marginBottom: 36 }}>
             <div style={{ fontSize: TS(109) }}>⚖️</div>
             <Bg text={"STAGE " + (preTrib.level + 1) + "/3 · " + lvl.nm} color={CL.gold} />
@@ -2292,8 +2154,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       return <AnchorDesk lines={anchorLines} onDone={() => setAnchorsShown(true)} />;
     }
     return (
-      <div style={{ minHeight: "100%", background: "linear-gradient(180deg,#f0f5e8,#fafdf7)", padding: "72px 43px" }}>
-        <Flag />
+      <div style={{ minHeight: "100%", background: "linear-gradient(180deg,#f0f5e8,#fafdf7)", padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
         <div style={{ maxWidth: 912, margin: "120px auto", textAlign: "center" }}>
           <SceneArt bg="government-house" h={TALL() ? 220 : 300} />
           <h2 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(94), fontWeight: 700, margin: "0 0 36px" }}>Welcome to Government House</h2>
@@ -3826,7 +3687,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const M = window.SOP_MEMORY;
     const L = (() => { try { return M ? M.all() : []; } catch (e) { return []; } })();
     const stName = state.replace(/_/g, " ");
-    const fem = setup?.avatar === "female";
+    const fem = isFemaleAvatar(setup?.avatar);
     const He = fem ? "She" : "He", he = fem ? "she" : "he", his = fem ? "her" : "his", His = fem ? "Her" : "His", him = fem ? "her" : "him";
     // Eight turns make two four-year terms, so a turn is a year of the
     // calendar: sworn in May 2027, turn 1 runs to May 2028.
@@ -7419,7 +7280,6 @@ function App() {
 
   return (
     <div style={{ fontFamily: F.b, background: CL.bg, color: CL.txt, minHeight: "100%" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
       <style>{`
         @media (max-width: 640px) {
           .sop-gov-grid { grid-template-columns: 1fr !important; }

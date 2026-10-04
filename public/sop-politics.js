@@ -340,7 +340,7 @@
     const S = window.SOP;
     cardEl = document.createElement("div");
     cardEl.id = "sop-politics-card";
-    cardEl.style.cssText = "position:fixed;inset:0;z-index:11500;background:rgba(18,16,12,.78);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Outfit',sans-serif;";
+    cardEl.style.cssText = "position:fixed;inset:0;z-index:11500;background:rgba(18,16,12,.78);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Plus Jakarta Sans',sans-serif;";
 
     const opts = d.options.map(function (o, i) {
       return '' +
@@ -396,7 +396,7 @@
   function showOutcome(title, o, outcome, done) {
     closeCard();
     const el = document.createElement("div");
-    el.style.cssText = "position:fixed;inset:0;z-index:11500;background:rgba(18,16,12,.78);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Outfit',sans-serif;";
+    el.style.cssText = "position:fixed;inset:0;z-index:11500;background:rgba(18,16,12,.78);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Plus Jakarta Sans',sans-serif;";
     el.innerHTML =
       '<div style="background:#f6f4ef;border:2px solid #d4c9a8;border-radius:14px;max-width:900px;width:100%;padding:18px 22px">' +
       '<div style="font-size:18px;letter-spacing:2px;color:#5a5a4a">' + title + '</div>' +
@@ -427,7 +427,7 @@
       return '<div style="font-size:18px;color:#1a1a1a">' + i.name + ' — independence ' + Math.round(i.independence) + ' · scrutiny ' + Math.round(i.pressure) + '</div>';
     }).join("");
     const el = document.createElement("div");
-    el.style.cssText = "position:fixed;inset:0;z-index:11400;background:rgba(18,16,12,.7);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Outfit',sans-serif;";
+    el.style.cssText = "position:fixed;inset:0;z-index:11400;background:rgba(18,16,12,.7);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Plus Jakarta Sans',sans-serif;";
     el.innerHTML =
       '<div style="background:#f6f4ef;border:2px solid #d4c9a8;border-radius:14px;max-width:1200px;width:100%;max-height:90%;overflow:auto;padding:16px 20px">' +
       '<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:34px;font-weight:800;color:#2d5a3d">POLITICAL STANDING</div>' +

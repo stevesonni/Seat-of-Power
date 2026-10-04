@@ -277,24 +277,24 @@
     ].join(";");
 
     lensOverlay.innerHTML = `
-      <div style="background:${cardBg};border:1px solid ${border};border-radius:16px;padding:36px 44px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;font-family:'Outfit',system-ui,sans-serif">
+      <div style="background:${cardBg};border:1px solid ${border};border-radius:16px;padding:36px 44px;max-width:680px;width:100%;max-height:88vh;overflow-y:auto;font-family:'Plus Jakarta Sans',system-ui,sans-serif">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
           <div>
-            <div style="font-size:18px;letter-spacing:3px;text-transform:uppercase;color:${accent};font-weight:600;font-family:'Montserrat',sans-serif">Civic Lens</div>
-            <h3 style="font-size:27px;font-weight:700;color:${txt};margin:4px 0 0;font-family:'Montserrat',sans-serif">${data.title}</h3>
+            <div style="font-size:18px;letter-spacing:3px;text-transform:uppercase;color:${accent};font-weight:600;font-family:'Fraunces',Georgia,serif">Civic Lens</div>
+            <h3 style="font-size:27px;font-weight:700;color:${txt};margin:4px 0 0;font-family:'Fraunces',Georgia,serif">${data.title}</h3>
           </div>
           <button id="sop-civic-close" style="background:none;border:none;font-size:34px;color:${td};cursor:pointer;padding:0 8px;flex-shrink:0">×</button>
         </div>
         <div style="margin-bottom:18px">
-          <div style="font-size:18px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-family:'Montserrat',sans-serif">Formal Rule</div>
+          <div style="font-size:18px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-family:'Fraunces',Georgia,serif">Formal Rule</div>
           <p style="font-size:27px;line-height:1.5;color:${txt};margin:0">${data.formal}</p>
         </div>
         <div style="margin-bottom:18px">
-          <div style="font-size:18px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-family:'Montserrat',sans-serif">Political Reality</div>
+          <div style="font-size:18px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-family:'Fraunces',Georgia,serif">Political Reality</div>
           <p style="font-size:27px;line-height:1.5;color:${txt};margin:0">${data.reality}</p>
         </div>
         <div style="margin-bottom:18px">
-          <div style="font-size:18px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-family:'Montserrat',sans-serif">Why This Matters</div>
+          <div style="font-size:18px;font-weight:600;color:${accent};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-family:'Fraunces',Georgia,serif">Why This Matters</div>
           <p style="font-size:27px;line-height:1.5;color:${txt};margin:0">${data.why}</p>
         </div>
         <div style="background:${accent}10;border-radius:8px;padding:12px 16px;margin-top:8px">
@@ -331,7 +331,7 @@
     btn.style.cssText = [
       "background:" + bg, "border:1px solid " + accent, "color:" + accent,
       "padding:8px 18px", "border-radius:20px", "font-size:21px",
-      "font-family:'Montserrat',sans-serif", "font-weight:600",
+      "font-family:'Fraunces',Georgia,serif", "font-weight:600",
       "cursor:pointer", "letter-spacing:.5px", "transition:all .15s",
       "display:inline-flex", "align-items:center", "gap:6px"
     ].join(";");
@@ -403,9 +403,9 @@
     ].join(";");
 
     panelEl.innerHTML = `
-      <div style="background:${cardBg};border:1px solid ${border};border-radius:16px;padding:32px 40px;max-width:620px;width:100%;max-height:88vh;overflow-y:auto;font-family:'Outfit',system-ui,sans-serif">
+      <div style="background:${cardBg};border:1px solid ${border};border-radius:16px;padding:32px 40px;max-width:620px;width:100%;max-height:88vh;overflow-y:auto;font-family:'Plus Jakarta Sans',system-ui,sans-serif">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-          <h3 style="font-size:27px;font-weight:700;color:${txt};margin:0;font-family:'Montserrat',sans-serif">Corruption & Accountability</h3>
+          <h3 style="font-size:27px;font-weight:700;color:${txt};margin:0;font-family:'Fraunces',Georgia,serif">Corruption & Accountability</h3>
           <button id="sop-civic-panel-close" style="background:none;border:none;font-size:34px;color:${td};cursor:pointer;padding:0 8px">×</button>
         </div>
         <div style="font-size:18px;color:${td};margin-bottom:16px;font-style:italic">Corruption is a system, not a meter. Shortcuts create evidence, debt, victims, and future exposure. Accountability can arrive from multiple directions — late, but it arrives.</div>
@@ -417,11 +417,11 @@
         </div>
         ${C.financialLoss > 0 ? `<div style="font-size:21px;color:${txt};margin-bottom:16px"><strong>Financial Loss:</strong> ₦${C.financialLoss.toFixed(1)}B of public money lost to corruption</div>` : ""}
         <div style="margin-bottom:20px">
-          <div style="font-size:21px;font-weight:600;color:${txt};margin-bottom:8px;font-family:'Montserrat',sans-serif">Active Accountability Pressure</div>
+          <div style="font-size:21px;font-weight:600;color:${txt};margin-bottom:8px;font-family:'Fraunces',Georgia,serif">Active Accountability Pressure</div>
           ${accBars}
         </div>
         <div>
-          <div style="font-size:21px;font-weight:600;color:${txt};margin-bottom:8px;font-family:'Montserrat',sans-serif">Pending Consequences</div>
+          <div style="font-size:21px;font-weight:600;color:${txt};margin-bottom:8px;font-family:'Fraunces',Georgia,serif">Pending Consequences</div>
           ${pendingHtml}
         </div>
         <div style="margin-top:16px;padding:12px 16px;background:${border}30;border-radius:8px">
@@ -548,21 +548,21 @@
     ].join(";");
 
     reviewEl.innerHTML = `
-      <div style="background:${cardBg};border:1px solid ${border};border-radius:16px;padding:32px 40px;max-width:760px;width:100%;font-family:'Outfit',system-ui,sans-serif">
+      <div style="background:${cardBg};border:1px solid ${border};border-radius:16px;padding:32px 40px;max-width:760px;width:100%;font-family:'Plus Jakarta Sans',system-ui,sans-serif">
         <div style="text-align:center;margin-bottom:24px">
-          <div style="font-size:18px;letter-spacing:4px;text-transform:uppercase;color:${accent};font-weight:600;font-family:'Montserrat',sans-serif">Civic Review</div>
-          <h2 style="font-size:34px;font-weight:700;color:${txt};margin:6px 0 0;font-family:'Montserrat',sans-serif">${yr} — Half-Year Review</h2>
+          <div style="font-size:18px;letter-spacing:4px;text-transform:uppercase;color:${accent};font-weight:600;font-family:'Fraunces',Georgia,serif">Civic Review</div>
+          <h2 style="font-size:34px;font-weight:700;color:${txt};margin:6px 0 0;font-family:'Fraunces',Georgia,serif">${yr} — Half-Year Review</h2>
         </div>
 
         <!-- 1. WHAT YOU DID -->
         <div style="margin-bottom:22px">
-          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Montserrat',sans-serif;letter-spacing:.5px">1. What You Did</div>
+          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Fraunces',Georgia,serif;letter-spacing:.5px">1. What You Did</div>
           ${whatYouDid}
         </div>
 
         <!-- 2. WHAT GOVERNMENT DID -->
         <div style="margin-bottom:22px">
-          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Montserrat',sans-serif;letter-spacing:.5px">2. What Government Did</div>
+          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Fraunces',Georgia,serif;letter-spacing:.5px">2. What Government Did</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
             ${gov.map(function (g) { return '<span style="background:' + border + '30;padding:6px 14px;border-radius:20px;font-size:21px;color:' + txt + '">' + g + '</span>'; }).join('')}
           </div>
@@ -570,7 +570,7 @@
 
         <!-- 3. WHO BENEFITED AND WHO PAID -->
         <div style="margin-bottom:22px">
-          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Montserrat',sans-serif;letter-spacing:.5px">3. Who Benefited & Who Paid</div>
+          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Fraunces',Georgia,serif;letter-spacing:.5px">3. Who Benefited & Who Paid</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
             <div style="background:#4a84;padding:12px 16px;border-radius:10px">
               <div style="font-size:18px;font-weight:600;color:#4a8;margin-bottom:6px">BENEFITED</div>
@@ -585,16 +585,16 @@
 
         <!-- 4. WHAT INSTITUTIONS WILL REMEMBER -->
         <div style="margin-bottom:22px">
-          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Montserrat',sans-serif;letter-spacing:.5px">4. What Institutions Will Remember</div>
+          <div style="font-size:27px;font-weight:700;color:${accent};margin-bottom:8px;font-family:'Fraunces',Georgia,serif;letter-spacing:.5px">4. What Institutions Will Remember</div>
           ${institutions.map(function (i) { return '<div style="font-size:21px;color:' + td + ';padding:5px 0;line-height:1.4;border-bottom:1px solid ' + border + '20">🏛️ ' + i + '</div>'; }).join('')}
         </div>
 
         <!-- CIVIC LENS LEARNING CARDS -->
         <div style="margin-bottom:20px">
-          <div style="font-size:21px;font-weight:600;color:${td};margin-bottom:10px;font-family:'Montserrat',sans-serif">Optional Learning:</div>
+          <div style="font-size:21px;font-weight:600;color:${td};margin-bottom:10px;font-family:'Fraunces',Georgia,serif">Optional Learning:</div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">
             ${learningCards.map(function (lc) {
-              return '<button class="sop-civic-learn" data-key="' + lc.key + '" style="background:' + bg + ';border:1px solid ' + accent + ';color:' + accent + ';padding:8px 16px;border-radius:20px;font-size:18px;font-family:\'Montserrat\',sans-serif;font-weight:600;cursor:pointer">📖 ' + lc.label + '</button>';
+              return '<button class="sop-civic-learn" data-key="' + lc.key + '" style="background:' + bg + ';border:1px solid ' + accent + ';color:' + accent + ';padding:8px 16px;border-radius:20px;font-size:18px;font-family:\'Fraunces\',Georgia,serif;font-weight:600;cursor:pointer">📖 ' + lc.label + '</button>';
             }).join('')}
           </div>
         </div>
@@ -617,7 +617,7 @@
         ` : ''}
 
         <div style="text-align:center;padding-top:8px">
-          <button id="sop-civic-review-close" style="background:${accent};color:#fff;border:none;padding:14px 40px;border-radius:24px;font-size:27px;font-family:'Montserrat',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.5px">Continue</button>
+          <button id="sop-civic-review-close" style="background:${accent};color:#fff;border:none;padding:14px 40px;border-radius:24px;font-size:27px;font-family:'Fraunces',Georgia,serif;font-weight:600;cursor:pointer;letter-spacing:.5px">Continue</button>
         </div>
       </div>
     `;
@@ -688,7 +688,7 @@
     const keys = Object.keys(CIVIC_LENS);
     indexOverlay = document.createElement("div");
     indexOverlay.id = "sop-civic-index";
-    indexOverlay.style.cssText = "position:fixed;inset:0;z-index:12000;background:rgba(20,18,14,.72);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Outfit',sans-serif;";
+    indexOverlay.style.cssText = "position:fixed;inset:0;z-index:12000;background:rgba(20,18,14,.72);display:flex;align-items:center;justify-content:center;padding:24px;font-family:'Plus Jakarta Sans',sans-serif;";
     const rows = keys.map(function (k) {
       return '<button data-k="' + k + '" style="text-align:left;background:#fffcf5;border:1px solid #d4c9a8;border-radius:10px;padding:10px 14px;font-size:21px;font-weight:600;color:#1a1a1a;cursor:pointer;font-family:inherit">' + CIVIC_LENS[k].title + '</button>';
     }).join("");

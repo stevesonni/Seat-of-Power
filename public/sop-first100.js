@@ -483,40 +483,38 @@
     return `
       #sop-f100{position:fixed;inset:0;z-index:100001;overflow:auto;
         background:var(--sf-bg,#f8faf5);color:var(--ink,#1a2e05);
-        font-family:'Outfit',sans-serif;padding:var(--s-5,52px) var(--s-4,34px);box-sizing:border-box}
+        font-family:'Plus Jakarta Sans',sans-serif;padding:var(--s-5,52px) var(--s-4,34px);box-sizing:border-box}
       #sop-f100 .f-wrap{max-width:1500px;margin:0 auto}
-      #sop-f100 .f-day{font-family:'JetBrains Mono',monospace;font-size:var(--t-meta,30px);
+      #sop-f100 .f-day{font-family:'Plus Jakarta Sans',sans-serif;font-size:var(--t-meta,30px);
         letter-spacing:2px;color:var(--ink-dim,#7a8b6a);text-transform:uppercase}
-      #sop-f100 .f-card{background:var(--sf-card,#fff);border:2px solid var(--sf-bdr,#d0d8c4);
+      #sop-f100 .f-card{background:var(--sf-card,#fff);border:1px solid var(--sf-bdr,#d0d8c4);
         border-radius:var(--r-lg,32px);padding:var(--s-5,52px);box-shadow:0 10px 26px rgba(0,0,0,.14)}
-      #sop-f100 h2{font-family:'Montserrat',sans-serif;font-weight:900;font-size:var(--t-title,60px);
+      #sop-f100 h2{font-family:'Fraunces',Georgia,serif;font-weight:700;font-size:var(--t-title,60px);
         line-height:1.1;margin:var(--s-2,14px) 0 var(--s-3,22px)}
       #sop-f100 .f-body{font-size:var(--t-body,40px);line-height:1.55;color:var(--ink-mid,#4a5e3a)}
       #sop-f100 .f-aside{display:flex;gap:var(--s-3,22px);align-items:flex-start;margin:var(--s-4,34px) 0;
         background:rgba(0,135,81,.07);border-left:8px solid var(--accent,#008751);
         border-radius:var(--r-md,20px);padding:var(--s-3,22px) var(--s-4,34px)}
       #sop-f100 .f-aside img{width:110px;height:110px;border-radius:999px;object-fit:cover;flex:0 0 auto}
-      #sop-f100 .f-aside .n{font-family:'JetBrains Mono',monospace;font-size:var(--t-meta,30px);
+      #sop-f100 .f-aside .n{font-family:'Plus Jakarta Sans',sans-serif;font-size:var(--t-meta,30px);
         letter-spacing:2px;color:var(--accent,#008751);text-transform:uppercase}
       #sop-f100 .f-aside .q{font-size:var(--t-lead,47px);line-height:1.4;font-style:italic}
       #sop-f100 .f-opt{display:block;width:100%;text-align:left;cursor:pointer;
-        background:var(--sf-card,#fff);border:2px solid var(--sf-bdr,#d0d8c4);border-left:10px solid var(--accent,#008751);
+        background:var(--sf-card,#fff);border:1px solid var(--sf-bdr,#d0d8c4);border-left:6px solid var(--accent,#008751);
         border-radius:var(--r-md,20px);padding:var(--s-3,22px) var(--s-4,34px);margin-top:var(--s-3,22px);
-        font-family:'Outfit',sans-serif;color:var(--ink,#1a2e05);min-height:132px}
+        font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink,#1a2e05);min-height:132px}
       #sop-f100 .f-opt:hover{background:rgba(0,135,81,.06)}
       #sop-f100 .f-opt .l{font-size:var(--t-lead,47px);font-weight:700;line-height:1.3}
       #sop-f100 .f-opt .s{font-size:var(--t-label,34px);color:var(--ink-dim,#7a8b6a);margin-top:var(--s-1,8px)}
       #sop-f100 .f-chips{margin-top:var(--s-2,14px);display:flex;flex-wrap:wrap;gap:var(--s-1,8px)}
-      #sop-f100 .f-chip{font-family:'JetBrains Mono',monospace;font-size:var(--t-meta,30px);font-weight:700;
+      #sop-f100 .f-chip{font-family:'Plus Jakarta Sans',sans-serif;font-size:var(--t-meta,30px);font-weight:700;
         padding:6px 20px;border-radius:999px;background:#eef2e6;color:var(--ink-mid,#4a5e3a)}
       #sop-f100 .f-chip.good{background:rgba(0,135,81,.15);color:#00693f}
       #sop-f100 .f-chip.bad{background:rgba(204,51,51,.13);color:#a12626}
       #sop-f100 .f-chip.warn{background:rgba(194,65,12,.13);color:#9a3412}
-      #sop-f100 .f-cta{background:var(--accent,#008751);color:#fff;border:none;border-radius:999px;
-        padding:28px 62px;font-family:'Montserrat',sans-serif;font-weight:800;font-size:var(--t-lead,47px);
-        cursor:pointer;margin-top:var(--s-4,34px);min-height:132px}
+      #sop-f100 .f-cta{display:block;width:100%;background:#12301f;color:#fff;border:none;border-radius:999px;padding:18px 28px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;font-size:var(--t-lead,27px);cursor:pointer;margin-top:var(--s-4,34px);min-height:64px}
       #sop-f100 .f-sec{margin-top:var(--s-4,34px)}
-      #sop-f100 .f-sec h3{font-family:'Montserrat',sans-serif;font-size:var(--t-title,60px);margin-bottom:var(--s-2,14px)}
+      #sop-f100 .f-sec h3{font-family:'Fraunces',Georgia,serif;font-size:var(--t-title,60px);margin-bottom:var(--s-2,14px)}
       #sop-f100 .f-row{font-size:var(--t-body,40px);line-height:1.5;color:var(--ink-mid,#4a5e3a);
         padding:var(--s-2,14px) 0;border-top:2px solid var(--sf-bdr,#d0d8c4)}
       #sop-f100 .f-row b{color:var(--ink,#1a2e05)}

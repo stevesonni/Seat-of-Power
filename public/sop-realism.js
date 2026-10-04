@@ -692,7 +692,7 @@
     return SOP_H('div',{style:{background:"#fdfdf6",padding: 50,border:"1px solid "+c.bdr,borderRadius: 13}},[
       SOP_H('div',{style:{borderBottom:"2px solid "+c.txt,paddingBottom: 29,marginBottom: 43}},[
         SOP_H('div',{style:{fontSize: TS(34),color:c.td,fontFamily:F().m}},"WIKIPEDIA — The Free Encyclopedia"),
-        SOP_H('h1',{style:{fontFamily:"'Linux Libertine',serif",fontSize: TS(94),margin: "14px 0 0",fontWeight:400,color:c.txt}}, SOP.pName),
+        SOP_H('h1',{style:{fontFamily:"'Fraunces',Georgia,serif",fontSize: TS(94),margin: "14px 0 0",fontWeight:400,color:c.txt}}, SOP.pName),
         SOP_H('div',{style:{fontSize: TS(38),color:c.tm,marginTop: 7}}, `Governor of ${SOP.state} State (incumbent) · ${SOP.party}`),
       ]),
       SOP_H('div',{style:{fontSize: TS(38),color:c.tm,marginBottom: 43,padding: 29,background:c.card,border:"1px solid "+c.bdr,borderRadius: 8}},[
@@ -700,7 +700,7 @@
         SOP_H('div',{},`Approval rating: ${Math.round(SOP.s.app)}% · Nepotism flags on record: ${SOP.nepotismCount} · Projects delivered: ${(SOP.projects||[]).filter(p=>p.status==="delivered").length} · Projects abandoned: ${(SOP.projects||[]).filter(p=>p.status==="abandoned").length} · Turn: ${SOP.turn}/8`),
       ]),
       ...Object.entries(sections).map(([sec,items])=>SOP_H('div',{key:sec,style:{marginBottom: 50}},[
-        SOP_H('h2',{style:{fontFamily:"'Linux Libertine',serif",fontSize: TS(65),fontWeight:400,borderBottom:"1px solid "+c.bdr,paddingBottom: 7,margin: "0 0 22px",color: sec==="Controversies"?c.red:c.txt}}, sec),
+        SOP_H('h2',{style:{fontFamily:"'Fraunces',Georgia,serif",fontSize: TS(65),fontWeight:400,borderBottom:"1px solid "+c.bdr,paddingBottom: 7,margin: "0 0 22px",color: sec==="Controversies"?c.red:c.txt}}, sec),
         items.length===0 ? SOP_H('div',{style:{fontSize: TS(38),color:c.td,fontStyle:"italic"}},"No entries.") :
         items.map((e,i)=>SOP_H('p',{key:i,style:{fontSize: TS(38),color:c.txt,margin: "14px 0",lineHeight:1.5}}, e.txt, e.turn>0 && SOP_H('sup',{style:{color:c.td,marginLeft: 14}}, `[T${e.turn}]`)))
       ]))
@@ -717,14 +717,14 @@
     if (document.getElementById("sop-sa-float")) return;
     const el = document.createElement('div');
     el.id = "sop-sa-float";
-    el.style.cssText = "position:fixed;bottom: 18px;right: 18px;width: 510px;max-height:60vh;overflow:auto;background:#fdfdf6;border:2px solid #1a6d2e;border-radius: 15px;padding: 15px;box-shadow:0 8px 30px rgba(0,0,0,.2);font-family:'Outfit',sans-serif;font-size: 34px;z-index:9999;display:none;";
+    el.style.cssText = "position:fixed;bottom: 18px;right: 18px;width: 510px;max-height:60vh;overflow:auto;background:#fdfdf6;border:2px solid #1a6d2e;border-radius: 15px;padding: 15px;box-shadow:0 8px 30px rgba(0,0,0,.2);font-family:'Plus Jakarta Sans',sans-serif;font-size: 34px;z-index:9999;display:none;";
     el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d0d8c4;padding-bottom: 9px;margin-bottom: 9px"><b style="color:#1a6d2e">🎓 Special Adviser (Live)</b><button id="sop-sa-close" style="background:none;border:none;cursor:pointer;font-size: 47px">✕</button></div><div id="sop-sa-body"></div>`;
     document.body.appendChild(el);
     document.getElementById('sop-sa-close').onclick = () => el.style.display='none';
 
     const toggle = document.createElement('button');
     toggle.textContent = "🎓 SA";
-    toggle.style.cssText = "position:fixed;bottom: 18px;right: 18px;background:#008751;color:#fff;border:none;border-radius: 30px;padding: 15px 24px;font-family:'Outfit',sans-serif;font-weight:600;cursor:pointer;z-index:9998;box-shadow:0 4px 15px rgba(0,0,0,.25)";
+    toggle.style.cssText = "position:fixed;bottom: 18px;right: 18px;background:#008751;color:#fff;border:none;border-radius: 30px;padding: 15px 24px;font-family:'Plus Jakarta Sans',sans-serif;font-weight:600;cursor:pointer;z-index:9998;box-shadow:0 4px 15px rgba(0,0,0,.25)";
     toggle.onclick = () => { el.style.display = el.style.display==='none'?'block':'none'; toggle.style.display = el.style.display==='block'?'none':'block'; refreshSA(); };
     document.body.appendChild(toggle);
 
