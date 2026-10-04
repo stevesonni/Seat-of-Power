@@ -253,7 +253,7 @@
       var dot = kind === 'warn' ? '#e9c46a' : kind === 'bad' ? '#e5484d' : kind === 'ok' ? '#3fbf7f' : '#e9c46a';
       var t = document.createElement('div');
       t.textContent = msg;
-      t.style.cssText = 'pointer-events:auto;background:#12301f;color:#fff;padding:12px 20px;border-radius:999px;font:600 22px/1.35 "Plus Jakarta Sans",sans-serif;box-shadow:0 8px 24px rgba(18,48,31,.25);max-width:560px;text-align:center;transition:opacity .3s;border-left:6px solid ' + dot;
+      t.style.cssText = 'pointer-events:none;background:#12301f;color:#fff;padding:12px 20px;border-radius:999px;font:600 22px/1.35 "Plus Jakarta Sans",sans-serif;box-shadow:0 8px 24px rgba(18,48,31,.25);max-width:560px;text-align:center;transition:opacity .3s;border-left:6px solid ' + dot;
       wrap.appendChild(t);
       setTimeout(function () { t.style.opacity = '0'; setTimeout(function () { t.remove(); }, 300); }, 3400);
     };

@@ -698,9 +698,16 @@ function gfPersona(def) {
 // Portraits (public/art). The deputy's picture follows the deputy's first name.
 const CAST_ART = { godfather: "godfather", adviser: "special-adviser", speaker: "speaker", reporter: "reporter", efcc: "efcc-investigator", rival: "rival", labour: "labour-leader" };
 const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu", "Binta", "Bisola", "Bukola", "Chiamaka", "Chidinma", "Damilola", "Ekaette", "Fatima", "Folake", "Folashade", "Funmilayo", "Hadiza", "Halima", "Hannatu", "Hauwa", "Kemi", "Khadija", "Maryam", "Ngozi", "Sade", "Titi", "Yemisi", "Zainab", "Adeola", "Aishatu", "Aminat", "Falmata", "Bintu", "Yagana", "Ifeoma", "Chioma", "Nkechi", "Uche", "Modupe", "Bisi", "Funke", "Omolara", "Yetunde", "Adaobi", "Chinyere", "Amaka", "Ogechi", "Fanna", "Iquo", "Mbang", "Ebiere", "Ibinabo", "Chinwe", "Ivie", "Doosuur", "Nguavese", "Mngusoor", "Hanatu", "Kaneng", "Ladi", "Ochanya", "Onyeche", "Ojone", "Ene", "Ozavize", "Laraba", "Martha", "Deborah", "Grace", "Blessing", "Mercy", "Imaobong", "Emem"];
-const castArt = (c) => {
+// The deputy's dress follows the state's region: a northern deputy in a
+// kaftan or hijab, an eastern or south-south man in isiagu, a western man
+// in a suit.
+const NORTH_ZONES = ["NW", "NE", "NC"];
+const deputyArt = (female, zone) => "./art/characters/" + (female
+  ? (NORTH_ZONES.includes(zone) ? "deputy-northern-female-hijab" : "deputy-female")
+  : (NORTH_ZONES.includes(zone) ? "deputy-male" : zone === "SE" || zone === "SS" ? "deputy-southern-male-isiagu" : zone === "SW" ? "deputy-male-suit" : "deputy-male")) + ".webp";
+const castArt = (c, zone) => {
   if (!c) return null;
-  if (c.id === "deputy") return "./art/characters/" + (FEMALE_FIRST.includes(String(c.name).split(" ")[0]) ? "deputy-female" : "deputy-male") + ".webp";
+  if (c.id === "deputy") return deputyArt(FEMALE_FIRST.includes(String(c.name).split(" ")[0]), zone);
   return CAST_ART[c.id] ? "./art/characters/" + CAST_ART[c.id] + ".webp" : null;
 };
 const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
@@ -1121,6 +1128,39 @@ const SceneArt = ({ bg, who, alt, h = 230 }) => React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
     background: "#1d2a22 url(./art/backgrounds/" + bg + ".webp) center/cover" } },
   who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } }) : null);
+
+// Scene art by situation. Generic townspeople (a doctor, a trader…) stand in
+// front where the scene is theirs; named cast only where the scene is about them.
+const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi";
+const DILEMMA_ART = {
+  herder: ["emirs-palace-courtyard", "police-commissioner"], strike: ["rally", "labour-leader"], land: ["back-room", "permanent-secretary"],
+  flood: ["flooded-community", null], whistle: ["back-room", "commissioner-technocrat"], smear: ["tv-studio", "reporter"],
+  hb_almajiri: ["classroom", "teacher"], hb_min_wage: ["street-protest", "labour-leader"], hb_youth_fund: ["busy-market-street", "young-voter-student"],
+  hb_anti_cult: ["classroom", "young-voter-student"], hb_state_police: ["street-protest", "police-commissioner"], hb_grazing: ["emirs-palace-courtyard", "police-commissioner"],
+  religious2: ["street-protest", "police-commissioner"], kidnap: ["classroom", "soldier"], asuu: ["classroom", "teacher"],
+  oil_spill: ["flooded-community", "expatriate-engineer"], market_fire: ["busy-market-street", "market-trader"], cholera: ["hospital-ward", "doctor"],
+};
+const dilemmaArt = (id, zone) => id === "hb_trad_council" ? ["emirs-palace-courtyard", tradRuler(zone)]
+  : DILEMMA_ART[id] || (/^hb_/.test(id) ? ["assembly-chamber", "speaker"] : ["governor-office", null]);
+const FLAGSHIP_ART = {
+  education: ["classroom", "teacher"], health: ["hospital-ward", "doctor"], infrastructure: ["road-construction-site", null],
+  security: ["street-protest", "police-commissioner"], agriculture: ["busy-market-street", "market-trader"], anticorruption: ["governor-office", "permanent-secretary"],
+  youth: ["busy-market-street", "young-voter-student"], women: ["classroom", "teacher"], technology: ["classroom", "young-voter-student"], housing: ["road-construction-site", null],
+};
+const FOREIGN_INVESTORS = ["chinese_steel", "mining_co", "solar_farm", "data_centre", "hotel_resort"];
+const investorArt = (id) => ["road-construction-site", FOREIGN_INVESTORS.includes(id) ? "expatriate-engineer" : "investor-nigerian"];
+const SHOCK_ART = {
+  sh_pandemic: ["hospital-ward", "nurse"], sh_endsars: ["street-protest", "young-voter-student"], sh_flood: ["flooded-community", null],
+  sh_terror: ["busy-market-street", "police-commissioner"], sh_subsidy: ["busy-market-street", "market-trader"],
+  sh_oil_crash: ["abuja-federal-office", null], sh_naira_crash: ["abuja-federal-office", null], sh_bank_crisis: ["abuja-federal-office", null],
+};
+// Commissioners: a portrait per name, women and men drawn from their own sets.
+const COMM_F = ["commissioner-female-suit", "commissioner-female-kaftan", "commissioner-technocrat"], COMM_M = ["commissioner-male-suit", "commissioner-male-agbada"];
+const commissionerArt = (name) => {
+  const nm = String(name || ""), set = FEMALE_FIRST.includes(nm.split(" ")[0]) ? COMM_F : COMM_M;
+  let h = 0; for (const ch of nm) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return "./art/characters/" + set[h % set.length] + ".webp";
+};
 
 const Bg = ({ text, color = CL.grn }) => React.createElement("span", { className: "ds-chip", style: { background: color + "15", color, borderColor: color + "40" } }, text);
 
@@ -1807,7 +1847,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       cta={() => setStep(8)} ctaLabel="Launch the campaign">
       {(() => {
         const depFemale = FEMALE_FIRST.includes(String(depGov?.nm || "").split(" ")[0]);
-        const depImg = "./art/characters/" + (depFemale ? "deputy-female" : "deputy-male") + ".webp";
+        const depImg = deputyArt(depFemale, STATES[st]?.zone);
         const pic = (src, who, role) => <div style={{ textAlign: "center", flex: "0 0 auto", width: TALL() ? 104 : 130 }}>
           <img src={src} alt={who} style={{ width: "100%", height: TALL() ? 136 : 170, objectFit: "cover", objectPosition: "top", borderRadius: 20, background: UI.tints[3], display: "block" }} />
           <div style={{ fontSize: DS.t.meta, fontWeight: 700, marginTop: 6, lineHeight: 1.25 }}>{who}</div>
@@ -4492,10 +4532,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Four screens. Each keeps the existing pages (nav keys) as sub-tabs, so
   // anything that opens a page by key still works.
   const SCREENS = [
-    { id: "desk", i: "🗂️", l: "Desk", subs: [{ k: "gov", l: "Govern" }, { k: "log", l: "News" }] },
-    { id: "map", i: "🗺️", l: "Map", subs: [{ k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Procurement" }] },
-    { id: "people", i: "👥", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "cs", l: "Civil Service" }, { k: "coun", l: "Trad. Council" }, { k: "ppl", l: "Personas" }, { k: "stk", l: "Stakeholders" }] },
-    { id: "wiki", i: "📖", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] },
+    { id: "desk", i: "🗂️", img: "tab-desk", l: "Desk", subs: [{ k: "gov", l: "Govern" }, { k: "log", l: "News" }] },
+    { id: "map", i: "🗺️", img: "tab-map", l: "Map", subs: [{ k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Procurement" }] },
+    { id: "people", i: "👥", img: "tab-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "cs", l: "Civil Service" }, { k: "coun", l: "Trad. Council" }, { k: "ppl", l: "Personas" }, { k: "stk", l: "Stakeholders" }] },
+    { id: "wiki", i: "📖", img: "tab-wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] },
   ];
   const curScreen = SCREENS.find(sc => sc.subs.some(t => t.k === nav)) || SCREENS[0];
   navMemory.current[curScreen.id] = nav;
@@ -4568,7 +4608,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const on = sc.id === curScreen.id;
             return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
               style={{ border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
-              <span style={{ fontSize: TS(32), lineHeight: 1 }}>{sc.i}</span>{sc.l}
+              <img src={"./art/objects/" + sc.img + ".webp"} alt="" style={{ width: TS(48), height: TS(48), objectFit: "contain" }} />{sc.l}
             </button>;
           })}
         </div> : <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
@@ -4577,7 +4617,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const on = sc.id === curScreen.id;
               return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
                 style={{ padding: "14px 6px", borderRadius: 16, border: "2px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn : CL.card, color: on ? "#fff" : CL.txt, fontFamily: F.c, fontWeight: 800, fontSize: TS(30), letterSpacing: .5, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, boxShadow: on ? "0 3px 0 rgba(0,0,0,.18)" : "none" }}>
-                <span style={{ fontSize: TS(38), lineHeight: 1 }}>{sc.i}</span>{sc.l}
+                <img src={"./art/objects/" + sc.img + ".webp"} alt="" style={{ width: TS(58), height: TS(58), objectFit: "contain" }} />{sc.l}
               </button>;
             })}
           </div>
@@ -4600,7 +4640,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             return <Cd style={{ borderColor: CL.pur + "44" }}>
               <div style={{ textAlign: "center", marginBottom: 29 }}>
-                <SceneArt bg="courtroom" h={TALL() ? 180 : 220} />
+                <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />
                 <Bg text={stage} color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curCourt.title}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curCourt.desc}</p>
@@ -4772,18 +4812,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               { label: "Cut corners to finish on time", note: "Half the money, a favoured contractor. It opens, but the work is thin.", delivered: true, app: 2, debt: Math.round(cost * 5) / 10, cor: .04, log: "year " + year + " target met on paper; the work is thin." },
               { label: "Push it to next year", note: "No new money. The people notice.", delivered: false, app: -3, log: "year " + year + " target missed and pushed back." },
             ];
-            return <DecisionCard kicker={"Flagship · Year " + year} kickerColor={CL.grn}
+            const fa = FLAGSHIP_ART[setup.agenda] || ["road-construction-site", null];
+            return <><SceneArt bg={fa[0]} who={fa[1]} h={TALL() ? 200 : 240} /><DecisionCard kicker={"Flagship · Year " + year} kickerColor={CL.grn}
               title={FG.i + " " + FG.nm}
               brief={"You promised to " + FG.goal + ". This year's share of that promise is due. " + (done ? "So far " + done + " of " + (year - 1) + " yearly targets delivered." : year > 1 ? "Last year's target was missed." : "Nothing has been delivered yet.")}
               stakes="This is the programme the Wikipedia article will judge you on."
               aside={<AdvBubble text={"Your Excellency, the people heard you promise to " + FG.goal + ". This is the year they will count."} saName={cast.adviser.name} />}
               options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "Debt +₦" + o.debt + "B", color: CL.red }] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
-              onPick={(o) => pick(o.raw)} />;
+              onPick={(o) => pick(o.raw)} /></>;
           })()}
         </OL>
 
         <OL show={phase === "dilemma" && !!curD}>
-          {curD && curD.id === "strike" && <SceneArt bg="rally" who="labour-leader" alt={cast.labour.name} h={TALL() ? 220 : 260} />}
+          {curD && (() => { const [bg, who] = dilemmaArt(curD.id, sd.zone); return <SceneArt bg={bg} who={who} alt={who === "labour-leader" ? cast.labour.name : who === "speaker" ? cast.speaker.name : who === "reporter" ? cast.reporter.name : ""} h={TALL() ? 220 : 260} />; })()}
           {curD && <DecisionCard
             kicker="Dilemma"
             kickerColor={CL.org}
@@ -4821,7 +4862,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={phase === "judiciary" && !!judEvent}>
           {judEvent && <Cd style={{ borderColor: CL.pur + "44", textAlign: "center" }}>
-            <SceneArt bg="courtroom" h={TALL() ? 180 : 220} />
+            <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />
             <Bg text="Judicial Review" color={CL.pur} />
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{judEvent.nm}</h3>
             <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{judEvent.d}</p>
@@ -5058,7 +5099,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "hidden_threat" && hiddenThreats.length > 0}>
           <Cd style={{ borderColor: CL.org + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 14 }}>🔍</div>
+              <SceneArt bg="back-room" h={TALL() ? 180 : 220} />
               <Bg text="Intelligence Report" color={CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>Something Isn't Right...</h3>
               <AdvBubble text={"Your Excellency, I'm hearing whispers. Something feels off in the " + (hiddenThreats[0]?.ministry || "government") + " Ministry. I can't confirm anything yet, but... " + (hiddenThreats.length > 1 ? "And there may be " + (hiddenThreats.length - 1) + " other issue(s)." : "")} saName={cast.adviser.name} />
@@ -5096,7 +5137,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "shock" && !!curShock}>
           {curShock && <Cd style={{ borderColor: CL.red, background: "#fff8f8" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(116), marginBottom: 14 }}>{curShock.icon}</div>
+              {SHOCK_ART[curShock.id] ? <SceneArt bg={SHOCK_ART[curShock.id][0]} who={SHOCK_ART[curShock.id][1]} h={TALL() ? 200 : 240} /> : <div style={{ fontSize: TS(116), marginBottom: 14 }}>{curShock.icon}</div>}
               <div style={{ background: CL.red, color: "#fff", display: "inline-block", padding: "10px 43px", borderRadius: 8, fontSize: TS(34), fontWeight: 700, fontFamily: F.m, letterSpacing: 5, marginBottom: 22 }}>⚡ SHOCK EVENT</div>
               <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(65), fontWeight: 700 }}>{curShock.title}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curShock.desc}</p>
@@ -5156,7 +5197,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "federal" && !!curFgEvent}>
           {curFgEvent && <Cd style={{ borderColor: curFgEvent.type === "reward" ? CL.grn + "44" : CL.red + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="governor-office" who={curFgEvent.id === "fg_efcc" ? "efcc-investigator" : null} alt={curFgEvent.id === "fg_efcc" ? cast.efcc.name : ""} h={TALL() ? 200 : 240} />
+              <SceneArt bg="abuja-federal-office" who={curFgEvent.id === "fg_efcc" ? "efcc-investigator" : null} alt={curFgEvent.id === "fg_efcc" ? cast.efcc.name : ""} h={TALL() ? 200 : 240} />
               <Bg text="Federal Government" color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curFgEvent.title}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curFgEvent.desc}</p>
@@ -5270,7 +5311,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "investor" && !!curInvestor}>
           {curInvestor && <Cd style={{ borderColor: CL.blu + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 22 }}>{curInvestor.icon}</div>
+              <SceneArt bg={investorArt(curInvestor.id)[0]} who={investorArt(curInvestor.id)[1]} alt={curInvestor.co || ""} h={TALL() ? 200 : 240} />
               <Bg text="Private Investment Proposal" color={CL.blu} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(62), fontWeight: 600 }}>{curInvestor.nm}</h3>
               <div style={{ fontSize: TS(34), color: CL.pur, fontFamily: F.m, marginBottom: 14 }}>{curInvestor.co}</div>
@@ -5361,7 +5402,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "abuja"}>
           <Cd style={{ borderColor: CL.gold + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 22 }}>🏛️✈️</div>
+              <SceneArt bg="abuja-federal-office" h={TALL() ? 200 : 240} />
               <Bg text="Federal Invitation" color={CL.gold} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(72), fontWeight: 600 }}>Presidential Summons to Abuja</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 14 }}>
@@ -5434,7 +5475,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "netherlands"}>
           <Cd style={{ borderColor: CL.teal + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 22 }}>🇳🇱🤝</div>
+              <SceneArt bg="airport-arrivals" h={TALL() ? 200 : 240} />
               <Bg text="International Opportunity" color={CL.teal} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(72), fontWeight: 600 }}>Dutch Investor Delegation</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 14 }}>
@@ -5617,7 +5658,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "intl_invite" && !!curInvite}>
           {curInvite && <Cd style={{ borderColor: CL.blu + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(113), marginBottom: 22 }}>{curInvite.icon}✉️</div>
+              <SceneArt bg="airport-arrivals" h={TALL() ? 200 : 240} />
               <Bg text="International Invitation" color={CL.blu} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>Letter from {curInvite.who}</h3>
               <div style={{ fontSize: TS(34), color: CL.pur, fontFamily: F.m, marginBottom: 22 }}>{curInvite.from}</div>
@@ -5716,7 +5757,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.grn + "44" }}>
             <AdvBubble text={ADV.reelection} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 22 }}>🗳️</div>
+              <SceneArt bg="party-convention-hall" who={s.pStab >= 65 ? "godfather-pleased" : s.pStab < 40 ? "godfather-angry" : "party-chairman"} alt="The party chairman" h={TALL() ? 200 : 240} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px" }}>End of First Term</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 22 }}>Four years in office. What will you do next?</p>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 36, flexWrap: "wrap" }}>
@@ -6314,7 +6355,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const advanceFn = () => { setPendingHouseBill(null); nextEvent(); };
             return <Cd style={{ borderColor: CL.pur + "33" }}>
               <div style={{ textAlign: "center", marginBottom: 29 }}>
-                <div style={{ fontSize: TS(98), marginBottom: 22 }}>📜</div>
+                <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
                 <Bg text="Bill from House of Assembly" color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{pendingHouseBill.nm}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22 }}>{pendingHouseBill.d}</p>
@@ -6892,7 +6933,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const gen = () => { const r = rng(Date.now() + m.id.length); return gN(r, sd.zone, setup?.state); };
               return <Cd key={m.id} style={{ borderLeft: "3px solid " + (m.cor > 55 ? CL.red : m.perf > 60 ? CL.grn : CL.org) }}>
                 <div style={{ fontSize: TS(29), color: CL.td, fontFamily: F.m }}>{m.icon} {m.name.toUpperCase()}</div>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt, marginBottom: 7 }}>Hon. {m.minister}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 7 }}>
+                  <img src={commissionerArt(m.minister)} alt={m.minister} loading="lazy" style={{ width: 64, height: 76, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.grn + "14", flexShrink: 0 }} />
+                  <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>Hon. {m.minister}</div>
+                </div>
                 <div style={{ fontSize: TS(31), color: CL.tm, marginBottom: 14, fontStyle: "italic" }}>PS: {m.permSec} · Staff: {(m.staff || 0).toLocaleString()}</div>
                 <SB label="Performance" value={m.perf} max={100} color={CL.blu} />
                 <SB label="Corruption" value={m.cor} max={100} color={CL.red} />
@@ -7008,7 +7052,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const rec = (window.SOP_CAST ? window.SOP_CAST.history(c.id) : []).slice(-3).reverse();
             return <Cd key={c.id} style={{ padding: 29 }}>
               <div style={{ display: "flex", gap: 18, alignItems: "flex-end", marginBottom: 14 }}>
-                {castArt(c) && <img src={castArt(c)} alt={c.name} loading="lazy" style={{ width: 120, height: 140, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: CL.grn + "14", flexShrink: 0 }} />}
+                {castArt(c, sd.zone) && <img src={castArt(c, sd.zone)} alt={c.name} loading="lazy" style={{ width: 120, height: 140, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: CL.grn + "14", flexShrink: 0 }} />}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: F.m, fontSize: TS(21), letterSpacing: 3, color: CL.grn, textTransform: "uppercase" }}>{c.role}</div>
                   <div style={{ fontFamily: F.d, fontSize: TS(42), fontWeight: 700, color: CL.txt, margin: "6px 0 2px" }}>{c.name}</div>
@@ -7151,7 +7195,7 @@ const PresRace = ({ setup, stats, onResult }) => {
 
         {alliance && strategy && (
           <div style={{ textAlign: "center", marginTop: 50 }}>
-            <Bt onClick={runElection} style={{ padding: "43px 120px", fontSize: TS(50) }}>🗳️ ELECTION DAY</Bt>
+            <SceneArt bg="polling-unit" h={TALL() ? 200 : 260} /><Bt onClick={runElection} style={{ padding: "43px 120px", fontSize: TS(50) }}>🗳️ ELECTION DAY</Bt>
           </div>
         )}
       </div>
@@ -7218,7 +7262,7 @@ const SenateRace = ({ setup, stats, onResult }) => {
             Your chances depend on: approval rating, party stability, corruption record, and debt levels. Even a good governor can lose a senatorial race — the electorate is unpredictable.
           </div>
         </Cd>
-        <Bt onClick={runElection} style={{ padding: "43px 120px", fontSize: TS(50) }}>🗳️ ELECTION DAY</Bt>
+        <SceneArt bg="polling-unit" h={TALL() ? 200 : 260} /><Bt onClick={runElection} style={{ padding: "43px 120px", fontSize: TS(50) }}>🗳️ ELECTION DAY</Bt>
       </div>
     </div>
   );
