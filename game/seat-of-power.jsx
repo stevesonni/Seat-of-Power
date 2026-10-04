@@ -1599,6 +1599,9 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
   const [gfBorrowed, setGfBorrowed] = useState(false);
   const [gfMandates, setGfMandates] = useState([]); // concrete godfather obligations that must handshake with cabinet/projects
   const [preTrib, setPreTrib] = useState(null); // {level, spent, log, oppName, oppPartyId, margin, zonesWon, evidence}
+  // Each new screen (and each new court stage) opens at its top, not at the
+  // scroll position the last, longer screen was left at.
+  useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [step, preTrib ? preTrib.level : -1]);
   // Phase 2 §1 — Election Night has to play once before the EC8D card renders.
   // Per-instance flag ("first"/"re") — resetting sCampRound to 0 for a retry
   // clears the flag too (see reset sites below).
@@ -5982,7 +5985,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{won ? "Four more years! INEC has declared " + pName + " (" + party + ") re-elected, carrying " + collation.zonesWon + "/3 zones by " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you. You carried only " + collation.zonesWon + "/3 zones. Margin against: " + marginPct.toFixed(1) + "%."}</p>
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
                   <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (3 - collation.zonesWon) + "/3 zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
-                  <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Petition filed within the 21-day window (S.285(5)). Case number GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(Math.abs(collation.margin)) }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
+                  <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Petition filed within the 21-day window (S.285(5)). Case number GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(marginPct * 10) / 10 }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
                 </div>}
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29 }}>
                   <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14, letterSpacing: 2 }}>HOW THE ZONES MOVED</div>
@@ -6299,7 +6302,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <Bg text={"STAGE " + (tribunal.level + 1) + "/3"} color={CL.gold} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0 7px", fontSize: TS(65), fontWeight: 700 }}>{lvl.nm}</h3>
                 <div style={{ fontSize: TS(34), color: CL.td, fontFamily: F.m }}>{lvl.tag}</div>
-                <div style={{ fontSize: TS(34), color: CL.tm, marginTop: 14 }}>Losing margin: <b>{tribunal.margin} points</b> · War chest: <b>₦{personalFund.toFixed(2)}B</b> · Legal spend so far: ₦{tribunal.spent.toFixed(1)}B</div>
+                <div style={{ fontSize: TS(34), color: CL.tm, marginTop: 14 }}>Losing margin: <b>{tribunal.margin}%</b> · War chest: <b>₦{personalFund.toFixed(2)}B</b> · Legal spend so far: ₦{tribunal.spent.toFixed(1)}B</div>
               </div>
 
               {!tribunal.groundId && <div>
