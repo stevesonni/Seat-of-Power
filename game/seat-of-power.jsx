@@ -192,13 +192,25 @@ const STATES = {
 };
 
 const PARTIES = [
-  // Order: APC, PDP, NDC, ADC, LP. Descriptions describe the parties only.
+  // Order: APC, NDC, ADC, PDP, then "create your own" in setup. Descriptions describe the parties only.
   { id: "APC", nm: "All Progressives Congress", c: "#1a6d2e", i: "🟢", ticket: 0.5, strength: 1.15, desc: "The governing party at the centre. ₦500M ticket, the most expensive. Strong federal backing and the deepest campaign money." },
-  { id: "PDP", nm: "Peoples Democratic Party", c: "#cc3333", i: "🔴", ticket: 0.28, strength: 0.95, desc: "The oldest national opposition party. ₦280M ticket. Weakened by defections, but its structures still hold in the South-South and North-Central." },
   { id: "NDC", nm: "National Democratic Coalition", c: "#f59e0b", i: "🟡", ticket: 0.3, strength: 1.05, desc: "A newer party with strong urban and youth appeal, especially in the South-East, South-South and Lagos. ₦300M ticket." },
   { id: "ADC", nm: "African Democratic Congress", c: "#0d9488", i: "🩵", ticket: 0.35, strength: 1.08, desc: "An established opposition party that has grown quickly. ₦350M ticket. Rising support, with open disputes over who leads it." },
-  { id: "LP", nm: "Labour Party", c: "#2563eb", i: "🔵", ticket: 0.15, strength: 0.85, desc: "A labour-aligned party with links to the trade unions. ₦150M ticket. Smaller after defections and a leadership dispute." },
+  { id: "PDP", nm: "Peoples Democratic Party", c: "#cc3333", i: "🔴", ticket: 0.28, strength: 0.95, desc: "The oldest national opposition party. ₦280M ticket. Weakened by defections, but its structures still hold in the South-South and North-Central." },
 ];
+// Labour Party: no longer offered, kept so saves that chose it still load.
+const LEGACY_PARTIES = {
+  LP: { id: "LP", nm: "Labour Party", c: "#2563eb", i: "🔵", ticket: 0.15, strength: 0.85, desc: "A labour-aligned party with links to the trade unions. ₦150M ticket. Smaller after defections and a leadership dispute." },
+};
+// A party the player registers in setup. It lives in PARTIES for the rest of
+// the run (and is restored from the save), so every lookup finds it.
+const registerParty = (p) => {
+  if (!p || !p.id) return;
+  const i = PARTIES.findIndex(x => x.id === p.id);
+  if (i >= 0) PARTIES[i] = { ...PARTIES[i], ...p }; else PARTIES.push(p);
+};
+const MAIN_PARTY_IDS = ["APC", "NDC", "ADC", "PDP"];
+
 
 const STATE_LGAS = {
   Lagos: ["Agege","Ajeromi-Ifelodun","Alimosho","Amuwo-Odofin","Apapa","Badagry","Epe","Eti-Osa","Ibeju-Lekki","Ifako-Ijaiye","Ikeja","Ikorodu","Kosofe","Lagos Island","Lagos Mainland","Mushin","Ojo","Oshodi-Isolo","Shomolu","Surulere"],
@@ -588,6 +600,23 @@ function gN(r, zone, stateId) {
   if (stateId && SNAMES[stateId]) { const z = SNAMES[stateId]; return pick(z.fn, r) + " " + pick(z.ln, r); }
   const z = ZNAMES[zone] || ZNAMES.SW; return pick(z.fn, r) + " " + pick(z.ln, r);
 }
+// ─── SLOGANS ───
+// A slogan does two jobs. In the campaign, moves that match it carry an
+// extra 2 points in the zone they target. In office, once a year voters
+// check its promise: kept, approval +1; broken, approval −2 and the press
+// throws the slogan back at you. Matched by the slogan's opening words.
+const SLOGAN_DEFS = [
+  { m: /^A New Dawn/, boost: /Rally|Bigger One|Influencer/, boostText: "rallies and crowds", promise: "something new and visible every year", check: (c) => c.newThisYear },
+  { m: /^Progress, Peace/, boost: /Radio|Endorsement|Pledge/, boostText: "radio and endorsements", promise: "security stays at 45% or better", check: (c) => c.s.sec >= .45 },
+  { m: /^The People's Governor/, boost: /Canvass|Market|People, Not Chiefs/, boostText: "door-to-door and markets", promise: "approval stays at 50% or better", check: (c) => c.s.app >= 50 },
+  { m: /^Building .* Together/, boost: /Coalition|Endorsement|Chiefs/, boostText: "coalitions and chiefs", promise: "party support stays at 50% or better", check: (c) => c.s.pStab >= 50 },
+  { m: /^No One Left Behind/, boost: /Town Hall|Youth|Market/, boostText: "town halls and youth", promise: "health stays at 50% or better", check: (c) => c.s.hp >= .5 },
+  { m: /^Action, Not Words/, boost: /GOTV|Agents|Canvass/, boostText: "ground game and agents", promise: "a project delivered every year", check: (c) => c.deliveredThisYear },
+  { m: /^From Promise to Performance/, boost: /Manifesto|Receipts|Debate/, boostText: "manifestos and debates", promise: "every flagship target met", check: (c) => c.flagshipKept },
+  { m: /^A Future We Can Trust/, boost: /Debate|Press Conference|Receipts/, boostText: "debates and openness", promise: "corruption stays under 40%", check: (c) => c.s.cor < .4 },
+];
+const sloganDef = (sl) => SLOGAN_DEFS.find(d => d.m.test(String(sl || ""))) || null;
+
 // ─── FLAGSHIP ───
 // The agenda picked at setup. Shown in the header, quoted by the anchors and
 // the adviser, given its own Desk decision every year ("flagship" phase) and
@@ -1472,6 +1501,11 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
   const nm = (firstNm.trim() + " " + lastNm.trim()).trim();
   const setNm = (v) => { const p = String(v || "").trim().split(/\s+/); setFirstNm(p[0] || ""); setLastNm(p.slice(1).join(" ") || ""); };
   const [party, setParty] = useState(null);
+  const [customParty, setCustomParty] = useState(null); // a party the player registers
+  const [cpOpen, setCpOpen] = useState(false);
+  const [cpName, setCpName] = useState("");
+  const [cpId, setCpId] = useState("");
+  const [cpCol, setCpCol] = useState("#7c3aed");
   const [avatar, setAvatar] = useState(null);
   const [st, setSt] = useState(null);
   const [depGov, setDepGov] = useState(null);
@@ -1505,7 +1539,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       // so ledger `target` and overlay labels stay coherent.
       const oppR = rng((st?.length || 5) * 77 + 99);
       const oNm = "Hon. " + gN(oppR, STATES[st]?.zone, st);
-      const oPt = PARTIES.filter(p => p.id !== party)[Math.floor(oppR() * (PARTIES.length - 1))];
+      const oPt = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
       window.SOP.playElectionNight({
         state: st, playerName: nm, partyId: party,
         oppName: oNm, oppPartyId: oPt?.id || "OPP",
@@ -1605,16 +1639,14 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
           const on = avatar === a.id;
           return <button key={a.id} onClick={() => setAvatar(a.id)} aria-label={a.label} style={{ position: "relative", padding: 0, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 24, background: UI.tints[i % UI.tints.length], overflow: "hidden", cursor: "pointer", aspectRatio: "3 / 4", boxShadow: on ? "0 10px 22px rgba(18,48,31,.16)" : "none" }}>
             <img src={AVATAR_IMGS[a.id]} alt="" style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
-            <span style={{ position: "absolute", left: 8, right: 8, bottom: 8, background: "rgba(255,255,255,.88)", borderRadius: 12, padding: "4px 6px", fontSize: DS.t.meta, fontWeight: 700, color: UI.ink, textAlign: "center" }}>{a.label}</span>
             {on && <span style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, background: UI.dark, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, fontWeight: 700 }}>✓</span>}
           </button>;
         })}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 12 }}>
-        <Field label="First name" value={firstNm} onChange={setFirstNm} placeholder="e.g. Adaeze" />
-        <Field label="Last name" value={lastNm} onChange={setLastNm} placeholder="e.g. Okonkwo" />
+        <Field label="First name" value={firstNm} onChange={setFirstNm} placeholder="Ciroma Chukwuma" />
+        <Field label="Last name" value={lastNm} onChange={setLastNm} placeholder="Adekunle" />
       </div>
-      {cur && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 12 }}>{cur.label} · {cur.desc}</div>}
     </Flow>;
   }
 
@@ -1652,14 +1684,14 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     return <Flow n={4} kicker="Step 4 of 7 · Your party" title="Which party's ticket?" onBack={() => { setParty(null); setStep(3); }}
       sub="Each party charges a nomination fee. Bigger parties cost more and have stronger machines. What is left pays for your campaign."
       cta={() => { setWarChest(w => w - selectedParty.ticket); setStep(5); }} ctaDisabled={!selectedParty || !canAffordTicket}
-      ctaLabel={!selectedParty ? "Pick a party" : canAffordTicket ? "Pay ₦" + selectedParty.ticket + "B and win the " + selectedParty.id + " primary" : "You can't afford the " + selectedParty.id + " ticket"}
+      ctaLabel={!selectedParty ? "Pick a party" : !canAffordTicket ? "You can't afford the " + selectedParty.id + " ticket" : selectedParty.custom ? "Register the " + selectedParty.id + " for ₦" + selectedParty.ticket + "B and stand" : "Pay ₦" + selectedParty.ticket + "B and win the " + selectedParty.id + " primary"}
       ctaNote={selectedParty && canAffordTicket ? "₦" + (warChest - selectedParty.ticket).toFixed(1) + "B left for the campaign" : null}>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <span style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>💰 War chest ₦{warChest.toFixed(1)}B</span>
         {gfDebt > 0 && <span style={{ background: UI.tints[1], borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>🎩 Owed to the godfather ₦{gfDebt}B</span>}
       </div>
       <div style={{ display: "grid", gap: 12 }}>
-        {PARTIES.map((p, i) => {
+        {PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) || (customParty && p.id === customParty.id)).map((p, i) => {
           const afford = warChest >= p.ticket;
           return <Tile key={p.id} tint={party === p.id ? "#fff" : UI.tints[i % UI.tints.length]} on={party === p.id} onClick={() => setParty(p.id)}>
             <span style={{ display: "flex", alignItems: "center", gap: 10, paddingRight: 34 }}>
@@ -1669,10 +1701,27 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
               <span style={{ fontWeight: 800, fontSize: DS.t.body, color: afford ? UI.ink : CL.red }}>₦{p.ticket}B</span>
             </span>
             <span style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.4 }}>{p.desc}</span>
-            <span style={{ fontSize: DS.t.meta, fontWeight: 700, color: p.strength >= 1 ? UI.green : p.strength >= .8 ? CL.org : CL.red }}>{p.strength >= 1 ? "Strong machine" : p.strength >= .8 ? "Moderate machine" : "Weak machine"}{afford ? "" : " · more than you have"}</span>
+            <span style={{ fontSize: DS.t.meta, fontWeight: 700, color: p.custom ? CL.red : p.strength >= 1 ? UI.green : p.strength >= .8 ? CL.org : CL.red }}>{p.custom ? "New party · no machine yet" : p.strength >= 1 ? "Strong machine" : p.strength >= .8 ? "Moderate machine" : "Weak machine"}{afford ? "" : " · more than you have"}</span>
           </Tile>;
         })}
       </div>
+      {!customParty && <Tile tint="#fff" icon="✚" onClick={() => setCpOpen(o => !o)} style={{ marginTop: 12, border: "2px dashed " + UI.line }}
+        title="Create your own party" sub="Register a new party with INEC. Cheap, and the ticket is yours, but there is no machine behind you yet." />}
+      {cpOpen && !customParty && <CivicPanel style={{ marginTop: 12 }}>
+        <div style={{ display: "grid", gap: 12 }}>
+          <Field label="Party name" value={cpName} onChange={setCpName} placeholder="e.g. People's Renewal Party" />
+          <Field label="Short name (2–5 letters)" value={cpId} onChange={v => setCpId(String(v).toUpperCase().replace(/[^A-Z]/g, "").slice(0, 5))} placeholder="PRP" />
+          <div>
+            <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>Colour</div>
+            <div style={{ display: "flex", gap: 10 }}>{["#7c3aed", "#db2777", "#0891b2", "#ea580c", "#4d7c0f"].map(c => <button key={c} onClick={() => setCpCol(c)} aria-label={"Colour " + c} style={{ width: 44, height: 44, minHeight: 44, borderRadius: 22, background: c, border: cpCol === c ? "3px solid " + UI.dark : "3px solid #fff", boxShadow: "0 0 0 1px " + UI.line, cursor: "pointer" }} />)}</div>
+          </div>
+          {(() => {
+            const taken = PARTIES.some(p => p.id === cpId) || LEGACY_PARTIES[cpId];
+            const ok = cpName.trim().length >= 4 && cpId.length >= 2 && !taken;
+            return <Bt onClick={() => { if (!ok) return; const p = { id: cpId, nm: cpName.trim(), c: cpCol, i: "⭐", ticket: 0.1, strength: 0.75, custom: true, desc: "Your own party, newly registered with INEC. ₦100M to register. No ward structures and few polling-unit agents yet: the campaign has to build them." }; registerParty(p); setCustomParty(p); setParty(p.id); setCpOpen(false); }} disabled={!ok} style={{ width: "100%" }}>{taken ? cpId + " is taken" : "Register " + (cpId || "the party")}</Bt>;
+          })()}
+        </div>
+      </CivicPanel>}
       {!gfBorrowed && (warChest < 0.5 || (party && !canAffordTicket)) && <Tile tint={UI.tints[1]} icon="🎩" onClick={() => { setWarChest(w => w + 1); setGfDebt(d => d + 1); setGfBorrowed(true); }} style={{ marginTop: 14 }}
         title="Borrow ₦1B from the godfather" sub={"It pays for the ticket and the campaign. You start in office owing him, with +5% corruption, and he will collect." + (party && !canAffordTicket ? " You need it for the " + party + " ticket." : "")} />}
     </Flow>;
@@ -1681,12 +1730,13 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
   // STEP 5: Campaign Slogan
   if (step === 5) return (
     <Flow n={5} kicker="Step 5 of 7 · Your slogan" title="What will the crowds chant?" onBack={() => { setSlogan(null); setStep(4); }}
-      sub="The news will quote it, and so will your Wikipedia page."
+      sub="It does two jobs. In the campaign, the moves that match it work better. In office, voters hold you to its promise once a year."
       cta={() => setStep(6)} ctaDisabled={!slogan} ctaLabel={slogan ? "Go with this slogan" : "Pick a slogan"}>
       <div style={{ display: "grid", gap: 10 }}>
-        {SLOGANS.map((sl, i) => <Tile key={i} tint={slogan === sl ? "#fff" : UI.tints[i % UI.tints.length]} on={slogan === sl} onClick={() => setSlogan(sl)}>
+        {SLOGANS.map((sl, i) => { const sd = sloganDef(sl); return <Tile key={i} tint={slogan === sl ? "#fff" : UI.tints[i % UI.tints.length]} on={slogan === sl} onClick={() => setSlogan(sl)}>
           <span style={{ fontFamily: F.d, fontSize: TALL() ? 28 : 34, fontWeight: 600, lineHeight: 1.2, paddingRight: 34 }}>“{sl}”</span>
-        </Tile>)}
+          {sd && <span style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.4 }}><b style={{ color: UI.ink }}>Campaign:</b> {sd.boostText} · <b style={{ color: UI.ink }}>In office:</b> {sd.promise}</span>}
+        </Tile>; })}
       </div>
     </Flow>
   );
@@ -1723,14 +1773,26 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     return <Flow n={7} kicker="Step 7 of 7 · The ticket" title={accepted ? "A unity ticket" : "The convention split"} onBack={() => setStep(6)}
       sub={accepted ? "The party got its deputy. The machine is behind you." : "You got your deputy. Some party leaders walked out."}
       cta={() => setStep(8)} ctaLabel="Launch the campaign">
-      <div style={{ background: UI.dark, color: "#fff", borderRadius: 28, padding: TALL() ? "22px 20px" : "28px 32px", display: "flex", gap: 16, alignItems: "center" }}>
-        {avatar && <img src={AVATAR_IMGS[avatar]} alt="" style={{ width: TALL() ? 96 : 120, height: TALL() ? 128 : 160, objectFit: "cover", objectPosition: "top", borderRadius: 20, background: UI.tints[3] }} />}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: DS.t.meta, letterSpacing: 1.5, textTransform: "uppercase", opacity: .75, fontWeight: 700 }}>{PARTIES.find(p => p.id === party)?.nm} · {st.replace("_", " ")} 2027</div>
-          <div style={{ fontFamily: F.d, fontSize: TALL() ? 34 : 44, fontWeight: 700, lineHeight: 1.1, margin: "6px 0" }}>{(lastNm || "").toUpperCase()} / {(depGov?.nm.split(" ").pop() || "").toUpperCase()}</div>
-          <div style={{ fontSize: DS.t.label, opacity: .85 }}>“{slogan}”</div>
-        </div>
-      </div>
+      {(() => {
+        const depFemale = FEMALE_FIRST.includes(String(depGov?.nm || "").split(" ")[0]);
+        const depImg = "./art/characters/" + (depFemale ? "deputy-female" : "deputy-male") + ".webp";
+        const pic = (src, who, role) => <div style={{ textAlign: "center", flex: "0 0 auto", width: TALL() ? 104 : 130 }}>
+          <img src={src} alt={who} style={{ width: "100%", height: TALL() ? 136 : 170, objectFit: "cover", objectPosition: "top", borderRadius: 20, background: UI.tints[3], display: "block" }} />
+          <div style={{ fontSize: DS.t.meta, fontWeight: 700, marginTop: 6, lineHeight: 1.25 }}>{who}</div>
+          <div style={{ fontSize: DS.t.meta, opacity: .7 }}>{role}</div>
+        </div>;
+        return <div style={{ background: UI.dark, color: "#fff", borderRadius: 28, padding: TALL() ? "18px 14px" : "26px 28px" }}>
+          <div style={{ textAlign: "center", fontSize: DS.t.meta, letterSpacing: 1.5, textTransform: "uppercase", opacity: .75, fontWeight: 700 }}>{PARTIES.find(p => p.id === party)?.nm} · {st.replace("_", " ")} 2027</div>
+          <div style={{ display: "flex", alignItems: "center", gap: TALL() ? 8 : 18, marginTop: 12 }}>
+            {pic(AVATAR_IMGS[avatar], nm, "for Governor")}
+            <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
+              <div style={{ fontFamily: F.d, fontSize: TALL() ? 28 : 40, fontWeight: 700, lineHeight: 1.1, wordBreak: "break-word" }}>{(lastNm || "").toUpperCase()}<br /><span style={{ opacity: .6, fontSize: "70%" }}>/</span><br />{(depGov?.nm.split(" ").pop() || "").toUpperCase()}</div>
+              <div style={{ fontSize: DS.t.meta, opacity: .85, marginTop: 8 }}>“{slogan}”</div>
+            </div>
+            {pic(depImg, depGov?.nm || "", "for Deputy")}
+          </div>
+        </div>;
+      })()}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
         <Tile tint={UI.tints[4]} title={startingStab + "%"} sub="Party support at the start" />
         <Tile tint={UI.tints[0]} title={"₦" + warChest.toFixed(1) + "B"} sub="Left for the campaign" />
@@ -1744,7 +1806,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
   if (step === 8) {
     const oppR2 = rng((st?.length || 5) * 77 + 99);
     const oName = "Hon. " + gN(oppR2, STATES[st]?.zone, st);
-    const oParty = PARTIES.filter(p => p.id !== party)[Math.floor(oppR2() * (PARTIES.length - 1))];
+    const oParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR2() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
     const activeZones = sCampZones || buildBattlegrounds(st, 2026, party, oParty?.id);
     const swingZone = activeZones.reduce((a, b) => b.swing > a.swing ? b : a, activeZones[0]);
     const weakZone = activeZones.reduce((a, b) => b.support < a.support ? b : a, activeZones[0]);
@@ -1824,9 +1886,11 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       setSCampOpp(co => co + oppGain);
       // Reduce your zone push, boost opponent zone drift; remember what moved each zone
       const moveName = opt.l.replace(/^[^\s]+ /, "");
+      const sBoost = sloganDef(slogan)?.boost.test(opt.l) ? 2 : 0; // the slogan carries matching moves
+      if (sBoost) setSCampLog(c => [...c, "📣 \u201c" + slogan + "\u201d carried " + moveName + " (+2)."]);
       setSCampZones(prev => {
         const before = prev || activeZones;
-        const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1), (opt.opp || 0) - 1, opt.turnout || 0);
+        const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1) + sBoost, (opt.opp || 0) - 1, opt.turnout || 0);
         return after.map((z, i) => {
           const d = pollShare(z) - pollShare(before[i]);
           return d !== 0 ? { ...z, moves: [...(before[i].moves || []), { w: week, l: moveName, d }] } : z;
@@ -2039,6 +2103,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
                 <div style={{ fontWeight: 600, fontSize: TS(36), color: ok ? CL.txt : CL.td, marginBottom: 6 }}>{opt.l}</div>
                 <div style={{ fontSize: TS(32), color: CL.tm, lineHeight: 1.3 }}>{opt.d}</div>
                 <div style={{ fontSize: TS(30), color: CL.txt, fontFamily: F.m, marginTop: 10 }}>{cost > 0 ? "₦" + cost.toFixed(2) + "B" : "No money"} · {opt.days || 1} {(opt.days || 1) === 1 ? "day" : "days"} · {zoneLabel(opt.target)}</div>
+                {sloganDef(slogan)?.boost.test(opt.l) && <div style={{ fontSize: TS(28), color: CL.grn, marginTop: 6, fontWeight: 700 }}>📣 Your slogan helps here (+2)</div>}
                 {(opt.risk || opt.corAdd || opt.appRisk) && <div style={{ fontSize: TS(28), color: CL.org, marginTop: 6 }}>⚠️ {[opt.risk, opt.corAdd && "Promises to power brokers follow you into office.", opt.appRisk && !opt.risk && "Can backfire."].filter(Boolean).join(" ")}</div>}
                 {!ok && <div style={{ fontSize: TS(28), color: CL.red, marginTop: 6 }}>{why}</div>}
               </Cd>;
@@ -2198,7 +2263,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
           <h2 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(94), fontWeight: 700, margin: "0 0 36px" }}>Welcome to Government House</h2>
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest, election })} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null })} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -2594,7 +2659,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (campRound >= 8 && !reEnightPlayed && state && window.SOP && window.SOP.playElectionNight) {
       const oppR = rng((state?.length || 5) * 91 + 33);
       const oNm = "Hon. " + gN(oppR, STATES[state]?.zone, state);
-      const oPt = PARTIES.filter(p => p.id !== party)[Math.floor(oppR() * (PARTIES.length - 1))];
+      const oPt = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
       let done = false;
       const finish = (summary) => { if (done) return; done = true; setReEnightPlayed(true); try { window.SOP.__lastReEnight = summary; } catch(e){} };
       try {
@@ -3340,6 +3405,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             setPApp(pa => ({ ...pa, [who.id]: cl100((pa[who.id] || 50) + 4) }));
             window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "policy_echo", actor: who.nm, gravity: 1, evidence: 2, decision: "Reaction to " + pdef.nm, note: quote, relatedEntity: "policy:" + pdef.id, beneficiaries: [forS], losers: [againstS], meta: { id: pdef.id, persona: who.id } });
           }
+        }
+      } catch (e) {}
+
+      // ── THE SLOGAN'S PROMISE ── checked once a year (even turns).
+      try {
+        const sd = sloganDef(setup?.slogan);
+        if (sd && turn % 2 === 0) {
+          const M = window.SOP_MEMORY;
+          const thisYear = (e) => (e.t || 0) >= turn - 1;
+          const ctx = {
+            s: n,
+            newThisYear: !!(M && M.all(["policy_enacted", "flagship_milestone"]).some(thisYear)) || completedProjects.some(p => p.turn >= turn - 1),
+            deliveredThisYear: completedProjects.some(p => p.turn >= turn - 1) || (projects || []).some(p => p.status === "delivered"),
+            flagshipKept: !(M && M.all("flagship_milestone").some(e => e.meta && !e.meta.delivered)),
+          };
+          const kept = !!sd.check(ctx);
+          n.app = cl100(n.app + (kept ? 1 : -2));
+          addL(kept ? "📣 \u201c" + setup.slogan + "\u201d holds: " + sd.promise + ". Approval +1." : "📣 Critics throw \u201c" + setup.slogan + "\u201d back at the governor: you promised " + sd.promise + ". Approval −2.", kept ? "success" : "political");
+          window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "slogan_check", actor: "public", gravity: kept ? 1 : 2, evidence: 3, approvalDelta: kept ? 1 : -2, decision: kept ? "Slogan promise kept" : "Slogan promise broken", note: setup.slogan + ": " + sd.promise, meta: { kept } });
         }
       } catch (e) {}
 
@@ -5656,7 +5740,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </Cd>}
                   {/* Switch to cheaper party */}
                   {s.app >= 40 && <Cd onClick={() => {
-                    const cheapParty = PARTIES.filter(p => p.id !== party).sort((a, b) => a.ticket - b.ticket)[0];
+                    const cheapParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party).sort((a, b) => a.ticket - b.ticket)[0];
                     setup.party = cheapParty.id;
                     setS(p => ({ ...p, pStab: cl100(p.pStab - 15) }));
                     setCampWarChest(personalFund); setCampGfDebt(0); setCampGfBorrowed(false);
@@ -5695,7 +5779,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const oppR = rng(oppSeed);
             gN(oppR, sd.zone, setup?.state); // keeps the party draw below unchanged
             const oppName = cast.rival.name; // the rival from the first election comes back
-            const oppParty = PARTIES.filter(p => p.id !== party)[Math.floor(oppR() * (PARTIES.length - 1))];
+            const oppParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
             const activeReZones = campZones || buildBattlegrounds(state, turn * 2027, party, oppParty?.id);
             const reSwing = activeReZones.reduce((a, b) => b.swing > a.swing ? b : a, activeReZones[0]);
             const reWeak = activeReZones.reduce((a, b) => b.support < a.support ? b : a, activeReZones[0]);
@@ -7303,6 +7387,7 @@ function App() {
       const r = await window.storage.get("sop_save");
       if (r?.value) {
         const d = migrateSave(JSON.parse(r.value));
+        try { if (d.setup?.customParty) registerParty(d.setup.customParty); if (d.setup?.party && LEGACY_PARTIES[d.setup.party]) registerParty(LEGACY_PARTIES[d.setup.party]); } catch (e) {}
         // Restore the Historic Ledger BEFORE the governing screen mounts, so
         // the tribunal, EFCC case file and adviser all wake with their memory.
         try { if (d.ledger && window.SOP_LEDGER?.hydrate) window.SOP_LEDGER.hydrate(d.ledger); } catch (e) {}

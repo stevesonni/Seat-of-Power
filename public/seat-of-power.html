@@ -364,13 +364,21 @@
         stage.style.setProperty('--stage-h', sh + 'px');
         lastFit = { w: w, h: h, s: s };
       }
-      document.addEventListener('focusout', function () { setTimeout(fit, 250); });
+      /* After the keyboard closes, re-measure a few times: phones finish
+         the close animation (and report the new height) at different times. */
+      document.addEventListener('focusout', function () { [250, 700, 1400].forEach(function (t) { setTimeout(fit, t); }); });
       /* Some hosts (the claude.ai viewer on phones) size the frame after the
          page has loaded without telling it. Re-measure whenever the frame
          changes size, and check twice a second as a backstop, so the bottom
          button bar always sits at the real bottom of the screen. */
       try { if (window.ResizeObserver) new ResizeObserver(function () { fit(); }).observe(vp); } catch (e) {}
-      setInterval(function () { if (!lastFit || typing()) return; if (Math.abs(vp.clientWidth - lastFit.w) > 1 || Math.abs(Math.max(vp.clientHeight, window.innerHeight || 0) - lastFit.h) > 1) fit(); }, 500);
+      /* Backstop: if the stage's height no longer matches the screen (the
+         keyboard shrank it, or the host resized the frame silently), refit. */
+      setInterval(function () {
+        if (!lastFit || typing()) return;
+        var h = Math.max(vp.clientHeight, window.innerHeight || 0);
+        if (Math.abs(vp.clientWidth - lastFit.w) > 1 || Math.abs(h - lastFit.h) > 1 || Math.abs(parseFloat(stage.style.height) - h / lastFit.s) > 2) fit();
+      }, 500);
       window.addEventListener('load', function () { fit(); setTimeout(fit, 400); setTimeout(fit, 1500); });
       window.addEventListener('pageshow', function () { setTimeout(fit, 100); });
       fit();
