@@ -2614,6 +2614,13 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
 
   // STEP 85: ELECTION TRIBUNAL BEFORE TAKING OFFICE (first-election defeat only)
   if (step === 85 && preTrib) {
+    // The godfather's terms for funding the petition (same as the campaign bailout).
+    const makeGfEducationMandate = () => {
+      const existing = gfMandates.find(m => m.type === "commissioner" && m.ministryId === "educ");
+      if (existing) return existing;
+      return { id: "gf_edu_" + Date.now(), type: "commissioner", ministryId: "educ", ministryName: "Education", name: gN(rng(Date.now() + (st?.length || 1) * 191), STATES[st]?.zone, st), source: "godfather", reason: "tribunal petition funding" };
+    };
+    const addGfMandate = (mandate) => setGfMandates(prev => prev.some(m => m.type === mandate.type && m.ministryId === mandate.ministryId) ? prev : [...prev, mandate]);
     const LVLS = [
       { nm: "Governorship Election Tribunal", tag: "S.285(1)(b) · 180 days to judgment", winBonus: 0, appealCost: 0.6 },
       { nm: "Court of Appeal", tag: "S.246(3) · 60 days for appeal ruling", winBonus: 8, appealCost: 1.2 },
@@ -2716,14 +2723,20 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
                 <Bt onClick={() => runHearing("sans")} style={{ background: CL.pur }}>📚 Brief a Senior Advocate · ₦1.2B · +10% odds</Bt>
                 <Bt onClick={() => runHearing("wig")} style={{ background: CL.grn }}>🎓 SAN-led team of 5 wigs · ₦3.5B · +22% odds</Bt>
                 {warChest >= 5 && <Bt onClick={() => runHearing("bribe")} style={{ background: CL.red }}>💼 "Settle" the panel · ₦5B · +35% odds · risky corruption</Bt>}
-                {warChest < 1.2 && gfDebt < 5 && <Bt onClick={() => {
+                {warChest < 3.5 && gfDebt < 6 && <Bt onClick={() => {
                   const amt = 2;
+                  if (gfMandates.some(m => m.type === "commissioner" && m.ministryId === "educ")) {
+                    setWarChest(w => w + amt); setGfDebt(d => d + amt);
+                    setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather wired another ₦" + amt + "B. Debt now ₦" + (gfDebt + amt).toFixed(1) + "B. He will want contracts for this one."] }));
+                    return;
+                  }
                   const mandate = makeGfEducationMandate();
                   addGfMandate(mandate);
                   setWarChest(w => w + amt);
                   setGfDebt(d => d + amt);
                   setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather wired ₦" + amt + "B for the petition. Debt now ₦" + (gfDebt + amt).toFixed(1) + "B. Condition accepted: " + mandate.name + " must be Commissioner for Education once ministries are convened."] }));
-                }} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2B from Godfather · Education Commissioner condition</Bt>}
+                }} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2B from Godfather{gfMandates.some(m => m.type === "commissioner" && m.ministryId === "educ") ? " · he'll want contracts" : " · Education Commissioner condition"}</Bt>}
+                {warChest < 3.5 && gfDebt >= 6 && <div style={{ fontSize: TS(31), color: CL.red, textAlign: "center" }}>🎩 The godfather won't lend more: you already owe him ₦{gfDebt.toFixed(1)}B.</div>}
                 <Bt v="ghost" onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }}>🏳️ Withdraw petition — accept defeat</Bt>
               </div>
             </Cd>
@@ -3847,11 +3860,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const replacement = gN(r, sd.zone, setup?.state);
     const nt = traits(replacement);
     setMinistries(ms => ms.map(x => x.id === id ? { ...x, minister: replacement, perf: Math.min(45, nt.comp), cor: Math.max(10, Math.round(100 - nt.hon) - 10), loyalty: loyalist ? 80 : 55, zone: loyalist ? homeZone : fairZ, hired: turn, record: [], flag: null, godfatherMandate: null } : x));
-    const homeZone = hashStr(m.minister) % 3;
+    const firedZone = oldZ; // the sacked commissioner's own zone
     if (c.justified && m.flag && m.flag.kind === "graft") setS(p => ({ ...p, app: cl100(p.app + 3), cor: cl(p.cor - .03) }));
-    else if (c.justified && m.flag && m.flag.kind === "disloyal") setS(p => ({ ...p, pStab: cl100(p.pStab + 2), zoneMood: { ...(p.zoneMood || {}), [homeZone]: ((p.zoneMood || {})[homeZone] || 0) - 2 } }));
+    else if (c.justified && m.flag && m.flag.kind === "disloyal") setS(p => ({ ...p, pStab: cl100(p.pStab + 2), zoneMood: { ...(p.zoneMood || {}), [firedZone]: ((p.zoneMood || {})[firedZone] || 0) - 2 } }));
     else if (c.justified) setS(p => ({ ...p, app: cl100(p.app + 1) }));
-    else setS(p => ({ ...p, app: cl100(p.app - 2), pStab: cl100(p.pStab - 5), zoneMood: { ...(p.zoneMood || {}), [homeZone]: ((p.zoneMood || {})[homeZone] || 0) - 3 } }));
+    else setS(p => ({ ...p, app: cl100(p.app - 2), pStab: cl100(p.pStab - 5), zoneMood: { ...(p.zoneMood || {}), [firedZone]: ((p.zoneMood || {})[firedZone] || 0) - 3 } }));
     addL((c.justified ? "🔥 Fired Hon. " + m.minister + " (" + m.name + "): " + c.why : "🔥 Fired Hon. " + m.minister + " (" + m.name + ") with nothing on record against them. The press calls it a purge; they join the opposition.") + " Hon. " + replacement + " takes over.", c.justified ? "political" : "crisis");
     setWikiEvents(w => [{ turn, section: c.justified ? "Governorship" : "Controversies", txt: "Sacked Hon. " + m.minister + " as " + m.name + " Commissioner" + (c.justified ? " (" + c.why.replace(/\.$/, "") + ")." : " despite a clean record; the commissioner later joined the opposition.") }, ...w]);
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "minister_fired", actor: "governor", target: m.minister, gravity: c.justified ? 2 : 3, evidence: 3, decision: "Fired the " + m.name + " commissioner", note: c.why || "No offence on record" }); } catch (e) {}
@@ -7619,6 +7632,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               if (mode === "wig") { cost = 3.5; chance += 0.22; }
               if (mode === "bribe") { cost = 5.0; chance += 0.35; corDelta = 0.15; }
               if (mode === "self") { cost = 0.2; chance -= 0.05; }
+              if (cost > personalFund + 1e-9) { setTribunal(t => ({ ...t, log: [...t.log, "❌ Not enough money (₦" + personalFund.toFixed(2) + "B) to brief this team. Borrow, or argue it more cheaply."] })); return; }
               chance = Math.max(0.03, Math.min(0.95, chance));
               const won = Math.random() < chance;
               const newLog = [...tribunal.log, "── " + lvl.nm + " ──", "Mode: " + ({ self: "argued in person", top_sans: "briefed a Senior Advocate", wig: "assembled SAN-led legal team", bribe: "'settled' the panel" })[mode], "Odds calculated: " + Math.round(chance * 100) + "%", won ? "✅ RULED IN YOUR FAVOUR" : "❌ Petition dismissed at this level"];
@@ -7700,16 +7714,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <Bt onClick={() => runHearing("top_sans")} style={{ background: CL.pur }}>📚 Brief a Senior Advocate · ₦1.2B · +10% odds</Bt>
                   <Bt onClick={() => runHearing("wig")} style={{ background: CL.grn }}>🎓 Assemble a SAN-led team (5 wigs) · ₦3.5B · +22% odds</Bt>
                   {setup?.level !== "easy" && personalFund >= 5 && <Bt onClick={() => runHearing("bribe")} style={{ background: CL.red }}>💼 "Settle" the panel · ₦5B · +35% odds · +15% corruption (may leak)</Bt>}
-                  {personalFund < 2 && godfatherRel > 20 && gfDebt < 6 && <Bt onClick={() => {
+                  {personalFund < 3.5 && godfatherRel > 20 && campGfDebt < 6 && stc.gf !== "dead" && stc.gf !== "opposition" && <Bt onClick={() => {
                     const amt = 2.5;
                     setPersonalFund(f => f + amt);
-                    setGfDebt(d => d + amt);
+                    setCampGfDebt(d => d + amt);
                     setGodfatherRel(r => Math.min(100, r + 5));
                     setS(p => ({ ...p, cor: cl(p.cor + 0.05, 0, 1) }));
-                    setTribunal(t => ({ ...t, log: [...t.log, "🎩 Godfather wired ₦" + amt + "B for legal bills. Debt now ₦" + (gfDebt + amt).toFixed(1) + "B. +5% corruption. He expects a Commissioner slot AND a contract when you're sworn in."] }));
-                    addL("🎩 Borrowed ₦" + amt + "B from the Godfather to fund your tribunal case. Total debt: ₦" + (gfDebt + amt).toFixed(1) + "B.", "warn");
+                    setTribunal(t => ({ ...t, log: [...t.log, "🎩 Godfather wired ₦" + amt + "B for legal bills. Debt now ₦" + (campGfDebt + amt).toFixed(1) + "B. +5% corruption. He expects a Commissioner slot AND a contract when you're sworn in."] }));
+                    addL("🎩 Borrowed ₦" + amt + "B from the Godfather to fund your tribunal case. Total debt: ₦" + (campGfDebt + amt).toFixed(1) + "B.", "political");
                   }} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2.5B from Godfather · +5% corruption · owes contract & slot</Bt>}
-                  {personalFund < 2 && (godfatherRel <= 20 || gfDebt >= 6) && <div style={{ fontSize: TS(31), color: CL.red, textAlign: "center", padding: "10px 0" }}>🎩 Godfather won't lend more — {godfatherRel <= 20 ? "relationship burned" : "debt cap reached"}</div>}
+                  {personalFund < 3.5 && (godfatherRel <= 20 || campGfDebt >= 6 || stc.gf === "dead" || stc.gf === "opposition") && <div style={{ fontSize: TS(31), color: CL.red, textAlign: "center", padding: "10px 0" }}>🎩 Godfather won't lend more — {stc.gf === "dead" ? "he is dead" : stc.gf === "opposition" ? "he is with the opposition now" : godfatherRel <= 20 ? "relationship burned" : "debt cap reached"}</div>}
                   <Bt onClick={() => { addL("😔 Withdrew the petition. " + tribunal.oppName + " is Governor.", "political"); setTribunal(null); setGEnd("defeated"); }} style={{ background: "#555" }}>🏳️ Withdraw petition · accept the result</Bt>
                 </div>
               </div>}

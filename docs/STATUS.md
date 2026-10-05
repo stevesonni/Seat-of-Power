@@ -223,3 +223,10 @@ Eight systems, built in `game/seat-of-power.jsx`. The data sits after `OFFENCE` 
   - The starting poll comes from the successor's electability, your approval and party, broken promises, arrears and a defected godfather.
   - Each round opens with an attack on your record. You then campaign side by side (helps only if you are popular), bankroll the campaign (debt and corruption), deliver the party machine, commission projects (helps only with finished work to show), or stay out (they will owe you less).
   - The result feeds the succession outcome: betrayal odds and EFCC exposure.
+
+## Fixes: firing and tribunal loans
+- **Firing did nothing.** In `fireMinister`, a local `const homeZone` (the sacked commissioner's zone) shadowed the governor's `homeZone`, which is used earlier in the function to choose the replacement. That threw a "before initialization" error after the first confirmation. The local is now `firedZone` (the commissioner's own zone). Tested from both the Cabinet and Ministries tabs.
+- **Godfather loans for tribunals:**
+  - **First-election tribunal:** the loan called `makeGfEducationMandate` and `addGfMandate`, which only exist inside the campaign screen, so clicking it threw. Both are now defined in the tribunal step. The loan shows whenever the war chest is below ₦3.5B, the cost of the top legal team (it was below ₦1.2B), up to ₦6B of debt. A second loan asks for contracts instead of another commissioner.
+  - **Re-election tribunal:** the loan read `gfDebt` and `setGfDebt`, which don't exist in the game screen, so it crashed when funds fell below ₦2B. It now uses `campGfDebt`, shows below ₦3.5B, and is refused if the godfather is dead or has joined the opposition. Legal teams you can't afford are blocked with a message instead of being bought on credit.
+- **Check:** ESLint `no-undef` over the game and modules finds nothing undefined apart from the globals `TS`, `ReactDOM` and `File`.
