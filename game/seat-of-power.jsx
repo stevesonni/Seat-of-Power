@@ -652,6 +652,74 @@ const sloganDef = (sl) => SLOGAN_DEFS.find(d => d.m.test(String(sl || ""))) || n
 // The agenda picked at setup. Shown in the header, quoted by the anchors and
 // the adviser, given its own Desk decision every year ("flagship" phase) and
 // judged in the Wikipedia article from the "flagship_milestone" record.
+// ─── NEEDS ───
+// Real problems in named places. The adviser flags them; a programme, a
+// capital project or an executive order answers them. Ignore one and people
+// suffer, approval falls and that zone turns against you at the next election.
+// Starve its budget sector or let its project stall and the contractors are
+// not paid: work stops, and after two half-years the site is abandoned.
+const BUDGET_MIN = { salaries: 15, debt: 5, administration: 5, health: 12, education: 12, security: 8, infrastructure: 12, agriculture: 6 };
+const SECTOR_NAME = { infrastructure: "Infrastructure", health: "Health", education: "Education", security: "Security", agriculture: "Agriculture" };
+const NEED_TYPES = [
+  { k: "road", icon: "🛣️", stat: "infra", sector: "infrastructure", fix: ["roads", "rail", "ind_park"],
+    title: (l) => "The " + l + " road has collapsed",
+    why: (l) => "Trucks overturn near " + l + " every week. Last month a bus went into a gully. Farmers and market women can no longer reach town.",
+    ask: "Commission the road: the 500km Road Network answers it.",
+    fail: (l) => "Another crash on the " + l + " road. Eleven people dead. The community blocks the highway and blames Government House.",
+    abandon: (l) => "The contractors have left the " + l + " road half-built. The open trenches are worse than the potholes.",
+    win: (l) => "The " + l + " road is open again. Traders were back on it before the paint was dry." },
+  { k: "clinic", icon: "🏥", stat: "hp", sector: "health", fix: ["phc", "free_csec", "health_ins", "mega_hospital"],
+    title: (l) => "Mothers are dying at the " + l + " general hospital",
+    why: (l) => "One doctor, no blood bank and no generator. Women in labour are turned away at night.",
+    ask: "Revive primary healthcare, fund free caesarean sections or upgrade the hospital.",
+    fail: (l) => "Three women died in childbirth at the " + l + " general hospital this month. Nurses march on Government House.",
+    abandon: (l) => "The new wing at the " + l + " hospital is an empty shell. The builders were never paid.",
+    win: (l) => "The " + l + " hospital has doctors, blood and light again. Births there are safe." },
+  { k: "school", icon: "🏫", stat: "lit", sector: "education", fix: ["free_edu", "school_feed", "school_voucher", "uni"],
+    title: (l) => "Pupils in " + l + " sit on the floor",
+    why: (l) => "Roofs are gone, there are no desks, and teachers have not been paid for two months. Attendance has halved.",
+    ask: "Fund free education, school feeding or a school voucher.",
+    fail: (l) => "A classroom roof collapsed in " + l + ". Four pupils injured. Parents pull their children out of school.",
+    abandon: (l) => "The school renovation in " + l + " stopped when the money did. Pupils study beside rubble.",
+    win: (l) => "Schools in " + l + " have roofs, desks and teachers. Enrolment is climbing." },
+  { k: "water", icon: "🚰", stat: "hp", sector: "infrastructure", fix: ["water"],
+    title: (l) => "Cholera in " + l + ": the boreholes are dry",
+    why: (l) => "Families drink from the stream. The health centre has recorded 60 cases in a fortnight.",
+    ask: "Start the Clean Water Project.",
+    fail: (l) => "Cholera has killed 23 people in " + l + ". The WHO sends a team; the press asks where the governor was.",
+    abandon: (l) => "The water scheme in " + l + " was abandoned with the pipes still in the ground.",
+    win: (l) => "Clean water flows in " + l + ". The cholera ward is empty." },
+  { k: "security", icon: "🛡️", stat: "sec", sector: "security", fix: ["comm_pol", "sec_outfit", "amotekun"], eo: ["u1", "u3"],
+    title: (l) => "Kidnappers own the " + l + " highway at night",
+    why: (l) => "Twelve travellers taken this month. Farmers will not go to their fields. Ransoms are paid by whole villages.",
+    ask: "Fund community policing or a state security corps.",
+    fail: (l) => "A bus of 30 passengers was taken on the " + l + " highway. Their families march with photographs.",
+    abandon: (l) => "The security outposts on the " + l + " highway stand empty; the guards were never paid.",
+    win: (l) => "Patrols are back on the " + l + " highway. Night travel has resumed." },
+  { k: "farm", icon: "🌾", stat: "agr", sector: "agriculture", fix: ["farm_sub", "irrigation", "kpa_irrigation"],
+    title: (l) => "Farmers in " + l + " lost their harvest",
+    why: (l) => "No fertiliser, no water in the dry season. Food prices in the market have doubled.",
+    ask: "Fund farm inputs or an irrigation scheme.",
+    fail: (l) => "Hunger in " + l + ": families skip meals and young men leave for the city.",
+    abandon: (l) => "The irrigation channels in " + l + " were dug and left dry. The contractor has gone.",
+    win: (l) => "The harvest in " + l + " is the best in years. Prices are falling." },
+  { k: "power", icon: "⚡", stat: "infra", sector: "infrastructure", fix: ["rural_elec"],
+    title: (l) => l + " has had no power for six months",
+    why: (l) => "Shops close at dusk, the clinic cannot keep vaccines cold, and the young people have left for the city.",
+    ask: "Start the Rural Electrification (Solar) programme.",
+    fail: (l) => "Vaccines spoiled in the dark in " + l + ". The town calls itself forgotten.",
+    abandon: (l) => "Solar poles stand in " + l + " without panels. The contractor took the deposit and left.",
+    win: (l) => "The lights are on in " + l + ". The market now trades into the night." },
+  { k: "housing", icon: "🏚️", stat: "infra", sector: "infrastructure", fix: ["housing"],
+    title: (l) => "Flood-displaced families sleep in " + l + " schools",
+    why: (l) => "Two hundred families lost their homes in the floods and have nowhere to go.",
+    ask: "Build the Mass Housing Estate.",
+    fail: (l) => "Families evicted from the " + l + " schools now sleep under a flyover. The photographs go viral.",
+    abandon: (l) => "The housing estate in " + l + " is a field of unfinished walls.",
+    win: (l) => "Displaced families in " + l + " have keys to new homes." },
+];
+const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
+
 // What each flagship does every quarter (shown on the State sheet).
 const FLAGSHIP_BONUS = {
   education: "+50% literacy growth · +2 youth/turn", health: "+50% health growth · +2 women/turn",
@@ -2917,7 +2985,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
       sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics,
-      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending,
+      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
@@ -2967,6 +3035,95 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
 
+  // ── NEEDS (see NEED_TYPES) ──
+  const [needs, setNeeds] = useState(() => ld?.needs || []);
+  const [needOpen, setNeedOpen] = useState(null);
+  const needsReviewed = React.useRef(ld?.needsReviewed || 1);
+  const needSetup = !ministries || !ministries.length || !council;
+  const activeNeeds = needs.filter(n => n.status === "open" || n.status === "started" || n.status === "stalled");
+  const zoneName = (zi) => (ZONE_LABELS[zi] || "").replace(" Senatorial", "");
+  const makeNeed = (r, avoid) => {
+    const pool = NEED_TYPES.filter(t => !avoid.includes(t.k));
+    const w = pool.map(t => Math.max(.12, 1.1 - (s[t.stat] == null ? .5 : s[t.stat])));
+    let x = r() * w.reduce((a, b) => a + b, 0), t = pool[0];
+    for (let i = 0; i < pool.length; i++) { x -= w[i]; if (x <= 0) { t = pool[i]; break; } }
+    const zi = Math.floor(r() * 3);
+    const lgas = lgaCluster(getLGAs(state), zi);
+    const lga = lgas.length ? lgas[Math.floor(r() * lgas.length)] : state.replace("_", " ");
+    return { id: "need_" + turn + "_" + t.k + "_" + Math.floor(r() * 1e5), k: t.k, lga, zone: zi, sev: (s[t.stat] || .5) < .4 ? 2 : 1, raised: turn, due: turn + 1, status: "open", link: null, proj: null, stall: 0 };
+  };
+  // The first needs arrive once the government is set up.
+  useEffect(() => {
+    if (needSetup || needs.length) return;
+    const r = rng(turn * 31 + state.length * 7 + 5);
+    const a = makeNeed(r, []), b = makeNeed(r, [a.k]);
+    setNeeds([a, b]);
+    addL("🧭 Your adviser has flagged two urgent needs: " + needType(a).title(a.lga) + "; " + needType(b).title(b.lga) + ".", "political");
+  }, [needSetup]);
+  // Starting a matching programme or project puts a need's answer under way.
+  useEffect(() => {
+    setNeeds(ns => { let changed = false; const out = ns.map(n => {
+      if (n.status !== "open") return n;
+      const T = needType(n); const hit = T && pol.find(p => T.fix.includes(p.id));
+      if (!hit) return n;
+      changed = true;
+      return { ...n, status: "started", link: hit.id, proj: hit.projectId || null, stall: 0 };
+    }); return changed ? out : ns; });
+  }, [pol]);
+  // Each new half-year, judge last half-year's needs.
+  useEffect(() => {
+    if (turn <= 1 || needsReviewed.current >= turn || !needs.length) { if (turn > needsReviewed.current) needsReviewed.current = turn; return; }
+    needsReviewed.current = turn;
+    let dApp = 0; const dZone = {}; const notes = []; const fresh = [];
+    const addZ = (z, v) => { dZone[z] = (dZone[z] || 0) + v; };
+    const next = needs.map(n => {
+      if (!(n.status === "open" || n.status === "started" || n.status === "stalled")) return n;
+      const T = needType(n); if (!T) return n;
+      if (n.link && String(n.link).startsWith("eo:")) { notes.push(["⚖️ The courts struck down your order. " + T.title(n.lga) + ": still unanswered.", "crisis"]); return { ...n, status: "open", link: null }; }
+      if (n.status !== "open") {
+        const proj = n.proj ? (projects || []).find(p => p.id === n.proj) : null;
+        const done = proj ? proj.status === "delivered" : !pol.find(p => p.id === n.link);
+        if (done) {
+          dApp += n.sev + 2; addZ(n.zone, 5);
+          notes.push(["✅ " + T.win(n.lga), "success"]);
+          try { setWikiEvents(w => [{ turn, section: "Governorship", txt: T.win(n.lga) }, ...w]); } catch (e) {}
+          return { ...n, status: "met", closed: turn };
+        }
+        const funded = (bud[T.sector] || 0) >= (BUDGET_MIN[T.sector] || 0);
+        const halted = proj && (proj.status === "abandoned" || proj.status === "suspended");
+        if (!funded || halted) {
+          const stall = (n.stall || 0) + 1;
+          if (stall >= 2) {
+            dApp -= n.sev * 3 + 1; addZ(n.zone, -8);
+            notes.push(["🏚️ " + T.abandon(n.lga), "crisis"]);
+            try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "project_abandoned", actor: "governor", gravity: 3, evidence: 4, decision: "Let the work answering '" + T.title(n.lga) + "' be abandoned", note: "Contractors unpaid for two half-years" }); } catch (e) {}
+            return { ...n, status: "failed", closed: turn, stall, abandoned: true };
+          }
+          dApp -= 2; addZ(n.zone, -3);
+          notes.push(["🚧 Contractors working near " + n.lga + " have not been paid" + (halted ? " and the project is halted" : ": " + SECTOR_NAME[T.sector] + " is below its healthy budget") + ". Work has stopped. Pay them this half-year or the site will be abandoned.", "crisis"]);
+          return { ...n, status: "stalled", stall };
+        }
+        return { ...n, status: "started", stall: 0 };
+      }
+      if (turn > n.due) {
+        dApp -= n.sev * 2 + 1; addZ(n.zone, -6);
+        notes.push(["💀 " + T.fail(n.lga), "crisis"]);
+        try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "need_ignored", actor: "governor", gravity: 3, evidence: 4, decision: "Ignored: " + T.title(n.lga), note: T.fail(n.lga) }); } catch (e) {}
+        if (n.sev < 3) fresh.push({ ...n, id: n.id + "x", sev: n.sev + 1, raised: turn, due: turn + 1, status: "open", link: null, proj: null, stall: 0, worse: true });
+        return { ...n, status: "failed", closed: turn };
+      }
+      if (turn === n.due) notes.push(["⏳ Last half-year to act: " + T.title(n.lga) + ".", "political"]);
+      return n;
+    });
+    const stillOpen = next.filter(n => n.status === "open" || n.status === "started" || n.status === "stalled").length + fresh.length;
+    const added = [];
+    if (stillOpen < 3) { const r = rng(turn * 53 + state.length * 11); added.push(makeNeed(r, [...next, ...fresh].filter(n => n.status !== "met" && n.status !== "failed").map(n => n.k))); }
+    setNeeds([...next, ...fresh, ...added]);
+    if (dApp || Object.keys(dZone).length) setS(p => { const zm = { ...(p.zoneMood || {}) }; Object.entries(dZone).forEach(([z, v]) => { zm[z] = Math.max(-25, Math.min(25, (zm[z] || 0) + v)); }); return { ...p, app: cl100(p.app + dApp), zoneMood: zm }; });
+    notes.forEach(([t, k]) => addL(t, k));
+    added.forEach(n => addL("🧭 New need: " + needType(n).title(n.lga) + " (" + zoneName(n.zone) + " zone).", "political"));
+  }, [turn]);
+
   const getSABrief = () => {
     if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
     const awaitingContract = (projects || []).find(p => p && (p.status === "awarded_pending" || p.status === "eia_done" || p.status === "bidding") && !p.contractor);
@@ -2975,6 +3132,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!ministries || ministries.length === 0) return { urgent: true, icon: "🏛️", title: "Convene your ministries first", body: "Executive Command rule: no cabinet, no execution. Create at least Finance, Works, Health and Security before serious governance begins.", actionLabel: "Open Ministries", action: () => goTab("min") };
     if (ministries.length < 4) return { urgent: true, icon: "🏛️", title: "Your cabinet is under-strength", body: "You have " + ministries.length + " ministr" + (ministries.length === 1 ? "y" : "ies") + ". The House, contractors and crises will overpower a thin Exco.", actionLabel: "Add Ministries", action: () => goTab("min") };
     if (!council) return { urgent: true, icon: "👑", title: "Convene the Traditional Rulers Council", body: "Rural turnout, land disputes and security intelligence run through the palaces. Meet them before your next big project or campaign push.", actionLabel: "Open Council", action: () => goTab("coun") };
+    const urgentNeed = activeNeeds.slice().sort((a, b) => (b.status === "stalled") - (a.status === "stalled") || a.due - b.due)[0];
+    if (urgentNeed && (urgentNeed.status === "stalled" || (urgentNeed.status === "open" && urgentNeed.due <= turn))) {
+      const T = needType(urgentNeed);
+      return { urgent: true, icon: T.icon, title: urgentNeed.status === "stalled" ? "Pay the contractors near " + urgentNeed.lga + " before the site is abandoned" : T.title(urgentNeed.lga) + ". Act this half-year", body: T.why(urgentNeed.lga), actionLabel: "See it", action: () => { goTab("gov"); setNeedOpen(urgentNeed.id); } };
+    }
     if (bs !== 100) return { urgent: true, icon: "💰", title: "Balance the Appropriation Bill", body: "The House will not approve a budget that does not add to 100%. Every unbalanced draft delays salaries, projects and political goodwill.", actionLabel: "Fix Budget", action: () => goTab("gov") };
     if ((projects || []).length === 0) return { urgent: false, icon: "🏗️", title: "Start a visible flagship project", body: "Pick one project and push it through need assessment, EIA where needed, bidding and award. Voters remember delivered sites, not speeches.", actionLabel: "Open Projects", action: () => goTab("prj") };
     const risky = (projects || []).find(p => p.status === "suspended" || p.status === "abandoned" || (p.status === "in_progress" && (p.progress || 0) < 25 && turn - (p.startTurn || turn) > 1));
@@ -3125,6 +3287,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (uTried(u)) return;
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "unconst_order", actor: "governor", gravity: 3, evidence: 4, decision: "Executive order: " + u.nm, note: u.r, meta: { id: u.id } }); } catch (e) {}
     addL("⚠️ EXECUTIVE ORDER: Governor attempts to " + u.nm + "!", "political");
+    setNeeds(ns => { const i = ns.findIndex(n => n.status === "open" && (needType(n)?.eo || []).includes(u.id)); if (i < 0) return ns; const c = ns.slice(); c[i] = { ...c[i], status: "started", link: "eo:" + u.id }; return c; });
     setConstChallenge(u);
     setPhase("const_challenge");
   };
@@ -4736,7 +4899,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const STEP_OF = { budget: 0, house_vote: 1, policy: 2, end_turn: 3 };
   const stepNow = STEP_OF[phase] !== undefined ? STEP_OF[phase] : 4;
   const deskSteps = () => <div aria-label="This half-year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
-    {(!ministries || ministries.length === 0) && <button onClick={() => goTab("min")} style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", minHeight: 36, fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>Ministries: to do</button>}
+    {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
     {["Budget", "House vote", "Policies", "Review", "Events"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
   </div>;
@@ -4803,10 +4966,45 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
         </div>}
         {nav === "gov" && deskSteps()}
-        {nav === "gov" && saBrief.urgent && !/^Balance the Appropriation/.test(saBrief.title) && <div style={{ display: "flex", gap: 12, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 20px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, margin: TALL() ? "0 0 14px" : "0 auto 22px", maxWidth: TALL() ? 900 : 1320 }}>
+        {nav === "gov" && saBrief.urgent && !(phase === "budget" && needSetup) && !/^Balance the Appropriation/.test(saBrief.title) && <div style={{ display: "flex", gap: 12, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 20px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, margin: TALL() ? "0 0 14px" : "0 auto 22px", maxWidth: TALL() ? 900 : 1320 }}>
           {saOffice.adviser ? <img src={SA_PORTRAIT} alt="" style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "18", flexShrink: 0 }} /> : null}
           <div style={{ flex: 1, minWidth: 0, fontSize: TALL() ? TS(20) : TS(31), color: CL.tm, lineHeight: 1.35 }}><b style={{ color: CL.txt }}>{saOffice.adviser ? saOffice.adviser.name.split(" ").slice(-1)[0] : "Adviser's desk"}:</b> {saBrief.title}.</div>
           {saBrief.action && <button onClick={saBrief.action} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: CL.grn, color: "#fff", padding: TALL() ? "10px 14px" : "12px 22px", minHeight: 44, fontSize: TALL() ? TS(20) : TS(29), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>{saBrief.actionLabel}</button>}
+        </div>}
+
+        {nav === "gov" && !needSetup && activeNeeds.length > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 2px 8px" }}>
+            <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>What the state needs</b>
+            <span style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.td }}>Answer these or pay for it</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fit, minmax(420px, 1fr))", gap: 10, alignItems: "start" }}>
+            {activeNeeds.map(n => {
+              const T = needType(n); if (!T) return null;
+              const left = n.due - turn + 1;
+              const funded = (bud[T.sector] || 0) >= (BUDGET_MIN[T.sector] || 0);
+              const st = n.status === "stalled" ? ["Work stopped: contractors unpaid", CL.red] : n.status === "started" ? [funded ? "Work under way" : "Under way, but underfunded", funded ? CL.grn : CL.org] : left <= 1 ? ["Act this half-year", CL.red] : ["No action yet · " + left + " half-years left", CL.org];
+              const open = needOpen === n.id;
+              const fixes = T.fix.map(id => POLICIES.find(p => p.id === id)).filter(Boolean).map(p => p.nm.replace(/^⭐\s*/, ""));
+              const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
+              return <div key={n.id} style={{ background: CL.card, border: "1.5px solid " + st[1] + "55", borderRadius: 16, overflow: "hidden" }}>
+                <button onClick={() => setNeedOpen(open ? null : n.id)} aria-expanded={open} style={{ width: "100%", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "transparent", border: 0, padding: TALL() ? "12px 14px" : "16px 18px", cursor: "pointer", color: CL.txt, fontFamily: F.b }}>
+                  <span style={{ fontSize: TALL() ? 28 : 38 }}>{T.icon}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: "block", fontWeight: 800, fontSize: fz.m, lineHeight: 1.25 }}>{n.worse ? "Worse: " : ""}{T.title(n.lga)}</span>
+                    <span style={{ display: "block", fontSize: fz.s, color: CL.td, marginTop: 2 }}>{n.lga} · {zoneName(n.zone)} zone</span>
+                    <span style={{ display: "inline-block", marginTop: 6, padding: "3px 10px", borderRadius: 999, background: st[1] + "16", color: st[1], fontSize: fz.s, fontWeight: 700 }}>{st[0]}</span>
+                  </span>
+                  <span style={{ color: CL.td, fontSize: fz.s }}>{open ? "▲" : "▼"}</span>
+                </button>
+                {open && <div style={{ padding: TALL() ? "0 14px 14px" : "0 18px 18px", fontSize: fz.s, color: CL.tm, lineHeight: 1.45, display: "grid", gap: 8 }}>
+                  <div>{T.why(n.lga)}</div>
+                  <div><b style={{ color: CL.txt }}>What answers it:</b> {fixes.join(", ")}{(T.eo || []).length ? ", or an executive order (the courts may strike it down)" : ""}. Start one in Policies.</div>
+                  <div><b style={{ color: CL.txt }}>Its budget:</b> {SECTOR_NAME[T.sector]} at {bud[T.sector] || 0}% (healthy from {BUDGET_MIN[T.sector]}%). {funded ? "Contractors will be paid." : "Below that, contractors go unpaid and the work stops."}</div>
+                  <div style={{ color: CL.red }}><b>If you do nothing:</b> people suffer and it makes the news, approval falls by {n.sev * 2 + 1}, the {zoneName(n.zone)} zone turns against you at the next election, and the problem comes back worse.</div>
+                </div>}
+              </div>;
+            })}
+          </div>
         </div>}
 
         <OL show={sosOpen}>
@@ -6116,7 +6314,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             gN(oppR, sd.zone, setup?.state); // keeps the party draw below unchanged
             const oppName = cast.rival.name; // the rival from the first election comes back
             const oppParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
-            const activeReZones = campZones || buildBattlegrounds(state, turn * 2027, party, oppParty?.id);
+            // How you handled each zone's needs carries into the vote there.
+            const activeReZones = campZones || buildBattlegrounds(state, turn * 2027, party, oppParty?.id).map(z => ({ ...z, support: cl100(z.support + ((s.zoneMood || {})[z.id] || 0)) }));
             const reSwing = activeReZones.reduce((a, b) => b.swing > a.swing ? b : a, activeReZones[0]);
             const reWeak = activeReZones.reduce((a, b) => b.support < a.support ? b : a, activeReZones[0]);
             const reBase = activeReZones.reduce((a, b) => b.support > a.support ? b : a, activeReZones[0]);
@@ -6259,7 +6458,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>}
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29 }}>
                   <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14, letterSpacing: 2 }}>HOW THE ZONES MOVED</div>
-                  {(() => { const start = buildBattlegrounds(state, turn * 2027, party, oppParty?.id); return collation.rows.map((rw, i) => {
+                  {(() => { const start = buildBattlegrounds(state, turn * 2027, party, oppParty?.id).map(z => ({ ...z, support: cl100(z.support + ((s.zoneMood || {})[z.id] || 0)) })); return collation.rows.map((rw, i) => {
                     const s0 = pollShare(start[i] || rw), s1 = pollShare(activeReZones[i] || rw);
                     const res = rw.yourVotes + rw.oppVotes > 0 ? Math.round(1000 * rw.yourVotes / (rw.yourVotes + rw.oppVotes)) / 10 : 50;
                     const moves = (activeReZones[i]?.moves || []).filter(m => m.d !== 0);
@@ -6773,7 +6972,30 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "gov" && <div className="sop-gov-grid" style={{ maxWidth: TALL() ? 900 : 1320, margin: "0 auto" }}>
           <div key={phase} className="sop-step">
 
-            {phase === "budget" && (() => {
+            {phase === "budget" && needSetup && (() => {
+              const fs = TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };
+              const row = (done, n, title, desc, act, actLabel, manual, manualLabel) => <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 14, padding: TALL() ? "14px 0" : "20px 0", borderTop: "1px solid " + CL.bdr }}>
+                <div style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", display: "grid", placeItems: "center", fontWeight: 800, fontSize: fs.m, background: done ? CL.grn : CL.bg, color: done ? "#fff" : CL.txt, border: "1px solid " + (done ? CL.grn : CL.bdr) }}>{done ? "✓" : n}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: fs.m, color: CL.txt }}>{title}</div>
+                  <div style={{ fontSize: fs.s, color: CL.td, margin: "2px 0 10px", lineHeight: 1.4 }}>{desc}</div>
+                  {done ? <div style={{ fontSize: fs.s, color: CL.grn, fontWeight: 700 }}>Done</div> : <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                    <Bt onClick={act}>{actLabel}</Bt>
+                    <button onClick={manual} style={{ background: "none", border: 0, color: CL.grn, fontSize: fs.s, fontWeight: 700, textDecoration: "underline", cursor: "pointer", fontFamily: F.b }}>{manualLabel}</button>
+                  </div>}
+                </div>
+              </div>;
+              return <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
+                <div style={{ fontSize: fs.s, color: CL.td }}>Before you govern</div>
+                <div style={{ fontFamily: F.d, fontSize: fs.l, fontWeight: 700, color: CL.txt, margin: "4px 0 6px", lineHeight: 1.15 }}>Set up your government</div>
+                <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.45, marginBottom: 8 }}>The House will not take a budget from a governor with no cabinet, and nothing moves in the villages without the palaces. Both come first.</div>
+                {row(!!(ministries && ministries.length), 1, "Convene the Executive Council", "Commissioners for Finance, Works, Health, Education, Security and the rest. They run every programme and project you start.",
+                  () => { try { window.SOP_REALISM.initMinistries(); } catch (e) { goTab("min"); } }, "Convene the ministries", () => goTab("min"), "Choose them yourself")}
+                {row(!!council, 2, "Convene the Traditional Rulers Council", "Rural turnout, land disputes and security intelligence run through the palaces. Consult them before your first budget.",
+                  () => { try { window.SOP_REALISM.conveneCouncil(); } catch (e) { goTab("coun"); } }, "Convene the council", () => goTab("coun"), "Open the council")}
+              </Cd>;
+            })()}
+            {phase === "budget" && !needSetup && (() => {
               const SEC_META = {
                 salaries:       { grp: "Obligations",         min: 15, max: 22, funds: "Civil servant wages, pensions, LGA subventions, teachers, doctors, police stipend top-ups.", low: "Salary arrears → NLC/ASUU strike, party revolt, approval crash.", high: "Bloated payroll consumes capex — nothing left to build." },
                 debt:           { grp: "Obligations",         min: 5,  max: 12, funds: "Repayment of state bonds, contractor arrears, World Bank / AfDB loans, unpaid contractor certificates.", low: "Debt compounds — credit downgrade, contractors down tools.", high: "Overpaying debt starves services this quarter." },
@@ -6887,6 +7109,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     </div>;
                   })}
                 </div>}
+                {activeNeeds.filter(n => n.status !== "open" && (bud[needType(n).sector] || 0) < BUDGET_MIN[needType(n).sector]).map(n => <div key={n.id} style={{ fontSize: fs.s, color: CL.red, background: CL.red + "0c", borderRadius: 12, padding: "8px 12px", margin: "6px 0", lineHeight: 1.4 }}>
+                  ⚠️ {SECTOR_NAME[needType(n).sector]} is below {BUDGET_MIN[needType(n).sector]}%: the contractors working on "{needType(n).title(n.lga)}" will not be paid, and the work will stop.
+                </div>)}
                 <SaysBox fs={fs.s} />
                 <Bt onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} style={{ width: "100%", marginTop: 6, opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
                   {bs === 100 ? "Submit to the House of Assembly →" : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
@@ -6917,7 +7142,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               {pol.length > 0 && <Fold title={"In force (" + pol.length + ")"} summary={pol.slice(0, 3).map(x => x.nm.replace(/^⭐\s*/, "")).join(", ") + (pol.length > 3 ? "…" : "")}>
                 {pol.map(x => <div key={x.id} style={{ fontSize: PFS.s, color: CL.tm, padding: "6px 0", borderBottom: "1px solid " + CL.bdr + "66" }}><b style={{ color: CL.txt }}>{x.nm.replace(/^⭐\s*/, "")}</b> · {x.pending ? "in procurement" : x.tl > 0 ? x.tl + (x.tl === 1 ? " half-year" : " half-years") + " to go" : "delivered"}{x.perH ? " · " + naira(x.perH) + " a half-year" : ""}</div>)}
               </Fold>}
-              {(() => { const avail = POLICIES.filter(p => !pol.find(a => a.id === p.id)); const ranked = avail.filter(p => touchesFlagship(p.nm + " " + p.d)).concat(avail.filter(p => !touchesFlagship(p.nm + " " + p.d))); const shown = polAll ? ranked : ranked.slice(0, 5); return <><div style={{ display: "grid", gap: 12 }}>{shown.map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22 }}>
+              {(() => { const avail = POLICIES.filter(p => !pol.find(a => a.id === p.id)); const answers = (p) => activeNeeds.filter(n => n.status === "open" && (needType(n)?.fix || []).includes(p.id));
+const rankOf = (p) => answers(p).length ? 0 : touchesFlagship(p.nm + " " + p.d) ? 1 : 2;
+const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown = polAll ? ranked : ranked.slice(0, 5); return <><div style={{ display: "grid", gap: 12 }}>{shown.map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22, borderColor: answers(p).length ? CL.grn + "88" : undefined }}>
+                {answers(p).map(n => <div key={n.id} style={{ display: "inline-block", marginBottom: 6, padding: "3px 10px", borderRadius: 999, background: CL.grn + "16", color: CL.grn, fontSize: PFS.s, fontWeight: 700 }}>{needType(n).icon} Answers: {needType(n).title(n.lga)}</div>)}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)}/half-year</span></div>
                 <div style={{ fontSize: PFS.s, color: CL.tm, margin: "4px 0" }}>{p.d}</div>
                 <div style={{ fontSize: PFS.s, color: CL.td }}>{p.t === 1 ? "One half-year" : p.t + " half-years (" + naira(p.c) + " in all)"}{isCapital(p) ? " · goes to tender, may need an environmental assessment" : ""}{p.cr > .09 ? " · money can leak" : ""}</div>
@@ -6957,7 +7185,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   {BILLS.filter(b => !billsPassed.find(bp => bp.id === b.id)).length === 0 && <div style={{ fontSize: PFS.s, color: CL.td }}>All bills have been passed.</div>}
                 </div>
               </div>}
-              {polTab === "eo" &&               <div><p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 14px" }}>Orders you can sign without the House. Each may be unconstitutional, and a court can strike it down.</p><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 19, borderColor: CL.red + "33" }}><div style={{ fontSize: PFS.s, color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: PFS.s, color: CL.td }}>{u.r}</div></Cd>)}</div></div>}
+              {polTab === "eo" &&               <div><p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 14px" }}>Orders you can sign without the House. Each may be unconstitutional, and a court can strike it down.</p><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 19, borderColor: CL.red + "33" }}>{activeNeeds.filter(n => n.status === "open" && (needType(n)?.eo || []).includes(u.id)).slice(0, 1).map(n => <div key={n.id} style={{ fontSize: PFS.s, color: CL.grn, fontWeight: 700, marginBottom: 4 }}>{needType(n).icon} Would answer: {needType(n).title(n.lga)}, until the courts strike it down</div>)}<div style={{ fontSize: PFS.s, color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: PFS.s, color: CL.td }}>{u.r}</div></Cd>)}</div></div>}
               <Bt onClick={() => { setPhase("end_turn"); endTurn(); }} style={{ width: "100%", marginTop: 22 }}>Done: end the half-year →</Bt>
             </Cd>}
             {phase === "end_turn" && !curD && <Cd style={{ textAlign: "center", padding: 58 }}>

@@ -112,3 +112,21 @@
   - money, days, godfather debt and slogan as chips;
   - one line for the last move;
   - move cards with a one-line description and chips for cost, days, target zone, a strength meter, "Slogan +2" and "Risky".
+
+## Setup gate and needs (Steve, 5 Oct)
+- **Gate:** at the start of every half-year, the Desk shows "Set up your government" instead of the budget until both the Executive Council (ministries) and the Traditional Rulers Council are convened.
+  - Each has a one-tap button. The ministries button calls the same default-cabinet code as the Ministries tab, now exposed as `SOP_REALISM.initMinistries`. The council button uses `SOP_REALISM.conveneCouncil`.
+  - Each also has a link to set it up by hand.
+- **Needs (`NEED_TYPES`):** real problems in a named LGA and senatorial zone, weighted towards the state's weakest indicators.
+  - The eight types: collapsed road, deaths at the general hospital, schools without roofs, cholera and dry boreholes, highway kidnappings, lost harvests, no power, displaced families.
+  - Two needs arrive once the government is set up, and new ones keep two or three open at a time.
+- **Answering a need:** starting a matching programme or capital project marks it "Work under way" (the Policies tab tags and sorts these first with "Answers: …"). The security orders (State Army, closing the borders) count as answers until the courts strike them down, after which the need is open again.
+- **Each new half-year, every active need is judged:**
+  - **Finished** (the programme has run its course or the project is delivered): approval +(severity+2), the zone +5, and a Wikipedia line.
+  - **Underfunded or halted:** if the sector is below its healthy budget, or the project is suspended or abandoned, the contractors go unpaid. Work stops, approval −2 and the zone −3. Two half-years like that and the site is abandoned: approval −(3×severity+1), the zone −8, and a ledger entry.
+  - **Ignored past its deadline** (this half-year and the next): people die in the news, approval −(2×severity+1), the zone −6, and a ledger entry. The need returns as "Worse:" at a higher severity.
+- **Zone mood** (`s.zoneMood`, capped at ±25) is added to each zone's support when the re-election campaign starts.
+- **On screen:**
+  - "What the state needs" cards on the Desk: tap a card for the cause, what answers it, its budget and what doing nothing will cost.
+  - The adviser raises stalled work and needs at their deadline.
+  - The budget warns when a split would leave active work unpaid.

@@ -360,16 +360,8 @@
   let SOP_H;
   function setH(React) { SOP_H = React.createElement; }
 
-  // Ministries panel
-  function MinistriesPanel({ SOP }) {
-    setH(SOP.React);
-    const c = CL();
-    const [showCreate, setShowCreate] = SOP.useState(false);
-    const [mergeSel, setMergeSel] = SOP.useState([]);
-    const [newName, setNewName] = SOP.useState("");
-    if (!SOP.ministries) return SOP_H('div', { style:{padding: 72}}, [
-      SOP_H('div',{style:{marginBottom: 36, fontSize: TS(43)}}, "No ministries initialised. Click below to load the default state ministry structure."),
-      SOP_H(Btn,{ onClick:()=>{
+  // The default Executive Council (also called from the Desk's "before you govern" step).
+  function initMinistries(SOP) {
         const seed = (SOP.state?.length||1)*77;
         const mandates = SOP.setup?.gfMandates || [];
         const mins = DEFAULT_MINISTRIES.map((m, i) => {
@@ -380,7 +372,20 @@
         const forced = mins.filter(m => m.godfatherMandate);
         pushWiki(SOP, { section:"Governorship", txt:`Convened the first Executive Council with ${mins.length} ministries, making the ministries the sole cabinet structure of the administration.${forced.length ? " Godfather-backed appointment: Hon. " + forced.map(m => m.minister + " as Commissioner for " + m.name).join("; Hon. ") + "." : ""}` });
         if (forced.length) SOP.addL(`🎩 Godfather condition honoured: ${forced.map(m => m.minister + " installed in " + m.name).join("; ")}.`, "political");
-      }}, "Initialise Ministries")
+  }
+  function conveneCouncil(SOP) { SOP.setCouncil(makeCouncil(SOP.state, (SOP.state||"").length * 33)); }
+  window.SOP_REALISM = Object.assign(window.SOP_REALISM || {}, { initMinistries: () => initMinistries(window.SOP), conveneCouncil: () => conveneCouncil(window.SOP) });
+
+  // Ministries panel
+  function MinistriesPanel({ SOP }) {
+    setH(SOP.React);
+    const c = CL();
+    const [showCreate, setShowCreate] = SOP.useState(false);
+    const [mergeSel, setMergeSel] = SOP.useState([]);
+    const [newName, setNewName] = SOP.useState("");
+    if (!SOP.ministries) return SOP_H('div', { style:{padding: 72}}, [
+      SOP_H('div',{style:{marginBottom: 36, fontSize: TS(43)}}, "No ministries initialised. Click below to load the default state ministry structure."),
+      SOP_H(Btn,{ onClick:()=>initMinistries(SOP)}, "Initialise Ministries")
     ]);
     return SOP_H('div', {}, [
       SOP_H('h3',{style:{margin: "0 0 29px",color:c.txt,fontFamily:F().d,fontSize: TS(58),fontWeight:600}}, `🏛️ Ministries of ${SOP.state} State`),
