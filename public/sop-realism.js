@@ -734,7 +734,7 @@
       if (!body || !window.SOP) return;
       const advice = saAdvice(window.SOP);
       body.innerHTML = advice.map(a => `<div style="padding: 9px 0;border-bottom:1px dashed #d0d8c4;color:${a.tone==='red'?'#cc3333':a.tone==='org'?'#c2410c':'#008751'}">${a.txt}</div>`).join('') +
-        `<div style="font-size: 30px;color:#7a8b6a;margin-top: 9px;font-style:italic">Based on live state at T${window.SOP.turn}. Advice updates each turn.</div>`;
+        `<div style="font-size: 24px;color:#7a8b6a;margin-top: 9px;font-style:italic">Based on live state at T${window.SOP.turn}. Advice updates each turn.</div>`;
     }
   }
 

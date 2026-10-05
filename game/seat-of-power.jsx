@@ -710,12 +710,14 @@ const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu"
 // kaftan or hijab, an eastern or south-south man in isiagu, a western man
 // in a suit.
 const NORTH_ZONES = ["NW", "NE", "NC"];
-const deputyArt = (female, zone) => "./art/characters/" + (female
+// A south-western man wears a suit, and his face shows his loyalty to you.
+const deputyArt = (female, zone, lo) => "./art/characters/" + (female
   ? (NORTH_ZONES.includes(zone) ? "deputy-northern-female-hijab" : "deputy-female")
-  : (NORTH_ZONES.includes(zone) ? "deputy-male" : zone === "SE" || zone === "SS" ? "deputy-southern-male-isiagu" : zone === "SW" ? "deputy-male-suit" : "deputy-male")) + ".webp";
-const castArt = (c, zone) => {
+  : zone === "SW" ? (lo == null || lo >= 60 ? "deputy-pleased" : lo >= 40 ? "deputy-worried" : "deputy-angry")
+  : zone === "NC" ? "deputy-male-suit" : NORTH_ZONES.includes(zone) ? "deputy-male" : zone === "SE" || zone === "SS" ? "deputy-southern-male-isiagu" : "deputy-male") + ".webp";
+const castArt = (c, zone, lo) => {
   if (!c) return null;
-  if (c.id === "deputy") return deputyArt(FEMALE_FIRST.includes(String(c.name).split(" ")[0]), zone);
+  if (c.id === "deputy") return deputyArt(FEMALE_FIRST.includes(String(c.name).split(" ")[0]), zone, lo);
   return CAST_ART[c.id] ? "./art/characters/" + CAST_ART[c.id] + ".webp" : null;
 };
 const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
@@ -1089,6 +1091,11 @@ const INTL_INVITES = [
   { id: "china_infra", icon: "🇨🇳", from: "Beijing, China", who: "China's Minister of Commerce", what: "China is offering infrastructure loans and construction partnerships — roads, bridges, housing. The terms are generous but the politics are complicated.", goFx: { infra: .05, app: 3 }, goSk: { business: 8, media: -5, youth: -3 }, goCost: 0.2, goLog: "Signed infrastructure deal with China. Roads and bridges coming — but critics call it 'debt trap diplomacy.'", delFx: { infra: .02 }, delSk: { business: 3 }, delLog: "Delegation explored China options. Framework agreement signed.", decFx: { app: 1 }, decSk: { media: 5, youth: 3 }, decLog: "Declined Chinese infrastructure loan. Media praised independence from 'debt trap.'" },
   { id: "un_sdg", icon: "🇺🇳", from: "United Nations, New York", who: "The UN Under-Secretary-General", what: "An invitation to speak at the UN General Assembly side event on SDG implementation at subnational level. Your state has been identified as a model.", goFx: { app: 6, hp: .01 }, goSk: { media: 12, youth: 8, religious: 4 }, goCost: 0.4, goLog: "Spoke at the United Nations. International recognition. 'A model governor' — UN press release.", delFx: { app: 1 }, delSk: { media: 3 }, delLog: "Deputy spoke at UN side event. Decent representation.", decFx: { app: -2 }, decSk: { media: -4, youth: -5 }, decLog: "Declined UN invitation. 'Too busy governing' — but the world noticed your absence." },
   { id: "uae_invest", icon: "🇦🇪", from: "Abu Dhabi, UAE", who: "Abu Dhabi Investment Authority", what: "UAE sovereign wealth fund exploring real estate and agro-industrial investment in Nigerian states. They want to meet the governor personally before committing.", goFx: { igr: 3, infra: .03, app: 4 }, goSk: { business: 15 }, goCost: 0.5, goLog: "Met Abu Dhabi investors. Massive real estate and agro-industrial investment secured. ₦3B IGR boost.", delFx: { app: 0 }, delSk: { business: 3 }, delLog: "Sent team to Abu Dhabi. Investors wanted the governor. 'We deal with principals, not agents.'", decFx: { app: -1 }, decSk: { business: -8 }, decLog: "Declined Abu Dhabi meeting. ₦3B investment went to a rival state." },
+  { id: "ge_power", icon: "⚡", from: "General Electric, Boston, USA", who: "General Electric's head of Africa power projects", what: "GE wants to install gas turbines for an independent power plant in your state, fix part of the transmission network and train 300 local engineers. They want the governor at the table before they commit capital.", goFx: { igr: 1.5, infra: .04, app: 4 }, goSk: { business: 12, youth: 6 }, goCost: 0.5, goLog: "Met General Electric in Boston. A 250MW independent power plant and an engineering academy agreed.", delFx: { infra: .02, app: 1 }, delSk: { business: 4 }, delLog: "The delegation met General Electric. A feasibility study is agreed; the turbines wait for the governor's own signature.", decFx: { app: -1 }, decSk: { business: -5 }, decLog: "Declined General Electric. The power plant goes to a neighbouring state." },
+  { id: "world_bank", icon: "🏦", from: "The World Bank, Washington D.C.", who: "The World Bank's Country Director for Nigeria", what: "Low-interest financing to rebuild primary schools and health centres, on one condition: the state publishes its budget and every procurement contract online.", goFx: { lit: .03, hp: .02, app: 3 }, goSk: { media: 8, youth: 6 }, goCost: 0.3, goLog: "Signed a World Bank programme for schools and clinics, tied to publishing the budget and contracts online.", delFx: { lit: .01, app: 1 }, delSk: { media: 3 }, delLog: "The delegation opened talks with the World Bank. The money waits for a commitment only the governor can make.", decFx: { app: -1 }, decSk: { media: -4 }, decLog: "Declined the World Bank programme. Civil society asks what the state is hiding." },
+  { id: "afdb", icon: "🌍", from: "African Development Bank, Abidjan", who: "The President of the African Development Bank", what: "The AfDB is choosing states for Special Agro-Industrial Processing Zones: roads, power and processing plants beside the farms, so crops are sold processed instead of raw.", goFx: { agr: .04, igr: 1, app: 3 }, goSk: { business: 8, traditional: 4 }, goCost: 0.4, goLog: "Won an AfDB agro-industrial processing zone in Abidjan. Farmers will sell processed goods, not raw crops.", delFx: { agr: .015, app: 1 }, delSk: { business: 3 }, delLog: "The delegation pitched to the AfDB. The state is on the shortlist, not the final list.", decFx: { app: -1 }, decSk: { traditional: -3 }, decLog: "Declined the AfDB. Farmers' associations are disappointed." },
+  { id: "diaspora_houston", icon: "🤝", from: "Nigerian diaspora convention, Houston, USA", who: "The Nigerians in Diaspora Organisation, Americas", what: "Doctors, engineers and investors from your state want to fund a diaspora bond and send specialists home on rotation. They want to hear the governor's plan in person.", goFx: { hp: .02, igr: 1, app: 4 }, goSk: { youth: 8, media: 6 }, goCost: 0.4, goLog: "Spoke to the diaspora in Houston. A diaspora bond and a rotation of specialist doctors agreed.", delFx: { hp: .01, app: 1 }, delSk: { youth: 3 }, delLog: "The delegation met the diaspora. Pledges were made; cheques wait for the governor.", decFx: { app: -1 }, decSk: { youth: -4 }, decLog: "Skipped the diaspora convention. 'He only remembers us at election time,' one organiser posts." },
+  { id: "korea_skills", icon: "🇰🇷", from: "Korea International Cooperation Agency, Seoul", who: "KOICA's Director for West Africa", what: "Korea will build and equip a technical college and a smart-farming training centre, with Korean instructors for three years, if the state provides land and staff.", goFx: { lit: .02, agr: .02, app: 3 }, goSk: { youth: 10 }, goCost: 0.4, goLog: "Signed with KOICA in Seoul. A technical college and a smart-farming centre are coming.", delFx: { lit: .01, app: 1 }, delSk: { youth: 3 }, delLog: "The delegation met KOICA. The college is likely; the farming centre is not.", decFx: { app: -1 }, decSk: { youth: -3 }, decLog: "Declined KOICA's offer." },
 ];
 
 // ─── UI ───
@@ -1132,17 +1139,61 @@ const Fold = ({ title, summary, children, open: startOpen = false }) => {
 // A scene banner: a background from public/art with a cast member in front.
 // Only cast members get portraits (see CAST_ART); other scenes get the
 // background alone.
-const SceneArt = ({ bg, who, alt, h = 230 }) => React.createElement("div", {
+const SceneArt = ({ bg, who, obj, alt, h = 230 }) => React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
     background: "#1d2a22 url(./art/backgrounds/" + bg + ".webp) center/cover" } },
-  who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } }) : null);
+  who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
+    : obj ? React.createElement("img", { src: "./art/objects/" + obj + ".webp", alt: alt || "", style: { height: Math.round(h * .68), width: "auto", objectFit: "contain", marginBottom: Math.round(h * .12), filter: "drop-shadow(0 10px 18px rgba(0,0,0,.35))" } }) : null);
+
+// Plays one sound when a screen appears (see SOP_sound in the html shell).
+const Sfx = ({ k }) => { React.useEffect(() => { try { window.SOP_sound && window.SOP_sound(k); } catch (e) {} }, []); return null; };
+
+// An object from the art pack (a summons, a folder, a ballot) above a card's title.
+const ObjArt = ({ name, alt = "", size = 120 }) => React.createElement("img", { src: "./art/objects/" + name + ".webp", alt, style: { width: size, height: size, objectFit: "contain", display: "block", margin: "0 auto 12px" } });
+
+// The state paper's front page with this half-year's headline set in it.
+const FrontPage = ({ paper, headline, w = 300 }) => React.createElement("div", { role: "img", "aria-label": paper + ": " + headline,
+  style: { position: "relative", width: w, maxWidth: "100%", aspectRatio: "816 / 1024", margin: "0 auto 22px", background: "url(./art/objects/news-front-page-blank.webp) center/contain no-repeat" } },
+  React.createElement("div", { style: { position: "absolute", inset: 0, transform: "rotate(-4.5deg)" } },
+    React.createElement("div", { style: { position: "absolute", top: "8.6%", left: "13%", width: "74%", height: "6%", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontFamily: F.d, fontWeight: 700, fontSize: Math.round(w * .045), letterSpacing: 1, textTransform: "uppercase", whiteSpace: "nowrap", overflow: "hidden" } }, paper),
+    React.createElement("div", { style: { position: "absolute", top: "17%", left: "13%", width: "72%", height: "17%", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", color: "#1a1a1a", fontFamily: F.d, fontWeight: 700, fontSize: Math.round(w * .052), lineHeight: 1.15, overflow: "hidden" } }, headline)));
+
+// A chat on a phone: the art pack's phone frame with our own messages on its screen.
+const PhoneMsg = ({ from, lines, h = 220 }) => React.createElement("div", { style: { position: "relative", height: h, aspectRatio: "816 / 1024", background: "url(./art/objects/phone-message-frame.webp) center/contain no-repeat", flexShrink: 0 } },
+  React.createElement("div", { style: { position: "absolute", top: "10.5%", left: "45%", right: "23%", color: "#fff", fontWeight: 800, fontSize: Math.max(9, Math.round(h * .045)), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontFamily: F.b } }, from),
+  React.createElement("div", { style: { position: "absolute", top: "19.5%", left: "18.5%", right: "22%", bottom: "15.5%", background: "#f6f6f1", display: "flex", flexDirection: "column", gap: 4, padding: 4, overflow: "hidden" } },
+    lines.map((l, i) => React.createElement("div", { key: i, style: { alignSelf: i % 2 ? "flex-end" : "flex-start", maxWidth: "88%", background: i % 2 ? "#bdeccc" : "#e6e7ec", borderRadius: 8, padding: "3px 6px", fontSize: Math.max(8, Math.round(h * .042)), lineHeight: 1.25, color: "#1a1a1a", fontFamily: F.b, textAlign: "left" } }, l))));
+
+// Media events: the medium itself (a phone, a paper, a radio call, a studio)
+// beside your press secretary, whose face shows how the story is landing.
+const PRESS_MOOD = { positive: "special-adviser-pleased", high: "special-adviser-angry" };
+const MediaArt = ({ m, reporter, h = 230 }) => {
+  if (!m.type || m.type === "tv") return React.createElement(SceneArt, { bg: "tv-studio", who: "reporter", alt: reporter, h });
+  const firstLine = (String(m.desc || "").match(/^[^.!?]*[.!?]?/) || [""])[0].slice(0, 110);
+  const medium = m.type === "social"
+    ? React.createElement(PhoneMsg, { from: m.title.length > 22 ? "Trending now" : m.title, lines: [m.title, firstLine, "Is this true?"], h: h - 12 })
+    : React.createElement("img", { src: "./art/objects/" + (m.type === "radio" ? "ringing-phone" : "newspaper") + ".webp", alt: "", style: { height: Math.round(h * .7), width: "auto", objectFit: "contain", alignSelf: "center" } });
+  return React.createElement("div", { style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center", gap: 10, padding: "8px 10px 0", background: "linear-gradient(180deg,#e8efe6,#d7e3d6)" } },
+    medium,
+    React.createElement("div", { style: { position: "relative", height: h - 8, display: "flex", alignItems: "flex-end" } },
+      React.createElement("img", { src: "./art/characters/" + (PRESS_MOOD[m.severity] || "special-adviser-worried") + ".webp", alt: "Your press secretary", style: { height: "100%", width: "auto", objectFit: "contain" } }),
+      React.createElement("span", { style: { position: "absolute", left: 0, right: 0, bottom: 6, textAlign: "center", fontSize: 11, fontWeight: 800, color: "#fff", textShadow: "0 1px 3px rgba(0,0,0,.6)", fontFamily: F.b } }, "Your press secretary")));
+};
+
+// The end-of-tenure card, drawn on the art pack's share card.
+const ShareCard = ({ img, name, line1, line2, grade }) => React.createElement("div", { style: { position: "relative", width: "100%", maxWidth: 560, aspectRatio: "1536 / 864", margin: "0 auto 22px", background: "url(./art/objects/wiki-share-card-blank.webp) center/contain no-repeat" } },
+  img ? React.createElement("img", { src: img, alt: "", style: { position: "absolute", left: "5%", top: "7%", width: "14%", height: "26%", objectFit: "cover", objectPosition: "top" } }) : null,
+  React.createElement("div", { style: { position: "absolute", left: "23%", right: "5.5%", top: "8.5%", height: "6%", display: "flex", alignItems: "center", padding: "0 2%", color: "#fff", fontFamily: F.d, fontWeight: 700, fontSize: "clamp(10px, 2.6vw, 18px)", background: "#0f5132", whiteSpace: "nowrap", overflow: "hidden" } }, name),
+  React.createElement("div", { style: { position: "absolute", left: "23%", right: "6%", top: "19%", bottom: "8%", background: "#fff", padding: "1% 2%", textAlign: "left", fontFamily: F.b, color: "#1a1a1a", fontSize: "clamp(9px, 2.2vw, 15px)", lineHeight: 1.35, overflow: "hidden" } },
+    React.createElement("div", { style: { fontFamily: F.d, fontSize: "clamp(18px, 6vw, 40px)", fontWeight: 700, color: "#0f5132" } }, "Grade " + grade),
+    React.createElement("div", null, line1), React.createElement("div", { style: { color: "#555" } }, line2)));
 
 // Scene art by situation. Generic townspeople (a doctor, a trader…) stand in
 // front where the scene is theirs; named cast only where the scene is about them.
 const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi";
 const DILEMMA_ART = {
   herder: ["emirs-palace-courtyard", "police-commissioner"], strike: ["rally", "labour-leader"], land: ["back-room", "permanent-secretary"],
-  flood: ["flooded-community", null], whistle: ["back-room", "commissioner-technocrat"], smear: ["tv-studio", "reporter"],
+  flood: ["flooded-community", null], whistle: ["back-room", "commissioner-technocrat"], smear: ["tv-studio", "opposition-candidate-alt"],
   hb_almajiri: ["classroom", "teacher"], hb_min_wage: ["street-protest", "labour-leader"], hb_youth_fund: ["busy-market-street", "young-voter-student"],
   hb_anti_cult: ["classroom", "young-voter-student"], hb_state_police: ["street-protest", "police-commissioner"], hb_grazing: ["emirs-palace-courtyard", "police-commissioner"],
   religious2: ["street-protest", "police-commissioner"], kidnap: ["classroom", "soldier"], asuu: ["classroom", "teacher"],
@@ -1151,7 +1202,7 @@ const DILEMMA_ART = {
 const dilemmaArt = (id, zone) => id === "hb_trad_council" ? ["emirs-palace-courtyard", tradRuler(zone)]
   : DILEMMA_ART[id] || (/^hb_/.test(id) ? ["assembly-chamber", "speaker"] : ["governor-office", null]);
 const FLAGSHIP_ART = {
-  education: ["classroom", "teacher"], health: ["hospital-ward", "doctor"], infrastructure: ["road-construction-site", null],
+  education: ["classroom", "teacher"], health: ["hospital-ward", "doctor-male"], infrastructure: ["road-construction-site", null],
   security: ["street-protest", "police-commissioner"], agriculture: ["busy-market-street", "market-trader"], anticorruption: ["governor-office", "permanent-secretary"],
   youth: ["busy-market-street", "young-voter-student"], women: ["classroom", "teacher"], technology: ["classroom", "young-voter-student"], housing: ["road-construction-site", null],
 };
@@ -1160,7 +1211,7 @@ const investorArt = (id) => ["road-construction-site", FOREIGN_INVESTORS.include
 const SHOCK_ART = {
   sh_pandemic: ["hospital-ward", "nurse"], sh_endsars: ["street-protest", "young-voter-student"], sh_flood: ["flooded-community", null],
   sh_terror: ["busy-market-street", "police-commissioner"], sh_subsidy: ["busy-market-street", "market-trader"],
-  sh_oil_crash: ["abuja-federal-office", null], sh_naira_crash: ["abuja-federal-office", null], sh_bank_crisis: ["abuja-federal-office", null],
+  sh_oil_crash: ["abuja-federal-office", null], sh_naira_crash: ["abuja-federal-office", null, "bank-transfer-slip"], sh_bank_crisis: ["abuja-federal-office", null, "bank-transfer-slip"],
 };
 // Commissioners: a portrait per name, women and men drawn from their own sets.
 const COMM_F = ["commissioner-female-suit", "commissioner-female-kaftan", "commissioner-technocrat"], COMM_M = ["commissioner-male-suit", "commissioner-male-agbada"];
@@ -1369,6 +1420,8 @@ const TitleScreen = ({ onStart, onHelp, onLoad }) => {
         const r = await window.storage.get("sop_save");
         if (r?.value) {
           const d = JSON.parse(r.value);
+          // A finished game is not something to continue.
+          if (d.gEnd) return;
           setHasSave(true);
           setSaveName(d.setup?.nm + " · " + (d.setup?.state || "").replace("_", " ") + " · Turn " + d.turn);
         }
@@ -1438,6 +1491,7 @@ const ANCHORS = { m: { first: "Ibrahim", last: "Danjuma" }, f: { first: "Funmi",
 // a bubble pointing at whoever is speaking, and their names on the bar.
 const AnchorDesk = ({ lines, onDone }) => {
   useMode("public");
+  useEffect(() => { try { window.SOP_sound && window.SOP_sound("news"); } catch (e) {} }, []);
   const [i, setI] = useState(0);
   const line = lines[Math.min(i, lines.length - 1)];
   const last = i >= lines.length - 1;
@@ -1858,7 +1912,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       cta={() => setStep(8)} ctaLabel="Launch the campaign">
       {(() => {
         const depFemale = FEMALE_FIRST.includes(String(depGov?.nm || "").split(" ")[0]);
-        const depImg = deputyArt(depFemale, STATES[st]?.zone);
+        const depImg = deputyArt(depFemale, STATES[st]?.zone, depGov?.lo);
         const pic = (src, who, role) => <div style={{ textAlign: "center", flex: "0 0 auto", width: TALL() ? 104 : 130 }}>
           <img src={src} alt={who} style={{ width: "100%", height: TALL() ? 136 : 170, objectFit: "cover", objectPosition: "top", borderRadius: 20, background: UI.tints[3], display: "block" }} />
           <div style={{ fontSize: DS.t.meta, fontWeight: 700, marginTop: 6, lineHeight: 1.25 }}>{who}</div>
@@ -2051,7 +2105,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       return (
         <div style={{ minHeight: "100%", background: won ? "#f0fff0" : CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
             <div style={{ maxWidth: 984, margin: "8px auto", textAlign: "center" }}>
-            <div style={{ fontSize: TS(86), marginBottom: 7 }}>{won ? "🎉" : "😔"}</div>
+            <Sfx k={won ? "win" : "lose"} /><ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />
             <h2 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(58), fontWeight: 700, margin: "7px 0" }}>{won ? "GOVERNOR-ELECT!" : "DEFEATED"}</h2>
             <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 29 }}>{won ? "INEC Returning Officer declares " + nm + " (" + party + ") duly elected — carrying " + collation.zonesWon + " of 3 senatorial zones with a " + marginPct.toFixed(1) + "% margin." : oName + " (" + (oParty?.id || "OPP") + ") wins. You carried only " + collation.zonesWon + "/3 zones. Margin against you: " + marginPct.toFixed(1) + "%."}</p>
             {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36, padding: "29px", background: "#fff8f0", border: "1px solid " + CL.gold + "55", borderRadius: 17 }}>
@@ -2604,7 +2658,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05, app: 55, debt: campaignGfDebt * .5, pStab: startingStab || 65,
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
-    totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0),
+    totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
+    invJobs: 0, invIGR: 0, // jobs and yearly revenue from investors and finished projects you brought in
   }));
   const [cab, setCab] = useState(() => ld?.cab || genCab(state, 42, sd.zone));
   const [ps, setPS] = useState(() => ld?.ps || genPS(state.length * 55, sd.zone, state));
@@ -2630,6 +2685,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [nav, setNav] = useState("gov");
   const navMemory = React.useRef({}); // last sub-tab opened on each screen
   const [menuOpen, setMenuOpen] = useState(false); // phone ☰ menu
+  const [soundOn, setSoundOn] = useState(() => { try { return window.SOP_soundOn ? window.SOP_soundOn() : true; } catch (e) { return true; } });
   const [sosOpen, setSosOpen] = useState(false);   // phone "State of the state" sheet
   const [budOpen, setBudOpen] = useState(null);    // budget sector whose details are open
   const [budTune, setBudTune] = useState(false);   // budget: the eight sector rows are showing
@@ -2817,7 +2873,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   // Auto-save every turn change
-  useEffect(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch(e) {} }, [turn]);
+  useEffect(() => { try { if (!gEnd) window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch(e) {} }, [turn]);
+  // When the game ends, the save goes: the title screen offers a new game only.
+  useEffect(() => { if (gEnd) { try { window.storage?.set("sop_save", ""); } catch (e) {} } }, [gEnd]);
 
   const tb = Math.max(0, s.igr + s.faac - s.debt * .08);
   const bs = Object.values(bud).reduce((a, b) => a + b, 0);
@@ -3154,6 +3212,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Show result screen before continuing to next event
   // Accepts: { icon, title, narrative, effects: [{icon, text, value, good, bad}], tone, nextFn }
   const showResult = (cfg) => {
+    try { window.SOP_sound && window.SOP_sound(cfg.tone === "good" ? "good" : cfg.tone === "bad" ? "bad" : "neutral"); } catch (e) {}
     setEventResult(cfg);
     setPhase("event_result");
   };
@@ -3245,12 +3304,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
       n.econ = econ;
       n.gdp = totalGDP;
-      n.totalJobs = totalJobs;
+      n.totalJobs = totalJobs * 1000 + (n.invJobs || 0);
 
-      // IGR is now derived from economic output (with a floor of 1.5B so states don't instantly bankrupt)
-      const newIGR = Math.max(1.5, computedIGR);
+      // IGR is now derived from economic output (with a floor of 1.5B so states don't instantly bankrupt),
+      // plus the taxes the firms you brought in keep paying every half-year.
+      const newIGR = Math.max(1.5, computedIGR) + (n.invIGR || 0);
       // Blend: 70% computed from economy, 30% from previous (smoothing)
       n.igr = n.igr * .3 + newIGR * .7;
+      // People in work at the firms and projects you brought in keep lifting approval.
+      if ((n.invJobs || 0) > 0) {
+        const lift = Math.min(2, n.invJobs / 4000);
+        n.app = cl100(n.app + lift);
+        if (lift >= .3) addL("👷 " + n.invJobs.toLocaleString() + " people now work in firms and projects you brought in. Approval +" + lift.toFixed(1) + ".", "success");
+      }
       const activeMinistries = ministries && ministries.length ? ministries : [];
       const ac = activeMinistries.length ? activeMinistries.reduce((s2, m) => s2 + (m.cor || 0), 0) / activeMinistries.length : 30; n.cor = cl(n.cor + (ac - 30) * .001);
       // ── CIVIL SERVICE EFFECT ──
@@ -3283,7 +3349,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const desc = p.compDesc || p.nm + " fully implemented";
         // Economic sector boost on completion
         if (p.ecoSec && n.econ?.[p.ecoSec]) {
-          n.econ[p.ecoSec] = { ...n.econ[p.ecoSec], out: cl(n.econ[p.ecoSec].out + (p.ecoBoost || .03)), jobs: (n.econ[p.ecoSec].jobs || 0) + (p.jobsAdd || 0) };
+          n.econ[p.ecoSec] = { ...n.econ[p.ecoSec], out: cl(n.econ[p.ecoSec].out + (p.ecoBoost || .03)) };
+          n.invJobs = (n.invJobs || 0) + (p.jobsAdd || 0);
           n.totalJobs = (n.totalJobs || 0) + (p.jobsAdd || 0);
         }
         setCompletedProjects(cp => [...cp, { nm: p.nm, desc, turn: turn, cost: p.c, jobs: p.jobsAdd || 0, sector: p.ecoSec }]);
@@ -3705,7 +3772,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (rpVal > 65) hlOpts.push("PRAISE FROM THE GROUND: Citizens hail " + pName + " administration");
     // Economic headlines
     if (s.gdp > 30) hlOpts.push("ECONOMIC BOOM: " + state.replace("_", " ") + " GDP surges past ₦" + Math.round(s.gdp) + "B");
-    if (s.totalJobs > s.pop * 50) hlOpts.push("JOBS SURGE: " + state.replace("_", " ") + " employment hits record numbers");
+    if (s.totalJobs > s.pop * 50000) hlOpts.push("JOBS SURGE: " + state.replace("_", " ") + " employment hits record numbers");
     if (s.igr > 10) hlOpts.push("REVENUE CHAMPION: " + state.replace("_", " ") + " IGR crosses ₦" + Math.round(s.igr) + "B mark");
     if (s.econ?.manufacturing?.out > .4) hlOpts.push("INDUSTRIAL REVOLUTION: " + state.replace("_", " ") + " manufacturing sector booming");
     if (s.econ?.tech?.out > .25) hlOpts.push("TECH HUB: " + state.replace("_", " ") + " emerges as technology destination");
@@ -4097,7 +4164,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (!netherlandsVisited && (turn === 2 || turn === 3)) q.push("netherlands");
       else if (!abujaVisited && (turn === 3 || turn === 4)) q.push("abuja");
       else if (!weddingVisited && (turn === 5 || turn === 6)) q.push("wedding");
-      else if (intlInvites.length < 3 && (turn === 3 || turn === 5 || turn === 7)) {
+      else if (intlInvites.length < 6 && turn >= 2 && rE() < .6) {
         const unseen = INTL_INVITES.filter(inv => !intlInvites.includes(inv.id));
         if (unseen.length > 0) { const inv = pick(unseen, rE); setCurInvite(inv); setIntlInvites(p => [...p, inv.id]); q.push("intl_invite"); }
       }
@@ -4305,6 +4372,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const canFctm = ov > 65 && s.app > 55 && s.cor < 0.25 && (gEnd === "complete" || gEnd === "stepped_down");
     const pa = PARTIES.find(p => p.id === party);
     const termsServed = gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid" ? "1 term (4 years)" : gEnd === "impeached" || gEnd === "bankrupt" ? "Partial term" : "2 terms (8 years)";
+    // The governor's own portrait; the isiagu portrait has faces for how it ended.
+    const heroMood = gEnd === "impeached" || gEnd === "bankrupt" ? "governor-angry" : gEnd === "defeated" || gr === "D" || gr === "F" ? "governor-worried" : gr === "A" || gr === "B" ? "governor-pleased" : null;
+    const heroImg = setup?.avatar === "isiagu" && heroMood ? "./art/characters/" + heroMood + ".webp" : (AVATAR_IMGS[setup?.avatar] || HERO_MALE);
     const shareT = "🇳🇬 I governed " + state.replace("_", " ") + " in #SeatOfPower!\nGrade: " + gr + " (" + ov + ")\nApproval: " + Math.round(s.app) + "%\n" + (gEnd === "impeached" ? "⚠️ IMPEACHED!" : gEnd === "defeated" ? "❌ Lost re-election!" : gEnd === "complete" ? "✅ Completed 2 terms!" : gEnd === "stepped_down" ? "🏛️ Stepped down after 1 term" : gEnd === "pres_bid" ? "🇳🇬 Resigned to run for PRESIDENT!" : "");
 
     // ── BUILD DETAILED WIKI BIOGRAPHY FROM ACTUAL GAMEPLAY ──
@@ -4408,9 +4478,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <div style={{ minHeight: "100%", background: CL.bg, padding: "58px 43px" }}>
         <Flag />
         <div style={{ maxWidth: 1272, margin: "58px auto", textAlign: "center" }}>
-          {(gEnd === "impeached" || gEnd === "defeated") && <div style={{ fontSize: TS(113), marginBottom: 22 }}>{gEnd === "impeached" ? "😔" : "🗳️"}</div>}
-          {gEnd === "stepped_down" && <div style={{ fontSize: TS(113), marginBottom: 22 }}>🏛️</div>}
-          {gEnd === "pres_bid" && <div style={{ fontSize: TS(113), marginBottom: 22 }}>🇳🇬</div>}
+          <Sfx k={gEnd === "impeached" || gEnd === "defeated" || gEnd === "bankrupt" ? "lose" : "win"} />
+          <img src={heroImg} alt={pName} style={{ height: TALL() ? 220 : 280, width: "auto", objectFit: "contain", display: "block", margin: "0 auto 18px" }} />
           <h2 style={{ fontFamily: F.d, color: gEnd === "complete" ? CL.txt : gEnd === "pres_bid" ? CL.gold : gEnd === "stepped_down" ? CL.blu : CL.red, fontSize: TS(94), fontWeight: 700, margin: "0 0 14px" }}>
             {gEnd === "impeached" ? "IMPEACHED" : gEnd === "bankrupt" ? "STATE BANKRUPT" : gEnd === "defeated" ? "VOTED OUT" : gEnd === "stepped_down" ? "STEPPED DOWN" : gEnd === "pres_bid" ? "PRESIDENTIAL BID" : "Tenure Complete"}
           </h2>
@@ -4433,7 +4502,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             {st0.keyDecisions.length > 0 && <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10 }}>Decisions people remember: {st0.keyDecisions.map(k => k.what).join(" · ")}</div>}
           </Cd>; })()}
-          <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "43px 0" }}>
+          <div style={{ marginTop: 36 }}><ShareCard img={heroImg} name={"Gov. " + pName} line1={state.replace("_", " ") + " State · " + party + " · " + termsServed} line2={"Approval " + Math.round(s.app) + "% · Score " + ov + " · #SeatOfPower"} grade={gr} /></div>
+          <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "22px 0 43px" }}>
             <Bt onClick={() => setShowWiki(true)}>📖 Wikipedia Bio</Bt>
             <Bt onClick={() => navigator.clipboard?.writeText(shareT)} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>
             <Bt onClick={() => window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareT))} style={{ background: "#000", color: "#fff", fontSize: TS(34) }}>𝕏</Bt>
@@ -4568,6 +4638,37 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <span style={{ fontSize: TALL() ? TS(16) : TS(24), opacity: .75, whiteSpace: "nowrap" }}>{l}</span>
     </span>)}
   </button>;
+
+  // Who represents the state abroad when the governor stays home. A commissioner
+  // whose ministry matches the invitation knows the file and wins part of the deal.
+  const ENVOY_SECTOR = { ge_power: /power|energy|works|infra/i, world_bank: /educ|health|financ|budget/i, afdb: /agric/i, diaspora_houston: /health|diaspora/i, korea_skills: /educ|science|tech|agric/i, us_pres: /commerce|trade|financ|invest/i, uk_trade: /trade|commerce|agric/i, china_infra: /works|infra|transport/i, mit: /tech|science|educ/i, harvard: /educ/i, sweden_pm: /health|environment|energy/i, un_sdg: /health|planning|budget/i, uae_invest: /commerce|invest|agric|housing/i };
+  const envoyMinistry = (inv) => { const rx = inv && ENVOY_SECTOR[inv.id]; const ms = ministries || []; return (rx && ms.find(m => rx.test(m.name))) || ms[0] || null; };
+  const sendEnvoy = (kind) => {
+    const inv = curInvite; if (!inv) return;
+    const m = kind === "commissioner" ? envoyMinistry(inv) : null;
+    if (kind === "commissioner" && !m) return;
+    const k = kind === "commissioner" ? 1.5 : kind === "deputy" ? 1 : .8;
+    const tech = kind === "commissioner" ? .4 : 0;
+    const delFx = inv.delFx || {}, goFx = inv.goFx || {};
+    setS(p => {
+      const n = { ...p };
+      ["lit", "agr", "infra", "hp", "sec"].forEach(x => { const v = (delFx[x] || 0) * k + (goFx[x] || 0) * tech; if (v) n[x] = cl(n[x] + v); });
+      const a = Math.round((delFx.app || 0) * k * 10) / 10; if (a) n.app = cl100(n.app + a);
+      if (tech && goFx.igr) n.invIGR = (n.invIGR || 0) + goFx.igr * tech * .5;
+      if (kind === "deputy") n.pStab = cl100(n.pStab + 2);
+      return n;
+    });
+    setSkApp(p => { const n = { ...p }; Object.entries(inv.delSk || {}).forEach(([key, v]) => { if (n[key] !== undefined) n[key] = cl100(n[key] + (kind === "adviser" ? Math.round(v / 2) : v)); }); return n; });
+    const envoy = kind === "deputy" ? "Deputy Governor " + cast.deputy.name : kind === "commissioner" ? "Hon. " + m.minister + " (" + m.name + ")" : cast.adviser.name + ", your Special Adviser";
+    addL("📤 " + envoy + " went in your place. " + inv.delLog, "political");
+    const effects = [{ icon: "📤", text: envoy + " went in your place", value: kind === "commissioner" ? "Technical deal" : kind === "deputy" ? "Ceremonial" : "Quiet follow-up" }];
+    if (delFx.app) effects.push({ icon: "📈", text: "Approval", value: "+" + Math.round(delFx.app * k * 10) / 10 + "%", good: true });
+    if (tech) effects.push({ icon: "🛠️", text: "Knew the file: part of the in-person deal agreed", value: "40%", good: true });
+    if (kind === "deputy") effects.push({ icon: "🏛️", text: "The party likes a ticket that shares the stage", value: "+2 party", good: true });
+    if (kind === "adviser") effects.push({ icon: "🤫", text: "Low profile: stakeholders barely notice", value: "Half effect" });
+    setCurInvite(null);
+    showResult({ icon: "📤", title: "Delegation — " + inv.from.split(",")[0], narrative: inv.delLog + " " + (kind === "commissioner" ? "Because your commissioner knew the file, part of what you would have won in person was agreed." : kind === "deputy" ? "Your deputy handled the ceremony well; the hard commitments wait for you." : "Your adviser kept it quiet and practical."), effects, tone: "neutral", nextFn: () => nextEvent() });
+  };
   // One type scale for the policies step.
   const PFS = { s: TALL() ? TS(20) : TS(30), m: TALL() ? TS(24) : TS(36), l: TALL() ? TS(30) : TS(52) };
   // The half-year as a short checklist, in the order the game runs it.
@@ -4596,6 +4697,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
               ["📖 Help", () => onHelp()],
               ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
+              [(soundOn ? "🔊 Sound: on" : "🔇 Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
               ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
             ].map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
             <div style={{ fontSize: TS(20), opacity: .7, padding: "2px 4px" }}>The game also saves itself every turn.</div>
@@ -4635,7 +4737,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {curScreen.subs.length > 1 && curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={subBtn(nav === t.k, CL.grn)}>{t.l}</button>)}
             {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={subBtn(false, CL.gold)}>Standing</button>}
             {curScreen.id === "wiki" && <button onClick={onHelp} style={subBtn(false, CL.grn)}>Help</button>}
-            <button onClick={saveGame} style={{ ...subBtn(true, CL.teal), marginLeft: "auto" }}>💾 Save</button>
+            <button onClick={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} aria-pressed={soundOn} style={{ ...subBtn(false, CL.grn), marginLeft: "auto" }}>{soundOn ? "🔊 Sound on" : "🔇 Sound off"}</button>
+            <button onClick={saveGame} style={subBtn(true, CL.teal)}>💾 Save</button>
           </div>
         </div>}
         {nav === "gov" && deskSteps()}
@@ -4661,6 +4764,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               ["Party support", Math.round(s.pStab) + "%"],
               ["State economy (GDP)", naira(s.gdp || 0)],
               ["Corruption exposure", Math.round((s.cor || 0) * 100) + "%"],
+              ["Jobs you brought in", (s.invJobs || 0).toLocaleString()],
+              ["Their taxes, each half-year", naira(s.invIGR || 0)],
             ].map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 0", borderBottom: "1px solid " + CL.bdr, fontSize: TALL() ? TS(20) : TS(31) }}><span style={{ color: CL.tm }}>{k}</span><b style={{ color: CL.txt, fontFamily: F.m }}>{v}</b></div>)}
             {FLAGSHIP[setup?.agenda] && <div style={{ margin: "14px 0", padding: TALL() ? "12px 14px" : "16px 22px", background: CL.grn + "0d", borderRadius: 14, fontSize: TALL() ? TS(20) : TS(31), color: CL.tm }}>
               <b style={{ color: CL.grn }}>Flagship: {FLAGSHIP[setup.agenda].nm}</b><br />{FLAGSHIP_BONUS[setup.agenda]}, applied every quarter.
@@ -4902,7 +5007,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "dilemma" && !!curD}>
-          {curD && (() => { const [bg, who] = dilemmaArt(curD.id, sd.zone); return <SceneArt bg={bg} who={who} alt={who === "labour-leader" ? cast.labour.name : who === "speaker" ? cast.speaker.name : who === "reporter" ? cast.reporter.name : ""} h={TALL() ? 220 : 260} />; })()}
+          {curD && (() => { const [bg, who] = dilemmaArt(curD.id, sd.zone); return <SceneArt bg={bg} who={who} alt={who === "labour-leader" ? cast.labour.name : who === "speaker" ? cast.speaker.name : who === "reporter" ? cast.reporter.name : who === "opposition-candidate-alt" ? "The opposition spokesman" : ""} h={TALL() ? 220 : 260} />; })()}
           {curD && <DecisionCard
             kicker="Dilemma"
             kickerColor={CL.org}
@@ -4971,7 +5076,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "const_challenge" && !!constChallenge}>
           {constChallenge && <Cd style={{ borderColor: CL.red + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 22 }}>⚖️🏛️</div>
+              <ObjArt name="court-summons" alt="Court summons" size={TALL() ? 120 : 170} />
               <Bg text="Federal Government Challenge" color={CL.red} />
               <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>Constitutional Crisis</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22 }}>
@@ -5006,7 +5111,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={phase === "const_ruling" && !!constRuling}>
           {constRuling && <Cd style={{ borderColor: CL.red, textAlign: "center" }}>
-            <div style={{ fontSize: TS(106), marginBottom: 22 }}>⚖️</div>
+            <Sfx k="gavel" /><SceneArt bg="courtroom" who="judge" alt="The Supreme Court" h={TALL() ? 180 : 220} />
             <Bg text="Supreme Court of Nigeria" color={CL.red} />
             <h3 style={{ fontFamily: F.d, color: CL.red, margin: "29px 0", fontSize: TS(72), fontWeight: 700 }}>RULING: ORDER STRUCK DOWN</h3>
             <div style={{ background: "#fef2f2", border: "1px solid " + CL.red + "30", borderRadius: 17, padding: "43px 50px", margin: "36px auto", maxWidth: 840, textAlign: "left" }}>
@@ -5112,7 +5217,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "nic_ruling" && !!nicPending}>
           {nicPending && <Cd style={{ borderColor: CL.pur }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 14 }}>⚖️👷</div>
+              <Sfx k="gavel" /><ObjArt name="court-summons" alt="Court summons" size={TALL() ? 120 : 170} />
               <div style={{ background: CL.pur, color: "#fff", display: "inline-block", padding: "10px 43px", borderRadius: 8, fontSize: TS(34), fontWeight: 700, letterSpacing: 5, marginBottom: 22 }}>NATIONAL INDUSTRIAL COURT</div>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(58), fontWeight: 600, margin: "22px 0" }}>NIC Ruling — Reinstatement Ordered</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{nicPending.desc}</p>
@@ -5153,6 +5258,45 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>
 
               <Cd onClick={() => {
+                // Appeal: S.243(2)-(4). Fundamental-rights questions go to the Court of Appeal as of right,
+                // anything else needs its leave, and its decision is final for NIC civil matters.
+                const arrearsCost = nicPending.type === "lecturers" ? 2 : 3;
+                const roll = Math.random();
+                const outcome = roll < .3 ? "no_leave" : roll < .72 ? "lost" : "won";
+                const who = nicPending.type;
+                if (outcome === "won") {
+                  setS(p => ({ ...p, app: cl100(p.app - 2), debt: p.debt + .5 }));
+                  setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) - 15), business: cl100((p.business || 50) + 5) }));
+                  addL("⚖️ Court of Appeal sets aside the NIC order. The " + who + " stay sacked. ₦0.5B in legal fees.", "political");
+                } else {
+                  const extra = outcome === "lost" ? 1 : .4;
+                  setS(p => ({ ...p, app: cl100(p.app - (outcome === "lost" ? 6 : 4)), debt: p.debt + arrearsCost + extra }));
+                  setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) + 5), media: cl100((p.media || 50) - 5) }));
+                  addL("⚖️ " + (outcome === "lost" ? "Court of Appeal upholds the NIC" : "Court of Appeal refuses leave to appeal") + ". The " + who + " are reinstated with arrears and interest: ₦" + (arrearsCost + extra).toFixed(1) + "B.", "political");
+                }
+                showResult({ icon: "⚖️", title: outcome === "won" ? "Court of Appeal — Order Set Aside" : outcome === "lost" ? "Court of Appeal — Appeal Dismissed" : "Court of Appeal — Leave Refused",
+                  narrative: outcome === "won"
+                    ? "Your lawyers argued the sackings followed due process. The Court of Appeal agreed and set aside the National Industrial Court's order. Under Section 243(4) its decision is final: the " + who + " stay sacked. The unions call it a dark day for labour."
+                    : outcome === "lost"
+                    ? "The Court of Appeal heard your appeal and dismissed it. Its decision is final (Section 243(4)); there is no further appeal to the Supreme Court. You must reinstate the " + who + " and pay arrears, interest and the other side's costs."
+                    : "Outside fundamental-rights questions, an appeal from the National Industrial Court needs the Court of Appeal's leave (Section 243(3)). The court refused it. The NIC order stands: reinstate the " + who + " and pay arrears with interest.",
+                  effects: outcome === "won" ? [
+                    { icon: "⚖️", text: "NIC order set aside; decision is final", value: "WON", good: true },
+                    { icon: "💸", text: "Legal fees", value: "+₦0.5B debt", bad: true },
+                    { icon: "✊", text: "Unions furious", value: "-15", bad: true },
+                    { icon: "📉", text: "Approval", value: "-2%", bad: true },
+                  ] : [
+                    { icon: "⚖️", text: outcome === "lost" ? "Appeal dismissed; decision is final" : "Leave to appeal refused", value: "LOST", bad: true },
+                    { icon: "💰", text: "Arrears, interest and costs", value: "+₦" + (arrearsCost + (outcome === "lost" ? 1 : .4)).toFixed(1) + "B debt", bad: true },
+                    { icon: "📉", text: "Approval", value: outcome === "lost" ? "-6%" : "-4%", bad: true },
+                    { icon: "👷", text: who === "lecturers" ? "Lecturers return to classrooms" : "Workers back on the job", good: true },
+                  ], tone: outcome === "won" ? "good" : "bad", nextFn: () => { setNicPending(null); nextEvent(); } });
+              }} style={{ padding: 36, borderColor: CL.blu + "55" }}>
+                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.blu }}>📜 Appeal to the Court of Appeal</div>
+                <div style={{ fontSize: TS(34), color: CL.td }}>Section 243: you need the court's leave unless fundamental rights are at stake, and its decision is final. About a 1 in 4 chance. Win and the {nicPending.type} stay sacked; lose and you pay arrears, interest and costs.</div>
+              </Cd>
+
+              <Cd onClick={() => {
                 setS(p => ({ ...p, app: cl100(Math.min(p.app, 35) - 12), pStab: cl100(p.pStab - 15), cor: cl(p.cor + .05) }));
                 setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) - 25), media: cl100((p.media || 50) - 20), youth: cl100((p.youth || 50) - 10), business: cl100((p.business || 50) - 10) }));
                 addL("🚨 GOVERNOR DEFIES NATIONAL INDUSTRIAL COURT! Contempt proceedings initiated. Criminal referral possible.", "crisis");
@@ -5177,7 +5321,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "hidden_threat" && hiddenThreats.length > 0}>
           <Cd style={{ borderColor: CL.org + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="back-room" h={TALL() ? 180 : 220} />
+              <SceneArt bg="back-room" obj="memo-folder" alt="Confidential file" h={TALL() ? 180 : 220} />
               <Bg text="Intelligence Report" color={CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>Something Isn't Right...</h3>
               <AdvBubble text={"Your Excellency, I'm hearing whispers. Something feels off in the " + (hiddenThreats[0]?.ministry || "government") + " Ministry. I can't confirm anything yet, but... " + (hiddenThreats.length > 1 ? "And there may be " + (hiddenThreats.length - 1) + " other issue(s)." : "")} saName={cast.adviser.name} />
@@ -5215,7 +5359,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "shock" && !!curShock}>
           {curShock && <Cd style={{ borderColor: CL.red, background: "#fff8f8" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              {SHOCK_ART[curShock.id] ? <SceneArt bg={SHOCK_ART[curShock.id][0]} who={SHOCK_ART[curShock.id][1]} h={TALL() ? 200 : 240} /> : <div style={{ fontSize: TS(116), marginBottom: 14 }}>{curShock.icon}</div>}
+              {SHOCK_ART[curShock.id] ? <SceneArt bg={SHOCK_ART[curShock.id][0]} who={SHOCK_ART[curShock.id][1]} obj={SHOCK_ART[curShock.id][2]} h={TALL() ? 200 : 240} /> : <div style={{ fontSize: TS(116), marginBottom: 14 }}>{curShock.icon}</div>}
               <div style={{ background: CL.red, color: "#fff", display: "inline-block", padding: "10px 43px", borderRadius: 8, fontSize: TS(34), fontWeight: 700, fontFamily: F.m, letterSpacing: 5, marginBottom: 22 }}>⚡ SHOCK EVENT</div>
               <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(65), fontWeight: 700 }}>{curShock.title}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curShock.desc}</p>
@@ -5341,7 +5485,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "media" && !!curMedia}>
           {curMedia && <Cd style={{ borderColor: curMedia.severity === "positive" ? CL.grn + "44" : CL.org + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="tv-studio" who="reporter" alt={cast.reporter.name} h={TALL() ? 220 : 260} />
+              <MediaArt m={curMedia} reporter={cast.reporter.name} h={TALL() ? 220 : 260} />
               <Bg text={curMedia.type === "social" ? "Social Media" : curMedia.type === "newspaper" ? "Newspaper" : curMedia.type === "radio" ? "Radio" : curMedia.type === "tv" ? "Television" : "Blogger"} color={curMedia.severity === "positive" ? CL.grn : CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(62), fontWeight: 600 }}>{curMedia.title}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 29 }}>{curMedia.desc}</p>
@@ -5408,8 +5552,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const debtPay = curInvestor.igrBoost * 0.15; // 15% of new revenue pays debt
                 setS(p => {
                   const n = { ...p, igr: p.igr + curInvestor.igrBoost, app: cl100(p.app + curInvestor.appBoost + curInvestor.appRisk), debt: Math.max(0, p.debt - debtPay) };
-                  if (n.econ?.[curInvestor.sector]) n.econ[curInvestor.sector] = { ...n.econ[curInvestor.sector], out: cl(n.econ[curInvestor.sector].out + .06), jobs: (n.econ[curInvestor.sector].jobs || 0) + curInvestor.jobs };
+                  if (n.econ?.[curInvestor.sector]) n.econ[curInvestor.sector] = { ...n.econ[curInvestor.sector], out: cl(n.econ[curInvestor.sector].out + .06), };
                   n.totalJobs = (n.totalJobs || 0) + curInvestor.jobs;
+                  n.invJobs = (n.invJobs || 0) + curInvestor.jobs;
+                  n.invIGR = (n.invIGR || 0) + curInvestor.igrBoost; // their taxes, every half-year from now on
                   if (corHit) n.cor = cl(n.cor + .03);
                   return n;
                 });
@@ -5437,8 +5583,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Cd onClick={() => {
                 setS(p => {
                   const n = { ...p, igr: p.igr + curInvestor.igrBoost * 0.6, app: cl100(p.app + curInvestor.appBoost + 2), debt: p.debt + curInvestor.igrBoost * 0.3 };
-                  if (n.econ?.[curInvestor.sector]) n.econ[curInvestor.sector] = { ...n.econ[curInvestor.sector], out: cl(n.econ[curInvestor.sector].out + .08), jobs: (n.econ[curInvestor.sector].jobs || 0) + curInvestor.jobs };
+                  if (n.econ?.[curInvestor.sector]) n.econ[curInvestor.sector] = { ...n.econ[curInvestor.sector], out: cl(n.econ[curInvestor.sector].out + .08), };
                   n.totalJobs = (n.totalJobs || 0) + curInvestor.jobs;
+                  n.invJobs = (n.invJobs || 0) + curInvestor.jobs;
+                  n.invIGR = (n.invIGR || 0) + curInvestor.igrBoost * 0.6; // reduced by the tax holiday
                   return n;
                 });
                 setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 12), youth: cl100((p.youth || 50) + 6) }));
@@ -5660,7 +5808,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "wedding"}>
           <Cd style={{ borderColor: CL.pur + "22" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(106), marginBottom: 22 }}>💒👰</div>
+              <SceneArt bg="government-house" who="governor-pleased" alt="The host governor" h={TALL() ? 200 : 240} />
               <Bg text="Social Obligation" color={CL.pur} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(72), fontWeight: 600 }}>Governor's Daughter's Wedding</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 14 }}>
@@ -5746,7 +5894,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Cd onClick={() => {
                 setS(p => {
                   const n = { ...p, debt: p.debt + (curInvite.goCost || 0) };
-                  if (curInvite.goFx.igr) n.igr += curInvite.goFx.igr;
+                  if (curInvite.goFx.igr) { n.igr += curInvite.goFx.igr; n.invIGR = (n.invIGR || 0) + curInvite.goFx.igr * .5; }
                   if (curInvite.goFx.app) n.app = cl100(n.app + curInvite.goFx.app);
                   if (curInvite.goFx.lit) n.lit = cl(n.lit + curInvite.goFx.lit);
                   if (curInvite.goFx.hp) n.hp = cl(n.hp + curInvite.goFx.hp);
@@ -5779,31 +5927,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>
               </Cd>
 
-              <Cd onClick={() => {
-                setS(p => {
-                  const n = { ...p };
-                  if (curInvite.delFx.app) n.app = cl100(n.app + curInvite.delFx.app);
-                  if (curInvite.delFx.lit) n.lit = cl(n.lit + curInvite.delFx.lit);
-                  if (curInvite.delFx.agr) n.agr = cl(n.agr + curInvite.delFx.agr);
-                  if (curInvite.delFx.infra) n.infra = cl(n.infra + curInvite.delFx.infra);
-                  return n;
-                });
-                setSkApp(p => { const n = { ...p }; Object.entries(curInvite.delSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-                addL("📤 " + curInvite.delLog, "political");
-                const delEffects = [{ icon: "📤", text: "Delegation sent — reduced impact", bad: true }];
-                if (curInvite.delFx.app) delEffects.push({ icon: curInvite.delFx.app > 0 ? "📈" : "📉", text: "Approval", value: (curInvite.delFx.app > 0 ? "+" : "") + curInvite.delFx.app + "%", good: curInvite.delFx.app > 0 });
-                Object.entries(curInvite.delSk || {}).forEach(([k, v]) => { delEffects.push({ icon: "👥", text: k + " stakeholders", value: (v > 0 ? "+" : "") + v, good: v > 0, bad: v < 0 }); });
-                const invRef2 = curInvite;
-                setCurInvite(null);
-                showResult({ icon: "📤", title: "Delegation Sent — " + invRef2.from.split(",")[0], narrative: invRef2.delLog + " Your deputy represented the state adequately, but some doors that would have opened for a sitting governor remained closed.", effects: delEffects, tone: "neutral", nextFn: () => nextEvent() });
-              }} style={{ padding: 43 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.blu, marginBottom: 10 }}>📤 Send a Delegation</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>Your deputy or commissioner attends on your behalf. You stay focused on governance. Some doors stay closed.</div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  <Bg text="No travel cost" color={CL.grn} />
-                  <Bg text="Reduced impact" color={CL.org} />
+              <div>
+                <div style={{ fontWeight: 600, fontSize: TALL() ? TS(28) : TS(44), color: CL.blu, marginBottom: 4 }}>📤 Send someone in your place</div>
+                <div style={{ fontSize: TALL() ? TS(20) : TS(31), color: CL.td, marginBottom: 12 }}>You stay home and govern. Who goes changes what comes back.</div>
+                <div style={{ display: "grid", gap: 12 }}>
+                  {[
+                    ["deputy", "Deputy Governor " + cast.deputy.name, "Ceremonial weight. The party likes a ticket that shares the stage (+2 party).", true],
+                    ["commissioner", envoyMinistry(curInvite) ? "Hon. " + envoyMinistry(curInvite).minister + ", " + envoyMinistry(curInvite).name : "A commissioner", envoyMinistry(curInvite) ? "Knows the file: wins part of the in-person deal and more than a ceremony." : "Convene a ministry first to send a commissioner.", !!envoyMinistry(curInvite)],
+                    ["adviser", cast.adviser.name + " (Special Adviser)", "A quiet, practical follow-up. Little publicity either way.", true],
+                  ].map(([k, l, d, ok]) => <Cd key={k} onClick={ok ? () => sendEnvoy(k) : undefined} style={{ padding: TALL() ? 16 : 26, opacity: ok ? 1 : .5, cursor: ok ? "pointer" : "not-allowed" }}>
+                    <div style={{ fontWeight: 700, fontSize: TALL() ? TS(22) : TS(36), color: CL.txt }}>{l}</div>
+                    <div style={{ fontSize: TALL() ? TS(19) : TS(30), color: CL.td, marginTop: 4 }}>{d}</div>
+                  </Cd>)}
                 </div>
-              </Cd>
+              </div>
 
               <Cd onClick={() => {
                 setS(p => {
@@ -5835,7 +5972,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.grn + "44" }}>
             <AdvBubble text={ADV.reelection} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="party-convention-hall" who={s.pStab >= 65 ? "godfather-pleased" : s.pStab < 40 ? "godfather-angry" : "party-chairman"} alt="The party chairman" h={TALL() ? 200 : 240} />
+              <SceneArt bg="party-convention-hall" who={s.pStab >= 65 ? "godfather-pleased" : s.pStab < 40 ? "godfather-angry" : s.pStab < 50 ? "godfather-worried" : "party-chairman"} alt="The party chairman" h={TALL() ? 200 : 240} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px" }}>End of First Term</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 22 }}>Four years in office. What will you do next?</p>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 36, flexWrap: "wrap" }}>
@@ -6055,7 +6192,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const yourLast = (setup?.lastNm || pName.split(" ").pop() || "YOU").toUpperCase();
               const yourTicket = yourLast + "/" + (depGov?.nm.split(" ").pop() || "DEP").toUpperCase();
               return <Cd style={{ textAlign: "center", padding: 36 }}>
-                <div style={{ fontSize: TS(79), marginBottom: 7 }}>{won ? "🎉" : "😔"}</div>
+                <Sfx k={won ? "win" : "lose"} /><ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />
                 <h3 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(53), fontWeight: 600, margin: "7px 0" }}>{won ? "RE-ELECTED!" : "DEFEATED"}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{won ? "Four more years! INEC has declared " + pName + " (" + party + ") re-elected, carrying " + collation.zonesWon + "/3 zones by " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you. You carried only " + collation.zonesWon + "/3 zones. Margin against: " + marginPct.toFixed(1) + "%."}</p>
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
@@ -6537,6 +6674,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const noMinistries = !ministries || !ministries.length;
             return <Cd style={{ borderColor: CL.org + "44", maxWidth: 984 }}>
               <div style={{ textAlign: "center", marginBottom: 29 }}>
+                <ObjArt name="contract-envelope" alt="" size={TALL() ? 96 : 130} />
                 <Bg text="STEP 1 · PROJECT INTAKE" color={CL.org} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(58), fontWeight: 600, margin: "14px 0 7px" }}>Initiate {p.nm}</h3>
                 <div style={{ fontSize: TS(36), color: CL.td }}>Base ₦{p.c.toFixed(1)}B · {p.t}T baseline · you pick contractor next</div>
@@ -6589,7 +6727,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
 
         {nav === "gov" && <div className="sop-gov-grid" style={{ maxWidth: TALL() ? 900 : 1320, margin: "0 auto" }}>
-          <div>
+          <div key={phase} className="sop-step">
 
             {phase === "budget" && (() => {
               const SEC_META = {
@@ -6714,7 +6852,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             {phase === "house_vote" && <Cd style={{ borderColor: CL.pur + "44" }}>
               <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
-              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
+              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
                 onNegotiate={(cost, reasons) => { houseDeal(cost, reasons, "The appropriation bill"); setPhase("policy"); }}
@@ -6746,7 +6884,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
               </div>}
               {polTab === "bill" &&               <div>
-                                <p style={{ color: CL.td, fontSize: PFS.s, marginBottom: 22 }}>A bill passes unless members have a reason to stop it: a weak caucus, no money to pay for it, or something you did that they have not forgotten.</p>
+                                <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 18 }}><img src="./art/objects/bill-document.webp" alt="" style={{ width: TALL() ? 64 : 96, height: TALL() ? 64 : 96, objectFit: "contain", flexShrink: 0 }} /><p style={{ color: CL.td, fontSize: PFS.s, margin: 0 }}>A bill passes unless members have a reason to stop it: a weak caucus, no money to pay for it, or something you did that they have not forgotten.</p></div>
                 {billReject && <Cd style={{ padding: 26, marginBottom: 22, borderColor: CL.red + "55", background: CL.red + "06" }}>
                   <div style={{ fontSize: PFS.m, fontWeight: 700, color: CL.red, marginBottom: 10 }}>❌ The House rejected the {billReject.bill.nm}</div>
                   {billReject.reasons.map((r2, i) => <div key={i} style={{ padding: "8px 0" }}>
@@ -6780,10 +6918,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </Cd>}
             {phase === "end_turn" && !curD && <Cd style={{ textAlign: "center", padding: 58 }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(53), fontWeight: 600, marginBottom: 22 }}>{yr} Complete</h3>
-              {headline && <div style={{ background: "#f9f5ee", border: "1px solid #d4c9a8", borderRadius: 8, padding: "29px 43px", margin: "0 auto 36px", maxWidth: 732 }}>
-                <div style={{ fontSize: TS(29), color: CL.td, fontFamily: F.m, letterSpacing: 5, textTransform: "uppercase", marginBottom: 7 }}>{state.replace("_", " ")} Daily Tribune</div>
-                <div style={{ fontSize: TS(43), color: "#1a1a1a", fontFamily: F.d, fontWeight: 700, lineHeight: 1.3 }}>{headline}</div>
-              </div>}
+              <Sfx k="turn" />
+              {headline && <FrontPage paper={state.replace("_", " ") + " Daily Tribune"} headline={headline} w={TALL() ? 260 : 340} />}
               {/* Show this turn's key events so players SEE the cabinet/stakeholder/persona feedback */}
               <div style={{ textAlign: "left", margin: "29px 0", maxWidth: 732, marginLeft: "auto", marginRight: "auto" }}>
                 {logs.filter(l => l.t === turn).slice(0, 5).map((e, i) => {
@@ -6823,6 +6959,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.4, marginBottom: 22 }}>
               💡 IGR is now derived from your economic sectors. Grow sectors through budget allocation, policies, infrastructure, education, and security. Corruption and insecurity drag ALL sectors down.
             </div>
+          </Cd>
+          <Cd style={{ marginBottom: 29 }}>
+            <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 10px", fontSize: TALL() ? TS(28) : TS(46), fontWeight: 700 }}>Investment you brought in</h3>
+            <p style={{ color: CL.tm, fontSize: TALL() ? TS(20) : TS(31), lineHeight: 1.5, margin: "0 0 14px" }}>
+              {(s.invJobs || 0) > 0
+                ? (s.invJobs || 0).toLocaleString() + " people work in firms and finished projects you brought in. Their wages lift your approval by up to 2 points every half-year, and the firms pay " + naira(s.invIGR || 0) + " in taxes into your budget pot every half-year."
+                : "Approve a private investor or finish a capital project and the jobs and taxes show up here. Jobs lift approval every half-year; the firms' taxes go into your budget pot every half-year."}
+            </p>
+            {investorsApproved.map(id => { const inv = INVESTORS.find(x => x.id === id); return inv ? <div key={id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderTop: "1px solid " + CL.bdr, fontSize: TALL() ? TS(20) : TS(31) }}>
+              <span style={{ color: CL.txt, fontWeight: 700 }}>{inv.nm}</span><span style={{ color: CL.tm, fontFamily: F.m, whiteSpace: "nowrap" }}>{inv.jobs.toLocaleString()} jobs · {naira(inv.igrBoost)}</span>
+            </div> : null; })}
           </Cd>
           <div style={{ display: "grid", gap: 22 }}>
             {[
@@ -6991,7 +7138,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const rec = (window.SOP_CAST ? window.SOP_CAST.history(c.id) : []).slice(-3).reverse();
             return <Cd key={c.id} style={{ padding: 29 }}>
               <div style={{ display: "flex", gap: 18, alignItems: "flex-end", marginBottom: 14 }}>
-                {castArt(c, sd.zone) && <img src={castArt(c, sd.zone)} alt={c.name} loading="lazy" style={{ width: 120, height: 140, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: CL.grn + "14", flexShrink: 0 }} />}
+                {castArt(c, sd.zone, depGov?.lo) && <img src={castArt(c, sd.zone, depGov?.lo)} alt={c.name} loading="lazy" style={{ width: 120, height: 140, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: CL.grn + "14", flexShrink: 0 }} />}
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontFamily: F.m, fontSize: TS(21), letterSpacing: 3, color: CL.grn, textTransform: "uppercase" }}>{c.role}</div>
                   <div style={{ fontFamily: F.d, fontSize: TS(42), fontWeight: 700, color: CL.txt, margin: "6px 0 2px" }}>{c.name}</div>

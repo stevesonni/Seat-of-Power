@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>The Seat of Power</title>
+  <link rel="icon" type="image/webp" href="./art/brand/app-icon.webp" />
+  <link rel="apple-touch-icon" href="./art/brand/app-icon.webp" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -137,6 +139,20 @@
     @keyframes sopSheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
     .sop-sheet { animation: sopSheetUp .32s cubic-bezier(.2,.8,.2,1); }
     .sop-tabbar button:active { transform: scale(.96); }
+    /* Motion: overlays fade or slide in, each Desk step slides up, and anything
+       tappable gives a small press. Off for people who ask for less motion. */
+    @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes sopSlideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .sop-fade-in { animation: sopFadeIn .22s ease-out; }
+    .sop-slide-up, .sop-step { animation: sopSlideUp .3s cubic-bezier(.2,.8,.2,1); }
+    #sop-stage button, #sop-stage .ds-card { -webkit-tap-highlight-color: transparent; }
+    #sop-stage button { transition: transform .12s ease, background-color .2s ease, box-shadow .2s ease, opacity .2s ease; }
+    #sop-stage button:not(:disabled):active { transform: scale(.97); }
+    #sop-stage .ds-card[style*="cursor: pointer"]:active { transform: scale(.99); }
+    @media (prefers-reduced-motion: reduce) {
+      .sop-fade-in, .sop-slide-up, .sop-step, .sop-sheet { animation: none; }
+      #sop-stage button:active, #sop-stage .ds-card:active { transform: none; }
+    }
     .ds-chiprow { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-3); }
     .ds-chip {
       display: inline-block; padding: 6px 20px; border-radius: var(--r-pill);
@@ -239,6 +255,49 @@
     /* Toast: short notices that fade (delayed consequences, warnings).
        Formerly part of sop-v2.js. Appended to body, which the stage script
        below redirects into the scaled stage, so sizes are artboard px. */
+    /* Sound: short tones made with Web Audio, so there are no files to load.
+       window.SOP_sound(kind) plays one; SOP_soundOn() reads or sets the switch
+       (remembered on this device). Taps on buttons give a soft click. */
+    (function () {
+      var ctx = null, on = true;
+      try { on = localStorage.getItem('sop_sound') !== 'off'; } catch (e) {}
+      function ac() {
+        if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+        if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
+        return ctx;
+      }
+      function tone(f, t0, dur, type, vol, f2) {
+        var c = ac(); if (!c) return;
+        var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + t0;
+        o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
+        if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.08, t + 0.012);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
+      }
+      var KINDS = {
+        tap: function () { tone(880, 0, 0.05, 'triangle', 0.025); },
+        good: function () { tone(523, 0, 0.16, 'sine', 0.07); tone(784, 0.1, 0.24, 'sine', 0.07); },
+        bad: function () { tone(330, 0, 0.2, 'triangle', 0.07); tone(247, 0.14, 0.32, 'triangle', 0.07); },
+        neutral: function () { tone(587, 0, 0.18, 'sine', 0.06); },
+        news: function () { tone(392, 0, 0.14, 'square', 0.035); tone(523, 0.12, 0.14, 'square', 0.035); tone(784, 0.24, 0.32, 'square', 0.035); },
+        gavel: function () { tone(160, 0, 0.09, 'square', 0.08, 90); tone(160, 0.16, 0.09, 'square', 0.08, 90); },
+        turn: function () { tone(392, 0, 0.5, 'sine', 0.06); tone(494, 0.05, 0.5, 'sine', 0.04); tone(587, 0.1, 0.6, 'sine', 0.04); },
+        win: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.3, 'triangle', 0.07); }); },
+        lose: function () { [392, 330, 262].forEach(function (f, i) { tone(f, i * 0.18, 0.4, 'sine', 0.07); }); }
+      };
+      window.SOP_sound = function (kind) { if (!on) return; try { (KINDS[kind] || KINDS.tap)(); } catch (e) {} };
+      window.SOP_soundOn = function (v) {
+        if (typeof v === 'boolean') { on = v; try { localStorage.setItem('sop_sound', v ? 'on' : 'off'); } catch (e) {} if (v) window.SOP_sound('good'); }
+        return on;
+      };
+      document.addEventListener('pointerdown', function (e) {
+        var t = e.target, b = t && t.closest && t.closest('button, [role="button"], a');
+        if (!b && t && t.nodeType === 1) { for (var el = t, i = 0; el && i < 4; el = el.parentElement, i++) { if (getComputedStyle(el).cursor === 'pointer') { b = el; break; } } }
+        if (b && !b.disabled) window.SOP_sound('tap');
+      }, true);
+    })();
+
     window.SOP_V2_toast = window.SOP_toast = function (msg, kind) {
       var wrap = document.getElementById('sop-toasts');
       if (!wrap) {
@@ -301,7 +360,7 @@
          for (var i = 0; i < LADDER.length; i++) {
            if (Math.abs(LADDER[i] - v) < Math.abs(best - v)) best = LADDER[i];
          }
-         if (v > 76) best = Math.round(v);          /* deliberate hero-scale outliers survive */
+         if (v > 76) best = 64;                     /* hero-scale sizes stop at 64 so icons and titles never swamp a card */
          return (cache[n] = best);
        };
      })();

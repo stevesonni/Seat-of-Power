@@ -359,7 +359,7 @@
     cardEl.innerHTML =
       '<div style="background:#f6f4ef;border:2px solid #d4c9a8;border-radius:14px;max-width:1300px;width:100%;max-height:92%;overflow:auto;padding:16px 20px">' +
       '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">' +
-      '<div style="font-size:34px;font-weight:800;color:#2d5a3d;letter-spacing:.5px">' + d.title + '</div>' +
+      '<div style="font-size:28px;font-weight:800;color:#2d5a3d;letter-spacing:.5px">' + d.title + '</div>' +
       '<div style="font-size:18px;color:#5a5a4a">' + d.who + '</div></div>' +
       '<div style="font-size:24px;color:#1a1a1a;line-height:1.4;margin:8px 0">' + d.happening + '</div>' +
       '<div style="font-size:21px;color:#7a5a20;margin-bottom:10px"><b>What they want:</b> ' + d.want + '</div>' +
@@ -400,7 +400,7 @@
     el.innerHTML =
       '<div style="background:#f6f4ef;border:2px solid #d4c9a8;border-radius:14px;max-width:900px;width:100%;padding:18px 22px">' +
       '<div style="font-size:18px;letter-spacing:2px;color:#5a5a4a">' + title + '</div>' +
-      '<div style="font-size:34px;font-weight:800;color:#2d5a3d;margin:4px 0 8px">' + o.label + '</div>' +
+      '<div style="font-size:28px;font-weight:800;color:#2d5a3d;margin:4px 0 8px">' + o.label + '</div>' +
       '<div style="font-size:24px;color:#1a1a1a;line-height:1.4">' + (outcome || "It is done.") + '</div>' +
       '<div style="font-size:21px;color:#7a5a20;margin-top:10px"><b>The record will say:</b> ' + o.record + '</div>' +
       '<div style="text-align:right;margin-top:12px"><button id="sop-pol-ok" style="background:#2d5a3d;color:#fff;border:none;border-radius:8px;padding:10px 26px;font-size:21px;font-weight:700;cursor:pointer;font-family:inherit">CONTINUE</button></div>' +
@@ -430,7 +430,7 @@
     el.style.cssText = "position:fixed;inset:0;z-index:11400;background:rgba(18,16,12,.7);display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Plus Jakarta Sans',sans-serif;";
     el.innerHTML =
       '<div style="background:#f6f4ef;border:2px solid #d4c9a8;border-radius:14px;max-width:1200px;width:100%;max-height:90%;overflow:auto;padding:16px 20px">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:34px;font-weight:800;color:#2d5a3d">POLITICAL STANDING</div>' +
+      '<div style="display:flex;justify-content:space-between;align-items:center"><div style="font-size:28px;font-weight:800;color:#2d5a3d">POLITICAL STANDING</div>' +
       '<button id="sop-pol-x" style="background:#2d5a3d;color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:21px;font-weight:700;cursor:pointer;font-family:inherit">CLOSE</button></div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px">' +
       '<div><div style="font-size:21px;font-weight:700;margin-bottom:6px">Factions</div><div style="display:grid;gap:6px">' + fac + '</div></div>' +
