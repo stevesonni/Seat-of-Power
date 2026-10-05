@@ -298,6 +298,33 @@
       }, true);
     })();
 
+    /* Confirm and alert inside the page. Browser dialogs are switched off in
+       the claude.ai viewer (confirm() answers "no" at once), which silently
+       blocked firing commissioners and other confirmed actions.
+       SOP_confirm(message) resolves true or false; alert() becomes a notice. */
+    window.SOP_confirm = function (msg, yes) {
+      return new Promise(function (resolve) {
+        var back = document.createElement('div');
+        back.style.cssText = 'position:fixed;inset:0;z-index:9900;background:rgba(10,24,16,.55);display:flex;align-items:center;justify-content:center;padding:20px;animation:sopFadeIn .18s ease-out';
+        var card = document.createElement('div');
+        card.setAttribute('role', 'alertdialog'); card.setAttribute('aria-modal', 'true');
+        card.style.cssText = 'background:#fffdf8;color:#13261c;border-radius:24px;max-width:560px;width:100%;padding:26px 24px 20px;box-shadow:0 24px 60px rgba(0,0,0,.3);font:500 24px/1.45 "Plus Jakarta Sans",sans-serif;white-space:pre-line;animation:sopSlideUp .25s cubic-bezier(.2,.8,.2,1)';
+        var text = document.createElement('div'); text.textContent = String(msg);
+        var row = document.createElement('div'); row.style.cssText = 'display:flex;gap:12px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap';
+        function done(v) { back.remove(); resolve(v); }
+        function mk(label, primary, v) {
+          var b = document.createElement('button'); b.type = 'button'; b.textContent = label;
+          b.style.cssText = 'min-height:52px;padding:12px 24px;border-radius:999px;font:800 22px "Plus Jakarta Sans",sans-serif;cursor:pointer;' + (primary ? 'background:#12301f;color:#fff;border:0' : 'background:transparent;color:#13261c;border:1px solid #d6cfbf');
+          b.onclick = function () { done(v); }; return b;
+        }
+        var no = mk('Cancel', false, false), ok = mk(yes || 'Yes, go ahead', true, true);
+        row.appendChild(no); row.appendChild(ok); card.appendChild(text); card.appendChild(row); back.appendChild(card);
+        back.addEventListener('click', function (e) { if (e.target === back) done(false); });
+        document.body.appendChild(back); setTimeout(function () { ok.focus(); }, 30);
+      });
+    };
+    window.alert = function (msg) { try { window.SOP_toast(String(msg), 'warn'); } catch (e) {} };
+
     window.SOP_V2_toast = window.SOP_toast = function (msg, kind) {
       var wrap = document.getElementById('sop-toasts');
       if (!wrap) {

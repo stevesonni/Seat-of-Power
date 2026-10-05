@@ -1145,6 +1145,84 @@ const SceneArt = ({ bg, who, obj, alt, h = 230 }) => React.createElement("div", 
   who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
     : obj ? React.createElement("img", { src: "./art/objects/" + obj + ".webp", alt: alt || "", style: { height: Math.round(h * .68), width: "auto", objectFit: "contain", marginBottom: Math.round(h * .12), filter: "drop-shadow(0 10px 18px rgba(0,0,0,.35))" } }) : null);
 
+// ── Campaign screens (first election and re-election) ──
+// A scoreboard (you against the opponent), three zones to win and short move cards.
+const campFz = () => TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };
+const CampChip = ({ txt, col }) => { const fz = campFz(); return <span style={{ display: "inline-block", padding: TALL() ? "3px 10px" : "4px 12px", borderRadius: 999, background: col + "16", color: col, fontSize: fz.s, fontWeight: 700, whiteSpace: "nowrap" }}>{txt}</span>; };
+const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppParty, zones, swingId, money, days, maxDays, gfDebt, slogan, lastLog, ev }) => {
+  const tall = TALL(), fz = campFz();
+  const youState = Math.round(zones.reduce((a, z) => a + pollShare(z), 0) / zones.length);
+  const lastMove = (z) => { const m = (z.moves || []).slice(-1)[0]; return m && m.w >= week - 1 ? m : null; };
+  const nameBox = (img, nm, pty) => <div style={{ textAlign: "center" }}>
+    <img src={img} alt="" style={{ height: tall ? 92 : 130, width: "auto", display: "block", margin: "0 auto" }} />
+    <div style={{ fontSize: fz.s, fontWeight: 800, maxWidth: tall ? 96 : 200, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nm}</div>
+    <div style={{ fontSize: fz.s, opacity: .75 }}>{pty}</div>
+  </div>;
+  return <>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+      {[1, 2, 3, 4].map(w => <div key={w} style={{ flex: 1, height: 8, borderRadius: 4, background: w < week ? CL.grn : w === week ? (isOpp ? CL.red : CL.gold) : CL.bdr }} />)}
+      <span style={{ fontSize: fz.s, color: isOpp ? CL.red : CL.td, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 6 }}>Week {week} of 4 · {isOpp ? "their move" : "your move"}</span>
+    </div>
+    <div style={{ background: "#12301f", color: "#fff", borderRadius: 24, padding: tall ? "12px 12px 14px" : "18px 22px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: tall ? 10 : 18, alignItems: "end", marginBottom: 14 }}>
+      {nameBox(youImg, youName, youParty)}
+      <div style={{ alignSelf: "center" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: F.d, fontWeight: 700, fontSize: fz.l, lineHeight: 1 }}><span style={{ color: "#7ee2a8" }}>{youState}%</span><span style={{ color: "#ff9b8f" }}>{100 - youState}%</span></div>
+        <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", margin: "8px 0", background: "#c0392b" }}><div style={{ width: youState + "%", background: "#2fa866", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} /></div>
+        <div style={{ textAlign: "center", fontSize: fz.s, opacity: .8 }}>Statewide poll{youState > 52 ? ": you lead" : youState < 48 ? ": you trail" : ": too close to call"}</div>
+      </div>
+      {nameBox("./art/characters/rival.webp", oppName, oppParty)}
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8, marginBottom: 12 }}>
+      {zones.map(z => { const you = pollShare(z), lead = you >= 50, lm = lastMove(z); return <div key={z.id} title={z.key} style={{ background: CL.card, border: "1.5px solid " + (lead ? CL.grn + "66" : CL.red + "55"), borderRadius: 16, padding: tall ? "8px 8px" : "12px 14px" }}>
+        <div style={{ fontSize: fz.s, color: CL.td, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{z.zone.replace(" Senatorial", "")}</div>
+        <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.m, color: lead ? CL.grn : CL.red }}>{you}%</div>
+        <div style={{ height: 6, borderRadius: 3, background: CL.red + "40", overflow: "hidden" }}><div style={{ width: you + "%", height: "100%", background: CL.grn, transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} /></div>
+        <div style={{ fontSize: tall ? TS(18) : TS(24), marginTop: 4, color: lm ? (lm.d > 0 ? CL.grn : CL.red) : CL.td, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{lm ? (lm.d > 0 ? "▲ +" : "▼ ") + lm.d + " " + lm.l : z.id === swingId ? "Swing zone" : lead ? "Leaning you" : "Leaning them"}</div>
+      </div>; })}
+    </div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
+      <CampChip txt={"₦" + money.toFixed(2) + "B left"} col={CL.gold} />
+      <CampChip txt={days + " of " + maxDays + " days"} col={CL.pur} />
+      {gfDebt > 0 && <CampChip txt={"Godfather debt ₦" + gfDebt.toFixed(2) + "B"} col={CL.red} />}
+      {slogan && <CampChip txt={"“" + slogan + "”"} col={CL.grn} />}
+    </div>
+    {lastLog && <div style={{ fontSize: fz.s, color: CL.tm, background: CL.card, borderRadius: 12, padding: "8px 12px", marginBottom: 12, border: "1px solid " + CL.bdr }}>{lastLog}</div>}
+    {isOpp ? <div style={{ marginBottom: 12 }}>
+      <SceneArt bg="rally" who="rival" alt={oppName} h={tall ? 160 : 200} />
+      <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, lineHeight: 1.15 }}>{(ev?.t || "The opponent moves").replace(/^[^A-Za-z]+/, "")}</div>
+      <div style={{ fontSize: fz.m, color: CL.tm, marginTop: 6 }}>{ev?.d}</div>
+    </div> : <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, margin: "4px 0 10px" }}>Pick this week's move</div>}
+  </>;
+};
+const CampaignMove = ({ opt, ok, why, boosted, onPick }) => {
+  const tall = TALL(), fz = campFz();
+  const cost = opt.cost || opt.dc || 0;
+  const icon = (opt.l.match(/^\S+/) || [""])[0], name = opt.l.replace(/^\S+\s/, "");
+  const st = (opt.pts || 0) >= 7 ? 3 : (opt.pts || 0) >= 4 ? 2 : (opt.pts || 0) > 0 ? 1 : 0;
+  // The one line shows the trade-off when there is one; real dangers get a chip.
+  const line = opt.risk || opt.d;
+  const zoneTxt = opt.zoneLabel;
+  return <Cd onClick={ok ? onPick : undefined} style={{ padding: tall ? "12px 14px" : "16px 18px", opacity: ok ? 1 : .45, display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", textAlign: "left" }}>
+    <div style={{ fontSize: tall ? 30 : 40, lineHeight: 1 }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+        <b style={{ fontSize: fz.m, color: CL.txt }}>{name}</b>
+        <span aria-label={"Strength " + st + " of 3"} style={{ color: CL.grn, letterSpacing: 2, fontSize: fz.s, whiteSpace: "nowrap" }}>{"●".repeat(st)}<span style={{ color: CL.bdr }}>{"●".repeat(3 - st)}</span></span>
+      </div>
+      <div style={{ fontSize: fz.s, color: CL.td, margin: "2px 0 6px", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }} title={[opt.d, opt.risk].filter(Boolean).join(" ")}>{line}</div>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <CampChip txt={cost > 0 ? "₦" + cost.toFixed(2) + "B" : "Free"} col={CL.gold} />
+        <CampChip txt={(opt.days || 1) + ((opt.days || 1) === 1 ? " day" : " days")} col={CL.pur} />
+        {zoneTxt && <CampChip txt={zoneTxt} col={CL.blu} />}
+        {boosted && <CampChip txt="Slogan +2" col={CL.grn} />}
+        {opt.appRisk && <CampChip txt="Can backfire" col={CL.org} />}
+        {opt.corAdd && <CampChip txt="Owes favours" col={CL.org} />}
+        {!ok && why && <CampChip txt={why} col={CL.red} />}
+      </div>
+    </div>
+  </Cd>;
+};
+
 // Plays one sound when a screen appears (see SOP_sound in the html shell).
 const Sfx = ({ k }) => { React.useEffect(() => { try { window.SOP_sound && window.SOP_sound(k); } catch (e) {} }, []); return null; };
 
@@ -1733,6 +1811,11 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Seg items={[["easy", "Easy"], ["medium", "Medium"], ["hard", "Hard"]]} value={level} onChange={setLevel} style={{ margin: "0 0 4px" }} />
       </div>
+      <div style={{ fontSize: DS.t.meta, color: UI.sub, margin: "0 0 10px", lineHeight: 1.4 }}>{{
+        easy: "Easy: approval drains slowly, fewer crises and no godfather demands, and the House only moves to impeach below 25% approval.",
+        medium: "Medium: the standard game. Approval drains every half-year, crises are regular, and the House turns on you below 30%.",
+        hard: "Hard: approval drains fast, corruption and insecurity cost more, the opposition hits harder in campaigns, and impeachment starts below 38%.",
+      }[level] || ""}</div>
       <Seg items={[["all", "All Nigeria"], ...Object.entries(ZONES)]} value={zoneKey} onChange={k => setZf(k === "all" ? null : k)} />
       <div style={{ display: TALL() ? "block" : "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18, alignItems: "start" }}>
         <div style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 28, padding: TALL() ? 10 : 16 }}>
@@ -2193,60 +2276,38 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       );
     }
 
+    const opts = (() => { const o = isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.opts || []) : (mkActs()[Math.floor(sCampRound / 2)] || []); return o.some(canTake) ? o : [...o, sitOut]; })();
+    const tall = TALL(), fz = campFz();
     return (
-      <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
-        <div style={{ maxWidth: 948, margin: "8px auto" }}>
-          {isOpp ? <Bg text={"Week " + week + " of 4 — the opponent strikes"} color={CL.red} /> : <Bg text={"Week " + week + " of 4 — your move"} color={CL.grn} />}
-          <SceneArt bg="rally" who={isOpp ? "rival" : undefined} alt={isOpp ? oName : undefined} h={TALL() ? 170 : 220} />
-          <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), fontWeight: 600, margin: "22px 0" }}>{isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.t || "Opponent Moves") : "Pick this week's main move"}</h3>
-          {isOpp && <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 22 }}>{oppEvts[Math.floor(sCampRound / 2)]?.d || ""}</p>}
-          {!isOpp && <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 22 }}>Ticket: <b style={{ color: CL.grn, letterSpacing: 1 }}>{(lastNm || "YOU").toUpperCase()}/{(depGov?.nm.split(" ").pop() || "DEP").toUpperCase()}</b> ({party}) vs <strong>{oName}</strong> ({oParty?.id || "OPP"}) · Slogan: "{slogan}"</p>}
-          {renderZones()}
-          <Cd style={{ padding: 22, marginBottom: 18, display: "flex", justifyContent: "space-around", gap: 14, textAlign: "center" }}>
-            <div><div style={{ fontSize: TS(44), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>₦{warChest.toFixed(2)}B</div><div style={{ fontSize: TS(27), color: CL.td }}>money left</div></div>
-            <div><div style={{ fontSize: TS(44), fontWeight: 700, color: CL.pur, fontFamily: F.m }}>{daysLeft} of {WEEK_DAYS}</div><div style={{ fontSize: TS(27), color: CL.td }}>campaign days left this week</div></div>
-          </Cd>
-          {!isOpp && warChest < 0.2 && !gfBorrowed && level !== "easy" && <Cd onClick={borrowFromGF} style={{ padding: 22, borderColor: CL.red + "44", marginBottom: 22, textAlign: "center" }}>
-            <div style={{ fontSize: TS(36), fontWeight: 600, color: CL.red }}>🎩 Running low? Borrow ₦0.8B from the Godfather</div>
-            <div style={{ fontSize: TS(29), color: CL.td }}>He'll fund your campaign — but the debt follows you into office. He WILL demand repayment.</div>
+      <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "14px 16px 40px" : "28px 32px" }}>
+        <div style={{ maxWidth: tall ? 980 : 1440, margin: "0 auto" }}>
+          <CampaignBoard week={week} isOpp={isOpp} youImg={AVATAR_IMGS[avatar] || HERO_MALE} youName={lastNm || "You"} youParty={party} oppName={oName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oParty?.id || "OPP"}
+            zones={activeZones} swingId={swingZone.id} money={warChest} days={daysLeft} maxDays={WEEK_DAYS} gfDebt={gfDebt} slogan={slogan} lastLog={sCampLog.length ? sCampLog[sCampLog.length - 1] : null} ev={isOpp ? oppEvts[Math.floor(sCampRound / 2)] : null} />
+
+          {/* Money trouble */}
+          {!isOpp && warChest < 0.2 && !gfBorrowed && level !== "easy" && <Cd onClick={borrowFromGF} style={{ padding: tall ? 14 : 20, borderColor: CL.red + "44", marginBottom: 12 }}>
+            <div style={{ fontSize: fz.m, fontWeight: 700, color: CL.red }}>🎩 Borrow ₦0.8B from the godfather</div>
+            <div style={{ fontSize: fz.s, color: CL.td }}>The debt follows you into office, and he will collect.</div>
           </Cd>}
-          {!isOpp && warChest < 0.09 && gfBorrowed && level !== "easy" && <Cd style={{ padding: 29, borderColor: CL.red + "55", marginBottom: 22, background: "#fff7f2" }}>
-            <div style={{ fontSize: TS(36), fontWeight: 800, color: CL.red, textAlign: "center", marginBottom: 14 }}>💸 CAMPAIGN CASH-OUT — DECIDE NOW</div>
-            <div style={{ fontSize: TS(31), color: CL.tm, lineHeight: 1.35, textAlign: "center", marginBottom: 22 }}>Your campaign cannot advance on vibes alone. Borrow again with a cabinet condition, withdraw, run unfunded, or restart the election setup.</div>
-            <div style={{ display: "grid", gap: 19 }}>
-              <Bt onClick={borrowFromGFWithMandate} style={{ background: CL.gold, color: "#000", fontSize: TS(36) }}>🎩 Borrow ₦0.6B — accept Education Commissioner demand</Bt>
-              <Bt v="danger" onClick={() => { setSCampRound(8); setSCampScore(sc => sc - 60); setSCampOpp(op => op + 80); setSCampLog(c => [...c, "🏳️ Withdrew after campaign funds collapsed. Party structures moved to the opponent."]); }} style={{ fontSize: TS(36) }}>🏳️ Drop out of the race</Bt>
+          {!isOpp && warChest < 0.09 && gfBorrowed && level !== "easy" && <Cd style={{ padding: tall ? 14 : 22, borderColor: CL.red + "55", marginBottom: 12, background: "#fff7f2" }}>
+            <div style={{ fontSize: fz.m, fontWeight: 800, color: CL.red, marginBottom: 8 }}>💸 The money has run out</div>
+            <div style={{ display: "grid", gap: 10 }}>
+              <Bt onClick={borrowFromGFWithMandate} style={{ background: CL.gold, color: "#000", fontSize: fz.s }}>🎩 Borrow ₦0.6B: his man becomes Education Commissioner</Bt>
               <Bt onClick={() => {
                 const win = Math.random() < 0.20;
-                if (win) {
-                  setSCampScore(sc => sc + 100);
-                  setSCampLog(c => [...c, "🙏 Ran broke — a volunteer miracle carried market women, youth organisers and ward canvassers without cash."]);
-                } else {
-                  setSCampOpp(op => op + 100);
-                  setSCampLog(c => [...c, "💸 Ran broke — no mobilisation, no agents, no final rally. Opponent swept the collation centres."]);
-                }
+                if (win) { setSCampScore(sc => sc + 100); setSCampLog(c => [...c, "🙏 Ran broke — a volunteer miracle carried market women, youth organisers and ward canvassers without cash."]); }
+                else { setSCampOpp(op => op + 100); setSCampLog(c => [...c, "💸 Ran broke — no mobilisation, no agents, no final rally. Opponent swept the collation centres."]); }
                 setSCampRound(8);
-              }} style={{ background: CL.org, fontSize: TS(36) }}>🎲 Run anyway — no funds (80/20 loss)</Bt>
-              <Bt v="ghost" onClick={restartElectionSetup} style={{ fontSize: TS(34) }}>↻ Restart from party primaries</Bt>
+              }} style={{ background: CL.org, fontSize: fz.s }}>🎲 Run with no money (1 in 5 chance)</Bt>
+              <Bt v="danger" onClick={() => { setSCampRound(8); setSCampScore(sc => sc - 60); setSCampOpp(op => op + 80); setSCampLog(c => [...c, "🏳️ Withdrew after campaign funds collapsed. Party structures moved to the opponent."]); }} style={{ fontSize: fz.s }}>🏳️ Withdraw</Bt>
             </div>
           </Cd>}
-          {gfDebt > 0 && <div style={{ fontSize: TS(29), color: CL.red, textAlign: "center", marginBottom: 14 }}>🎩 Godfather debt: ₦{gfDebt}B</div>}
-          <div style={{ display: "grid", gap: 22 }}>
-            {(() => { const opts = isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.opts || []) : (mkActs()[Math.floor(sCampRound / 2)] || []); return opts.some(canTake) ? opts : [...opts, sitOut]; })().map((opt, i) => {
-              const ok = opt === sitOut || canTake(opt);
-              const cost = optCost(opt);
-              const why = optCost(opt) > warChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days left" : "";
-              return <Cd key={i} onClick={ok ? () => handleSC(opt) : undefined} style={{ padding: 26, opacity: ok ? 1 : .45 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(36), color: ok ? CL.txt : CL.td, marginBottom: 6 }}>{opt.l}</div>
-                <div style={{ fontSize: TS(32), color: CL.tm, lineHeight: 1.3 }}>{opt.d}</div>
-                <div style={{ fontSize: TS(30), color: CL.txt, fontFamily: F.m, marginTop: 10 }}>{cost > 0 ? "₦" + cost.toFixed(2) + "B" : "No money"} · {opt.days || 1} {(opt.days || 1) === 1 ? "day" : "days"} · {zoneLabel(opt.target)}</div>
-                {sloganDef(slogan)?.boost.test(opt.l) && <div style={{ fontSize: TS(28), color: CL.grn, marginTop: 6, fontWeight: 700 }}>📣 Your slogan helps here (+2)</div>}
-                {(opt.risk || opt.corAdd || opt.appRisk) && <div style={{ fontSize: TS(28), color: CL.org, marginTop: 6 }}>⚠️ {[opt.risk, opt.corAdd && "Promises to power brokers follow you into office.", opt.appRisk && !opt.risk && "Can backfire."].filter(Boolean).join(" ")}</div>}
-                {!ok && <div style={{ fontSize: TS(28), color: CL.red, marginTop: 6 }}>{why}</div>}
-              </Cd>;
-            })}
-            <div style={{ textAlign: "center", marginTop: 29 }}><Bt v="ghost" onClick={restartElectionSetup} style={{ fontSize: TS(34) }}>↻ Restart election setup</Bt></div>
+
+          <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(400px, 1fr))", gap: 14 }}>
+            {opts.map((opt, i) => { const ok = opt === sitOut || canTake(opt); const cost = optCost(opt);
+              return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} onPick={() => handleSC(opt)} />; })}
           </div>
+          <div style={{ textAlign: "center", marginTop: 18 }}><button onClick={restartElectionSetup} style={{ background: "none", border: 0, color: CL.td, fontSize: fz.s, textDecoration: "underline", cursor: "pointer", fontFamily: F.b }}>Restart election setup</button></div>
         </div>
       </div>
     );
@@ -2892,9 +2953,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const blameOf = (k) => { const b = skBlame.current[k]; return b ? " They point to \u201c" + String(b.what).replace(/^[^A-Za-z0-9"\u201c₦]+/u, "").slice(0, 110) + "\u201d (turn " + b.turn + ")." : ""; };
   const addL = (tx, tp = "info") => { if (tp !== "info" && tp !== "crisis" && tp !== "success") lastAct.current = { turn, what: tx }; setLogs(p => [{ t: turn, tx, tp }, ...p].slice(0, 40)); try { window.SOP && (window.SOP._lastLog = { t: turn, tx, tp }); window.dispatchEvent(new CustomEvent('sop-log', { detail: { t: turn, tx, tp } })); } catch(e){} };
   const goTab = (k) => setNav(k);
-  const fireAdviser = () => {
+  const fireAdviser = async () => {
     if (!saOffice.adviser) { setSaPickerOpen(true); return; }
-    if (!window.confirm("Fire " + saOffice.adviser.name + "? You'll pick a replacement immediately from the reserve list.")) return;
+    if (!(await window.SOP_confirm("Fire " + saOffice.adviser.name + "? You'll pick a replacement immediately from the reserve list.", "Fire"))) return;
     setSaOffice(o => ({ adviser: null, firedTurn: turn, history: [{ name: o.adviser.name, fired: turn }, ...(o.history || [])] }));
     setSaPickerOpen(true);
     addL("🔥 " + saOffice.adviser.name + " removed as Special Adviser. Pick a replacement from the reserve.", "warn");
@@ -6132,15 +6193,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const OptCard = ({ opt }) => {
               const ok = opt === sitOut || canTake(opt);
               const cost = optCost(opt);
-              const why = cost > campWarChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days left" : "";
-              return <Cd onClick={ok ? () => handleChoice(opt) : undefined} style={{ padding: 26, opacity: ok ? 1 : .45, textAlign: "left" }}>
-                <div style={{ fontWeight: 600, fontSize: TS(36), color: ok ? CL.txt : CL.td, marginBottom: 6 }}>{opt.l}</div>
-                <div style={{ fontSize: TS(32), color: CL.tm, lineHeight: 1.3 }}>{opt.d}</div>
-                <div style={{ fontSize: TS(30), color: CL.txt, fontFamily: F.m, marginTop: 10 }}>{cost > 0 ? "₦" + cost.toFixed(2) + "B" : "No money"} · {opt.days || 1} {(opt.days || 1) === 1 ? "day" : "days"} · {zoneLabel(opt.target)}</div>
-                {(opt.risk || opt.corAdd || opt.appRisk) && <div style={{ fontSize: TS(28), color: CL.org, marginTop: 6 }}>⚠️ {[opt.risk, opt.corAdd && "Promises to power brokers follow you into the next term.", opt.appRisk && !opt.risk && "Can backfire."].filter(Boolean).join(" ")}</div>}
-                {!ok && <div style={{ fontSize: TS(28), color: CL.red, marginTop: 6 }}>{why}</div>}
-              </Cd>;
+              return <CampaignMove opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > campWarChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days" : ""} onPick={() => handleChoice(opt)} />;
             };
+            const board = (opp, ev) => <CampaignBoard week={week} isOpp={opp} youImg={AVATAR_IMGS[setup?.avatar] || HERO_MALE} youName={(setup?.lastNm || pName.split(" ").pop() || "You")} youParty={party}
+              oppName={oppName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oppParty?.id || "OPP"} zones={activeReZones} swingId={reSwing.id} money={campWarChest} days={daysLeft} maxDays={WEEK_DAYS}
+              gfDebt={campGfDebt} slogan={null} lastLog={campLog.length ? campLog[campLog.length - 1] : null} ev={ev} />;
+            const moveGrid = { display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fit, minmax(400px, 1fr))", gap: 14 };
             const withFallback = (opts) => opts.some(canTake) ? opts : [...opts, sitOut];
 
             const handleChoice = (opt) => {
@@ -6247,17 +6305,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             if (isOppEvent) {
               const ev = oppEvs[Math.floor(campRound / 2)] || oppEvs[0];
-              return <Cd>
-                <div style={{ textAlign: "center", marginBottom: 22 }}>
-                  <Bg text={"Week " + week + " of 4 — the opponent strikes"} color={CL.red} />
-                  <SceneArt bg="rally" who="rival" alt={oppName} h={TALL() ? 170 : 220} />
-                  <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{ev.t}</h3>
-                  <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, textAlign: "left" }}>{ev.d}</p>
-                  <ReZoneBoard />
-                  <ScoreBoard />
-                  <div style={{ fontSize: TS(34), color: CL.org, marginBottom: 22 }}>How do you respond?</div>
-                </div>
-                <div style={{ display: "grid", gap: 22 }}>
+              return <Cd style={{ padding: TALL() ? "14px 14px" : "24px 28px" }}>
+                {board(true, ev)}
+                <div style={moveGrid}>
                   {withFallback(ev.opts).map((opt, i) => <OptCard key={i} opt={opt} />)}
                 </div>
               </Cd>;
@@ -6265,14 +6315,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             // YOUR ACTION
             const weekActs = acts[Math.floor(campRound / 2)] || acts[0];
-            return <Cd>
-              <div style={{ textAlign: "center", marginBottom: 22 }}>
-                <Bg text={"Week " + week + " of 4 — your move"} color={CL.grn} />
-                <SceneArt bg="rally" h={TALL() ? 170 : 220} />
-                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>Pick this week's main move</h3>
-                <div style={{ fontSize: TS(34), color: CL.td }}>Opponent: <strong>{oppName}</strong> ({oppParty?.id || "OPP"})</div>
-                <ReZoneBoard />
-                <ScoreBoard />
+            return <Cd style={{ padding: TALL() ? "14px 14px" : "24px 28px" }}>
+              {board(false, null)}
+              <div style={{ textAlign: "center", marginBottom: 12 }}>
                 {campWarChest < 0.2 && !campGfBorrowed && setup?.level !== "easy" && (() => {
                   const gfWilling = godfatherRel > 30;
                   return gfWilling ? <Cd onClick={borrowGF2} style={{ padding: 19, borderColor: CL.red + "44", marginBottom: 14, textAlign: "center" }}>
@@ -6293,9 +6338,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     </Cd>}
                   </div>;
                 })()}
-                {campGfDebt > 0 && <div style={{ fontSize: TS(29), color: CL.red, marginBottom: 14 }}>🎩 Godfather debt: ₦{campGfDebt}B</div>}
               </div>
-              <div style={{ display: "grid", gap: 22 }}>
+              <div style={moveGrid}>
                 {withFallback(weekActs).map((act, i) => <OptCard key={i} opt={act} />)}
               </div>
               {/* Broke — choose to withdraw OR run with no funds (80/20 loss) */}
@@ -7148,6 +7192,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               {rec.length ? rec.map(e => <div key={e.id} style={{ fontSize: TS(24), color: CL.tm, lineHeight: 1.45, padding: "8px 0", borderTop: "1px solid " + CL.bdr }}>
                 <b style={{ color: CL.txt }}>Turn {e.t}</b> · {e.decision || e.note || e.kind.replace(/_/g, " ")}
               </div>) : <div style={{ fontSize: TS(24), color: CL.td, fontStyle: "italic", borderTop: "1px solid " + CL.bdr, paddingTop: 8 }}>Nothing between you yet.</div>}
+              {c.id === "adviser" && <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
+                <Bt v="ghost" onClick={fireAdviser} style={{ color: CL.red, borderColor: CL.red + "66", fontSize: TS(24) }}>{saOffice.adviser ? "Fire adviser" : "Appoint an adviser"}</Bt>
+              </div>}
+              {c.id === "deputy" && <div style={{ fontSize: TS(21), color: CL.td, marginTop: 12 }}>A deputy governor is elected with you and cannot be fired; only the House can remove them (Section 188).</div>}
             </Cd>;
           })}
         </div>}

@@ -425,12 +425,12 @@
             SOP_H('input',{type:"checkbox", checked: mergeSel.includes(m.id), onChange:e=>{
               setMergeSel(e.target.checked ? [...mergeSel,m.id].slice(-2) : mergeSel.filter(x=>x!==m.id));
             }, title:"Select for merge"}),
-            SOP_H(Btn,{onClick:()=>{
+            SOP_H(Btn,{onClick:async ()=>{
               const gf = !!m.godfatherMandate;
               const warn = gf
                 ? `Fire Hon. ${m.minister}?\n\nThis was a GODFATHER-IMPOSED appointment from your campaign bailout. Firing WILL trigger retaliation:\n• Godfather recalls ₦0.6B loan (treasury hit)\n• -20 party stability, -15 loyalty across party\n• Public feud logged on your Wikipedia\n• Future godfather bailouts locked`
                 : `Fire Hon. ${m.minister} as Commissioner for ${m.name}?\n\nA new commissioner will be sworn in. Party may grumble.`;
-              if (!confirm(warn)) return;
+              if (!(await window.SOP_confirm(warn))) return;
               const oldName = m.minister;
               const seed = Date.now() % 9999;
               const replacement = newNpc(SOP.state, seed, "Commissioner").name;
@@ -454,8 +454,8 @@
                 try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"minister_fired", target: oldName, gravity:2, evidence:2, note:`Cabinet reshuffle: ${oldName} → ${replacement} at ${m.name}`, meta:{ ministry:m.name, godfather:false }}); } catch(e){}
               }
             }, tone:"org", style:{fontSize: TS(34),padding: "10px 22px"}}, m.godfatherMandate ? "🔥 Fire GF" : "🔄 Fire"),
-            SOP_H(Btn,{onClick:()=>{
-              if (!confirm(`Dismantle ${m.name}? Civil servants will sue. Party will revolt.`)) return;
+            SOP_H(Btn,{onClick:async ()=>{
+              if (!(await window.SOP_confirm(`Dismantle ${m.name}? Civil servants will sue. Party will revolt.`))) return;
               SOP.setMinistries(SOP.ministries.filter(x=>x.id!==m.id));
               SOP.setS(p=>({...p, pStab: Math.max(0,p.pStab-12), app: Math.max(0,p.app-5)}));
               SOP.addL(`💥 Dismantled ${m.name}. NIC lawsuits filed. -12 party, -5 approval.`, "crisis");
@@ -544,8 +544,8 @@
             SOP.setProjects([...SOP.projects]);
             SOP.addL && SOP.addL(`🤝 Renegotiated ${p.title} — saved ₦${savings.toFixed(2)}B, contractor grumbling.`, "policy");
           };
-          const actTerminate = () => {
-            if (!window.confirm(`Terminate ${p.title}? Contractor may sue for breach; a scar goes on your record.`)) return;
+          const actTerminate = async () => {
+            if (!(await window.SOP_confirm(`Terminate ${p.title}? Contractor may sue for breach; a scar goes on your record.`))) return;
             p.status = "abandoned";
             p.events = (p.events||[]).concat(`T${SOP.turn}: Contract terminated by executive order. Contractor threatens litigation.`);
             SOP.setProjects([...SOP.projects]);
@@ -635,8 +635,8 @@
       SOP_H('h3',{style:{margin: "0 0 22px",fontFamily:F().d,fontSize: TS(58),color:c.txt,fontWeight:600}}, `👑 Traditional Rulers Council`),
       SOP_H('div',{style:{fontSize: TS(36),color:c.td,marginBottom: 29}}, "Constitutionally advisory (5th Sched., Part II) — politically decisive in rural mobilisation and inter-communal peace."),
       SOP_H('div',{style:{display:"flex",gap: 22,marginBottom: 29,flexWrap:"wrap"}},[
-        SOP_H(Btn,{onClick:()=>{
-          if(!confirm("Dissolve the entire Council? Historic first — rural bloc will revolt.")) return;
+        SOP_H(Btn,{onClick:async ()=>{
+          if (!(await window.SOP_confirm("Dissolve the entire Council? Historic first — rural bloc will revolt."))) return;
           SOP.setCouncil({...SOP.council, dissolved:true});
           SOP.setS(p=>({...p, app: Math.max(0,p.app-12), sec: Math.max(0,p.sec-0.05)}));
           SOP.addL("👑 DISSOLVED Traditional Rulers Council. Approval -12. Rural areas restive.", "crisis");
@@ -657,8 +657,8 @@
               SOP.setCouncil({...SOP.council});
               SOP.addL(`👑 Palace visit to ${r.name}. +15 relations. ₦40M "welfare".`, "political");
             }, style:{fontSize: TS(34),padding: "10px 22px"}}, "Palace visit ₦40M"),
-            SOP_H(Btn,{onClick:()=>{
-              if(!confirm(`Depose ${r.name}? Court challenge is virtually certain.`)) return;
+            SOP_H(Btn,{onClick:async ()=>{
+              if (!(await window.SOP_confirm(`Depose ${r.name}? Court challenge is virtually certain.`))) return;
               SOP.setCouncil({...SOP.council, rulers: SOP.council.rulers.filter(x=>x.id!==r.id)});
               SOP.setS(p=>({...p, app: Math.max(0,p.app-6), pStab: Math.max(0,p.pStab-4)}));
               SOP.addL(`⚖️ Deposed ${r.name}. Court injunction incoming.`, "political");

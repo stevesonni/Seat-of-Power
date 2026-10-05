@@ -90,3 +90,25 @@
   - You can go in person, or send your deputy (ceremonial, +2 party), the commissioner whose ministry fits (wins 40% of the in-person deal) or your Special Adviser (quiet follow-up).
 - **Text size:** hero-sized text on laptops now stops at 64 (it used to grow past 100 for icons and titles like "VOTED OUT"), and module headings are smaller.
 - **Smoothness:** overlays fade and slide in on laptops (the animation classes existed but were never defined), each Desk step slides up, and buttons and cards give a small press. Animations are off when the device asks for reduced motion.
+
+## Firing, difficulty and the campaign screen
+- **Firing was blocked by browser dialogs.**
+  - Firing a commissioner, dismantling a ministry, terminating a contract, dissolving the Traditional Council, deposing a ruler and firing the adviser all asked "are you sure?" through the browser.
+  - The claude.ai viewer switches those off and answers "no", so nothing happened.
+  - They now use an in-game confirmation card (`SOP_confirm`), and alerts show as notices.
+- **Fire adviser** is now on the adviser's card in People → Cast, as well as in the State sheet. The deputy's card explains that a deputy can only be removed by the House (Section 188).
+- **Difficulty** now has a line under the picker. In the code:
+  - **Easy:** approval drains 1 point per half-year; corruption and insecurity cost 30% less; opposition attacks are rare (18%); no godfather demands; only the Abuja trip; House bills only twice; bankruptcy below ₦1.5B; impeachment below 25% approval with party under 35%.
+  - **Medium:** drain 2; opposition attacks 35%; bankruptcy below ₦2.2B; impeachment below 30%/40%.
+  - **Hard:**
+    - drain 3.2; corruption and insecurity cost 60% more; opposition attacks 55%; approval capped at 88%;
+    - your campaign moves are weaker and the opponent's stronger, with bigger election-day swings;
+    - the godfather and federal government can strike on their own;
+    - bankruptcy below ₦3B; impeachment below 38%/48%.
+- **Campaign screen (first election and re-election)**, rebuilt around a scoreboard:
+  - the week strip;
+  - you against the opponent with the statewide poll;
+  - three zone tiles showing who leads and the last move's effect;
+  - money, days, godfather debt and slogan as chips;
+  - one line for the last move;
+  - move cards with a one-line description and chips for cost, days, target zone, a strength meter, "Slogan +2" and "Risky".
