@@ -156,3 +156,8 @@
 - **Your answer** wins back some or all of the ground; ignoring it leaves the damage and adds more.
 - **Election day:** the hidden drag on the first election shrank (medium: support −1 and opponent +1, down from −2 and +3) so the final poll is a fair guide. The fight is now in the campaign itself.
 - **Test:** a first-option autopilot in Kano on medium won by 0.5%, down from a comfortable win.
+
+## Neglect costs every half-year
+- **Waiting needs:** every open, unanswered need costs approval −1 and its zone −2 each half-year ("Still waiting: …"), as well as the bigger cost at the deadline.
+- **Wikipedia:** ignored needs and abandoned sites now go under Controversies.
+- **Idle half-years:** a half-year with no new programme or project costs approval −3 and −2 in every zone, and adds a Controversies line ("government on autopilot"). The last half-year with new work is tracked by `lastActTurn`.

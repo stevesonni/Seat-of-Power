@@ -3079,6 +3079,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [needs, setNeeds] = useState(() => ld?.needs || []);
   const [needOpen, setNeedOpen] = useState(null);
   const needsReviewed = React.useRef(ld?.needsReviewed || 1);
+  // The last half-year you started a programme or project (idle half-years cost you).
+  const lastActTurn = React.useRef(ld?.turn || 1);
+  const actCount = (pol || []).length + (projects || []).length;
+  const actPrev = React.useRef(actCount);
+  useEffect(() => { if (actCount > actPrev.current) lastActTurn.current = turn; actPrev.current = actCount; }, [actCount]);
   const needSetup = !ministries || !ministries.length || !council;
   const activeNeeds = needs.filter(n => n.status === "open" || n.status === "started" || n.status === "stalled");
   const zoneName = (zi) => (ZONE_LABELS[zi] || "").replace(" Senatorial", "");
@@ -3136,6 +3141,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           if (stall >= 2) {
             dApp -= n.sev * 3 + 1; addZ(n.zone, -8);
             notes.push(["🏚️ " + T.abandon(n.lga), "crisis"]);
+            try { setWikiEvents(w => [{ turn, section: "Controversies", txt: T.abandon(n.lga) }, ...w]); } catch (e) {}
             try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "project_abandoned", actor: "governor", gravity: 3, evidence: 4, decision: "Let the work answering '" + T.title(n.lga) + "' be abandoned", note: "Contractors unpaid for two half-years" }); } catch (e) {}
             return { ...n, status: "failed", closed: turn, stall, abandoned: true };
           }
@@ -3148,13 +3154,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (turn > n.due) {
         dApp -= n.sev * 2 + 1; addZ(n.zone, -6);
         notes.push(["💀 " + T.fail(n.lga), "crisis"]);
+        try { setWikiEvents(w => [{ turn, section: "Controversies", txt: "Ignored warnings: " + T.fail(n.lga) }, ...w]); } catch (e) {}
         try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "need_ignored", actor: "governor", gravity: 3, evidence: 4, decision: "Ignored: " + T.title(n.lga), note: T.fail(n.lga) }); } catch (e) {}
         if (n.sev < 3) fresh.push({ ...n, id: n.id + "x", sev: n.sev + 1, raised: turn, due: turn + 1, status: "open", link: null, proj: null, stall: 0, worse: true });
         return { ...n, status: "failed", closed: turn };
       }
-      if (turn === n.due) notes.push(["⏳ Last half-year to act: " + T.title(n.lga) + ".", "political"]);
+      // Waiting costs something every half-year, not only at the deadline.
+      dApp -= 1; addZ(n.zone, -2);
+      notes.push([(turn === n.due ? "⏳ Last half-year to act: " : "😠 Still waiting: ") + T.title(n.lga) + ". " + zoneName(n.zone) + " zone is turning against you.", "political"]);
       return n;
     });
+    if (lastActTurn.current < turn - 1) {
+      dApp -= 3; [0, 1, 2].forEach(z => addZ(z, -2));
+      notes.push(["🪑 A whole half-year without a single new programme or project. The papers call it \"Government on autopilot\" (approval −3, every zone −2).", "crisis"]);
+      try { setWikiEvents(w => [{ turn, section: "Controversies", txt: "Went a half-year without starting any programme or project; the press dubbed it \"government on autopilot\"." }, ...w]); } catch (e) {}
+    }
     const stillOpen = next.filter(n => n.status === "open" || n.status === "started" || n.status === "stalled").length + fresh.length;
     const added = [];
     if (stillOpen < 3) { const r = rng(turn * 53 + state.length * 11); added.push(makeNeed(r, [...next, ...fresh].filter(n => n.status !== "met" && n.status !== "failed").map(n => n.k))); }
