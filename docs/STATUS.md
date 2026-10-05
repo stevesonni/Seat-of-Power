@@ -148,3 +148,11 @@
 - **The adviser** has a record too: an occasional leaked memo (approval −1) or a good call. Firing with a leak on record gives approval +1; firing a clean adviser gives approval −2 and a tell-all column.
 - **New commissioners** get a half-year to settle in: a weak record does not count against them until then.
 - **Records** show on the Cabinet cards, the Ministries tab and the adviser's Cast card.
+
+## Campaigns: the opponent fights back
+- **Their move lands first (`oppStrike`):** each week, straight after your move, the opponent's attack hits the polls in the zone it targets, before you answer. The four attacks in each election (credentials, rally, smear, endorsement; failure report, viral rally, corruption story, endorsement) each have their own target and strength.
+- **Scaling:** ×0.7 on easy, ×1.1 on medium, ×1.5 on hard. They hit harder when you lead (+1 above 50%, +3 above 54%).
+- **On screen:** a red banner ("…'s rally cost you 5 points in Central. Answer it or it sticks.") and "▼ −5 Their rally" on the zone card. "How the zones moved" lists their moves alongside yours.
+- **Your answer** wins back some or all of the ground; ignoring it leaves the damage and adds more.
+- **Election day:** the hidden drag on the first election shrank (medium: support −1 and opponent +1, down from −2 and +3) so the final poll is a fair guide. The fight is now in the campaign itself.
+- **Test:** a first-option autopilot in Kano on medium won by 0.5%, down from a comfortable win.
