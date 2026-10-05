@@ -182,3 +182,19 @@ Eight systems, built in `game/seat-of-power.jsx`. The data sits after `OFFENCE` 
 - **The street:** a Desk panel with a trending hashtag, up to three voices (some in Pidgin) built from arrears, failed and met needs, corruption, House defections and cabinet imbalance, plus chips for salaries, the House, the cabinet and promises.
 - **Succession:** in the last year, anoint your deputy, your best commissioner, your political son, or let the party decide. Each has a loyalty and an electability. At the end the successor wins or loses (approval and party), and a winner may betray you (more likely when corruption is high). EFCC exposure moves by −12 points with a loyal successor and +12 after a betrayal (+8 after an opposition win). The Wikipedia "Succeeded by" field follows.
 - **Report card:** the end screen shows a title ("The Builder", "Mr Autopilot", "Promise Keeper", "The Governor Who Owed Salaries"…), needs answered and ignored, promises, salary arrears, debt, corruption and the House. The title is added to the share text.
+
+## No overlapping scenarios, less text
+- **One story per topic:** crises, needs, background events, dilemmas, bills and shocks carry topics (`CRISIS_TOPIC`, `NEED_TOPIC`, `passiveTopics`). No topic repeats within two half-years.
+  - A state crisis waits if an active need, a recent background event or a passed bill already tells its story.
+  - Background bandit, pipeline, flood and cult events wait the same way.
+  - The cholera background event and dilemma stay away while a water or clinic need is open.
+- **Removed duplicates:**
+  - Dilemmas replaced by the new systems: Salary Strike, Herder–Farmer, Floods, Schoolchildren Kidnapped and Oil Spill (which could hit Kano).
+  - The random NLC strike and the old −8 salary penalty; arrears now drive strikes.
+  - The federal "FAAC cut" event. The FAAC card follows the oil-price swing, so it never contradicts an "oil rally" headline.
+  - The national flood and terror shocks in states with their own flood or insurgency crises.
+  - The almajiri, grazing and anti-cult bills once the matching crisis has happened, and the reverse.
+- **House summons retired:** the politics engine's "THE HOUSE ASKS QUESTIONS" card no longer appears. The House is handled by defections and impeachment.
+- **Civic review:** no longer pops up over the end-of-half-year screen. It opens from a "Full half-year review" button there.
+- **Less text:** a `More` component shows the first sentence of long texts with a "More ▾" toggle. It is used on decision cards, outcome narratives and the court, shock, federal, media, investor and House-bill descriptions.
+- **Cabinet zones:** the first cabinet is balanced across the three zones. When you fire someone you choose the replacement: a loyalist from your home zone (loyalty 80, may upset the balance) or someone from the short-changed zone, which restores it. `SOP_confirm` takes an optional third argument for the "no" label.

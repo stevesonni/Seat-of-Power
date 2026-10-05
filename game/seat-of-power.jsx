@@ -876,6 +876,13 @@ const STATE_CRISES = [
       { l: "Deploy police and arrest the youths on both sides", note: "Quiet returns. Both monarchs resent you.", fx: { sec: .02, app: -1 }, zone: -1, log: "arrested youths on both sides of the land war" },
     ] },
 ];
+// One story per topic: crises, needs, dilemmas and bills that tell the same story.
+const CRISIS_TOPIC = { oil_spill: "oil", illegal_refinery: "oil", bandits_tax: "kidnap", school_abduction: "kidnap", insurgent_attack: "displaced", farmer_herder: "farm", flood: "flood", sit_at_home: "sitathome", almajiri: "school", demolition: "displaced", cult_clash: "cult", erosion: "road", mining: "health", land_clash: "land" };
+const NEED_TOPIC = { road: "road", clinic: "health", school: "school", water: "health", security: "kidnap", farm: "farm", power: "power", housing: "displaced" };
+// Dilemmas the statecraft systems now tell better (salary strikes via FAAC
+// and arrears; herders, floods, kidnaps and oil spills as each state's own crises).
+const DILEMMA_REPLACED = ["strike", "herder", "flood", "kidnap", "oil_spill"];
+const BILL_CRISIS = { hb_almajiri: "almajiri", hb_grazing: "farmer_herder", hb_anti_cult: "cult_clash" };
 const stateCrisesFor = (st) => {
   const iss = (STATES[st]?.issues || []).join(" | ");
   const own = STATE_CRISES.filter(c => c.keys.test(iss));
@@ -1600,13 +1607,26 @@ const Bt = ({ children, onClick, v = "primary", disabled, style: st }) => {
    renders through this so the player always reads a decision the same
    way: what happened → what's at stake → the options, each with its
    visible price and its visible risk. */
+// Long texts show their first sentence; "More" opens the rest.
+const More = ({ text, max = 150, style, className, as = "p" }) => {
+  const [open, setOpen] = React.useState(false);
+  const t = String(text || "");
+  let head = null;
+  if (t.length > max + 40) {
+    const m = t.match(new RegExp("^([\\s\\S]{30," + max + "}?[.!?][\u201d\"]?)\\s"));
+    head = m ? m[1] : t.slice(0, max).replace(/\s+\S*$/, "") + "…";
+  }
+  return React.createElement(as, { style, className }, open || !head ? t : head,
+    head ? React.createElement("button", { type: "button", onClick: (e) => { e.stopPropagation(); setOpen(o => !o); },
+      style: { background: "none", border: 0, color: CL.grn, fontWeight: 800, cursor: "pointer", padding: "0 0 0 8px", font: "inherit", fontStyle: "normal", whiteSpace: "nowrap" } }, open ? "Less" : "More ▾") : null);
+};
 const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick }) =>
   React.createElement("div", { className: "ds-card ds-stack", style: { borderColor: kickerColor + "66" } },
     aside || null,
     React.createElement("div", { style: { textAlign: "center" } },
       kicker ? React.createElement(Bg, { text: kicker, color: kickerColor }) : null,
       React.createElement("h3", { className: "ds-title", style: { margin: "14px 0" } }, title),
-      brief ? React.createElement("p", { className: "ds-body" }, brief) : null,
+      brief ? React.createElement(More, { className: "ds-body", text: brief }) : null,
       stakes ? React.createElement("p", { className: "ds-meta", style: { marginTop: 14, color: kickerColor } }, stakes) : null
     ),
     React.createElement("div", { style: { display: "grid", gap: DS.s[3] } },
@@ -1720,7 +1740,7 @@ const HowToPlay = ({ show, onClose }) => {
     { t: "🔍 Hidden Threats & Investigations", c: "Not everything is visible. Hidden corruption festers in your ministries — ghost workers, land fraud, expired drugs, inflated contracts. Your SA hints: 'Something feels off in the Works Ministry...'\n\nInvestigate (₦300M) = catch it early, limited damage. Ignore = it EXPLODES in 3 turns with -6 approval and +5% corruption. Strategic patience vs cost management." },
     { t: "⏰ Time Delays", c: "Policies don't give instant results. Education investment = +0 now, +5 approval in 3 turns. Health = payoff in 2 turns. Agriculture = IGR boost in 2 turns.\n\nThis creates tension: invest in education (payoff in 3 turns) when you need approval NOW to survive impeachment?" },
     { t: "💳 Debt Management", c: "Debt reduces through: automatic service (8% per turn), IGR surplus (15% of excess), GDP growth (0.5%), and investment revenue (15% of new IGR). Commissioner achievements also pay down debt.\n\nDebt warning at ₦15B. Crisis at ₦20B. Campaign spending is PERSONAL — not from state funds." },
-    { t: "🏛️ The Pressures of Office", c: "SALARIES: every half-year the FAAC allocation arrives, often short. Borrow to pay workers, stop paying contractors, or owe salaries. At 3 months owed the NLC issues an ultimatum; at 5 the state goes on general strike.\n\nPROMISES: you carry three campaign promises, one per senatorial zone. Keep them by answering a matching need in that zone or lifting the sector statewide. Broken promises cost the zone, and the opponent reads them back at the re-election.\n\nCABINET BALANCE: every commissioner comes from a zone. If one zone has three fewer commissioners than another, its elders cry marginalisation every half-year. Fire someone and the replacement comes from the short-changed zone.\n\nTHE HOUSE: Assembly members defect when your party grip or approval slips. Lose the majority and you must buy them back, share appointments or appeal to the people. Two-thirds against you starts impeachment.\n\nYOUR STATE: each state has its own crises (oil spills, bandits, floods, sit-at-home, almajiri, demolitions, cult clashes, erosion, mining) that come back to the Desk.\n\nSUCCESSION: in your last year you anoint a successor. A loyal one in power protects your files; a betrayal or an opposition win sends them to the EFCC." },
+    { t: "🏛️ The Pressures of Office", c: "SALARIES: every half-year the FAAC allocation arrives, often short. Borrow to pay workers, stop paying contractors, or owe salaries. At 3 months owed the NLC issues an ultimatum; at 5 the state goes on general strike.\n\nPROMISES: you carry three campaign promises, one per senatorial zone. Keep them by answering a matching need in that zone or lifting the sector statewide. Broken promises cost the zone, and the opponent reads them back at the re-election.\n\nCABINET BALANCE: every commissioner comes from a zone. If one zone has three fewer commissioners than another, its elders cry marginalisation every half-year. When you fire someone you choose: a loyalist from your home zone, or someone from the short-changed zone to restore the balance.\n\nTHE HOUSE: Assembly members defect when your party grip or approval slips. Lose the majority and you must buy them back, share appointments or appeal to the people. Two-thirds against you starts impeachment.\n\nYOUR STATE: each state has its own crises (oil spills, bandits, floods, sit-at-home, almajiri, demolitions, cult clashes, erosion, mining) that come back to the Desk.\n\nSUCCESSION: in your last year you anoint a successor. A loyal one in power protects your files; a betrayal or an opposition win sends them to the EFCC." },
     { t: "🚔 EFCC & Post-Office", c: "S.308 immunity expires the moment you leave office. If corruption > 55%: ARRESTED within 72 hours. 46-55%: under investigation. 36-45%: on watchlist. ≤35%: clean exit.\n\nThe lesson: immunity is not impunity. Govern cleanly or face consequences." },
     { t: "🏆 Scoring & Endings", c: "Score: Development (30%) + Approval (30%) + Fiscal Health (20%) + Anti-Corruption (20%). Grade A = 75+.\n\nAfter first term: run for re-election, step down, or run for President. After two terms: retire, Senate, or President. All races are performance-based.\n\nYour Wikipedia biography captures everything. Shareable on X and WhatsApp." },
   ];
@@ -3358,8 +3378,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // events are built; its decisions arrive as "sc" cards.
   const [stc, setStc] = useState(() => ld?.stc || { lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
   const [scCards, setScCards] = useState([]);
+  const faacSwingRef = React.useRef(0);
+  // Background events record their topic so a decision card on the same story waits.
+  const passiveTopics = React.useRef({});
+  const topicRecent = (tp) => turn - ((stc.topicTurn || {})[tp] ?? -9) < 2 || turn - (passiveTopics.current[tp] ?? -9) < 2;
   const stName = state.replace("_", " ");
-  const cabZones = () => { const c = [0, 0, 0]; (ministries || []).forEach(m => { if (m.minister) c[zoneOfName(m.minister)]++; }); return c; };
+  // A commissioner's zone: stored when you appoint a replacement; the first
+  // cabinet is balanced across the three zones, as governors do by default.
+  const minZone = (m) => m.zone != null ? m.zone : Math.max(0, (ministries || []).findIndex(x => x.id === m.id)) % 3;
+  const homeZone = zoneOfName(pName);
+  const cabZones = () => { const c = [0, 0, 0]; (ministries || []).forEach(m => { if (m.minister) c[minZone(m)]++; }); return c; };
   const balanceIssue = () => { const c = cabZones(); return (ministries || []).length >= 5 && Math.max(...c) - Math.min(...c) >= 3 ? c.indexOf(Math.min(...c)) : null; };
   const monthWage = () => Math.max(.3, Math.round((s.faac || 10) * .55 / 6 * 10) / 10);
   const promiseKept = (p) => needs.some(n => n.status === "met" && n.zone === p.zone && needType(n)?.sector === p.sector) || ((s[SECTOR_STAT[p.sector]] || 0) - p.base >= .06);
@@ -3463,7 +3491,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       next.ultimatum = true; next.strike = false;
     } else if (A >= 1) { dApp -= 1; notes.push(["😟 Civil servants are owed " + A + " month" + (A === 1 ? "" : "s") + " of salary.", "political"]); next.strike = false; }
     else next.strike = false;
-    const f = lv === "hard" ? .72 + r() * .38 : lv === "easy" ? .88 + r() * .24 : .8 + r() * .3;
+    // The shortfall follows the oil price swing logged at the end of the half-year,
+    // so the FAAC card never contradicts an "oil rally" headline.
+    const sw = faacSwingRef.current;
+    const f = sw < -.05 ? Math.max(.62, 1 + sw * 1.2) : sw > .05 ? 1 : lv === "hard" ? .82 + r() * .22 : lv === "easy" ? .92 + r() * .14 : .86 + r() * .18;
     const pct = Math.round(f * 100), short = Math.max(.2, Math.round((s.faac || 10) * (1 - f) * 10) / 10), mw = monthWage();
     if (f < .95 || A > 0) {
       const owe = f < .85 ? 3 : f < .95 ? 2 : 0;
@@ -3481,7 +3512,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       cards.push({ key: "faac", kicker: "FAAC day", color: CL.gold, art: ["abuja-federal-office", "permanent-secretary"],
         title: f < .95 ? "The allocation came in at " + pct + "%" : "The allocation is in. Workers are still owed",
-        brief: f < .95 ? "The Federation Account Allocation Committee shared less than budgeted: oil output fell and Abuja deducted for old loans. You are ₦" + short + "B short of this half-year's wage bill." + (A ? " Workers are already owed " + A + " months." : "") : "FAAC came in at " + pct + "% of budget. Workers are still owed " + A + " month" + (A === 1 ? "" : "s") + " from earlier.",
+        brief: f < .95 ? (sw < -.05 ? "Oil prices fell and FAAC shrank with them. " : "Abuja deducted old loans at source. ") + "You are ₦" + short + "B short of this half-year's wage bill." + (A ? " Workers are already owed " + A + " months." : "") : "FAAC came in at " + pct + "% of budget. Workers are still owed " + A + " month" + (A === 1 ? "" : "s") + " from earlier.",
         stakes: "At 3 months owed the NLC issues an ultimatum. At 5 it shuts the state down.", options: opts });
     } else notes.push(["📦 FAAC came in at " + pct + "% of budget. Salaries paid on the 25th.", "info"]);
 
@@ -3511,11 +3542,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     // The state's own recurring crises.
     if (turn >= 2 && r() < (lv === "easy" ? .45 : .7)) {
-      const pool = stateCrisesFor(state).filter(c => !next.crisesSeen.includes(c.id));
+      const needTopics = activeNeeds.map(n => NEED_TOPIC[n.k]);
+      const billCovered = Object.entries(BILL_CRISIS).filter(([b]) => houseBillsSeen.includes(b)).map(([, c]) => c);
+      const recent = Object.keys(CRISIS_TOPIC).map(k => CRISIS_TOPIC[k]).filter(tp => topicRecent(tp));
+      const pool = stateCrisesFor(state).filter(c => !next.crisesSeen.includes(c.id) && !billCovered.includes(c.id) && !needTopics.includes(CRISIS_TOPIC[c.id]) && !recent.includes(CRISIS_TOPIC[c.id]));
       if (pool.length) {
         const C = pool[Math.floor(r() * pool.length)];
         const zi = Math.floor(r() * 3), lgas = lgaCluster(getLGAs(state), zi), lga = lgas.length ? lgas[Math.floor(r() * lgas.length)] : stName;
         next.crisesSeen = [...next.crisesSeen, C.id];
+        next.topicTurn = { ...(next.topicTurn || {}), [CRISIS_TOPIC[C.id]]: turn };
         cards.push({ key: "crisis_" + C.id, kicker: stName + " · " + zoneName(zi) + " zone", color: CL.red, art: [C.bg, C.who], title: C.icon + " " + C.title(lga), brief: C.d(lga), stakes: "Every option has a price. This one is " + stName + "'s own.",
           options: C.opts.map(o => ({ label: o.l, note: o.note, risk: o.gamble ? "A gamble: it can go either way." : null, chips: fxChips(o.fx, o.zone), run: () => {
             scFx(o.fx, zi, o.zone);
@@ -3639,13 +3674,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ok = await window.SOP_confirm("Fire Hon. " + m.minister + " (" + m.name + ")?\n\nWhy: " + (c.why || "None. This would be a political sacking.") + "\n\nWhat happens: " + effects, "Fire");
     if (!ok) return;
     const r = rng(Date.now() % 100000);
-    // Prefer a replacement from the zone with the fewest commissioners.
-    const zc = [0, 0, 0]; (ministries || []).forEach(x => { if (x.id !== id && x.minister) zc[zoneOfName(x.minister)]++; });
-    const wantZ = zc.indexOf(Math.min(...zc));
-    let replacement = gN(r, sd.zone, setup?.state);
-    for (let i = 0; i < 24 && zoneOfName(replacement) !== wantZ; i++) replacement = gN(r, sd.zone, setup?.state);
+    // Who replaces them: a loyalist from your home zone, or someone from the same zone.
+    const oldZ = minZone(m), shortZ = balanceIssue(), fairZ = shortZ != null ? shortZ : oldZ;
+    const loyalist = fairZ !== homeZone && await window.SOP_confirm("Who replaces Hon. " + m.minister + "?\n\nA loyalist from your home zone (" + zoneName(homeZone) + "): loyal to you, but " + zoneName(fairZ) + " may cry marginalisation.\n\nOr someone from " + zoneName(fairZ) + ": " + (shortZ != null ? "restores the zonal balance." : "keeps the zones balanced."), "Appoint the loyalist", "Keep the balance");
+    const replacement = gN(r, sd.zone, setup?.state);
     const nt = traits(replacement);
-    setMinistries(ms => ms.map(x => x.id === id ? { ...x, minister: replacement, perf: Math.min(45, nt.comp), cor: Math.max(10, Math.round(100 - nt.hon) - 10), loyalty: 55, hired: turn, record: [], flag: null, godfatherMandate: null } : x));
+    setMinistries(ms => ms.map(x => x.id === id ? { ...x, minister: replacement, perf: Math.min(45, nt.comp), cor: Math.max(10, Math.round(100 - nt.hon) - 10), loyalty: loyalist ? 80 : 55, zone: loyalist ? homeZone : fairZ, hired: turn, record: [], flag: null, godfatherMandate: null } : x));
     const homeZone = hashStr(m.minister) % 3;
     if (c.justified && m.flag && m.flag.kind === "graft") setS(p => ({ ...p, app: cl100(p.app + 3), cor: cl(p.cor - .03) }));
     else if (c.justified && m.flag && m.flag.kind === "disloyal") setS(p => ({ ...p, pStab: cl100(p.pStab + 2), zoneMood: { ...(p.zoneMood || {}), [homeZone]: ((p.zoneMood || {})[homeZone] || 0) - 2 } }));
@@ -4019,7 +4053,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (AG === "housing" && (n.igr - n.debt * 0.08) > 5) { n.app = cl100(n.app + 3); n.infra = cl(n.infra + 0.008); }
       if (AG === "agriculture") { n.igr = (n.igr || 0) + 0.3; }
       if (AG === "youth" && (bud.education || 0) / bs < .12) { n.app = cl100(n.app - 1); }
-      if ((bud.salaries || 0) / bs < .12) { n.app = cl100(n.app - 8); addL("⚠️ Salary arrears! Workers unpaid.", "crisis"); }
 
       // ── ECONOMIC PRODUCTION ENGINE ──
       // Each sector's output is influenced by governance stats and budget allocation
@@ -4161,6 +4194,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const _shocks = [];
       // Oil price / FAAC volatility — every turn, FAAC swings ±15-25%
       const _faacSwing = (Math.random() - .5) * (_lv === "hard" ? .50 : _lv === "easy" ? .20 : .35);
+      faacSwingRef.current = _faacSwing;
       n.faac = Math.max(2.5, n.faac * (1 + _faacSwing));
       if (_faacSwing < -.15) _shocks.push({ t: "📉 OIL PRICE SHOCK: Brent crashed. FAAC down " + Math.round(-_faacSwing*100) + "% to ₦" + n.faac.toFixed(1) + "B.", k: "crisis" });
       else if (_faacSwing > .15) _shocks.push({ t: "📈 OIL RALLY: FAAC up " + Math.round(_faacSwing*100) + "% to ₦" + n.faac.toFixed(1) + "B. Briefly.", k: "success" });
@@ -4181,7 +4215,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         _shocks.push({ t: "🍞 NBS: Headline inflation hits new high. Garri, rice, tomato prices spike. -3 approval.", k: "crisis" });
       }
       // Regional security shocks tied to zone
-      if (Math.random() < _D.shockP * .4) {
+      const _rtp = { NE: "displaced", NW: "kidnap", NC: "farm", SE: "sitathome", SS: "oil" }[_zoneSec] || "cult";
+      if (!topicRecent(_rtp) && Math.random() < _D.shockP * .4) {
+        passiveTopics.current[_rtp] = turn;
         let evt;
         if (_zoneSec === "NE") evt = "☠️ Boko Haram/ISWAP raid on border LGA. IDPs flooding state capital.";
         else if (_zoneSec === "NW") evt = "🐎 Bandits attack rural community. Mass abduction reported.";
@@ -4193,7 +4229,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         _shocks.push({ t: evt + " -6% security, -3 approval.", k: "crisis" });
       }
       // ASUU/NLC/NUT strike threat
-      if (Math.random() < _D.shockP * .25) {
+      if (false) { // replaced by the arrears system (statecraft)
         n.app = cl100(n.app - 3); n.pStab = cl100(n.pStab - 4);
         const lastBud = (() => { try { return window.SOP_MEMORY && window.SOP_MEMORY.did("budget_passed"); } catch (e) { return null; } })();
         const salShare = lastBud && lastBud.meta && lastBud.meta.bud ? lastBud.meta.bud.salaries : bud.salaries;
@@ -4205,12 +4241,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         _shocks.push({ t: "🎓 State University ASUU branch joins national strike. Lectures suspended indefinitely.", k: "crisis" });
       }
       // Flooding / climate (June-Oct heuristic — every odd turn)
-      if (turn % 2 === 1 && Math.random() < _D.shockP * .45) {
+      if (turn % 2 === 1 && !topicRecent("flood") && Math.random() < _D.shockP * .45) {
+        passiveTopics.current.flood = turn;
         n.infra = cl(n.infra - .04); n.app = cl100(n.app - 3); n.agr = cl(n.agr - .03);
         _shocks.push({ t: "🌊 NIMET-warned floods overwhelm drainage. Farmlands submerged. NEMA mobilising.", k: "crisis" });
       }
       // Cholera / Lassa / meningitis outbreak when health is weak
-      if (n.hp < .45 && Math.random() < _D.shockP * .35) {
+      if (n.hp < .45 && !activeNeeds.some(x => x.k === "water" || x.k === "clinic") && Math.random() < _D.shockP * .35) {
         n.hp = cl(n.hp - .04); n.app = cl100(n.app - 3);
         _shocks.push({ t: "🦠 NCDC confirms cholera outbreak. Cases climbing. WHO sends technical team.", k: "crisis" });
       }
@@ -4945,7 +4982,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
 
     // LAYER 3: House bill — Secondary+: most turns. Primary: only turn 3 and 6.
-    const unseenBills = HOUSE_BILLS.filter(b => !houseBillsSeen.includes(b.id));
+    const unseenBills = HOUSE_BILLS.filter(b => !houseBillsSeen.includes(b.id) && !(BILL_CRISIS[b.id] && (stc.crisesSeen || []).includes(BILL_CRISIS[b.id])));
     if (unseenBills.length > 0) {
       const billTurn = lv === "easy" ? (turn === 3 || turn === 6) : (turn % 2 === 1 || turn >= 5);
       if (billTurn) {
@@ -4967,7 +5004,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     // LAYER 5: Federal Government Event (turns 2, 4, 6 — federal never sleeps)
     if ((turn === 2 || turn === 4 || turn === 6) && fgEventsSeen.length < 4) {
-      const unseenFG = FG_EVENTS.filter(e => !fgEventsSeen.includes(e.id));
+      const unseenFG = FG_EVENTS.filter(e => !fgEventsSeen.includes(e.id) && e.id !== "fg_faac_cut");
       // Pick contextual: punishment if FG relation low, reward if high
       const pool2 = fgRelation < 40 ? unseenFG.filter(e => e.type === "punish") : fgRelation > 65 ? unseenFG.filter(e => e.type === "reward") : unseenFG;
       const fgPool = (pool2.length > 0 ? pool2 : unseenFG);
@@ -4981,7 +5018,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     // LAYER 6: SHOCK EVENT — unpredictable, 30% chance, max 2 per game
     if (shocksSeen.length < 2 && rE() < .30) {
-      const unseenShocks = SHOCK_EVENTS.filter(e => !shocksSeen.includes(e.id));
+      const localIds = stateCrisesFor(state).map(c => c.id);
+      const unseenShocks = SHOCK_EVENTS.filter(e => !shocksSeen.includes(e.id) && !(e.id === "sh_flood" && localIds.includes("flood")) && !(e.id === "sh_terror" && localIds.includes("insurgent_attack")));
       if (unseenShocks.length > 0) {
         const shock = pick(unseenShocks, rE);
         setCurShock(shock);
@@ -5041,7 +5079,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                        : null;
       const faced = new Set(); try { (window.SOP_MEMORY ? window.SOP_MEMORY.all("dilemma_choice") : []).forEach(e => e.meta && faced.add(e.meta.id)); } catch (e) {}
       logs.filter(l => l.tp === "dilemma").forEach(l => { const d0 = ALL_DILEMMAS.find(d => l.tx.indexOf(d.nm + " →") >= 0); if (d0) faced.add(d0.id); });
-      const fresh = ALL_DILEMMAS.filter(d => !faced.has(d.id));
+      const needSeen = (k) => needs.some(n => n.k === k);
+      const fresh = ALL_DILEMMAS.filter(d => !faced.has(d.id) && !DILEMMA_REPLACED.includes(d.id) && !(d.id === "cholera" && (needSeen("water") || needSeen("clinic"))) && !(d.id === "asuu" && stc.arrears > 0));
       let pool = fresh;
       if (themePref) {
         const filt = fresh.filter(d => themePref.some(t => ((d.nm||"") + " " + (d.d||"") + " " + (d.id||"")).toLowerCase().includes(t)));
@@ -5104,7 +5143,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     if (next === "dilemma" && !curD) {
       const rE = rng(turn * 999 + Date.now() % 3000);
-      setCurD(pick(ALL_DILEMMAS, rE));
+      setCurD(pick(ALL_DILEMMAS.filter(d => !DILEMMA_REPLACED.includes(d.id)), rE));
     }
     deskGo(next);
   };
@@ -5684,7 +5723,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />
                 <Bg text={stage} color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curCourt.title}</h3>
-                <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curCourt.desc}</p>
+                <More text={curCourt.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
                 {curCourt.cause && <p style={{ color: CL.txt, fontSize: TS(34), textAlign: "left", marginBottom: 14 }}><b>Why this case:</b> {curCourt.cause}</p>}
                 <div style={{ background: CL.pur + "08", borderRadius: 8, padding: "14px 29px", marginBottom: 29, fontSize: TS(34), color: CL.pur }}>📖 Statute: {curCourt.statute}</div>
               </div>
@@ -5821,7 +5860,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ fontSize: TS(113), marginBottom: 14 }}>{eventResult.icon}</div>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(62), fontWeight: 600 }}>{eventResult.title}</h3>
             </div>
-            {eventResult.narrative && <p style={{ fontSize: TS(38), color: CL.tm, lineHeight: 1.5, marginBottom: 29, textAlign: "center", fontStyle: "italic" }}>{eventResult.narrative}</p>}
+            {eventResult.narrative && <More text={eventResult.narrative} style={{ fontSize: TS(38), color: CL.tm, lineHeight: 1.5, marginBottom: 29, textAlign: "center", fontStyle: "italic" }} />}
             {eventResult.effects && eventResult.effects.length > 0 && <div style={{ marginBottom: 36 }}>
               <div style={{ fontSize: TS(29), fontFamily: F.m, color: CL.td, marginBottom: 14, letterSpacing: 2 }}>CONSEQUENCES</div>
               {eventResult.effects.map((e, i) => (
@@ -6226,7 +6265,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               {SHOCK_ART[curShock.id] ? <SceneArt bg={SHOCK_ART[curShock.id][0]} who={SHOCK_ART[curShock.id][1]} obj={SHOCK_ART[curShock.id][2]} h={TALL() ? 200 : 240} /> : <div style={{ fontSize: TS(116), marginBottom: 14 }}>{curShock.icon}</div>}
               <div style={{ background: CL.red, color: "#fff", display: "inline-block", padding: "10px 43px", borderRadius: 8, fontSize: TS(34), fontWeight: 700, fontFamily: F.m, letterSpacing: 5, marginBottom: 22 }}>⚡ SHOCK EVENT</div>
               <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(65), fontWeight: 700 }}>{curShock.title}</h3>
-              <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curShock.desc}</p>
+              <More text={curShock.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
               {curShock.autoFx && Object.keys(curShock.autoFx).length > 0 && <div style={{ background: CL.red + "10", border: "1px solid " + CL.red + "25", borderRadius: 8, padding: "14px 29px", marginBottom: 29, fontSize: TS(34), color: CL.red }}>
                 ⚠️ Immediate impact: {Object.entries(curShock.autoFx).map(([k, v]) => k + " " + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v)).join(", ")}
               </div>}
@@ -6286,7 +6325,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <SceneArt bg="abuja-federal-office" who={curFgEvent.id === "fg_efcc" ? "efcc-investigator" : null} alt={curFgEvent.id === "fg_efcc" ? cast.efcc.name : ""} h={TALL() ? 200 : 240} />
               <Bg text="Federal Government" color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curFgEvent.title}</h3>
-              <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{curFgEvent.desc}</p>
+              <More text={curFgEvent.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
               {curFgEvent.id === "fg_efcc" && <p style={{ color: CL.txt, fontSize: TS(34), lineHeight: 1.45, textAlign: "left", marginBottom: 22 }}>The case officer is <b>{cast.efcc.name}</b>, {cast.efcc.title}. {window.SOP_CAST && window.SOP_CAST.history("efcc").length ? "You have met before." : "Nobody in your government has met this officer yet."}</p>}
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 22 }}>
                 <Bg text={"FG Relations: " + fgRelation + "%"} color={fgRelation > 55 ? CL.grn : fgRelation > 35 ? CL.org : CL.red} />
@@ -6352,7 +6391,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <MediaArt m={curMedia} reporter={cast.reporter.name} h={TALL() ? 220 : 260} />
               <Bg text={curMedia.type === "social" ? "Social Media" : curMedia.type === "newspaper" ? "Newspaper" : curMedia.type === "radio" ? "Radio" : curMedia.type === "tv" ? "Television" : "Blogger"} color={curMedia.severity === "positive" ? CL.grn : CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(62), fontWeight: 600 }}>{curMedia.title}</h3>
-              <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 29 }}>{curMedia.desc}</p>
+              <More text={curMedia.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 29 }} />
             </div>
             <div style={{ display: "grid", gap: 22 }}>
               {curMedia.opts.map((opt, i) => (
@@ -6401,7 +6440,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Bg text="Private Investment Proposal" color={CL.blu} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(62), fontWeight: 600 }}>{curInvestor.nm}</h3>
               <div style={{ fontSize: TS(34), color: CL.pur, fontFamily: F.m, marginBottom: 14 }}>{curInvestor.co}</div>
-              <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22, textAlign: "left" }}>{curInvestor.desc}</p>
+              <More text={curInvestor.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22, textAlign: "left" }} />
               <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginBottom: 22 }}>
                 <Bg text={curInvestor.jobs.toLocaleString() + " jobs"} color={CL.blu} />
                 <Bg text={"+" + naira(curInvestor.igrBoost) + " IGR"} color={CL.grn} />
@@ -7425,7 +7464,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
                 <Bg text="Bill from House of Assembly" color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{pendingHouseBill.nm}</h3>
-                <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22 }}>{pendingHouseBill.d}</p>
+                <More text={pendingHouseBill.d} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22 }} />
                 {touchesFlagship(pendingHouseBill.nm + " " + pendingHouseBill.d) && <p style={{ color: CL.grn, fontSize: TS(34), marginBottom: 22 }}>This touches your flagship, {FLAGSHIP[setup.agenda].nm}. Vetoing it will be read as walking back your own promise.</p>}
               </div>
 
@@ -7809,6 +7848,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 })}
               </div>
               <Spark data={appH} color={s.app > 50 ? CL.grn : CL.red} w={130} h={24} />
+              <div style={{ marginTop: 14 }}><button onClick={() => { try { window.SOP_CIVIC && window.SOP_CIVIC.showReview(); } catch (e) {} }} style={{ background: "none", border: "1px solid " + CL.grn, color: CL.grn, borderRadius: 999, padding: "10px 22px", fontSize: TALL() ? TS(20) : TS(29), fontWeight: 700, cursor: "pointer", fontFamily: F.b }}>📋 Full half-year review</button></div>
               {achPopup && <div style={{ background: CL.gold + "15", border: "1px solid " + CL.gold + "40", borderRadius: 17, padding: "29px 43px", margin: "36px auto 0", maxWidth: 552 }}>
                 <div style={{ fontSize: TS(79), marginBottom: 7 }}>{achPopup.i}</div>
                 <div style={{ fontSize: TS(36), fontWeight: 700, color: CL.gold }}>🏆 ACHIEVEMENT UNLOCKED</div>
@@ -7897,7 +7937,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             </div>
             <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>These are the ministries YOU created and appointed. Fire a commissioner or reassign the Permanent Secretary directly from here. Every action lands in your Wikipedia biography.</div>
             {(() => { const cz = cabZones(), bi = balanceIssue(); return <div style={{ fontSize: TALL() ? TS(20) : TS(31), color: bi != null ? CL.red : CL.tm, background: (bi != null ? CL.red : CL.grn) + "0d", borderRadius: 12, padding: "10px 14px", marginBottom: 18 }}>
-              <b>Zonal balance:</b> {cz.map((n, i) => zoneName(i) + " " + n).join(" · ")}. {bi != null ? zoneName(bi) + " feels marginalised and costs you support every half-year. Fire someone and the replacement comes from " + zoneName(bi) + "." : "Every zone has a fair share of the cabinet."}
+              <b>Zonal balance:</b> {cz.map((n, i) => zoneName(i) + " " + n).join(" · ")}. {bi != null ? zoneName(bi) + " feels marginalised and costs you support every half-year. Replace a commissioner with someone from " + zoneName(bi) + " to fix it." : "Every zone has a fair share of the cabinet."}
             </div>; })()}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(312px,1fr))", gap: 22 }}>{ministries.map(m => {
               const gen = () => { const r = rng(Date.now() + m.id.length); return gN(r, sd.zone, setup?.state); };
@@ -7906,7 +7946,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 7 }}>
                   <img src={commissionerArt(m.minister)} alt={m.minister} loading="lazy" style={{ width: 64, height: 76, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.grn + "14", flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>Hon. {m.minister}</div>
-                    <div style={{ fontSize: TALL() ? TS(19) : TS(27), color: CL.td }}>From {zoneName(zoneOfName(m.minister))} zone</div></div>
+                    <div style={{ fontSize: TALL() ? TS(19) : TS(27), color: CL.td }}>From {zoneName(minZone(m))} zone</div></div>
                 </div>
                 {(m.record || []).slice(-2).reverse().map((e, i) => <div key={i} style={{ fontSize: TALL() ? TS(19) : TS(27), color: e.kind === "praise" ? CL.grn : CL.red, background: (e.kind === "praise" ? CL.grn : CL.red) + "0d", borderRadius: 10, padding: "6px 10px", marginBottom: 6, lineHeight: 1.35 }}><b>{OFFENCE[e.kind]?.label}</b> (half-year {e.t}): {e.text}</div>)}
                 <div style={{ fontSize: TS(31), color: CL.tm, marginBottom: 14, fontStyle: "italic" }}>PS: {m.permSec} · Staff: {(m.staff || 0).toLocaleString()}</div>

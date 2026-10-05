@@ -622,17 +622,19 @@
       </div>
     `;
 
-    // Mount
+    // Mount hidden: the end-of-half-year screen already summarises the
+    // half-year, so the full review opens only from its "Full review" button.
     const stage = document.getElementById("sop-stage") || document.body;
+    reviewEl.style.display = "none";
     stage.appendChild(reviewEl);
 
     // Wire buttons
-    document.getElementById("sop-civic-review-close").onclick = function () { closeReview(); };
+    reviewEl.querySelector("#sop-civic-review-close").onclick = function () { closeReview(); };
     var learnBtns = reviewEl.querySelectorAll(".sop-civic-learn");
     learnBtns.forEach(function (btn) {
       btn.onclick = function () { openLens(btn.getAttribute("data-key")); };
     });
-    var fullPanel = document.getElementById("sop-civic-full-panel");
+    var fullPanel = reviewEl.querySelector("#sop-civic-full-panel");
     if (fullPanel) fullPanel.onclick = openCorruptionPanel;
 
     // Write to ledger
@@ -675,6 +677,7 @@
         buildReview(S);
       }, 600);
     } else {
+      if (phase !== "end_turn") closeReview();
       civicState = { phase: phase, turn: turn };
     }
   });
@@ -711,6 +714,7 @@
    * 9. PUBLIC API
    * ──────────────────────────────────────────────────────────── */
   window.SOP_CIVIC = {
+    showReview: function () { if (!reviewEl) { lastReviewTurn = -1; buildReview(window.SOP); } if (reviewEl) reviewEl.style.display = "flex"; },
     // Civic Lens
     openLens: openLens,
     closeLens: closeLens,

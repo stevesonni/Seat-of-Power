@@ -302,7 +302,7 @@
        the claude.ai viewer (confirm() answers "no" at once), which silently
        blocked firing commissioners and other confirmed actions.
        SOP_confirm(message) resolves true or false; alert() becomes a notice. */
-    window.SOP_confirm = function (msg, yes) {
+    window.SOP_confirm = function (msg, yes, noLabel) {
       return new Promise(function (resolve) {
         var back = document.createElement('div');
         back.style.cssText = 'position:fixed;inset:0;z-index:9900;background:rgba(10,24,16,.55);display:flex;align-items:center;justify-content:center;padding:20px;animation:sopFadeIn .18s ease-out';
@@ -317,7 +317,7 @@
           b.style.cssText = 'min-height:52px;padding:12px 24px;border-radius:999px;font:800 22px "Plus Jakarta Sans",sans-serif;cursor:pointer;' + (primary ? 'background:#12301f;color:#fff;border:0' : 'background:transparent;color:#13261c;border:1px solid #d6cfbf');
           b.onclick = function () { done(v); }; return b;
         }
-        var no = mk('Cancel', false, false), ok = mk(yes || 'Yes, go ahead', true, true);
+        var no = mk(noLabel || 'Cancel', false, false), ok = mk(yes || 'Yes, go ahead', true, true);
         row.appendChild(no); row.appendChild(ok); card.appendChild(text); card.appendChild(row); back.appendChild(card);
         back.addEventListener('click', function (e) { if (e.target === back) done(false); });
         document.body.appendChild(back); setTimeout(function () { ok.focus(); }, 30);

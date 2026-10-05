@@ -257,6 +257,9 @@
       };
     }
 
+    // The House is now its own system (defections and impeachment in the
+    // main game), so the old summons card is retired.
+    return null;
     return {
       kind: "institution",
       title: "THE HOUSE ASKS QUESTIONS",
@@ -453,6 +456,7 @@
     advance(S);
     if (turn % 2 === 0 || Math.random() < .55) {
       const d = buildPressure(S);
+      if (!d) return;
       // The same pressure, from the same person, is never put to you twice.
       if (P.history.some(function (h) { return h.title === d.title && h.who === d.who; })) return;
       // Hand the card to the Desk, which shows it with the half-year's other
@@ -479,7 +483,7 @@
   window.SOP_POLITICS = {
     advance: advance,
     openPanel: openPanel,
-    force: function () { renderCard(buildPressure(window.SOP)); },
+    force: function () { const d = buildPressure(window.SOP); if (d) renderCard(d); },
     rivals: function () { return P.rivals.slice(); },
     factions: function () { return JSON.parse(JSON.stringify(P.factions)); },
     institutions: function () { return JSON.parse(JSON.stringify(P.institutions)); },
