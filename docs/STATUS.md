@@ -252,3 +252,16 @@ The IGR formula is now `max(1.5, computed × taxEff) + invIGR + revIGR`.
 | Concession dead state assets | ₦1.2B against debt, then +0.3 | Approval −1; 30% risk of an insider deal |
 
 The FAAC card points to the panel when reforms remain.
+
+## Debt renegotiation and petitions against you
+- **Debt** (in the Desk's "💰 Money: raise revenue, manage debt" panel): shows the debt, repayments a half-year and their share of income. Three actions, each once per term:
+  - **Ask Abuja to write off 80%** (needs debt of ₦6B or more): odds of 15% + (FG relation − 50)/150 + 10% if corruption is under 40% + 15% with 3 or more revenue reforms, capped between 5% and 70%. Success: debt × 0.2, approval +3, FG relation −10 (a debt of loyalty) and a Wikipedia line. Refusal: approval −1, FG relation −5.
+  - **Push repayments to the next administration:** 60% of the debt leaves the books (`stc.defDebt`). In the first term it returns at half-year 5 if you are re-elected. In the second term your successor inherits it: a Controversies entry, and the report card counts it as debt left behind.
+  - **Promissory notes at a discount:** debt −12%, every started site stalls, party −2.
+- **Petitions:** a win under 5% (always under 2%, 70% chance otherwise) is challenged.
+  - First election: filed in half-year 1, from `setup.election.marginPct`. Re-election: filed in half-year 5, from `stc.reMargin`, stored when you take the second-term oath.
+  - The Tribunal, Court of Appeal and Supreme Court are heard in successive half-years as `sc#petition` cards that always pass the event cap.
+  - Risk = 12% + margin (+15% under 2%, +8% under 3.5%) + (corruption − 35%) × 0.9 + 10% above 55% corruption + 3% with godfather campaign debt.
+  - Your defence: Senior Advocates (−12%, debt +₦0.8B), the facts (−5% if the margin is 3% or more), or settling the panel (−20%, corruption +8%, 30% chance it leaks).
+  - Losing a lower court costs approval −3 and you appeal. Winning at the Tribunal with a 4% margin or more makes the petitioner quit half the time.
+  - Losing at the Supreme Court ends the game as `gEnd: "nullified"` ("ELECTION NULLIFIED"). The petitioner is sworn in, EFCC exposure rises, and the Wikipedia article, share text and report-card title ("Removed by the Supreme Court") reflect it.

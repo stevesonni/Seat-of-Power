@@ -971,6 +971,7 @@ const REVENUE_MEASURES = [
 // The end-of-term title.
 const reportTitle = (r) =>
   r.gEnd === "impeached" ? "Impeached" :
+  r.gEnd === "nullified" ? "Removed by the Supreme Court" :
   r.cor > .55 ? "The Contractors' Governor" :
   r.arrearsMax >= 5 ? "The Governor Who Owed Salaries" :
   r.failed >= 4 && r.met <= 1 ? "Mr Autopilot" :
@@ -3525,6 +3526,41 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "revenue_reform", actor: "governor", gravity: 1, evidence: 3, decision: m.t, note: a.log }); } catch (e) {}
   };
 
+  // Debt: ask Abuja for relief, push repayments to the next administration,
+  // or pay contractors in discounted promissory notes. Each once per term.
+  const termNow = turn > 4 ? 2 : 1;
+  const debtDone = (k) => (stc.debtActs || {})[k + termNow] != null;
+  const markDebt = (k) => setStc(p => ({ ...p, debtActs: { ...(p.debtActs || {}), [k + termNow]: turn } }));
+  const reliefOdds = () => Math.max(.05, Math.min(.7, .15 + (fgRelation - 50) / 150 + (s.cor < .4 ? .1 : 0) + (Object.keys(stc.rev || {}).length >= 3 ? .15 : 0)));
+  const askRelief = () => {
+    if (debtDone("relief") || (s.debt || 0) < 6) return; markDebt("relief");
+    if (Math.random() < reliefOdds()) {
+      const cut = Math.round((s.debt || 0) * .8 * 10) / 10;
+      setS(p => ({ ...p, debt: Math.round((p.debt || 0) * .2 * 10) / 10, app: cl100(p.app + 3) }));
+      setFgRelation(v => Math.max(0, v - 10));
+      addL("🇳🇬 Abuja approved debt relief: ₦" + cut + "B (80%) written off. The President will expect your state's support at the next election.", "success");
+      scWiki("Governorship", "Secured federal relief that wrote off 80% of the state's debt.");
+    } else {
+      setS(p => ({ ...p, app: cl100(p.app - 1) })); setFgRelation(v => Math.max(0, v - 5));
+      addL("🇳🇬 Abuja turned down your request for debt relief. The Finance Minister told you to fix your books first.", "political");
+    }
+  };
+  const deferDebt = () => {
+    if (debtDone("defer") || (s.debt || 0) < 2) return; markDebt("defer");
+    const amt = Math.round((s.debt || 0) * .6 * 10) / 10;
+    setS(p => ({ ...p, debt: Math.max(0, (p.debt || 0) - amt) }));
+    setStc(p => ({ ...p, defDebt: { amt: ((p.defDebt && p.defDebt.amt) || 0) + amt, due: termNow === 1 ? 5 : null }, defTotal: (p.defTotal || 0) + (termNow === 2 ? amt : 0) }));
+    addL("🏦 You restructured ₦" + amt + "B of debt so repayments start " + (termNow === 1 ? "in your second term, if you win it." : "after you leave office. Your successor inherits them."), "political");
+    if (termNow === 2) scWiki("Controversies", "Restructured ₦" + amt + "B of state debt so that repayments fall on the next administration.");
+  };
+  const discountDebt = () => {
+    if (debtDone("notes") || (s.debt || 0) < 2) return; markDebt("notes");
+    const cut = Math.round((s.debt || 0) * .12 * 10) / 10;
+    setS(p => ({ ...p, debt: Math.max(0, (p.debt || 0) - cut), pStab: cl100(p.pStab - 2) }));
+    stallWork(null);
+    addL("📜 Contractors accepted promissory notes at a discount: ₦" + cut + "B off the debt. Work slowed on every site, and the party's contractor-financiers are sulking.", "political");
+  };
+
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;
     const lv = setup?.level || "medium";
@@ -3534,6 +3570,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const addZ = (z, v) => { dZone[z] = (dZone[z] || 0) + v; };
     const r = rng(turn * 4241 + state.length * 17);
 
+    // Debt pushed into the next term comes back if you are still in office.
+    if (next.defDebt && next.defDebt.due && turn >= next.defDebt.due) {
+      const amt = next.defDebt.amt; setS(p => ({ ...p, debt: (p.debt || 0) + amt }));
+      notes.push(["🏦 The ₦" + amt.toFixed(1) + "B of repayments you pushed back has come due. It is your problem again.", "crisis"]);
+      next.defDebt = null;
+    }
     // Revenue reforms that come due this half-year.
     const due = (next.revSched || []).filter(x => x.t <= turn);
     if (due.length) {
@@ -3777,6 +3819,55 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     next.asked = asked;
 
+    // Election petitions: a narrow win gets challenged. Tribunal, Court of
+    // Appeal, then the Supreme Court; your corruption feeds their evidence.
+    const startPet = (term, margin, opp, oppParty) => {
+      const filed = margin < 2 || r() < (margin < 5 ? .7 : 0);
+      if (!filed) return;
+      next.petition = { term, stage: 0, margin, opp, oppParty, start: turn, lostBelow: false };
+      notes.push(["⚖️ " + opp + " (" + oppParty + ") has filed a petition against your " + (term === 1 ? "election" : "re-election") + ", citing your " + margin + "% margin.", "crisis"]);
+    };
+    if (turn === 1 && !next.pet1 && setup?.election && setup.election.marginPct < 5) { next.pet1 = true; startPet(1, setup.election.marginPct, String(setup.election.opp || "The opposition candidate").replace(/^Hon\. /, ""), setup.election.oppParty || "OPP"); }
+    if (turn === 5 && !next.pet2 && next.reMargin != null && next.reMargin < 5) { next.pet2 = true; startPet(2, next.reMargin, next.reOpp || "The opposition candidate", next.reOppParty || "OPP"); }
+    const P0 = next.petition;
+    if (P0 && P0.stage < 3 && turn >= P0.start + P0.stage) {
+      const COURTS = ["Governorship Election Tribunal", "Court of Appeal", "Supreme Court"];
+      const st0 = P0.stage, final = st0 === 2;
+      const base = .12 + (P0.margin < 2 ? .15 : P0.margin < 3.5 ? .08 : .03) + Math.max(0, s.cor - .35) * .9 + (s.cor > .55 ? .1 : 0) + (setup?.gfDebt > 0 ? .03 : 0);
+      const grounds = s.cor > .5 ? "inducement of voters and misuse of state funds" : P0.margin < 2 ? "over-voting in the polling units you won" : "non-compliance with the Electoral Act";
+      const decide = (pLose, extra) => {
+        const lost = Math.random() < Math.max(.03, Math.min(.92, pLose));
+        if (extra) extra();
+        if (lost && final) {
+          addL("⚖️ The Supreme Court has nullified your election. " + P0.opp + " is to be sworn in as governor.", "crisis");
+          scWiki("Controversies", "The Supreme Court nullified the election on a petition by " + P0.opp + ".");
+          setStc(p => ({ ...p, petition: { ...p.petition, stage: 3, result: "lost" } }));
+          setGEnd("nullified");
+          return;
+        }
+        if (lost) {
+          scFx({ app: -3 });
+          addL("⚖️ The " + COURTS[st0] + " ruled for " + P0.opp + ". You stay in office pending your appeal to the " + COURTS[st0 + 1] + ".", "crisis");
+          scWiki("Controversies", "The " + COURTS[st0] + " nullified the " + (P0.term === 1 ? "election" : "re-election") + "; the governor appealed.");
+          setStc(p => ({ ...p, petition: { ...p.petition, stage: st0 + 1, lostBelow: true } }));
+          return;
+        }
+        const quits = !final && st0 === 0 && P0.margin >= 4 && Math.random() < .5;
+        scFx({ app: final ? 3 : 1, pStab: final ? 3 : 0 });
+        addL("⚖️ The " + COURTS[st0] + " dismissed " + P0.opp + "'s petition." + (final ? " The matter is closed for good." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), "success");
+        setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined } }));
+      };
+      cards.push({ key: "petition", kicker: "Election petition · " + (st0 + 1) + " of 3", color: CL.red, art: ["courtroom", "judge"],
+        title: COURTS[st0] + ": " + P0.opp + " v. You",
+        brief: P0.opp + " says you won by " + grounds + ". Your margin was " + P0.margin + "%." + (P0.lostBelow ? " You lost at the lower court and are now the appellant." : "") + (s.cor > .45 ? " Your corruption record hands them evidence." : ""),
+        stakes: final ? "The Supreme Court is final. Lose here and you leave Government House." : "Lose here and you appeal; the case goes on.",
+        options: [
+          { label: "Field a team of Senior Advocates", note: "₦0.8B from the state's legal budget. The best odds money can buy legally.", chips: fxChips({ debt: .8 }).concat([{ text: "Risk " + Math.round(Math.max(.03, base - .12) * 100) + "%", color: CL.org }]), run: () => decide(base - .12, () => scFx({ debt: .8 })) },
+          { label: "Rely on the facts and INEC's records", note: P0.margin >= 3 ? "Your margin is decent. The records may be enough." : "With a margin this thin, the records cut both ways.", chips: [{ text: "Free", color: CL.grn }, { text: "Risk " + Math.round(Math.max(.03, base - (P0.margin >= 3 ? .05 : 0)) * 100) + "%", color: CL.org }], run: () => decide(base - (P0.margin >= 3 ? .05 : 0)) },
+          { label: "\u201cSettle\u201d the panel", note: "Everyone knows how it is done. If it leaks, it is the end of your name.", risk: "About a 30% chance it leaks.", chips: fxChips({ cor: .08 }).concat([{ text: "Risk " + Math.round(Math.max(.03, base - .2) * 100) + "%", color: CL.org }]), run: () => decide(base - .2, () => { scFx({ cor: .08 }); if (Math.random() < .3) { scFx({ app: -5 }); addL("📰 A judge's aide leaked the payments to the press.", "crisis"); scWiki("Controversies", "Was accused of bribing an election petition panel."); } }) },
+        ] });
+    }
+
     // Succession: in the last year, anoint someone or let the party decide.
     if (turn >= MT - 1 && !next.successor && !next.successionAsked) {
       next.successionAsked = true;
@@ -3865,6 +3956,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     if (gEnd === "defeated") return { name: cast?.rival?.name || "the opposition", kind: "opposition", won: true, betrayed: false, efcc: .08 };
     if (gEnd === "impeached") return { name: depGov?.nm || "your deputy", kind: "deputy", won: true, betrayed: true, efcc: .05 };
+    if (gEnd === "nullified") return { name: (stc.petition && stc.petition.opp) || cast?.rival?.name || "the petitioner", kind: "opposition", won: true, betrayed: false, efcc: .1 };
     return null;
   };
 
@@ -5062,7 +5154,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (flagM.length) { lead1.push("By " + yearOf(flagM[flagM.length - 1].t) + " it had met " + (del + cut) + " of " + flagM.length + " yearly targets" + (cut ? ", " + cut + " of them by cutting corners" : "") + ". "); lead1.push(cite(flagM[flagM.length - 1])); }
     const lead = [lead1];
     if (ended) {
-      const out = gEnd === "impeached" ? He + " was removed from office by the State House of Assembly under Section 188 of the Constitution." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182.";
+      const out = gEnd === "impeached" ? He + " was removed from office by the State House of Assembly under Section 188 of the Constitution." : gEnd === "nullified" ? "The Supreme Court nullified " + his + " election on a petition by " + ((stc.petition && stc.petition.opp) || "the opposition candidate") + ", who was sworn in as governor." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182.";
       lead.push([out + " " + His + " approval stood at " + Math.round(s.app) + "% when " + he + " left office."]);
     }
     const sections = [];
@@ -5219,7 +5311,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const capQueue = (q) => {
     const lv = setup?.level || "medium";
     const cap = turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
-    const pri = (k) => k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" ? 100
+    const pri = (k) => k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
@@ -5475,11 +5567,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const canP = ov > 52 && s.app > 42 && (gEnd === "complete" || gEnd === "stepped_down");
     const canFctm = ov > 65 && s.app > 55 && s.cor < 0.25 && (gEnd === "complete" || gEnd === "stepped_down");
     const pa = PARTIES.find(p => p.id === party);
-    const termsServed = gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid" ? "1 term (4 years)" : gEnd === "impeached" || gEnd === "bankrupt" ? "Partial term" : "2 terms (8 years)";
+    const termsServed = gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid" ? "1 term (4 years)" : gEnd === "impeached" || gEnd === "bankrupt" || gEnd === "nullified" ? "Partial term" : "2 terms (8 years)";
     // The governor's own portrait; the isiagu portrait has faces for how it ended.
-    const heroMood = gEnd === "impeached" || gEnd === "bankrupt" ? "governor-angry" : gEnd === "defeated" || gr === "D" || gr === "F" ? "governor-worried" : gr === "A" || gr === "B" ? "governor-pleased" : null;
+    const heroMood = gEnd === "impeached" || gEnd === "bankrupt" || gEnd === "nullified" ? "governor-angry" : gEnd === "defeated" || gr === "D" || gr === "F" ? "governor-worried" : gr === "A" || gr === "B" ? "governor-pleased" : null;
     const heroImg = setup?.avatar === "isiagu" && heroMood ? "./art/characters/" + heroMood + ".webp" : (AVATAR_IMGS[setup?.avatar] || HERO_MALE);
-    const shareT = "🇳🇬 I governed " + state.replace("_", " ") + " in #SeatOfPower!\n🏅 " + rcTitle + "\nGrade: " + gr + " (" + ov + ")\nApproval: " + Math.round(s.app) + "%\n" + (gEnd === "impeached" ? "⚠️ IMPEACHED!" : gEnd === "defeated" ? "❌ Lost re-election!" : gEnd === "complete" ? "✅ Completed 2 terms!" : gEnd === "stepped_down" ? "🏛️ Stepped down after 1 term" : gEnd === "pres_bid" ? "🇳🇬 Resigned to run for PRESIDENT!" : "");
+    const shareT = "🇳🇬 I governed " + state.replace("_", " ") + " in #SeatOfPower!\n🏅 " + rcTitle + "\nGrade: " + gr + " (" + ov + ")\nApproval: " + Math.round(s.app) + "%\n" + (gEnd === "impeached" ? "⚠️ IMPEACHED!" : gEnd === "nullified" ? "⚖️ Removed by the Supreme Court!" : gEnd === "defeated" ? "❌ Lost re-election!" : gEnd === "complete" ? "✅ Completed 2 terms!" : gEnd === "stepped_down" ? "🏛️ Stepped down after 1 term" : gEnd === "pres_bid" ? "🇳🇬 Resigned to run for PRESIDENT!" : "");
 
     // ── BUILD DETAILED WIKI BIOGRAPHY FROM ACTUAL GAMEPLAY ──
     const allCompleted = [...completedProjects];
@@ -5582,13 +5674,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <div style={{ minHeight: "100%", background: CL.bg, padding: "58px 43px" }}>
         <Flag />
         <div style={{ maxWidth: 1272, margin: "58px auto", textAlign: "center" }}>
-          <Sfx k={gEnd === "impeached" || gEnd === "defeated" || gEnd === "bankrupt" ? "lose" : "win"} />
+          <Sfx k={gEnd === "impeached" || gEnd === "defeated" || gEnd === "bankrupt" || gEnd === "nullified" ? "lose" : "win"} />
           <img src={heroImg} alt={pName} style={{ height: TALL() ? 220 : 280, width: "auto", objectFit: "contain", display: "block", margin: "0 auto 18px" }} />
           <h2 style={{ fontFamily: F.d, color: gEnd === "complete" ? CL.txt : gEnd === "pres_bid" ? CL.gold : gEnd === "stepped_down" ? CL.blu : CL.red, fontSize: TS(94), fontWeight: 700, margin: "0 0 14px" }}>
-            {gEnd === "impeached" ? "IMPEACHED" : gEnd === "bankrupt" ? "STATE BANKRUPT" : gEnd === "defeated" ? "VOTED OUT" : gEnd === "stepped_down" ? "STEPPED DOWN" : gEnd === "pres_bid" ? "PRESIDENTIAL BID" : "Tenure Complete"}
+            {gEnd === "impeached" ? "IMPEACHED" : gEnd === "nullified" ? "ELECTION NULLIFIED" : gEnd === "bankrupt" ? "STATE BANKRUPT" : gEnd === "defeated" ? "VOTED OUT" : gEnd === "stepped_down" ? "STEPPED DOWN" : gEnd === "pres_bid" ? "PRESIDENTIAL BID" : "Tenure Complete"}
           </h2>
           <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 14 }}>Gov. {pName} · {party} · {state.replace("_", " ")} · {termsServed}</p>
           {gEnd === "defeated" && <p style={{ color: CL.red, fontSize: TS(36), marginBottom: 29 }}>The people rejected your bid for a second term.</p>}
+          {gEnd === "nullified" && <p style={{ color: CL.red, fontSize: TS(36), marginBottom: 29 }}>The Supreme Court nullified your election. {(stc.petition && stc.petition.opp) || "The petitioner"} was sworn in.</p>}
           {gEnd === "complete" && <p style={{ color: CL.grn, fontSize: TS(36), marginBottom: 29 }}>You served the full 8 years — two complete terms.</p>}
           {gEnd === "stepped_down" && <p style={{ color: CL.blu, fontSize: TS(36), marginBottom: 29 }}>You chose not to seek re-election. A principled decision — or was it strategic?</p>}
           {gEnd === "pres_bid" && <p style={{ color: CL.gold, fontSize: TS(36), marginBottom: 29 }}>You resigned the governorship to pursue the presidency of Nigeria.</p>}
@@ -5663,7 +5756,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Bt onClick={() => onEnd("president", s)}>🇳🇬 ENTER PRESIDENTIAL RACE →</Bt>
             </Cd>
           )}
-          {(gEnd === "impeached" || gEnd === "bankrupt") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
+          {(gEnd === "impeached" || gEnd === "bankrupt" || gEnd === "nullified") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
 
           {/* REPORT CARD and SUCCESSION */}
           <Cd style={{ marginTop: 43, textAlign: "left", maxWidth: 900, marginLeft: "auto", marginRight: "auto" }}>
@@ -5672,7 +5765,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {[["Needs answered", rc.met + " answered · " + rc.failed + " ignored until people suffered", rc.failed > rc.met],
               ["Promises", rc.promised ? rc.kept + " kept · " + rc.broken + " broken of " + rc.promised : "none on record", rc.broken > rc.kept],
               ["Salaries", rc.arrearsMax ? "workers owed up to " + rc.arrearsMax + " months" + (stc.arrears ? " (" + stc.arrears + " still owed)" : "") : "always paid", rc.arrearsMax >= 3],
-              ["Debt left behind", "₦" + (s.debt || 0).toFixed(1) + "B", (s.debt || 0) > 20],
+              ["Debt left behind", "₦" + ((s.debt || 0) + (stc.defDebt && !stc.defDebt.due ? stc.defDebt.amt : 0)).toFixed(1) + "B" + (stc.defDebt && !stc.defDebt.due ? " (₦" + stc.defDebt.amt.toFixed(1) + "B pushed to your successor)" : ""), (s.debt || 0) + (stc.defDebt && !stc.defDebt.due ? stc.defDebt.amt : 0) > 20],
               ["Corruption", Math.round(s.cor * 100) + "%", s.cor > .45],
               ["The House at the end", (stc.house ? stc.house.loyal + " of " + stc.house.seats + " members with you" : "—"), stc.house && stc.house.loyal < stc.house.seats / 2],
             ].map(([k, v, bad]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "8px 0", borderTop: "1px solid " + CL.bdr + "88", fontSize: TS(31) }}>
@@ -5683,6 +5776,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ fontSize: TS(34), color: CL.txt, lineHeight: 1.5 }}>
               {succ.kind === "opposition" ? succ.name + " took over Government House. The new administration's first act was a 'probe panel' into your finances."
                 : gEnd === "impeached" ? succ.name + " was sworn in within the hour, and handed the Assembly's findings to the EFCC."
+                : gEnd === "nullified" ? succ.name + " took the oath the morning after the judgment, and the first executive order was a forensic audit of your years in office."
                 : !succ.won ? "Your candidate, " + succ.name + ", lost the governorship to the opposition. The new government set up a panel to probe your years in office."
                 : succ.betrayed ? succ.name + " won, then turned on you within months: suspended your projects, renamed your flagship, and sent your files to the EFCC. In Nigerian politics, the godson always comes for the godfather."
                 : succ.name + " won and kept faith. Your projects continue, your name stays on the plaques, and the new government is in no hurry to help the EFCC."}
@@ -5691,7 +5785,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </Cd>}
 
           {/* EFCC ARREST — if leaving office with high corruption, you lose immunity */}
-          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete") && ecor > .35 && (
+          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete" || gEnd === "nullified") && ecor > .35 && (
             <Cd style={{ borderColor: CL.red, marginTop: 43, background: "#fff5f5" }}>
               <div style={{ textAlign: "center", marginBottom: 22 }}>
                 <div style={{ fontSize: TS(98), marginBottom: 14 }}>🚔⚖️</div>
@@ -5727,7 +5821,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>}
             </Cd>
           )}
-          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete") && ecor <= .35 && (
+          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete" || gEnd === "nullified") && ecor <= .35 && (
             <Cd style={{ borderColor: CL.grn + "44", marginTop: 43 }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: TS(79), marginBottom: 7 }}>✨</div>
@@ -5946,12 +6040,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           const done = REVENUE_MEASURES.filter(m => used[m.id] != null).length;
           return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: CL.card, border: "1px solid " + CL.gold + "55", borderRadius: 18, overflow: "hidden" }}>
             <button onClick={() => setRevOpen(o => !o)} aria-expanded={revOpen} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: TALL() ? "12px 14px" : "16px 20px", cursor: "pointer", textAlign: "left", color: CL.txt }}>
-              <span><b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42) }}>💰 Raise money without borrowing</b>
+              <span><b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42) }}>💰 Money: raise revenue, manage debt</b>
                 <span style={{ display: "block", fontSize: fz.s, color: CL.td }}>Own revenue ₦{(s.igr || 0).toFixed(1)}B · FAAC ₦{(s.faac || 0).toFixed(1)}B a half-year · {done} of {REVENUE_MEASURES.length} reforms done</span></span>
               <span style={{ color: CL.td, fontSize: fz.s }}>{revOpen ? "▲" : "▼"}</span>
             </button>
             {revOpen && <div style={{ padding: TALL() ? "0 14px 14px" : "0 20px 18px", display: "grid", gap: 10 }}>
               <div style={{ fontSize: fz.s, color: CL.td }}>Up to two reforms a half-year: the civil service cannot absorb more. {left > 0 ? left + " left this half-year." : "None left this half-year."}</div>
+              {(() => {
+                const svc = (s.debt || 0) * .08, inc = (s.igr || 0) + (s.faac || 0), share = inc > 0 ? Math.round(svc / inc * 100) : 0;
+                const row = (k, label, note, can, why, fn) => <div key={k} style={{ border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "10px 12px" : "14px 16px" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "baseline", justifyContent: "space-between" }}>
+                    <b style={{ fontSize: fz.m, color: CL.txt }}>{label}</b>
+                    {debtDone(k) ? <span style={{ color: CL.td, fontWeight: 800, fontSize: fz.s, whiteSpace: "nowrap" }}>Used this term</span>
+                      : <button disabled={!can} onClick={fn} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: can ? CL.blu : CL.bdr, color: can ? "#fff" : CL.td, padding: "8px 16px", minHeight: 40, fontWeight: 800, fontSize: fz.s, cursor: can ? "pointer" : "not-allowed" }}>Do it</button>}
+                  </div>
+                  <div style={{ fontSize: fz.s, color: CL.tm, marginTop: 4 }}>{note}</div>
+                  {why && !debtDone(k) && <div style={{ fontSize: fz.s, color: CL.red }}>{why}</div>}
+                </div>;
+                return <div style={{ display: "grid", gap: 8, marginBottom: 6 }}>
+                  <div style={{ fontSize: fz.m, color: CL.txt }}><b>Your debt: ₦{(s.debt || 0).toFixed(1)}B</b> · repayments ₦{svc.toFixed(1)}B a half-year ({share}% of income){stc.defDebt ? " · ₦" + stc.defDebt.amt.toFixed(1) + "B pushed " + (stc.defDebt.due ? "to your second term" : "to your successor") : ""}</div>
+                  {row("relief", "🇳🇬 Ask Abuja to write off 80% of the debt", "A long shot: about " + Math.round(reliefOdds() * 100) + "% now. Better with good federal relations, clean books and revenue reforms. Success costs you federal goodwill and a debt of loyalty to the President.", !debtDone("relief") && (s.debt || 0) >= 6, (s.debt || 0) < 6 ? "Only worth asking when debt is ₦6B or more." : null, askRelief)}
+                  {row("defer", "🏦 Push repayments to the next administration", "Moves 60% of the debt off your books for now. " + (termNow === 1 ? "If you are re-elected, it comes back at the start of your second term." : "Your successor inherits it, and so does your Wikipedia page."), !debtDone("defer") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to restructure." : null, deferDebt)}
+                  {row("notes", "📜 Pay contractors in promissory notes at a discount", "Cuts about 12% of the debt. Contractors slow down on every site, and the party's contractor-financiers sulk (party −2).", !debtDone("notes") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to discount." : null, discountDebt)}
+                  <div style={{ fontSize: fz.s, color: CL.td, marginTop: 4 }}>Reforms that raise money:</div>
+                </div>;
+              })()}
               {REVENUE_MEASURES.map(m => {
                 const on = used[m.id] != null, why = !on && m.req ? m.req(c) : null, can = !on && !why && left > 0;
                 return <div key={m.id} style={{ border: "1px solid " + (on ? CL.grn + "55" : CL.bdr), borderRadius: 14, padding: TALL() ? "10px 12px" : "14px 16px", background: on ? CL.grn + "08" : "transparent" }}>
@@ -7538,7 +7651,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   {campLog.slice(-6).map((c2, i) => <div key={i} style={{ fontSize: TS(31), color: c2.includes("BACKFIRE") ? CL.red : CL.tm, padding: "5px 0", lineHeight: 1.3 }}>{c2}</div>)}
                 </Cd>
                 {won && (
-                  <Bt onClick={() => { setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); addL("🗳️ RE-ELECTED with " + fmtVotesFull(collation.totalYou) + " votes vs " + fmtVotesFull(collation.totalOpp) + " (" + collation.zonesWon + "/3 zones)", "political"); setTurn(5); setPhase("budget"); }} style={{ padding: "36px 86px", fontSize: TS(43) }}>BEGIN 2ND TERM</Bt>
+                  <Bt onClick={() => { setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); addL("🗳️ RE-ELECTED with " + fmtVotesFull(collation.totalYou) + " votes vs " + fmtVotesFull(collation.totalOpp) + " (" + collation.zonesWon + "/3 zones)", "political"); setStc(p => ({ ...p, reMargin: Math.round(marginPct * 10) / 10, reOpp: oppName, reOppParty: oppParty?.id || "OPP" })); setTurn(5); setPhase("budget"); }} style={{ padding: "36px 86px", fontSize: TS(43) }}>BEGIN 2ND TERM</Bt>
                 )}
               </Cd>;
             }
