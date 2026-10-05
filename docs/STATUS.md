@@ -161,3 +161,24 @@
 - **Waiting needs:** every open, unanswered need costs approval −1 and its zone −2 each half-year ("Still waiting: …"), as well as the bigger cost at the deadline.
 - **Wikipedia:** ignored needs and abandoned sites now go under Controversies.
 - **Idle half-years:** a half-year with no new programme or project costs approval −3 and −2 in every zone, and adds a Controversies line ("government on autopilot"). The last half-year with new work is tracked by `lastActTurn`.
+
+## Statecraft: the pressures of office
+Eight systems, built in `game/seat-of-power.jsx`. The data sits after `OFFENCE` (`STATE_CRISES`, `PROMISE_TEXT`, `streetVoices`, `reportTitle`); the engine sits after the needs review (`stc` state, `statecraftTurn`, `successionOutcome`). It runs once a half-year when the events are built, and its decisions arrive as `sc` cards rendered by `DecisionCard`. `stc` is saved with the game.
+- **Salaries and FAAC:** each half-year's allocation lands at 70–108% of budget depending on difficulty. When it is short, choose:
+  - borrow the shortfall;
+  - pay salaries but hold contractors, which stalls every started need;
+  - owe workers 2–3 months.
+
+  An underfunded salary line (below 12%) adds a month on its own. Arrears cost every half-year:
+  - 1–2 months: approval −1.
+  - 3–4 months: NLC ultimatum, approval −3, Wikipedia.
+  - 5 months or more: general strike, approval −5, health and education −2%, health and education work stalls, Wikipedia.
+
+  You can clear the arrears at any time with borrowed money.
+- **Promises:** three per term, one per senatorial zone, each tied to a sector. A promise is kept when a need in that sector and zone is met, or when the sector stat rises 6 points: approval +2, zone +3, Wikipedia. Promises are judged at the re-election and at the end. Each broken one costs approval −2, zone −4 and a Controversies entry. At the re-election the opponent's "4 Years of Failure" attack hits 2 points harder per broken promise.
+- **Cabinet balance:** a commissioner's home zone comes from their name (`zoneOfName`). A gap of 3 or more costs the short zone 2 points every half-year, and a Wikipedia line the first time. Fired commissioners are replaced from the least-represented zone. The Cabinet tab shows the balance and each commissioner's zone.
+- **House of Assembly:** 24, 30 or 40 seats by population. Loyalty drifts with party, approval, arrears and corruption. Losing the majority brings a card: constituency projects, sharing appointments, or appealing to the people. Two-thirds against you (with approval below 60) starts the existing impeachment; surviving it wins members back.
+- **State crises:** 14 templates keyed to each state's own issues (oil spills, illegal refineries, bandit "taxes", school abductions, insurgent attacks, farmer–herder violence, floods, sit-at-home, almajiri, waterfront demolitions, cult clashes, gully erosion, lead mining, land wars). After the first half-year, one arrives 70% of the time (45% on easy), none repeating. Several options are gambles.
+- **The street:** a Desk panel with a trending hashtag, up to three voices (some in Pidgin) built from arrears, failed and met needs, corruption, House defections and cabinet imbalance, plus chips for salaries, the House, the cabinet and promises.
+- **Succession:** in the last year, anoint your deputy, your best commissioner, your political son, or let the party decide. Each has a loyalty and an electability. At the end the successor wins or loses (approval and party), and a winner may betray you (more likely when corruption is high). EFCC exposure moves by −12 points with a loyal successor and +12 after a betrayal (+8 after an opposition win). The Wikipedia "Succeeded by" field follows.
+- **Report card:** the end screen shows a title ("The Builder", "Mr Autopilot", "Promise Keeper", "The Governor Who Owed Salaries"…), needs answered and ignored, promises, salary arrears, debt, corruption and the House. The title is added to the share text.

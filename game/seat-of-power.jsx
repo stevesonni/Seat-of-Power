@@ -744,6 +744,180 @@ const OFFENCE = {
   praise: { label: "Delivered", tone: "good" },
 };
 
+// ── Statecraft: the pressures every Nigerian governor lives with ──
+// Salaries against the monthly FAAC allocation, campaign promises, the
+// zonal balance of the cabinet, the House of Assembly, each state's own
+// recurring crises, the street's verdict and, at the end, succession.
+const SECTOR_STAT = { infrastructure: "infra", health: "hp", education: "lit", agriculture: "agr", security: "sec" };
+const PROMISE_TEXT = {
+  infrastructure: (z) => "Tar the roads of " + z + " zone",
+  health: (z) => "A working general hospital for " + z + " zone",
+  education: (z) => "No child out of school in " + z + " zone",
+  agriculture: (z) => "Fertiliser for every farmer in " + z + " zone",
+  security: (z) => "Safe roads and farms in " + z + " zone",
+};
+// FNV-1a: hashStr's ×31 keeps the letter sum mod 3, which piles names into one zone.
+const zoneOfName = (name) => { let h = 2166136261; for (const ch of String(name || "")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h % 3; };
+const houseSeats = (pop) => pop >= 9 ? 40 : pop >= 5 ? 30 : 24;
+
+// Each state's own recurring crises, keyed by the issues listed for it in STATES.
+// fx: app/pStab are points; cor/sec/infra/hp/agr/lit are fractions; debt is ₦B.
+const STATE_CRISES = [
+  { id: "oil_spill", keys: /oil spill|pipeline|oil theft|oil politics|militancy/i, icon: "🛢️", bg: "flooded-community", who: "market-trader",
+    title: (l) => "Oil spill poisons the creeks near " + l,
+    d: (l) => "A ruptured pipeline has coated the fishing grounds near " + l + " in crude. Fishermen have no catch, the water smells of diesel, and youths have seized a flow station demanding compensation.",
+    opts: [
+      { l: "Sue the oil company and fund the clean-up", note: "Slow, expensive and right. The community sees you on their side.", fx: { app: 3, debt: 1.5, hp: .01 }, zone: 3, log: "sued the oil company and paid for the clean-up" },
+      { l: "Negotiate with the youths: stipends to free the flow station", note: "Fast. It also teaches every creek that seizing a station pays.", fx: { app: 1, debt: .6, cor: .02, sec: -.02 }, zone: 1, log: "paid stipends to the youths holding the flow station", wiki: "Paid stipends to youths who seized a flow station, a deal critics said rewarded militancy." },
+      { l: "Send in the Joint Task Force", note: "The station is back in a day. So are the funerals.", fx: { app: -3, sec: .02, pStab: 2 }, zone: -5, log: "sent soldiers to retake the flow station", wiki: "Ordered a military operation in the creeks that left several youths dead." },
+    ] },
+  { id: "illegal_refinery", keys: /oil theft|youth restiveness|pipeline|militancy|youth unemployment/i, icon: "🔥", bg: "veranda-night", who: "police-commissioner",
+    title: (l) => "Illegal refinery explodes near " + l,
+    d: (l) => "An illegal 'kpofire' refinery outside " + l + " exploded overnight. Dozens are dead. Everyone knows who protects these camps, and some of them are in your party.",
+    opts: [
+      { l: "Shut every camp and name the protectors", note: "Your party chairman's cousin is on the list.", fx: { app: 4, pStab: -6, cor: -.03 }, zone: 2, log: "shut the illegal refineries and named their protectors", wiki: "Shut down illegal refineries and publicly named the politicians protecting them." },
+      { l: "Train the operators as licensed modular refiners", note: "Turns a crime into jobs. Costs money and federal goodwill.", fx: { app: 2, debt: 1.2, agr: 0 }, zone: 3, log: "launched a modular refinery scheme for former operators" },
+      { l: "Condolences, then quiet", note: "The camps reopen next week.", fx: { app: -2, cor: .02 }, zone: -3, log: "issued condolences and left the camps alone" },
+    ] },
+  { id: "bandits_tax", keys: /bandit|kidnap|insecurity/i, icon: "🏚️", bg: "emirs-palace-courtyard", who: "traditional-ruler-emir",
+    title: (l) => "Bandits impose a 'harvest tax' on villages near " + l,
+    d: (l) => "Bandits have written to villages around " + l + ": pay ₦20 million or no one harvests. The district head is begging you to let the villages pay. Two farmers who refused were killed last week.",
+    opts: [
+      { l: "Negotiate a 'peace deal' with the bandit leaders", note: "Quiet for a season. The bandits buy more guns with the money.", fx: { app: 1, sec: -.03, cor: .02 }, zone: 2, log: "negotiated a peace deal with bandit leaders", wiki: "Signed a controversial peace deal with bandit leaders that collapsed within months." },
+      { l: "Fund vigilantes and community guards", note: "Locals know the forest. Vigilantes also settle their own scores.", fx: { app: 2, sec: .02, debt: .8 }, zone: 3, log: "funded community guards in the bandit corridor" },
+      { l: "Demand federal troops and refuse any payment", note: "Abuja promises a battalion. It arrives late, if at all.", fx: { app: -1, sec: .01, pStab: -2 }, zone: -2, log: "refused to pay and asked Abuja for troops" },
+    ] },
+  { id: "school_abduction", keys: /bandit|kidnap|Boko Haram|insurgency/i, icon: "🎒", bg: "classroom", who: "teacher",
+    title: (l) => "Gunmen abduct 80 pupils from a school in " + l,
+    d: (l) => "Gunmen stormed a boarding school in " + l + " before dawn and took 80 pupils. The parents are at Government House. CNN is calling. Ransom middlemen are already phoning your chief of staff.",
+    opts: [
+      { l: "Quietly pay the ransom through middlemen", note: "The children come home. The next school is already being scouted.", fx: { app: 4, debt: 1, sec: -.03, cor: .02 }, zone: 3, log: "secured the pupils' release through a quiet ransom", wiki: "Secured the release of abducted pupils; reports later said a ransom was paid." },
+      { l: "Back a rescue operation with the army", note: "If it works you are a hero. If it fails, children die on camera.", fx: { app: 0, sec: .02 }, zone: 0, log: "backed a military rescue for the abducted pupils", gamble: { p: .55, win: { app: 7, zone: 6, log: "The rescue worked. Every pupil is home." }, lose: { app: -9, zone: -8, log: "The rescue went wrong. Three pupils died.", wiki: "A rescue operation for abducted pupils ended with three children dead." } } },
+      { l: "Close all boarding schools in the area", note: "Safe today. A generation out of school tomorrow.", fx: { app: -2, lit: -.03, sec: .01 }, zone: -4, log: "closed boarding schools in the danger zone", wiki: "Closed rural boarding schools after a mass abduction, keeping thousands of children out of school." },
+    ] },
+  { id: "insurgent_attack", keys: /Boko Haram|insurgency|IDPs/i, icon: "💥", bg: "street-protest", who: "soldier",
+    title: (l) => "Insurgents overrun a garrison town near " + l,
+    d: (l) => "Insurgents attacked the garrison at " + l + " at night and burned the market. Thousands are walking to the state capital. The IDP camps are already full.",
+    opts: [
+      { l: "Open new IDP camps and feed everyone", note: "Humane and expensive. The camps can become permanent.", fx: { app: 3, debt: 1.4, hp: .01 }, zone: 4, log: "opened new IDP camps for the displaced" },
+      { l: "Fund the Civilian JTF to retake the area", note: "Local fighters with local grudges. It works fast.", fx: { app: 2, sec: .03, debt: .7, cor: .01 }, zone: 2, log: "funded the Civilian JTF to retake the town" },
+      { l: "Announce the resettlement of the town in 90 days", note: "A brave promise. If the insurgents return, so does the blame.", fx: { app: 1, infra: .01, debt: 1 }, zone: 1, log: "promised to resettle the town within 90 days", gamble: { p: .5, win: { app: 4, zone: 4, log: "The resettled town held." }, lose: { app: -6, zone: -6, log: "The insurgents returned to the resettled town.", wiki: "Resettled a town that insurgents overran again within months." } } },
+    ] },
+  { id: "farmer_herder", keys: /farmer-herder|ethnic crisis|ethnic tension/i, icon: "🌾", bg: "street-protest", who: "traditional-ruler-oba-obi",
+    title: (l) => "Overnight attack on farming villages near " + l,
+    d: (l) => "Gunmen attacked three farming villages near " + l + " overnight. Farmers blame herders; herders say their cattle were rustled first. Churches and mosques are both calling for calm, and for revenge.",
+    opts: [
+      { l: "Sign an anti-open-grazing law", note: "Popular with farmers. Herders' associations and Abuja are furious.", fx: { app: 3, pStab: -4, agr: .01 }, zone: 4, log: "signed an anti-open-grazing law", wiki: "Signed an anti-open-grazing law after attacks on farming villages." },
+      { l: "Create grazing reserves with water and vets", note: "Slow, expensive, and the only lasting fix.", fx: { app: 1, debt: 1.2, agr: .02, sec: .01 }, zone: 2, log: "created grazing reserves with water points" },
+      { l: "Peace meeting at Government House", note: "Photos and handshakes. Nothing changes on the ground.", fx: { app: -1 }, zone: -3, log: "held a peace meeting that changed little" },
+    ] },
+  { id: "flood", keys: /flood/i, icon: "🌊", bg: "flooded-community", who: "market-trader",
+    title: (l) => "The river overflows: " + l + " under water",
+    d: (l) => "Cameroon opened the Lagdo dam again. The river burst its banks and " + l + " is under water. Farms are gone, the main road is cut, and 30,000 people are on rooftops.",
+    opts: [
+      { l: "Full emergency: boats, camps and relief", note: "What a governor should do. It costs what it costs.", fx: { app: 4, debt: 1.5, hp: .01 }, zone: 5, log: "led a full flood emergency response" },
+      { l: "Wait for the federal ecological fund", note: "Abuja pays in six months, if it pays.", fx: { app: -4, agr: -.03 }, zone: -6, log: "waited for federal flood money", wiki: "Was criticised for a slow response to the floods in the state." },
+      { l: "Relief now, and build the embankment", note: "Ends the yearly flood. A big contract, with big temptations.", fx: { app: 3, debt: 2.4, infra: .02, cor: .01 }, zone: 4, log: "started building a flood embankment" },
+    ] },
+  { id: "sit_at_home", keys: /sit-at-home|IPOB/i, icon: "🚫", bg: "busy-market-street", who: "market-trader",
+    title: () => "Monday sit-at-home empties the markets again",
+    d: () => "The separatist sit-at-home order has shut the state every Monday for months. Traders lose a fifth of their week. Anyone who opens is attacked. Your order to resume work was ignored.",
+    opts: [
+      { l: "Open the markets with heavy security", note: "Some traders come out. Some get hurt.", fx: { app: 1, sec: .02, pStab: 2 }, zone: 0, log: "deployed security to reopen Monday markets", gamble: { p: .55, win: { app: 3, zone: 3, log: "Markets reopened on Monday and stayed open." }, lose: { app: -5, zone: -5, log: "Enforcers burned shops that opened on Monday." } } },
+      { l: "Engage the elders and the youth quietly", note: "Slow. Abuja suspects your loyalty.", fx: { app: 2, pStab: -2 }, zone: 3, log: "opened quiet talks with elders and youth leaders" },
+      { l: "Do nothing; Monday is lost", note: "Safe for you. Ruinous for traders.", fx: { app: -2 }, zone: -3, log: "let the Monday sit-at-home continue" },
+    ] },
+  { id: "almajiri", keys: /almajiri|education|poverty/i, icon: "🥣", bg: "busy-market-street", who: "young-voter-student",
+    title: (l) => "Almajiri children begging on every street in " + l,
+    d: (l) => "Thousands of almajiri children are begging at junctions in " + l + ". UNICEF counts them among Nigeria's out-of-school millions. The Islamiyya teachers say the schools are tradition, not neglect.",
+    opts: [
+      { l: "Integrate the almajiri schools: add maths, English and meals", note: "Respects tradition and changes lives. Costs money for years.", fx: { app: 2, lit: .03, debt: 1 }, zone: 3, log: "integrated almajiri schools into basic education", wiki: "Integrated almajiri schools into the state's basic education system." },
+      { l: "Ban street begging and send the children home", note: "Clears the streets in a week. Many of the children have no home to go to.", fx: { app: -1, pStab: 1 }, zone: -3, log: "banned street begging and repatriated almajiri children", wiki: "Banned street begging and repatriated almajiri children to their states of origin." },
+      { l: "Leave it to the clerics", note: "No quarrel today. The problem grows.", fx: { lit: -.01 }, zone: -2, log: "left the almajiri question to the clerics" },
+    ] },
+  { id: "demolition", keys: /housing|traffic|urban|land grabbing|satellites/i, icon: "🏗️", bg: "road-construction-site", who: "investor-nigerian",
+    title: (l) => "Developers want the waterfront settlement at " + l + " cleared",
+    d: (l) => "A developer offers ₦40B for luxury towers on the waterfront settlement at " + l + ". 20,000 people live there. Your planners call it a slum; residents call it home and have a court order.",
+    opts: [
+      { l: "Demolish and take the investment", note: "The towers rise. So does the footage of bulldozers at dawn.", fx: { app: -6, igr: 1.5, cor: .03 }, zone: -6, log: "demolished the waterfront settlement for a luxury development", wiki: "Ordered the demolition of a waterfront community for a private development, displacing thousands." },
+      { l: "Upgrade the settlement in place", note: "Water, drainage and titles for residents. No towers.", fx: { app: 4, debt: 1.4, infra: .01 }, zone: 4, log: "upgraded the waterfront settlement for its residents" },
+      { l: "Relocate residents first, then build", note: "Fair on paper. The new site is two hours from their work.", fx: { app: -1, debt: .8, igr: .8 }, zone: -1, log: "relocated waterfront residents before development" },
+    ] },
+  { id: "cult_clash", keys: /cultism|political violence|political dynasty|politics/i, icon: "🔪", bg: "veranda-night", who: "police-commissioner",
+    title: (l) => "Cult gangs clash in " + l + " ahead of party primaries",
+    d: (l) => "Rival cult groups fought in " + l + " for three nights. Everyone knows they are the 'boys' of two politicians in your own party, ahead of the primaries.",
+    opts: [
+      { l: "Arrest the sponsors, whoever they are", note: "One is your campaign's biggest financier.", fx: { app: 3, pStab: -6, sec: .02 }, zone: 3, log: "ordered the arrest of the cult groups' political sponsors", wiki: "Ordered the arrest of politicians accused of sponsoring cult violence." },
+      { l: "Amnesty and skills for cult members who surrender", note: "Some surrender. Some take the money and keep their guns.", fx: { app: 1, debt: .6, sec: .01 }, zone: 1, log: "offered amnesty to cult members who surrendered" },
+      { l: "Curfew and leave politics out of it", note: "Quiet for now. The sponsors stay powerful.", fx: { app: -1, sec: .01 }, zone: -2, log: "imposed a curfew without touching the sponsors" },
+    ] },
+  { id: "erosion", keys: /erosion|roads|infrastructure|water/i, icon: "🕳️", bg: "road-construction-site", who: "market-trader",
+    title: (l) => "Gully erosion swallows houses in " + l,
+    d: (l) => "A gully in " + l + " widened after the rains and took eleven houses and the road to the market. The Ecological Fund money for this site was 'released' two years ago. Nobody can find the contractor.",
+    opts: [
+      { l: "Fix it properly and probe the missing money", note: "Expensive. The probe embarrasses a former commissioner.", fx: { app: 3, debt: 1.3, infra: .02, pStab: -2, cor: -.01 }, zone: 4, log: "fixed the gully and opened a probe into the missing ecological funds" },
+      { l: "Sandbags and a new contract", note: "Cheap now. The gully grows back.", fx: { app: 0, debt: .4, cor: .01 }, zone: -1, log: "awarded a quick sandbag contract for the gully" },
+      { l: "Relocate the families", note: "Nobody wants to leave the land of their fathers.", fx: { app: -2, debt: .5 }, zone: -3, log: "relocated families from the erosion site" },
+    ] },
+  { id: "mining", keys: /mining|illegal mining|smuggling/i, icon: "⛏️", bg: "back-room", who: "expatriate-engineer",
+    title: (l) => "Illegal miners poison children with lead in " + l,
+    d: (l) => "Doctors in " + l + " report children dying of lead poisoning from illegal gold mining. The pits are run by foreign buyers with local protectors. The mining licences are federal, not yours.",
+    opts: [
+      { l: "Shut the pits and pay for treatment", note: "Lives saved. The protectors take it personally.", fx: { app: 3, hp: .02, debt: .8, pStab: -3 }, zone: 3, log: "shut illegal mining pits and funded lead treatment", wiki: "Shut illegal gold pits after a lead-poisoning outbreak killed children." },
+      { l: "Form a state mining cooperative", note: "Brings miners into the law and into the tax net.", fx: { app: 1, igr: .6, debt: .6 }, zone: 2, log: "formed a state mining cooperative" },
+      { l: "Say it is a federal matter", note: "Legally true. Morally hollow.", fx: { app: -3, hp: -.02 }, zone: -4, log: "called the mining deaths a federal matter", wiki: "Declined to act on a lead-poisoning outbreak, calling mining a federal matter." },
+    ] },
+  { id: "land_clash", keys: /boundary|deforestation|tourism|cocoa|funding|brain drain|Amotekun|healthcare|trafficking|drugs|religious|waste|security|coal/i, icon: "⚔️", bg: "emirs-palace-courtyard", who: "traditional-ruler-oba-obi",
+    title: (l) => "Two towns near " + l + " go to war over farmland",
+    d: (l) => "A boundary dispute over farmland between two towns near " + l + " turned deadly. Both monarchs want you to rule in their favour. Each town voted heavily for you.",
+    opts: [
+      { l: "Set up a boundary commission and abide by it", note: "Fair and slow. Both sides call you weak.", fx: { app: 1, sec: .01, debt: .3 }, zone: 1, log: "set up a boundary commission between the warring towns" },
+      { l: "Rule for the bigger town", note: "More votes. The smaller town never forgets.", fx: { app: 1, pStab: 2 }, zone: -2, log: "ruled for the bigger town in the land dispute" },
+      { l: "Deploy police and arrest the youths on both sides", note: "Quiet returns. Both monarchs resent you.", fx: { sec: .02, app: -1 }, zone: -1, log: "arrested youths on both sides of the land war" },
+    ] },
+];
+const stateCrisesFor = (st) => {
+  const iss = (STATES[st]?.issues || []).join(" | ");
+  const own = STATE_CRISES.filter(c => c.keys.test(iss));
+  return own.length ? own : STATE_CRISES.filter(c => c.id === "land_clash" || c.id === "erosion");
+};
+
+// The street's verdict, rebuilt every half-year from what you actually did.
+const streetVoices = (ctx) => {
+  const { stName, last, app, cor, arrears, needs, house, balance, turn } = ctx;
+  const r = rng(turn * 97 + stName.length * 13);
+  const pickOne = (a) => a[Math.floor(r() * a.length)];
+  const who = ["Mama Ngozi, trader", "Aliyu, okada rider", "Mrs Adebayo, teacher", "Emeka, mechanic", "Hajiya Binta, food seller", "Tunde, graduate", "Pastor Okon", "Malam Sani, farmer", "Blessing, nurse", "Chidi, keke driver"];
+  const v = [];
+  const failed = needs.filter(n => n.status === "failed" && n.closed >= turn - 1);
+  const met = needs.filter(n => n.status === "met" && n.closed >= turn - 1);
+  const stalled = needs.filter(n => n.status === "stalled");
+  if (arrears >= 1) v.push({ w: pickOne(["Mrs Adebayo, teacher", "Blessing, nurse"]), t: "Na " + arrears + " month" + (arrears === 1 ? "" : "s") + " now dem never pay us. My landlord don give me quit notice." });
+  if (failed[0]) v.push({ w: pickOne(who), p: failed[0].lga, t: "Dem come " + failed[0].lga + " campaign, dance, share rice. Since then? Nothing. People die here." });
+  if (stalled[0]) v.push({ w: "Emeka, mechanic", p: stalled[0].lga, t: "The contractor don pack him caterpillar commot from " + stalled[0].lga + ". E say government never pay am." });
+  if (met[0]) v.push({ w: pickOne(who), p: met[0].lga, t: "I go talk true: wetin dem do for " + met[0].lga + " don help us. Make dem continue." });
+  if (cor > .5) v.push({ w: "Tunde, graduate", t: "Their children dey school abroad, our own dey sit for floor. Where the money dey go?" });
+  if (house && house.loyal < house.seats / 2) v.push({ w: "Aliyu, okada rider", t: "Assembly members dey cross carpet like say na bus stop. Wahala dey come." });
+  if (balance) v.push({ w: "An elder from " + balance, t: "All the commissioners from one side? Are we not part of this state?" });
+  if (app >= 62) v.push({ w: pickOne(who), t: "This governor dey try. Even my husband wey no dey like politician dey hail am." });
+  if (app < 40) v.push({ w: pickOne(who), t: "This government don tire us. Na election we dey wait." });
+  if (last) v.push({ w: "Phone-in caller on Radio " + stName, t: "About the governor and the " + last.toLowerCase().replace(/[.!]+$/, "") + ": " + (app >= 50 ? "at least him dey do something." : "na so dem dey talk every time.") });
+  if (!v.length) v.push({ w: pickOne(who), t: "We dey watch. Talk no be food." });
+  const tag = arrears >= 2 ? "#PayOurSalaries" + stName.replace(/\s/g, "") : app < 40 ? "#" + stName.replace(/\s/g, "") + "DeservesBetter" : cor > .5 ? "#WhereIsOurMoney" : app >= 62 ? "#" + stName.replace(/\s/g, "") + "IsWorking" : "#" + stName.replace(/\s/g, "") + "Decides";
+  return { tag, lines: v.slice(0, 3) };
+};
+
+// The end-of-term title.
+const reportTitle = (r) =>
+  r.gEnd === "impeached" ? "Impeached" :
+  r.cor > .55 ? "The Contractors' Governor" :
+  r.arrearsMax >= 5 ? "The Governor Who Owed Salaries" :
+  r.failed >= 4 && r.met <= 1 ? "Mr Autopilot" :
+  r.met >= 5 && r.kept >= r.broken ? "The Builder" :
+  r.kept >= 3 && r.broken === 0 ? "Promise Keeper" :
+  r.app >= 65 ? "The People's Governor" :
+  r.app < 35 ? "The Unloved" : "The Survivor";
+
 // What each flagship does every quarter (shown on the State sheet).
 const FLAGSHIP_BONUS = {
   education: "+50% literacy growth · +2 youth/turn", health: "+50% health growth · +2 women/turn",
@@ -1546,6 +1720,7 @@ const HowToPlay = ({ show, onClose }) => {
     { t: "🔍 Hidden Threats & Investigations", c: "Not everything is visible. Hidden corruption festers in your ministries — ghost workers, land fraud, expired drugs, inflated contracts. Your SA hints: 'Something feels off in the Works Ministry...'\n\nInvestigate (₦300M) = catch it early, limited damage. Ignore = it EXPLODES in 3 turns with -6 approval and +5% corruption. Strategic patience vs cost management." },
     { t: "⏰ Time Delays", c: "Policies don't give instant results. Education investment = +0 now, +5 approval in 3 turns. Health = payoff in 2 turns. Agriculture = IGR boost in 2 turns.\n\nThis creates tension: invest in education (payoff in 3 turns) when you need approval NOW to survive impeachment?" },
     { t: "💳 Debt Management", c: "Debt reduces through: automatic service (8% per turn), IGR surplus (15% of excess), GDP growth (0.5%), and investment revenue (15% of new IGR). Commissioner achievements also pay down debt.\n\nDebt warning at ₦15B. Crisis at ₦20B. Campaign spending is PERSONAL — not from state funds." },
+    { t: "🏛️ The Pressures of Office", c: "SALARIES: every half-year the FAAC allocation arrives, often short. Borrow to pay workers, stop paying contractors, or owe salaries. At 3 months owed the NLC issues an ultimatum; at 5 the state goes on general strike.\n\nPROMISES: you carry three campaign promises, one per senatorial zone. Keep them by answering a matching need in that zone or lifting the sector statewide. Broken promises cost the zone, and the opponent reads them back at the re-election.\n\nCABINET BALANCE: every commissioner comes from a zone. If one zone has three fewer commissioners than another, its elders cry marginalisation every half-year. Fire someone and the replacement comes from the short-changed zone.\n\nTHE HOUSE: Assembly members defect when your party grip or approval slips. Lose the majority and you must buy them back, share appointments or appeal to the people. Two-thirds against you starts impeachment.\n\nYOUR STATE: each state has its own crises (oil spills, bandits, floods, sit-at-home, almajiri, demolitions, cult clashes, erosion, mining) that come back to the Desk.\n\nSUCCESSION: in your last year you anoint a successor. A loyal one in power protects your files; a betrayal or an opposition win sends them to the EFCC." },
     { t: "🚔 EFCC & Post-Office", c: "S.308 immunity expires the moment you leave office. If corruption > 55%: ARRESTED within 72 hours. 46-55%: under investigation. 36-45%: on watchlist. ≤35%: clean exit.\n\nThe lesson: immunity is not impunity. Govern cleanly or face consequences." },
     { t: "🏆 Scoring & Endings", c: "Score: Development (30%) + Approval (30%) + Fiscal Health (20%) + Anti-Corruption (20%). Grade A = 75+.\n\nAfter first term: run for re-election, step down, or run for President. After two terms: retire, Senate, or President. All races are performance-based.\n\nYour Wikipedia biography captures everything. Shareable on X and WhatsApp." },
   ];
@@ -3021,7 +3196,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
       sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics,
-      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current,
+      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
@@ -3178,6 +3353,225 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     added.forEach(n => addL("🧭 New need: " + needType(n).title(n.lga) + " (" + zoneName(n.zone) + " zone).", "political"));
   }, [turn]);
 
+  // ── Statecraft engine (salaries and FAAC, promises, cabinet balance, the
+  // House, state crises, succession). Runs once a half-year when the
+  // events are built; its decisions arrive as "sc" cards.
+  const [stc, setStc] = useState(() => ld?.stc || { lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
+  const [scCards, setScCards] = useState([]);
+  const stName = state.replace("_", " ");
+  const cabZones = () => { const c = [0, 0, 0]; (ministries || []).forEach(m => { if (m.minister) c[zoneOfName(m.minister)]++; }); return c; };
+  const balanceIssue = () => { const c = cabZones(); return (ministries || []).length >= 5 && Math.max(...c) - Math.min(...c) >= 3 ? c.indexOf(Math.min(...c)) : null; };
+  const monthWage = () => Math.max(.3, Math.round((s.faac || 10) * .55 / 6 * 10) / 10);
+  const promiseKept = (p) => needs.some(n => n.status === "met" && n.zone === p.zone && needType(n)?.sector === p.sector) || ((s[SECTOR_STAT[p.sector]] || 0) - p.base >= .06);
+  const scFx = (fx = {}, zone = null, dz = 0) => setS(p => {
+    const n = { ...p };
+    ["app", "pStab"].forEach(k => { if (fx[k]) n[k] = cl100(n[k] + fx[k]); });
+    ["cor", "sec", "infra", "hp", "agr", "lit"].forEach(k => { if (fx[k]) n[k] = cl(n[k] + fx[k]); });
+    if (fx.debt) n.debt = (n.debt || 0) + fx.debt;
+    if (fx.igr) n.igr = (n.igr || 0) + fx.igr;
+    if (dz && zone != null) { const zm = { ...(p.zoneMood || {}) }; zm[zone] = Math.max(-25, Math.min(25, (zm[zone] || 0) + dz)); n.zoneMood = zm; }
+    return n;
+  });
+  const fxChips = (fx = {}, dz = 0) => [
+    ...(fx.app ? [{ text: "Approval " + sgnN(fx.app), color: fx.app > 0 ? CL.grn : CL.red }] : []),
+    ...(dz ? [{ text: "Zone " + sgnN(dz), color: dz > 0 ? CL.grn : CL.red }] : []),
+    ...(fx.debt ? [{ text: "Debt +₦" + fx.debt.toFixed(1) + "B", color: CL.red }] : []),
+    ...(fx.pStab ? [{ text: "Party " + sgnN(fx.pStab), color: fx.pStab > 0 ? CL.grn : CL.red }] : []),
+    ...(fx.cor ? [{ text: "Corruption " + (fx.cor > 0 ? "+" : "") + Math.round(fx.cor * 100) + "%", color: fx.cor > 0 ? CL.red : CL.grn }] : []),
+    ...(fx.sec ? [{ text: "Security " + (fx.sec > 0 ? "+" : "") + Math.round(fx.sec * 100), color: fx.sec > 0 ? CL.grn : CL.red }] : []),
+    ...(fx.igr ? [{ text: "IGR +₦" + fx.igr + "B", color: CL.grn }] : []),
+  ];
+  const stallWork = (sectors) => setNeeds(ns => ns.map(n => n.status === "started" && (!sectors || sectors.includes(needType(n)?.sector)) ? { ...n, status: "stalled", stall: (n.stall || 0) + 1 } : n));
+  const scWiki = (section, txt) => { try { setWikiEvents(w => [{ turn, section, txt }, ...w]); } catch (e) {} };
+  const makePromises = (term) => {
+    const r = rng(state.length * 211 + term * 37 + turn);
+    const secs = ["infrastructure", "health", "education", "agriculture", "security"];
+    return [0, 1, 2].map(z => {
+      const sec = secs.splice(Math.floor(r() * secs.length), 1)[0];
+      return { id: "pr_" + term + "_" + z, term, zone: z, sector: sec, text: PROMISE_TEXT[sec](zoneName(z)), base: s[SECTOR_STAT[sec]] || 0, status: "pending" };
+    });
+  };
+  // Broken promises are judged at the end of each term.
+  const judgePromises = (term) => {
+    const list = stc.promises.filter(p => p.term === term && p.status === "pending");
+    if (!list.length) return 0;
+    let broken = 0;
+    const upd = stc.promises.map(p => {
+      if (p.term !== term || p.status !== "pending") return p;
+      if (promiseKept(p)) return { ...p, status: "kept" };
+      broken++;
+      scFx({ app: -2 }, p.zone, -4);
+      addL("💔 Broken promise: “" + p.text + "”. " + zoneName(p.zone) + " zone remembers (approval −2, zone −4).", "crisis");
+      scWiki("Controversies", "Broke the campaign promise to “" + p.text.charAt(0).toLowerCase() + p.text.slice(1) + "”.");
+      return { ...p, status: "broken" };
+    });
+    setStc(p => ({ ...p, promises: upd, brokenAtRe: term === 1 ? broken : p.brokenAtRe }));
+    return broken;
+  };
+  const scHouse = () => stc.house || { seats: houseSeats(sd.pop || 5), loyal: Math.round(houseSeats(sd.pop || 5) * .62) };
+
+  const statecraftTurn = (q, rE) => {
+    if (stc.lastTurn >= turn || needSetup) return;
+    const lv = setup?.level || "medium";
+    const next = { ...stc, lastTurn: turn };
+    const cards = [], notes = [];
+    let dApp = 0; const dZone = {}; const dStat = {};
+    const addZ = (z, v) => { dZone[z] = (dZone[z] || 0) + v; };
+    const r = rng(turn * 4241 + state.length * 17);
+
+    // House of Assembly: members drift with your party grip and your standing.
+    if (!next.house) { const seats = houseSeats(sd.pop || 5); next.house = { seats, loyal: Math.round(seats * Math.min(.8, .5 + (s.pStab - 50) / 200 + .08)) }; }
+    else {
+      let d = 0;
+      if (s.pStab >= 65 && s.app >= 55) d += 1;
+      if (s.pStab < 45) d -= 2; else if (s.pStab < 55) d -= 1;
+      if (s.app < 40) d -= 1;
+      if (next.arrears >= 4) d -= 1;
+      if (s.cor > .5) d -= 1;
+      if (lv === "hard" && r() < .4) d -= 1;
+      if (lv === "easy" && d < 0 && r() < .5) d += 1;
+      const H0 = next.house, loyal = Math.max(0, Math.min(H0.seats, H0.loyal + d)), k = Math.abs(loyal - H0.loyal);
+      if (loyal < H0.loyal) notes.push(["🔀 " + k + " Assembly member" + (k === 1 ? "" : "s") + " defected to the opposition. " + loyal + " of " + H0.seats + " still with you; impeachment needs " + Math.ceil(H0.seats * 2 / 3) + " against you.", "political"]);
+      if (loyal > H0.loyal) notes.push(["🤝 " + k + " Assembly member" + (k === 1 ? "" : "s") + " crossed to your side. " + loyal + " of " + H0.seats + " now with you.", "success"]);
+      next.house = { ...H0, loyal };
+    }
+    const H = next.house, against = H.seats - H.loyal, impNeed = Math.ceil(H.seats * 2 / 3);
+    if (H.loyal < H.seats / 2 && turn - next.houseCardTurn >= 2) {
+      next.houseCardTurn = turn;
+      const buy = Math.round(H.seats * .05 * 10) / 10 + .4;
+      cards.push({ key: "house", kicker: "House of Assembly", color: CL.red, art: ["assembly-chamber", "speaker"], title: "You have lost the House majority",
+        brief: against + " of " + H.seats + " members now sit against you. The Speaker, " + (cast?.speaker?.name || "the Speaker") + ", is sitting on your bills, and the opposition is counting towards the " + impNeed + " votes needed to impeach.",
+        stakes: "If " + impNeed + " members turn against you, impeachment proceedings start.",
+        options: [
+          { label: "Constituency projects for every member", note: "Roads and boreholes in their wards, through their contractors.", chips: fxChips({ debt: buy, cor: .02 }).concat([{ text: "+4 members", color: CL.grn }]), run: () => { scFx({ debt: buy, cor: .02 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 4) } })); addL("🏛️ Constituency projects for Assembly members won back 4 votes (debt +₦" + buy + "B).", "political"); } },
+          { label: "Share appointments with the party barons", note: "Board seats and commissioner slots for their people.", chips: fxChips({ pStab: 4, app: -1 }).concat([{ text: "+2 members", color: CL.grn }]), run: () => { scFx({ pStab: 4, app: -1 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 2) } })); addL("🏛️ Appointments shared with the party barons: 2 members return, the press calls it jobs for the boys.", "political"); } },
+          { label: "Go over their heads to the people", note: s.app >= 55 ? "You are popular. Members fear their own voters." : "With your approval this low, they may call your bluff.", chips: [{ text: s.app >= 55 ? "+2 members" : "Risky", color: s.app >= 55 ? CL.grn : CL.org }], run: () => { if (s.app >= 55) { setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 2) } })); addL("📣 You took the fight to their wards. Two members came back.", "success"); } else { scFx({ app: -2 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal - 1) } })); addL("📣 Your appeal to the people fell flat. Another member defected.", "crisis"); } } },
+        ] });
+    }
+
+    // Salaries against the monthly FAAC allocation.
+    if ((bud.salaries || 0) / bs * 100 < 12) { next.arrears += 1; notes.push(["💸 The budget's salary line is too thin: another month of wages unpaid.", "crisis"]); }
+    const A = next.arrears;
+    if (A >= 5) {
+      dApp -= 5; dStat.hp = -.02; dStat.lit = -.02;
+      notes.push(["🪧 GENERAL STRIKE: the NLC has shut schools, hospitals and ministries over " + A + " months of unpaid salaries.", "crisis"]);
+      if (!next.strike) scWiki("Controversies", "Workers went on a general strike after being owed " + A + " months' salary.");
+      next.strike = true; stallWork(["health", "education"]);
+    } else if (A >= 3) {
+      dApp -= 3; notes.push(["📢 NLC ultimatum: pay " + A + " months of arrears within 21 days or the state shuts down.", "crisis"]);
+      if (!next.ultimatum) scWiki("Controversies", "The Nigeria Labour Congress issued an ultimatum over " + A + " months of unpaid salaries.");
+      next.ultimatum = true; next.strike = false;
+    } else if (A >= 1) { dApp -= 1; notes.push(["😟 Civil servants are owed " + A + " month" + (A === 1 ? "" : "s") + " of salary.", "political"]); next.strike = false; }
+    else next.strike = false;
+    const f = lv === "hard" ? .72 + r() * .38 : lv === "easy" ? .88 + r() * .24 : .8 + r() * .3;
+    const pct = Math.round(f * 100), short = Math.max(.2, Math.round((s.faac || 10) * (1 - f) * 10) / 10), mw = monthWage();
+    if (f < .95 || A > 0) {
+      const owe = f < .85 ? 3 : f < .95 ? 2 : 0;
+      const opts = [];
+      if (f < .95) {
+        opts.push({ label: "Borrow ₦" + short + "B and pay salaries in full", note: "Workers paid on the 25th. The debt grows.", chips: fxChips({ debt: short }), run: () => { scFx({ debt: short }); addL("🏦 Borrowed ₦" + short + "B to cover the FAAC shortfall. Salaries paid in full.", "policy"); } });
+        opts.push({ label: "Pay salaries, hold contractor payments", note: "Workers paid. Every site you started stops for lack of money.", chips: fxChips({ app: -1 }).concat([{ text: "Started work stalls", color: CL.red }]), run: () => { scFx({ app: -1, infra: -.01 }); stallWork(null); addL("🚧 Salaries paid, contractors not. Work stopped on every site this half-year.", "crisis"); } });
+        opts.push({ label: "Pay what we have; owe workers " + owe + " months", note: "No new debt. The unions start counting.", chips: fxChips({ app: -1 }).concat([{ text: "Arrears +" + owe + " months", color: CL.red }]), run: () => { scFx({ app: -1 }); setStc(p => ({ ...p, arrears: p.arrears + owe, arrearsMax: Math.max(p.arrearsMax || 0, p.arrears + owe) })); addL("🧾 Paid part of the wage bill. Workers are now owed " + (A + owe) + " months.", "crisis"); } });
+      }
+      if (A > 0) {
+        const all = Math.round(A * mw * 10) / 10;
+        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: "Borrowed money, but the strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
+        if (f >= .95) opts.push({ label: "Pay one month of arrears", note: "A gesture. The unions want it all.", chips: fxChips({ debt: mw }), run: () => { scFx({ debt: mw }); setStc(p => ({ ...p, arrears: Math.max(0, p.arrears - 1) })); addL("🧾 Paid one month of salary arrears.", "policy"); } });
+        if (f >= .95) opts.push({ label: "Keep owing them", note: "The arrears stay. So does the anger.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); addL("🧾 Salary arrears left unpaid another half-year.", "political"); } });
+      }
+      cards.push({ key: "faac", kicker: "FAAC day", color: CL.gold, art: ["abuja-federal-office", "permanent-secretary"],
+        title: f < .95 ? "The allocation came in at " + pct + "%" : "The allocation is in. Workers are still owed",
+        brief: f < .95 ? "The Federation Account Allocation Committee shared less than budgeted: oil output fell and Abuja deducted for old loans. You are ₦" + short + "B short of this half-year's wage bill." + (A ? " Workers are already owed " + A + " months." : "") : "FAAC came in at " + pct + "% of budget. Workers are still owed " + A + " month" + (A === 1 ? "" : "s") + " from earlier.",
+        stakes: "At 3 months owed the NLC issues an ultimatum. At 5 it shuts the state down.", options: opts });
+    } else notes.push(["📦 FAAC came in at " + pct + "% of budget. Salaries paid on the 25th.", "info"]);
+
+    // Promises: three per term, one per senatorial zone.
+    if (!next.promises.length) {
+      next.promises = makePromises(1);
+      notes.push(["📜 Your campaign promises are on record: " + next.promises.map(p => "“" + p.text + "”").join(", ") + ". The press is keeping score.", "political"]);
+    } else if (turn > 4 && !next.promises.some(p => p.term === 2)) {
+      const np = makePromises(2); next.promises = [...next.promises, ...np];
+      notes.push(["📜 Second-term promises on record: " + np.map(p => "“" + p.text + "”").join(", ") + ".", "political"]);
+    }
+    next.promises = next.promises.map(p => {
+      if (p.status !== "pending" || !promiseKept(p)) return p;
+      dApp += 2; addZ(p.zone, 3);
+      notes.push(["✅ Promise kept: “" + p.text + "”. " + zoneName(p.zone) + " zone takes note (approval +2, zone +3).", "success"]);
+      scWiki("Governorship", "Kept the campaign promise to “" + p.text.charAt(0).toLowerCase() + p.text.slice(1) + "”.");
+      return { ...p, status: "kept" };
+    });
+
+    // The cabinet's zonal balance.
+    const bi = balanceIssue();
+    if (bi != null) {
+      const c = cabZones(); addZ(bi, -2);
+      notes.push(["⚖️ " + zoneName(bi) + " zone elders complain of marginalisation: " + c[bi] + " of " + (ministries || []).length + " commissioners are theirs (zone −2 every half-year until you rebalance).", "political"]);
+      if (!next.balanceWarned) { scWiki("Controversies", "Was accused of marginalising " + zoneName(bi) + " Senatorial District in cabinet appointments."); next.balanceWarned = true; }
+    }
+
+    // The state's own recurring crises.
+    if (turn >= 2 && r() < (lv === "easy" ? .45 : .7)) {
+      const pool = stateCrisesFor(state).filter(c => !next.crisesSeen.includes(c.id));
+      if (pool.length) {
+        const C = pool[Math.floor(r() * pool.length)];
+        const zi = Math.floor(r() * 3), lgas = lgaCluster(getLGAs(state), zi), lga = lgas.length ? lgas[Math.floor(r() * lgas.length)] : stName;
+        next.crisesSeen = [...next.crisesSeen, C.id];
+        cards.push({ key: "crisis_" + C.id, kicker: stName + " · " + zoneName(zi) + " zone", color: CL.red, art: [C.bg, C.who], title: C.icon + " " + C.title(lga), brief: C.d(lga), stakes: "Every option has a price. This one is " + stName + "'s own.",
+          options: C.opts.map(o => ({ label: o.l, note: o.note, risk: o.gamble ? "A gamble: it can go either way." : null, chips: fxChips(o.fx, o.zone), run: () => {
+            scFx(o.fx, zi, o.zone);
+            addL(C.icon + " " + lga + ": you " + o.log + ".", (o.fx.app || 0) >= 0 ? "policy" : "crisis");
+            if (o.wiki) scWiki((o.fx.app || 0) < 0 ? "Controversies" : "Governorship", o.wiki);
+            if (o.gamble) { const ok = Math.random() < o.gamble.p, g = ok ? o.gamble.win : o.gamble.lose; scFx({ app: g.app }, zi, g.zone); addL((ok ? "🎉 " : "💀 ") + g.log, ok ? "success" : "crisis"); if (g.wiki) scWiki("Controversies", g.wiki); }
+            try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "state_crisis", actor: "governor", gravity: 2, evidence: 3, decision: o.l, note: C.title(lga), approvalDelta: o.fx.app || 0 }); } catch (e) {}
+          } })) });
+      }
+    }
+
+    // Succession: in the last year, anoint someone or let the party decide.
+    if (turn >= MT - 1 && !next.successor && !next.successionAsked) {
+      next.successionAsked = true;
+      const best = [...(ministries || [])].sort((a, b) => (b.perf || 0) - (a.perf || 0))[0];
+      const dep = depGov?.nm || cast?.deputy?.name || "your deputy";
+      const godson = gN(rng(turn * 313 + state.length * 7), sd.zone, state);
+      const partyMan = gN(rng(turn * 717 + state.length * 3), sd.zone, state);
+      const pickS = (o) => { scFx(o.fx); setStc(p => ({ ...p, successor: o.who })); addL("👑 You anointed " + o.who.name + " as your successor. " + o.log, "political"); scWiki("Governorship", "Endorsed " + o.who.name + " as successor."); };
+      const list = [
+        { label: "Anoint your deputy, " + dep, note: "Loyal to the end. Not a crowd-puller.", fx: { pStab: -2 }, who: { name: dep, kind: "deputy", loyal: .85, elect: 40 }, log: "The party barons wanted their own man." },
+        best ? { label: "Anoint Hon. " + best.minister + ", your best commissioner", note: "Competent and popular. Owes you less than you think.", fx: { pStab: -4, app: 2 }, who: { name: best.minister, kind: "technocrat", loyal: .55, elect: 53 }, log: "The public likes the choice; the party is restless." } : null,
+        { label: "Anoint " + godson + ", your political son", note: "The barons love him. He has expensive friends and big appetites.", fx: { pStab: 4, cor: .03 }, who: { name: godson, kind: "godson", loyal: .6, elect: 47 }, log: "The party cheers. Contractors line up at his door." },
+        { label: "Stay neutral: let the party decide", note: "No enemies today. No one owes you tomorrow.", fx: { pStab: 3 }, who: { name: partyMan, kind: "party", loyal: .4, elect: 46 }, log: "The party picks " + partyMan + "." },
+      ].filter(Boolean);
+      cards.push({ key: "succession", kicker: "Succession", color: CL.pur, art: ["party-convention-hall", "party-chairman"], title: "Who comes after you?",
+        brief: "The primaries are months away. Whoever holds this office next decides what happens to your projects, and to your files. Immunity ends the day you leave.",
+        stakes: "A loyal successor can protect you. A betrayed one hands your file to the EFCC.",
+        options: list.map(o => ({ label: o.label, note: o.note, chips: fxChips(o.fx).concat([{ text: "Loyalty " + Math.round(o.who.loyal * 100) + "%", color: CL.pur }, { text: "Electability " + o.who.elect, color: CL.blu }]), run: () => pickS(o) })) });
+    }
+
+    // Apply the half-year's passive costs.
+    if (dApp || Object.keys(dZone).length || Object.keys(dStat).length) setS(p => {
+      const zm = { ...(p.zoneMood || {}) }; Object.entries(dZone).forEach(([z, v]) => { zm[z] = Math.max(-25, Math.min(25, (zm[z] || 0) + v)); });
+      const n = { ...p, app: cl100(p.app + dApp), zoneMood: zm }; Object.entries(dStat).forEach(([k, v]) => { n[k] = cl(n[k] + v); }); return n;
+    });
+    next.arrearsMax = Math.max(next.arrearsMax || 0, next.arrears);
+    setStc(next);
+    notes.forEach(([t, k]) => addL(t, k));
+    if (cards.length) { setScCards(cards); cards.forEach(() => q.push("sc")); }
+  };
+
+  // How the succession plays out once you leave office.
+  const successionOutcome = () => {
+    if (gEnd === "complete" || gEnd === "stepped_down") {
+      const so = stc.successor || { name: gN(rng(state.length * 733 + turn), sd?.zone, state), kind: "party", loyal: .4, elect: 46 };
+      const r = rng(state.length * 991 + Math.round(s.app) * 7 + Math.round(s.cor * 100));
+      const won = so.elect + (s.app - 50) * .6 + (s.pStab - 50) * .3 + (r() - .5) * 20 > 50;
+      const betrayed = won && r() < (1 - so.loyal) + (s.cor > .45 ? .15 : 0);
+      return { ...so, won, betrayed, efcc: won && !betrayed ? -.12 : betrayed ? .12 : .08 };
+    }
+    if (gEnd === "defeated") return { name: cast?.rival?.name || "the opposition", kind: "opposition", won: true, betrayed: false, efcc: .08 };
+    if (gEnd === "impeached") return { name: depGov?.nm || "your deputy", kind: "deputy", won: true, betrayed: true, efcc: .05 };
+    return null;
+  };
+
   // ── PERSONNEL: what your people did this half-year ──
   const staffReviewed = React.useRef(ld?.staffReviewed || 1);
   useEffect(() => {
@@ -3245,7 +3639,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ok = await window.SOP_confirm("Fire Hon. " + m.minister + " (" + m.name + ")?\n\nWhy: " + (c.why || "None. This would be a political sacking.") + "\n\nWhat happens: " + effects, "Fire");
     if (!ok) return;
     const r = rng(Date.now() % 100000);
-    const replacement = gN(r, sd.zone, setup?.state);
+    // Prefer a replacement from the zone with the fewest commissioners.
+    const zc = [0, 0, 0]; (ministries || []).forEach(x => { if (x.id !== id && x.minister) zc[zoneOfName(x.minister)]++; });
+    const wantZ = zc.indexOf(Math.min(...zc));
+    let replacement = gN(r, sd.zone, setup?.state);
+    for (let i = 0; i < 24 && zoneOfName(replacement) !== wantZ; i++) replacement = gN(r, sd.zone, setup?.state);
     const nt = traits(replacement);
     setMinistries(ms => ms.map(x => x.id === id ? { ...x, minister: replacement, perf: Math.min(45, nt.comp), cor: Math.max(10, Math.round(100 - nt.hon) - 10), loyalty: 55, hired: turn, record: [], flag: null, godfatherMandate: null } : x));
     const homeZone = hashStr(m.minister) % 3;
@@ -3581,9 +3979,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   const advance = () => {
     // After turn 4: re-election
-    if (turn === 4 && phase !== "reelection") { setPhase("reelection"); return; }
+    if (turn === 4 && phase !== "reelection") { judgePromises(1); setPhase("reelection"); return; }
     // After turn 8: tenure complete
-    if (turn >= MT) { setGEnd("complete"); return; }
+    if (turn >= MT) { judgePromises(2); setGEnd("complete"); return; }
+    // The House: two-thirds of members against you starts impeachment (S.188).
+    { const H = stc.house; if (H && H.seats - H.loyal >= Math.ceil(H.seats * 2 / 3) && s.app < 60) { setPhase("impeach"); addL("⚠️ " + (H.seats - H.loyal) + " of " + H.seats + " Assembly members have signed the impeachment notice.", "crisis"); return; } }
     // Party collapse triggers impeachment only if approval also low (House needs justification)
     if (s.pStab < 20 && s.app < 50) { setPhase("impeach"); addL("⚠️ Party stability collapsed AND approval low! House of Assembly moves to impeach.", "crisis"); return; }
     setTurn(t => t + 1);
@@ -3596,6 +3996,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (surv && won) {
       setImpSurv(true);
       setS(p => ({ ...p, app: cl100(p.app + 5), pStab: cl100(p.pStab + 15) })); // Boost pStab so it doesn't re-trigger
+      setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.min(p.house.seats, Math.max(p.house.loyal + 4, Math.ceil(p.house.seats / 3) + 2)) } } : p);
       addL("🛡️ Survived impeachment! Public rallied. Party stability restored.", "political");
       advance();
     } else {
@@ -4352,7 +4753,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const endYear = gEnd === "complete" ? 2035 : (gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid") ? (turn <= 4 ? 2031 : 2035) : yearOf(turn);
     const ini = (n) => String(n || "").replace(/^(Hon\.|Chief|Rt\. Hon\.|Dr\.|Comrade)\s+/, "");
     const pre = "Chief " + gN(rng(state.length * 991 + 5), sd?.zone, state);
-    const successor = !ended ? "Incumbent" : gEnd === "defeated" ? ini(cast.rival.name) : gEnd === "impeached" ? (depGov?.nm || "Deputy governor") : gN(rng(state.length * 733 + turn), sd?.zone, state);
+    const successor = !ended ? "Incumbent" : gEnd === "defeated" ? ini(cast.rival.name) : gEnd === "impeached" ? (depGov?.nm || "Deputy governor") : (() => { const so = successionOutcome(); return so && so.won ? so.name : gN(rng(state.length * 733 + turn + 1), sd?.zone, state); })();
     const termStr = turn > 4 ? "Two terms" : "First term";
     const lead1 = [pName + " is a Nigerian politician who " + (ended ? "served" : "has served") + " as the Governor of " + stName + " State " + (ended ? "from " + startYear + " to " + endYear : "since May " + startYear) + ". A member of the " + (pa?.nm || party) + ", " + he + " was elected in " + startYear + " on the slogan \"" + (setup?.slogan || "") + "\"" + (setup?.election ? ", defeating " + ini(setup.election.opp) + " of the " + setup.election.oppParty : "") + ". "];
     if (flag) lead1.push(His + " administration's flagship programme " + (ended ? "was" : "is") + " " + flag.nm + ", a promise to " + flag.goal + ". ");
@@ -4518,6 +4919,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (courtFirst) q.push("judiciary");
     // Once a year the flagship programme comes back to the Desk.
     if (turn % 2 === 0 && FLAGSHIP[setup?.agenda]) q.push("flagship");
+    try { statecraftTurn(q, rE); } catch (e) { console.error("[statecraft]", e); }
     const lv = setup?.level || "hard";
 
     // LAYER 1: Major trip/visit (1 per turn, scheduled)
@@ -4730,6 +5132,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ov = (parseFloat(di) * .3 + s.app * .3 + parseFloat(fi) * .2 + (100 - s.cor * 100) * .2).toFixed(1);
     const gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     const gc = { A: CL.grn, B: "#84cc16", C: CL.org, D: CL.red, F: "#8b0000" }[gr];
+    // Who came after you, and what that means for your file at the EFCC.
+    const succ = successionOutcome();
+    const ecor = cl(s.cor + (succ?.efcc || 0));
+    const rc = { gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(p => p.status === "kept").length, broken: (stc.promises || []).filter(p => p.status === "broken").length, promised: (stc.promises || []).length };
+    const rcTitle = reportTitle(rc);
     const canP = ov > 52 && s.app > 42 && (gEnd === "complete" || gEnd === "stepped_down");
     const canFctm = ov > 65 && s.app > 55 && s.cor < 0.25 && (gEnd === "complete" || gEnd === "stepped_down");
     const pa = PARTIES.find(p => p.id === party);
@@ -4737,7 +5144,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The governor's own portrait; the isiagu portrait has faces for how it ended.
     const heroMood = gEnd === "impeached" || gEnd === "bankrupt" ? "governor-angry" : gEnd === "defeated" || gr === "D" || gr === "F" ? "governor-worried" : gr === "A" || gr === "B" ? "governor-pleased" : null;
     const heroImg = setup?.avatar === "isiagu" && heroMood ? "./art/characters/" + heroMood + ".webp" : (AVATAR_IMGS[setup?.avatar] || HERO_MALE);
-    const shareT = "🇳🇬 I governed " + state.replace("_", " ") + " in #SeatOfPower!\nGrade: " + gr + " (" + ov + ")\nApproval: " + Math.round(s.app) + "%\n" + (gEnd === "impeached" ? "⚠️ IMPEACHED!" : gEnd === "defeated" ? "❌ Lost re-election!" : gEnd === "complete" ? "✅ Completed 2 terms!" : gEnd === "stepped_down" ? "🏛️ Stepped down after 1 term" : gEnd === "pres_bid" ? "🇳🇬 Resigned to run for PRESIDENT!" : "");
+    const shareT = "🇳🇬 I governed " + state.replace("_", " ") + " in #SeatOfPower!\n🏅 " + rcTitle + "\nGrade: " + gr + " (" + ov + ")\nApproval: " + Math.round(s.app) + "%\n" + (gEnd === "impeached" ? "⚠️ IMPEACHED!" : gEnd === "defeated" ? "❌ Lost re-election!" : gEnd === "complete" ? "✅ Completed 2 terms!" : gEnd === "stepped_down" ? "🏛️ Stepped down after 1 term" : gEnd === "pres_bid" ? "🇳🇬 Resigned to run for PRESIDENT!" : "");
 
     // ── BUILD DETAILED WIKI BIOGRAPHY FROM ACTUAL GAMEPLAY ──
     const allCompleted = [...completedProjects];
@@ -4923,44 +5330,69 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           )}
           {(gEnd === "impeached" || gEnd === "bankrupt") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
 
+          {/* REPORT CARD and SUCCESSION */}
+          <Cd style={{ marginTop: 43, textAlign: "left", maxWidth: 900, marginLeft: "auto", marginRight: "auto" }}>
+            <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 6 }}>REPORT CARD</div>
+            <div style={{ fontFamily: F.d, fontSize: TS(56), fontWeight: 700, color: CL.txt, marginBottom: 14 }}>🏅 {rcTitle}</div>
+            {[["Needs answered", rc.met + " answered · " + rc.failed + " ignored until people suffered", rc.failed > rc.met],
+              ["Promises", rc.promised ? rc.kept + " kept · " + rc.broken + " broken of " + rc.promised : "none on record", rc.broken > rc.kept],
+              ["Salaries", rc.arrearsMax ? "workers owed up to " + rc.arrearsMax + " months" + (stc.arrears ? " (" + stc.arrears + " still owed)" : "") : "always paid", rc.arrearsMax >= 3],
+              ["Debt left behind", "₦" + (s.debt || 0).toFixed(1) + "B", (s.debt || 0) > 20],
+              ["Corruption", Math.round(s.cor * 100) + "%", s.cor > .45],
+              ["The House at the end", (stc.house ? stc.house.loyal + " of " + stc.house.seats + " members with you" : "—"), stc.house && stc.house.loyal < stc.house.seats / 2],
+            ].map(([k, v, bad]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "8px 0", borderTop: "1px solid " + CL.bdr + "88", fontSize: TS(31) }}>
+              <span style={{ color: CL.td }}>{k}</span><b style={{ color: bad ? CL.red : CL.txt, textAlign: "right" }}>{v}</b></div>)}
+          </Cd>
+          {succ && <Cd style={{ marginTop: 22, textAlign: "left", maxWidth: 900, marginLeft: "auto", marginRight: "auto", borderColor: (succ.betrayed || succ.kind === "opposition" || !succ.won ? CL.red : CL.grn) + "55" }}>
+            <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 6 }}>AFTER YOU</div>
+            <div style={{ fontSize: TS(34), color: CL.txt, lineHeight: 1.5 }}>
+              {succ.kind === "opposition" ? succ.name + " took over Government House. The new administration's first act was a 'probe panel' into your finances."
+                : gEnd === "impeached" ? succ.name + " was sworn in within the hour, and handed the Assembly's findings to the EFCC."
+                : !succ.won ? "Your candidate, " + succ.name + ", lost the governorship to the opposition. The new government set up a panel to probe your years in office."
+                : succ.betrayed ? succ.name + " won, then turned on you within months: suspended your projects, renamed your flagship, and sent your files to the EFCC. In Nigerian politics, the godson always comes for the godfather."
+                : succ.name + " won and kept faith. Your projects continue, your name stays on the plaques, and the new government is in no hurry to help the EFCC."}
+            </div>
+            <div style={{ fontSize: TS(29), color: CL.td, marginTop: 8 }}>{succ.efcc < 0 ? "EFCC exposure lower: a friendly government holds your files." : "EFCC exposure higher: the people now in power have no reason to protect you."}</div>
+          </Cd>}
+
           {/* EFCC ARREST — if leaving office with high corruption, you lose immunity */}
-          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete") && s.cor > .35 && (
+          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete") && ecor > .35 && (
             <Cd style={{ borderColor: CL.red, marginTop: 43, background: "#fff5f5" }}>
               <div style={{ textAlign: "center", marginBottom: 22 }}>
                 <div style={{ fontSize: TS(98), marginBottom: 14 }}>🚔⚖️</div>
                 <div style={{ background: CL.red, color: "#fff", display: "inline-block", padding: "10px 43px", borderRadius: 8, fontSize: TS(29), fontWeight: 700, letterSpacing: 5, marginBottom: 22 }}>POST-OFFICE CONSEQUENCES</div>
                 <h3 style={{ fontFamily: F.d, color: CL.red, fontSize: TS(53), fontWeight: 700, margin: "14px 0" }}>
-                  {s.cor > .55 ? "EFCC ARRESTS FORMER GOVERNOR" : s.cor > .45 ? "EFCC OPENS INVESTIGATION" : "EFCC MONITORING YOUR FINANCES"}
+                  {ecor > .55 ? "EFCC ARRESTS FORMER GOVERNOR" : ecor > .45 ? "EFCC OPENS INVESTIGATION" : "EFCC MONITORING YOUR FINANCES"}
                 </h3>
               </div>
               <p style={{ fontSize: TS(36), color: CL.tm, lineHeight: 1.5, marginBottom: 22 }}>
-                {s.cor > .55
+                {ecor > .55
                   ? "Within 72 hours of leaving office, the EFCC moved in. Your immunity under S.308 of the Constitution expired the moment you ceased to be governor. Operatives arrived at your residence with an arrest warrant. Your accounts have been frozen. Properties are being traced. The corruption index of your administration (" + Math.round(s.cor * 100) + "%) made you a priority target. You are now facing trial at the Federal High Court."
-                  : s.cor > .45
+                  : ecor > .45
                   ? "Three months after leaving office, the EFCC opened a formal investigation into your administration's finances. Your corruption index (" + Math.round(s.cor * 100) + "%) raised red flags. Bank accounts are being scrutinised. Former commissioners are being questioned. You have not been arrested — yet — but your lawyers are busy."
                   : "The EFCC has placed you on a watchlist. Your administration's corruption index (" + Math.round(s.cor * 100) + "%) is above the threshold for automatic review. No formal charges yet, but your financial movements are being monitored. This may affect your political future."}
               </p>
               <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>
-                {s.cor > .55 ? "📖 Under S.308, the President, Vice President, Governors and Deputy Governors enjoy immunity from criminal prosecution WHILE IN OFFICE. The moment you leave office — whether by impeachment, election loss, resignation, or term completion — that immunity expires. The EFCC, established by the EFCC Act 2004, has jurisdiction to investigate and prosecute financial crimes by former public officers." 
+                {ecor > .55 ? "📖 Under S.308, the President, Vice President, Governors and Deputy Governors enjoy immunity from criminal prosecution WHILE IN OFFICE. The moment you leave office — whether by impeachment, election loss, resignation, or term completion — that immunity expires. The EFCC, established by the EFCC Act 2004, has jurisdiction to investigate and prosecute financial crimes by former public officers." 
                   : "📖 S.308 immunity only applies while in office. Former governors can be investigated and prosecuted for financial crimes committed during their tenure."}
               </div>
-              {s.cor > .55 && <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              {ecor > .55 && <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                 <Bg text="ARRESTED" color={CL.red} />
                 <Bg text="Accounts frozen" color={CL.red} />
                 <Bg text={"Corruption: " + Math.round(s.cor * 100) + "%"} color={CL.red} />
                 <Bg text="S.308 immunity expired" color={CL.td} />
               </div>}
-              {s.cor > .45 && s.cor <= .55 && <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              {ecor > .45 && ecor <= .55 && <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                 <Bg text="Under investigation" color={CL.org} />
                 <Bg text={"Corruption: " + Math.round(s.cor * 100) + "%"} color={CL.org} />
               </div>}
-              {s.cor <= .45 && <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+              {ecor <= .45 && <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                 <Bg text="On watchlist" color={CL.org} />
                 <Bg text={"Corruption: " + Math.round(s.cor * 100) + "%"} color={CL.org} />
               </div>}
             </Cd>
           )}
-          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete") && s.cor <= .35 && (
+          {(gEnd === "impeached" || gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "bankrupt" || gEnd === "complete") && ecor <= .35 && (
             <Cd style={{ borderColor: CL.grn + "44", marginTop: 43 }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: TS(79), marginBottom: 7 }}>✨</div>
@@ -5110,6 +5542,35 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {saBrief.action && <button onClick={saBrief.action} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: CL.grn, color: "#fff", padding: TALL() ? "10px 14px" : "12px 22px", minHeight: 44, fontSize: TALL() ? TS(20) : TS(29), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>{saBrief.actionLabel}</button>}
         </div>}
 
+        {nav === "gov" && !needSetup && (() => {
+          const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
+          const bIdx = balanceIssue();
+          const sv = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: bIdx != null ? zoneName(bIdx) : null, turn });
+          const H = scHouse(), cz = cabZones(), pr = stc.promises || [];
+          const prCount = (st0) => pr.filter(p => p.status === st0).length;
+          const chip = (txt, bad) => <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 999, background: (bad ? CL.red : CL.grn) + "14", color: bad ? CL.red : CL.grn, fontSize: fz.s, fontWeight: 700, whiteSpace: "nowrap" }}>{txt}</span>;
+          return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 18, padding: TALL() ? "12px 14px" : "16px 20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+              <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>The street</b>
+              <span style={{ fontSize: fz.s, color: CL.blu, fontWeight: 800 }}>Trending: {sv.tag}</span>
+            </div>
+            {sv.lines.map((l, i) => <div key={i} style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
+              <span style={{ color: CL.txt }}>“{l.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {l.w}</span>
+            </div>)}
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+              {chip(stc.arrears ? "💸 Workers owed " + stc.arrears + " month" + (stc.arrears === 1 ? "" : "s") : "💸 Salaries paid", stc.arrears > 0)}
+              {chip("🏛️ House: " + H.loyal + " of " + H.seats + " with you", H.loyal < H.seats / 2)}
+              {(ministries || []).length > 0 && chip("⚖️ Cabinet " + cz.map((n, i) => zoneName(i).slice(0, 1) + n).join(" · "), bIdx != null)}
+              {pr.length > 0 && chip("📜 Promises: " + prCount("kept") + " kept, " + prCount("pending") + " open" + (prCount("broken") ? ", " + prCount("broken") + " broken" : ""), prCount("broken") > 0)}
+            </div>
+            {pr.filter(p => p.status === "pending").length > 0 && <div style={{ marginTop: 10, display: "grid", gap: 4 }}>
+              {pr.filter(p => p.status !== "kept" || p.term === (turn > 4 ? 2 : 1)).filter(p => p.term === (turn > 4 ? 2 : 1)).map(p => <div key={p.id} style={{ fontSize: fz.s, color: CL.tm, display: "flex", gap: 8, alignItems: "baseline" }}>
+                <span style={{ color: p.status === "kept" ? CL.grn : p.status === "broken" ? CL.red : CL.org, fontWeight: 800 }}>{p.status === "kept" ? "✓" : p.status === "broken" ? "✗" : "○"}</span>
+                <span>{p.text}{p.status === "pending" ? <span style={{ color: CL.td }}> · answer a {SECTOR_NAME[p.sector] ? SECTOR_NAME[p.sector].toLowerCase() : p.sector} need in {zoneName(p.zone)}, or lift it statewide, by the {turn > 4 ? "end of your tenure" : "re-election"}</span> : null}</span>
+              </div>)}
+            </div>}
+          </div>;
+        })()}
         {nav === "gov" && !needSetup && activeNeeds.length > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 2px 8px" }}>
             <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>What the state needs</b>
@@ -5401,6 +5862,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "Debt +₦" + o.debt + "B", color: CL.red }] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
               onPick={(o) => pick(o.raw)} /></>;
           })()}
+        </OL>
+
+        <OL show={phase === "sc" && scCards.length > 0}>
+          {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
+            options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
+            onPick={(o) => { try { o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
 
         <OL show={phase === "dilemma" && !!curD}>
@@ -6493,7 +6960,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             ];
 
             const oppEvs = [
-              { t: "📰 Opponent Releases Damning Report", d: oppName + " publishes '4 Years of Failure' and pushes it through " + reWeak.key + ".", hit: { l: "failure report", target: reWeak.id, your: 5, opp: 3 }, opts: [
+              { t: "📰 Opponent Releases Damning Report", d: oppName + " publishes '4 Years of Failure' and pushes it through " + reWeak.key + "." + ((stc.brokenAtRe || 0) ? " It lists your " + stc.brokenAtRe + " broken campaign promise" + (stc.brokenAtRe === 1 ? "" : "s") + ", one by one, with your own words on video." : ""), hit: { l: "failure report", target: reWeak.id, your: 5 + 2 * (stc.brokenAtRe || 0), opp: 3 }, opts: [
                 { l: "📊 Counter with Data", days: 2, dc: 0.02, d: "Release your LGA scorecard.", pts: 4, oppPts: -2, sk: { media: 5 }, target: reWeak.id, your: 4, opp: -2 },
                 { l: "🤫 Ignore", days: 1, d: "Don't dignify it. A day spent holding your team back.", pts: 0, oppPts: 3, sk: { media: -3 }, target: reWeak.id, opp: 4 },
                 { l: "⚖️ Threaten Lawsuit", days: 2, dc: 0.05, d: "Send lawyers.", pts: 1, oppPts: -1, sk: { media: -8, youth: -4 }, target: "all", opp: -1 },
@@ -7429,13 +7896,17 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               <Bt v="ghost" onClick={() => setNav("min")} style={{ fontSize: TS(29), padding: "7px 29px" }}>+ Create / Merge →</Bt>
             </div>
             <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>These are the ministries YOU created and appointed. Fire a commissioner or reassign the Permanent Secretary directly from here. Every action lands in your Wikipedia biography.</div>
+            {(() => { const cz = cabZones(), bi = balanceIssue(); return <div style={{ fontSize: TALL() ? TS(20) : TS(31), color: bi != null ? CL.red : CL.tm, background: (bi != null ? CL.red : CL.grn) + "0d", borderRadius: 12, padding: "10px 14px", marginBottom: 18 }}>
+              <b>Zonal balance:</b> {cz.map((n, i) => zoneName(i) + " " + n).join(" · ")}. {bi != null ? zoneName(bi) + " feels marginalised and costs you support every half-year. Fire someone and the replacement comes from " + zoneName(bi) + "." : "Every zone has a fair share of the cabinet."}
+            </div>; })()}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(312px,1fr))", gap: 22 }}>{ministries.map(m => {
               const gen = () => { const r = rng(Date.now() + m.id.length); return gN(r, sd.zone, setup?.state); };
               return <Cd key={m.id} style={{ borderLeft: "3px solid " + (m.cor > 55 ? CL.red : m.perf > 60 ? CL.grn : CL.org) }}>
                 <div style={{ fontSize: TS(29), color: CL.td, fontFamily: F.m }}>{m.icon} {m.name.toUpperCase()}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 7 }}>
                   <img src={commissionerArt(m.minister)} alt={m.minister} loading="lazy" style={{ width: 64, height: 76, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.grn + "14", flexShrink: 0 }} />
-                  <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>Hon. {m.minister}</div>
+                  <div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>Hon. {m.minister}</div>
+                    <div style={{ fontSize: TALL() ? TS(19) : TS(27), color: CL.td }}>From {zoneName(zoneOfName(m.minister))} zone</div></div>
                 </div>
                 {(m.record || []).slice(-2).reverse().map((e, i) => <div key={i} style={{ fontSize: TALL() ? TS(19) : TS(27), color: e.kind === "praise" ? CL.grn : CL.red, background: (e.kind === "praise" ? CL.grn : CL.red) + "0d", borderRadius: 10, padding: "6px 10px", marginBottom: 6, lineHeight: 1.35 }}><b>{OFFENCE[e.kind]?.label}</b> (half-year {e.t}): {e.text}</div>)}
                 <div style={{ fontSize: TS(31), color: CL.tm, marginBottom: 14, fontStyle: "italic" }}>PS: {m.permSec} · Staff: {(m.staff || 0).toLocaleString()}</div>
