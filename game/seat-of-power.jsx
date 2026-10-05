@@ -719,6 +719,18 @@ const NEED_TYPES = [
     win: (l) => "Displaced families in " + l + " have keys to new homes." },
 ];
 const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
+// ─── PERSONNEL ───
+// Every commissioner (and the adviser) has a hidden competence and honesty,
+// fixed by name. Each half-year they act on it, and what they do is on record.
+const hashStr = (t) => { let h = 7; for (const ch of String(t || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+const traits = (name) => { const h = hashStr(name); return { comp: 32 + (h % 58), hon: 28 + ((h >>> 7) % 66) }; };
+const MIN_SECTOR = { works: "infrastructure", health: "health", educ: "education", agric: "agriculture", sec: "security" };
+const OFFENCE = {
+  graft: { label: "Contract fraud", tone: "bad" },
+  failure: { label: "Missed targets", tone: "bad" },
+  disloyal: { label: "Disloyalty", tone: "bad" },
+  praise: { label: "Delivered", tone: "good" },
+};
 
 // What each flagship does every quarter (shown on the State sheet).
 const FLAGSHIP_BONUS = {
@@ -786,6 +798,7 @@ const deputyArt = (female, zone, lo) => "./art/characters/" + (female
 const castArt = (c, zone, lo) => {
   if (!c) return null;
   if (c.id === "deputy") return deputyArt(FEMALE_FIRST.includes(String(c.name).split(" ")[0]), zone, lo);
+  if (c.id === "adviser") return saPortrait(c.name);
   return CAST_ART[c.id] ? "./art/characters/" + CAST_ART[c.id] + ".webp" : null;
 };
 const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
@@ -1456,7 +1469,7 @@ const AdvBubble = ({ text, saName }) => {
   if (!text) return null;
   return React.createElement("div", { className: "sop-slide-up", style: { display: "flex", gap: 14, alignItems: "flex-start", marginBottom: DS.s[4], borderRadius: 24, background: "#fff", border: "1px solid " + UI.line, padding: TALL() ? "14px 16px" : "18px 22px", textAlign: "left" } },
     React.createElement("div", { style: { width: 64, height: 64, flexShrink: 0, borderRadius: 32, overflow: "hidden", background: UI.tints[2] } },
-      React.createElement("img", { src: "./art/characters/special-adviser.webp", alt: String(saName || "Special Adviser"), style: { width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" } })),
+      React.createElement("img", { src: saPortrait(saName), alt: String(saName || "Special Adviser"), style: { width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" } })),
     React.createElement("div", { style: { flex: 1, minWidth: 0 } },
       React.createElement("div", { style: { fontSize: DS.t.meta, fontWeight: 700, color: UI.green, marginBottom: 4 } }, saName ? "Your adviser, " + saName : "Your adviser"),
       React.createElement("div", { style: { fontSize: DS.t.body, color: UI.ink, lineHeight: 1.5, fontFamily: F.b } }, text)
@@ -1685,6 +1698,13 @@ const AnchorDesk = ({ lines, onDone }) => {
 };
 
 const SA_PORTRAIT = "./art/characters/special-adviser.webp";
+// Each adviser has their own face (SA_ROSTER.pic); unknown names fall back by first name.
+const saPortrait = (name) => {
+  const r = (typeof SA_ROSTER !== "undefined") ? SA_ROSTER.find(a => a.name === name) : null;
+  if (r && r.pic) return "./art/characters/" + r.pic + ".webp";
+  const first = String(name || "").replace(/^(Dr|Barr|Mallam|Ms|Mrs|Prof|Alh|Engr|Comrade|Hajiya|Otunba|Amb|Mai)\.?\s+/, "").split(" ")[0];
+  return FEMALE_FIRST.includes(first) ? SA_PORTRAIT : "./art/characters/commissioner-male-suit.webp";
+};
 const AVATARS = [
   { id: "agbada", label: "Agbada", desc: "Yoruba formal attire" },
   { id: "female", label: "Gele & iro", desc: "Yoruba formal attire" },
@@ -1943,7 +1963,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     <Flow n={2} kicker="Your team" title={"Meet " + saName} onBack={() => setStep(2)} cta={() => setStep(3)} ctaLabel="Let's get to work">
       <div style={{ display: "flex", flexDirection: TALL() ? "column" : "row", gap: 18, alignItems: TALL() ? "stretch" : "flex-start" }}>
         <div style={{ background: UI.tints[2], borderRadius: 28, display: "flex", justifyContent: "center", alignItems: "flex-end", height: TALL() ? 300 : 360, flex: TALL() ? "none" : "0 0 300px", overflow: "hidden" }}>
-          <img src={SA_PORTRAIT} alt={saName} className="sop-fade-in" style={{ height: "100%", width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
+          <img src={saPortrait(saName)} alt={saName} className="sop-fade-in" style={{ height: "100%", width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
         </div>
         <CivicPanel style={{ flex: 1 }}>
           <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.green, marginBottom: 6 }}>Special Adviser to the candidate</div>
@@ -2985,7 +3005,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
       sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics,
-      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current,
+      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
@@ -3023,8 +3043,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const goTab = (k) => setNav(k);
   const fireAdviser = async () => {
     if (!saOffice.adviser) { setSaPickerOpen(true); return; }
-    if (!(await window.SOP_confirm("Fire " + saOffice.adviser.name + "? You'll pick a replacement immediately from the reserve list.", "Fire"))) return;
-    setSaOffice(o => ({ adviser: null, firedTurn: turn, history: [{ name: o.adviser.name, fired: turn }, ...(o.history || [])] }));
+    const lastBad = (saOffice.record || []).slice().reverse().find(e => e.kind === "failure" && e.t >= turn - 2);
+    const why = lastBad ? lastBad.text : null;
+    if (!(await window.SOP_confirm("Fire " + saOffice.adviser.name + "?\n\nWhy: " + (why || "Nothing on record against them.") + "\n\nWhat happens: " + (why ? "You look decisive (approval +1). You pick a replacement now." : "Sacking a good adviser looks petty: they write a tell-all column (approval −2) and your new adviser starts from scratch.") + "", "Fire"))) return;
+    setS(p => ({ ...p, app: cl100(p.app + (why ? 1 : -2)) }));
+    if (!why) addL("🖋️ " + saOffice.adviser.name + " writes a tell-all column about life inside Government House.", "political");
+    setSaOffice(o => ({ adviser: null, firedTurn: turn, record: [], flag: null, history: [{ name: o.adviser.name, fired: turn }, ...(o.history || [])] }));
     setSaPickerOpen(true);
     addL("🔥 " + saOffice.adviser.name + " removed as Special Adviser. Pick a replacement from the reserve.", "warn");
   };
@@ -3124,6 +3148,88 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     added.forEach(n => addL("🧭 New need: " + needType(n).title(n.lga) + " (" + zoneName(n.zone) + " zone).", "political"));
   }, [turn]);
 
+  // ── PERSONNEL: what your people did this half-year ──
+  const staffReviewed = React.useRef(ld?.staffReviewed || 1);
+  useEffect(() => {
+    if (turn <= 1 || staffReviewed.current >= turn || !ministries || !ministries.length) { if (turn > staffReviewed.current) staffReviewed.current = turn; return; }
+    staffReviewed.current = turn;
+    const r = rng(turn * 977 + state.length * 31);
+    let dApp = 0, dCor = 0, dParty = 0; const notes = []; const slowSectors = [];
+    let incidents = 0;
+    const next = ministries.map(m => {
+      const t = traits(m.minister);
+      let perf = Math.round(Math.max(10, Math.min(95, (m.perf || 50) + (t.comp - (m.perf || 50)) * .3 + (r() - .5) * 8)));
+      let cor = Math.round(Math.max(5, Math.min(95, (m.cor || 30) + ((100 - t.hon) - (m.cor || 30)) * .25 + (r() - .5) * 6)));
+      const loyalty = Math.round(Math.max(5, Math.min(95, (m.loyalty == null ? 50 : m.loyalty) + (r() - .55) * 8)));
+      let record = (m.record || []).slice(-3), flag = m.flag || null;
+      // Shielding: a scandal left unanswered for a half-year costs you again.
+      if (flag && flag.t < turn - 1 && (flag.kind === "graft" || flag.kind === "disloyal")) {
+        if (flag.kind === "graft") { dApp -= 3; dCor += .02; notes.push(["📰 \u201cGovernor shields corrupt commissioner\u201d: Hon. " + m.minister + " is still in the cabinet after the " + m.name + " contract scandal.", "scandal"]); }
+        else { dParty -= 3; notes.push(["🗝️ Hon. " + m.minister + " is still briefing your opponents from inside the cabinet. Party leaders ask why you tolerate it.", "political"]); }
+      }
+      const add = (kind, text) => { record = [...record, { t: turn, kind, text }].slice(-4); if (kind !== "praise") flag = { kind, t: turn, text }; incidents++; };
+      if (incidents < 2 && cor > 55 && r() < .4) {
+        const amt = (0.4 + r() * 1.6).toFixed(1);
+        add("graft", "Paid ₦" + amt + "B to a contractor for work that was never done.");
+        dApp -= 2; dCor += .02; notes.push(["💀 Hon. " + m.minister + " (" + m.name + ") was caught paying ₦" + amt + "B for work that was never done. Fire them, or own it.", "scandal"]);
+      } else if (incidents < 2 && perf < 40 && r() < .5) {
+        add("failure", "Missed every target this half-year; the ministry's work slowed.");
+        dApp -= 1; if (MIN_SECTOR[m.id]) slowSectors.push(MIN_SECTOR[m.id]);
+        notes.push(["📉 The " + m.name + " ministry under Hon. " + m.minister + " missed every target this half-year. Work it runs has slowed.", "crisis"]);
+      } else if (incidents < 2 && loyalty < 35 && r() < .35) {
+        add("disloyal", "Leaked a cabinet memo to the opposition and the godfather.");
+        dParty -= 3; notes.push(["🗝️ A cabinet memo leaked. Your people trace it to Hon. " + m.minister + " (" + m.name + ").", "political"]);
+      } else if (perf > 72 && r() < .3) {
+        add("praise", "Delivered: the ministry hit its targets early.");
+        dApp += 1; notes.push(["🏅 Hon. " + m.minister + " (" + m.name + ") delivered ahead of schedule. Keep good people.", "success"]);
+      }
+      return { ...m, perf, cor, loyalty, record, flag };
+    });
+    setMinistries(next);
+    if (slowSectors.length) setNeeds(ns => ns.map(n => (n.status === "started" && slowSectors.includes(needType(n)?.sector)) ? { ...n, status: "stalled", stall: (n.stall || 0) + 1 } : n));
+    // The adviser has a record too.
+    if (saOffice.adviser && r() < .18) {
+      const t = traits(saOffice.adviser.name);
+      const bad = r() * 100 > t.comp;
+      setSaOffice(o => ({ ...o, record: [...(o.record || []), { t: turn, kind: bad ? "failure" : "praise", text: bad ? "A confidential memo from the adviser's office leaked to the press." : "Called the last crisis right." }].slice(-4), flag: bad ? { kind: "failure", t: turn } : o.flag }));
+      if (bad) { dApp -= 1; notes.push(["📄 A confidential memo from " + saOffice.adviser.name + "'s office leaked to the press.", "political"]); }
+      else notes.push(["🎓 " + saOffice.adviser.name + " called the last crisis right. Your adviser is earning their keep.", "success"]);
+    }
+    if (dApp || dCor || dParty) setS(p => ({ ...p, app: cl100(p.app + dApp), cor: cl(p.cor + dCor), pStab: cl100(p.pStab + dParty) }));
+    notes.forEach(([t, k]) => addL(t, k));
+  }, [turn]);
+
+  // Why you would fire someone, and what it will cost.
+  const fireCase = (m) => {
+    const t = traits(m.minister);
+    const fresh = m.hired != null && turn - m.hired < 2;
+    const why = m.flag ? (OFFENCE[m.flag.kind]?.label + ": " + (m.flag.text || "")) : !fresh && (m.perf || 50) < 45 ? "Weak performance (" + m.perf + "%)." : (m.cor || 30) > 55 ? "The ministry is leaking money (corruption " + m.cor + "%)." : (m.loyalty || 50) < 35 ? "Doubtful loyalty (" + m.loyalty + "%)." : null;
+    return { why, justified: !!why, t };
+  };
+  const fireMinister = async (id) => {
+    const m = (ministries || []).find(x => x.id === id); if (!m) return;
+    const c = fireCase(m);
+    const effects = c.justified
+      ? (m.flag && m.flag.kind === "graft" ? "The public sees a governor who acts: approval +3, corruption −3%." : m.flag && m.flag.kind === "disloyal" ? "You reassert control of the cabinet (+2 party), but the commissioner takes their ward structures to the opposition." : "The ministry gets a fresh start under a new commissioner (approval +1).")
+      : "Hon. " + m.minister + " has a clean record (performance " + m.perf + "%, loyalty " + (m.loyalty == null ? 50 : m.loyalty) + "%). Sacking a performer costs approval −2 and party −5, the ministry loses a half-year settling in, and the sacked commissioner joins the opposition in their zone.";
+    const ok = await window.SOP_confirm("Fire Hon. " + m.minister + " (" + m.name + ")?\n\nWhy: " + (c.why || "None. This would be a political sacking.") + "\n\nWhat happens: " + effects, "Fire");
+    if (!ok) return;
+    const r = rng(Date.now() % 100000);
+    const replacement = gN(r, sd.zone, setup?.state);
+    const nt = traits(replacement);
+    setMinistries(ms => ms.map(x => x.id === id ? { ...x, minister: replacement, perf: Math.min(45, nt.comp), cor: Math.max(10, Math.round(100 - nt.hon) - 10), loyalty: 55, hired: turn, record: [], flag: null, godfatherMandate: null } : x));
+    const homeZone = hashStr(m.minister) % 3;
+    if (c.justified && m.flag && m.flag.kind === "graft") setS(p => ({ ...p, app: cl100(p.app + 3), cor: cl(p.cor - .03) }));
+    else if (c.justified && m.flag && m.flag.kind === "disloyal") setS(p => ({ ...p, pStab: cl100(p.pStab + 2), zoneMood: { ...(p.zoneMood || {}), [homeZone]: ((p.zoneMood || {})[homeZone] || 0) - 2 } }));
+    else if (c.justified) setS(p => ({ ...p, app: cl100(p.app + 1) }));
+    else setS(p => ({ ...p, app: cl100(p.app - 2), pStab: cl100(p.pStab - 5), zoneMood: { ...(p.zoneMood || {}), [homeZone]: ((p.zoneMood || {})[homeZone] || 0) - 3 } }));
+    addL((c.justified ? "🔥 Fired Hon. " + m.minister + " (" + m.name + "): " + c.why : "🔥 Fired Hon. " + m.minister + " (" + m.name + ") with nothing on record against them. The press calls it a purge; they join the opposition.") + " Hon. " + replacement + " takes over.", c.justified ? "political" : "crisis");
+    setWikiEvents(w => [{ turn, section: c.justified ? "Governorship" : "Controversies", txt: "Sacked Hon. " + m.minister + " as " + m.name + " Commissioner" + (c.justified ? " (" + c.why.replace(/\.$/, "") + ")." : " despite a clean record; the commissioner later joined the opposition.") }, ...w]);
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "minister_fired", actor: "governor", target: m.minister, gravity: c.justified ? 2 : 3, evidence: 3, decision: "Fired the " + m.name + " commissioner", note: c.why || "No offence on record" }); } catch (e) {}
+    try { window.SOPX_onDecision && window.SOPX_onDecision("minister_sacked", { name: m.minister, ministerId: m.id }); } catch (e) {}
+  };
+  useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase }; });
+
   const getSABrief = () => {
     if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
     const awaitingContract = (projects || []).find(p => p && (p.status === "awarded_pending" || p.status === "eia_done" || p.status === "bidding") && !p.contractor);
@@ -3132,6 +3238,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!ministries || ministries.length === 0) return { urgent: true, icon: "🏛️", title: "Convene your ministries first", body: "Executive Command rule: no cabinet, no execution. Create at least Finance, Works, Health and Security before serious governance begins.", actionLabel: "Open Ministries", action: () => goTab("min") };
     if (ministries.length < 4) return { urgent: true, icon: "🏛️", title: "Your cabinet is under-strength", body: "You have " + ministries.length + " ministr" + (ministries.length === 1 ? "y" : "ies") + ". The House, contractors and crises will overpower a thin Exco.", actionLabel: "Add Ministries", action: () => goTab("min") };
     if (!council) return { urgent: true, icon: "👑", title: "Convene the Traditional Rulers Council", body: "Rural turnout, land disputes and security intelligence run through the palaces. Meet them before your next big project or campaign push.", actionLabel: "Open Council", action: () => goTab("coun") };
+    const scandal = (ministries || []).find(m => m.flag && m.flag.t >= turn - 1 && (m.flag.kind === "graft" || m.flag.kind === "disloyal"));
+    if (scandal) return { urgent: true, icon: scandal.flag.kind === "graft" ? "💀" : "🗝️", title: "Hon. " + scandal.minister + " (" + scandal.name + "): " + OFFENCE[scandal.flag.kind].label.toLowerCase() + ". Fire or keep them?", body: scandal.flag.text, actionLabel: "Decide", action: () => goTab("cab") };
     const urgentNeed = activeNeeds.slice().sort((a, b) => (b.status === "stalled") - (a.status === "stalled") || a.due - b.due)[0];
     if (urgentNeed && (urgentNeed.status === "stalled" || (urgentNeed.status === "open" && urgentNeed.due <= turn))) {
       const T = needType(urgentNeed);
@@ -4967,7 +5075,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>}
         {nav === "gov" && deskSteps()}
         {nav === "gov" && saBrief.urgent && !(phase === "budget" && needSetup) && !/^Balance the Appropriation/.test(saBrief.title) && <div style={{ display: "flex", gap: 12, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 20px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, margin: TALL() ? "0 0 14px" : "0 auto 22px", maxWidth: TALL() ? 900 : 1320 }}>
-          {saOffice.adviser ? <img src={SA_PORTRAIT} alt="" style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "18", flexShrink: 0 }} /> : null}
+          {saOffice.adviser ? <img src={saPortrait(saOffice.adviser.name)} alt="" style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "18", flexShrink: 0 }} /> : null}
           <div style={{ flex: 1, minWidth: 0, fontSize: TALL() ? TS(20) : TS(31), color: CL.tm, lineHeight: 1.35 }}><b style={{ color: CL.txt }}>{saOffice.adviser ? saOffice.adviser.name.split(" ").slice(-1)[0] : "Adviser's desk"}:</b> {saBrief.title}.</div>
           {saBrief.action && <button onClick={saBrief.action} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: CL.grn, color: "#fff", padding: TALL() ? "10px 14px" : "12px 22px", minHeight: 44, fontSize: TALL() ? TS(20) : TS(29), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>{saBrief.actionLabel}</button>}
         </div>}
@@ -6641,7 +6749,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               {SA_ROSTER.filter(a => !((saOffice.history || []).some(h => h.name === a.name)) && a.name !== saOffice.adviser?.name).map(a => (
                 <Cd key={a.name} onClick={() => appointAdviser(a)} style={{ padding: 29, cursor: "pointer" }}>
                   <div style={{ display: "flex", gap: 29, alignItems: "center" }}>
-                    <div style={{ fontSize: TS(79) }}>{a.avatar}</div>
+                    <img src={saPortrait(a.name)} alt="" style={{ width: TALL() ? 64 : 96, height: TALL() ? 76 : 116, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: CL.grn + "14", flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>{a.name} <span style={{ fontSize: TS(31), color: CL.gold, fontFamily: F.m }}>· {a.zone}</span></div>
                       <div style={{ fontSize: TS(34), color: CL.tm }}>{a.title}</div>
@@ -7295,12 +7403,13 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   <img src={commissionerArt(m.minister)} alt={m.minister} loading="lazy" style={{ width: 64, height: 76, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.grn + "14", flexShrink: 0 }} />
                   <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>Hon. {m.minister}</div>
                 </div>
+                {(m.record || []).slice(-2).reverse().map((e, i) => <div key={i} style={{ fontSize: TALL() ? TS(19) : TS(27), color: e.kind === "praise" ? CL.grn : CL.red, background: (e.kind === "praise" ? CL.grn : CL.red) + "0d", borderRadius: 10, padding: "6px 10px", marginBottom: 6, lineHeight: 1.35 }}><b>{OFFENCE[e.kind]?.label}</b> (half-year {e.t}): {e.text}</div>)}
                 <div style={{ fontSize: TS(31), color: CL.tm, marginBottom: 14, fontStyle: "italic" }}>PS: {m.permSec} · Staff: {(m.staff || 0).toLocaleString()}</div>
                 <SB label="Performance" value={m.perf} max={100} color={CL.blu} />
                 <SB label="Corruption" value={m.cor} max={100} color={CL.red} />
                 <div style={{ fontSize: TS(31), color: CL.td, marginTop: 10, fontFamily: F.m }}>Budget: ₦{(m.budget || 0).toFixed(1)}B</div>
                 <div style={{ display: "flex", gap: 10, marginTop: 19, flexWrap: "wrap" }}>
-                  <Bt v="danger" onClick={() => { const old = m.minister; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, minister: gen(), perf: Math.max(20, x.perf - 8), cor: Math.max(5, x.cor - 10) } : x)); setS(pr => ({ ...pr, app: cl100(pr.app - 3), pStab: cl100(pr.pStab - 4) })); addL("🔄 Fired Hon. " + old + " (" + m.name + "). -3 approval, -4 party.", "political"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Sacked Hon. " + old + " as " + m.name + " Commissioner in a cabinet reshuffle." }, ...w]); try { window.SOPX_onDecision && window.SOPX_onDecision("minister_sacked", { name: old, ministerId: m.id }); } catch(e){} }} style={{ fontSize: TS(29), padding: "7px 22px" }}>Fire</Bt>
+                  <Bt v="danger" onClick={() => fireMinister(m.id)} style={{ fontSize: TS(29), padding: "7px 22px" }}>{fireCase(m).justified ? "Fire: " + (m.flag ? OFFENCE[m.flag.kind].label.toLowerCase() : "weak record") : "Fire"}</Bt>
                   <Bt v="ghost" onClick={() => { const old = m.permSec; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, permSec: gen(), perf: Math.min(100, x.perf + 5) } : x)); addL("🔀 Reassigned PS " + old + " → new PS in " + m.name + ".", "political"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Reassigned the Permanent Secretary of " + m.name + ", replacing " + old + " during an administrative shake-up." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>Reassign PS</Bt>
                   <Bt v="ghost" onClick={() => { const raise = 0.5; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, budget: (x.budget || 0) + raise, perf: Math.min(100, x.perf + 3) } : x)); setS(pr => ({ ...pr, debt: pr.debt + raise })); addL("💰 Boosted " + m.name + " budget by ₦" + raise + "B.", "policy"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Increased the budget of " + m.name + " by ₦" + raise + "B to accelerate implementation." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>+₦0.5B</Bt>
                 </div>
@@ -7420,6 +7529,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               {rec.length ? rec.map(e => <div key={e.id} style={{ fontSize: TS(24), color: CL.tm, lineHeight: 1.45, padding: "8px 0", borderTop: "1px solid " + CL.bdr }}>
                 <b style={{ color: CL.txt }}>Turn {e.t}</b> · {e.decision || e.note || e.kind.replace(/_/g, " ")}
               </div>) : <div style={{ fontSize: TS(24), color: CL.td, fontStyle: "italic", borderTop: "1px solid " + CL.bdr, paddingTop: 8 }}>Nothing between you yet.</div>}
+              {c.id === "adviser" && (saOffice.record || []).slice(-2).reverse().map((e, i) => <div key={"sar" + i} style={{ fontSize: TS(22), color: e.kind === "praise" ? CL.grn : CL.red, marginTop: 8 }}>{e.kind === "praise" ? "🏅 " : "⚠️ "}Half-year {e.t}: {e.text}</div>)}
               {c.id === "adviser" && <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
                 <Bt v="ghost" onClick={fireAdviser} style={{ color: CL.red, borderColor: CL.red + "66", fontSize: TS(24) }}>{saOffice.adviser ? "Fire adviser" : "Appoint an adviser"}</Bt>
               </div>}
@@ -7671,22 +7781,22 @@ const ADV = {
 };
 
 const SA_ROSTER = [
-  { name: "Dr. Halima Sanusi",        title: "SA, Policy & Coordination",         zone: "NW", avatar: "🧕🏽",  file: "World Bank alumna · Cabinet Office veteran" },
-  { name: "Barr. Chinedu Eze",         title: "SA, Legal & Legislative Affairs",   zone: "SE", avatar: "🧑🏾‍⚖️", file: "Constitutional lawyer · former House counsel" },
-  { name: "Mallam Ibrahim Yusuf",      title: "SA, Security & Intergov Affairs",   zone: "NW", avatar: "👳🏾‍♂️", file: "Retired DIG · DSS liaison network" },
-  { name: "Ms. Ngozi Okafor",          title: "SA, Delivery & Reform",             zone: "SE", avatar: "👩🏾‍💼", file: "McKinsey partner · procurement reform" },
-  { name: "Prof. Bola Adekunle",       title: "SA, Economic Planning",             zone: "SW", avatar: "👨🏾‍🏫", file: "Public finance professor · debt desk" },
-  { name: "Alh. Abdullahi Bawa",     title: "SA, Sub-national Diplomacy",        zone: "NW", avatar: "🧔🏾",   file: "Ex-NGF secretariat · Abuja fixer" },
-  { name: "Dr. Ebele Nwosu",           title: "SA, Health & Social Welfare",       zone: "SE", avatar: "👩🏾‍⚕️", file: "Ex-NPHCDA · UCH consultant" },
-  { name: "Engr. Tosin Ogundipe",      title: "SA, Works & Infrastructure",        zone: "SW", avatar: "👷🏾‍♂️", file: "COREN engineer · ex-FERMA" },
-  { name: "Comrade Preye Dougibo",     title: "SA, Community Relations",           zone: "SS", avatar: "🧑🏾",   file: "Ijaw youth council · former DESOPADEC" },
-  { name: "Dr. Terkuma Gbenda",        title: "SA, Agriculture & Food Security",   zone: "NC", avatar: "👨🏾‍🌾", file: "Tiv middle-belt agronomist · IITA alum" },
-  { name: "Hajiya Fatima Modu",        title: "SA, Humanitarian & IDP Affairs",    zone: "NE", avatar: "🧕🏾",   file: "UNHCR field officer · Borno-born" },
-  { name: "Mrs. Ekaette Akpan",        title: "SA, Diaspora & Investment",         zone: "SS", avatar: "👩🏾‍💼", file: "Ex-NIPC · Akwa Ibom origin" },
-  { name: "Otunba Ademola Bakare",     title: "SA, Political Affairs",             zone: "SW", avatar: "🎩",   file: "Party elder · four-time convention veteran" },
-  { name: "Amb. Bello Gimba",          title: "SA, Special Duties",                zone: "NC", avatar: "🧑🏾‍💼", file: "Retired diplomat · Nasarawa native" },
-  { name: "Dr. Uche Onwuka",           title: "SA, Digital Economy",               zone: "SE", avatar: "👨🏾‍💻", file: "Ex-NITDA · Anambra tech entrepreneur" },
-  { name: "Mai Musa Kachalla",         title: "SA, Traditional Institutions",      zone: "NE", avatar: "🧑🏾‍🏫", file: "Palace-trained · Kanuri elder" },
+  { name: "Dr. Halima Sanusi",        title: "SA, Policy & Coordination",         zone: "NW", avatar: "🧕🏽",  file: "World Bank alumna · Cabinet Office veteran", pic: "special-adviser" },
+  { name: "Barr. Chinedu Eze",         title: "SA, Legal & Legislative Affairs",   zone: "SE", avatar: "🧑🏾‍⚖️", file: "Constitutional lawyer · former House counsel", pic: "commissioner-male-suit" },
+  { name: "Mallam Ibrahim Yusuf",      title: "SA, Security & Intergov Affairs",   zone: "NW", avatar: "👳🏾‍♂️", file: "Retired DIG · DSS liaison network", pic: "permanent-secretary" },
+  { name: "Ms. Ngozi Okafor",          title: "SA, Delivery & Reform",             zone: "SE", avatar: "👩🏾‍💼", file: "McKinsey partner · procurement reform", pic: "commissioner-technocrat" },
+  { name: "Prof. Bola Adekunle",       title: "SA, Economic Planning",             zone: "SW", avatar: "👨🏾‍🏫", file: "Public finance professor · debt desk", pic: "investor-nigerian" },
+  { name: "Alh. Abdullahi Bawa",     title: "SA, Sub-national Diplomacy",        zone: "NW", avatar: "🧔🏾",   file: "Ex-NGF secretariat · Abuja fixer", pic: "commissioner-male-agbada" },
+  { name: "Dr. Ebele Nwosu",           title: "SA, Health & Social Welfare",       zone: "SE", avatar: "👩🏾‍⚕️", file: "Ex-NPHCDA · UCH consultant", pic: "doctor" },
+  { name: "Engr. Tosin Ogundipe",      title: "SA, Works & Infrastructure",        zone: "SW", avatar: "👷🏾‍♂️", file: "COREN engineer · ex-FERMA", pic: "deputy-male-suit" },
+  { name: "Comrade Preye Dougibo",     title: "SA, Community Relations",           zone: "SS", avatar: "🧑🏾",   file: "Ijaw youth council · former DESOPADEC", pic: "young-voter-student" },
+  { name: "Dr. Terkuma Gbenda",        title: "SA, Agriculture & Food Security",   zone: "NC", avatar: "👨🏾‍🌾", file: "Tiv middle-belt agronomist · IITA alum", pic: "governor-male-kaftan" },
+  { name: "Hajiya Fatima Modu",        title: "SA, Humanitarian & IDP Affairs",    zone: "NE", avatar: "🧕🏾",   file: "UNHCR field officer · Borno-born", pic: "commissioner-female-kaftan" },
+  { name: "Mrs. Ekaette Akpan",        title: "SA, Diaspora & Investment",         zone: "SS", avatar: "👩🏾‍💼", file: "Ex-NIPC · Akwa Ibom origin", pic: "commissioner-female-suit" },
+  { name: "Otunba Ademola Bakare",     title: "SA, Political Affairs",             zone: "SW", avatar: "🎩",   file: "Party elder · four-time convention veteran", pic: "party-chairman" },
+  { name: "Amb. Bello Gimba",          title: "SA, Special Duties",                zone: "NC", avatar: "🧑🏾‍💼", file: "Retired diplomat · Nasarawa native", pic: "commissioner-male-suit" },
+  { name: "Dr. Uche Onwuka",           title: "SA, Digital Economy",               zone: "SE", avatar: "👨🏾‍💻", file: "Ex-NITDA · Anambra tech entrepreneur", pic: "doctor-male" },
+  { name: "Mai Musa Kachalla",         title: "SA, Traditional Institutions",      zone: "NE", avatar: "🧑🏾‍🏫", file: "Palace-trained · Kanuri elder", pic: "commissioner-male-agbada" },
 ];
 
 
@@ -7698,7 +7808,7 @@ const ExecutiveCommandSA = ({ adviser, brief, inbox, vacantTurns, onFire }) => {
   return (
     <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 17, padding: TALL() ? "14px 14px" : "22px 29px", marginBottom: 8 }}>
       <div onClick={() => setOpen(o => !o)} style={{ display: "flex", gap: TALL() ? 18 : 29, alignItems: "center", cursor: "pointer", flexWrap: TALL() ? "wrap" : "nowrap" }}>
-        <div style={{ width: TALL() ? 56 : 98, height: TALL() ? 56 : 98, borderRadius: "50%", background: CL.grn + "18", overflow: "hidden", fontSize: TS(40), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{adviser ? <img src={SA_PORTRAIT} alt="" style={{ width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" }} /> : "🪑"}</div>
+        <div style={{ width: TALL() ? 56 : 98, height: TALL() ? 56 : 98, borderRadius: "50%", background: CL.grn + "18", overflow: "hidden", fontSize: TS(40), display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{adviser ? <img src={saPortrait(adviser.name)} alt="" style={{ width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" }} /> : "🪑"}</div>
         <div style={{ flex: 1, minWidth: 1 }}>
           <div style={{ fontSize: TALL() ? TS(18) : TS(27), color: CL.td, fontWeight: 700 }}>Adviser's agenda {urgentCount > 0 && <span style={{ background: CL.red, color: "#fff", padding: "0 14px", borderRadius: 13, marginLeft: 14 }}>{urgentCount}</span>}</div>
           <div style={{ color: CL.txt, fontWeight: 700, fontSize: TALL() ? TS(22) : TS(36), lineHeight: 1.25 }}>{brief?.title || (adviser ? adviser.name : "SA seat vacant")}</div>

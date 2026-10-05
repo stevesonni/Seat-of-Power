@@ -425,6 +425,7 @@
             SOP_H('div',{style:{fontSize: TS(48),fontWeight:600,color:c.txt}}, `${m.icon} ${m.name}`),
             SOP_H('div',{style:{fontSize: TS(34),color:c.tm,marginTop: 7}}, `Minister: ${m.minister} · PS: ${m.permSec} · Staff: ${m.staff.toLocaleString()}`),
             m.godfatherMandate && SOP_H('div',{style:{fontSize: TS(31),color:c.red,marginTop: 10,fontWeight:700}}, `🎩 Godfather-imposed appointment from campaign bailout`),
+            ...((m.record || []).slice(-2).reverse().map((e, i) => SOP_H('div',{key:"rec"+i, style:{fontSize: TS(29), color: e.kind === "praise" ? c.grn : c.red, marginTop: 8, lineHeight: 1.35}}, (e.kind === "praise" ? "🏅 " : "⚠️ ") + "Half-year " + e.t + ": " + e.text))),
           ]),
           SOP_H('div',{style:{display:"flex",gap: 14}},[
             SOP_H('input',{type:"checkbox", checked: mergeSel.includes(m.id), onChange:e=>{
@@ -432,6 +433,7 @@
             }, title:"Select for merge"}),
             SOP_H(Btn,{onClick:async ()=>{
               const gf = !!m.godfatherMandate;
+              if (!gf && window.SOP_PERSONNEL) { await window.SOP_PERSONNEL.fire(m.id); return; }
               const warn = gf
                 ? `Fire Hon. ${m.minister}?\n\nThis was a GODFATHER-IMPOSED appointment from your campaign bailout. Firing WILL trigger retaliation:\n• Godfather recalls ₦0.6B loan (treasury hit)\n• -20 party stability, -15 loyalty across party\n• Public feud logged on your Wikipedia\n• Future godfather bailouts locked`
                 : `Fire Hon. ${m.minister} as Commissioner for ${m.name}?\n\nA new commissioner will be sworn in. Party may grumble.`;

@@ -130,3 +130,21 @@
   - "What the state needs" cards on the Desk: tap a card for the cause, what answers it, its budget and what doing nothing will cost.
   - The adviser raises stalled work and needs at their deadline.
   - The budget warns when a split would leave active work unpaid.
+
+## Personnel: reasons and consequences for firing
+- **Adviser portraits:** each of the 16 advisers in `SA_ROSTER` now has their own portrait (`pic`). Every adviser image follows whoever holds the post: the speech bubble, the Desk line, the Cast card, the State sheet and the picker. Previously all of them showed the original female adviser.
+- **Hidden traits:** every commissioner has a hidden competence and honesty, fixed by their name (`traits`). Each half-year their performance and corruption drift towards those traits, loyalty wanders, and up to two things happen across the cabinet:
+  - **Contract fraud** (corruption above 55): approval −2, corruption +2%, and the adviser asks whether to fire or keep.
+  - **Missed targets** (performance below 40): approval −1, and active work on a need in that ministry's sector stalls.
+  - **Disloyalty** (loyalty below 35): a leaked memo, party −3.
+  - **Delivered** (performance above 72): approval +1.
+- **Keeping someone:** keeping a commissioner with fraud or disloyalty on record costs again every half-year ("Governor shields corrupt commissioner": approval −3, corruption +2%; or party −3).
+- **Firing:** both Fire buttons (Cabinet and Ministries) go through `fireMinister`. The confirmation says why and what happens:
+  - **Fraud on record:** approval +3, corruption −3%.
+  - **Disloyalty on record:** party +2, but the commissioner's home zone −2.
+  - **Weak record:** approval +1.
+  - **Clean record:** approval −2, party −5, the home zone −3, and the ministry restarts at a lower performance.
+  - **Godfather-imposed commissioners:** these keep the existing godfather retaliation.
+- **The adviser** has a record too: an occasional leaked memo (approval −1) or a good call. Firing with a leak on record gives approval +1; firing a clean adviser gives approval −2 and a tell-all column.
+- **New commissioners** get a half-year to settle in: a weak record does not count against them until then.
+- **Records** show on the Cabinet cards, the Ministries tab and the adviser's Cast card.
