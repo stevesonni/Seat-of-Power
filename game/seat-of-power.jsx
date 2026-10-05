@@ -3379,6 +3379,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [stc, setStc] = useState(() => ld?.stc || { lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
   const [scCards, setScCards] = useState([]);
   const faacSwingRef = React.useRef(0);
+  const scPending = React.useRef([]);
+  const scLast = React.useRef(null);
   // Background events record their topic so a decision card on the same story waits.
   const passiveTopics = React.useRef({});
   const topicRecent = (tp) => turn - ((stc.topicTurn || {})[tp] ?? -9) < 2 || turn - (passiveTopics.current[tp] ?? -9) < 2;
@@ -3494,7 +3496,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The shortfall follows the oil price swing logged at the end of the half-year,
     // so the FAAC card never contradicts an "oil rally" headline.
     const sw = faacSwingRef.current;
-    const f = sw < -.05 ? Math.max(.62, 1 + sw * 1.2) : sw > .05 ? 1 : lv === "hard" ? .82 + r() * .22 : lv === "easy" ? .92 + r() * .14 : .86 + r() * .18;
+    const f = turn === 1 ? 1 : sw < -.05 ? Math.max(.62, 1 + sw * 1.2) : sw > .05 ? 1 : lv === "hard" ? .82 + r() * .22 : lv === "easy" ? .92 + r() * .14 : .86 + r() * .18;
     const pct = Math.round(f * 100), short = Math.max(.2, Math.round((s.faac || 10) * (1 - f) * 10) / 10), mw = monthWage();
     if (f < .95 || A > 0) {
       const owe = f < .85 ? 3 : f < .95 ? 2 : 0;
@@ -3562,6 +3564,125 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
     }
 
+
+    // Local government: the council elections, then the fight over LG autonomy.
+    const asked = { ...(next.asked || {}) };
+    const zoneList = (zs) => zs.map(zoneName).join(" and ");
+    if (turn >= 2 && !asked.lg_election) {
+      asked.lg_election = turn;
+      const lean = [0, 1, 2].map(z => ((s.zoneMood || {})[z] || 0) + (s.app - 50) / 4 + (r() * 8 - 4));
+      const oppZ = [0, 1, 2].filter(z => lean[z] < -1);
+      cards.push({ key: "lg_election", kicker: "Council elections", color: CL.blu, art: ["polling-unit", "permanent-secretary"],
+        title: "The State Electoral Commission is ready to hold council polls",
+        brief: "Your SIEC chairman is your appointee, and in most states the ruling party wins every council. " + (oppZ.length ? "A free vote would probably cost you councils in " + zoneList(oppZ) + "." : "A free vote looks safe for you right now."),
+        stakes: "Whoever runs the councils runs the ward structures at the next election.",
+        options: [
+          { label: "Free and fair: let the chips fall", note: oppZ.length ? "Honest, and the opposition takes councils in " + zoneList(oppZ) + "." : "Honest, and you probably win anyway.", chips: fxChips({ app: 3, pStab: -2 * oppZ.length }), run: () => {
+            scFx({ app: 3, pStab: -2 * oppZ.length }); oppZ.forEach(z => scFx({}, z, -3));
+            setStc(p => ({ ...p, lg: { mode: "free", oppZones: oppZ } }));
+            addL("🗳️ Free council elections" + (oppZ.length ? ": the opposition won councils in " + zoneList(oppZ) + "." : ": your party won most councils on merit."), "policy");
+            scWiki("Governorship", "Conducted local government elections widely judged free and fair" + (oppZ.length ? "; the opposition won councils in " + zoneList(oppZ) + "." : "."));
+          } },
+          { label: "Make sure we win every council", note: "The commission declares a clean sweep. Observers walk out.", chips: fxChips({ app: -3, cor: .03, pStab: 4 }), run: () => {
+            scFx({ app: -3, cor: .03, pStab: 4 }); setStc(p => ({ ...p, lg: { mode: "rigged", oppZones: [] } }));
+            addL("🗳️ The ruling party 'won' every council. Observers called it a coronation.", "crisis");
+            scWiki("Controversies", "The ruling party won every council in local elections that observers described as a sham.");
+          } },
+          { label: "Postpone them: appoint caretaker committees", note: "Loyalists run every council. Courts have called this illegal.", chips: fxChips({ app: -2, pStab: 3 }), run: () => {
+            scFx({ app: -2, pStab: 3 }); setStc(p => ({ ...p, lg: { mode: "caretaker", oppZones: [] } }));
+            addL("🗳️ Council elections postponed. Caretaker committees of loyalists now run the councils.", "political");
+            scWiki("Controversies", "Ran the local governments through unelected caretaker committees.");
+          } },
+        ] });
+    } else if (turn >= 3 && next.lg && !asked.lg_autonomy && (r() < .5 || turn >= 5)) {
+      asked.lg_autonomy = turn;
+      const care = next.lg.mode === "caretaker", oppRun = (next.lg.oppZones || []).length;
+      const cut = Math.round((s.faac || 10) * .08 * 10) / 10;
+      const lose = () => setS(p => ({ ...p, faac: Math.max(2.5, p.faac - cut) }));
+      cards.push({ key: "lg_autonomy", kicker: "LG autonomy", color: CL.blu, art: ["courtroom", "judge"],
+        title: "Abuja will pay the councils directly",
+        brief: "Enforcing the Supreme Court's 2024 judgment, council allocations will go straight to the councils, bypassing the State-LG Joint Account you control." + (care ? " The judgment also says caretaker committees get nothing." : ""),
+        stakes: "Governors have steered council money for decades. This ends it, or tests whether it can.",
+        options: [
+          { label: "Comply: let the councils run their own money", note: "You lose about ₦" + cut + "B a half-year you used to steer." + (care ? " You must hold council elections now." : ""), chips: fxChips({ app: 2, cor: -.02 }).concat([{ text: "FAAC −₦" + cut + "B", color: CL.red }]), run: () => {
+            scFx({ app: care ? 3 : 2, cor: -.02, pStab: care ? -3 : 0 }); lose();
+            setStc(p => ({ ...p, lg: { ...p.lg, autonomy: "comply", mode: care ? "free" : p.lg.mode } }));
+            addL("🏛️ You complied with LG autonomy. Council chairmen now control their own allocations." + (care ? " Elections replace the caretaker committees." : ""), "policy");
+            scWiki("Governorship", "Complied with the Supreme Court judgment on local government financial autonomy.");
+          } },
+          { label: "Make the chairmen 'contribute' to joint projects", note: oppRun ? "Your chairmen comply. The opposition's chairmen go to the press." : "Your chairmen sign the money back. Everyone knows.", chips: fxChips({ cor: .04, app: oppRun ? -3 : -1 }), run: () => {
+            scFx({ cor: .04, app: oppRun ? -3 : -1 }); setStc(p => ({ ...p, lg: { ...p.lg, autonomy: "evade" } }));
+            addL("🏛️ Council chairmen are 'contributing' their allocations to state projects." + (oppRun ? " Opposition chairmen called a press conference." : ""), "political");
+            if (oppRun) scWiki("Controversies", "Was accused of forcing local government chairmen to hand their allocations back to the state.");
+            try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "lg_funds_diverted", actor: "governor", gravity: 3, evidence: oppRun ? 4 : 2, decision: "Made LG chairmen remit allocations", note: "LG autonomy evaded" }); } catch (e) {}
+          } },
+          { label: "Challenge it at the Supreme Court", note: "Costly lawyers and a likely loss. It buys time.", chips: fxChips({ debt: .3 }).concat([{ text: "1 in 4 chance", color: CL.org }]), run: () => {
+            const win = Math.random() < .25; scFx({ debt: .3, app: win ? 1 : -3 }); if (!win) lose();
+            setStc(p => ({ ...p, lg: { ...p.lg, autonomy: win ? "delayed" : "comply" } }));
+            addL(win ? "⚖️ The court allowed a transition period. The joint account survives a while longer." : "⚖️ The Supreme Court threw out your challenge. The councils get their money directly, and you look like you fought it.", win ? "success" : "crisis");
+          } },
+        ] });
+    }
+
+    // The godfather is a person: he rises, falls out with you, defects, and dies.
+    const gfName = cast?.godfather?.name || "Your godfather";
+    const gfGone = next.gf === "dead" || next.gf === "opposition";
+    const setGf = (st0, extra = {}) => setStc(p => ({ ...p, gf: st0, ...extra }));
+    const houseAdd = (k) => setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + k)) } } : p);
+    if (!gfGone && turn >= 3 && !asked.gf_rise && godfatherRel >= 60 && godfatherPower >= 45) {
+      asked.gf_rise = turn;
+      cards.push({ key: "gf_rise", kicker: "Your godfather", color: CL.org, art: ["abuja-federal-office", "godfather-pleased"],
+        title: gfName + " is nominated as a federal minister",
+        brief: "The President has sent " + gfName + "'s name to the Senate. If he is confirmed, the man who made you will sit in the Federal Executive Council, and his demands will grow with his reach.",
+        stakes: "A stronger godfather can protect you in Abuja, or own you completely.",
+        options: [
+          { label: "Lobby senators for his confirmation", note: "He will remember. So will his appetite.", chips: fxChips({ pStab: 3 }).concat([{ text: "Godfather stronger", color: CL.org }]), run: () => { scFx({ pStab: 3 }); setGodfatherRel(v => cl100(v + 10)); setGodfatherPower(v => Math.min(100, v + 15)); addL("🎩 " + gfName + " was confirmed as a minister with your help. He is stronger now, and so are his demands.", "political"); } },
+          { label: "Stay out of it", note: "He notices who didn't call.", chips: [{ text: "Relationship −5", color: CL.red }], run: () => { setGodfatherRel(v => cl100(v - 5)); addL("🎩 You stayed out of " + gfName + "'s confirmation. He noticed.", "political"); } },
+          { label: "Quietly brief senators against him", note: "Clip his wings before he flies. If he finds out, it's war.", risk: "Roughly a 40% chance he finds out.", chips: [{ text: "Godfather weaker", color: CL.grn }], run: () => {
+            setGodfatherPower(v => Math.max(0, v - 15));
+            if (Math.random() < .4) { setGodfatherRel(v => cl100(v - 30)); setGf("enemy"); addL("🎩 " + gfName + " found out who briefed against him. He has sworn to end you.", "crisis"); }
+            else addL("🎩 " + gfName + "'s confirmation stalled in the Senate. He doesn't know why.", "political");
+          } },
+        ] });
+    } else if (!gfGone && turn >= 2 && !asked.gf_fallout && godfatherRel <= 30) {
+      asked.gf_fallout = turn;
+      cards.push({ key: "gf_fallout", kicker: "Your godfather", color: CL.red, art: ["veranda-night", "godfather-angry"],
+        title: gfName + " has turned against you",
+        brief: gfName + " has stopped taking your calls. His newspaper calls you an ingrate, and his people in the House are counting signatures.",
+        stakes: "A godfather scorned can cost you the House, the party and the ticket.",
+        options: [
+          { label: "Make peace: a ₦1B 'settlement' and two appointments", note: "The war ends. The bill comes in instalments.", chips: fxChips({ debt: 1, cor: .03 }), run: () => { scFx({ debt: 1, cor: .03 }); setGodfatherRel(55); setGf("patron"); addL("🎩 Peace with " + gfName + ": ₦1B and two appointments. He is smiling again, for now.", "political"); } },
+          { label: "Fight: expose his contracts", note: "The public loves it. His loyalists in the House do not.", chips: fxChips({ app: 3, pStab: -6 }).concat([{ text: "−3 House members", color: CL.red }]), run: () => { scFx({ app: 3, pStab: -6 }); setGodfatherPower(v => Math.max(0, v - 20)); houseAdd(-3); setGf("enemy"); addL("🎩 You exposed " + gfName + "'s contracts. Three Assembly members loyal to him walked out of your caucus.", "crisis"); scWiki("Governorship", "Publicly broke with political godfather " + gfName + ", exposing his contracts."); } },
+          { label: "Poach his ward leaders one by one", note: "Quiet, expensive, and slowly effective.", chips: fxChips({ debt: .6, pStab: 2 }), run: () => { scFx({ debt: .6, pStab: 2 }); setGodfatherPower(v => Math.max(0, v - 15)); setGodfatherRel(v => cl100(v - 15)); setGf("enemy"); addL("🎩 Your people are buying up " + gfName + "'s ward leaders. He knows.", "political"); } },
+        ] });
+    } else if (!gfGone && next.gf === "enemy" && turn >= 3 && !asked.gf_defect) {
+      asked.gf_defect = turn;
+      const base = () => { houseAdd(-3); scFx({ pStab: -5 }); setGodfatherPower(0); setGf("opposition", { gfOpp: true }); scWiki("Controversies", "Political godfather " + gfName + " defected to the opposition, taking Assembly members with him."); };
+      cards.push({ key: "gf_defect", kicker: "Your godfather", color: CL.red, art: ["party-convention-hall", "godfather-angry"],
+        title: gfName + " has defected to the opposition",
+        brief: gfName + " joined the opposition with his structures, and three Assembly members went with him. He will be on their platform at the next election.",
+        stakes: "His network now works for your opponent.",
+        options: [
+          { label: "Match his offers to the Assembly members", note: "Win two of them back, at a price.", chips: fxChips({ debt: 1, pStab: -5 }).concat([{ text: "−3, then +2 members", color: CL.org }]), run: () => { base(); scFx({ debt: 1 }); houseAdd(2); addL("🎩 " + gfName + " defected. You bought two of his Assembly members back.", "political"); } },
+          { label: "Rally the party faithful", note: "Turn his betrayal into your rallying cry.", chips: fxChips({ pStab: 0 }), run: () => { base(); scFx({ pStab: 5 }); addL("🎩 " + gfName + " defected. The party closed ranks behind you.", "political"); } },
+          { label: "Good riddance: tell the people you are free of godfathers", note: s.cor < .45 ? "With your record, people may believe you." : "With your record, people may laugh.", chips: fxChips({ app: s.cor < .45 ? 4 : -1, pStab: -5 }), run: () => { base(); scFx({ app: s.cor < .45 ? 4 : -1 }); addL("🎩 " + gfName + " defected. You told the state you answer only to the people.", s.cor < .45 ? "success" : "political"); } },
+        ] });
+    } else if (next.gf !== "dead" && turn >= 5 && !asked.gf_death && r() < .15) {
+      asked.gf_death = turn;
+      const wasOpp = next.gf === "opposition";
+      const dead = () => { setGodfatherPower(0); setGf("dead"); scWiki("Governorship", "Political godfather " + gfName + " died during the administration."); };
+      cards.push({ key: "gf_death", kicker: "Your godfather", color: CL.pur, art: ["veranda-night", null],
+        title: gfName + " is dead",
+        brief: gfName + " died in a London hospital. His network of ward leaders, contractors and Assembly members is up for grabs" + (wasOpp ? ", including the members who followed him to the opposition." : "."),
+        stakes: "Whoever inherits the network inherits his power.",
+        options: [
+          { label: "Inherit his network", note: "Attend the burial, settle the family, absorb his men and their appetites.", chips: fxChips({ pStab: 6, cor: .02 }).concat([{ text: "+" + (wasOpp ? 3 : 2) + " House members", color: CL.grn }]), run: () => { dead(); scFx({ pStab: 6, cor: .02 }); houseAdd(wasOpp ? 3 : 2); addL("⚰️ " + gfName + " is buried. His network now answers to you.", "political"); } },
+          { label: "Back his son as the new godfather", note: "Continuity. A young man with his father's appetite.", chips: fxChips({ pStab: 3 }), run: () => { dead(); scFx({ pStab: 3 }); setGodfatherPower(35); setGodfatherRel(60); setGf("patron"); addL("⚰️ You backed " + gfName + "'s son as heir to the network.", "political"); } },
+          { label: "Let it scatter: a new era", note: "No godfathers. Some barons drift to the opposition.", chips: fxChips({ app: 2, pStab: -3 }), run: () => { dead(); scFx({ app: 2, pStab: -3 }); addL("⚰️ With " + gfName + " gone, you declared the end of godfatherism in the state.", "success"); } },
+        ] });
+    }
+    next.asked = asked;
+
     // Succession: in the last year, anoint someone or let the party decide.
     if (turn >= MT - 1 && !next.successor && !next.successionAsked) {
       next.successionAsked = true;
@@ -3590,16 +3711,62 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     next.arrearsMax = Math.max(next.arrearsMax || 0, next.arrears);
     setStc(next);
     notes.forEach(([t, k]) => addL(t, k));
-    if (cards.length) { setScCards(cards); cards.forEach(() => q.push("sc")); }
+    scPending.current = cards; scLast.current = next;
+    cards.forEach(c => q.push("sc#" + c.key));
   };
+
+  // The successor's race: three rounds. The opposition attacks your record;
+  // you choose how to help your candidate.
+  const raceOpp = () => gN(rng(state.length * 577 + 31), sd.zone, state);
+  const raceAttacks = () => {
+    const broken = (stc.promises || []).filter(p => p.status === "broken").length, list = [];
+    if (broken) list.push({ t: "They read out your " + broken + " broken promise" + (broken === 1 ? "" : "s"), hit: 2 + broken });
+    if (stc.arrears > 0 || (stc.arrearsMax || 0) >= 3) list.push({ t: "\u201cThey owed teachers and nurses for months\u201d", hit: 4 });
+    if (s.cor > .45) list.push({ t: "\u201cWhere is our money?\u201d rallies in every zone", hit: 5 });
+    if (stc.gfOpp) list.push({ t: "Your old godfather campaigns against your candidate", hit: 4 });
+    list.push({ t: "\u201cEight years is enough\u201d", hit: 3 }, { t: "\u201cA new face for a new era\u201d", hit: 3 }, { t: "The opposition outspends you on radio", hit: 2 });
+    return list.slice(0, 3);
+  };
+  const startRace = () => {
+    const so = stc.successor || { name: gN(rng(state.length * 733 + turn), sd?.zone, state), kind: "party", loyal: .4, elect: 46 };
+    if (!stc.successor) addL("👑 You never named a successor, so the party picked " + so.name + ".", "political");
+    const broken = (stc.promises || []).filter(p => p.status === "broken").length;
+    const poll = Math.round(Math.max(25, Math.min(75, so.elect + (s.app - 50) * .5 + (s.pStab - 50) * .2 - broken * 1.5 - (stc.arrears > 0 ? 3 : 0) - (stc.gfOpp ? 3 : 0))));
+    setStc(p => ({ ...p, successor: so, race: { round: 0, poll, hit: false, log: [], loyalAdj: 0 } }));
+  };
+  const raceMoves = () => [
+    { l: "Campaign side by side", note: s.app >= 50 ? "You are popular: your presence helps." : "You are unpopular: your presence may hurt.", d: Math.max(-4, Math.min(7, Math.round((s.app - 45) / 3))) },
+    { l: "Bankroll the campaign", note: "Money talks. The EFCC listens.", d: 5, fx: { debt: 1, cor: .03 } },
+    { l: "Deliver the party machine", note: "Call in every favour with the ward chairmen.", d: Math.max(-2, Math.min(6, Math.round((s.pStab - 40) / 6))), fx: { pStab: -3 } },
+    { l: "Commission projects on the trail", note: needs.filter(n => n.status === "met").length >= 3 ? "You have real work to show." : "Little finished to show; ribbon-cutting on half-built sites.", d: needs.filter(n => n.status === "met").length >= 3 ? 5 : 2, fx: { debt: .6 } },
+    { l: "Stay out: let them stand alone", note: "Your image is safe. They will owe you less.", d: 0, fx: { app: 1 }, loyal: -.1 },
+  ];
+  const racePick = (m) => {
+    const R = stc.race; if (!R || R.round >= 3) return;
+    if (m.fx) scFx(m.fx);
+    const hitNow = raceAttacks()[R.round] || { t: "", hit: 0 };
+    const poll = Math.max(10, Math.min(90, R.poll + m.d));
+    const log = [...R.log, { atk: hitNow.t, hit: hitNow.hit, move: m.l, d: m.d }];
+    const round = R.round + 1, loyalAdj = R.loyalAdj + (m.loyal || 0);
+    if (round < 3) { setStc(p => ({ ...p, race: { ...R, round, poll, hit: false, log, loyalAdj } })); return; }
+    const final = Math.round((poll + (Math.random() * 6 - 3)) * 10) / 10, won = final > 50;
+    addL("🗳️ " + (stc.successor?.name || "Your candidate") + (won ? " won the governorship " : " lost the governorship ") + final.toFixed(1) + "% to " + (100 - final).toFixed(1) + "%.", won ? "success" : "crisis");
+    setStc(p => ({ ...p, race: { ...R, round, poll, log, final, loyalAdj }, raceDone: true, raceWon: won }));
+  };
+  // The attack lands when a round opens.
+  useEffect(() => {
+    if (phase !== "succession_race" || !stc.race || stc.race.hit || stc.race.round >= 3) return;
+    const a = raceAttacks()[stc.race.round]; if (!a) return;
+    setStc(p => ({ ...p, race: { ...p.race, hit: true, poll: Math.max(10, p.race.poll - a.hit) } }));
+  }, [phase, stc.race?.round, stc.race?.hit]);
 
   // How the succession plays out once you leave office.
   const successionOutcome = () => {
     if (gEnd === "complete" || gEnd === "stepped_down") {
       const so = stc.successor || { name: gN(rng(state.length * 733 + turn), sd?.zone, state), kind: "party", loyal: .4, elect: 46 };
       const r = rng(state.length * 991 + Math.round(s.app) * 7 + Math.round(s.cor * 100));
-      const won = so.elect + (s.app - 50) * .6 + (s.pStab - 50) * .3 + (r() - .5) * 20 > 50;
-      const betrayed = won && r() < (1 - so.loyal) + (s.cor > .45 ? .15 : 0);
+      const won = stc.raceDone ? !!stc.raceWon : so.elect + (s.app - 50) * .6 + (s.pStab - 50) * .3 + (r() - .5) * 20 > 50;
+      const betrayed = won && r() < (1 - so.loyal - (stc.race?.loyalAdj || 0)) + (s.cor > .45 ? .15 : 0);
       return { ...so, won, betrayed, efcc: won && !betrayed ? -.12 : betrayed ? .12 : .08 };
     }
     if (gEnd === "defeated") return { name: cast?.rival?.name || "the opposition", kind: "opposition", won: true, betrayed: false, efcc: .08 };
@@ -4015,7 +4182,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // After turn 4: re-election
     if (turn === 4 && phase !== "reelection") { judgePromises(1); setPhase("reelection"); return; }
     // After turn 8: tenure complete
-    if (turn >= MT) { judgePromises(2); setGEnd("complete"); return; }
+    if (turn >= MT) {
+      if (!stc.raceDone) { if (!stc.race) { judgePromises(2); startRace(); } setPhase("succession_race"); return; }
+      setGEnd("complete"); return;
+    }
     // The House: two-thirds of members against you starts impeachment (S.188).
     { const H = stc.house; if (H && H.seats - H.loyal >= Math.ceil(H.seats * 2 / 3) && s.app < 60) { setPhase("impeach"); addL("⚠️ " + (H.seats - H.loyal) + " of " + H.seats + " Assembly members have signed the impeachment notice.", "crisis"); return; } }
     // Party collapse triggers impeachment only if approval also low (House needs justification)
@@ -4945,7 +5115,37 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (typeof next === "string" && next.startsWith("desk:")) {
       setDeskActive(deskCards.current[next] || null);
       setPhase("desk");
-    } else setPhase(next);
+    } else if (typeof next === "string" && next.startsWith("sc#")) setPhase("sc");
+    else setPhase(next);
+  };
+
+  // At most a few decisions a half-year, most urgent first. What does not fit
+  // is handled by your staff and noted in the log.
+  const EVENT_NAME = { godfather: "a godfather's request", house_bill: "a House bill", investor: "an investor visit", federal: "a federal matter", shock: "a national shock", media: "a media request", dilemma: "a local dispute", hidden_threat: "an intelligence brief", intl_invite: "a foreign invitation", netherlands: "a trade mission", abuja: "an Abuja summons", wedding: "a society wedding" };
+  const capQueue = (q) => {
+    const lv = setup?.level || "medium";
+    const cap = turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
+    const pri = (k) => k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" ? 100
+      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
+      : k === "godfather" ? 62 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
+      : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
+    const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
+    const keep = ranked.filter((x, n) => n < cap || x.p >= 100);
+    const dropped = ranked.filter(x => !keep.includes(x));
+    q.length = 0; keep.forEach(x => q.push(x.k));
+    const scKeys = keep.filter(x => x.k.startsWith("sc#")).map(x => x.k.slice(3));
+    setScCards(scKeys.map(key => scPending.current.find(c => c.key === key)).filter(Boolean));
+    if (dropped.length) {
+      const names = dropped.map(x => EVENT_NAME[x.k] || (x.k.startsWith("desk:") ? (deskCards.current[x.k]?.title || "a briefing").toLowerCase() : x.k.startsWith("sc#") ? (scPending.current.find(c => "sc#" + c.key === x.k)?.title || "a matter") : null)).filter(Boolean);
+      if (names.length) addL("🗂️ Your chief of staff handled " + names.slice(0, 4).join(", ") + (names.length > 4 ? " and more" : "") + " so you could focus.", "info");
+      // A state crisis that did not fit stays in the pool for a later half-year.
+      const back = dropped.filter(x => x.k.startsWith("sc#crisis_")).map(x => x.k.slice(10));
+      if (back.length) setStc(p => ({ ...p, crisesSeen: (p.crisesSeen || []).filter(id => !back.includes(id)) }));
+      const unask = dropped.filter(x => /^sc#(lg_|gf_)/.test(x.k)).map(x => x.k.slice(3));
+      if (unask.length) setStc(p => { const a = { ...(p.asked || {}) }; unask.forEach(k => delete a[k]); return { ...p, asked: a }; });
+      dropped.forEach(x => { if (x.k === "dilemma") setCurD(null); if (x.k === "media") setCurMedia(null); if (x.k === "investor") setCurInvestor(null); if (x.k === "shock") setCurShock(null); if (x.k === "federal") setCurFgEvent(null); if (x.k === "godfather") setGodfatherDemand(null); if (x.k === "house_bill") setPendingHouseBill(null); });
+    }
+    return q;
   };
 
   const buildEventQueue = () => {
@@ -4975,7 +5175,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
 
     // LAYER 2: Godfather (every even turn) — NOT for Primary
-    if (lv !== "easy" && godfatherPower > 20 && turn % 2 === 0) {
+    const gfNow = scLast.current?.gf, gfStory = (scPending.current || []).some(c => c.key.startsWith("gf_"));
+    if (lv !== "easy" && godfatherPower > 20 && turn % 2 === 0 && gfNow !== "dead" && gfNow !== "opposition" && !gfStory) {
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
       const dem = pickGfDemand(unseen, rE);
       if (dem) { setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); q.push("godfather"); }
@@ -5091,6 +5292,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     // Module cards join after the core events, minus duplicates.
     deskMerge(q);
+    capQueue(q);
 
     // Set queue and fire first event
     setEventQueue(q.slice(1));
@@ -5575,6 +5777,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
         </div>}
         {nav === "gov" && deskSteps()}
+        {nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
+          const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
+          const steps = [
+            ["Set up your government", "Convene the ministries and the Traditional Council.", !needSetup],
+            ["Pass the budget", "Pick a split, then take it to the House vote.", stepNow >= 2],
+            ["Answer one need", "Tap a card under \u201cWhat the state needs\u201d and start what it asks for.", needs.some(n => n.status === "started" || n.status === "met")],
+            ["End the half-year", "Then your decisions come in, a few at a time.", false],
+          ];
+          const cur = steps.findIndex(x => !x[2]);
+          return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: "#12301f", color: "#f3f7ef", borderRadius: 18, padding: TALL() ? "12px 14px" : "16px 20px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 12 }}>
+            {saOffice.adviser ? <img src={saPortrait(saOffice.adviser.name)} alt="" style={{ width: TALL() ? 44 : 60, height: TALL() ? 44 : 60, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#ffffff22" }} /> : <span style={{ fontSize: 32 }}>🧭</span>}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
+                <b style={{ fontSize: fz.m }}>Your first half-year</b>
+                <button onClick={() => setStc(p => ({ ...p, tutorialOff: true }))} style={{ background: "none", border: 0, color: "#cfe3d6", fontSize: fz.s, textDecoration: "underline", cursor: "pointer", minHeight: 32 }}>Skip guide</button>
+              </div>
+              {steps.map(([t, d, done], i) => <div key={t} style={{ display: "flex", gap: 8, alignItems: "baseline", marginTop: 6, fontSize: fz.s, opacity: done || i === cur ? 1 : .55 }}>
+                <span style={{ fontWeight: 800, color: done ? "#7ee2a8" : i === cur ? "#ffd166" : "#cfe3d6" }}>{done ? "✓" : i + 1}</span>
+                <span><b>{t}.</b>{i === cur ? " " + d : ""}</span>
+              </div>)}
+            </div>
+          </div>;
+        })()}
         {nav === "gov" && saBrief.urgent && !(phase === "budget" && needSetup) && !/^Balance the Appropriation/.test(saBrief.title) && <div style={{ display: "flex", gap: 12, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 20px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, margin: TALL() ? "0 0 14px" : "0 auto 22px", maxWidth: TALL() ? 900 : 1320 }}>
           {saOffice.adviser ? <img src={saPortrait(saOffice.adviser.name)} alt="" style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "18", flexShrink: 0 }} /> : null}
           <div style={{ flex: 1, minWidth: 0, fontSize: TALL() ? TS(20) : TS(31), color: CL.tm, lineHeight: 1.35 }}><b style={{ color: CL.txt }}>{saOffice.adviser ? saOffice.adviser.name.split(" ").slice(-1)[0] : "Adviser's desk"}:</b> {saBrief.title}.</div>
@@ -5600,14 +5825,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               {chip(stc.arrears ? "💸 Workers owed " + stc.arrears + " month" + (stc.arrears === 1 ? "" : "s") : "💸 Salaries paid", stc.arrears > 0)}
               {chip("🏛️ House: " + H.loyal + " of " + H.seats + " with you", H.loyal < H.seats / 2)}
               {(ministries || []).length > 0 && chip("⚖️ Cabinet " + cz.map((n, i) => zoneName(i).slice(0, 1) + n).join(" · "), bIdx != null)}
-              {pr.length > 0 && chip("📜 Promises: " + prCount("kept") + " kept, " + prCount("pending") + " open" + (prCount("broken") ? ", " + prCount("broken") + " broken" : ""), prCount("broken") > 0)}
             </div>
-            {pr.filter(p => p.status === "pending").length > 0 && <div style={{ marginTop: 10, display: "grid", gap: 4 }}>
-              {pr.filter(p => p.status !== "kept" || p.term === (turn > 4 ? 2 : 1)).filter(p => p.term === (turn > 4 ? 2 : 1)).map(p => <div key={p.id} style={{ fontSize: fz.s, color: CL.tm, display: "flex", gap: 8, alignItems: "baseline" }}>
-                <span style={{ color: p.status === "kept" ? CL.grn : p.status === "broken" ? CL.red : CL.org, fontWeight: 800 }}>{p.status === "kept" ? "✓" : p.status === "broken" ? "✗" : "○"}</span>
-                <span>{p.text}{p.status === "pending" ? <span style={{ color: CL.td }}> · answer a {SECTOR_NAME[p.sector] ? SECTOR_NAME[p.sector].toLowerCase() : p.sector} need in {zoneName(p.zone)}, or lift it statewide, by the {turn > 4 ? "end of your tenure" : "re-election"}</span> : null}</span>
-              </div>)}
-            </div>}
+            {(() => {
+              const st0 = story(), FGp = FLAGSHIP[setup?.agenda], sdS = sloganDef(setup?.slogan), term = turn > 4 ? 2 : 1;
+              const lastSl = logs.find(l => /^📣/.test(l.tx) && /holds|Critics throw/.test(l.tx));
+              const rows = [];
+              if (FGp) { const f0 = st0.flagship; rows.push({ icon: "🚀", text: "Flagship: " + FGp.nm, st: f0 && f0.targets ? (f0.met === f0.targets ? "kept" : "behind") : "open", note: f0 && f0.targets ? f0.met + " of " + f0.targets + " yearly targets met" : "first yearly target comes up at the end of the year" }); }
+              if (sdS) rows.push({ icon: "📣", text: "Slogan: " + sdS.promise, st: lastSl ? (/holds/.test(lastSl.tx) ? "kept" : "broken") : "open", note: "checked once a year" });
+              pr.filter(p => p.term === term).forEach(p => rows.push({ icon: "📍", text: p.text, st: p.status === "pending" ? "open" : p.status, note: p.status === "pending" ? "answer a " + (SECTOR_NAME[p.sector] || p.sector).toLowerCase() + " need in " + zoneName(p.zone) + " or lift it statewide by the " + (term === 2 ? "end of your tenure" : "re-election") : null }));
+              if (!rows.length) return null;
+              const tone = { kept: [CL.grn, "✓ Kept"], broken: [CL.red, "✗ Broken"], behind: [CL.org, "Behind"], open: [CL.td, "Open"] };
+              return <div style={{ marginTop: 12, borderTop: "1px solid " + CL.bdr, paddingTop: 10 }}>
+                <b style={{ fontSize: fz.m, color: CL.txt }}>Your promises</b>
+                {rows.map((r0, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 8, alignItems: "baseline", padding: "6px 0", fontSize: fz.s }}>
+                  <span>{r0.icon}</span>
+                  <span style={{ color: CL.txt, minWidth: 0 }}>{r0.text}{r0.note ? <span style={{ display: "block", color: CL.td }}>{r0.note}</span> : null}</span>
+                  <span style={{ color: tone[r0.st][0], fontWeight: 800, whiteSpace: "nowrap" }}>{tone[r0.st][1]}</span>
+                </div>)}
+              </div>;
+            })()}
           </div>;
         })()}
         {nav === "gov" && !needSetup && activeNeeds.length > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
@@ -5907,6 +6143,40 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
             onPick={(o) => { try { o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
+        </OL>
+
+        <OL show={phase === "succession_race" && !!stc.race}>
+          {stc.race && (() => {
+            const R = stc.race, so = stc.successor || { name: "Your candidate" }, opp = raceOpp(), atk = raceAttacks()[Math.min(R.round, 2)];
+            const fz = TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };
+            const done = R.round >= 3;
+            return <div>
+              <SceneArt bg="rally" who={done ? null : "rival"} h={TALL() ? 160 : 220} />
+              <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 12px" }}>
+                {[0, 1, 2].map(w => <div key={w} style={{ flex: 1, height: 8, borderRadius: 4, background: w < R.round ? CL.grn : w === R.round && !done ? CL.gold : CL.bdr }} />)}
+                <span style={{ fontSize: fz.s, color: CL.td, fontWeight: 800, whiteSpace: "nowrap" }}>{done ? "Result" : "Round " + (R.round + 1) + " of 3"}</span>
+              </div>
+              <div style={{ background: "#12301f", color: "#fff", borderRadius: 20, padding: TALL() ? "12px 14px" : "16px 22px", marginBottom: 12 }}>
+                <div style={{ fontSize: fz.s, opacity: .8 }}>Race to succeed you</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontFamily: F.d, fontWeight: 700, fontSize: fz.l }}><span style={{ color: "#7ee2a8" }}>{Math.round(done ? R.final : R.poll)}%</span><span style={{ color: "#ff9b8f" }}>{Math.round(100 - (done ? R.final : R.poll))}%</span></div>
+                <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", margin: "6px 0", background: "#c0392b" }}><div style={{ width: (done ? R.final : R.poll) + "%", background: "#2fa866", transition: "width .6s" }} /></div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: fz.s }}><span>{so.name}</span><span>{opp} (opposition)</span></div>
+              </div>
+              {!done && atk && R.hit && <div className="sop-fade-in" style={{ background: CL.red, color: "#fff", borderRadius: 14, padding: "10px 14px", fontSize: fz.m, fontWeight: 700, marginBottom: 12 }}>{atk.t}: your candidate −{atk.hit}</div>}
+              {!done && <div style={{ display: "grid", gap: 10 }}>
+                <b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt }}>How do you help?</b>
+                {raceMoves().map(m => <Cd key={m.l} onClick={() => racePick(m)} style={{ padding: TALL() ? "12px 14px" : "16px 18px", textAlign: "left" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><b style={{ fontSize: fz.m, color: CL.txt }}>{m.l}</b><span style={{ fontSize: fz.s, fontWeight: 800, color: m.d > 0 ? CL.grn : m.d < 0 ? CL.red : CL.td }}>{m.d > 0 ? "+" + m.d : m.d}</span></div>
+                  <div style={{ fontSize: fz.s, color: CL.td }}>{m.note}</div>
+                </Cd>)}
+              </div>}
+              {done && <Cd style={{ textAlign: "center" }}>
+                <h3 style={{ fontFamily: F.d, fontSize: fz.l, color: stc.raceWon ? CL.grn : CL.red, margin: "0 0 8px" }}>{stc.raceWon ? so.name + " wins" : opp + " wins"}</h3>
+                <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 14 }}>{R.log.map(x => x.move + " (" + (x.d > 0 ? "+" : "") + x.d + ")").join(" · ")}</div>
+                <Bt onClick={() => setGEnd("complete")}>See how it ends →</Bt>
+              </Cd>}
+            </div>;
+          })()}
         </OL>
 
         <OL show={phase === "dilemma" && !!curD}>
@@ -7014,7 +7284,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 { l: "🗣️ 'Fake News!'", days: 1, d: "Deny everything.", pts: 2, oppPts: 2, sk: { media: -6 }, target: "all", opp: 3 },
                 { l: "🔄 Pivot to Projects", days: 2, d: "Talk roads, not corruption.", pts: 3, oppPts: 1, sk: { youth: -3 }, target: reBase.id, your: 3 },
               ]},
-              { t: "🤝 Major Endorsement for Opponent", d: "A former governor endorses " + oppName + " and claims your base is collapsing.", hit: { l: "endorsement", target: reBase.id, your: 5, opp: 4, turnout: 2 }, opts: [
+              { t: "🤝 Major Endorsement for Opponent", d: (stc.gfOpp ? "Your former godfather, " + (cast?.godfather?.name || "the godfather") + ", stands on " + oppName + "'s platform with his whole network." : "A former governor endorses " + oppName + " and claims your base is collapsing."), hit: { l: "endorsement", target: reBase.id, your: stc.gfOpp ? 8 : 5, opp: stc.gfOpp ? 6 : 4, turnout: 2 }, opts: [
                 { l: "📞 Counter-Endorsements", days: 3, dc: 0.1, d: "Call everyone. Secure your own.", pts: 4, oppPts: -2, sk: { party: 5 }, target: "all", your: 2, opp: -2 },
                 { l: "💪 People Are My Endorsement", days: 2, d: "Populist message in " + reSwing.key + ".", pts: 5, oppPts: 0, sk: { youth: 8, media: 4 }, target: reSwing.id, your: 5 },
                 { l: "💰 Offer Better Deals", days: 2, dc: 0.15, d: "Match their offers.", pts: 3, oppPts: -3, sk: { party: 6 }, target: reWeak.id, your: 4, opp: -3, corAdd: .02 },

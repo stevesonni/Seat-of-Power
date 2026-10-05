@@ -198,3 +198,28 @@ Eight systems, built in `game/seat-of-power.jsx`. The data sits after `OFFENCE` 
 - **Civic review:** no longer pops up over the end-of-half-year screen. It opens from a "Full half-year review" button there.
 - **Less text:** a `More` component shows the first sentence of long texts with a "More ▾" toggle. It is used on decision cards, outcome narratives and the court, shock, federal, media, investor and House-bill descriptions.
 - **Cabinet zones:** the first cabinet is balanced across the three zones. When you fire someone you choose the replacement: a loyalist from your home zone (loyalty 80, may upset the balance) or someone from the short-changed zone, which restores it. `SOP_confirm` takes an optional third argument for the "no" label.
+
+## Fewer moments, one promise list, LG politics, a living godfather, a guided start, the successor's race
+- **Event cap (`capQueue`):** at most 4 decisions a half-year (3 on easy, 5 on hard, 2 in the first half-year), ranked by urgency.
+  - Courts, NIC rulings, succession and the House always go through. Then FAAC, the flagship, LG and godfather stories, state crises, shocks, the godfather, dilemmas, federal events, trips, bills, investors, media, module cards and invitations.
+  - Whatever doesn't fit is logged as handled by your chief of staff. A dropped state crisis or one-off story goes back into the pool.
+  - Statecraft cards are queued as `sc#<key>`.
+- **One promise list:** the Desk's "Your promises" shows the flagship (yearly targets met), the slogan promise (last yearly check) and this term's three zone promises, each marked Kept, Behind, Broken or Open.
+- **Council elections (half-year 2):**
+  - Free and fair: approval +3, and the opposition takes councils in zones that lean against you (party −2 and zone −3 each).
+  - Rigged sweep: approval −3, corruption +3%, party +4, Wikipedia Controversies.
+  - Caretaker committees: approval −2, party +3, Controversies.
+- **LG autonomy (from half-year 3):** Abuja enforces the 2024 Supreme Court judgment.
+  - Comply: FAAC −8%, approval +2, corruption −2%. Caretaker committees must give way to elections.
+  - Make the chairmen remit the money: corruption +4%. Opposition-run councils go to the press, and it is logged in the ledger.
+  - Go to court: a 1 in 4 chance, legal costs.
+- **A living godfather (`stc.gf`):**
+  - **Rise:** nominated as a federal minister when your relationship is 60 or more. Lobby, stay out, or brief against him, with a 40% chance he finds out and becomes an enemy.
+  - **Fall-out:** when the relationship drops to 30 or below. Settle for ₦1B, expose his contracts (approval +3, 3 House members lost), or poach his ward leaders.
+  - **Defection:** once he is an enemy. He joins the opposition with 3 members, and his demands stop. At the re-election the opposition's endorsement attack hits harder, with him on their platform.
+  - **Death:** 15% a half-year from half-year 5. Inherit his network, back his son as the new godfather, or let it scatter.
+- **Guided first half-year:** an adviser checklist on the Desk ticks itself off: set up the government, pass the budget, answer one need, end the half-year. It has a "Skip guide" button. In the first half-year there is no FAAC shortfall and at most 2 decisions.
+- **Successor's race (`succession_race`):** after the last half-year, a three-round race against an opposition candidate.
+  - The starting poll comes from the successor's electability, your approval and party, broken promises, arrears and a defected godfather.
+  - Each round opens with an attack on your record. You then campaign side by side (helps only if you are popular), bankroll the campaign (debt and corruption), deliver the party machine, commission projects (helps only with finished work to show), or stay out (they will owe you less).
+  - The result feeds the succession outcome: betrayal odds and EFCC exposure.
