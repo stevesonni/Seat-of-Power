@@ -914,6 +914,60 @@ const streetVoices = (ctx) => {
   return { tag, lines: v.slice(0, 3) };
 };
 
+
+// ── Raising money without borrowing ──
+// Real measures Nigerian states have used. Each pays over time on a schedule
+// (k = half-years from adoption): revIGR is money a half-year (new revenue or
+// savings), taxEff multiplies taxes collected, debt pays down borrowing.
+const REVENUE_MEASURES = [
+  { id: "irs", icon: "🧾", t: "Make the revenue service autonomous and digital",
+    what: "Tax IDs, e-payment, no cash at the counter, and collectors paid on results. Lagos multiplied its own revenue this way.",
+    cost: "IGR −₦0.4B this half-year; party −2 (collectors lose their cut)",
+    gain: (c) => "Taxes collected +30% over three half-years (about +₦" + (Math.max(1.5, c.s.igr || 3) * .3).toFixed(1) + "B a half-year)",
+    adopt: () => ({ fx: { pStab: -2 }, sched: [{ k: 0, revIGR: -.4 }, { k: 1, revIGR: .4, taxEff: .1 }, { k: 2, taxEff: .1 }, { k: 3, taxEff: .1 }], log: "made the revenue service autonomous and digital", wiki: "Made the state revenue service autonomous and moved tax payments online." }) },
+  { id: "payroll", icon: "🪪", t: "Biometric payroll audit to remove ghost workers",
+    what: "Every worker verified with BVN and fingerprints. States have found thousands of names that collect salaries but do not exist.",
+    cost: "Unions protest (approval −1); a risk that real workers are wrongly removed",
+    gain: (c) => "Saves about ₦" + Math.max(.3, Math.round((c.s.faac || 10) * .55 * (.03 + c.s.cor * .1) * 10) / 10) + "B every half-year (more where corruption is high)",
+    adopt: (c) => { const g = Math.max(.3, Math.round((c.s.faac || 10) * .55 * (.03 + c.s.cor * .1) * 10) / 10); return { fx: { app: -1, cor: -.02 }, sched: [{ k: 0, revIGR: g }], log: "ran a biometric payroll audit that removed ghost workers, saving ₦" + g + "B a half-year", wiki: "A biometric payroll audit removed ghost workers from the state's wage bill.", risk: { p: .3, fx: { app: -2 }, log: "The payroll audit wrongly struck off hundreds of real teachers. The unions are marching." } }; } },
+  { id: "tsa", icon: "🏦", t: "Treasury Single Account for every ministry",
+    what: "Close the hundreds of ministry and agency accounts in commercial banks and sweep idle balances into one state account.",
+    cost: "Ministries and their bankers resist (party −2)",
+    gain: (c) => "One-off: about ₦" + Math.round(((c.s.faac || 10) * .1 + c.s.cor * 2) * 10) / 10 + "B of idle money found, used to pay down debt",
+    adopt: (c) => { const f = Math.round(((c.s.faac || 10) * .1 + c.s.cor * 2) * 10) / 10; return { fx: { pStab: -2, cor: -.03 }, sched: [{ k: 0, debt: -f }], log: "set up a Treasury Single Account and swept ₦" + f + "B of idle balances into paying down debt", wiki: "Introduced a Treasury Single Account, recovering idle funds held across ministries." }; } },
+  { id: "land", icon: "🗺️", t: "Digital land registry and C of O drive",
+    what: "Map every plot with GIS and issue Certificates of Occupancy fast. Kaduna's KADGIS turned land into steady ground rent and fees.",
+    cost: "IGR −₦0.5B this half-year to set it up",
+    gain: () => "+₦1.5B a half-year within two half-years; owners get secure titles (approval +1)",
+    adopt: () => ({ fx: { app: 1 }, sched: [{ k: 0, revIGR: -.5 }, { k: 1, revIGR: 1 }, { k: 2, revIGR: 1 }], log: "launched a digital land registry and Certificate of Occupancy drive", wiki: "Launched a GIS land registry and mass Certificate of Occupancy regularisation." }) },
+  { id: "levy", icon: "🧺", t: "One market levy, no touts",
+    what: "Replace the dozen tickets traders pay to touts and councils with one levy, paid by phone, straight to the state.",
+    cost: "Touts are party foot soldiers (party −3); they may fight back",
+    gain: () => "+₦0.6B a half-year, and traders pay less overall (approval +2)",
+    adopt: () => ({ fx: { app: 2, pStab: -3 }, sched: [{ k: 0, revIGR: .6 }], log: "replaced multiple market levies with one levy and drove out the touts", risk: { p: .25, fx: { app: -1, sec: -.01 }, log: "Touts clashed with revenue officers at the main market." } }) },
+  { id: "property", icon: "🏘️", t: "Land Use Charge on high-value property",
+    what: "An annual charge on valuable houses and commercial property. Fair if the register is good; resented if it is guesswork.",
+    cost: "The middle class and landlords grumble (approval −2)",
+    gain: (c) => c.stc.rev && c.stc.rev.land ? "+₦1.2B a half-year (your land registry makes it accurate)" : "+₦0.5B a half-year (+₦1.2B if you build the land registry first)",
+    adopt: (c) => { const g = c.stc.rev && c.stc.rev.land ? 1.2 : .5; return { fx: { app: -2 }, sched: [{ k: 1, revIGR: g }], log: "introduced a Land Use Charge on high-value property (₦" + g + "B a half-year from next half-year)" }; } },
+  { id: "refunds", icon: "📑", t: "Claim federal road refunds and fiscal-transparency grants",
+    what: "Bill Abuja for federal roads the state repaired, and qualify for World Bank grants that reward published budgets and audited accounts.",
+    cost: "Your books must be clean: corruption under 45%",
+    req: (c) => c.s.cor >= .45 ? "Grants need clean books: corruption must be under 45% (now " + Math.round(c.s.cor * 100) + "%)." : null,
+    gain: () => "One-off ₦2B next half-year, used to pay down debt (approval +1)",
+    adopt: () => ({ fx: { app: 1 }, sched: [{ k: 1, debt: -2 }], log: "filed federal road refund claims and qualified for fiscal-transparency grants", wiki: "Qualified for performance grants for fiscal transparency and recovered federal road refunds." }) },
+  { id: "secvote", icon: "✂️", t: "Cut the security vote and half the political aides",
+    what: "Publish the governor's security vote and cut it, and lay off the special assistants with no real job.",
+    cost: "Hundreds of party loyalists lose their stipends (party −4)",
+    gain: () => "Saves ₦0.7B a half-year; the public likes it (approval +2)",
+    adopt: () => ({ fx: { pStab: -4, app: 2, cor: -.02 }, sched: [{ k: 0, revIGR: .7 }], log: "cut the security vote and laid off half the political aides", wiki: "Published and cut the governor's security vote and reduced political appointees." }) },
+  { id: "concession", icon: "🏨", t: "Concession dead state assets to private operators",
+    what: "The state hotel, farm settlements and a shut-down factory, leased to operators who must invest and hire.",
+    cost: "Critics call it selling the family silver (approval −1); insiders may circle",
+    gain: () => "One-off ₦1.2B against debt, then +₦0.3B a half-year in lease fees",
+    adopt: () => ({ fx: { app: -1, cor: .01 }, sched: [{ k: 0, debt: -1.2 }, { k: 1, revIGR: .3 }], log: "concessioned dead state assets to private operators", risk: { p: .3, fx: { cor: .02, app: -1 }, log: "The hotel concession went to a company linked to your chief of staff. The press noticed." } }) },
+];
+
 // The end-of-term title.
 const reportTitle = (r) =>
   r.gEnd === "impeached" ? "Impeached" :
@@ -3391,6 +3445,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // events are built; its decisions arrive as "sc" cards.
   const [stc, setStc] = useState(() => ld?.stc || { lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
   const [scCards, setScCards] = useState([]);
+  const [revOpen, setRevOpen] = useState(false);
   const faacSwingRef = React.useRef(0);
   const scPending = React.useRef([]);
   const scLast = React.useRef(null);
@@ -3453,6 +3508,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const scHouse = () => stc.house || { seats: houseSeats(sd.pop || 5), loyal: Math.round(houseSeats(sd.pop || 5) * .62) };
 
+  // Revenue reforms: adopt now, pay on a schedule.
+  const applyRev = (p, list) => { const n = { ...p }; list.forEach(x => { if (x.revIGR) n.revIGR = (n.revIGR || 0) + x.revIGR; if (x.taxEff) n.taxEff = (n.taxEff || 1) + x.taxEff; if (x.debt) n.debt = Math.max(0, (n.debt || 0) + x.debt); }); return n; };
+  const revThisTurn = () => (stc.revCount && stc.revCount.t === turn ? stc.revCount.n : 0);
+  const adoptRevenue = (m) => {
+    const c = { s, stc, turn };
+    if ((stc.rev || {})[m.id] != null || revThisTurn() >= 2 || (m.req && m.req(c))) return;
+    const a = m.adopt(c);
+    scFx(a.fx || {});
+    const now = (a.sched || []).filter(x => x.k === 0), later = (a.sched || []).filter(x => x.k > 0).map(x => ({ ...x, t: turn + x.k, id: m.id }));
+    if (now.length) setS(p => applyRev(p, now));
+    setStc(p => ({ ...p, rev: { ...(p.rev || {}), [m.id]: turn }, revSched: [...(p.revSched || []), ...later], revCount: { t: turn, n: (p.revCount && p.revCount.t === turn ? p.revCount.n : 0) + 1 } }));
+    addL(m.icon + " You " + a.log + ".", "policy");
+    if (a.wiki) scWiki("Governorship", a.wiki);
+    if (a.risk && Math.random() < a.risk.p) { scFx(a.risk.fx); addL("⚠️ " + a.risk.log, "crisis"); }
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "revenue_reform", actor: "governor", gravity: 1, evidence: 3, decision: m.t, note: a.log }); } catch (e) {}
+  };
+
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;
     const lv = setup?.level || "medium";
@@ -3461,6 +3533,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     let dApp = 0; const dZone = {}; const dStat = {};
     const addZ = (z, v) => { dZone[z] = (dZone[z] || 0) + v; };
     const r = rng(turn * 4241 + state.length * 17);
+
+    // Revenue reforms that come due this half-year.
+    const due = (next.revSched || []).filter(x => x.t <= turn);
+    if (due.length) {
+      setS(p => applyRev(p, due));
+      const add = due.reduce((a, x) => a + (x.revIGR || 0), 0), pay = -due.reduce((a, x) => a + (x.debt || 0), 0), eff = due.reduce((a, x) => a + (x.taxEff || 0), 0);
+      notes.push(["💰 Revenue reforms paying off: " + [add ? "+₦" + add.toFixed(1) + "B a half-year" : null, eff ? "taxes collected +" + Math.round(eff * 100) + "%" : null, pay ? "₦" + pay.toFixed(1) + "B of debt repaid" : null].filter(Boolean).join(", ") + ".", "success"]);
+      next.revSched = (next.revSched || []).filter(x => x.t > turn);
+    }
 
     // House of Assembly: members drift with your party grip and your standing.
     if (!next.house) { const seats = houseSeats(sd.pop || 5); next.house = { seats, loyal: Math.round(seats * Math.min(.8, .5 + (s.pStab - 50) / 200 + .08)) }; }
@@ -3528,7 +3609,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       cards.push({ key: "faac", kicker: "FAAC day", color: CL.gold, art: ["abuja-federal-office", "permanent-secretary"],
         title: f < .95 ? "The allocation came in at " + pct + "%" : "The allocation is in. Workers are still owed",
         brief: f < .95 ? (sw < -.05 ? "Oil prices fell and FAAC shrank with them. " : "Abuja deducted old loans at source. ") + "You are ₦" + short + "B short of this half-year's wage bill." + (A ? " Workers are already owed " + A + " months." : "") : "FAAC came in at " + pct + "% of budget. Workers are still owed " + A + " month" + (A === 1 ? "" : "s") + " from earlier.",
-        stakes: "At 3 months owed the NLC issues an ultimatum. At 5 it shuts the state down.", options: opts });
+        stakes: "At 3 months owed the NLC issues an ultimatum. At 5 it shuts the state down." + (REVENUE_MEASURES.some(m => !(next.rev || {})[m.id]) ? " Revenue reforms on the Desk can close gaps like this for good." : ""), options: opts });
     } else notes.push(["📦 FAAC came in at " + pct + "% of budget. Salaries paid on the 25th.", "info"]);
 
     // Promises: three per term, one per senatorial zone.
@@ -4287,7 +4368,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
       // IGR is now derived from economic output (with a floor of 1.5B so states don't instantly bankrupt),
       // plus the taxes the firms you brought in keep paying every half-year.
-      const newIGR = Math.max(1.5, computedIGR) + (n.invIGR || 0);
+      const newIGR = Math.max(1.5, computedIGR * (n.taxEff || 1)) + (n.invIGR || 0) + (n.revIGR || 0);
       // Blend: 70% computed from economy, 30% from previous (smoothing)
       n.igr = n.igr * .3 + newIGR * .7;
       // People in work at the firms and projects you brought in keep lifting approval.
@@ -5845,7 +5926,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const rows = [];
               if (FGp) { const f0 = st0.flagship; rows.push({ icon: "🚀", text: "Flagship: " + FGp.nm, st: f0 && f0.targets ? (f0.met === f0.targets ? "kept" : "behind") : "open", note: f0 && f0.targets ? f0.met + " of " + f0.targets + " yearly targets met" : "first yearly target comes up at the end of the year" }); }
               if (sdS) rows.push({ icon: "📣", text: "Slogan: " + sdS.promise, st: lastSl ? (/holds/.test(lastSl.tx) ? "kept" : "broken") : "open", note: "checked once a year" });
-              pr.filter(p => p.term === term).forEach(p => rows.push({ icon: "📍", text: p.text, st: p.status === "pending" ? "open" : p.status, note: p.status === "pending" ? "answer a " + (SECTOR_NAME[p.sector] || p.sector).toLowerCase() + " need in " + zoneName(p.zone) + " or lift it statewide by the " + (term === 2 ? "end of your tenure" : "re-election") : null }));
+              pr.filter(p => p.term === term).forEach(p => rows.push({ icon: "📍", text: p.text, st: p.status === "pending" ? "open" : p.status, note: p.status === "pending" ? "answer " + (/^[aeiou]/i.test(SECTOR_NAME[p.sector] || p.sector) ? "an " : "a ") + (SECTOR_NAME[p.sector] || p.sector).toLowerCase() + " need in " + zoneName(p.zone) + " or lift it statewide by the " + (term === 2 ? "end of your tenure" : "re-election") : null }));
               if (!rows.length) return null;
               const tone = { kept: [CL.grn, "✓ Kept"], broken: [CL.red, "✗ Broken"], behind: [CL.org, "Behind"], open: [CL.td, "Open"] };
               return <div style={{ marginTop: 12, borderTop: "1px solid " + CL.bdr, paddingTop: 10 }}>
@@ -5857,6 +5938,35 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>)}
               </div>;
             })()}
+          </div>;
+        })()}
+        {nav === "gov" && !needSetup && (() => {
+          const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
+          const used = stc.rev || {}, left = 2 - revThisTurn(), c = { s, stc, turn };
+          const done = REVENUE_MEASURES.filter(m => used[m.id] != null).length;
+          return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: CL.card, border: "1px solid " + CL.gold + "55", borderRadius: 18, overflow: "hidden" }}>
+            <button onClick={() => setRevOpen(o => !o)} aria-expanded={revOpen} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: TALL() ? "12px 14px" : "16px 20px", cursor: "pointer", textAlign: "left", color: CL.txt }}>
+              <span><b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42) }}>💰 Raise money without borrowing</b>
+                <span style={{ display: "block", fontSize: fz.s, color: CL.td }}>Own revenue ₦{(s.igr || 0).toFixed(1)}B · FAAC ₦{(s.faac || 0).toFixed(1)}B a half-year · {done} of {REVENUE_MEASURES.length} reforms done</span></span>
+              <span style={{ color: CL.td, fontSize: fz.s }}>{revOpen ? "▲" : "▼"}</span>
+            </button>
+            {revOpen && <div style={{ padding: TALL() ? "0 14px 14px" : "0 20px 18px", display: "grid", gap: 10 }}>
+              <div style={{ fontSize: fz.s, color: CL.td }}>Up to two reforms a half-year: the civil service cannot absorb more. {left > 0 ? left + " left this half-year." : "None left this half-year."}</div>
+              {REVENUE_MEASURES.map(m => {
+                const on = used[m.id] != null, why = !on && m.req ? m.req(c) : null, can = !on && !why && left > 0;
+                return <div key={m.id} style={{ border: "1px solid " + (on ? CL.grn + "55" : CL.bdr), borderRadius: 14, padding: TALL() ? "10px 12px" : "14px 16px", background: on ? CL.grn + "08" : "transparent" }}>
+                  <div style={{ display: "flex", gap: 10, alignItems: "baseline", justifyContent: "space-between" }}>
+                    <b style={{ fontSize: fz.m, color: CL.txt }}>{m.icon} {m.t}</b>
+                    {on ? <span style={{ color: CL.grn, fontWeight: 800, fontSize: fz.s, whiteSpace: "nowrap" }}>✓ Done</span>
+                      : <button disabled={!can} onClick={() => adoptRevenue(m)} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: can ? CL.grn : CL.bdr, color: can ? "#fff" : CL.td, padding: "8px 16px", minHeight: 40, fontWeight: 800, fontSize: fz.s, cursor: can ? "pointer" : "not-allowed" }}>Adopt</button>}
+                  </div>
+                  <More text={m.what} max={90} style={{ fontSize: fz.s, color: CL.tm, margin: "4px 0" }} />
+                  <div style={{ fontSize: fz.s, color: CL.grn }}>＋ {m.gain(c)}</div>
+                  <div style={{ fontSize: fz.s, color: CL.org }}>− {m.cost}</div>
+                  {why && <div style={{ fontSize: fz.s, color: CL.red }}>{why}</div>}
+                </div>;
+              })}
+            </div>}
           </div>;
         })()}
         {nav === "gov" && !needSetup && activeNeeds.length > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>

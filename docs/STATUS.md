@@ -230,3 +230,25 @@ Eight systems, built in `game/seat-of-power.jsx`. The data sits after `OFFENCE` 
   - **First-election tribunal:** the loan called `makeGfEducationMandate` and `addGfMandate`, which only exist inside the campaign screen, so clicking it threw. Both are now defined in the tribunal step. The loan shows whenever the war chest is below ₦3.5B, the cost of the top legal team (it was below ₦1.2B), up to ₦6B of debt. A second loan asks for contracts instead of another commissioner.
   - **Re-election tribunal:** the loan read `gfDebt` and `setGfDebt`, which don't exist in the game screen, so it crashed when funds fell below ₦2B. It now uses `campGfDebt`, shows below ₦3.5B, and is refused if the godfather is dead or has joined the opposition. Legal teams you can't afford are blocked with a message instead of being bought on credit.
 - **Check:** ESLint `no-undef` over the game and modules finds nothing undefined apart from the globals `TS`, `ReactDOM` and `File`.
+
+## Raising money without borrowing
+A collapsible Desk panel, "💰 Raise money without borrowing" (`REVENUE_MEASURES`, `adoptRevenue`), offers nine reforms. You can adopt up to two a half-year, and each one only once. Payoffs follow a schedule (`stc.revSched`, applied in `statecraftTurn`) through three new state fields:
+- `s.revIGR`: new revenue or savings each half-year.
+- `s.taxEff`: a multiplier on taxes collected from the economy.
+- `s.debt`: one-off repayments.
+
+The IGR formula is now `max(1.5, computed × taxEff) + invIGR + revIGR`.
+
+| Reform | Gain | Price |
+|---|---|---|
+| Autonomous digital revenue service | Taxes collected +10% a half-year for 3 half-years | IGR −0.4 now, party −2 |
+| Biometric payroll audit | Saves 3–8% of the wage bill, more where corruption is high | Approval −1, corruption −2%; 30% risk of wrongful removals |
+| Treasury Single Account | One-off of 10% of FAAC plus a corruption bonus against debt | Party −2, corruption −3% |
+| Digital land registry and C of O drive | +1.5 a half-year within two half-years | −0.5 now; approval +1 |
+| One market levy, no touts | +0.6 | Approval +2, party −3; 25% risk of a clash |
+| Land Use Charge | +0.5, or +1.2 with the land registry | Approval −2 |
+| Federal road refunds and fiscal-transparency grants | ₦2B against debt next half-year | Needs corruption under 45%; approval +1 |
+| Cut the security vote and political aides | +0.7 | Party −4, approval +2 |
+| Concession dead state assets | ₦1.2B against debt, then +0.3 | Approval −1; 30% risk of an insider deal |
+
+The FAAC card points to the panel when reforms remain.
