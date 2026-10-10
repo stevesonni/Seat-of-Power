@@ -971,6 +971,193 @@ const REVENUE_MEASURES = [
     adopt: () => ({ fx: { app: -1, cor: .01 }, sched: [{ k: 0, debt: -1.2 }, { k: 1, revIGR: .3 }], log: "concessioned dead state assets to private operators", risk: { p: .3, fx: { cor: .02, app: -1 }, log: "The hotel concession went to a company linked to your chief of staff. The press noticed." } }) },
 ];
 
+
+// ── The compound: a landscape hub map of the State House district ──
+// Base art is 2560×1440. Its roads run straight across and down, meeting at a
+// central roundabout in front of Government House. Points below were plotted
+// on a 2000×1125 preview of the art (×1.28 gives base pixels). Every building
+// has a parking bay on the road in front of it; the motorcade drives from bay
+// to bay along the road graph (docs/compound).
+const HUB_W = 2560, HUB_H = 1440;
+const hubP = (x, y) => [x * 1.28, y * 1.28];
+const HUB_NODES = {
+  n1: hubP(245, 232), n2: hubP(700, 232), n3: hubP(1250, 232), n4: hubP(1745, 232),
+  n5: hubP(700, 470), n6: hubP(1250, 470),
+  rW: hubP(865, 580), rN: hubP(990, 465), rE: hubP(1120, 580), rS: hubP(990, 690),
+  rNW: hubP(902, 497), rNE: hubP(1078, 497), rSE: hubP(1078, 663), rSW: hubP(902, 663), // the roundabout's curve
+  n7: hubP(140, 590), n8: hubP(1870, 590), n9: hubP(990, 870),
+};
+const HUB_ROADS = [["n1", "n2"], ["n2", "n3"], ["n3", "n4"], ["n2", "n5"], ["n3", "n6"], ["n5", "rW"], ["n6", "rE"],
+  ["rW", "rNW"], ["rNW", "rN"], ["rN", "rNE"], ["rNE", "rE"], ["rE", "rSE"], ["rSE", "rS"], ["rS", "rSW"], ["rSW", "rW"], ["rW", "n7"], ["rE", "n8"], ["rS", "n9"], ["n1", "n7"], ["n4", "n8"]];
+// plot: the building's plot on the preview art [left, top, right, bottom].
+// ar: the sprite's height / width. up: how far its roof may rise above the
+// plot (into the hedge behind it, never into the next plot). sink: how far its
+// front steps may come forward onto the pavement. bay: where the motorcade
+// parks; on: the road it parks on (one node = a spur). hubFit turns these into
+// c (bottom-centre) and w (width), both in base pixels.
+const hubFit = (b) => {
+  const [x0, y0, x1, y1] = b.plot, bottom = y1 + (b.sink ?? 15);
+  const w = Math.min((x1 - x0) * .92, (bottom - y0 + b.up) / b.ar);
+  return { ...b, c: hubP((x0 + x1) / 2, bottom), w: w * 1.28 };
+};
+const HUB_BUILDINGS = [
+  { id: "assembly", img: "b02-house-of-assembly", name: "House of Assembly", plot: [815, 75, 1175, 195], ar: .757, up: 70, bay: hubP(995, 232), on: ["n2", "n3"] },
+  { id: "inec", img: "b09-electoral-commission", name: "Electoral Commission", plot: [405, 85, 680, 195], ar: .703, up: 75, bay: hubP(535, 232), on: ["n1", "n2"] },
+  { id: "party", img: "b07-party-secretariat", name: "Party Secretariat", plot: [1335, 85, 1595, 195], ar: .814, up: 75, bay: hubP(1465, 232), on: ["n3", "n4"] },
+  { id: "secretariat", img: "b08-state-secretariat", name: "State Secretariat", plot: [320, 270, 610, 385], ar: .805, up: 60, bay: hubP(700, 330), on: ["n2", "n5"] },
+  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance", plot: [1385, 270, 1650, 385], ar: 1.045, up: 60, bay: hubP(1250, 330), on: ["n3", "n6"] },
+  { id: "gh", img: "b01-government-house", name: "Government House", plot: [820, 270, 1175, 450], ar: .664, up: 60, sink: 5, bay: hubP(1092, 478), on: ["rNE"] },
+  { id: "court", img: "b04-high-court", name: "High Court", plot: [260, 425, 600, 540], ar: .778, up: 35, sink: 25, bay: hubP(430, 590), on: ["n7", "rW"] },
+  { id: "police", img: "b11-police-hq", name: "Police HQ", plot: [1395, 425, 1715, 540], ar: .8, up: 35, sink: 25, bay: hubP(1555, 590), on: ["rE", "n8"] },
+  { id: "palace", img: "palace", name: "The Palace", plot: [140, 670, 455, 825], ar: .78, up: 90, bay: hubP(298, 600), on: ["n7", "rW"] },
+  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office", plot: [555, 670, 860, 825], ar: .775, up: 90, bay: hubP(708, 600), on: ["n7", "rW"] },
+  { id: "projects", img: "o-scaffold", name: "Project Sites", overlay: true, plot: [1130, 670, 1440, 825], ar: .852, up: 40, bay: hubP(1285, 600), on: ["rE", "n8"] },
+  { id: "market", img: "b12-market", name: "Central Market", plot: [1540, 670, 1840, 825], ar: .77, up: 90, bay: hubP(1690, 600), on: ["rE", "n8"] },
+].map(hubFit);
+const hubDist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+// The road graph with every bay spliced into the road it sits on.
+const HUB_GRAPH = (() => {
+  const pos = { ...HUB_NODES }, adj = {};
+  const link = (a, b) => { const L = hubDist(pos[a], pos[b]); (adj[a] = adj[a] || []).push([b, L]); (adj[b] = adj[b] || []).push([a, L]); };
+  HUB_BUILDINGS.forEach(b => { pos["@" + b.id] = b.bay; });
+  HUB_ROADS.forEach(([a, b]) => {
+    const on = HUB_BUILDINGS.filter(x => x.on.length === 2 && ((x.on[0] === a && x.on[1] === b) || (x.on[0] === b && x.on[1] === a)))
+      .map(x => "@" + x.id).sort((p, q) => hubDist(pos[a], pos[p]) - hubDist(pos[a], pos[q]));
+    const chain = [a, ...on, b];
+    for (let n = 1; n < chain.length; n++) link(chain[n - 1], chain[n]);
+  });
+  HUB_BUILDINGS.forEach(b => { if (b.on.length === 1) link("@" + b.id, b.on[0]); });
+  return { pos, adj };
+})();
+// The shortest drive between two buildings' bays, as a list of base-pixel points.
+const hubRoute = (from, to) => {
+  if (from === to) return [];
+  const { pos, adj } = HUB_GRAPH, src = "@" + from, dst = "@" + to;
+  const dist = { [src]: 0 }, prev = {}, done = new Set();
+  while (true) {
+    let u = null;
+    for (const k in dist) if (!done.has(k) && (u === null || dist[k] < dist[u])) u = k;
+    if (u === null || u === dst) break;
+    done.add(u);
+    (adj[u] || []).forEach(([v, L]) => { if (dist[v] === undefined || dist[u] + L < dist[v]) { dist[v] = dist[u] + L; prev[v] = u; } });
+  }
+  if (dist[dst] === undefined) return [];
+  const path = [dst]; while (path[0] !== src) path.unshift(prev[path[0]]);
+  return path.map(k => pos[k]);
+};
+// The convoy art is drawn on the four diagonals. On a straight road, take the
+// nearest diagonal and turn it to the road's heading.
+const HUB_SPRITE_ANG = { ne: -26.57, nw: -153.43, se: 26.57, sw: 153.43 };
+const hubHeading = (dx, dy) => {
+  const th = Math.atan2(dy, dx) * 180 / Math.PI;
+  let best = "ne", bd = 999;
+  for (const d in HUB_SPRITE_ANG) { let x = Math.abs(th - HUB_SPRITE_ANG[d]); if (x > 180) x = 360 - x; if (x < bd) { bd = x; best = d; } }
+  let rot = th - HUB_SPRITE_ANG[best]; if (rot > 180) rot -= 360; if (rot < -180) rot += 360;
+  return { d: best, rot };
+};
+// The front of the convoy (where the pilot car's siren is) for each heading.
+const HUB_FRONT = { ne: [.8, .16], nw: [.2, .16], se: [.84, .84], sw: [.16, .84] };
+const HUB_CAR_W = 250;
+let hubConvoyAt = "gh"; // where the motorcade is parked; survives leaving the map
+
+const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) => {
+  const wrapRef = React.useRef(null), boxRef = React.useRef(null), carRef = React.useRef(null), glowRef = React.useRef(null), dustRef = React.useRef(null);
+  const [cw, setCw] = React.useState(1000);
+  const [parkedAt, setParkedAt] = React.useState(hubConvoyAt);
+  const [moving, setMoving] = React.useState(false);
+  const anim = React.useRef(null);
+  React.useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    const ro = new ResizeObserver(() => setCw(el.clientWidth || 1000)); ro.observe(el); setCw(el.clientWidth || 1000);
+    return () => { ro.disconnect(); if (anim.current) cancelAnimationFrame(anim.current); };
+  }, []);
+  const k = cw / HUB_W;
+  const pct = (p) => ({ left: (p[0] / HUB_W * 100) + "%", top: (p[1] / HUB_H * 100) + "%" });
+  const placeCar = (p, d) => {
+    const box = boxRef.current, car = carRef.current; if (!box || !car) return;
+    box.style.left = (p[0] / HUB_W * 100) + "%"; box.style.top = (p[1] / HUB_H * 100) + "%";
+    if (d) { box.style.transform = "translate(-50%, -50%) rotate(" + d.rot.toFixed(1) + "deg)";
+      if (car.dataset.d !== d.d) { car.dataset.d = d.d; car.src = "./art/compound/motorcade/m-convoy-" + d.d + ".webp"; }
+      const f = HUB_FRONT[d.d];
+      if (glowRef.current) { glowRef.current.style.left = (f[0] * 100) + "%"; glowRef.current.style.top = (f[1] * 100) + "%"; }
+      if (dustRef.current) { dustRef.current.style.left = ((1 - f[0]) * 100) + "%"; dustRef.current.style.top = ((1 - f[1]) * 100) + "%"; } }
+  };
+  const go = (b) => {
+    if (moving) return;
+    const from = hubConvoyAt, to = b.id;
+    try { window.SOP_sound && window.SOP_sound("neutral"); } catch (e) {}
+    const pts = hubRoute(from, to);
+    if (!pts.length) { onArrive(b.id); return; }
+    const segs = []; let total = 0;
+    for (let n = 1; n < pts.length; n++) { const L = Math.hypot(pts[n][0] - pts[n - 1][0], pts[n][1] - pts[n - 1][1]); if (L > 0) { segs.push({ a: pts[n - 1], b: pts[n], L }); total += L; } }
+    const dur = Math.min(3000, Math.max(1300, total / .9)); // ms
+    setMoving(true);
+    const t0 = performance.now();
+    let lastSeg = null;
+    const step = (now) => {
+      let u = Math.min(1, (now - t0) / dur); u = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; // ease in-out
+      let d = u * total, s = segs[0];
+      for (const sg of segs) { s = sg; if (d <= sg.L) break; d -= sg.L; }
+      const r = s.L ? Math.min(1, d / s.L) : 1;
+      const p = [s.a[0] + (s.b[0] - s.a[0]) * r, s.a[1] + (s.b[1] - s.a[1]) * r];
+      const nd = s !== lastSeg ? hubHeading(s.b[0] - s.a[0], s.b[1] - s.a[1]) : null;
+      placeCar(p, nd); lastSeg = s;
+      if (u < 1) anim.current = requestAnimationFrame(step);
+      else { hubConvoyAt = to; setParkedAt(to); setMoving(false); setTimeout(() => onArrive(b.id), 250); }
+    };
+    // Start from the parked spot, facing out of the driveway.
+    placeCar(pts[0], hubHeading(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]));
+    anim.current = requestAnimationFrame(step);
+  };
+  const fz = Math.max(10, Math.min(16, cw / 80));
+  const parkP = (HUB_BUILDINGS.find(b => b.id === parkedAt) || HUB_BUILDINGS[0]).bay;
+  const nextB = next ? HUB_BUILDINGS.find(b => b.id === next.id) : null;
+  return <div>
+    {next && <button onClick={() => nextB && go(nextB)} style={{ width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto 10px", display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", background: "#12301f", color: "#f3f7ef", border: 0, borderRadius: 16, padding: TALL() ? "10px 14px" : "10px 18px", cursor: "pointer", textAlign: "left", fontFamily: F.b }}>
+      <span><span style={{ display: "block", fontSize: TALL() ? TS(18) : TS(24), opacity: .8 }}>Next</span><b style={{ fontSize: TALL() ? TS(22) : TS(32) }}>{next.label}</b></span>
+      <span style={{ background: "#0b7a4b", borderRadius: 999, padding: "8px 16px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(26), whiteSpace: "nowrap" }}>Drive there →</span>
+    </button>}
+    <div ref={wrapRef} style={{ position: "relative", isolation: "isolate", width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto", aspectRatio: HUB_W + " / " + HUB_H, borderRadius: 18, overflow: "hidden", background: "#5f8f3a url(./art/compound/compound-base" + (night ? "-night" : "") + ".webp) center/cover", boxShadow: "0 10px 30px rgba(0,0,0,.18)", userSelect: "none" }}>
+      {/* buildings, back to front so nearer ones overlap farther ones */}
+      {HUB_BUILDINGS.slice().sort((a, b) => a.c[1] - b.c[1]).map(b => {
+        const src = b.id === "palace" ? "./art/compound/buildings/" + palace + ".webp" : b.overlay ? "./art/compound/overlays/" + b.img + ".webp" : "./art/compound/buildings/" + b.img + ".webp";
+        const badge = badges[b.id];
+        return <button key={b.id} onClick={() => go(b)} aria-label={b.name + (badge ? ": " + badge.text : "")} title={b.name}
+          style={{ position: "absolute", ...pct(b.c), width: (b.w / HUB_W * 100) + "%", transform: "translate(-50%, -100%)", padding: 0, border: 0, background: "transparent", cursor: moving ? "default" : "pointer", zIndex: Math.round(b.c[1]) }}>
+          <img src={src} alt="" draggable={false} style={{ width: "100%", height: "auto", display: "block", filter: badge ? "drop-shadow(0 0 6px rgba(255,209,102,.9))" : "drop-shadow(0 4px 6px rgba(0,0,0,.25))" }} />
+        </button>;
+      })}
+      {/* names and alerts sit above every building so none is hidden */}
+      {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <div key={"l" + b.id} onClick={() => go(b)} style={{ position: "absolute", ...pct(b.c), transform: "translate(-50%, -30%)", zIndex: 4500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: moving ? "default" : "pointer" }}>
+        {badge && <span className="sop-fade-in" style={{ background: badge.tone === "bad" ? "#c0392b" : "#e9a23b", color: "#fff", borderRadius: 999, padding: (fz * .25) + "px " + (fz * .7) + "px", fontSize: fz, fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 3px 10px rgba(0,0,0,.3)", fontFamily: F.b }}>{badge.text}</span>}
+        <span style={{ background: "rgba(18,48,31,.85)", color: "#fff", borderRadius: 999, padding: (fz * .2) + "px " + (fz * .6) + "px", fontSize: fz * .85, fontWeight: 700, whiteSpace: "nowrap", fontFamily: F.b }}>{b.name}</span>
+      </div>; })}
+      {/* what is happening around the buildings */}
+      {overlays.map(o => { const P = HUB_BUILDINGS.find(b => b.id === o.at); if (!P) return null; return <img key={o.img + o.at} src={"./art/compound/overlays/" + o.img + ".webp"} alt="" draggable={false} className="sop-fade-in"
+        style={{ position: "absolute", left: ((P.c[0] + (o.dx || 0)) / HUB_W * 100) + "%", top: ((P.c[1] + (o.dy || 0)) / HUB_H * 100) + "%", width: ((o.w || 230) / HUB_W * 100) + "%", transform: "translate(-50%, -80%)", zIndex: Math.round(P.c[1] + 300), pointerEvents: "none" }} />; })}
+      {/* the motorcade */}
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 4400 }}>
+        <div style={{ position: "absolute", ...pct(moving ? [0, 0] : parkP), width: (HUB_CAR_W / HUB_W * 100) + "%", transform: "translate(-50%, -50%)", display: moving ? "none" : "block" }}>
+          <img src="./art/compound/motorcade/m-convoy-parked.webp" alt="Your motorcade" style={{ width: "100%", height: "auto", display: "block" }} />
+        </div>
+      </div>
+      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5000 }}>
+        <div ref={boxRef} style={{ position: "absolute", width: (HUB_CAR_W / HUB_W * 100) + "%", transform: "translate(-50%, -50%)", display: moving ? "block" : "none" }}>
+          <img ref={dustRef} src="./art/compound/motorcade/m-dust.webp" alt="" style={{ position: "absolute", width: "30%", transform: "translate(-50%, -50%)", opacity: .7, animation: "sopDust .6s ease-out infinite" }} />
+          <img ref={carRef} src="./art/compound/motorcade/m-convoy-ne.webp" alt="" style={{ position: "relative", width: "100%", height: "auto", display: "block" }} />
+          <img ref={glowRef} src="./art/compound/motorcade/m-siren-glow.webp" alt="" style={{ position: "absolute", width: "24%", transform: "translate(-50%, -50%)", animation: "sopSiren .5s steps(2) infinite" }} />
+        </div>
+      </div>
+    </div>
+    {list && <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 12 }}>
+      {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <button key={b.id} onClick={() => go(b)} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8, alignItems: "center", background: CL.card, border: "1.5px solid " + (badge ? (badge.tone === "bad" ? CL.red : CL.gold) + "88" : CL.bdr), borderRadius: 14, padding: "8px 10px", cursor: "pointer", textAlign: "left", fontFamily: F.b, color: CL.txt }}>
+        <img src={b.id === "palace" ? "./art/compound/buildings/" + palace + ".webp" : b.overlay ? "./art/compound/overlays/" + b.img + ".webp" : "./art/compound/buildings/" + b.img + ".webp"} alt="" style={{ width: 52, height: 40, objectFit: "contain" }} />
+        <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: TS(19), lineHeight: 1.2 }}>{b.name}</b>{badge ? <span style={{ fontSize: TS(17), color: badge.tone === "bad" ? CL.red : CL.org, fontWeight: 700 }}>{badge.text}</span> : <span style={{ fontSize: TS(17), color: CL.td }}>All quiet</span>}</span>
+      </button>; })}
+    </div>}
+  </div>;
+};
+
 // The end-of-term title.
 const reportTitle = (r) =>
   r.gEnd === "impeached" ? "Impeached" :
@@ -3200,7 +3387,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [pol, setPol] = useState(ld?.pol || []);
   const [logs, setLogs] = useState(ld?.logs || []);
   const [phase, setPhase] = useState(ld ? "budget" : "budget");
-  const [nav, setNav] = useState("gov");
+  const [nav, setNav] = useState("hub");
+  const [hubSheet, setHubSheet] = useState(null);
   const navMemory = React.useRef({}); // last sub-tab opened on each screen
   const [menuOpen, setMenuOpen] = useState(false); // phone ☰ menu
   const [soundOn, setSoundOn] = useState(() => { try { return window.SOP_soundOn ? window.SOP_soundOn() : true; } catch (e) { return true; } });
@@ -5944,7 +6132,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Four screens. Each keeps the existing pages (nav keys) as sub-tabs, so
   // anything that opens a page by key still works.
   const SCREENS = [
-    { id: "desk", i: "🗂️", img: "tab-desk", l: "Desk", subs: [{ k: "gov", l: "Govern" }, { k: "log", l: "News" }] },
+    { id: "desk", i: "🗂️", img: "tab-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Govern" }, { k: "log", l: "News" }] },
     { id: "map", i: "🗺️", img: "tab-map", l: "Map", subs: [{ k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Procurement" }] },
     { id: "people", i: "👥", img: "tab-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "cs", l: "Civil Service" }, { k: "coun", l: "Trad. Council" }, { k: "ppl", l: "Personas" }, { k: "stk", l: "Stakeholders" }] },
     { id: "wiki", i: "📖", img: "tab-wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] },
@@ -6003,6 +6191,72 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The half-year as a short checklist, in the order the game runs it.
   const STEP_OF = { budget: 0, house_vote: 1, policy: 2, end_turn: 3 };
   const stepNow = STEP_OF[phase] !== undefined ? STEP_OF[phase] : 4;
+
+  // ── The compound: what each building shows and does ──
+  const hubBadges = () => {
+    const b = {}, H = scHouse(), inc = (s.igr || 0) + (s.faac || 0);
+    const urgent = activeNeeds.filter(n => n.status === "stalled" || (n.status === "open" && n.due <= turn)).length;
+    if (needSetup) b.gh = { text: "Set up your government", tone: "warn" };
+    else if (phase === "budget") b.gh = { text: "Budget awaiting", tone: "warn" };
+    else if (phase === "policy") b.gh = { text: "Sign programmes", tone: "warn" };
+    else if (urgent) b.gh = { text: urgent + (urgent === 1 ? " urgent need" : " urgent needs"), tone: "bad" };
+    if (phase === "house_vote") b.assembly = { text: "Budget vote today", tone: "warn" };
+    else if (H.loyal < H.seats / 2) b.assembly = { text: "Majority lost", tone: "bad" };
+    if (stc.arrears > 0) b.finance = { text: "Salaries owed", tone: "bad" };
+    else if (inc > 0 && (s.debt || 0) * .08 / inc > .15) b.finance = { text: "Debt heavy", tone: "warn" };
+    if (stc.petition && stc.petition.stage < 3) b.court = { text: "Petition: " + ["Tribunal", "Appeal", "Supreme Court"][stc.petition.stage], tone: "bad" };
+    else if (nicPending) b.court = { text: "NIC ruling due", tone: "warn" };
+    if (s.pStab < 45) b.party = { text: "Party restless", tone: "bad" };
+    else if (stc.gf === "enemy" || stc.gf === "opposition") b.party = { text: "Godfather hostile", tone: "bad" };
+    else if (turn >= MT - 1 && !stc.successor) b.party = { text: "Choose a successor", tone: "warn" };
+    const scandal = (ministries || []).find(m => m.flag && m.flag.t >= turn - 1 && (m.flag.kind === "graft" || m.flag.kind === "disloyal"));
+    if (scandal) b.secretariat = { text: "Scandal", tone: "bad" };
+    else if (balanceIssue() != null) b.secretariat = { text: "Zonal row", tone: "warn" };
+    if (s.sec < .4) b.police = { text: "Insecurity", tone: "bad" };
+    if (!council) b.palace = { text: "Not convened", tone: "warn" };
+    if (s.cor > .55) b.efcc = { text: "Building a file", tone: "bad" };
+    else if (s.cor > .45) b.efcc = { text: "Watching you", tone: "warn" };
+    if (turn === 4 || turn === MT) b.inec = { text: "Election season", tone: "warn" };
+    if (s.app < 40) b.market = { text: "Angry crowds", tone: "bad" };
+    const stalled = (projects || []).filter(pj => pj.status === "suspended" || pj.status === "abandoned").length;
+    if (stalled) b.projects = { text: stalled + " stalled", tone: "bad" };
+    return b;
+  };
+  const hubOverlays = () => {
+    // dx/dy: offset from the building's centre, in base pixels
+    const o = [];
+    if (stc.arrears > 0 || s.app < 35) o.push({ img: "o-protest", at: "secretariat", dx: 237, dy: -40 });
+    if ((stc.petition && stc.petition.stage < 3) || nicPending || curCourt) o.push({ img: "o-press", at: "court", dx: 270, dy: 0 });
+    else if (scHouse().loyal < scHouse().seats / 2) o.push({ img: "o-press", at: "assembly", dx: -300, dy: -10 });
+    if (s.app >= 60 || turn === 4 || turn === MT) o.push({ img: "o-crowd-cheering", at: "party", dx: 237, dy: 25 });
+    return o;
+  };
+  const hubNext = () => needSetup ? { id: "gh", label: "Set up your government" }
+    : phase === "budget" ? { id: "gh", label: "Pass this half-year's budget" }
+    : phase === "house_vote" ? { id: "assembly", label: "Take the budget to the House" }
+    : phase === "policy" ? { id: "gh", label: "Sign programmes and orders" }
+    : phase === "end_turn" ? { id: "gh", label: "Review the half-year" } : null;
+  const hubPalace = ["NW", "NE"].includes(sd?.zone) || ["Kwara", "Niger", "Nassarawa", "FCT"].includes(state) ? "b05-palace-north" : "b06-palace-south";
+  const hubArrive = (id) => {
+    if (id === "gh") return goTab("gov");
+    if (id === "assembly" && phase === "house_vote") return goTab("gov");
+    if (id === "finance") { setRevOpen(true); goTab("gov"); setTimeout(() => { try { document.getElementById("sop-money")?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); return; }
+    if (id === "secretariat") return goTab("cab");
+    if (id === "palace") return goTab("coun");
+    if (id === "projects") return goTab("prj");
+    if (id === "efcc") { try { window.SOP_CIVIC && window.SOP_CIVIC.openPanel(); } catch (e) {} return; }
+    setHubSheet(id);
+  };
+  const hubSheetView = (id) => {
+    const H = scHouse(), row = (k, v, bad) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderTop: "1px solid " + CL.bdr + "88", fontSize: TALL() ? TS(20) : TS(28) }}><span style={{ color: CL.td }}>{k}</span><b style={{ color: bad ? CL.red : CL.txt, textAlign: "right" }}>{v}</b></div>;
+    if (id === "assembly") return { title: "House of Assembly", img: "b02-house-of-assembly", rows: [row("Members with you", H.loyal + " of " + H.seats, H.loyal < H.seats / 2), row("Needed to impeach you", Math.ceil(H.seats * 2 / 3) + " against"), row("Against you now", H.seats - H.loyal, H.seats - H.loyal >= Math.ceil(H.seats * 2 / 3) - 2), row("Party stability", Math.round(s.pStab) + "%", s.pStab < 45)], note: "Members drift with your party grip, your approval, unpaid salaries and corruption." };
+    if (id === "court") { const P0 = stc.petition; return { title: "High Court", img: "b04-high-court", rows: [row("Election petition", P0 && P0.stage < 3 ? P0.opp + " v. You · " + ["Tribunal", "Court of Appeal", "Supreme Court"][P0.stage] : P0 && P0.result ? "Closed (" + P0.result + ")" : "None", P0 && P0.stage < 3), row("Industrial Court", nicPending ? "Ruling due on the sacked " + nicPending.type : "Nothing pending", !!nicPending), row("Court cases faced", courtsSeen.length)], note: "Cases come to your desk when they are heard. A Supreme Court loss on a petition removes you from office." }; }
+    if (id === "party") return { title: "Party Secretariat", img: "b07-party-secretariat", rows: [row("Party stability", Math.round(s.pStab) + "%", s.pStab < 45), row("Your godfather", stc.gf === "dead" ? "Dead" : stc.gf === "opposition" ? "With the opposition" : stc.gf === "enemy" ? "Hostile" : "Relationship " + godfatherRel + "%", stc.gf === "enemy" || stc.gf === "opposition" || godfatherRel < 30), row("Successor", stc.successor ? stc.successor.name : turn >= MT - 1 ? "Not chosen yet" : "Chosen in your last year", turn >= MT - 1 && !stc.successor)], note: "The party decides your ticket, your House majority and, at the end, who comes after you." };
+    if (id === "police") return { title: "Police HQ", img: "b11-police-hq", rows: [row("Security", Math.round(s.sec * 100) + "%", s.sec < .4), ...logs.filter(l => !/CABINET|📋|🌟/.test(l.tx) && /bandit|kidnap|attack|cult|clash|insurgent|abduct|gunmen|vigilante|curfew|troops|militant/i.test(l.tx)).slice(0, 3).map((l, i) => row(i ? "" : "Latest", l.tx.replace(/^\S+\s/, "").slice(0, 70) + (l.tx.length > 72 ? "…" : "")))], note: "Security funding, vigilantes and your choices in crises move this number." };
+    if (id === "inec") return { title: "Electoral Commission", img: "b09-electoral-commission", rows: [row("Next governorship election", turn <= 4 ? "After half-year 4 (in " + (5 - turn) + ")" : turn <= MT ? "Your successor's, after half-year " + MT : "—", turn === 4 || turn === MT), row("Council elections", stc.lg ? { free: "Held freely", rigged: "Rigged sweep", caretaker: "Caretaker committees" }[stc.lg.mode] : "Not yet held", stc.lg && stc.lg.mode !== "free"), row("LG autonomy", stc.lg && stc.lg.autonomy ? { comply: "Complied", evade: "Evaded", court: "In court", delayed: "Delayed by court" }[stc.lg.autonomy] : "Not yet enforced")], note: "Winning by under 5% invites an election petition." };
+    if (id === "market") { const sv = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: balanceIssue() != null ? zoneName(balanceIssue()) : null, turn }); return { title: "Central Market", img: "b12-market", rows: [row("Trending", sv.tag), ...sv.lines.map((l, i) => row(l.w, "\u201c" + l.t + "\u201d"))], note: "What the street says about you this half-year." }; }
+    return null;
+  };
   const deskSteps = () => <div aria-label="This half-year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
     {["Budget", "House vote", "Policies", "Review", "Events"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
@@ -6070,6 +6324,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <button onClick={saveGame} style={subBtn(true, CL.teal)}>💾 Save</button>
           </div>
         </div>}
+        {nav === "hub" && <div style={{ maxWidth: TALL() ? 900 : 1440, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
+          <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} />
+          {TALL() && <div style={{ fontSize: TS(18), color: CL.td, textAlign: "center", marginTop: 10 }}>Turn your phone sideways for the full compound.</div>}
+        </div>}
+        <OL show={!!hubSheet}>
+          {hubSheet && (() => { const v = hubSheetView(hubSheet); if (!v) return null; return <Cd>
+            <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
+              <img src={"./art/compound/buildings/" + v.img + ".webp"} alt="" style={{ width: TALL() ? 90 : 130, height: "auto" }} />
+              <h3 style={{ fontFamily: F.d, fontSize: TALL() ? TS(30) : TS(44), margin: 0, color: CL.txt }}>{v.title}</h3>
+            </div>
+            {v.rows}
+            {v.note && <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.td, marginTop: 10 }}>{v.note}</div>}
+            <div style={{ marginTop: 16 }}><Bt onClick={() => setHubSheet(null)} style={{ width: "100%" }}>Back to the compound</Bt></div>
+          </Cd>; })()}
+        </OL>
         {nav === "gov" && deskSteps()}
         {nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
@@ -6145,7 +6414,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
           const used = stc.rev || {}, left = 2 - revThisTurn(), c = { s, stc, turn };
           const done = REVENUE_MEASURES.filter(m => used[m.id] != null).length;
-          return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: CL.card, border: "1px solid " + CL.gold + "55", borderRadius: 18, overflow: "hidden" }}>
+          return <div id="sop-money" style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: CL.card, border: "1px solid " + CL.gold + "55", borderRadius: 18, overflow: "hidden" }}>
             <button onClick={() => setRevOpen(o => !o)} aria-expanded={revOpen} style={{ width: "100%", display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: TALL() ? "12px 14px" : "16px 20px", cursor: "pointer", textAlign: "left", color: CL.txt }}>
               <img src="./art/characters/revenue-officer.webp" alt="" style={{ width: TALL() ? 48 : 64, height: TALL() ? 48 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.gold + "22" }} />
               <span><b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42) }}>💰 Money: raise revenue, manage debt</b>
@@ -9051,6 +9320,8 @@ function App() {
         .sop-fade-in { animation: sopFadeIn .4s ease-out; }
         .sop-slide-up { animation: sopSlideUp .35s ease-out; }
         @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes sopSiren { 0% { opacity: 1; filter: hue-rotate(0deg); } 100% { opacity: .35; filter: hue-rotate(180deg); } }
+        @keyframes sopDust { 0% { opacity: .75; transform: translate(-50%, -50%) scale(.6); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); } }
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />

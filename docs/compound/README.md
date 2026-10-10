@@ -9,3 +9,6 @@ High-res sources: src/assets/art-expansion/compound/. Not yet wired into the gam
 - compound-roads-guide.png — 2560×1440: magenta road centre-lines, green junctions, yellow numbered parking bays 1–12. compound-roads.json — the same points in pixels.
 - motorcade/m-convoy-ne|nw|se|sw.webp — 420×300, transparent, one convoy (pilot car, 2 SUVs, van), centred. nw/sw are mirrors of ne/se.
 - motorcade/m-convoy-parked.webp — doors open, aide stepping out. m-siren-glow.webp (96×48), m-dust.webp (120×80).
+
+## Now in use: the rich v1 plate
+The game uses the v1 plate (straight roads, roundabout, river) instead of the v2 isometric grid. The plot rectangles, road graph and parking bays are hard-coded in `game/seat-of-power.jsx` (`HUB_NODES`, `HUB_ROADS`, `HUB_BUILDINGS`). `compound-roads-guide.png` and `compound-roads.json` above describe the v2 grid and are kept only for reference.
