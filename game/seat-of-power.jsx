@@ -763,7 +763,7 @@ const houseSeats = (pop) => pop >= 9 ? 40 : pop >= 5 ? 30 : 24;
 // Each state's own recurring crises, keyed by the issues listed for it in STATES.
 // fx: app/pStab are points; cor/sec/infra/hp/agr/lit are fractions; debt is ₦B.
 const STATE_CRISES = [
-  { id: "oil_spill", keys: /oil spill|pipeline|oil theft|oil politics|militancy/i, icon: "🛢️", bg: "flooded-community", who: "market-trader",
+  { id: "oil_spill", keys: /oil spill|pipeline|oil theft|oil politics|militancy/i, icon: "🛢️", bg: "oil-creek-spill", who: "market-trader",
     title: (l) => "Oil spill poisons the creeks near " + l,
     d: (l) => "A ruptured pipeline has coated the fishing grounds near " + l + " in crude. Fishermen have no catch, the water smells of diesel, and youths have seized a flow station demanding compensation.",
     opts: [
@@ -771,7 +771,7 @@ const STATE_CRISES = [
       { l: "Negotiate with the youths: stipends to free the flow station", note: "Fast. It also teaches every creek that seizing a station pays.", fx: { app: 1, debt: .6, cor: .02, sec: -.02 }, zone: 1, log: "paid stipends to the youths holding the flow station", wiki: "Paid stipends to youths who seized a flow station, a deal critics said rewarded militancy." },
       { l: "Send in the Joint Task Force", note: "The station is back in a day. So are the funerals.", fx: { app: -3, sec: .02, pStab: 2 }, zone: -5, log: "sent soldiers to retake the flow station", wiki: "Ordered a military operation in the creeks that left several youths dead." },
     ] },
-  { id: "illegal_refinery", keys: /oil theft|youth restiveness|pipeline|militancy|youth unemployment/i, icon: "🔥", bg: "veranda-night", who: "police-commissioner",
+  { id: "illegal_refinery", keys: /oil theft|youth restiveness|pipeline|militancy|youth unemployment/i, icon: "🔥", bg: "illegal-refinery-night", who: "police-commissioner",
     title: (l) => "Illegal refinery explodes near " + l,
     d: (l) => "An illegal 'kpofire' refinery outside " + l + " exploded overnight. Dozens are dead. Everyone knows who protects these camps, and some of them are in your party.",
     opts: [
@@ -779,7 +779,7 @@ const STATE_CRISES = [
       { l: "Train the operators as licensed modular refiners", note: "Turns a crime into jobs. Costs money and federal goodwill.", fx: { app: 2, debt: 1.2, agr: 0 }, zone: 3, log: "launched a modular refinery scheme for former operators" },
       { l: "Condolences, then quiet", note: "The camps reopen next week.", fx: { app: -2, cor: .02 }, zone: -3, log: "issued condolences and left the camps alone" },
     ] },
-  { id: "bandits_tax", keys: /bandit|kidnap|insecurity/i, icon: "🏚️", bg: "emirs-palace-courtyard", who: "traditional-ruler-emir",
+  { id: "bandits_tax", keys: /bandit|kidnap|insecurity/i, icon: "🏚️", bg: "emirs-palace-courtyard", who: "vigilante-guard",
     title: (l) => "Bandits impose a 'harvest tax' on villages near " + l,
     d: (l) => "Bandits have written to villages around " + l + ": pay ₦20 million or no one harvests. The district head is begging you to let the villages pay. Two farmers who refused were killed last week.",
     opts: [
@@ -795,7 +795,7 @@ const STATE_CRISES = [
       { l: "Back a rescue operation with the army", note: "If it works you are a hero. If it fails, children die on camera.", fx: { app: 0, sec: .02 }, zone: 0, log: "backed a military rescue for the abducted pupils", gamble: { p: .55, win: { app: 7, zone: 6, log: "The rescue worked. Every pupil is home." }, lose: { app: -9, zone: -8, log: "The rescue went wrong. Three pupils died.", wiki: "A rescue operation for abducted pupils ended with three children dead." } } },
       { l: "Close all boarding schools in the area", note: "Safe today. A generation out of school tomorrow.", fx: { app: -2, lit: -.03, sec: .01 }, zone: -4, log: "closed boarding schools in the danger zone", wiki: "Closed rural boarding schools after a mass abduction, keeping thousands of children out of school." },
     ] },
-  { id: "insurgent_attack", keys: /Boko Haram|insurgency|IDPs/i, icon: "💥", bg: "street-protest", who: "soldier",
+  { id: "insurgent_attack", keys: /Boko Haram|insurgency|IDPs/i, icon: "💥", bg: "idp-camp", who: "soldier",
     title: (l) => "Insurgents overrun a garrison town near " + l,
     d: (l) => "Insurgents attacked the garrison at " + l + " at night and burned the market. Thousands are walking to the state capital. The IDP camps are already full.",
     opts: [
@@ -803,7 +803,7 @@ const STATE_CRISES = [
       { l: "Fund the Civilian JTF to retake the area", note: "Local fighters with local grudges. It works fast.", fx: { app: 2, sec: .03, debt: .7, cor: .01 }, zone: 2, log: "funded the Civilian JTF to retake the town" },
       { l: "Announce the resettlement of the town in 90 days", note: "A brave promise. If the insurgents return, so does the blame.", fx: { app: 1, infra: .01, debt: 1 }, zone: 1, log: "promised to resettle the town within 90 days", gamble: { p: .5, win: { app: 4, zone: 4, log: "The resettled town held." }, lose: { app: -6, zone: -6, log: "The insurgents returned to the resettled town.", wiki: "Resettled a town that insurgents overran again within months." } } },
     ] },
-  { id: "farmer_herder", keys: /farmer-herder|ethnic crisis|ethnic tension/i, icon: "🌾", bg: "street-protest", who: "traditional-ruler-oba-obi",
+  { id: "farmer_herder", keys: /farmer-herder|ethnic crisis|ethnic tension/i, icon: "🌾", bg: "northern-farmland", who: "traditional-ruler-oba-obi",
     title: (l) => "Overnight attack on farming villages near " + l,
     d: (l) => "Gunmen attacked three farming villages near " + l + " overnight. Farmers blame herders; herders say their cattle were rustled first. Churches and mosques are both calling for calm, and for revenge.",
     opts: [
@@ -819,7 +819,7 @@ const STATE_CRISES = [
       { l: "Wait for the federal ecological fund", note: "Abuja pays in six months, if it pays.", fx: { app: -4, agr: -.03 }, zone: -6, log: "waited for federal flood money", wiki: "Was criticised for a slow response to the floods in the state." },
       { l: "Relief now, and build the embankment", note: "Ends the yearly flood. A big contract, with big temptations.", fx: { app: 3, debt: 2.4, infra: .02, cor: .01 }, zone: 4, log: "started building a flood embankment" },
     ] },
-  { id: "sit_at_home", keys: /sit-at-home|IPOB/i, icon: "🚫", bg: "busy-market-street", who: "market-trader",
+  { id: "sit_at_home", keys: /sit-at-home|IPOB/i, icon: "🚫", bg: "shuttered-market", who: "market-trader",
     title: () => "Monday sit-at-home empties the markets again",
     d: () => "The separatist sit-at-home order has shut the state every Monday for months. Traders lose a fifth of their week. Anyone who opens is attacked. Your order to resume work was ignored.",
     opts: [
@@ -835,7 +835,7 @@ const STATE_CRISES = [
       { l: "Ban street begging and send the children home", note: "Clears the streets in a week. Many of the children have no home to go to.", fx: { app: -1, pStab: 1 }, zone: -3, log: "banned street begging and repatriated almajiri children", wiki: "Banned street begging and repatriated almajiri children to their states of origin." },
       { l: "Leave it to the clerics", note: "No quarrel today. The problem grows.", fx: { lit: -.01 }, zone: -2, log: "left the almajiri question to the clerics" },
     ] },
-  { id: "demolition", keys: /housing|traffic|urban|land grabbing|satellites/i, icon: "🏗️", bg: "road-construction-site", who: "investor-nigerian",
+  { id: "demolition", keys: /housing|traffic|urban|land grabbing|satellites/i, icon: "🏗️", bg: "waterfront-settlement", who: "investor-nigerian",
     title: (l) => "Developers want the waterfront settlement at " + l + " cleared",
     d: (l) => "A developer offers ₦40B for luxury towers on the waterfront settlement at " + l + ". 20,000 people live there. Your planners call it a slum; residents call it home and have a court order.",
     opts: [
@@ -851,7 +851,7 @@ const STATE_CRISES = [
       { l: "Amnesty and skills for cult members who surrender", note: "Some surrender. Some take the money and keep their guns.", fx: { app: 1, debt: .6, sec: .01 }, zone: 1, log: "offered amnesty to cult members who surrendered" },
       { l: "Curfew and leave politics out of it", note: "Quiet for now. The sponsors stay powerful.", fx: { app: -1, sec: .01 }, zone: -2, log: "imposed a curfew without touching the sponsors" },
     ] },
-  { id: "erosion", keys: /erosion|roads|infrastructure|water/i, icon: "🕳️", bg: "road-construction-site", who: "market-trader",
+  { id: "erosion", keys: /erosion|roads|infrastructure|water/i, icon: "🕳️", bg: "gully-erosion", who: "contractor",
     title: (l) => "Gully erosion swallows houses in " + l,
     d: (l) => "A gully in " + l + " widened after the rains and took eleven houses and the road to the market. The Ecological Fund money for this site was 'released' two years ago. Nobody can find the contractor.",
     opts: [
@@ -859,7 +859,7 @@ const STATE_CRISES = [
       { l: "Sandbags and a new contract", note: "Cheap now. The gully grows back.", fx: { app: 0, debt: .4, cor: .01 }, zone: -1, log: "awarded a quick sandbag contract for the gully" },
       { l: "Relocate the families", note: "Nobody wants to leave the land of their fathers.", fx: { app: -2, debt: .5 }, zone: -3, log: "relocated families from the erosion site" },
     ] },
-  { id: "mining", keys: /mining|illegal mining|smuggling/i, icon: "⛏️", bg: "back-room", who: "expatriate-engineer",
+  { id: "mining", keys: /mining|illegal mining|smuggling/i, icon: "⛏️", bg: "artisanal-gold-pits", who: "expatriate-engineer",
     title: (l) => "Illegal miners poison children with lead in " + l,
     d: (l) => "Doctors in " + l + " report children dying of lead poisoning from illegal gold mining. The pits are run by foreign buyers with local protectors. The mining licences are federal, not yours.",
     opts: [
@@ -890,6 +890,9 @@ const stateCrisesFor = (st) => {
 };
 
 // The street's verdict, rebuilt every half-year from what you actually did.
+// A face for each street voice.
+const VOICE_ART = [[/okada|keke/i, "okada-rider"], [/mechanic/i, "mechanic"], [/civil servant|teacher/i, "civil-servant"], [/nurse/i, "nurse"], [/trader|food seller/i, "market-trader"], [/graduate/i, "young-voter-student"], [/farmer/i, "vigilante-guard"], [/elder/i, "traditional-ruler-emir"], [/Pastor/i, "deputy-male"], [/Radio|caller/i, "reporter"]];
+const voiceArt = (w) => { const hit = VOICE_ART.find(([rx]) => rx.test(w || "")); return hit ? hit[1] : "market-trader"; };
 const streetVoices = (ctx) => {
   const { stName, last, app, cor, arrears, needs, house, balance, turn } = ctx;
   const r = rng(turn * 97 + stName.length * 13);
@@ -899,7 +902,7 @@ const streetVoices = (ctx) => {
   const failed = needs.filter(n => n.status === "failed" && n.closed >= turn - 1);
   const met = needs.filter(n => n.status === "met" && n.closed >= turn - 1);
   const stalled = needs.filter(n => n.status === "stalled");
-  if (arrears >= 1) v.push({ w: pickOne(["Mrs Adebayo, teacher", "Blessing, nurse"]), t: "Na " + arrears + " month" + (arrears === 1 ? "" : "s") + " now dem never pay us. My landlord don give me quit notice." });
+  if (arrears >= 1) v.push({ w: pickOne(["Mrs Adebayo, civil servant", "Blessing, nurse"]), t: "Na " + arrears + " month" + (arrears === 1 ? "" : "s") + " now dem never pay us. My landlord don give me quit notice." });
   if (failed[0]) v.push({ w: pickOne(who), p: failed[0].lga, t: "Dem come " + failed[0].lga + " campaign, dance, share rice. Since then? Nothing. People die here." });
   if (stalled[0]) v.push({ w: "Emeka, mechanic", p: stalled[0].lga, t: "The contractor don pack him caterpillar commot from " + stalled[0].lga + ". E say government never pay am." });
   if (met[0]) v.push({ w: pickOne(who), p: met[0].lga, t: "I go talk true: wetin dem do for " + met[0].lga + " don help us. Make dem continue." });
@@ -920,12 +923,12 @@ const streetVoices = (ctx) => {
 // (k = half-years from adoption): revIGR is money a half-year (new revenue or
 // savings), taxEff multiplies taxes collected, debt pays down borrowing.
 const REVENUE_MEASURES = [
-  { id: "irs", icon: "🧾", t: "Make the revenue service autonomous and digital",
+  { id: "irs", img: "pos-terminal", icon: "🧾", t: "Make the revenue service autonomous and digital",
     what: "Tax IDs, e-payment, no cash at the counter, and collectors paid on results. Lagos multiplied its own revenue this way.",
     cost: "IGR −₦0.4B this half-year; party −2 (collectors lose their cut)",
     gain: (c) => "Taxes collected +30% over three half-years (about +₦" + (Math.max(1.5, c.s.igr || 3) * .3).toFixed(1) + "B a half-year)",
     adopt: () => ({ fx: { pStab: -2 }, sched: [{ k: 0, revIGR: -.4 }, { k: 1, revIGR: .4, taxEff: .1 }, { k: 2, taxEff: .1 }, { k: 3, taxEff: .1 }], log: "made the revenue service autonomous and digital", wiki: "Made the state revenue service autonomous and moved tax payments online." }) },
-  { id: "payroll", icon: "🪪", t: "Biometric payroll audit to remove ghost workers",
+  { id: "payroll", img: "fingerprint-scanner", icon: "🪪", t: "Biometric payroll audit to remove ghost workers",
     what: "Every worker verified with BVN and fingerprints. States have found thousands of names that collect salaries but do not exist.",
     cost: "Unions protest (approval −1); a risk that real workers are wrongly removed",
     gain: (c) => "Saves about ₦" + Math.max(.3, Math.round((c.s.faac || 10) * .55 * (.03 + c.s.cor * .1) * 10) / 10) + "B every half-year (more where corruption is high)",
@@ -935,7 +938,7 @@ const REVENUE_MEASURES = [
     cost: "Ministries and their bankers resist (party −2)",
     gain: (c) => "One-off: about ₦" + Math.round(((c.s.faac || 10) * .1 + c.s.cor * 2) * 10) / 10 + "B of idle money found, used to pay down debt",
     adopt: (c) => { const f = Math.round(((c.s.faac || 10) * .1 + c.s.cor * 2) * 10) / 10; return { fx: { pStab: -2, cor: -.03 }, sched: [{ k: 0, debt: -f }], log: "set up a Treasury Single Account and swept ₦" + f + "B of idle balances into paying down debt", wiki: "Introduced a Treasury Single Account, recovering idle funds held across ministries." }; } },
-  { id: "land", icon: "🗺️", t: "Digital land registry and C of O drive",
+  { id: "land", img: "certificate-of-occupancy", icon: "🗺️", t: "Digital land registry and C of O drive",
     what: "Map every plot with GIS and issue Certificates of Occupancy fast. Kaduna's KADGIS turned land into steady ground rent and fees.",
     cost: "IGR −₦0.5B this half-year to set it up",
     gain: () => "+₦1.5B a half-year within two half-years; owners get secure titles (approval +1)",
@@ -1043,10 +1046,13 @@ const deputyArt = (female, zone, lo) => "./art/characters/" + (female
   ? (NORTH_ZONES.includes(zone) ? "deputy-northern-female-hijab" : "deputy-female")
   : zone === "SW" ? (lo == null || lo >= 60 ? "deputy-pleased" : lo >= 40 ? "deputy-worried" : "deputy-angry")
   : zone === "NC" ? "deputy-male-suit" : NORTH_ZONES.includes(zone) ? "deputy-male" : zone === "SE" || zone === "SS" ? "deputy-southern-male-isiagu" : "deputy-male") + ".webp";
+// The opponent's portrait: the female candidate when the name is a woman's.
+const oppArt = (nm) => FEMALE_FIRST.includes(String(nm || "").replace(/^Hon\.\s*/, "").split(" ")[0]) ? "opposition-candidate-female" : "rival";
 const castArt = (c, zone, lo) => {
   if (!c) return null;
   if (c.id === "deputy") return deputyArt(FEMALE_FIRST.includes(String(c.name).split(" ")[0]), zone, lo);
   if (c.id === "adviser") return saPortrait(c.name);
+  if (c.id === "rival") return "./art/characters/" + oppArt(c.name) + ".webp";
   return CAST_ART[c.id] ? "./art/characters/" + CAST_ART[c.id] + ".webp" : null;
 };
 const CAST_FEMALE = ["Adaeze", "Funmilayo", "Halima", "Ngozi", "Aisha", "Kemi", "Chiamaka", "Zainab", "Ekaette", "Bisola", "Hauwa", "Yemisi"];
@@ -1478,7 +1484,7 @@ const SceneArt = ({ bg, who, obj, alt, h = 230 }) => React.createElement("div", 
 // A scoreboard (you against the opponent), three zones to win and short move cards.
 const campFz = () => TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };
 const CampChip = ({ txt, col }) => { const fz = campFz(); return <span style={{ display: "inline-block", padding: TALL() ? "3px 10px" : "4px 12px", borderRadius: 999, background: col + "16", color: col, fontSize: fz.s, fontWeight: 700, whiteSpace: "nowrap" }}>{txt}</span>; };
-const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppParty, zones, swingId, money, days, maxDays, gfDebt, slogan, lastLog, ev }) => {
+const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppParty, oppImg = "rival", zones, swingId, money, days, maxDays, gfDebt, slogan, lastLog, ev }) => {
   const tall = TALL(), fz = campFz();
   const youState = Math.round(zones.reduce((a, z) => a + pollShare(z), 0) / zones.length);
   const lastMove = (z) => { const m = (z.moves || []).slice(-1)[0]; return m && m.w >= week - 1 ? m : null; };
@@ -1499,7 +1505,7 @@ const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppPar
         <div style={{ display: "flex", height: 14, borderRadius: 7, overflow: "hidden", margin: "8px 0", background: "#c0392b" }}><div style={{ width: youState + "%", background: "#2fa866", transition: "width .6s cubic-bezier(.2,.8,.2,1)" }} /></div>
         <div style={{ textAlign: "center", fontSize: fz.s, opacity: .8 }}>Statewide poll{youState > 52 ? ": you lead" : youState < 48 ? ": you trail" : ": too close to call"}</div>
       </div>
-      {nameBox("./art/characters/rival.webp", oppName, oppParty)}
+      {nameBox("./art/characters/" + oppImg + ".webp", oppName, oppParty)}
     </div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8, marginBottom: 12 }}>
       {zones.map(z => { const you = pollShare(z), lead = you >= 50, lm = lastMove(z); return <div key={z.id} title={z.key} style={{ background: CL.card, border: "1.5px solid " + (lead ? CL.grn + "66" : CL.red + "55"), borderRadius: 16, padding: tall ? "8px 8px" : "12px 14px" }}>
@@ -1519,7 +1525,7 @@ const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppPar
       ? <div className="sop-fade-in" style={{ fontSize: fz.m, fontWeight: 700, color: "#fff", background: CL.red, borderRadius: 14, padding: tall ? "10px 14px" : "12px 18px", marginBottom: 12 }}>{lastLog.replace(/^🔻\s*/, "")}</div>
       : <div style={{ fontSize: fz.s, color: CL.tm, background: CL.card, borderRadius: 12, padding: "8px 12px", marginBottom: 12, border: "1px solid " + CL.bdr }}>{lastLog}</div>)}
     {isOpp ? <div style={{ marginBottom: 12 }}>
-      <SceneArt bg="rally" who="rival" alt={oppName} h={tall ? 160 : 200} />
+      <SceneArt bg="rally" who={oppImg} alt={oppName} h={tall ? 160 : 200} />
       <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, lineHeight: 1.15 }}>{(ev?.t || "The opponent moves").replace(/^[^A-Za-z]+/, "")}</div>
       <div style={{ fontSize: fz.m, color: CL.tm, marginTop: 6 }}>{ev?.d}</div>
     </div> : <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, margin: "4px 0 10px" }}>Pick this week's move</div>}
@@ -2635,7 +2641,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
     return (
       <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "14px 16px 40px" : "28px 32px" }}>
         <div style={{ maxWidth: tall ? 980 : 1440, margin: "0 auto" }}>
-          <CampaignBoard week={week} isOpp={isOpp} youImg={AVATAR_IMGS[avatar] || HERO_MALE} youName={lastNm || "You"} youParty={party} oppName={oName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oParty?.id || "OPP"}
+          <CampaignBoard week={week} isOpp={isOpp} youImg={AVATAR_IMGS[avatar] || HERO_MALE} youName={lastNm || "You"} youParty={party} oppName={oName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oParty?.id || "OPP"} oppImg={oppArt(oName)}
             zones={activeZones} swingId={swingZone.id} money={warChest} days={daysLeft} maxDays={WEEK_DAYS} gfDebt={gfDebt} slogan={slogan} lastLog={sCampLog.length ? sCampLog[sCampLog.length - 1] : null} ev={isOpp ? oppEvts[Math.floor(sCampRound / 2)] : null} />
 
           {/* Money trouble */}
@@ -2725,7 +2731,7 @@ const SetupScreen = ({ onDone, level, setLevel }) => {
       <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
         <div style={{ maxWidth: 1164, margin: "8px auto" }}>
           <div style={{ textAlign: "center", marginBottom: 36 }}>
-            <div style={{ fontSize: TS(109) }}>⚖️</div>
+            <SceneArt bg={preTrib.level >= 2 ? "supreme-court-abuja" : "courtroom"} who={preTrib.groundId ? "senior-advocate" : null} obj={preTrib.groundId ? null : "petition-file"} h={TALL() ? 200 : 260} />
             <Bg text={"STAGE " + (preTrib.level + 1) + "/3 · " + lvl.nm} color={CL.gold} />
             <h2 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0 7px", fontSize: TS(72), fontWeight: 700 }}>Election Petition</h2>
             <div style={{ fontSize: TS(34), color: CL.td, fontFamily: F.m }}>{lvl.tag}</div>
@@ -3648,7 +3654,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (f >= .95) opts.push({ label: "Pay one month of arrears", note: "A gesture. The unions want it all.", chips: fxChips({ debt: mw }), run: () => { scFx({ debt: mw }); setStc(p => ({ ...p, arrears: Math.max(0, p.arrears - 1) })); addL("🧾 Paid one month of salary arrears.", "policy"); } });
         if (f >= .95) opts.push({ label: "Keep owing them", note: "The arrears stay. So does the anger.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); addL("🧾 Salary arrears left unpaid another half-year.", "political"); } });
       }
-      cards.push({ key: "faac", kicker: "FAAC day", color: CL.gold, art: ["abuja-federal-office", "permanent-secretary"],
+      cards.push({ key: "faac", kicker: "FAAC day", color: CL.gold, art: A > 0 ? ["state-secretariat", null, "salary-slip"] : ["state-secretariat", "civil-servant"],
         title: f < .95 ? "The allocation came in at " + pct + "%" : "The allocation is in. Workers are still owed",
         brief: f < .95 ? (sw < -.05 ? "Oil prices fell and FAAC shrank with them. " : "Abuja deducted old loans at source. ") + "You are ₦" + short + "B short of this half-year's wage bill." + (A ? " Workers are already owed " + A + " months." : "") : "FAAC came in at " + pct + "% of budget. Workers are still owed " + A + " month" + (A === 1 ? "" : "s") + " from earlier.",
         stakes: "At 3 months owed the NLC issues an ultimatum. At 5 it shuts the state down." + (REVENUE_MEASURES.some(m => !(next.rev || {})[m.id]) ? " Revenue reforms on the Desk can close gaps like this for good." : ""), options: opts });
@@ -3708,7 +3714,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       asked.lg_election = turn;
       const lean = [0, 1, 2].map(z => ((s.zoneMood || {})[z] || 0) + (s.app - 50) / 4 + (r() * 8 - 4));
       const oppZ = [0, 1, 2].filter(z => lean[z] < -1);
-      cards.push({ key: "lg_election", kicker: "Council elections", color: CL.blu, art: ["polling-unit", "permanent-secretary"],
+      cards.push({ key: "lg_election", kicker: "Council elections", color: CL.blu, art: ["polling-unit", "electoral-commissioner"],
         title: "The State Electoral Commission is ready to hold council polls",
         brief: "Your SIEC chairman is your appointee, and in most states the ruling party wins every council. " + (oppZ.length ? "A free vote would probably cost you councils in " + zoneList(oppZ) + "." : "A free vote looks safe for you right now."),
         stakes: "Whoever runs the councils runs the ward structures at the next election.",
@@ -3735,7 +3741,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const care = next.lg.mode === "caretaker", oppRun = (next.lg.oppZones || []).length;
       const cut = Math.round((s.faac || 10) * .08 * 10) / 10;
       const lose = () => setS(p => ({ ...p, faac: Math.max(2.5, p.faac - cut) }));
-      cards.push({ key: "lg_autonomy", kicker: "LG autonomy", color: CL.blu, art: ["courtroom", "judge"],
+      cards.push({ key: "lg_autonomy", kicker: "LG autonomy", color: CL.blu, art: ["supreme-court-abuja", "lg-chairman"],
         title: "Abuja will pay the councils directly",
         brief: "Enforcing the Supreme Court's 2024 judgment, council allocations will go straight to the councils, bypassing the State-LG Joint Account you control." + (care ? " The judgment also says caretaker committees get nothing." : ""),
         stakes: "Governors have steered council money for decades. This ends it, or tests whether it can.",
@@ -3807,7 +3813,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       asked.gf_death = turn;
       const wasOpp = next.gf === "opposition";
       const dead = () => { setGodfatherPower(0); setGf("dead"); scWiki("Governorship", "Political godfather " + gfName + " died during the administration."); };
-      cards.push({ key: "gf_death", kicker: "Your godfather", color: CL.pur, art: ["veranda-night", null],
+      cards.push({ key: "gf_death", kicker: "Your godfather", color: CL.pur, art: ["burial-ceremony", "godfather-son"],
         title: gfName + " is dead",
         brief: gfName + " died in a London hospital. His network of ward leaders, contractors and Assembly members is up for grabs" + (wasOpp ? ", including the members who followed him to the opposition." : "."),
         stakes: "Whoever inherits the network inherits his power.",
@@ -3857,7 +3863,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         addL("⚖️ The " + COURTS[st0] + " dismissed " + P0.opp + "'s petition." + (final ? " The matter is closed for good." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), "success");
         setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined } }));
       };
-      cards.push({ key: "petition", kicker: "Election petition · " + (st0 + 1) + " of 3", color: CL.red, art: ["courtroom", "judge"],
+      cards.push({ key: "petition", kicker: "Election petition · " + (st0 + 1) + " of 3", color: CL.red, art: st0 === 2 ? ["supreme-court-abuja", "senior-advocate"] : st0 === 1 ? ["courtroom", "senior-advocate"] : ["courtroom", null, "petition-file"],
         title: COURTS[st0] + ": " + P0.opp + " v. You",
         brief: P0.opp + " says you won by " + grounds + ". Your margin was " + P0.margin + "%." + (P0.lostBelow ? " You lost at the lower court and are now the appellant." : "") + (s.cor > .45 ? " Your corruption record hands them evidence." : ""),
         stakes: final ? "The Supreme Court is final. Lose here and you leave Government House." : "Lose here and you appeal; the case goes on.",
@@ -6006,8 +6012,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>The street</b>
               <span style={{ fontSize: fz.s, color: CL.blu, fontWeight: 800 }}>Trending: {sv.tag}</span>
             </div>
-            {sv.lines.map((l, i) => <div key={i} style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
-              <span style={{ color: CL.txt }}>“{l.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {l.w}</span>
+            {sv.lines.map((l, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
+              <img src={"./art/characters/" + voiceArt(l.w) + ".webp"} alt="" loading="lazy" style={{ width: TALL() ? 40 : 52, height: TALL() ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "14" }} />
+              <span><span style={{ color: CL.txt }}>“{l.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {l.w}</span></span>
             </div>)}
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
               {chip(stc.arrears ? "💸 Workers owed " + stc.arrears + " month" + (stc.arrears === 1 ? "" : "s") : "💸 Salaries paid", stc.arrears > 0)}
@@ -6039,7 +6046,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           const used = stc.rev || {}, left = 2 - revThisTurn(), c = { s, stc, turn };
           const done = REVENUE_MEASURES.filter(m => used[m.id] != null).length;
           return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: CL.card, border: "1px solid " + CL.gold + "55", borderRadius: 18, overflow: "hidden" }}>
-            <button onClick={() => setRevOpen(o => !o)} aria-expanded={revOpen} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: TALL() ? "12px 14px" : "16px 20px", cursor: "pointer", textAlign: "left", color: CL.txt }}>
+            <button onClick={() => setRevOpen(o => !o)} aria-expanded={revOpen} style={{ width: "100%", display: "grid", gridTemplateColumns: "auto 1fr auto", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: TALL() ? "12px 14px" : "16px 20px", cursor: "pointer", textAlign: "left", color: CL.txt }}>
+              <img src="./art/characters/revenue-officer.webp" alt="" style={{ width: TALL() ? 48 : 64, height: TALL() ? 48 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.gold + "22" }} />
               <span><b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42) }}>💰 Money: raise revenue, manage debt</b>
                 <span style={{ display: "block", fontSize: fz.s, color: CL.td }}>Own revenue ₦{(s.igr || 0).toFixed(1)}B · FAAC ₦{(s.faac || 0).toFixed(1)}B a half-year · {done} of {REVENUE_MEASURES.length} reforms done</span></span>
               <span style={{ color: CL.td, fontSize: fz.s }}>{revOpen ? "▲" : "▼"}</span>
@@ -6050,7 +6058,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const svc = (s.debt || 0) * .08, inc = (s.igr || 0) + (s.faac || 0), share = inc > 0 ? Math.round(svc / inc * 100) : 0;
                 const row = (k, label, note, can, why, fn) => <div key={k} style={{ border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "10px 12px" : "14px 16px" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "baseline", justifyContent: "space-between" }}>
-                    <b style={{ fontSize: fz.m, color: CL.txt }}>{label}</b>
+                    <b style={{ fontSize: fz.m, color: CL.txt, display: "flex", gap: 8, alignItems: "center" }}>{k === "notes" ? <img src="./art/objects/promissory-note.webp" alt="" style={{ width: TALL() ? 34 : 44, height: TALL() ? 34 : 44, objectFit: "contain", flexShrink: 0 }} /> : null}<span>{label}</span></b>
                     {debtDone(k) ? <span style={{ color: CL.td, fontWeight: 800, fontSize: fz.s, whiteSpace: "nowrap" }}>Used this term</span>
                       : <button disabled={!can} onClick={fn} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: can ? CL.blu : CL.bdr, color: can ? "#fff" : CL.td, padding: "8px 16px", minHeight: 40, fontWeight: 800, fontSize: fz.s, cursor: can ? "pointer" : "not-allowed" }}>Do it</button>}
                   </div>
@@ -6069,7 +6077,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const on = used[m.id] != null, why = !on && m.req ? m.req(c) : null, can = !on && !why && left > 0;
                 return <div key={m.id} style={{ border: "1px solid " + (on ? CL.grn + "55" : CL.bdr), borderRadius: 14, padding: TALL() ? "10px 12px" : "14px 16px", background: on ? CL.grn + "08" : "transparent" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "baseline", justifyContent: "space-between" }}>
-                    <b style={{ fontSize: fz.m, color: CL.txt }}>{m.icon} {m.t}</b>
+                    <b style={{ fontSize: fz.m, color: CL.txt, display: "flex", gap: 8, alignItems: "center" }}>{m.img ? <img src={"./art/objects/" + m.img + ".webp"} alt="" style={{ width: TALL() ? 34 : 44, height: TALL() ? 34 : 44, objectFit: "contain", flexShrink: 0 }} /> : m.icon} <span>{m.t}</span></b>
                     {on ? <span style={{ color: CL.grn, fontWeight: 800, fontSize: fz.s, whiteSpace: "nowrap" }}>✓ Done</span>
                       : <button disabled={!can} onClick={() => adoptRevenue(m)} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: can ? CL.grn : CL.bdr, color: can ? "#fff" : CL.td, padding: "8px 16px", minHeight: 40, fontWeight: 800, fontSize: fz.s, cursor: can ? "pointer" : "not-allowed" }}>Adopt</button>}
                   </div>
@@ -6376,7 +6384,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "sc" && scCards.length > 0}>
-          {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
+          {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
             onPick={(o) => { try { o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
@@ -6387,7 +6395,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const fz = TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };
             const done = R.round >= 3;
             return <div>
-              <SceneArt bg="rally" who={done ? null : "rival"} h={TALL() ? 160 : 220} />
+              <SceneArt bg="rally" who={done ? null : oppArt(opp)} h={TALL() ? 160 : 220} />
               <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "4px 0 12px" }}>
                 {[0, 1, 2].map(w => <div key={w} style={{ flex: 1, height: 8, borderRadius: 4, background: w < R.round ? CL.grn : w === R.round && !done ? CL.gold : CL.bdr }} />)}
                 <span style={{ fontSize: fz.s, color: CL.td, fontWeight: 800, whiteSpace: "nowrap" }}>{done ? "Result" : "Round " + (R.round + 1) + " of 3"}</span>
@@ -6407,6 +6415,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </Cd>)}
               </div>}
               {done && <Cd style={{ textAlign: "center" }}>
+                <ObjArt name="ballot-box" alt="" size={TALL() ? 110 : 150} />
                 <h3 style={{ fontFamily: F.d, fontSize: fz.l, color: stc.raceWon ? CL.grn : CL.red, margin: "0 0 8px" }}>{stc.raceWon ? so.name + " wins" : opp + " wins"}</h3>
                 <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 14 }}>{R.log.map(x => x.move + " (" + (x.d > 0 ? "+" : "") + x.d + ")").join(" · ")}</div>
                 <Bt onClick={() => setGEnd("complete")}>See how it ends →</Bt>
@@ -7545,7 +7554,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               return <CampaignMove opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > campWarChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days" : ""} onPick={() => handleChoice(opt)} />;
             };
             const board = (opp, ev) => <CampaignBoard week={week} isOpp={opp} youImg={AVATAR_IMGS[setup?.avatar] || HERO_MALE} youName={(setup?.lastNm || pName.split(" ").pop() || "You")} youParty={party}
-              oppName={oppName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oppParty?.id || "OPP"} zones={activeReZones} swingId={reSwing.id} money={campWarChest} days={daysLeft} maxDays={WEEK_DAYS}
+              oppName={oppName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oppParty?.id || "OPP"} oppImg={oppArt(oppName)} zones={activeReZones} swingId={reSwing.id} money={campWarChest} days={daysLeft} maxDays={WEEK_DAYS}
               gfDebt={campGfDebt} slogan={null} lastLog={campLog.length ? campLog[campLog.length - 1] : null} ev={ev} />;
             const moveGrid = { display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fit, minmax(400px, 1fr))", gap: 14 };
             const withFallback = (opts) => opts.some(canTake) ? opts : [...opts, sitOut];
@@ -7908,7 +7917,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             return <Cd style={{ borderColor: CL.gold + "77", maxWidth: 1164, margin: "0 auto" }}>
               <div style={{ textAlign: "center", marginBottom: 29 }}>
-                <div style={{ fontSize: TS(109), marginBottom: 14 }}>⚖️</div>
+                <SceneArt bg={tribunal.level >= 2 ? "supreme-court-abuja" : "courtroom"} who={tribunal.groundId ? "senior-advocate" : null} obj={tribunal.groundId ? null : "petition-file"} h={TALL() ? 200 : 260} />
                 <Bg text={"STAGE " + (tribunal.level + 1) + "/3"} color={CL.gold} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0 7px", fontSize: TS(65), fontWeight: 700 }}>{lvl.nm}</h3>
                 <div style={{ fontSize: TS(34), color: CL.td, fontFamily: F.m }}>{lvl.tag}</div>
@@ -8837,17 +8846,17 @@ const SA_ROSTER = [
   { name: "Barr. Chinedu Eze",         title: "SA, Legal & Legislative Affairs",   zone: "SE", avatar: "🧑🏾‍⚖️", file: "Constitutional lawyer · former House counsel", pic: "commissioner-male-suit" },
   { name: "Mallam Ibrahim Yusuf",      title: "SA, Security & Intergov Affairs",   zone: "NW", avatar: "👳🏾‍♂️", file: "Retired DIG · DSS liaison network", pic: "permanent-secretary" },
   { name: "Ms. Ngozi Okafor",          title: "SA, Delivery & Reform",             zone: "SE", avatar: "👩🏾‍💼", file: "McKinsey partner · procurement reform", pic: "commissioner-technocrat" },
-  { name: "Prof. Bola Adekunle",       title: "SA, Economic Planning",             zone: "SW", avatar: "👨🏾‍🏫", file: "Public finance professor · debt desk", pic: "investor-nigerian" },
+  { name: "Prof. Bola Adekunle",       title: "SA, Economic Planning",             zone: "SW", avatar: "👩🏾‍🏫", file: "Public finance professor · debt desk", pic: "adviser-southwest-female" },
   { name: "Alh. Abdullahi Bawa",     title: "SA, Sub-national Diplomacy",        zone: "NW", avatar: "🧔🏾",   file: "Ex-NGF secretariat · Abuja fixer", pic: "commissioner-male-agbada" },
   { name: "Dr. Ebele Nwosu",           title: "SA, Health & Social Welfare",       zone: "SE", avatar: "👩🏾‍⚕️", file: "Ex-NPHCDA · UCH consultant", pic: "doctor" },
   { name: "Engr. Tosin Ogundipe",      title: "SA, Works & Infrastructure",        zone: "SW", avatar: "👷🏾‍♂️", file: "COREN engineer · ex-FERMA", pic: "deputy-male-suit" },
   { name: "Comrade Preye Dougibo",     title: "SA, Community Relations",           zone: "SS", avatar: "🧑🏾",   file: "Ijaw youth council · former DESOPADEC", pic: "young-voter-student" },
-  { name: "Dr. Terkuma Gbenda",        title: "SA, Agriculture & Food Security",   zone: "NC", avatar: "👨🏾‍🌾", file: "Tiv middle-belt agronomist · IITA alum", pic: "governor-male-kaftan" },
-  { name: "Hajiya Fatima Modu",        title: "SA, Humanitarian & IDP Affairs",    zone: "NE", avatar: "🧕🏾",   file: "UNHCR field officer · Borno-born", pic: "commissioner-female-kaftan" },
+  { name: "Dr. Terkuma Gbenda",        title: "SA, Agriculture & Food Security",   zone: "NC", avatar: "👨🏾‍🌾", file: "Tiv middle-belt agronomist · IITA alum", pic: "adviser-north-male" },
+  { name: "Hajiya Fatima Modu",        title: "SA, Humanitarian & IDP Affairs",    zone: "NE", avatar: "🧕🏾",   file: "UNHCR field officer · Borno-born", pic: "adviser-north-female" },
   { name: "Mrs. Ekaette Akpan",        title: "SA, Diaspora & Investment",         zone: "SS", avatar: "👩🏾‍💼", file: "Ex-NIPC · Akwa Ibom origin", pic: "commissioner-female-suit" },
   { name: "Otunba Ademola Bakare",     title: "SA, Political Affairs",             zone: "SW", avatar: "🎩",   file: "Party elder · four-time convention veteran", pic: "party-chairman" },
   { name: "Amb. Bello Gimba",          title: "SA, Special Duties",                zone: "NC", avatar: "🧑🏾‍💼", file: "Retired diplomat · Nasarawa native", pic: "commissioner-male-suit" },
-  { name: "Dr. Uche Onwuka",           title: "SA, Digital Economy",               zone: "SE", avatar: "👨🏾‍💻", file: "Ex-NITDA · Anambra tech entrepreneur", pic: "doctor-male" },
+  { name: "Dr. Uche Onwuka",           title: "SA, Digital Economy",               zone: "SE", avatar: "👨🏾‍💻", file: "Ex-NITDA · Anambra tech entrepreneur", pic: "adviser-southeast-male" },
   { name: "Mai Musa Kachalla",         title: "SA, Traditional Institutions",      zone: "NE", avatar: "🧑🏾‍🏫", file: "Palace-trained · Kanuri elder", pic: "commissioner-male-agbada" },
 ];
 

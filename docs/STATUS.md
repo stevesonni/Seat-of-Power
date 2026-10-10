@@ -265,3 +265,30 @@ The FAAC card points to the panel when reforms remain.
   - Your defence: Senior Advocates (−12%, debt +₦0.8B), the facts (−5% if the margin is 3% or more), or settling the panel (−20%, corruption +8%, 30% chance it leaks).
   - Losing a lower court costs approval −3 and you appeal. Winning at the Tribunal with a 4% margin or more makes the petitioner quit half the time.
   - Losing at the Supreme Court ends the game as `gEnd: "nullified"` ("ELECTION NULLIFIED"). The petitioner is sworn in, EFCC exposure rises, and the Wikipedia article, share text and report-card title ("Removed by the Supreme Court") reflect it.
+
+## Expansion art (33 images)
+The files are in `public/art/{characters,backgrounds,objects}`, and every one is used:
+- **Advisers:**
+  - Terkuma: `adviser-north-male` (was a governor's portrait).
+  - Fatima: `adviser-north-female`.
+  - Uche: `adviser-southeast-male`.
+  - Bola: `adviser-southwest-female`; Prof. Bola Adekunle is now a woman.
+- **Opponents:** `oppArt()` gives a woman candidate `opposition-candidate-female` on the campaign board, in their moves, in the successor's race and in the cast (`castArt`).
+- **Courts:** both tribunal screens show the courtroom, or the Supreme Court at stage 3. They show `petition-file` until a ground is pleaded, then the `senior-advocate`. Petition cards use the petition file at the Tribunal, the Senior Advocate at Appeal, and `supreme-court-abuja` with the Senior Advocate at the final stage.
+- **Statecraft cards:**
+  - FAAC day: `state-secretariat` with the `civil-servant`, or `salary-slip` when salaries are owed.
+  - Council elections: `polling-unit` with the `electoral-commissioner`.
+  - LG autonomy: `supreme-court-abuja` with the `lg-chairman`.
+  - Godfather's death: `burial-ceremony` with the `godfather-son`.
+- **Crises:**
+  - Oil spill: `oil-creek-spill`.
+  - Illegal refinery: `illegal-refinery-night`.
+  - Bandit "tax": the `vigilante-guard`.
+  - Insurgent attack: `idp-camp`.
+  - Farmer–herder: `northern-farmland`.
+  - Sit-at-home: `shuttered-market`.
+  - Demolition: `waterfront-settlement`.
+  - Gully erosion: `gully-erosion` with the `contractor`.
+  - Lead mining: `artisanal-gold-pits`.
+- **The street:** each voice has a face (`voiceArt`): `okada-rider`, `mechanic`, `civil-servant`, nurse, trader, student, elder, reporter.
+- **Money panel:** the `revenue-officer` heads it. Three reforms show `pos-terminal`, `fingerprint-scanner` and `certificate-of-occupancy`, and the promissory-notes row shows `promissory-note`. The successor's race result shows the `ballot-box`.
