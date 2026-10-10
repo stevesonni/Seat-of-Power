@@ -292,3 +292,19 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
   - Lead mining: `artisanal-gold-pits`.
 - **The street:** each voice has a face (`voiceArt`): `okada-rider`, `mechanic`, `civil-servant`, nurse, trader, student, elder, reporter.
 - **Money panel:** the `revenue-officer` heads it. Three reforms show `pos-terminal`, `fingerprint-scanner` and `certificate-of-occupancy`, and the promissory-notes row shows `promissory-note`. The successor's race result shows the `ballot-box`.
+
+## Politician profile (title screen)
+- The original title screen is kept. A small chip at the top left ("Your politician", or "Hon. <Last>" with a portrait) opens:
+  - **With no profile:** the profile form (`ProfileForm`), with portrait, first and last name, state of origin and party leaning. It is saved on the device as `sop_profile` (`loadProfile` / `saveProfile`).
+  - **With a profile:** a sheet with the politician, an Edit button and the **Hall of Governors**.
+- **New game** passes the profile to `SetupScreen`, which pre-fills the name and portrait, the state (if an origin is set) and the party (if the leaning is a main party). Everything can still be changed.
+- **Hall of Governors:** when a game ends (`gEnd`), the career is added to the profile's `games` (last 30): name, portrait, state, party, report-card title, grade and ending.
+- Accounts (cloud saves, a public Hall) need a server and are not built. The sheet says they are on the way.
+
+## Compound map art (not yet wired)
+- `public/art/compound/`:
+  - `compound-base(.webp|-night.webp)`: 2560×1440.
+  - `buildings/b01–b12`.
+  - `motorcade/`: convoy facing ne, nw, se and sw, parked, siren and dust.
+  - `overlays/`: protest, press, motorcade, crowd cheering, scaffold.
+- `docs/compound/`: the route guide PNG, `compound-roads.json` (parking bays 1–12 in pixels) and the art README.

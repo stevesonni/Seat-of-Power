@@ -1837,11 +1837,74 @@ const HowToPlay = ({ show, onClose }) => {
 };
 
 // ─── TITLE ───
-const TitleScreen = ({ onStart, onHelp, onLoad }) => {
+// A politician profile (saved on this device) carries your name, portrait,
+// home state and party leaning into every campaign, and the Hall of Governors
+// keeps the careers you finished. It lives behind one small chip on the title
+// screen. Real accounts (cloud saves, a public Hall) need a server and come later.
+const PROFILE_KEY = "sop_profile";
+const loadProfile = async () => { try { const r = await window.storage.get(PROFILE_KEY); return r?.value ? JSON.parse(r.value) : null; } catch (e) { return null; } };
+const saveProfile = async (p) => { try { await window.storage.set(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} };
+const stateLabel = (id) => String(id || "").replace(/_/g, " ");
+
+const EntranceSheet = ({ title, onClose, children }) => <div role="dialog" aria-modal="true" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+  style={{ position: "absolute", inset: 0, zIndex: 50, background: "rgba(10,24,16,.55)", display: "flex", alignItems: TALL() ? "flex-end" : "center", justifyContent: "center", padding: TALL() ? 0 : 24 }}>
+  <div className="sop-slide-up" style={{ background: UI.cream, color: UI.ink, width: "100%", maxWidth: 720, maxHeight: TALL() ? "92%" : "88%", overflow: "auto", borderRadius: TALL() ? "28px 28px 0 0" : 28, padding: TALL() ? "20px 18px calc(24px + env(safe-area-inset-bottom))" : "28px 32px" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
+      <b style={{ fontFamily: F.d, fontSize: TS(TALL() ? 30 : 44) }}>{title}</b>
+      <button onClick={onClose} aria-label="Close" style={{ border: "1px solid " + UI.line, background: "#fff", borderRadius: 999, width: 44, height: 44, fontSize: 20, cursor: "pointer", color: UI.ink }}>✕</button>
+    </div>
+    {children}
+  </div>
+</div>;
+
+const ProfileForm = ({ initial, onSave, onCancel }) => {
+  const [first, setFirst] = useState(initial?.first || "");
+  const [last, setLast] = useState(initial?.last || "");
+  const [avatar, setAvatar] = useState(initial?.avatar || null);
+  const [origin, setOrigin] = useState(initial?.origin || "");
+  const [leaning, setLeaning] = useState(initial?.leaning || null);
+  const ready = first.trim() && last.trim() && avatar;
+  const tall = TALL();
+  return <EntranceSheet title={initial ? "Edit your politician" : "Create your politician"} onClose={onCancel}>
+    <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 12 }}>This is you in every campaign you run. You can change it any time.</div>
+    <div style={{ display: "grid", gridTemplateColumns: tall ? "repeat(3,1fr)" : "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
+      {AVATARS.map((a, i) => {
+        const on = avatar === a.id;
+        return <button key={a.id} onClick={() => setAvatar(a.id)} aria-label={a.label} aria-pressed={on} style={{ position: "relative", padding: 0, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 20, background: UI.tints[i % UI.tints.length], aspectRatio: "3 / 4", overflow: "hidden", cursor: "pointer" }}>
+          <img src={AVATAR_IMGS[a.id]} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+          {on && <span style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 13, background: UI.dark, color: "#fff", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700 }}>✓</span>}
+        </button>;
+      })}
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1fr 1fr", gap: 10, marginBottom: 12 }}>
+      <Field label="First name" value={first} onChange={setFirst} placeholder="Ciroma Chukwuma" />
+      <Field label="Last name" value={last} onChange={setLast} placeholder="Adekunle" />
+    </div>
+    <label style={{ display: "block", marginBottom: 12 }}>
+      <span style={{ display: "block", fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>State of origin</span>
+      <select value={origin} onChange={e => setOrigin(e.target.value)} style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontFamily: F.b, fontWeight: 600, fontSize: DS.t.body }}>
+        <option value="">Choose later</option>
+        {Object.keys(STATES).sort().map(k => <option key={k} value={k}>{stateLabel(k)}</option>)}
+      </select>
+    </label>
+    <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>Party leaning</div>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+      {[null, ...MAIN_PARTY_IDS].map(id => { const on = leaning === id; const pa = id ? PARTIES.find(p => p.id === id) : null;
+        return <button key={id || "none"} onClick={() => setLeaning(id)} aria-pressed={on} style={{ padding: "10px 16px", minHeight: 44, borderRadius: 999, border: "1px solid " + (on ? UI.dark : UI.line), background: on ? UI.dark : "#fff", color: on ? "#fff" : UI.ink, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", fontFamily: F.b }}>{id ? (pa?.i || "") + " " + id : "Undecided"}</button>; })}
+    </div>
+    <PillBtn disabled={!ready} onClick={() => onSave({ ...(initial || {}), first: first.trim(), last: last.trim(), avatar, origin: origin || null, leaning, created: initial?.created || Date.now(), games: initial?.games || [] })} style={{ width: "100%", opacity: ready ? 1 : .5 }}>
+      {initial ? "Save changes" : "Create my politician"}
+    </PillBtn>
+    <div style={{ fontSize: DS.t.meta, color: UI.dim, textAlign: "center", marginTop: 10 }}>{!ready ? "Pick a portrait and type a first and last name. " : ""}Saved on this device only. No email or phone number needed.</div>
+  </EntranceSheet>;
+};
+
+const TitleScreen = ({ onStart, onHelp, onLoad, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
   const [hasSave, setHasSave] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [sheet, setSheet] = useState(null); // "profile" | "me"
   useEffect(() => {
     setTimeout(() => setOp(1), 100);
     (async () => {
@@ -1863,7 +1926,11 @@ const TitleScreen = ({ onStart, onHelp, onLoad }) => {
   const lineup = ["female", "babariga", "f_isiagu", "m_suit", "f_kaftan"];
   return (
     <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ display: "flex", justifyContent: "flex-end", padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
+        <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: profile ? "4px 16px 4px 4px" : "10px 18px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", maxWidth: "60%" }}>
+          {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0] }} /> : <span aria-hidden="true">👤</span>}
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
+        </button>
         <button onClick={onHelp} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "10px 20px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer" }}>How to play</button>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: tall ? "flex-start" : "center", padding: tall ? "4% 20px 0" : "0 40px" }}>
@@ -1879,10 +1946,27 @@ const TitleScreen = ({ onStart, onHelp, onLoad }) => {
         <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "38%", background: "linear-gradient(180deg, rgba(246,242,234,0), " + UI.cream + " 85%)", zIndex: 20 }} />
       </div>
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
-        <PillBtn onClick={onStart} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
+        <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
+      {sheet === "profile" && <ProfileForm initial={profile} onCancel={() => setSheet(null)} onSave={(p) => { setProfile(p); saveProfile(p); setSheet(null); }} />}
+      {sheet === "me" && profile && <EntranceSheet title={"Hon. " + profile.first + " " + profile.last} onClose={() => setSheet(null)}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+          <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0] }} />
+          <div style={{ flex: 1, fontSize: DS.t.label, color: UI.sub }}>{[profile.origin ? stateLabel(profile.origin) + " origin" : null, profile.leaning ? profile.leaning + " leaning" : null].filter(Boolean).join(" · ") || "No home state or party yet"}<div>New games start with your name, portrait{profile.origin ? ", state" : ""}{profile.leaning ? " and party" : ""} filled in.</div></div>
+          <button onClick={() => setSheet("profile")} style={{ border: "1px solid " + UI.line, background: "#fff", borderRadius: 999, padding: "10px 16px", minHeight: 44, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", color: UI.ink, fontFamily: F.b }}>Edit</button>
+        </div>
+        <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🏅 Hall of Governors</b>
+        {(profile.games || []).length ? <div style={{ display: "grid", gap: 8 }}>
+          {(profile.games || []).slice().reverse().map((g, i) => <div key={i} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center" }}>
+            <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{g.title}</b>
+              <span style={{ fontSize: DS.t.meta, color: UI.sub }}>{stateLabel(g.state)} · {g.party} · {g.ending}</span></span>
+            <b style={{ fontFamily: F.d, fontSize: TS(36), color: g.grade === "A" || g.grade === "B" ? UI.green : g.grade === "C" ? "#b7791f" : "#c0392b" }}>{g.grade}</b>
+          </div>)}
+        </div> : <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>No finished careers yet. Every governorship you complete, win or lose, is recorded here with its title and grade.</div>}
+        <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 12, lineHeight: 1.5 }}>Saved on this device. Accounts are on the way: sign in to keep your career across devices and join a public Hall of Governors.</div>
+      </EntranceSheet>}
     </div>
   );
 };
@@ -2064,20 +2148,20 @@ const Field = ({ label, value, onChange, placeholder, autoFocus }) => <label sty
     style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, outline: "none", fontFamily: F.b, fontWeight: 600, boxSizing: "border-box" }} />
 </label>;
 
-const SetupScreen = ({ onDone, level, setLevel }) => {
+const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   useMode("public");
-  const [firstNm, setFirstNm] = useState("");
-  const [lastNm, setLastNm] = useState("");
+  const [firstNm, setFirstNm] = useState(profile?.first || "");
+  const [lastNm, setLastNm] = useState(profile?.last || "");
   const nm = (firstNm.trim() + " " + lastNm.trim()).trim();
   const setNm = (v) => { const p = String(v || "").trim().split(/\s+/); setFirstNm(p[0] || ""); setLastNm(p.slice(1).join(" ") || ""); };
-  const [party, setParty] = useState(null);
+  const [party, setParty] = useState(profile && MAIN_PARTY_IDS.includes(profile.leaning) ? profile.leaning : null);
   const [customParty, setCustomParty] = useState(null); // a party the player registers
   const [cpOpen, setCpOpen] = useState(false);
   const [cpName, setCpName] = useState("");
   const [cpId, setCpId] = useState("");
   const [cpCol, setCpCol] = useState("#7c3aed");
-  const [avatar, setAvatar] = useState(null);
-  const [st, setSt] = useState(null);
+  const [avatar, setAvatar] = useState(profile?.avatar || null);
+  const [st, setSt] = useState(profile?.origin || null);
   const [depGov, setDepGov] = useState(null);
   const [agenda, setAgenda] = useState(null);
   const [slogan, setSlogan] = useState(null);
@@ -3310,6 +3394,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { try { if (!gEnd) window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch(e) {} }, [turn]);
   // When the game ends, the save goes: the title screen offers a new game only.
   useEffect(() => { if (gEnd) { try { window.storage?.set("sop_save", ""); } catch (e) {} } }, [gEnd]);
+  // A finished career goes into the Hall of Governors on this device.
+  useEffect(() => {
+    if (!gEnd) return;
+    (async () => {
+      const p = await loadProfile(); if (!p) return;
+      const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - s.debt * 4 - s.cor * 40);
+      const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2;
+      const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
+      const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
+      const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
+      const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now() };
+      const games = p.games || [], last = games[games.length - 1];
+      if (last && last.name === rec.name && last.state === rec.state && last.ending === rec.ending && last.turn === rec.turn) return;
+      await saveProfile({ ...p, games: [...games, rec].slice(-30) });
+    })();
+  }, [gEnd]);
 
   const tb = Math.max(0, s.igr + s.faac - s.debt * .08);
   const bs = Object.values(bud).reduce((a, b) => a + b, 0);
@@ -8914,6 +9014,11 @@ function App() {
   const [loadedSave, setLoadedSave] = useState(null);
   const rst = () => { setScr("title"); setSetup(null); setFinalStats(null); setLoadedSave(null); };
 
+  // The politician profile on this device, used by the entrance and setup.
+  const [profile, setProfile] = useState(null);
+  const [startProfile, setStartProfile] = useState(null);
+  useEffect(() => { loadProfile().then(p => { if (p) setProfile(p); }); }, [scr]);
+
   const loadGame = async () => {
     try {
       const r = await window.storage.get("sop_save");
@@ -8949,8 +9054,8 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen onStart={() => { try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
-      {scr === "setup" && <SetupScreen level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level }); setLoadedSave(null); setScr("gov"); }} />}
+      {scr === "title" && <TitleScreen profile={profile} setProfile={setProfile} onStart={(p) => { try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "setup" && <SetupScreen profile={startProfile} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <PresRace setup={setup} stats={finalStats} onResult={won => setScr(won ? "end_pres_w" : "end_pres_l")} />}
       {scr === "senate" && <SenateRace setup={setup} stats={finalStats} onResult={won => setScr(won ? "end_sen_w" : "end_sen_l")} />}
