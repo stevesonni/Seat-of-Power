@@ -973,47 +973,47 @@ const REVENUE_MEASURES = [
 
 
 // ── The compound: a landscape hub map of the State House district ──
-// Base art is 2560×1440. Its roads run straight across and down, meeting at a
-// central roundabout in front of Government House. Points below were plotted
-// on a 2000×1125 preview of the art (×1.28 gives base pixels). Every building
-// has a parking bay on the road in front of it; the motorcade drives from bay
-// to bay along the road graph (docs/compound).
-const HUB_W = 2560, HUB_H = 1440;
-const hubP = (x, y) => [x * 1.28, y * 1.28];
+// One painted map (art/compound/compound-full.webp, 1500×850) with every
+// building already drawn in place. Over it sit a click area per building, its
+// name and alerts, and the motorcade, which drives the painted roads from
+// parking bay to parking bay (docs/compound). Points are in map pixels.
+const HUB_W = 1500, HUB_H = 850;
 const HUB_NODES = {
-  n1: hubP(245, 232), n2: hubP(700, 232), n3: hubP(1250, 232), n4: hubP(1745, 232),
-  n5: hubP(700, 470), n6: hubP(1250, 470),
-  rW: hubP(865, 580), rN: hubP(990, 465), rE: hubP(1120, 580), rS: hubP(990, 690),
-  rNW: hubP(902, 497), rNE: hubP(1078, 497), rSE: hubP(1078, 663), rSW: hubP(902, 663), // the roundabout's curve
-  n7: hubP(140, 590), n8: hubP(1870, 590), n9: hubP(990, 870),
+  // top road, between the first and second rows
+  a1: [150, 165], a2: [508, 165], a3: [985, 165], a4: [1355, 165],
+  // second road; the diagonals run from its inner ends to the roundabout
+  b0: [95, 335], b1L: [462, 335], b1: [505, 335], b2: [1000, 337], b2R: [1042, 340], b3: [1440, 340],
+  dNW: [640, 376], dNE: [860, 376],
+  // the roundabout (centre 750,415)
+  rN: [750, 362], rNE: [789, 376], rE: [803, 415], rSE: [789, 454], rS: [750, 468], rSW: [711, 454], rW: [697, 415], rNW: [711, 376],
+  // third road, past the avenue
+  c0: [20, 478], cP: [395, 478], c1: [455, 478], s1: [750, 478], c3: [1045, 476], cM: [1072, 476], c4: [1480, 476],
+  // the riverside road
+  d0: [20, 665], dP: [395, 665], d1: [750, 665], dM: [1072, 665], d4: [1480, 665],
 };
-const HUB_ROADS = [["n1", "n2"], ["n2", "n3"], ["n3", "n4"], ["n2", "n5"], ["n3", "n6"], ["n5", "rW"], ["n6", "rE"],
-  ["rW", "rNW"], ["rNW", "rN"], ["rN", "rNE"], ["rNE", "rE"], ["rE", "rSE"], ["rSE", "rS"], ["rS", "rSW"], ["rSW", "rW"], ["rW", "n7"], ["rE", "n8"], ["rS", "n9"], ["n1", "n7"], ["n4", "n8"]];
-// plot: the building's plot on the preview art [left, top, right, bottom].
-// ar: the sprite's height / width. up: how far its roof may rise above the
-// plot (into the hedge behind it, never into the next plot). sink: how far its
-// front steps may come forward onto the pavement. bay: where the motorcade
-// parks; on: the road it parks on (one node = a spur). hubFit turns these into
-// c (bottom-centre) and w (width), both in base pixels.
-const hubFit = (b) => {
-  const [x0, y0, x1, y1] = b.plot, bottom = y1 + (b.sink ?? 15);
-  const w = Math.min((x1 - x0) * .92, (bottom - y0 + b.up) / b.ar);
-  return { ...b, c: hubP((x0 + x1) / 2, bottom), w: w * 1.28 };
-};
+const HUB_ROADS = [["a1", "a2"], ["a2", "a3"], ["a3", "a4"], ["a1", "b0"], ["a4", "b3"], ["a2", "b1"], ["a3", "b2"],
+  ["b0", "b1L"], ["b1L", "b1"], ["b2", "b2R"], ["b2R", "b3"], ["b1", "dNW"], ["dNW", "rNW"], ["b2", "dNE"], ["dNE", "rNE"],
+  ["rN", "rNE"], ["rNE", "rE"], ["rE", "rSE"], ["rSE", "rS"], ["rS", "rSW"], ["rSW", "rW"], ["rW", "rNW"], ["rNW", "rN"],
+  ["b0", "c0"], ["b3", "c4"], ["b1L", "c1"], ["b2R", "c3"], ["rS", "s1"],
+  ["c0", "cP"], ["cP", "c1"], ["c1", "s1"], ["s1", "c3"], ["c3", "cM"], ["cM", "c4"],
+  ["cP", "dP"], ["cM", "dM"], ["s1", "d1"], ["c0", "d0"], ["c4", "d4"],
+  ["d0", "dP"], ["dP", "d1"], ["d1", "dM"], ["dM", "d4"]];
+// box: the building on the map [left, top, right, bottom]. bay: where the
+// motorcade parks; on: the road it parks on (one node = a spur).
 const HUB_BUILDINGS = [
-  { id: "assembly", img: "b02-house-of-assembly", name: "House of Assembly", plot: [815, 75, 1175, 195], ar: .757, up: 70, bay: hubP(995, 232), on: ["n2", "n3"] },
-  { id: "inec", img: "b09-electoral-commission", name: "Electoral Commission", plot: [405, 85, 680, 195], ar: .703, up: 75, bay: hubP(535, 232), on: ["n1", "n2"] },
-  { id: "party", img: "b07-party-secretariat", name: "Party Secretariat", plot: [1335, 85, 1595, 195], ar: .814, up: 75, bay: hubP(1465, 232), on: ["n3", "n4"] },
-  { id: "secretariat", img: "b08-state-secretariat", name: "State Secretariat", plot: [320, 270, 610, 385], ar: .805, up: 60, bay: hubP(700, 330), on: ["n2", "n5"] },
-  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance", plot: [1385, 270, 1650, 385], ar: 1.045, up: 60, bay: hubP(1250, 330), on: ["n3", "n6"] },
-  { id: "gh", img: "b01-government-house", name: "Government House", plot: [820, 270, 1175, 450], ar: .664, up: 60, sink: 5, bay: hubP(1092, 478), on: ["rNE"] },
-  { id: "court", img: "b04-high-court", name: "High Court", plot: [260, 425, 600, 540], ar: .778, up: 35, sink: 25, bay: hubP(430, 590), on: ["n7", "rW"] },
-  { id: "police", img: "b11-police-hq", name: "Police HQ", plot: [1395, 425, 1715, 540], ar: .8, up: 35, sink: 25, bay: hubP(1555, 590), on: ["rE", "n8"] },
-  { id: "palace", img: "palace", name: "The Palace", plot: [140, 670, 455, 825], ar: .78, up: 90, bay: hubP(298, 600), on: ["n7", "rW"] },
-  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office", plot: [555, 670, 860, 825], ar: .775, up: 90, bay: hubP(708, 600), on: ["n7", "rW"] },
-  { id: "projects", img: "o-scaffold", name: "Project Sites", overlay: true, plot: [1130, 670, 1440, 825], ar: .852, up: 40, bay: hubP(1285, 600), on: ["rE", "n8"] },
-  { id: "market", img: "b12-market", name: "Central Market", plot: [1540, 670, 1840, 825], ar: .77, up: 90, bay: hubP(1690, 600), on: ["rE", "n8"] },
-].map(hubFit);
+  { id: "inec", img: "b09-electoral-commission", name: "Electoral Commission", box: [258, 31, 469, 142], bay: [365, 165], on: ["a1", "a2"] },
+  { id: "assembly", img: "b02-house-of-assembly", name: "House of Assembly", box: [633, 8, 867, 150], bay: [750, 165], on: ["a2", "a3"] },
+  { id: "party", img: "b07-party-secretariat", name: "Party Secretariat", box: [1039, 39, 1242, 142], bay: [1140, 165], on: ["a3", "a4"] },
+  { id: "secretariat", img: "b08-state-secretariat", name: "State Secretariat", box: [188, 181, 414, 299], bay: [300, 335], on: ["b0", "b1L"] },
+  { id: "gh", img: "b01-government-house", name: "Government House", box: [562, 165, 938, 299], bay: [750, 335], on: ["rN"] },
+  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance", box: [1078, 181, 1297, 299], bay: [1190, 340], on: ["b2R", "b3"] },
+  { id: "court", img: "b04-high-court", name: "High Court", box: [164, 331, 391, 456], bay: [280, 478], on: ["c0", "cP"] },
+  { id: "police", img: "b11-police-hq", name: "Police HQ", box: [1094, 338, 1305, 441], bay: [1200, 476], on: ["cM", "c4"] },
+  { id: "palace", img: "palace", name: "The Palace", box: [62, 472, 359, 653], bay: [230, 665], on: ["d0", "dP"] },
+  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office", box: [461, 480, 672, 614], bay: [560, 665], on: ["dP", "d1"] },
+  { id: "projects", img: "o-scaffold", name: "Project Sites", overlay: true, box: [797, 472, 1062, 645], bay: [930, 665], on: ["d1", "dM"] },
+  { id: "market", img: "b12-market", name: "Central Market", box: [1109, 472, 1406, 653], bay: [1250, 665], on: ["dM", "d4"] },
+];
 const hubDist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
 // The road graph with every bay spliced into the road it sits on.
 const HUB_GRAPH = (() => {
@@ -1029,7 +1029,7 @@ const HUB_GRAPH = (() => {
   HUB_BUILDINGS.forEach(b => { if (b.on.length === 1) link("@" + b.id, b.on[0]); });
   return { pos, adj };
 })();
-// The shortest drive between two buildings' bays, as a list of base-pixel points.
+// The shortest drive between two buildings' bays, as a list of map points.
 const hubRoute = (from, to) => {
   if (from === to) return [];
   const { pos, adj } = HUB_GRAPH, src = "@" + from, dst = "@" + to;
@@ -1057,7 +1057,7 @@ const hubHeading = (dx, dy) => {
 };
 // The front of the convoy (where the pilot car's siren is) for each heading.
 const HUB_FRONT = { ne: [.8, .16], nw: [.2, .16], se: [.84, .84], sw: [.16, .84] };
-const HUB_CAR_W = 250;
+const HUB_CAR_W = 120;
 let hubConvoyAt = "gh"; // where the motorcade is parked; survives leaving the map
 
 const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) => {
@@ -1090,7 +1090,7 @@ const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) 
     if (!pts.length) { onArrive(b.id); return; }
     const segs = []; let total = 0;
     for (let n = 1; n < pts.length; n++) { const L = Math.hypot(pts[n][0] - pts[n - 1][0], pts[n][1] - pts[n - 1][1]); if (L > 0) { segs.push({ a: pts[n - 1], b: pts[n], L }); total += L; } }
-    const dur = Math.min(3000, Math.max(1300, total / .9)); // ms
+    const dur = Math.min(3200, Math.max(1600, total * 2.2)); // ms
     setMoving(true);
     const t0 = performance.now();
     let lastSeg = null;
@@ -1117,24 +1117,22 @@ const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) 
       <span><span style={{ display: "block", fontSize: TALL() ? TS(18) : TS(24), opacity: .8 }}>Next</span><b style={{ fontSize: TALL() ? TS(22) : TS(32) }}>{next.label}</b></span>
       <span style={{ background: "#0b7a4b", borderRadius: 999, padding: "8px 16px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(26), whiteSpace: "nowrap" }}>Drive there →</span>
     </button>}
-    <div ref={wrapRef} style={{ position: "relative", isolation: "isolate", width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto", aspectRatio: HUB_W + " / " + HUB_H, borderRadius: 18, overflow: "hidden", background: "#5f8f3a url(./art/compound/compound-base" + (night ? "-night" : "") + ".webp) center/cover", boxShadow: "0 10px 30px rgba(0,0,0,.18)", userSelect: "none" }}>
-      {/* buildings, back to front so nearer ones overlap farther ones */}
-      {HUB_BUILDINGS.slice().sort((a, b) => a.c[1] - b.c[1]).map(b => {
-        const src = b.id === "palace" ? "./art/compound/buildings/" + palace + ".webp" : b.overlay ? "./art/compound/overlays/" + b.img + ".webp" : "./art/compound/buildings/" + b.img + ".webp";
-        const badge = badges[b.id];
-        return <button key={b.id} onClick={() => go(b)} aria-label={b.name + (badge ? ": " + badge.text : "")} title={b.name}
-          style={{ position: "absolute", ...pct(b.c), width: (b.w / HUB_W * 100) + "%", transform: "translate(-50%, -100%)", padding: 0, border: 0, background: "transparent", cursor: moving ? "default" : "pointer", zIndex: Math.round(b.c[1]) }}>
-          <img src={src} alt="" draggable={false} style={{ width: "100%", height: "auto", display: "block", filter: badge ? "drop-shadow(0 0 6px rgba(255,209,102,.9))" : "drop-shadow(0 4px 6px rgba(0,0,0,.25))" }} />
-        </button>;
-      })}
+    <div ref={wrapRef} style={{ position: "relative", isolation: "isolate", width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto", aspectRatio: HUB_W + " / " + HUB_H, borderRadius: 18, overflow: "hidden", background: "#5f8f3a", boxShadow: "0 10px 30px rgba(0,0,0,.18)", userSelect: "none" }}>
+      <img src="./art/compound/compound-full.webp" alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", filter: night ? "brightness(.62) saturate(.75)" : "none", transition: "filter .6s" }} />
+      {night && <div style={{ position: "absolute", inset: 0, background: "rgba(20,34,90,.32)", mixBlendMode: "multiply", pointerEvents: "none" }} />}
+      {/* a click area over each painted building; it lights up when it needs you */}
+      {HUB_BUILDINGS.map(b => { const badge = badges[b.id], [x0, y0, x1, y1] = b.box;
+        return <button key={b.id} onClick={() => go(b)} aria-label={b.name + (badge ? ": " + badge.text : "")} title={b.name} className="sop-hub-spot"
+          style={{ position: "absolute", left: (x0 / HUB_W * 100) + "%", top: (y0 / HUB_H * 100) + "%", width: ((x1 - x0) / HUB_W * 100) + "%", height: ((y1 - y0) / HUB_H * 100) + "%", padding: 0, border: 0, borderRadius: 10, background: "transparent", cursor: moving ? "default" : "pointer", zIndex: 10,
+            boxShadow: badge ? "inset 0 0 0 2px " + (badge.tone === "bad" ? "rgba(192,57,43,.85)" : "rgba(233,162,59,.9)") + ", 0 0 14px " + (badge.tone === "bad" ? "rgba(192,57,43,.55)" : "rgba(255,209,102,.6)") : "none" }} />; })}
       {/* names and alerts sit above every building so none is hidden */}
-      {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <div key={"l" + b.id} onClick={() => go(b)} style={{ position: "absolute", ...pct(b.c), transform: "translate(-50%, -30%)", zIndex: 4500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: moving ? "default" : "pointer" }}>
+      {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <div key={"l" + b.id} onClick={() => go(b)} style={{ position: "absolute", ...pct([(b.box[0] + b.box[2]) / 2, b.box[3]]), transform: "translate(-50%, -85%)", zIndex: 4500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: moving ? "default" : "pointer" }}>
         {badge && <span className="sop-fade-in" style={{ background: badge.tone === "bad" ? "#c0392b" : "#e9a23b", color: "#fff", borderRadius: 999, padding: (fz * .25) + "px " + (fz * .7) + "px", fontSize: fz, fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 3px 10px rgba(0,0,0,.3)", fontFamily: F.b }}>{badge.text}</span>}
         <span style={{ background: "rgba(18,48,31,.85)", color: "#fff", borderRadius: 999, padding: (fz * .2) + "px " + (fz * .6) + "px", fontSize: fz * .85, fontWeight: 700, whiteSpace: "nowrap", fontFamily: F.b }}>{b.name}</span>
       </div>; })}
       {/* what is happening around the buildings */}
-      {overlays.map(o => { const P = HUB_BUILDINGS.find(b => b.id === o.at); if (!P) return null; return <img key={o.img + o.at} src={"./art/compound/overlays/" + o.img + ".webp"} alt="" draggable={false} className="sop-fade-in"
-        style={{ position: "absolute", left: ((P.c[0] + (o.dx || 0)) / HUB_W * 100) + "%", top: ((P.c[1] + (o.dy || 0)) / HUB_H * 100) + "%", width: ((o.w || 230) / HUB_W * 100) + "%", transform: "translate(-50%, -80%)", zIndex: Math.round(P.c[1] + 300), pointerEvents: "none" }} />; })}
+      {overlays.map(o => <img key={o.img + o.p} src={"./art/compound/overlays/" + o.img + ".webp"} alt="" draggable={false} className="sop-fade-in"
+        style={{ position: "absolute", ...pct(o.p), width: ((o.w || 120) / HUB_W * 100) + "%", transform: "translate(-50%, -85%)", zIndex: 20, pointerEvents: "none" }} />)}
       {/* the motorcade */}
       <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 4400 }}>
         <div style={{ position: "absolute", ...pct(moving ? [0, 0] : parkP), width: (HUB_CAR_W / HUB_W * 100) + "%", transform: "translate(-50%, -50%)", display: moving ? "none" : "block" }}>
@@ -6224,11 +6222,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const hubOverlays = () => {
     // dx/dy: offset from the building's centre, in base pixels
-    const o = [];
-    if (stc.arrears > 0 || s.app < 35) o.push({ img: "o-protest", at: "secretariat", dx: 237, dy: -40 });
-    if ((stc.petition && stc.petition.stage < 3) || nicPending || curCourt) o.push({ img: "o-press", at: "court", dx: 270, dy: 0 });
-    else if (scHouse().loyal < scHouse().seats / 2) o.push({ img: "o-press", at: "assembly", dx: -300, dy: -10 });
-    if (s.app >= 60 || turn === 4 || turn === MT) o.push({ img: "o-crowd-cheering", at: "party", dx: 237, dy: 25 });
+    const o = []; // p: where the group stands on the map
+    if (stc.arrears > 0 || s.app < 35) o.push({ img: "o-protest", p: [440, 318] });
+    if ((stc.petition && stc.petition.stage < 3) || nicPending || curCourt) o.push({ img: "o-press", p: [430, 462] });
+    else if (scHouse().loyal < scHouse().seats / 2) o.push({ img: "o-press", p: [570, 150] });
+    if (s.app >= 60 || turn === 4 || turn === MT) o.push({ img: "o-crowd-cheering", p: [1300, 150] });
     return o;
   };
   const hubNext = () => needSetup ? { id: "gh", label: "Set up your government" }
@@ -9321,6 +9319,8 @@ function App() {
         .sop-slide-up { animation: sopSlideUp .35s ease-out; }
         @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes sopSiren { 0% { opacity: 1; filter: hue-rotate(0deg); } 100% { opacity: .35; filter: hue-rotate(180deg); } }
+        .sop-hub-spot { transition: box-shadow .2s, background .2s; }
+        .sop-hub-spot:hover, .sop-hub-spot:focus-visible { background: rgba(255,255,255,.14) !important; box-shadow: inset 0 0 0 2px rgba(255,255,255,.85), 0 0 16px rgba(255,255,255,.5) !important; outline: none; }
         @keyframes sopDust { 0% { opacity: .75; transform: translate(-50%, -50%) scale(.6); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); } }
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>

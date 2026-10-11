@@ -303,17 +303,17 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
 
 ## The compound (landscape hub map)
 - **Desk → Compound** is the default view (`CompoundHub` in `game/seat-of-power.jsx`).
-  - The base is the rich v1 plate (`public/art/compound/compound-base(.webp|-night.webp)`, 2560×1440): straight roads, a roundabout in front of Government House, a river and a bridge. The night plate shows while the half-year is being reviewed.
-  - **Buildings:** each of the 12 sits on one of the plate's 12 plots. `HUB_BUILDINGS` holds each plot's rectangle (measured on a 2000×1125 preview; ×1.28 for base pixels) and the sprite's aspect ratio. `hubFit` scales each building to fit its plot. Its roof may rise into the hedge behind, but never into the next plot.
-  - **Labels and alerts:** names and alert badges sit in their own top layer so no building can hide them. A badge marks a building that needs you (budget awaiting, salaries owed, court cases, stalled projects and so on).
+  - **The map** is one painted image from Lovable with every building drawn in place: `public/art/compound/compound-full.webp`, 1500×850. All points in the code are in its pixels. At night (while the half-year is being reviewed) the same image is dimmed and tinted blue in CSS.
+  - **Buildings:** `HUB_BUILDINGS` gives each building's box on the map. A transparent click area covers each box, lights up on hover, and glows amber or red when the building needs you.
+  - **Labels and alerts** sit on a top layer at the bottom edge of each box.
   - **Motorcade:**
-    - Clicking a building drives the convoy there along the roads, then opens that place.
-    - The road graph is `HUB_NODES` / `HUB_ROADS`, including eight points around the roundabout. Each building's parking bay is spliced into the road it sits on, and `hubRoute` uses Dijkstra.
-    - The convoy art faces the four diagonals. On straight roads `hubHeading` takes the nearest diagonal and rotates it to the road's heading.
-  - **Overlays** are keyed to a building:
-    - a protest at the State Secretariat (arrears or approval under 35);
-    - the press at the High Court (petition or court case) or at the Assembly (hostile House);
+    - Clicking a building drives the convoy there, then opens that place.
+    - The road graph is `HUB_NODES` / `HUB_ROADS`, plotted from the painted roads and including the roundabout ring. Each parking bay is spliced into its road, and `hubRoute` uses Dijkstra.
+    - The convoy sprites face the diagonals. `hubHeading` rotates the nearest one to the road's heading.
+  - **Overlays** are placed at fixed map points:
+    - a protest by the State Secretariat;
+    - the press at the High Court or the Assembly;
     - a cheering crowd at the Party Secretariat.
-  - **"Next" banner:** names the next step and drives there.
-  - **Phones:** a two-column list sits under the map.
-- **Art:** `buildings/b01–b12`, `motorcade/` (ne, nw, se, sw, parked, siren, dust) and `overlays/`. The static `o-motorcade` overlay is no longer used, because the real convoy drives. `docs/compound/` holds the art README. Its route guide and `compound-roads.json` describe the old v2 isometric plate and no longer apply.
+  - **Phones:** a two-column list sits under the map, using the building cut-outs as thumbnails.
+- **Art:** `compound-full.webp` is the map. `buildings/b01–b12` are now used only as list thumbnails. `motorcade/` and `overlays/` are still used. The empty plates (`compound-base(.webp|-night.webp)`) and the static `o-motorcade` overlay are no longer used.
+- **Upgrade path:** a higher-resolution or true night version of the painted map can replace `compound-full.webp` directly. If the size changes, scale the coordinates in `HUB_NODES` / `HUB_BUILDINGS`.

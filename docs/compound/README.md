@@ -10,5 +10,5 @@ High-res sources: src/assets/art-expansion/compound/. Not yet wired into the gam
 - motorcade/m-convoy-ne|nw|se|sw.webp — 420×300, transparent, one convoy (pilot car, 2 SUVs, van), centred. nw/sw are mirrors of ne/se.
 - motorcade/m-convoy-parked.webp — doors open, aide stepping out. m-siren-glow.webp (96×48), m-dust.webp (120×80).
 
-## Now in use: the rich v1 plate
-The game uses the v1 plate (straight roads, roundabout, river) instead of the v2 isometric grid. The plot rectangles, road graph and parking bays are hard-coded in `game/seat-of-power.jsx` (`HUB_NODES`, `HUB_ROADS`, `HUB_BUILDINGS`). `compound-roads-guide.png` and `compound-roads.json` above describe the v2 grid and are kept only for reference.
+## Now in use: Lovable's painted map
+The game uses `compound-full.webp` (1500×850), a single painted map with all 12 buildings in place. Building boxes, roads and parking bays are hard-coded in `game/seat-of-power.jsx` (`HUB_BUILDINGS`, `HUB_NODES`, `HUB_ROADS`), in that image's pixels. The empty plates and the v2 route guide/JSON above are kept only for reference.
