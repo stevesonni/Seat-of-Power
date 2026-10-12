@@ -384,7 +384,7 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
 - `AsoRock` in `game/seat-of-power.jsx` replaces the old one-screen `PresRace`.
 - **Two ways in:**
   - a governor's "Run for President" carries their record in (approval, corruption, party, honours, war chest);
-  - the title screen's **Road to Aso Rock** starts a fresh candidate (name, home state, party, and a background: senator, business magnate or technocrat).
+  - the presidency is earned: there is no fresh start from the title screen. The title shows **Continue: Road to Aso Rock** only while a run is saved.
 - **Stages:**
   1. The party primary: three moves for delegates across six zones against two named rivals, then the convention, with a second ballot if needed. If you lose, you can take a smaller party's ticket or accept the result.
   2. A running mate: balanced, loyal, or a technocrat; or the rival you promised the slot to.

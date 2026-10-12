@@ -2067,7 +2067,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile
       </div>
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
         <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
-        <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 {hasPres ? "Continue: Road to Aso Rock" : "Road to Aso Rock"}<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>{hasPres ? "Your presidential run" : "Run for president"}</span></PillBtn>
+        {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
@@ -9685,7 +9685,14 @@ const AsoRock = ({ setup, stats, onExit }) => {
         </Cd>
       </Frame>;
     }
-    return <FreshStart onBegin={begin} onExit={onExit} fz={fz} />;
+    // The presidency is earned: the only way in is through a finished governorship.
+    return <Frame>
+      <H kick="The presidential run" title="Road to Aso Rock" sub="The presidency is earned in Government House." />
+      <Cd>
+        <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.5, marginBottom: 14 }}>Serve as governor first. When your time in office ends, choose <b>Run for President</b> and your record comes with you.</div>
+        <Bt onClick={onExit} style={{ width: "100%" }}>Back</Bt>
+      </Cd>
+    </Frame>;
   }
 
   const myP = PARTIES.find(p => p.id === G.party);
@@ -9778,33 +9785,6 @@ const AsoRock = ({ setup, stats, onExit }) => {
       <Bt onClick={finish} style={{ width: "100%" }}>{won ? "🏅 Into the Hall of Governors" : "Return to the title"}</Bt>
     </Cd>
   </Frame>;
-};
-
-// A fresh candidate: name, home state, party and background.
-const FreshStart = ({ onBegin, onExit, fz }) => {
-  const [p, setP] = useState(null);
-  const [f, setF] = useState({ name: "", state: "Lagos", party: MAIN_PARTY_IDS[0], bg: "senator" });
-  useEffect(() => { loadProfile().then(pr => { if (pr) { setP(pr); setF(x => ({ ...x, name: pr.first + " " + pr.last, state: pr.origin && STATES[pr.origin] && pr.origin !== "FCT" ? pr.origin : x.state, party: MAIN_PARTY_IDS.includes(pr.leaning) ? pr.leaning : x.party })); } }); }, []);
-  const field = { width: "100%", padding: 14, fontSize: fz.m, border: "1px solid " + CL.bdr, borderRadius: 12, boxSizing: "border-box", background: "#fff", color: CL.txt, fontFamily: F.b };
-  const lab = (t) => <div style={{ fontSize: fz.s, fontWeight: 800, color: CL.grn, margin: "12px 0 6px" }}>{t}</div>;
-  const B = PRES_BACKGROUNDS.find(b => b.id === f.bg);
-  return <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 16px 120px" : "36px 43px" }}>
-    <Flag />
-    <div style={{ maxWidth: 760, margin: "0 auto" }}>
-      <SceneArt bg="abuja-federal-office" who="party-chairman" h={TALL() ? 160 : 220} />
-      <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.xl, textAlign: "center", margin: "6px 0" }}>Road to Aso Rock</h2>
-      <Cd>
-        {lab("Your name")}<input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="First and last name" style={field} />
-        {lab("Home state")}<select value={f.state} onChange={e => setF({ ...f, state: e.target.value })} style={field}>{PRES_STATES.slice().sort().map(st => <option key={st} value={st}>{st.replace("_", " ")} · {PZN(STATES[st].zone)}</option>)}</select>
-        {lab("Party")}<select value={f.party} onChange={e => setF({ ...f, party: e.target.value })} style={field}>{MAIN_PARTY_IDS.map(id => { const pp = PARTIES.find(x => x.id === id); return pp ? <option key={id} value={id}>{pp.nm} ({id})</option> : null; })}</select>
-        {lab("Background")}<div style={{ display: "grid", gap: 8 }}>{PRES_BACKGROUNDS.map(b => <button key={b.id} onClick={() => setF({ ...f, bg: b.id })} style={{ textAlign: "left", padding: "10px 14px", borderRadius: 12, border: "2px solid " + (f.bg === b.id ? CL.grn : CL.bdr), background: f.bg === b.id ? CL.grn + "0f" : "#fff", cursor: "pointer", fontFamily: F.b, color: CL.txt }}><b style={{ fontSize: fz.m }}>{b.nm}</b><div style={{ fontSize: fz.s, color: CL.tm }}>{b.d} War chest {pres$(b.chest)}.</div></button>)}</div>
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <Bt v="ghost" onClick={onExit}>Back</Bt>
-          <Bt disabled={!f.name.trim()} onClick={() => onBegin({ name: f.name.trim(), avatar: p && p.avatar, state: f.state, party: f.party, from: f.bg, chest: B.chest, nat: B.nat, delegates: B.delegates, cor: B.cor || .3, tech: !!B.tech })} style={{ flex: 1 }}>Declare →</Bt>
-        </div>
-      </Cd>
-    </div>
-  </div>;
 };
 
 // ─── SENATE RACE ───
