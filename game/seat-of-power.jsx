@@ -6121,6 +6121,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ecor = cl(s.cor + (succ?.efcc || 0));
     const rc = { gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(p => p.status === "kept").length, broken: (stc.promises || []).filter(p => p.status === "broken").length, promised: (stc.promises || []).length };
     const rcTitle = reportTitle(rc);
+    // Everything the presidential run needs to know about this governorship.
+    const presRec = () => ({ name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund,
+      terms: turn > 4 ? 2 : 1, resigned: gEnd === "pres_bid", title: rcTitle, flagship: FLAGSHIP[setup?.agenda]?.nm || null, deputy: depGov?.nm || null, slogan: setup?.slogan || null,
+      met: rc.met, failed: rc.failed, kept: rc.kept, broken: rc.broken, debt: Math.round((s.debt || 0) * 10) / 10, arrears: rc.arrearsMax, efcc: (s.cor || 0) > .45, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won") });
     const canP = ov > 52 && s.app > 42 && (gEnd === "complete" || gEnd === "stepped_down");
     const canFctm = ov > 65 && s.app > 55 && s.cor < 0.25 && (gEnd === "complete" || gEnd === "stepped_down");
     const pa = PARTIES.find(p => p.id === party);
@@ -6270,7 +6274,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
                 <Bt v="secondary" onClick={() => onEnd("senate", s)}>🏛️ Senate</Bt>
-                <Bt onClick={() => onEnd("president", { ...s, rec: { name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund } })} disabled={!canP}>🇳🇬 President</Bt>
+                <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 President</Bt>
               </div>
               {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
               {canFctm && (
@@ -6302,7 +6306,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
                 <Bt v="secondary" onClick={() => onEnd("senate", s)}>🏛️ Run for Senate</Bt>
-                <Bt onClick={() => onEnd("president", { ...s, rec: { name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund } })} disabled={!canP}>🇳🇬 Run for President</Bt>
+                <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 Run for President</Bt>
               </div>
               {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
             </Cd>
@@ -6311,7 +6315,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <Cd style={{ borderColor: CL.gold + "44" }}>
               <h3 style={{ fontFamily: F.d, color: CL.gold, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>The Race for Aso Rock</h3>
               <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 29 }}>You've resigned the governorship. The national campaign begins. Your record will be scrutinized like never before.</p>
-              <Bt onClick={() => onEnd("president", { ...s, rec: { name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund } })}>🇳🇬 ENTER PRESIDENTIAL RACE →</Bt>
+              <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })}>🇳🇬 ENTER PRESIDENTIAL RACE →</Bt>
             </Cd>
           )}
           {(gEnd === "impeached" || gEnd === "bankrupt" || gEnd === "nullified") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
@@ -9360,6 +9364,13 @@ const PRES_BACKGROUNDS = [
 ];
 const pres$ = (v) => "₦" + (Math.round(v * 10) / 10).toFixed(1) + "B";
 const PRES_KEY = "sop_pres";
+// "Former Governor of Kano State (two terms)", or the background of a fresh candidate.
+const presTitle = (G) => {
+  if (!G) return "";
+  if (G.bio) return (G.bio.resigned ? "Governor of " : "Former Governor of ") + String(G.state || "").replace(/_/g, " ") + " State" + (G.bio.resigned ? ", resigned to run" : " (" + (G.bio.terms === 2 ? "two terms" : "one term") + ")");
+  const b = PRES_BACKGROUNDS.find(x => x.id === G.from); return b ? b.nm : "";
+};
+const presGoodRecord = (b) => !!b && b.met >= b.failed && b.kept >= b.broken && !b.efcc;
 
 const AsoRock = ({ setup, stats, onExit }) => {
   const fz = TALL() ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(40) } : { s: TS(27), m: TS(33), l: TS(46), xl: TS(64) };
@@ -9407,7 +9418,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
       zones[z.id] = Math.max(15, Math.min(85, Math.round(v * 10) / 10));
     });
     const del = {}; PZ.forEach(z => { del[z.id] = Math.max(15, Math.min(70, 34 + (z.id === myZ ? 18 : z.north === pNorth(myZ) ? 4 : -4) + (o.delegates || 0) + (o.app != null ? (o.app - 50) * .2 + ((o.pStab || 50) - 50) * .2 : 0))); });
-    setG({ v: 1, seed: Date.now(), name: o.name, avatar: o.avatar, state: o.state, zone: myZ, party: myP.id, partyNm: myP.nm, from: o.from, chest: o.chest, cor: o.cor || .3,
+    setG({ v: 1, seed: Date.now(), name: o.name, avatar: o.avatar, state: o.state, zone: myZ, party: myP.id, partyNm: myP.nm, from: o.from, bio: o.bio || null, chest: o.chest, cor: o.cor || .3,
       app: o.app, opp: { name: gN(r, oppZ, oppState), party: oppP.id, partyNm: oppP.nm, zone: oppZ, state: oppState },
       rivals, del, primaryRound: 0, ious: [], step: "primary", zones, week: 0, log: [], pledges: [], agents: false, debated: false, lastHit: null, mate: null, scandal: false, k: setup?.level === "hard" ? 1.25 : setup?.level === "easy" ? .75 : 1 });
   };
@@ -9472,7 +9483,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
       { zone: otherZ, name: gN(r, otherZ), kind: "balance", d: "From " + PZN(otherZ) + ". Balances the ticket across North and South.", fx: { [otherZ]: 6, region: 3 } },
       { zone: sameZ, name: gN(r, sameZ), kind: "loyal", d: "Your closest ally, from your own zone. Loyal, but the other half of the country notices.", fx: { [sameZ]: 3, otherRegion: -4 } },
       { zone: techZ, name: gN(r, techZ), kind: "tech", d: "A respected economist from " + PZN(techZ) + ". Calms investors and young voters.", fx: { all: 2 } },
-    ];
+    ].concat(G.bio && G.bio.deputy ? [{ zone: G.zone, name: G.bio.deputy, kind: "deputy", d: "Your deputy governor in " + String(G.state).replace(/_/g, " ") + ". Knows your record, and your secrets.", fx: { [G.zone]: 4, otherRegion: -3 } }] : []);
   };
   const pickMate = (m) => {
     up(p => {
@@ -9508,18 +9519,24 @@ const AsoRock = ({ setup, stats, onExit }) => {
       { id: "endorse", ic: pNorth(G2.zone) ? "👑" : "⛪", l: pNorth(G2.zone) ? "Endorsements from Southern obas and clergy" : "Endorsements from Northern emirs and clerics", d: "Reach across. It can backfire at home.", endorse: true },
       !G2.agents ? { id: "agents", ic: "🧾", l: "Train polling agents for every unit (₦0.8B)", d: "Protects your votes on election day.", cost: .8, agents: true } : null,
       { id: "cash", ic: "💰", l: "“Logistics” in " + PZN(b1) + " (₦2B)", d: "Vote-buying by another name. If exposed, it costs you everywhere.", cost: 2, fx: { [b1]: 6 }, cash: true },
+      G2.bio && !G2.ranRecord ? { id: "record", ic: "🏛️", l: "Run on your record in " + String(G2.state).replace(/_/g, " "), d: presGoodRecord(G2.bio) ? "Show the country what you built as governor." : "Risky: your opponent knows that record too.", record: true } : null,
       G2.lastHit && G2.lastHit.d > 0 ? { id: "answer", ic: "🛡️", l: "Answer: " + G2.lastHit.t, d: "Win back most of what it cost you.", answer: true } : null,
     ].filter(Boolean);
     // Show four: the answer if there is one, then a rotating mix.
-    const ans = list.find(m => m.answer);
-    const rest = list.filter(m => !m.answer);
+    const ans = list.find(m => m.answer) || list.find(m => m.record);
+    const rest = list.filter(m => m !== ans);
     const off = G2.week % rest.length;
     return [ans].concat(rest.slice(off).concat(rest.slice(0, off))).filter(Boolean).slice(0, 4);
   };
   const strike = (G2) => {
     const k = G2.k, opts = [];
     if (G2.cor > .35 || G2.scandal) opts.push({ t: G2.opp.name + "'s ads on your corruption record", fx: { all: -4 * k }, ans: true });
-    if (G2.app != null && G2.app < 50) opts.push({ t: "“They couldn't run a state” attack ads", fx: { all: -3 * k }, ans: true });
+    if (G2.app != null && G2.app < 50) opts.push({ t: "“They couldn't even run " + String(G2.state || "a state").replace(/_/g, " ") + "” attack ads", fx: { all: -3 * k }, ans: true });
+    const B = G2.bio, st = String(G2.state || "").replace(/_/g, " ");
+    if (B && B.failed > B.met) opts.push({ t: "Ads with families from " + st + " whose needs you ignored", fx: { all: -3 * k }, ans: true });
+    if (B && B.arrears >= 3) opts.push({ t: "Unpaid workers from " + st + " on every TV channel", fx: { all: -3 * k }, ans: true });
+    if (B && B.debt > 15) opts.push({ t: "\u201cThey left " + st + " ₦" + B.debt + "B in debt\u201d", fx: { all: -2.5 * k }, ans: true });
+    if (B && B.broken > B.kept) opts.push({ t: "A montage of your broken promises in " + st, fx: { all: -2.5 * k }, ans: true });
     opts.push({ t: G2.opp.name + " rallies " + PZN(G2.opp.zone) + " around a native son", fx: { [G2.opp.zone]: -5 * k, oppRegion: -2 * k } });
     const b = battle(G2)[0];
     opts.push({ t: "Defections to " + G2.opp.party + " in " + PZN(b), fx: { [b]: -3.5 * k }, ans: true });
@@ -9552,6 +9569,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
     if (m.cash) { const leak = r0() < .35; extra.cor = G2.cor + .04; if (leak) { fx = { all: -5 }; extra.scandal = true; note = "A video of the cash went viral. It is costing you everywhere."; } else note = "Your people “mobilised” voters. It worked, this time."; }
     if (m.answer && G2.lastHit) { fx = Object.fromEntries(Object.entries(G2.lastHit.fx).map(([k2, v]) => [k2, -v * .7])); note = "Your rebuttal took most of the sting out."; extra.lastHit = null; }
     if (m.pledge) extra.pledges = [...G2.pledges, m.pledge];
+    if (m.record) { const good = presGoodRecord(G2.bio); fx = good ? { all: 3, [G2.zone]: 3 } : { all: -2 }; extra.ranRecord = true; note = good ? "Your " + String(G2.state).replace(/_/g, " ") + " record made the case for you." + (G2.bio.flagship ? " Voters remember the " + G2.bio.flagship + "." : "") : "Your opponent answered with your own " + String(G2.state).replace(/_/g, " ") + " numbers."; }
     zones = applyFx(zones, fx, G2);
     // Their move, straight after yours.
     const week = G2.week + 1, done = week >= 6;
@@ -9606,7 +9624,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
     const won = G.step === "sworn";
     try {
       const p = await loadProfile();
-      if (p) await saveProfile({ ...p, games: [...(p.games || []), { name: G.name, avatar: G.avatar, state: G.state, party: G.party, title: won ? "President of Nigeria" : "Presidential candidate", grade: won ? "A" : "C", ending: won ? "elected president" : G.conceded ? "conceded the presidency" : "lost the presidency", turn: 0, at: Date.now(), honours: won ? ["aso_rock"] : [] }].slice(-30) });
+      if (p) await saveProfile({ ...p, games: [...(p.games || []), { name: G.name, avatar: G.avatar, state: G.state, party: G.party, title: (G.bio ? (G.bio.resigned ? "Governor of " : "Former Governor of ") + String(G.state).replace(/_/g, " ") + " · " : "") + (won ? "President of Nigeria" : "Presidential candidate"), grade: won ? "A" : "C", ending: won ? "elected president" : G.conceded ? "conceded the presidency" : "lost the presidency", turn: 0, at: Date.now(), honours: won ? ["aso_rock"] : [] }].slice(-30) });
     } catch (e) {}
     try { window.SOP_vatarScore && window.SOP_vatarScore((won ? 1500 : 300) + Math.round((G.res ? G.res.nat : 0) * 10)); } catch (e) {}
     try { await window.storage.set(PRES_KEY, ""); } catch (e) {}
@@ -9652,13 +9670,17 @@ const AsoRock = ({ setup, stats, onExit }) => {
   // Begin: a governor walks in with their record; anyone else picks a background.
   if (!G) {
     if (rec) {
-      const go = () => begin({ name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, from: "governor", app: stats.app, cor: stats.cor, pStab: stats.pStab, honours: (rec.honours || []).length, chest: Math.max(2, 4 + ((stats.pStab || 50) - 50) / 20 + (rec.fund || 0)) });
+      const go = () => begin({ name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, from: "governor", bio: rec, app: stats.app, cor: stats.cor, pStab: stats.pStab, honours: (rec.honours || []).length, chest: Math.max(2, 4 + ((stats.pStab || 50) - 50) / 20 + (rec.fund || 0)) });
       return <Frame bg="abuja-federal-office" who="party-chairman">
-        <H kick="The presidential run" title="Road to Aso Rock" sub={"Governor " + rec.name + " of " + (rec.state || "").replace("_", " ") + " steps onto the national stage."} />
+        <H kick="The presidential run" title="Road to Aso Rock" sub={(rec.resigned ? "Governor " : "Former Governor ") + rec.name + " of " + (rec.state || "").replace(/_/g, " ") + " steps onto the national stage."} />
         <Cd>
           <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>What you bring with you</div>
           <Stat k="Approval" v={Math.round(stats.app) + "%"} bad={stats.app < 50} /><Stat k="Corruption" v={Math.round(stats.cor * 100) + "%"} bad={stats.cor > .4} /><Stat k="Party" v={Math.round(stats.pStab) + "%"} bad={stats.pStab < 45} /><Stat k="Honours" v={(rec.honours || []).length} />
-          <div style={{ fontSize: fz.s, color: CL.tm, margin: "10px 0 14px" }}>Your record follows you: a clean, popular governor starts ahead; a scandal becomes your opponent's favourite advert.</div>
+          <div style={{ fontSize: fz.m, color: CL.txt, fontWeight: 800, margin: "10px 0 4px" }}>{rec.resigned ? "Governor of " : "Former Governor of "}{(rec.state || "").replace(/_/g, " ")} State · {rec.terms === 2 ? "two terms" : "one term"}{rec.title ? " · \u201c" + rec.title + "\u201d" : ""}</div>
+          <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.5 }}>
+            {rec.flagship ? "Flagship: " + rec.flagship + ". " : ""}Needs answered {rec.met || 0}, ignored {rec.failed || 0}. Promises kept {rec.kept || 0}, broken {rec.broken || 0}.{rec.debt != null ? " Left the state ₦" + rec.debt + "B in debt." : ""}{rec.arrears >= 3 ? " Workers were owed up to " + rec.arrears + " months' salary." : ""}{rec.efcc ? " The EFCC has a file on you." : ""}{rec.impSurv ? " Survived impeachment." : ""}{rec.petitionWon ? " Beat an election petition." : ""}
+          </div>
+          <div style={{ fontSize: fz.s, color: CL.tm, margin: "10px 0 14px" }}>The country will judge you by it: {presGoodRecord(rec) ? "a record you can run on." : "your opponent already has the adverts ready."}</div>
           <Bt onClick={go} style={{ width: "100%" }}>Declare for the presidency →</Bt>
         </Cd>
       </Frame>;
@@ -9668,7 +9690,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
 
   const myP = PARTIES.find(p => p.id === G.party);
   const header = <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: fz.s, color: CL.td, margin: "6px 0" }}>
-    <span><b style={{ color: CL.txt }}>{G.name}</b> · {G.party}{G.mate ? " · with " + G.mate.name : ""}</span>
+    <span><b style={{ color: CL.txt }}>{G.name}</b> · {G.party}{G.mate ? " · with " + G.mate.name : ""}<span style={{ display: "block", fontSize: fz.s, color: CL.td }}>{presTitle(G)}</span></span>
     <span>War chest <b style={{ color: G.chest < 1 ? CL.red : CL.txt }}>{pres$(G.chest)}</b></span>
   </div>;
 
@@ -9698,7 +9720,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
     return <Frame bg="abuja-federal-office" who="deputy-male-suit">
       <H kick="The ticket" title="Choose your running mate" sub="North and South, Muslim and Christian: Nigerians notice who stands beside you." />
       {header}
-      {ms ? <div style={{ display: "grid", gap: 8 }}>{ms.map(m => <Opt key={m.kind} ic={m.kind === "balance" ? "⚖️" : m.kind === "loyal" ? "🤝" : "📊"} l={m.name + " · " + PZN(m.zone)} d={m.d} onClick={() => pickMate(m)} />)}</div>
+      {ms ? <div style={{ display: "grid", gap: 8 }}>{ms.map(m => <Opt key={m.kind} ic={m.kind === "balance" ? "⚖️" : m.kind === "loyal" ? "🤝" : m.kind === "deputy" ? "🏛️" : "📊"} l={m.name + " · " + PZN(m.zone)} d={m.d} onClick={() => pickMate(m)} />)}</div>
         : <Cd><div style={{ fontSize: fz.m, color: CL.txt, marginBottom: 12 }}>You promised the slot to {G.mate.name} at the convention. A promise is a promise.</div><Bt onClick={keepRivalMate}>Name {G.mate.name} →</Bt></Cd>}
     </Frame>;
   }
@@ -9746,8 +9768,9 @@ const AsoRock = ({ setup, stats, onExit }) => {
   const won = G.step === "sworn";
   return <Frame bg={won ? "supreme-court-abuja" : "veranda-night"} who={won ? null : null}>
     <Sfx k={won ? "win" : "lose"} />
-    <H kick={won ? "29 May" : "After the election"} title={won ? "President of the Federal Republic" : "The presidency eluded you"} sub={won ? G.name + " is sworn in at Eagle Square, with " + (G.mate ? G.mate.name : "the vice-president") + " beside them." : G.conceded ? "You conceded. Your supporters wept; the country noticed." : G.opp.name + " is sworn in."} />
+    <H kick={won ? "29 May" : "After the election"} title={won ? "President of the Federal Republic" : "The presidency eluded you"} sub={won ? (G.bio ? "From Government House in " + String(G.state).replace(/_/g, " ") + " to Aso Rock: " : "") + G.name + " is sworn in at Eagle Square, with " + (G.mate ? G.mate.name : "the vice-president") + " beside them." : G.conceded ? "You conceded. Your supporters wept; the country noticed." : G.opp.name + " is sworn in."} />
     <Cd>
+      {G.bio && <div style={{ fontSize: fz.s, color: CL.txt, fontWeight: 800, marginBottom: 6 }}>{presTitle(G)}{G.bio.title ? " · \u201c" + G.bio.title + "\u201d" : ""}</div>}
       {G.res && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 8 }}>Final share {G.runoffShare != null ? "(runoff) " + G.runoffShare : G.res.nat}% · {G.res.statesWon} states won · 25% in {G.res.s25}.</div>}
       {G.ious.length > 0 && <div style={{ fontSize: fz.s, color: CL.org, marginBottom: 8 }}>Promises you made to get here: {G.ious.join("; ")}.</div>}
       {G.pledges.length > 0 && <div style={{ fontSize: fz.s, color: CL.txt, marginBottom: 8 }}>You pledged: {G.pledges.map(z => PLEDGES[z].toLowerCase()).join("; ")}.</div>}
