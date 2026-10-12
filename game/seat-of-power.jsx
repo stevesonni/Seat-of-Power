@@ -974,148 +974,40 @@ const REVENUE_MEASURES = [
 
 // ── The compound: a landscape hub map of the State House district ──
 // One painted map (art/compound/compound-full.webp, 1500×850) with every
-// building already drawn in place. Over it sit a click area per building, its
-// name and alerts, and the motorcade, which drives the painted roads from
-// parking bay to parking bay (docs/compound). Points are in map pixels.
+// building already drawn in place. Over it sit a click area per building and
+// its name and alerts. Points are in map pixels.
 const HUB_W = 1500, HUB_H = 850;
-const HUB_NODES = {
-  // top road, between the first and second rows
-  a1: [150, 165], a2: [508, 165], a3: [985, 165], a4: [1355, 165],
-  // second road; the diagonals run from its inner ends to the roundabout
-  b0: [95, 335], b1L: [462, 335], b1: [505, 335], b2: [1000, 337], b2R: [1042, 340], b3: [1440, 340],
-  dNW: [640, 376], dNE: [860, 376],
-  // the roundabout (centre 750,415)
-  rN: [750, 362], rNE: [789, 376], rE: [803, 415], rSE: [789, 454], rS: [750, 468], rSW: [711, 454], rW: [697, 415], rNW: [711, 376],
-  // third road, past the avenue
-  c0: [20, 478], cP: [395, 478], c1: [455, 478], s1: [750, 478], c3: [1045, 476], cM: [1072, 476], c4: [1480, 476],
-  // the riverside road
-  d0: [20, 665], dP: [395, 665], d1: [750, 665], dM: [1072, 665], d4: [1480, 665],
-};
-const HUB_ROADS = [["a1", "a2"], ["a2", "a3"], ["a3", "a4"], ["a1", "b0"], ["a4", "b3"], ["a2", "b1"], ["a3", "b2"],
-  ["b0", "b1L"], ["b1L", "b1"], ["b2", "b2R"], ["b2R", "b3"], ["b1", "dNW"], ["dNW", "rNW"], ["b2", "dNE"], ["dNE", "rNE"],
-  ["rN", "rNE"], ["rNE", "rE"], ["rE", "rSE"], ["rSE", "rS"], ["rS", "rSW"], ["rSW", "rW"], ["rW", "rNW"], ["rNW", "rN"],
-  ["b0", "c0"], ["b3", "c4"], ["b1L", "c1"], ["b2R", "c3"], ["rS", "s1"],
-  ["c0", "cP"], ["cP", "c1"], ["c1", "s1"], ["s1", "c3"], ["c3", "cM"], ["cM", "c4"],
-  ["cP", "dP"], ["cM", "dM"], ["s1", "d1"], ["c0", "d0"], ["c4", "d4"],
-  ["d0", "dP"], ["dP", "d1"], ["d1", "dM"], ["dM", "d4"]];
-// box: the building on the map [left, top, right, bottom]. bay: where the
-// motorcade parks; on: the road it parks on (one node = a spur).
+// box: the building on the map [left, top, right, bottom].
 const HUB_BUILDINGS = [
-  { id: "inec", img: "b09-electoral-commission", name: "Electoral Commission", box: [258, 31, 469, 142], bay: [365, 165], on: ["a1", "a2"] },
-  { id: "assembly", img: "b02-house-of-assembly", name: "House of Assembly", box: [633, 8, 867, 150], bay: [750, 165], on: ["a2", "a3"] },
-  { id: "party", img: "b07-party-secretariat", name: "Party Secretariat", box: [1039, 39, 1242, 142], bay: [1140, 165], on: ["a3", "a4"] },
-  { id: "secretariat", img: "b08-state-secretariat", name: "State Secretariat", box: [188, 181, 414, 299], bay: [300, 335], on: ["b0", "b1L"] },
-  { id: "gh", img: "b01-government-house", name: "Government House", box: [562, 165, 938, 299], bay: [750, 335], on: ["rN"] },
-  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance", box: [1078, 181, 1297, 299], bay: [1190, 340], on: ["b2R", "b3"] },
-  { id: "court", img: "b04-high-court", name: "High Court", box: [164, 331, 391, 456], bay: [280, 478], on: ["c0", "cP"] },
-  { id: "police", img: "b11-police-hq", name: "Police HQ", box: [1094, 338, 1305, 441], bay: [1200, 476], on: ["cM", "c4"] },
-  { id: "palace", img: "palace", name: "The Palace", box: [62, 472, 359, 653], bay: [230, 665], on: ["d0", "dP"] },
-  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office", box: [461, 480, 672, 614], bay: [560, 665], on: ["dP", "d1"] },
-  { id: "projects", img: "o-scaffold", name: "Project Sites", overlay: true, box: [797, 472, 1062, 645], bay: [930, 665], on: ["d1", "dM"] },
-  { id: "market", img: "b12-market", name: "Central Market", box: [1109, 472, 1406, 653], bay: [1250, 665], on: ["dM", "d4"] },
+  { id: "inec", img: "b09-electoral-commission", name: "Electoral Commission", box: [258, 31, 469, 142] },
+  { id: "assembly", img: "b02-house-of-assembly", name: "House of Assembly", box: [633, 8, 867, 150] },
+  { id: "party", img: "b07-party-secretariat", name: "Party Secretariat", box: [1039, 39, 1242, 142] },
+  { id: "secretariat", img: "b08-state-secretariat", name: "State Secretariat", box: [188, 181, 414, 299] },
+  { id: "gh", img: "b01-government-house", name: "Government House", box: [562, 165, 938, 299] },
+  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance", box: [1078, 181, 1297, 299] },
+  { id: "court", img: "b04-high-court", name: "High Court", box: [164, 331, 391, 456] },
+  { id: "police", img: "b11-police-hq", name: "Police HQ", box: [1094, 338, 1305, 441] },
+  { id: "palace", img: "palace", name: "The Palace", box: [62, 472, 359, 653] },
+  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office", box: [461, 480, 672, 614] },
+  { id: "projects", img: "o-scaffold", name: "Project Sites", overlay: true, box: [797, 472, 1062, 645] },
+  { id: "market", img: "b12-market", name: "Central Market", box: [1109, 472, 1406, 653] },
 ];
-const hubDist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1]);
-// The road graph with every bay spliced into the road it sits on.
-const HUB_GRAPH = (() => {
-  const pos = { ...HUB_NODES }, adj = {};
-  const link = (a, b) => { const L = hubDist(pos[a], pos[b]); (adj[a] = adj[a] || []).push([b, L]); (adj[b] = adj[b] || []).push([a, L]); };
-  HUB_BUILDINGS.forEach(b => { pos["@" + b.id] = b.bay; });
-  HUB_ROADS.forEach(([a, b]) => {
-    const on = HUB_BUILDINGS.filter(x => x.on.length === 2 && ((x.on[0] === a && x.on[1] === b) || (x.on[0] === b && x.on[1] === a)))
-      .map(x => "@" + x.id).sort((p, q) => hubDist(pos[a], pos[p]) - hubDist(pos[a], pos[q]));
-    const chain = [a, ...on, b];
-    for (let n = 1; n < chain.length; n++) link(chain[n - 1], chain[n]);
-  });
-  HUB_BUILDINGS.forEach(b => { if (b.on.length === 1) link("@" + b.id, b.on[0]); });
-  return { pos, adj };
-})();
-// The shortest drive between two buildings' bays, as a list of map points.
-const hubRoute = (from, to) => {
-  if (from === to) return [];
-  const { pos, adj } = HUB_GRAPH, src = "@" + from, dst = "@" + to;
-  const dist = { [src]: 0 }, prev = {}, done = new Set();
-  while (true) {
-    let u = null;
-    for (const k in dist) if (!done.has(k) && (u === null || dist[k] < dist[u])) u = k;
-    if (u === null || u === dst) break;
-    done.add(u);
-    (adj[u] || []).forEach(([v, L]) => { if (dist[v] === undefined || dist[u] + L < dist[v]) { dist[v] = dist[u] + L; prev[v] = u; } });
-  }
-  if (dist[dst] === undefined) return [];
-  const path = [dst]; while (path[0] !== src) path.unshift(prev[path[0]]);
-  return path.map(k => pos[k]);
-};
-// The convoy art is drawn on the four diagonals. On a straight road, take the
-// nearest diagonal and turn it to the road's heading.
-const HUB_SPRITE_ANG = { ne: -26.57, nw: -153.43, se: 26.57, sw: 153.43 };
-const hubHeading = (dx, dy) => {
-  const th = Math.atan2(dy, dx) * 180 / Math.PI;
-  let best = "ne", bd = 999;
-  for (const d in HUB_SPRITE_ANG) { let x = Math.abs(th - HUB_SPRITE_ANG[d]); if (x > 180) x = 360 - x; if (x < bd) { bd = x; best = d; } }
-  let rot = th - HUB_SPRITE_ANG[best]; if (rot > 180) rot -= 360; if (rot < -180) rot += 360;
-  return { d: best, rot };
-};
-// The front of the convoy (where the pilot car's siren is) for each heading.
-const HUB_FRONT = { ne: [.8, .16], nw: [.2, .16], se: [.84, .84], sw: [.16, .84] };
-const HUB_CAR_W = 120;
-let hubConvoyAt = "gh"; // where the motorcade is parked; survives leaving the map
-
 const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) => {
-  const wrapRef = React.useRef(null), boxRef = React.useRef(null), carRef = React.useRef(null), glowRef = React.useRef(null), dustRef = React.useRef(null);
+  const wrapRef = React.useRef(null);
   const [cw, setCw] = React.useState(1000);
-  const [parkedAt, setParkedAt] = React.useState(hubConvoyAt);
-  const [moving, setMoving] = React.useState(false);
-  const anim = React.useRef(null);
   React.useEffect(() => {
     const el = wrapRef.current; if (!el) return;
     const ro = new ResizeObserver(() => setCw(el.clientWidth || 1000)); ro.observe(el); setCw(el.clientWidth || 1000);
-    return () => { ro.disconnect(); if (anim.current) cancelAnimationFrame(anim.current); };
+    return () => ro.disconnect();
   }, []);
-  const k = cw / HUB_W;
   const pct = (p) => ({ left: (p[0] / HUB_W * 100) + "%", top: (p[1] / HUB_H * 100) + "%" });
-  const placeCar = (p, d) => {
-    const box = boxRef.current, car = carRef.current; if (!box || !car) return;
-    box.style.left = (p[0] / HUB_W * 100) + "%"; box.style.top = (p[1] / HUB_H * 100) + "%";
-    if (d) { box.style.transform = "translate(-50%, -50%) rotate(" + d.rot.toFixed(1) + "deg)";
-      if (car.dataset.d !== d.d) { car.dataset.d = d.d; car.src = "./art/compound/motorcade/m-convoy-" + d.d + ".webp"; }
-      const f = HUB_FRONT[d.d];
-      if (glowRef.current) { glowRef.current.style.left = (f[0] * 100) + "%"; glowRef.current.style.top = (f[1] * 100) + "%"; }
-      if (dustRef.current) { dustRef.current.style.left = ((1 - f[0]) * 100) + "%"; dustRef.current.style.top = ((1 - f[1]) * 100) + "%"; } }
-  };
-  const go = (b) => {
-    if (moving) return;
-    const from = hubConvoyAt, to = b.id;
-    try { window.SOP_sound && window.SOP_sound("neutral"); } catch (e) {}
-    const pts = hubRoute(from, to);
-    if (!pts.length) { onArrive(b.id); return; }
-    const segs = []; let total = 0;
-    for (let n = 1; n < pts.length; n++) { const L = Math.hypot(pts[n][0] - pts[n - 1][0], pts[n][1] - pts[n - 1][1]); if (L > 0) { segs.push({ a: pts[n - 1], b: pts[n], L }); total += L; } }
-    const dur = Math.min(3200, Math.max(1600, total * 2.2)); // ms
-    setMoving(true);
-    const t0 = performance.now();
-    let lastSeg = null;
-    const step = (now) => {
-      let u = Math.min(1, (now - t0) / dur); u = u < .5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2; // ease in-out
-      let d = u * total, s = segs[0];
-      for (const sg of segs) { s = sg; if (d <= sg.L) break; d -= sg.L; }
-      const r = s.L ? Math.min(1, d / s.L) : 1;
-      const p = [s.a[0] + (s.b[0] - s.a[0]) * r, s.a[1] + (s.b[1] - s.a[1]) * r];
-      const nd = s !== lastSeg ? hubHeading(s.b[0] - s.a[0], s.b[1] - s.a[1]) : null;
-      placeCar(p, nd); lastSeg = s;
-      if (u < 1) anim.current = requestAnimationFrame(step);
-      else { hubConvoyAt = to; setParkedAt(to); setMoving(false); setTimeout(() => onArrive(b.id), 250); }
-    };
-    // Start from the parked spot, facing out of the driveway.
-    placeCar(pts[0], hubHeading(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]));
-    anim.current = requestAnimationFrame(step);
-  };
+  const go = (b) => { try { window.SOP_sound && window.SOP_sound("neutral"); } catch (e) {} onArrive(b.id); };
   const fz = Math.max(10, Math.min(16, cw / 80));
-  const parkP = (HUB_BUILDINGS.find(b => b.id === parkedAt) || HUB_BUILDINGS[0]).bay;
   const nextB = next ? HUB_BUILDINGS.find(b => b.id === next.id) : null;
   return <div>
     {next && <button onClick={() => nextB && go(nextB)} style={{ width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto 10px", display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between", background: "#12301f", color: "#f3f7ef", border: 0, borderRadius: 16, padding: TALL() ? "10px 14px" : "10px 18px", cursor: "pointer", textAlign: "left", fontFamily: F.b }}>
       <span><span style={{ display: "block", fontSize: TALL() ? TS(18) : TS(24), opacity: .8 }}>Next</span><b style={{ fontSize: TALL() ? TS(22) : TS(32) }}>{next.label}</b></span>
-      <span style={{ background: "#0b7a4b", borderRadius: 999, padding: "8px 16px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(26), whiteSpace: "nowrap" }}>Drive there →</span>
+      <span style={{ background: "#0b7a4b", borderRadius: 999, padding: "8px 16px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(26), whiteSpace: "nowrap" }}>Go →</span>
     </button>}
     <div ref={wrapRef} style={{ position: "relative", isolation: "isolate", width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto", aspectRatio: HUB_W + " / " + HUB_H, borderRadius: 18, overflow: "hidden", background: "#5f8f3a", boxShadow: "0 10px 30px rgba(0,0,0,.18)", userSelect: "none" }}>
       <img src="./art/compound/compound-full.webp" alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", filter: night ? "brightness(.62) saturate(.75)" : "none", transition: "filter .6s" }} />
@@ -1123,29 +1015,16 @@ const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) 
       {/* a click area over each painted building; it lights up when it needs you */}
       {HUB_BUILDINGS.map(b => { const badge = badges[b.id], [x0, y0, x1, y1] = b.box;
         return <button key={b.id} onClick={() => go(b)} aria-label={b.name + (badge ? ": " + badge.text : "")} title={b.name} className="sop-hub-spot"
-          style={{ position: "absolute", left: (x0 / HUB_W * 100) + "%", top: (y0 / HUB_H * 100) + "%", width: ((x1 - x0) / HUB_W * 100) + "%", height: ((y1 - y0) / HUB_H * 100) + "%", padding: 0, border: 0, borderRadius: 10, background: "transparent", cursor: moving ? "default" : "pointer", zIndex: 10,
+          style={{ position: "absolute", left: (x0 / HUB_W * 100) + "%", top: (y0 / HUB_H * 100) + "%", width: ((x1 - x0) / HUB_W * 100) + "%", height: ((y1 - y0) / HUB_H * 100) + "%", padding: 0, border: 0, borderRadius: 10, background: "transparent", cursor: "pointer", zIndex: 10,
             boxShadow: badge ? "inset 0 0 0 2px " + (badge.tone === "bad" ? "rgba(192,57,43,.85)" : "rgba(233,162,59,.9)") + ", 0 0 14px " + (badge.tone === "bad" ? "rgba(192,57,43,.55)" : "rgba(255,209,102,.6)") : "none" }} />; })}
       {/* names and alerts sit above every building so none is hidden */}
-      {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <div key={"l" + b.id} onClick={() => go(b)} style={{ position: "absolute", ...pct([(b.box[0] + b.box[2]) / 2, b.box[3]]), transform: "translate(-50%, -85%)", zIndex: 4500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: moving ? "default" : "pointer" }}>
+      {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <div key={"l" + b.id} onClick={() => go(b)} style={{ position: "absolute", ...pct([(b.box[0] + b.box[2]) / 2, b.box[3]]), transform: "translate(-50%, -85%)", zIndex: 4500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
         {badge && <span className="sop-fade-in" style={{ background: badge.tone === "bad" ? "#c0392b" : "#e9a23b", color: "#fff", borderRadius: 999, padding: (fz * .25) + "px " + (fz * .7) + "px", fontSize: fz, fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 3px 10px rgba(0,0,0,.3)", fontFamily: F.b }}>{badge.text}</span>}
         <span style={{ background: "rgba(18,48,31,.85)", color: "#fff", borderRadius: 999, padding: (fz * .2) + "px " + (fz * .6) + "px", fontSize: fz * .85, fontWeight: 700, whiteSpace: "nowrap", fontFamily: F.b }}>{b.name}</span>
       </div>; })}
       {/* what is happening around the buildings */}
       {overlays.map(o => <img key={o.img + o.p} src={"./art/compound/overlays/" + o.img + ".webp"} alt="" draggable={false} className="sop-fade-in"
         style={{ position: "absolute", ...pct(o.p), width: ((o.w || 120) / HUB_W * 100) + "%", transform: "translate(-50%, -85%)", zIndex: 20, pointerEvents: "none" }} />)}
-      {/* the motorcade */}
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 4400 }}>
-        <div style={{ position: "absolute", ...pct(moving ? [0, 0] : parkP), width: (HUB_CAR_W / HUB_W * 100) + "%", transform: "translate(-50%, -50%)", display: moving ? "none" : "block" }}>
-          <img src="./art/compound/motorcade/m-convoy-parked.webp" alt="Your motorcade" style={{ width: "100%", height: "auto", display: "block" }} />
-        </div>
-      </div>
-      <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5000 }}>
-        <div ref={boxRef} style={{ position: "absolute", width: (HUB_CAR_W / HUB_W * 100) + "%", transform: "translate(-50%, -50%)", display: moving ? "block" : "none" }}>
-          <img ref={dustRef} src="./art/compound/motorcade/m-dust.webp" alt="" style={{ position: "absolute", width: "30%", transform: "translate(-50%, -50%)", opacity: .7, animation: "sopDust .6s ease-out infinite" }} />
-          <img ref={carRef} src="./art/compound/motorcade/m-convoy-ne.webp" alt="" style={{ position: "relative", width: "100%", height: "auto", display: "block" }} />
-          <img ref={glowRef} src="./art/compound/motorcade/m-siren-glow.webp" alt="" style={{ position: "absolute", width: "24%", transform: "translate(-50%, -50%)", animation: "sopSiren .5s steps(2) infinite" }} />
-        </div>
-      </div>
     </div>
     {list && <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 12 }}>
       {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <button key={b.id} onClick={() => go(b)} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8, alignItems: "center", background: CL.card, border: "1.5px solid " + (badge ? (badge.tone === "bad" ? CL.red : CL.gold) + "88" : CL.bdr), borderRadius: 14, padding: "8px 10px", cursor: "pointer", textAlign: "left", fontFamily: F.b, color: CL.txt }}>
@@ -3419,6 +3298,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   });
   const [curD, setCurD] = useState(null);
   const [capProj, setCapProj] = useState(null); // capital project procurement/EIA gate
+  const [finProj, setFinProj] = useState(null); // { proj, tried: [ids] }: choosing how to pay for it
   const [corW, setCorW] = useState(ld?.corW || 0);
   const [nCris, setNCris] = useState(ld?.nCris || 0);
   const [nRef, setNRef] = useState(ld?.nRef || 0);
@@ -3532,7 +3412,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       skApp, setSkApp, pApp, setPApp,
       ministries, setMinistries, projects, setProjects, procLog, setProcLog,
       council, setCouncil, wikiEvents, setWikiEvents, nepotismCount, setNepotismCount,
-      pendingProc, setPendingProc, saMemory, setSaMemory, saOffice, setSaOffice, personalFund, setPersonalFund,
+      pendingProc, setPendingProc, finance: (proj) => setFinProj({ proj, tried: [] }), saMemory, setSaMemory, saOffice, setSaOffice, personalFund, setPersonalFund,
       phase, nav, pol,
       SNAMES: window.SNAMES_PATCHED || null, CL: window.CL_REF || null, F: window.F_REF || null,
       ledger: window.SOP_LEDGER ? window.SOP_LEDGER.all() : [],
@@ -3598,6 +3478,43 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   }, [gEnd]);
 
   const tb = Math.max(0, s.igr + s.faac - s.debt * .08);
+  // Every decision ends with its result on screen. decide() notes the four
+  // headline numbers (plus debt and the war chest), runs the decision, then
+  // shows a result card with what it said and what actually moved.
+  const snapRef = React.useRef(null);
+  snapRef.current = { app: s.app, tb, pStab: s.pStab, cor: s.cor || 0, debt: s.debt, fund: personalFund };
+  const statRows = (a, b) => {
+    const r = [], d = (k) => (b[k] || 0) - (a[k] || 0), sg = (v) => (v > 0 ? "+" : "−");
+    if (Math.abs(d("app")) >= .5) r.push({ l: "Approval", v: sg(d("app")) + Math.abs(Math.round(d("app"))) + "%", good: d("app") > 0 });
+    if (Math.abs(d("tb")) >= .05) r.push({ l: "Treasury", v: sg(d("tb")) + "₦" + Math.abs(d("tb")).toFixed(1) + "B", good: d("tb") > 0 });
+    if (Math.abs(d("pStab")) >= .5) r.push({ l: "Party", v: sg(d("pStab")) + Math.abs(Math.round(d("pStab"))) + "%", good: d("pStab") > 0 });
+    if (Math.abs(d("cor")) >= .005) r.push({ l: "Corruption", v: sg(d("cor")) + Math.abs(Math.round(d("cor") * 100)) + "%", good: d("cor") < 0 });
+    if (Math.abs(d("debt")) >= .05) r.push({ l: "Debt", v: sg(d("debt")) + "₦" + Math.abs(d("debt")).toFixed(1) + "B", good: d("debt") < 0 });
+    if (Math.abs(d("fund")) >= .05) r.push({ l: "War chest", v: sg(d("fund")) + "₦" + Math.abs(d("fund")).toFixed(1) + "B", good: d("fund") > 0 });
+    return r;
+  };
+  // fn runs the decision and returns the card ({ icon, title, text, tone });
+  // returning nothing means nothing happened and no card shows.
+  const announce = (o, before) => setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ ...o, rows: [...(o.rows || []), ...(before ? statRows(before, snapRef.current) : [])] }); } catch (e) {} }, 180);
+  // Any change to the headline numbers, from any screen, floats up briefly
+  // under the status strip, so no action changes things silently.
+  const [ticks, setTicks] = useState([]);
+  const tickPrev = React.useRef(null), tickFrom = React.useRef(Date.now() + 2500);
+  useEffect(() => {
+    const cur = { app: s.app, tb, pStab: s.pStab, cor: s.cor || 0 };
+    const prev = tickPrev.current; tickPrev.current = cur;
+    if (!prev || Date.now() < tickFrom.current) return; // not while a save is loading
+    const rows = statRows(prev, cur);
+    if (!rows.length) return;
+    const id = Date.now() + Math.random();
+    setTicks(t => [...t.slice(-2), { id, rows }]);
+    setTimeout(() => setTicks(t => t.filter(x => x.id !== id)), 3200);
+  }, [Math.round(s.app * 2), Math.round(tb * 20), Math.round(s.pStab * 2), Math.round((s.cor || 0) * 200)]);
+  const decide = (fn) => {
+    const before = { ...snapRef.current };
+    const o = fn();
+    if (o) announce(o, before);
+  };
   const bs = Object.values(bud).reduce((a, b) => a + b, 0);
   const termNum = turn <= 4 ? 1 : 2;
   const termTurn = turn <= 4 ? turn : turn - 4;
@@ -3804,7 +3721,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Revenue reforms: adopt now, pay on a schedule.
   const applyRev = (p, list) => { const n = { ...p }; list.forEach(x => { if (x.revIGR) n.revIGR = (n.revIGR || 0) + x.revIGR; if (x.taxEff) n.taxEff = (n.taxEff || 1) + x.taxEff; if (x.debt) n.debt = Math.max(0, (n.debt || 0) + x.debt); }); return n; };
   const revThisTurn = () => (stc.revCount && stc.revCount.t === turn ? stc.revCount.n : 0);
-  const adoptRevenue = (m) => {
+  const adoptRevenue = (m) => decide(() => {
     const c = { s, stc, turn };
     if ((stc.rev || {})[m.id] != null || revThisTurn() >= 2 || (m.req && m.req(c))) return;
     const a = m.adopt(c);
@@ -3814,9 +3731,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, rev: { ...(p.rev || {}), [m.id]: turn }, revSched: [...(p.revSched || []), ...later], revCount: { t: turn, n: (p.revCount && p.revCount.t === turn ? p.revCount.n : 0) + 1 } }));
     addL(m.icon + " You " + a.log + ".", "policy");
     if (a.wiki) scWiki("Governorship", a.wiki);
-    if (a.risk && Math.random() < a.risk.p) { scFx(a.risk.fx); addL("⚠️ " + a.risk.log, "crisis"); }
+    const hit = a.risk && Math.random() < a.risk.p;
+    if (hit) { scFx(a.risk.fx); addL("⚠️ " + a.risk.log, "crisis"); }
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "revenue_reform", actor: "governor", gravity: 1, evidence: 3, decision: m.t, note: a.log }); } catch (e) {}
-  };
+    let gain = ""; try { gain = m.gain(c); } catch (e) {}
+    return { icon: m.icon, title: "Adopted: " + m.t, text: (gain ? "Expect: " + gain + "." : "") + (hit ? " But: " + a.risk.log : ""), tone: hit ? "bad" : "good" };
+  });
 
   // Debt: ask Abuja for relief, push repayments to the next administration,
   // or pay contractors in discounted promissory notes. Each once per term.
@@ -3824,34 +3744,39 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const debtDone = (k) => (stc.debtActs || {})[k + termNow] != null;
   const markDebt = (k) => setStc(p => ({ ...p, debtActs: { ...(p.debtActs || {}), [k + termNow]: turn } }));
   const reliefOdds = () => Math.max(.05, Math.min(.7, .15 + (fgRelation - 50) / 150 + (s.cor < .4 ? .1 : 0) + (Object.keys(stc.rev || {}).length >= 3 ? .15 : 0)));
-  const askRelief = () => {
+  const askRelief = () => decide(() => {
     if (debtDone("relief") || (s.debt || 0) < 6) return; markDebt("relief");
-    if (Math.random() < reliefOdds()) {
+    const odds = reliefOdds();
+    if (Math.random() < odds) {
       const cut = Math.round((s.debt || 0) * .8 * 10) / 10;
       setS(p => ({ ...p, debt: Math.round((p.debt || 0) * .2 * 10) / 10, app: cl100(p.app + 3) }));
       setFgRelation(v => Math.max(0, v - 10));
       addL("🇳🇬 Abuja approved debt relief: ₦" + cut + "B (80%) written off. The President will expect your state's support at the next election.", "success");
       scWiki("Governorship", "Secured federal relief that wrote off 80% of the state's debt.");
-    } else {
-      setS(p => ({ ...p, app: cl100(p.app - 1) })); setFgRelation(v => Math.max(0, v - 5));
-      addL("🇳🇬 Abuja turned down your request for debt relief. The Finance Minister told you to fix your books first.", "political");
+      return { icon: "🇳🇬", title: "Abuja said yes", text: "₦" + cut + "B of debt written off. The President will expect your support at the next election.", tone: "good", rows: [{ l: "Odds were", v: Math.round(odds * 100) + "%" }, { l: "Abuja relations", v: "−10", good: false }] };
     }
-  };
-  const deferDebt = () => {
+    setS(p => ({ ...p, app: cl100(p.app - 1) })); setFgRelation(v => Math.max(0, v - 5));
+    addL("🇳🇬 Abuja turned down your request for debt relief. The Finance Minister told you to fix your books first.", "political");
+    const why = [fgRelation < 50 ? "Abuja doesn't trust you yet" : null, s.cor >= .4 ? "your corruption is too high" : null, Object.keys(stc.rev || {}).length < 3 ? "you haven't reformed revenue (3+ measures help)" : null].filter(Boolean);
+    return { icon: "🇳🇬", title: "Abuja said no", text: "The Finance Minister told you to fix your books first" + (why.length ? ": " + why.join(", ") + "." : "."), tone: "bad", rows: [{ l: "Odds were", v: Math.round(odds * 100) + "%" }, { l: "Abuja relations", v: "−5", good: false }] };
+  });
+  const deferDebt = () => decide(() => {
     if (debtDone("defer") || (s.debt || 0) < 2) return; markDebt("defer");
     const amt = Math.round((s.debt || 0) * .6 * 10) / 10;
     setS(p => ({ ...p, debt: Math.max(0, (p.debt || 0) - amt) }));
     setStc(p => ({ ...p, defDebt: { amt: ((p.defDebt && p.defDebt.amt) || 0) + amt, due: termNow === 1 ? 5 : null }, defTotal: (p.defTotal || 0) + (termNow === 2 ? amt : 0) }));
     addL("🏦 You restructured ₦" + amt + "B of debt so repayments start " + (termNow === 1 ? "in your second term, if you win it." : "after you leave office. Your successor inherits them."), "political");
     if (termNow === 2) scWiki("Controversies", "Restructured ₦" + amt + "B of state debt so that repayments fall on the next administration.");
-  };
-  const discountDebt = () => {
+    return { icon: "🏦", title: "Debt pushed back", text: "₦" + amt + "B moved off this term's books. Repayments start " + (termNow === 1 ? "in your second term, if you win it." : "after you leave; your successor inherits them."), tone: "good" };
+  });
+  const discountDebt = () => decide(() => {
     if (debtDone("notes") || (s.debt || 0) < 2) return; markDebt("notes");
     const cut = Math.round((s.debt || 0) * .12 * 10) / 10;
     setS(p => ({ ...p, debt: Math.max(0, (p.debt || 0) - cut), pStab: cl100(p.pStab - 2) }));
     stallWork(null);
     addL("📜 Contractors accepted promissory notes at a discount: ₦" + cut + "B off the debt. Work slowed on every site, and the party's contractor-financiers are sulking.", "political");
-  };
+    return { icon: "📜", title: "Contractors took the notes", text: "₦" + cut + "B off the debt. Work slowed on every site and the contractor-financiers are sulking.", tone: "neutral" };
+  });
 
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;
@@ -4135,19 +4060,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           scWiki("Controversies", "The Supreme Court nullified the election on a petition by " + P0.opp + ".");
           setStc(p => ({ ...p, petition: { ...p.petition, stage: 3, result: "lost" } }));
           setGEnd("nullified");
-          return;
+          return { icon: "⚖️", title: "The Supreme Court has ruled against you", text: "Your election is nullified. " + P0.opp + " will be sworn in as governor.", tone: "bad" };
         }
         if (lost) {
           scFx({ app: -3 });
           addL("⚖️ The " + COURTS[st0] + " ruled for " + P0.opp + ". You stay in office pending your appeal to the " + COURTS[st0 + 1] + ".", "crisis");
           scWiki("Controversies", "The " + COURTS[st0] + " nullified the " + (P0.term === 1 ? "election" : "re-election") + "; the governor appealed.");
           setStc(p => ({ ...p, petition: { ...p.petition, stage: st0 + 1, lostBelow: true } }));
-          return;
+          return { icon: "⚖️", title: "The " + COURTS[st0] + " ruled for " + P0.opp, text: "Your election was nullified, but you stay in office while you appeal to the " + COURTS[st0 + 1] + ".", tone: "bad" };
         }
         const quits = !final && st0 === 0 && P0.margin >= 4 && Math.random() < .5;
         scFx({ app: final ? 3 : 1, pStab: final ? 3 : 0 });
         addL("⚖️ The " + COURTS[st0] + " dismissed " + P0.opp + "'s petition." + (final ? " The matter is closed for good." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), "success");
         setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined } }));
+        return { icon: "⚖️", title: "Case dismissed!", text: "The " + COURTS[st0] + " threw out " + P0.opp + "'s petition." + (final ? " It is over for good: you keep your seat." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), tone: "good" };
       };
       cards.push({ key: "petition", kicker: "Election petition · " + (st0 + 1) + " of 3", color: CL.red, art: st0 === 2 ? ["supreme-court-abuja", "senior-advocate"] : st0 === 1 ? ["courtroom", "senior-advocate"] : ["courtroom", null, "petition-file"],
         title: COURTS[st0] + ": " + P0.opp + " v. You",
@@ -4318,6 +4244,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : "Hon. " + m.minister + " has a clean record (performance " + m.perf + "%, loyalty " + (m.loyalty == null ? 50 : m.loyalty) + "%). Sacking a performer costs approval −2 and party −5, the ministry loses a half-year settling in, and the sacked commissioner joins the opposition in their zone.";
     const ok = await window.SOP_confirm("Fire Hon. " + m.minister + " (" + m.name + ")?\n\nWhy: " + (c.why || "None. This would be a political sacking.") + "\n\nWhat happens: " + effects, "Fire");
     if (!ok) return;
+    const before = { ...snapRef.current };
     const r = rng(Date.now() % 100000);
     // Who replaces them: a loyalist from your home zone, or someone from the same zone.
     const oldZ = minZone(m), shortZ = balanceIssue(), fairZ = shortZ != null ? shortZ : oldZ;
@@ -4334,6 +4261,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setWikiEvents(w => [{ turn, section: c.justified ? "Governorship" : "Controversies", txt: "Sacked Hon. " + m.minister + " as " + m.name + " Commissioner" + (c.justified ? " (" + c.why.replace(/\.$/, "") + ")." : " despite a clean record; the commissioner later joined the opposition.") }, ...w]);
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "minister_fired", actor: "governor", target: m.minister, gravity: c.justified ? 2 : 3, evidence: 3, decision: "Fired the " + m.name + " commissioner", note: c.why || "No offence on record" }); } catch (e) {}
     try { window.SOPX_onDecision && window.SOPX_onDecision("minister_sacked", { name: m.minister, ministerId: m.id }); } catch (e) {}
+    announce({ icon: "🔥", title: "Hon. " + m.minister + " is out", text: (c.justified ? c.why + " " : "Nothing was on record against them; the press calls it a purge. ") + "Hon. " + replacement + " takes over " + m.name + (loyalist ? " (a loyalist from your home zone)." : "."), tone: c.justified ? "good" : "bad" }, before);
   };
   useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase }; });
 
@@ -4432,7 +4360,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // If serialization fails, silently skip this snapshot.
     }
   }, [turn, phase, nav, state, party, pName, depGov, setup, s, bud, cab, logs, headline, completedProjects, godfatherRel, godfatherPower, tribunal, curCourt, saOffice.adviser, saBrief]);
-  const enactP = (p) => {
+  const enactP = (p) => decide(() => {
     if (pol.find(a => a.id === p.id)) return;
     // The cost is paid each half-year the policy runs, not all at once.
     const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100;
@@ -4449,7 +4377,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (p.s === "education") setDelayedFx(d => [...d, { turn: turn + 3, fx: { lit: .03, app: 5 }, desc: p.nm + " is showing results — literacy rising, schools improving." }]);
     if (p.s === "health") setDelayedFx(d => [...d, { turn: turn + 2, fx: { hp: .02, app: 3 }, desc: p.nm + " impact: health outcomes improving across the state." }]);
     if (p.s === "agriculture") setDelayedFx(d => [...d, { turn: turn + 2, fx: { agr: .03, igr: 0.5 }, desc: p.nm + " paying off — harvest yields up, farm revenue flowing." }]);
-  };
+    const later = { education: "In 3 half-years: literacy up, approval +5.", health: "In 2 half-years: better health, approval +3.", agriculture: "In 2 half-years: bigger harvests, revenue +₦0.5B." }[p.s];
+    return { icon: "📋", title: p.nm.replace(/^⭐\s*/, "") + " launched", text: naira(perH) + " a half-year for " + p.t + (p.t === 1 ? " half-year." : " half-years.") + " " + forS + " welcome it; " + againstS.toLowerCase() + " object." + (later ? " " + later : ""), tone: "good" };
+  });
   // ── CAPITAL PROJECT LIFECYCLE ──
   // Routes ALL capital builds through the shared sop-realism flow so the user
   // (a) names the project, (b) picks a ministry, (c) commissions/waives EIA,
@@ -4491,9 +4421,66 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { const [forS, againstS] = policySides(p); window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "policy_enacted", actor: "governor", gravity: 1, evidence: 3, financial: p.c, decision: "Started " + title, note: p.d, beneficiaries: [forS], losers: [againstS], relatedEntity: "policy:" + p.id, meta: { id: p.id, sector: p.s, project: proj.id } }); } catch (e) {}
     addL("🏗️ PROJECT INITIATED: " + title + " under " + (min?.name || "state ministry") + ". Proceed to bidder selection.", "policy");
     try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Initiated " + title + " under " + (min?.name || "a state ministry") + ", estimated at ₦" + (+p.c).toFixed(1) + "B" + (proj.needsEIA ? (eia ? " after commissioning an EIA." : ", despite requiring an EIA.") : ".") }, ...w]); } catch(e){}
-    // Hand off to the shared procurement modal in sop-realism.js — user picks a contractor next.
-    setPendingProc(proj);
+    // Next: decide how to pay for it, then pick a contractor (sop-realism.js).
+    setFinProj({ proj, tried: [] });
     setCapProj(null);
+  };
+
+  // ── FINANCING A PROJECT ──
+  // Every capital project needs money from somewhere. Each source has its own
+  // rules, odds and price, and every answer comes back as a letter with the
+  // reasons. share: how much of the contract lands on state debt (0.4 is the
+  // usual upfront share; loans add interest on top).
+  const finOptions = (proj) => {
+    const A = +(proj.baseCost || 0), t = proj.type, rev = Math.max(1, s.igr + s.faac);
+    const dsr = (s.debt * .08) / rev, cor = s.cor || 0, hs = scHouse();
+    const pc = (v) => Math.max(.05, Math.min(.95, v));
+    const fund = { school: "TETFund and UBEC", hospital: "the Basic Health Care Provision Fund", landfill: "the Ecological Fund", dam: "the Ecological Fund", road: "the Ecological Fund (erosion control)", bridge: "the Ecological Fund (erosion control)", power: "the Rural Electrification Agency" }[t];
+    const ppp = ["road", "bridge", "market", "housing", "power", "water", "industrial"].includes(t);
+    const multi = !["vehicles", "cctv", "market"].includes(t);
+    return [
+      { id: "cash", icon: "💵", nm: "Pay cash from the treasury", lender: "The State Treasury", share: 0, odds: tb * 1.5 >= A ? 1 : 0,
+        terms: "No debt. Revenue for other things drops by ₦" + (A / 2).toFixed(1) + "B for two half-years.",
+        why: tb * 1.5 >= A ? ["You have the surplus: ₦" + tb.toFixed(1) + "B a half-year."] : ["Your surplus is ₦" + tb.toFixed(1) + "B a half-year; you need about ₦" + (A / 1.5).toFixed(1) + "B to pay ₦" + A.toFixed(1) + "B in cash."] },
+      { id: "bank", icon: "🏦", nm: "Commercial bank loan", lender: "A Zenith–Access–UBA syndicate", share: .4 * 1.3, odds: pc(.95 - dsr * 1.8 - (cor > .5 ? .1 : 0)),
+        terms: "Quick, but dear: about 30% more in interest, repaid from your FAAC by deduction.",
+        why: [(dsr < .2 ? "✓ Your debt service is " : "✗ Debt service already takes ") + Math.round(dsr * 100) + "% of revenue (banks like under 35%).", cor > .5 ? "✗ Your corruption record makes them nervous." : null] },
+      { id: "bond", icon: "📈", nm: "State bond", lender: "Investors, via the SEC and the DMO", share: .4 * 1.15, odds: s.igr < 3 ? 0 : pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) + (billsPassed.some(b => b.id === "fiscal_resp") ? .1 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0)),
+        terms: "Cheaper than banks (about 15% interest). Needs a credit rating and the House's approval.",
+        why: s.igr < 3 ? ["Your own revenue (₦" + s.igr.toFixed(1) + "B) is too small to rate a bond; investors want ₦3B+."] : [cor > .4 ? "✗ Rating agencies mark you down for corruption." : "✓ Your rating is acceptable.", hs.loyal < hs.seats / 2 ? "✗ The House is hostile and may refuse the borrowing resolution." : "✓ The House will approve the borrowing.", billsPassed.some(b => b.id === "fiscal_resp") ? "✓ Your Fiscal Responsibility Law reassures investors." : null] },
+      { id: "dfi", icon: "🌍", nm: "AfDB / World Bank loan", lender: "The African Development Bank and World Bank", share: .4 * 1.05, odds: !multi ? 0 : pc(.85 - Math.max(0, cor - .3) * 2 - (fgRelation < 45 ? .35 : 0) - (proj.needsEIA && !proj.eiaDone ? .4 : 0)),
+        terms: "The cheapest money there is (about 5%), but slow: Abuja must guarantee it and the banks check safeguards.",
+        why: !multi ? ["Development banks don't fund " + t + " projects."] : [fgRelation < 45 ? "✗ Abuja won't sign the federal guarantee: relations are " + Math.round(fgRelation) + "%." : "✓ Abuja will guarantee it.", cor > .35 ? "✗ Their integrity checks flag your corruption (" + Math.round(cor * 100) + "%)." : "✓ Your books pass their checks.", proj.needsEIA && !proj.eiaDone ? "✗ No Environmental Impact Assessment: they won't lend without one." : null] },
+      { id: "fed", icon: "🇳🇬", nm: "Federal intervention fund", lender: fund ? fund.charAt(0).toUpperCase() + fund.slice(1) : "Federal funds", share: .2, odds: !fund ? 0 : pc(.25 + (fgRelation - 50) / 100),
+        terms: "A grant for half the cost; borrow the rest. Allocation depends on your standing in Abuja.",
+        why: !fund ? ["No federal fund covers " + t + " projects."] : ["You apply to " + fund + ".", (fgRelation < 50 ? "✗ " : "✓ ") + "Your relations with Abuja are " + Math.round(fgRelation) + "%."] },
+      { id: "ppp", icon: "🤝", nm: "Public-private partnership", lender: "A private investor", share: 0, fx: { app: -2 }, odds: !ppp ? 0 : pc(.7 - (s.sec < .4 ? .3 : 0) - Math.max(0, cor - .4) * 1.5),
+        terms: "The investor builds and runs it, then charges users (tolls, fees). No state debt; people grumble (approval −2).",
+        why: !ppp ? ["Investors can't charge users for a " + t + " project."] : [s.sec < .4 ? "✗ Investors fear the security situation." : "✓ Security is good enough for investors.", cor > .4 ? "✗ They worry about being shaken down." : null] },
+      { id: "pre", icon: "🎩", nm: "Contractor pre-financing", lender: "The contractor", share: .4 * 1.35, fx: { cor: .03 }, odds: 1,
+        terms: "The contractor fronts the money and is repaid later with a fat margin (about 35% more). Corruption +3%.",
+        why: ["Always available. It is how many states build, and why their projects cost so much."] },
+    ].map(o => ({ ...o, why: o.why.filter(Boolean).sort((a, b) => (b[0] === "✗") - (a[0] === "✗")) }));
+  };
+  const pickFinance = (o) => {
+    const F0 = finProj; if (!F0) return;
+    const proj = F0.proj, ok = o.odds >= 1 || Math.random() < o.odds;
+    if (!ok) {
+      setFinProj({ ...F0, tried: [...F0.tried, o.id] });
+      addL(o.icon + " " + o.lender + " turned down financing for " + proj.title + ".", "political");
+      announce({ icon: o.icon, title: o.lender + ": declined", text: "They won't finance " + proj.title + ". " + (o.why.filter(w => w[0] === "✗").map(w => w.slice(2)).join(" ") || "Their credit committee said no this time.") + " Try another source.", tone: "bad", rows: [{ l: "Odds were", v: Math.round(o.odds * 100) + "%" }] });
+      return;
+    }
+    const before = { ...snapRef.current }, A = +(proj.baseCost || 0);
+    const fp = { ...proj, fin: { id: o.id, nm: o.nm, share: o.share } };
+    if (o.id === "cash") { setS(p => ({ ...p, revIGR: (p.revIGR || 0) - A / 2 })); setStc(p => ({ ...p, revSched: [...(p.revSched || []), { t: turn + 2, revIGR: A / 2, id: "cash" }] })); }
+    if (o.fx) setS(p => ({ ...p, app: cl100(p.app + (o.fx.app || 0)), cor: cl(p.cor + (o.fx.cor || 0)) }));
+    setProjects(prev => (prev || []).map(x => x.id === proj.id ? fp : x));
+    addL(o.icon + " " + proj.title + " financed by " + o.lender.charAt(0).toLowerCase() + o.lender.slice(1) + " (" + o.nm.toLowerCase() + ").", "policy");
+    try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Financed " + proj.title + " (₦" + A.toFixed(1) + "B) through " + o.nm.toLowerCase() + "." }, ...(w || [])]); } catch (e) {}
+    setFinProj(null);
+    setPendingProc(fp);
+    announce({ icon: o.icon, title: o.lender + ": approved", text: proj.title + " is funded. " + o.terms + " Next: pick a contractor.", tone: "good" }, before);
   };
 
   const [constChallenge, setConstChallenge] = useState(null);
@@ -4527,7 +4514,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fireCom = (k) => { const r = rng(Date.now()); const z = sd.zone; const oldName = cab[k]?.nm; setCab(p => ({ ...p, [k]: { nm: gN(r, z, setup?.state), co: ri(35, 92, r), lo: ri(25, 90, r), cr: ri(5, 55, r), pu: ri(25, 85, r), role: k, bio: genBio(r) } })); setS(p => ({ ...p, app: cl100(p.app - 3) })); addL("🔄 Fired " + (CROLES.find(c => c.k === k)?.t || "") + " (-3)", "political"); try { window.SOPX_onDecision && window.SOPX_onDecision("minister_sacked", { name: oldName || "the commissioner", ministerId: k }); } catch(e){} try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"minister_fired", target: oldName || "commissioner", gravity:2, evidence:2, approvalDelta:-3, note:"Fired "+(CROLES.find(c=>c.k===k)?.t||"commissioner"), meta:{ ministerId:k, godfather:false }}); } catch(e){} };
 
   // Bill sponsorship — goes through House vote
-  const sponsorBill = (bill, force) => {
+  const sponsorBill = (bill, force) => decide(() => {
     if (billsPassed.find(b => b.id === bill.id)) return;
     const objections = [];
     if (!force) {
@@ -4540,7 +4527,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("❌ House rejects " + bill.nm + ". " + objections.slice(0, 2).map(o => o.who + " voted no: " + o.why).join(" "), "political");
       setS(p => ({ ...p, pStab: cl100(p.pStab - 3) }));
       setBillReject({ bill, reasons: objections });
-      return;
+      return { icon: "🏛️", title: "The House voted it down", text: bill.nm + ": " + objections[0].who + " voted no because " + objections[0].why, tone: "bad" };
     }
     setBillReject(null);
     setBillsPassed(p => [...p, bill]);
@@ -4551,7 +4538,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setSkApp(p => { const n = { ...p }; Object.entries(bill.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
     const note = s.pStab < 40 ? " after tense caucus horse-trading" : "";
     addL("📜 BILL SIGNED: " + bill.nm + " passed by House" + note + " and signed into law.", "policy");
-  };
+    return { icon: "📜", title: "Passed and signed", text: bill.nm + " is now law" + note + ".", tone: "good" };
+  });
 
   // Judiciary — can trigger after certain actions
   // Each case comes to court once a game, and says what started it.
@@ -4576,7 +4564,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return false;
   };
 
-  const resolveJudiciary = (mode) => {
+  const resolveJudiciary = (mode) => decide(() => {
+    let out = null;
     // mode: true = comply, false = defy, "fasttrack" = pay lawyers, "appeal" = delay
     const applyPenalty = (mul = 1) => {
       if (judEvent && judEvent.penalty) {
@@ -4594,6 +4583,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (judEvent.target) setPol(pp => pp.filter(p => p.nm !== judEvent.target));
       setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 5) }));
       addL("⚖️ COURT RULING: Complied swiftly with " + judEvent.nm + ". Media and civil society applaud rule of law.", "judicial");
+      out = { icon: "⚖️", title: "You obeyed the court", text: judEvent.nm + ": ruling carried out" + (judEvent.target ? "; " + judEvent.target + " is struck down." : ".") + " The press and civil society applaud.", tone: "neutral" };
       try { window.SOPX_onDecision && window.SOPX_onDecision("court_complied", { ruling: judEvent.nm }); } catch(e){}
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_compliance", target: judEvent.nm, gravity:1, evidence:3, note:"Complied with ruling: "+judEvent.nm }); } catch(e){}
     } else if (mode === "fasttrack") {
@@ -4601,10 +4591,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const win = Math.random() < 0.6;
       if (win) {
         addL("⚖️ FAST-TRACK WIN: Court of Appeal ruled in your favour on " + judEvent.nm + ". Case dismissed. ₦0.5B in legal fees.", "judicial");
+        out = { icon: "⚖️", title: "Case dismissed!", text: "The Court of Appeal ruled for you on " + judEvent.nm + ". Legal fees: ₦0.5B.", tone: "good" };
         setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 3) }));
       } else {
         applyPenalty(2);
         addL("⚖️ FAST-TRACK LOSS: Court of Appeal upheld the ruling on " + judEvent.nm + ". Penalty doubled. ₦0.5B wasted.", "judicial");
+        out = { icon: "⚖️", title: "The Court of Appeal ruled against you", text: judEvent.nm + ": the ruling stands and the penalty is doubled. ₦0.5B in fees wasted.", tone: "bad" };
       }
     } else if (mode === "appeal") {
       setS(p => ({ ...p, app: cl100(p.app - 3) }));
@@ -4612,16 +4604,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const pending = { ...judEvent, appealed: true };
       setTimeout(() => setJudEvent(pending), 100);
       addL("⏳ APPEAL FILED: Delayed judgment on " + judEvent.nm + ". Civil society mobilising. Case returns next turn.", "judicial");
+      out = { icon: "⏳", title: "Appeal filed", text: judEvent.nm + " comes back next half-year. Civil society is mobilising.", tone: "neutral" };
     } else {
       setS(p => ({ ...p, pStab: cl100(p.pStab - 12), app: cl100(p.app - 5), cor: cl(p.cor + 0.05) }));
       setSkApp(p => ({ ...p, media: cl100((p.media || 50) - 10) }));
       addL("⚠️ CONTEMPT: Defied court ruling on " + judEvent.nm + ". Constitutional crisis unfolding.", "judicial");
+      out = { icon: "⚠️", title: "You defied the court", text: judEvent.nm + ": contempt of court. A constitutional crisis is unfolding.", tone: "bad" };
       try { window.SOPX_onDecision && window.SOPX_onDecision("court_defied", { ruling: judEvent.nm }); } catch(e){}
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_defiance", target: judEvent.nm, gravity:5, evidence:5, approvalDelta:-5, corruptionDelta:+5, note:"Defied court ruling: "+judEvent.nm }); } catch(e){}
     }
     setJudEvent(null);
     nextEvent();
-  };
+    return out;
+  });
 
   const dChoice = (ch) => {
     setNCris(c => c + 1);
@@ -6264,6 +6259,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   return (
     <div style={{ minHeight: "100%", background: CL.bg }}>
       <Flag />
+      {ticks.length > 0 && <div aria-live="polite" style={{ position: "fixed", top: TALL() ? 92 : 110, left: 0, right: 0, zIndex: 9000, display: "grid", justifyItems: "center", gap: 6, pointerEvents: "none" }}>
+        {ticks.map(t => <div key={t.id} className="sop-fade-in" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", background: "rgba(18,35,43,.92)", borderRadius: 999, padding: "6px 10px", boxShadow: "0 6px 18px rgba(0,0,0,.25)" }}>
+          {t.rows.map(r => <span key={r.l} style={{ fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: r.good ? "#5fe39b" : "#ff8f80", whiteSpace: "nowrap" }}>{r.l} {r.v}</span>)}
+        </div>)}
+      </div>}
       <div style={{ padding: TALL() ? "20px 20px 190px" : 36, maxWidth: 1488, margin: "0 auto" }}>
         {/* Phone: one slim row pinned to the top. Name and turn on the left,
             approval on the right; tap it for the "State of the state" sheet.
@@ -6728,12 +6728,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const year = Math.ceil(turn / 2);
             const cost = Math.round((1.4 + turn * 0.15) * 10) / 10;
             const done = (window.SOP_MEMORY ? window.SOP_MEMORY.all("flagship_milestone", e => e.meta && e.meta.delivered) : []).length;
-            const pick = (opt) => {
+            const pick = (opt) => decide(() => {
               setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)), debt: p.debt + (opt.debt || 0) }));
               addL(FG.i + " Flagship " + FG.nm + ": " + opt.log, opt.delivered ? "policy" : "political");
               try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda } }); } catch (e) {}
               nextEvent();
-            };
+              return { icon: FG.i, title: FG.nm + ": " + (opt.delivered ? "this year's target met" : "target missed"), text: "You " + opt.label.toLowerCase() + ". " + opt.note, tone: opt.delivered ? "good" : "bad" };
+            });
             const opts = [
               { label: "Fund it in full", note: "₦" + cost + "B from borrowing. Done properly.", delivered: true, app: 4, debt: cost, log: "year " + year + " target met in full: " + FG.goal + "." },
               { label: "Cut corners to finish on time", note: "Half the money, a favoured contractor. It opens, but the work is thin.", delivered: true, app: 2, debt: Math.round(cost * 5) / 10, cor: .04, log: "year " + year + " target met on paper; the work is thin." },
@@ -6753,7 +6754,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "sc" && scCards.length > 0}>
           {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
-            onPick={(o) => { try { o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
+            onPick={(o) => { decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } return res && res.title ? res : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + "." }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
 
         <OL show={phase === "succession_race" && !!stc.race}>
@@ -8231,7 +8232,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               if (mode === "wig") { cost = 3.5; chance += 0.22; }
               if (mode === "bribe") { cost = 5.0; chance += 0.35; corDelta = 0.15; }
               if (mode === "self") { cost = 0.2; chance -= 0.05; }
-              if (cost > personalFund + 1e-9) { setTribunal(t => ({ ...t, log: [...t.log, "❌ Not enough money (₦" + personalFund.toFixed(2) + "B) to brief this team. Borrow, or argue it more cheaply."] })); return; }
+              if (cost > personalFund + 1e-9) { setTribunal(t => ({ ...t, log: [...t.log, "❌ Not enough money (₦" + personalFund.toFixed(2) + "B) to brief this team. Borrow, or argue it more cheaply."] })); announce({ icon: "💸", title: "Not enough money", text: "This team costs ₦" + cost.toFixed(1) + "B; your war chest has ₦" + personalFund.toFixed(2) + "B. Borrow, or argue it more cheaply.", tone: "bad" }); return; }
               chance = Math.max(0.03, Math.min(0.95, chance));
               const won = Math.random() < chance;
               const newLog = [...tribunal.log, "── " + lvl.nm + " ──", "Mode: " + ({ self: "argued in person", top_sans: "briefed a Senior Advocate", wig: "assembled SAN-led legal team", bribe: "'settled' the panel" })[mode], "Odds calculated: " + Math.round(chance * 100) + "%", won ? "✅ RULED IN YOUR FAVOUR" : "❌ Petition dismissed at this level"];
@@ -8259,6 +8260,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                    });
                  } else {
                    setTribunal(t => ({ ...t, level: t.level + 1, log: [...newLog, "Opposition appeals — case escalates."], spent: t.spent + cost, groundId: null }));
+                   announce({ icon: "⚖️", title: "The " + (tribunal.level === 0 ? "Tribunal" : "Court of Appeal") + " ruled for you", text: "Your petition on " + g.nm.toLowerCase() + " succeeded (odds were " + Math.round(chance * 100) + "%). " + tribunal.oppName + " has appealed to the " + LEVELS[tribunal.level + 1].nm + ".", tone: "good", rows: [{ l: "Spent", v: "₦" + cost.toFixed(1) + "B", good: false }] });
                  }
                } else {
                  if (tribunal.level >= 2) {
@@ -8278,6 +8280,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                    });
                  } else {
                    setTribunal(t => ({ ...t, level: t.level + 1, log: [...newLog, "You lodged an appeal within 21 days."], spent: t.spent + cost, groundId: null }));
+                   announce({ icon: "⚖️", title: "The " + (tribunal.level === 0 ? "Tribunal" : "Court of Appeal") + " dismissed your petition", text: "Your case on " + g.nm.toLowerCase() + " failed (odds were " + Math.round(chance * 100) + "%). You have appealed to the " + LEVELS[tribunal.level + 1].nm + ". You can still withdraw.", tone: "bad", rows: [{ l: "Spent", v: "₦" + cost.toFixed(1) + "B", good: false }] });
                  }
                }
             };
@@ -8440,6 +8443,30 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {/* Capital project intake — Step 1 of the shared lifecycle.
             After confirmation this hands off to the sop-realism procurement modal
             (contractor selection from the real bidder pool). */}
+        <OL show={!!finProj}>
+          {finProj && (() => {
+            const proj = finProj.proj, opts = finOptions(proj);
+            const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(32), l: TS(46) };
+            return <Cd style={{ maxWidth: 984 }}>
+              <div style={{ textAlign: "center", marginBottom: 14 }}>
+                <ObjArt name="contract-envelope" alt="" size={TALL() ? 72 : 100} />
+                <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, fontWeight: 700, margin: "8px 0 4px" }}>How will you pay for it?</h3>
+                <div style={{ fontSize: fz.s, color: CL.td }}>{proj.title} · ₦{(+proj.baseCost).toFixed(1)}B</div>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {opts.map(o => { const tried = finProj.tried.includes(o.id), off = o.odds <= 0 || tried; return <button key={o.id} disabled={off} onClick={() => pickFinance(o)} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 18px", borderRadius: 14, border: "1.5px solid " + (off ? CL.bdr : CL.grn + "66"), background: off ? CL.bg : CL.card, opacity: off ? .55 : 1, cursor: off ? "not-allowed" : "pointer", fontFamily: F.b, color: CL.txt }}>
+                  <span style={{ fontSize: fz.l }}>{o.icon}</span>
+                  <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: fz.m }}>{o.nm}</b><span style={{ display: "block", fontSize: fz.s, color: CL.tm }}>{o.terms}</span><span style={{ display: "block", fontSize: fz.s, color: off ? CL.red : CL.td }}>{tried ? "Declined. " : ""}{o.why[0]}</span></span>
+                  <span style={{ fontWeight: 800, fontSize: fz.m, color: off ? CL.red : o.odds >= .6 ? CL.grn : o.odds >= .3 ? CL.org : CL.red, whiteSpace: "nowrap" }}>{o.odds <= 0 ? "Not open" : tried ? "No" : o.odds >= 1 ? "Sure" : Math.round(o.odds * 100) + "%"}</span>
+                </button>; })}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
+                <Bt v="ghost" onClick={() => { setProjects(prev => (prev || []).filter(x => x.id !== proj.id)); setPol(pp => pp.filter(x => x.projectId !== proj.id)); addL("🗂️ Shelved " + proj.title + ": no financing.", "political"); setFinProj(null); }}>Shelve the project</Bt>
+              </div>
+            </Cd>;
+          })()}
+        </OL>
+
         <OL show={!!capProj}>
           {capProj && (() => {
             const p = capProj.p;
@@ -8488,7 +8515,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
               <div style={{ display: "flex", gap: 22, marginTop: 36, justifyContent: "flex-end" }}>
                 <Bt v="ghost" onClick={() => setCapProj(null)}>Cancel</Bt>
-                <Bt onClick={confirmCapital} disabled={noMinistries || !capProj.title.trim()}>Next: Select Bidder →</Bt>
+                <Bt onClick={confirmCapital} disabled={noMinistries || !capProj.title.trim()}>Next: find the money →</Bt>
               </div>
             </Cd>;
           })()}
@@ -9318,10 +9345,8 @@ function App() {
         .sop-fade-in { animation: sopFadeIn .4s ease-out; }
         .sop-slide-up { animation: sopSlideUp .35s ease-out; }
         @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes sopSiren { 0% { opacity: 1; filter: hue-rotate(0deg); } 100% { opacity: .35; filter: hue-rotate(180deg); } }
         .sop-hub-spot { transition: box-shadow .2s, background .2s; }
         .sop-hub-spot:hover, .sop-hub-spot:focus-visible { background: rgba(255,255,255,.14) !important; box-shadow: inset 0 0 0 2px rgba(255,255,255,.85), 0 0 16px rgba(255,255,255,.5) !important; outline: none; }
-        @keyframes sopDust { 0% { opacity: .75; transform: translate(-50%, -50%) scale(.6); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); } }
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />

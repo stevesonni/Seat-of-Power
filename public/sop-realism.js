@@ -259,7 +259,9 @@
     project.nepotism = !!contractor.nepotism;
 
     // Immediate stat impact
-    SOP.setS(p => ({ ...p, cor: Math.min(1, p.cor + (method.cor / 100) + (contractor.nepotism ? 0.04 : 0)), debt: p.debt + cost * 0.4 }));
+    // The financing chosen for the project decides how much lands on state debt.
+    const share = project.fin && typeof project.fin.share === "number" ? project.fin.share : 0.4;
+    SOP.setS(p => ({ ...p, cor: Math.min(1, p.cor + (method.cor / 100) + (contractor.nepotism ? 0.04 : 0)), debt: p.debt + cost * share }));
     if (min) {
       min.budget = (min.budget || 0) + cost;
       min.cor = Math.min(99, min.cor + (contractor.nepotism ? 8 : method.cor));
@@ -485,7 +487,7 @@
     const c = CL();
     const [showNew, setShowNew] = SOP.useState(false);
     const [draft, setDraft] = SOP.useState({ title:"", type:"road", baseCost:2, ministryId:"works", needsEIA:true, eiaDone:false });
-    if (SOP.pendingProc) return ProcurementModal({ SOP, project: SOP.pendingProc });
+    if (SOP.pendingProc) return SOP_H(ProcurementModal, { SOP, project: SOP.pendingProc, key: SOP.pendingProc.id });
     return SOP_H('div',{},[
       SOP_H('h3',{style:{margin: "0 0 22px",color:c.txt,fontFamily:F().d,fontSize: TS(58),fontWeight:600}},`🏗️ Projects Portfolio`),
       SOP_H('div',{style:{fontSize: TS(36),color:c.td,marginBottom: 29}}, "Every capital project runs a real lifecycle: need → procurement method → EIA → contractor → execution → delivery. Shortcuts leak treasury and bio."),
@@ -511,7 +513,7 @@
             pushWiki(SOP, {section:"Governorship",txt:`Initiated ${draft.title} under ${min?.name || "a state ministry"}, with an estimated base cost of ₦${(+draft.baseCost || 0).toFixed(1)}B${draft.needsEIA ? (draft.eiaDone ? " after commissioning an Environmental Impact Assessment." : ", despite requiring an Environmental Impact Assessment.") : "."}`});
             SOP.addL && SOP.addL(`🏗️ PROJECT INITIATED: ${draft.title} under ${min?.name || "a state ministry"}. Proceed to procurement.`, "policy");
             SOP.setProjects(prev => [ ...(prev || []), proj ]);
-            SOP.setPendingProc(proj);
+            if (SOP.finance) SOP.finance(proj); else SOP.setPendingProc(proj);
             setShowNew(false);
           }},"→ Proceed to Procurement"),
           draft.needsEIA && SOP_H(Btn,{onClick:()=>setDraft({...draft,eiaDone:!draft.eiaDone}), tone:"teal"}, draft.eiaDone?"✅ EIA commissioned (₦120M, +1 turn delay)":"⏳ Commission EIA (₦120M)"),

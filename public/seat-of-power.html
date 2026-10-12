@@ -323,6 +323,52 @@
         document.body.appendChild(back); setTimeout(function () { ok.focus(); }, 30);
       });
     };
+    /* The result of a decision, shown at once so nothing happens silently.
+       SOP_outcome({ icon, title, text, rows: [{ l, v, good }], tone, ok })
+       Cards queue: a second result waits until the first is closed. */
+    (function () {
+      var queue = [], open = false;
+      function next() {
+        if (open || !queue.length) return;
+        open = true;
+        var o = queue.shift();
+        var back = document.createElement('div');
+        back.style.cssText = 'position:fixed;inset:0;z-index:9950;background:rgba(6,14,10,.6);display:flex;align-items:center;justify-content:center;padding:18px;animation:sopFadeIn .18s ease-out';
+        var card = document.createElement('div');
+        card.setAttribute('role', 'alertdialog'); card.setAttribute('aria-modal', 'true');
+        card.style.cssText = 'background:#14232b;color:#e9eef0;border-radius:28px;max-width:520px;width:100%;padding:26px 24px 22px;box-shadow:0 28px 70px rgba(0,0,0,.45);font:500 22px/1.45 "Plus Jakarta Sans",sans-serif;text-align:center;animation:sopSlideUp .25s cubic-bezier(.2,.8,.2,1)';
+        var ic = document.createElement('div');
+        ic.textContent = o.icon || '📣';
+        ic.style.cssText = 'width:92px;height:92px;margin:0 auto 14px;border-radius:50%;background:#1d313b;display:flex;align-items:center;justify-content:center;font-size:46px';
+        var h = document.createElement('div');
+        h.textContent = o.title || 'Done';
+        h.style.cssText = 'font:800 32px/1.2 "Plus Jakarta Sans",sans-serif;color:#fff;margin-bottom:10px';
+        card.appendChild(ic); card.appendChild(h);
+        if (o.text) { var t = document.createElement('div'); t.textContent = o.text; t.style.cssText = 'color:#b9c6cc;margin-bottom:14px'; card.appendChild(t); }
+        if (o.rows && o.rows.length) {
+          var g = document.createElement('div');
+          g.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 16px';
+          o.rows.forEach(function (r) {
+            var c = document.createElement('span');
+            c.textContent = r.l + ' ' + r.v;
+            var col = r.good === true ? '#2fbf71' : r.good === false ? '#ff7a6b' : '#c9d3d7';
+            c.style.cssText = 'padding:7px 14px;border-radius:999px;font:800 19px "Plus Jakarta Sans",sans-serif;background:' + col + '22;color:' + col + ';border:1px solid ' + col + '55';
+            g.appendChild(c);
+          });
+          card.appendChild(g);
+        }
+        var b = document.createElement('button'); b.type = 'button'; b.textContent = o.ok || 'Okay';
+        var bg = o.tone === 'bad' ? '#c0392b' : '#22a565';
+        b.style.cssText = 'width:100%;min-height:58px;border:0;border-radius:999px;background:' + bg + ';color:#fff;font:800 24px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 8px 22px ' + bg + '55';
+        function close() { back.remove(); open = false; try { o.onClose && o.onClose(); } catch (e) {} setTimeout(next, 120); }
+        b.onclick = close;
+        card.appendChild(b); back.appendChild(card);
+        document.body.appendChild(back);
+        try { window.SOP_sound && window.SOP_sound(o.tone === 'bad' ? 'bad' : o.tone === 'good' ? 'good' : 'neutral'); } catch (e) {}
+        setTimeout(function () { b.focus(); }, 30);
+      }
+      window.SOP_outcome = function (o) { queue.push(o || {}); next(); };
+    })();
     window.alert = function (msg) { try { window.SOP_toast(String(msg), 'warn'); } catch (e) {} };
 
     window.SOP_V2_toast = window.SOP_toast = function (msg, kind) {
