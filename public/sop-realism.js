@@ -394,7 +394,7 @@
       SOP_H('h3',{style:{margin: "0 0 29px",color:c.txt,fontFamily:F().d,fontSize: TS(58),fontWeight:600}}, `🏛️ Ministries of ${SOP.state} State`),
       SOP_H('div',{style:{fontSize: TS(36),color:c.td,marginBottom: 29}}, "Nigerian state governors have executive powers under §5(2) to create, merge, or abolish ministries — subject to House of Assembly approval on budget lines."),
       SOP_H('div',{style:{display:"flex",gap: 22,marginBottom: 29,flexWrap:"wrap"}}, [
-        SOP_H(Btn,{onClick:()=>setShowCreate(!showCreate), tone:"blu"}, "➕ Create Ministry"),
+        SOP_H(Btn,{onClick:()=>{ if (window.SOP_PERSONNEL && window.SOP_PERSONNEL.newMinistry) window.SOP_PERSONNEL.newMinistry(); else setShowCreate(!showCreate); }, tone:"blu"}, "➕ Create Ministry"),
         SOP_H(Btn,{onClick:()=>{
           if (mergeSel.length !== 2) { alert("Select exactly 2 ministries to merge."); return; }
           const [a,b] = mergeSel.map(id => SOP.ministries.find(m=>m.id===id));
@@ -506,7 +506,7 @@
           SOP_H('input',{key:"title",value:draft.title,onChange:e=>setDraft({...draft,title:e.target.value}),placeholder:"e.g. Ikeja–Agege 4-lane road",style:field}),
           SOP_H('div',{key:"row",style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap: 12}},[
             SOP_H('div',{key:"t"},[lab("Type"), SOP_H('select',{value:draft.type,onChange:e=>setDraft({...draft,type:e.target.value,needsEIA:EIA_REQUIRED_TYPES.includes(e.target.value)}),style:field},
-              ["road","bridge","hospital","school","market","dam","housing","water","power","vehicles","cctv","landfill","industrial"].map(t=>SOP_H('option',{key:t,value:t},t)))]),
+              ["road","bridge","hospital","school","market","dam","housing","water","power","vehicles","cctv","landfill","industrial"].concat((SOP.ministries||[]).some(m=>m.id==="sports") ? ["stadium"] : []).map(t=>SOP_H('option',{key:t,value:t},t)))]),
             SOP_H('div',{key:"c"},[lab("Cost (₦ billion)"), SOP_H('input',{type:"number",min:0.5,step:0.5,value:draft.baseCost,onChange:e=>setDraft({...draft,baseCost:Math.max(.5,+e.target.value||.5)}),style:field})]),
           ]),
           lab("Supervising ministry"),

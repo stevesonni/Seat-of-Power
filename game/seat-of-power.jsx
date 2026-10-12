@@ -733,8 +733,25 @@ const NEED_TYPES = [
 const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
 // What kind of need each project type answers, and what it improves when done.
 const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security" };
-const PROJ_STAT = { road: "infra", bridge: "infra", hospital: "hp", school: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
+const PROJ_STAT = { stadium: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
 const STAT_NAME = { infra: "Infrastructure", hp: "Health", lit: "Education", agr: "Agriculture", sec: "Security", igr: "Own revenue" };
+// Ministries a governor can add when the state needs them. key: the number a
+// good commissioner moves each half-year; unlock: project types it adds.
+const MINISTRY_CATALOGUE = [
+  { id: "sports", name: "Sports & Youth Development", icon: "🏟️", key: "app", cost: 1.2, staff: 220, unlock: ["stadium"], why: "Football academies, a state team and a stadium. Young voters notice." },
+  { id: "commerce", name: "Commerce, Industry & Investment", icon: "🏭", key: "igr", cost: 1.5, staff: 260, unlock: ["industrial"], why: "Courts investors and runs the industrial parks. Good commissioners raise your own revenue." },
+  { id: "tourism", name: "Tourism, Arts & Culture", icon: "🎭", key: "igr", cost: 1, staff: 180, unlock: [], why: "Festivals, heritage sites and hotels: small but steady revenue." },
+  { id: "env", name: "Environment & Climate Change", icon: "🌳", key: "hp", cost: 1, staff: 300, unlock: ["landfill"], why: "Waste, erosion and flood control. Cleaner towns mean fewer outbreaks." },
+  { id: "water", name: "Water Resources", icon: "🚰", key: "hp", cost: 1.2, staff: 340, unlock: ["water", "dam"], why: "Boreholes, treatment plants and dams." },
+  { id: "housing", name: "Housing & Urban Development", icon: "🏘️", key: "infra", cost: 1.3, staff: 260, unlock: ["housing"], why: "Estates, urban renewal and building control." },
+  { id: "transport", name: "Transport", icon: "🚌", key: "infra", cost: 1.2, staff: 240, unlock: ["vehicles"], why: "Mass transit buses, motor parks and traffic management." },
+  { id: "digital", name: "Science, Technology & Digital Economy", icon: "💻", key: "lit", cost: 1.4, staff: 150, unlock: [], why: "Tech hubs, coding schools and e-government." },
+  { id: "power", name: "Power & Energy", icon: "⚡", key: "infra", cost: 1.5, staff: 200, unlock: ["power"], why: "Solar mini-grids and an embedded power plant." },
+  { id: "humanitarian", name: "Humanitarian Affairs & Poverty Alleviation", icon: "🤲", key: "app", cost: .8, staff: 160, unlock: [], why: "Cash transfers and relief for the poorest. Popular, if the money arrives." },
+  { id: "lands", name: "Lands, Survey & Physical Planning", icon: "🗺️", key: "igr", cost: .9, staff: 210, unlock: [], why: "Titles and ground rent: steady revenue if the commissioner is honest." },
+];
+// How the public sees a candidate's hidden competence and honesty.
+const band = (v) => v >= 70 ? "Strong" : v >= 50 ? "Solid" : "Weak";
 // ─── PERSONNEL ───
 // Every commissioner (and the adviser) has a hidden competence and honesty,
 // fixed by name. Each half-year they act on it, and what they do is on record.
@@ -4233,6 +4250,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { ...m, perf, cor, loyalty, record, flag };
     });
     setMinistries(next);
+    // Good commissioners move their sector; weak ones let it slide.
+    const KEY = { works: "infra", health: "hp", educ: "lit", agric: "agr", sec: "sec" };
+    const moves = {};
+    next.forEach(m => { const k = m.key && m.key !== "app" ? m.key : KEY[m.id] || (m.key === "app" ? "app" : null); if (!k) return; const d = ((m.perf || 50) - 50) * (1 - (m.cor || 30) / 200); moves[k] = (moves[k] || 0) + d; });
+    if (Object.keys(moves).length) setS(p => { const n = { ...p }; Object.entries(moves).forEach(([k, d]) => { if (k === "igr") n.igr = Math.max(0, (n.igr || 0) + d / 60); else if (k === "app") n.app = cl100(n.app + d / 12); else if (n[k] != null) n[k] = cl(n[k] + d / 1200); }); return n; });
     if (slowSectors.length) setNeeds(ns => ns.map(n => (n.status === "started" && slowSectors.includes(needType(n)?.sector)) ? { ...n, status: "stalled", stall: (n.stall || 0) + 1 } : n));
     // The adviser has a record too.
     if (saOffice.adviser && r() < .18) {
@@ -4280,7 +4302,52 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { window.SOPX_onDecision && window.SOPX_onDecision("minister_sacked", { name: m.minister, ministerId: m.id }); } catch (e) {}
     announce({ icon: "🔥", title: "Hon. " + m.minister + " is out", text: (c.justified ? c.why + " " : "Nothing was on record against them; the press calls it a purge. ") + "Hon. " + replacement + " takes over " + m.name + (loyalist ? " (a loyalist from your home zone)." : "."), tone: c.justified ? "good" : "bad" }, before);
   };
-  useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase }; });
+  // ── NEW MINISTRIES AND COMMISSIONERS ──
+  // newMin: { cat, picks: [3 candidates], choice } while you set one up.
+  const [newMin, setNewMin] = useState(null);
+  const [meetMin, setMeetMin] = useState(null); // ministry id you are meeting
+  const candidates = (seed) => {
+    const r = rng(seed), kinds = [["A technocrat from the private sector", 0, -8], ["A party loyalist who ran your ward campaign", 0, 18], ["A former permanent secretary", 0, 4]];
+    return kinds.map(([bg, , loy], i) => { const z = i === 0 ? homeZone : (homeZone + i) % 3; const nm = gN(r, sd.zone, setup?.state); const t = traits(nm); return { nm, bg, zone: z, comp: t.comp, hon: t.hon, loyalty: 55 + loy }; });
+  };
+  const openNewMinistry = (cat) => setNewMin({ cat, picks: candidates(Date.now() % 99991), choice: 0 });
+  const createMinistry = () => decide(() => {
+    const N = newMin; if (!N) return; const c = N.cat, who = N.picks[N.choice];
+    const hs = scHouse(), refused = hs.loyal < hs.seats / 2 && Math.random() < .5;
+    setNewMin(null);
+    if (refused) {
+      addL("🏛️ The House refused to fund a new " + c.name + " ministry.", "political");
+      return { icon: "🏛️", title: "The House said no", text: "Only " + hs.loyal + " of " + hs.seats + " members back you, and they won't fund a new " + c.name + " ministry this half-year. Win them over and try again.", tone: "bad" };
+    }
+    const t = traits(who.nm);
+    const m = { id: c.id, name: c.name, icon: c.icon, key: c.key, unlock: c.unlock, budget: 0, staff: c.staff, perf: Math.round(40 + (t.comp - 50) * .4), cor: Math.max(8, Math.round((100 - t.hon) * .5)), minister: who.nm, permSec: gN(rng(Date.now() % 7777), sd.zone, setup?.state), loyalty: who.loyalty, zone: who.zone, hired: turn, record: [] };
+    setMinistries(ms => [...(ms || []), m]);
+    setS(p => ({ ...p, debt: p.debt + c.cost }));
+    addL(c.icon + " Created the Ministry of " + c.name + ". Hon. " + who.nm + " is its first commissioner.", "policy");
+    try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Created the Ministry of " + c.name + " and appointed Hon. " + who.nm + " as its commissioner." }, ...(w || [])]); } catch (e) {}
+    return { icon: c.icon, title: "Ministry of " + c.name + " created", text: "Hon. " + who.nm + " is sworn in. " + (c.unlock.length ? "You can now start " + c.unlock.join(" and ") + " projects. " : "") + "A good commissioner will move it every half-year; check on them.", tone: "good" };
+  });
+  // Meeting a commissioner: once a half-year each.
+  const meetAction = (m, kind) => decide(() => {
+    const t = traits(m.minister); setMeetMin(null);
+    const upd = (f) => setMinistries(ms => ms.map(x => x.id === m.id ? { ...f(x), met: turn } : x));
+    if (kind === "push") {
+      upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + (t.comp > 50 ? 9 : 4)), loyalty: Math.max(5, (x.loyalty || 50) - 5) }));
+      return { icon: "📋", title: "You read Hon. " + m.minister + " the riot act", text: t.comp > 50 ? "They came back with a plan and deadlines. Expect results." : "They promised a lot. Their team is not good enough to deliver much more.", tone: t.comp > 50 ? "good" : "neutral", rows: [{ l: "Performance", v: "+" + (t.comp > 50 ? 9 : 4), good: true }, { l: "Loyalty", v: "−5", good: false }] };
+    }
+    if (kind === "audit") {
+      if (t.hon < 45) {
+        upd(x => ({ ...x, flag: { kind: "graft", t: turn, text: "Your auditors found inflated contracts." }, record: [...(x.record || []), { t: turn, kind: "graft", text: "Your auditors found inflated contracts." }].slice(-4) }));
+        return { icon: "🔍", title: "The books don't add up", text: "Your auditors found inflated contracts in " + m.name + ". You now have grounds to fire Hon. " + m.minister + ".", tone: "bad" };
+      }
+      upd(x => ({ ...x, loyalty: Math.min(95, (x.loyalty || 50) + 3), cor: Math.max(5, (x.cor || 30) - 5) }));
+      return { icon: "🔍", title: "Clean books", text: "Hon. " + m.minister + " runs a clean ministry. Knowing you checked, staff are more careful.", tone: "good", rows: [{ l: "Ministry corruption", v: "−5", good: true }] };
+    }
+    upd(x => ({ ...x, budget: (x.budget || 0) + .5, perf: Math.min(95, (x.perf || 50) + 5), loyalty: Math.min(95, (x.loyalty || 50) + 6) }));
+    setS(p => ({ ...p, debt: p.debt + .5 }));
+    return { icon: "💰", title: "You backed Hon. " + m.minister, text: "An extra ₦0.5B for " + m.name + ". " + (t.hon < 45 ? "Some of it may not reach the work." : "It will go into the work."), tone: "good" };
+  });
+  useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase, newMinistry: () => { setNav("cab"); setNewMin({ pick: true }); } }; });
 
   const getSABrief = () => {
     if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
@@ -8469,6 +8536,60 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {/* Capital project intake — Step 1 of the shared lifecycle.
             After confirmation this hands off to the sop-realism procurement modal
             (contractor selection from the real bidder pool). */}
+        <OL show={!!newMin}>
+          {newMin && (() => {
+            const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(32), l: TS(46) };
+            const have = new Set((ministries || []).map(m => m.id));
+            if (newMin.pick) return <Cd style={{ maxWidth: 984 }}>
+              <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, fontWeight: 700, margin: "0 0 4px" }}>Create a ministry</h3>
+              <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 12 }}>The House must fund it. Setup cost goes on the state's debt.</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {MINISTRY_CATALOGUE.filter(c => !have.has(c.id)).map(c => <button key={c.id} onClick={() => openNewMinistry(c)} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 18px", borderRadius: 14, border: "1.5px solid " + CL.bdr, background: CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+                  <span style={{ fontSize: fz.l }}>{c.icon}</span>
+                  <span><b style={{ display: "block", fontSize: fz.m }}>{c.name}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{c.why}</span></span>
+                  <span style={{ fontWeight: 800, fontSize: fz.s, color: CL.org, whiteSpace: "nowrap" }}>₦{c.cost}B</span>
+                </button>)}
+              </div>
+              <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={() => setNewMin(null)}>Close</Bt></div>
+            </Cd>;
+            const c = newMin.cat;
+            return <Cd style={{ maxWidth: 984 }}>
+              <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, fontWeight: 700, margin: "0 0 4px" }}>{c.icon} Who runs {c.name}?</h3>
+              <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 12 }}>What people say about each candidate. Their record will show the truth.</div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {newMin.picks.map((w, i) => <button key={w.nm} onClick={() => setNewMin({ ...newMin, choice: i })} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 18px", borderRadius: 14, border: "2px solid " + (newMin.choice === i ? CL.grn : CL.bdr), background: newMin.choice === i ? CL.grn + "0f" : CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+                  <img src={commissionerArt(w.nm)} alt="" style={{ width: 56, height: 66, objectFit: "cover", objectPosition: "top", borderRadius: 10 }} />
+                  <span><b style={{ display: "block", fontSize: fz.m }}>Hon. {w.nm}</b>
+                    <span style={{ display: "block", fontSize: fz.s, color: CL.tm }}>{w.bg} · {zoneName(w.zone)}</span>
+                    <span style={{ display: "block", fontSize: fz.s, color: CL.txt, fontWeight: 700 }}>Ability: {band(w.comp + (hashStr(w.nm + "a") % 25) - 12)} · Integrity: {band(w.hon + (hashStr(w.nm + "h") % 25) - 12)} · Loyal to you: {band(w.loyalty)}</span></span>
+                </button>)}
+              </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}><Bt v="ghost" onClick={() => setNewMin({ pick: true })}>Back</Bt><Bt onClick={createMinistry}>Create and swear in →</Bt></div>
+            </Cd>;
+          })()}
+        </OL>
+
+        <OL show={!!meetMin}>
+          {meetMin && (() => {
+            const m = (ministries || []).find(x => x.id === meetMin); if (!m) return null;
+            const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(32), l: TS(46) };
+            const opts = [["push", "📋", "Demand results", "Deadlines and a warning. Performance up, loyalty down."], ["audit", "🔍", "Audit their books", "Find out if they are stealing. If they are, you can fire them for it."], ["back", "💰", "Back them with ₦0.5B more", "More money for the ministry; they will remember it."]];
+            return <Cd style={{ maxWidth: 820 }}>
+              <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 12 }}>
+                <img src={commissionerArt(m.minister)} alt="" style={{ width: 72, height: 86, objectFit: "cover", objectPosition: "top", borderRadius: 12 }} />
+                <div><b style={{ fontSize: fz.l, fontFamily: F.d, color: CL.txt }}>Hon. {m.minister}</b><div style={{ fontSize: fz.s, color: CL.td }}>{m.icon} {m.name} · performance {m.perf}% · loyalty {m.loyalty == null ? 50 : m.loyalty}%</div></div>
+              </div>
+              {(m.record || []).slice(-1).map((e, i) => <div key={i} style={{ fontSize: fz.s, color: e.kind === "praise" ? CL.grn : CL.red, marginBottom: 10 }}>Last: {e.text}</div>)}
+              <div style={{ display: "grid", gap: 8 }}>
+                {opts.map(([k, ic, l, d]) => <button key={k} onClick={() => meetAction(m, k)} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 18px", borderRadius: 14, border: "1.5px solid " + CL.bdr, background: CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+                  <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span></span>
+                </button>)}
+              </div>
+              <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={() => setMeetMin(null)}>Not now</Bt></div>
+            </Cd>;
+          })()}
+        </OL>
+
         <OL show={!!finProj}>
           {finProj && (() => {
             const proj = finProj.proj, opts = finOptions(proj);
@@ -8496,7 +8617,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={!!capProj}>
           {capProj && (() => {
             const p = capProj.p;
-            const TYPES = ["road","bridge","hospital","school","market","dam","housing","water","power","vehicles","cctv","landfill","industrial"];
+            const TYPES = ["road","bridge","hospital","school","market","dam","housing","water","power","vehicles","cctv","landfill","industrial"].concat((ministries || []).some(m => m.id === "sports") ? ["stadium"] : []);
             const eiaRequired = EIA_TYPES.has(capProj.type);
             const noMinistries = !ministries || !ministries.length;
             return <Cd style={{ borderColor: CL.org + "44", maxWidth: 984 }}>
@@ -8869,9 +8990,12 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
           {ministries && ministries.length > 0 && <div style={{ marginBottom: 50 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(50), fontWeight: 600, margin: 1 }}>🏛️ Executive Council — Your Ministries ({ministries.length})</h3>
-              <Bt v="ghost" onClick={() => setNav("min")} style={{ fontSize: TS(29), padding: "7px 29px" }}>+ Create / Merge →</Bt>
+              <div style={{ display: "flex", gap: 8 }}>
+                <Bt onClick={() => setNewMin({ pick: true })} style={{ fontSize: TS(29), padding: "7px 22px" }}>+ New ministry</Bt>
+                <Bt v="ghost" onClick={() => setNav("min")} style={{ fontSize: TS(29), padding: "7px 22px" }}>Merge →</Bt>
+              </div>
             </div>
-            <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>These are the ministries YOU created and appointed. Fire a commissioner or reassign the Permanent Secretary directly from here. Every action lands in your Wikipedia biography.</div>
+            <div style={{ fontSize: TS(30), color: CL.td, marginBottom: 18 }}>Good commissioners move their sector every half-year; weak or crooked ones drag it down. Meet each of them once a half-year.</div>
             {(() => { const cz = cabZones(), bi = balanceIssue(); return <div style={{ fontSize: TALL() ? TS(20) : TS(31), color: bi != null ? CL.red : CL.tm, background: (bi != null ? CL.red : CL.grn) + "0d", borderRadius: 12, padding: "10px 14px", marginBottom: 18 }}>
               <b>Zonal balance:</b> {cz.map((n, i) => zoneName(i) + " " + n).join(" · ")}. {bi != null ? zoneName(bi) + " feels marginalised and costs you support every half-year. Replace a commissioner with someone from " + zoneName(bi) + " to fix it." : "Every zone has a fair share of the cabinet."}
             </div>; })()}
@@ -8889,7 +9013,9 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 <SB label="Performance" value={m.perf} max={100} color={CL.blu} />
                 <SB label="Corruption" value={m.cor} max={100} color={CL.red} />
                 <div style={{ fontSize: TS(31), color: CL.td, marginTop: 10, fontFamily: F.m }}>Budget: ₦{(m.budget || 0).toFixed(1)}B</div>
+                {(() => { const KEY = { works: "infra", health: "hp", educ: "lit", agric: "agr", sec: "sec" }; const k = m.key || KEY[m.id]; return k ? <div style={{ fontSize: TS(27), color: CL.tm, marginTop: 8 }}>Moves: <b>{k === "app" ? "Approval" : STAT_NAME[k]}</b> {(m.perf || 50) >= 55 ? "▲" : (m.perf || 50) < 45 ? "▼" : "–"}</div> : null; })()}
                 <div style={{ display: "flex", gap: 10, marginTop: 19, flexWrap: "wrap" }}>
+                  <Bt onClick={() => setMeetMin(m.id)} disabled={m.met === turn} style={{ fontSize: TS(29), padding: "7px 22px" }}>{m.met === turn ? "Met this half-year" : "🤝 Meet"}</Bt>
                   <Bt v="danger" onClick={() => fireMinister(m.id)} style={{ fontSize: TS(29), padding: "7px 22px" }}>{fireCase(m).justified ? "Fire: " + (m.flag ? OFFENCE[m.flag.kind].label.toLowerCase() : "weak record") : "Fire"}</Bt>
                   <Bt v="ghost" onClick={() => { const old = m.permSec; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, permSec: gen(), perf: Math.min(100, x.perf + 5) } : x)); addL("🔀 Reassigned PS " + old + " → new PS in " + m.name + ".", "political"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Reassigned the Permanent Secretary of " + m.name + ", replacing " + old + " during an administrative shake-up." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>Reassign PS</Bt>
                   <Bt v="ghost" onClick={() => { const raise = 0.5; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, budget: (x.budget || 0) + raise, perf: Math.min(100, x.perf + 3) } : x)); setS(pr => ({ ...pr, debt: pr.debt + raise })); addL("💰 Boosted " + m.name + " budget by ₦" + raise + "B.", "policy"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Increased the budget of " + m.name + " by ₦" + raise + "B to accelerate implementation." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>+₦0.5B</Bt>
