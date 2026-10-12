@@ -5576,6 +5576,42 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (courts.length) { pp.push(He + " complied with " + courts.filter(e => e.kind === "court_compliance").length + " court ruling(s)."); pp.push(cite(courts[0])); }
       subs.push({ h: "Key decisions", paras: [pp] });
     }
+    // Everything the game wrote to the record (wikiEvents), told year by year
+    // under themed headings, so no decision goes unrecorded.
+    const sentence = (e) => {
+      let t = String(e.txt || "").trim().replace(/\s+/g, " "); if (!t) return null;
+      const iw = t.match(/^Ignored warnings?: (.*)$/i); if (iw) return "In " + yearOf(e.turn) + " " + he + " ignored warnings. " + iw[1].replace(/([^.!?])$/, "$1.");
+      if (!/[.!?]$/.test(t)) t += ".";
+      const first = t.split(" ")[0];
+      const verb = /^[A-Z][a-z]+(ed|ught|ent|ilt|ade|ok|on|ost|ave|aid|ut|oke|an|et)$/.test(first) && !/^(United|Red|Ahmed|Mohammed|Hamed|Saeed|Abdulrasheed)$/.test(first);
+      return "In " + yearOf(e.turn) + ", " + (verb ? he + " " + first.toLowerCase() + t.slice(first.length) : /^The /.test(t) ? "t" + t.slice(1) : t);
+    };
+    const THEMES = [
+      ["Projects and infrastructure", /road|bridge|project|commissioned|built|hospital|clinic|school|estate|housing|water|stadium|initiated|awarded|contract|EIA|site/i],
+      ["Economy and public finance", /debt|revenue|IGR|tax|loan|bond|relief|budget|FAAC|salar|arrears|registry|levy|Treasury Single|payroll|financed|investor/i],
+      ["Cabinet and appointments", /commissioner|ministry|cabinet|sacked|appoint|reshuffle|permanent secretar|adviser/i],
+      ["Security", /security|bandit|kidnap|police|vigilante|Amotekun|herders|cult/i],
+      ["Courts, elections and local government", /court|tribunal|petition|election|local government|LG |chairm|INEC/i],
+    ];
+    const gov = [], seen = new Set();
+    (wikiEvents || []).slice().reverse().forEach(e => { if (!e || e.section === "Controversies") return; const k = String(e.txt); if (seen.has(k)) return; seen.add(k); gov.push(e); });
+    const used = new Set();
+    THEMES.forEach(([h, rx]) => {
+      const es = gov.filter(e => !used.has(e) && rx.test(e.txt)); es.forEach(e => used.add(e));
+      if (!es.length) return;
+      subs.push({ h, paras: [[es.slice(-8).map(sentence).filter(Boolean).join(" ")]] });
+    });
+    const rest = gov.filter(e => !used.has(e));
+    if (rest.length) subs.push({ h: "Other events", paras: [[rest.slice(-6).map(sentence).filter(Boolean).join(" ")]] });
+    // The record in numbers.
+    const pj = projects || [], nd = needs || [];
+    const rec = [];
+    rec.push("Projects: " + pj.filter(p => p.status === "delivered").length + " delivered, " + pj.filter(p => p.status === "in_progress").length + " under construction" + (pj.some(p => p.status === "abandoned" || p.status === "suspended") ? ", " + pj.filter(p => p.status === "abandoned" || p.status === "suspended").length + " stalled or abandoned" : "") + ". ");
+    if (nd.length) rec.push("Community needs: " + nd.filter(n => n.status === "met").length + " met, " + nd.filter(n => n.status === "failed" || n.status === "abandoned").length + " failed, " + nd.filter(n => ["open", "started", "stalled"].includes(n.status)).length + " outstanding. ");
+    rec.push("State debt " + naira(s.debt) + "; own revenue " + naira(s.igr) + " a half-year. ");
+    rec.push((ministries || []).length + " ministries; " + billsPassed.length + " bill" + (billsPassed.length === 1 ? "" : "s") + " signed into law. ");
+    rec.push("Approval " + Math.round(s.app) + "%; corruption index " + Math.round((s.cor || 0) * 100) + "%.");
+    subs.push({ h: "Record in numbers", paras: [rec] });
     sections.push({ h: "Governorship", subs: subs.length ? subs : [{ h: "Early months", paras: [["The administration had taken no recorded decisions yet."]] }] });
     // Controversies
     const cpp = [];
@@ -5585,6 +5621,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const txt = e.kind === "godfather_contract" ? He + " gave " + cast.godfather.name + " what he asked for: " + short(e.note, 90) : e.kind === "court_defiance" ? He + " defied a court ruling (" + e.target + ")" : e.kind === "press_suppression" ? "The administration was accused of killing a press story about it" : e.kind === "nepotism_flag" ? "Appointments of relatives and allies were flagged" : e.kind === "budget_forced" ? "Spending without the House's approval drew a court challenge" : e.kind === "unconst_order" ? He + " issued an executive order the courts called unconstitutional: " + short(e.decision, 60).replace(/^Executive order: /, "") : e.kind === "house_deal" ? "Members were given constituency projects for their votes" : short(e.outcome || e.note, 110);
       cpp.push(txt.replace(/\.?$/, ".")); cpp.push(cite(e)); cpp.push(" ");
     });
+    const cseen = new Set();
+    (wikiEvents || []).slice().reverse().filter(e => e && e.section === "Controversies").forEach(e => { const k = String(e.txt); if (cseen.has(k)) return; cseen.add(k); const t = sentence(e); if (t) { cpp.push(t + " "); } });
     if (M) { try { const owed = M.owed(); if (owed.length) cpp.push(owed.length + (owed.length === 1 ? " promise" : " promises") + " to power brokers remained unpaid" + (ended ? " when " + he + " left office." : ".")); } catch (e) {} }
     sections.push({ h: "Controversies", paras: [cpp.length ? cpp : ["No controversy had been reported as of " + whenOf(turn) + "."]] });
     // Legacy
