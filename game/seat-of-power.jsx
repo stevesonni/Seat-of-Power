@@ -3535,7 +3535,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // headline numbers (plus debt and the war chest), runs the decision, then
   // shows a result card with what it said and what actually moved.
   const snapRef = React.useRef(null);
-  snapRef.current = { app: s.app, tb, pStab: s.pStab, cor: s.cor || 0, debt: s.debt, fund: personalFund };
+  snapRef.current = { app: s.app, tb, pStab: s.pStab, cor: s.cor || 0, debt: s.debt, fund: personalFund, sec: s.sec, hp: s.hp, lit: s.lit, infra: s.infra, agr: s.agr, igr: s.igr };
   const statRows = (a, b) => {
     const r = [], d = (k) => (b[k] || 0) - (a[k] || 0), sg = (v) => (v > 0 ? "+" : "−");
     if (Math.abs(d("app")) >= .5) r.push({ l: "Approval", v: sg(d("app")) + Math.abs(Math.round(d("app"))) + "%", good: d("app") > 0 });
@@ -3544,25 +3544,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (Math.abs(d("cor")) >= .005) r.push({ l: "Corruption", v: sg(d("cor")) + Math.abs(Math.round(d("cor") * 100)) + "%", good: d("cor") < 0 });
     if (Math.abs(d("debt")) >= .05) r.push({ l: "Debt", v: sg(d("debt")) + "₦" + Math.abs(d("debt")).toFixed(1) + "B", good: d("debt") < 0 });
     if (Math.abs(d("fund")) >= .05) r.push({ l: "War chest", v: sg(d("fund")) + "₦" + Math.abs(d("fund")).toFixed(1) + "B", good: d("fund") > 0 });
+    [["sec", "Security"], ["hp", "Health"], ["lit", "Education"], ["infra", "Infrastructure"], ["agr", "Agriculture"]].forEach(([k, l]) => { if (Math.abs(d(k)) >= .005) r.push({ l, v: sg(d(k)) + Math.abs(Math.round(d(k) * 100)) + "%", good: d(k) > 0 }); });
+    if (Math.abs(d("igr")) >= .05) r.push({ l: "Own revenue", v: sg(d("igr")) + "₦" + Math.abs(d("igr")).toFixed(1) + "B", good: d("igr") > 0 });
     return r;
   };
   // fn runs the decision and returns the card ({ icon, title, text, tone });
   // returning nothing means nothing happened and no card shows.
-  const announce = (o, before) => setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ ...o, rows: [...(o.rows || []), ...(before ? statRows(before, snapRef.current) : [])] }); } catch (e) {} }, 180);
-  // Any change to the headline numbers, from any screen, floats up briefly
-  // under the status strip, so no action changes things silently.
-  const [ticks, setTicks] = useState([]);
-  const tickPrev = React.useRef(null), tickFrom = React.useRef(Date.now() + 2500);
-  useEffect(() => {
-    const cur = { app: s.app, tb, pStab: s.pStab, cor: s.cor || 0 };
-    const prev = tickPrev.current; tickPrev.current = cur;
-    if (!prev || Date.now() < tickFrom.current) return; // not while a save is loading
-    const rows = statRows(prev, cur);
-    if (!rows.length) return;
-    const id = Date.now() + Math.random();
-    setTicks(t => [...t.slice(-2), { id, rows }]);
-    setTimeout(() => setTicks(t => t.filter(x => x.id !== id)), 3200);
-  }, [Math.round(s.app * 2), Math.round(tb * 20), Math.round(s.pStab * 2), Math.round((s.cor || 0) * 200)]);
+  const announce = (o, before) => setTimeout(() => {
+    try {
+      const rows = [...(o.rows || []), ...(before ? statRows(before, snapRef.current) : [])].filter((r, i, a) => a.findIndex(x => x.l === r.l) === i);
+      window.SOP_outcome && window.SOP_outcome({ ...o, rows, text: (o.text || "") + (rows.length ? "" : " Nothing changes at once; you will see the effect over the coming half-years.") });
+    } catch (e) {}
+  }, 250);
   const decide = (fn) => {
     const before = { ...snapRef.current };
     const o = fn();
@@ -6438,11 +6431,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   return (
     <div style={{ minHeight: "100%", background: CL.bg }}>
       <Flag />
-      {ticks.length > 0 && <div aria-live="polite" style={{ position: "fixed", top: TALL() ? 92 : 110, left: 0, right: 0, zIndex: 9000, display: "grid", justifyItems: "center", gap: 6, pointerEvents: "none" }}>
-        {ticks.map(t => <div key={t.id} className="sop-fade-in" style={{ display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "center", background: "rgba(18,35,43,.92)", borderRadius: 999, padding: "6px 10px", boxShadow: "0 6px 18px rgba(0,0,0,.25)" }}>
-          {t.rows.map(r => <span key={r.l} style={{ fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: r.good ? "#5fe39b" : "#ff8f80", whiteSpace: "nowrap" }}>{r.l} {r.v}</span>)}
-        </div>)}
-      </div>}
       <div style={{ padding: TALL() ? "20px 20px 190px" : 36, maxWidth: 1488, margin: "0 auto" }}>
         {/* Phone: one slim row pinned to the top. Name and turn on the left,
             approval on the right; tap it for the "State of the state" sheet.
@@ -6937,7 +6925,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "sc" && scCards.length > 0}>
           {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
-            onPick={(o) => { decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } return res && res.title ? res : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + "." }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
+            onPick={(o) => { decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
 
         <OL show={phase === "succession_race" && !!stc.race}>

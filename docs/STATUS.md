@@ -313,7 +313,7 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
   - `decide(fn)` notes Approval, Treasury, Party, Corruption, Debt and the war chest, runs the decision, then shows the card with the real changes.
   - `announce(o, before)` does the same for async flows.
   - Wired into: statecraft cards (a card's `run()` may return its own result, as the election-petition rulings do), flagship choices, tribunal stages 1–3, judicial reviews, revenue reforms, debt relief / deferral / notes, firing, programmes, bills, executive orders, ministries, commissioner meetings, financing and project delivery.
-- **Change readout.** Any change to the four headline numbers, from any screen, floats up under the status strip for three seconds. It is muted while a save loads.
+- The floating change readout was removed at the player's request; result cards carry the changes, including security, health, education, infrastructure, agriculture and own revenue, and fall back to "effects over the coming half-years" when nothing moves at once.
 
 ## Paying for projects
 - After a capital project's intake, or a new project in Map → Projects, a **Financing** sheet (`finOptions` / `pickFinance`) offers seven sources. Each shows its odds and its reasons (✗ blockers first):
