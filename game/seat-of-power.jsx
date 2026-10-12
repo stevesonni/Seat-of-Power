@@ -69,6 +69,10 @@ if (!window.storage) {
    migrateSave() upgrades an old save in place rather than rejecting
    it, so runs in progress survive this change.
    ───────────────────────────────────────────────────────────────── */
+// Running inside a Vatar world's game player (Lagos Life): the server sets
+// window.SOP_VATAR. Popups, downloads, clipboard and fullscreen are blocked
+// there, so those controls are hidden.
+const VATAR = typeof window !== "undefined" && !!window.SOP_VATAR;
 const SAVE_VERSION = 2;
 function migrateSave(d) {
   if (!d || typeof d !== "object") return d;
@@ -81,7 +85,16 @@ function migrateSave(d) {
   }
   d.sv = SAVE_VERSION;
   scrubRemovedContent(d);
-  return d;
+  return renameParties(d);
+}
+// The parties are fictional. Saves made when they carried real names are
+// converted on load: any value that is exactly an old party id becomes the new one.
+const OLD_PARTY = { APC: "NRA", NDC: "YDM", ADC: "UCP", PDP: "PFP", LP: "WPN" };
+function renameParties(v) {
+  if (typeof v === "string") return OLD_PARTY[v] || v;
+  if (Array.isArray(v)) return v.map(renameParties);
+  if (v && typeof v === "object") { for (const k in v) v[k] = renameParties(v[k]); return v; }
+  return v;
 }
 /* Removed content (4 Oct, Steve's decision): the First 100 Days /
    inauguration scenes and the budget-padding ("Budget Assembly")
@@ -233,15 +246,15 @@ const STATES = {
 };
 
 const PARTIES = [
-  // Order: APC, NDC, ADC, PDP, then "create your own" in setup. Descriptions describe the parties only.
-  { id: "APC", nm: "All Progressives Congress", c: "#1a6d2e", i: "🟢", ticket: 0.5, strength: 1.15, desc: "The governing party at the centre. ₦500M ticket, the most expensive. Strong federal backing and the deepest campaign money." },
-  { id: "NDC", nm: "National Democratic Coalition", c: "#f59e0b", i: "🟡", ticket: 0.3, strength: 1.05, desc: "A newer party with strong urban and youth appeal, especially in the South-East, South-South and Lagos. ₦300M ticket." },
-  { id: "ADC", nm: "African Democratic Congress", c: "#0d9488", i: "🩵", ticket: 0.35, strength: 1.08, desc: "An established opposition party that has grown quickly. ₦350M ticket. Rising support, with open disputes over who leads it." },
-  { id: "PDP", nm: "Peoples Democratic Party", c: "#cc3333", i: "🔴", ticket: 0.28, strength: 0.95, desc: "The oldest national opposition party. ₦280M ticket. Weakened by defections, but its structures still hold in the South-South and North-Central." },
+  // Order: NRA, YDM, UCP, PFP, then "create your own" in setup. Descriptions describe the parties only.
+  { id: "NRA", nm: "New Republic Alliance", c: "#1a6d2e", i: "🟢", ticket: 0.5, strength: 1.15, desc: "The governing party at the centre. ₦500M ticket, the most expensive. Strong federal backing and the deepest campaign money." },
+  { id: "YDM", nm: "Young Democrats Movement", c: "#f59e0b", i: "🟡", ticket: 0.3, strength: 1.05, desc: "A newer party with strong urban and youth appeal, especially in the South-East, South-South and Lagos. ₦300M ticket." },
+  { id: "UCP", nm: "United Citizens Party", c: "#0d9488", i: "🩵", ticket: 0.35, strength: 1.08, desc: "An established opposition party that has grown quickly. ₦350M ticket. Rising support, with open disputes over who leads it." },
+  { id: "PFP", nm: "People's Front Party", c: "#cc3333", i: "🔴", ticket: 0.28, strength: 0.95, desc: "The oldest national opposition party. ₦280M ticket. Weakened by defections, but its structures still hold in the South-South and North-Central." },
 ];
-// Labour Party: no longer offered, kept so saves that chose it still load.
+// Workers' Party (was Labour Party): no longer offered, kept so saves that chose it still load.
 const LEGACY_PARTIES = {
-  LP: { id: "LP", nm: "Labour Party", c: "#2563eb", i: "🔵", ticket: 0.15, strength: 0.85, desc: "A labour-aligned party with links to the trade unions. ₦150M ticket. Smaller after defections and a leadership dispute." },
+  WPN: { id: "WPN", nm: "Workers' Party", c: "#2563eb", i: "🔵", ticket: 0.15, strength: 0.85, desc: "A labour-aligned party with links to the trade unions. ₦150M ticket. Smaller after defections and a leadership dispute." },
 };
 // A party the player registers in setup. It lives in PARTIES for the rest of
 // the run (and is restored from the save), so every lookup finds it.
@@ -250,7 +263,7 @@ const registerParty = (p) => {
   const i = PARTIES.findIndex(x => x.id === p.id);
   if (i >= 0) PARTIES[i] = { ...PARTIES[i], ...p }; else PARTIES.push(p);
 };
-const MAIN_PARTY_IDS = ["APC", "NDC", "ADC", "PDP"];
+const MAIN_PARTY_IDS = ["NRA", "YDM", "UCP", "PFP"];
 
 
 const STATE_LGAS = {
@@ -300,14 +313,14 @@ const buildBattlegrounds = (state, seed, partyId, oppPartyId) => {
   const lgas = getLGAs(state);
   const r = rng(seed + state.length * 101 + (partyId || "").length * 17);
   const zoneInfo = STATES[state]?.zone || "SW";
-  // Regional bias: NDC strong SE/SS/Lagos; ADC strong North/NC; APC & PDP national; LP weakened
+  // Regional bias: YDM strong SE/SS/Lagos; UCP strong North/NC; NRA & PFP national; WPN weakened
   const partyBias = (pid) => {
     if (!pid) return 0;
-    if (pid === "APC") return 2;
-    if (pid === "PDP") return 1;
-    if (pid === "ADC") return (zoneInfo === "NW" || zoneInfo === "NE" || zoneInfo === "NC") ? 3 : -2;
-    if (pid === "NDC") return (zoneInfo === "SE" || zoneInfo === "SS" || state === "Lagos") ? 4 : -1;
-    if (pid === "LP") return (zoneInfo === "SE" || state === "Lagos") ? 1 : -3;
+    if (pid === "NRA") return 2;
+    if (pid === "PFP") return 1;
+    if (pid === "UCP") return (zoneInfo === "NW" || zoneInfo === "NE" || zoneInfo === "NC") ? 3 : -2;
+    if (pid === "YDM") return (zoneInfo === "SE" || zoneInfo === "SS" || state === "Lagos") ? 4 : -1;
+    if (pid === "WPN") return (zoneInfo === "SE" || state === "Lagos") ? 1 : -3;
     return 0;
   };
   return ZONE_LABELS.map((zone, idx) => {
@@ -1743,8 +1756,8 @@ const commissionerArt = (name) => {
 const Bg = ({ text, color = CL.grn }) => React.createElement("span", { className: "ds-chip", style: { background: color + "15", color, borderColor: color + "40" } }, text);
 
 // Buttons read in sentence case: "PROCEED TO POLICIES →" becomes
-// "Proceed to policies →", keeping acronyms (APC, INEC, EFCC…) as they are.
-const KEEP_CAPS = /^(APC|PDP|NDC|ADC|LP|INEC|EFCC|ICPC|NLC|SA|FG|FCT|FAAC|IGR|EIA|LGA|LGAS|EC8D|PS|II|UK|UN|UAE|US|NIC|BPP|AI|X|OK)$/;
+// "Proceed to policies →", keeping acronyms (NRA, INEC, EFCC…) as they are.
+const KEEP_CAPS = /^(NRA|PFP|YDM|UCP|WPN|INEC|EFCC|ICPC|NLC|SA|FG|FCT|FAAC|IGR|EIA|LGA|LGAS|EC8D|PS|II|UK|UN|UAE|US|NIC|BPP|AI|X|OK)$/;
 const sentence = (t) => {
   if (typeof t !== "string") return t;
   const letters = t.replace(/[^A-Za-z]/g, "");
@@ -1890,8 +1903,8 @@ const HowToPlay = ({ show, onClose }) => {
   if (!show) return null;
   const sections = [
     { t: "🎮 How to Play", c: "You are the Executive Governor of a Nigerian state. Before governing, you must fund your campaign, buy a party ticket, choose your deputy, and WIN an election — none of it is automatic.\n\nOnce in Government House, you govern for up to 8 half-year turns (2 terms of 4 years). Each turn brings: budget allocation, policies, projects, dilemmas, media events, federal government dynamics, shock events, court challenges, investor proposals, godfather demands, and hidden threats.\n\nImpeachment requires BOTH low approval (<30%) AND low party stability (<40%). Bankruptcy (revenue < ₦2B) ends your tenure immediately. Defying the Supreme Court is near-certain impeachment." },
-    { t: "💰 Campaign Finance & The Godfather", c: "You start with ₦800M in personal funds — your war chest. Party tickets cost money: APC ₦500M (the deepest campaign money), PDP, NDC, ADC and LP cost less. The ticket is deducted from your war chest.\n\nIf you can't afford a ticket, the Godfather offers a loan — but you start governance with +5% corruption per billion borrowed. He WILL demand repayment through contracts, land, and positions.\n\nThe campaign runs four weeks. Each week you see one poll line per senatorial zone, your money and your campaign days (6 a week), and three moves, each with its cost in money and days and the zone it affects. Every move costs money, time or both. The opponent strikes back every week. The result screen shows how each zone moved and which of your moves moved it." },
-    { t: "🗳️ Elections & Campaigns", c: "Both elections (first and re-election) are 8-decision, 4-week campaigns. Each week: YOUR move → the OPPONENT strikes (their move hits the polls at once, in the zone it targets) → you respond to win the ground back. Ignore an attack and it sticks. The further you lead, the harder they hit. A named opponent from another party campaigns against you.\n\nParty strength multiplies your score: APC 1.15x, ADC 0.85x. Underdogs CAN win with perfect campaigns.\n\nOn Hard mode: your moves count for less, the opponent's attacks land harder, and negative campaigning backfires 65% of the time. Strong campaigns still win.\n\nFor re-election: if party stability ≥ 50%, you get an automatic ticket. If < 50%, your ticket is contested — you must buy it (godfather funds or self-fund) or switch to a cheaper party (-15 party stability)." },
+    { t: "💰 Campaign Finance & The Godfather", c: "You start with ₦800M in personal funds — your war chest. Party tickets cost money: NRA ₦500M (the deepest campaign money), PFP, YDM, UCP and WPN cost less. The ticket is deducted from your war chest.\n\nIf you can't afford a ticket, the Godfather offers a loan — but you start governance with +5% corruption per billion borrowed. He WILL demand repayment through contracts, land, and positions.\n\nThe campaign runs four weeks. Each week you see one poll line per senatorial zone, your money and your campaign days (6 a week), and three moves, each with its cost in money and days and the zone it affects. Every move costs money, time or both. The opponent strikes back every week. The result screen shows how each zone moved and which of your moves moved it." },
+    { t: "🗳️ Elections & Campaigns", c: "Both elections (first and re-election) are 8-decision, 4-week campaigns. Each week: YOUR move → the OPPONENT strikes (their move hits the polls at once, in the zone it targets) → you respond to win the ground back. Ignore an attack and it sticks. The further you lead, the harder they hit. A named opponent from another party campaigns against you.\n\nParty strength multiplies your score: NRA 1.15x, UCP 0.85x. Underdogs CAN win with perfect campaigns.\n\nOn Hard mode: your moves count for less, the opponent's attacks land harder, and negative campaigning backfires 65% of the time. Strong campaigns still win.\n\nFor re-election: if party stability ≥ 50%, you get an automatic ticket. If < 50%, your ticket is contested — you must buy it (godfather funds or self-fund) or switch to a cheaper party (-15 party stability)." },
     { t: "📊 Economic Production Engine", c: "8 economic sectors per state: Agriculture, Manufacturing, Services, Oil & Gas, Mining, Trade, Tourism, Technology. Each produces output, jobs, and tax revenue.\n\nIGR is derived from economic output: IGR = Σ(sector output × population × tax rate). Budget allocation, policies, security, and literacy all drive sector growth. Corruption and insecurity drag ALL sectors down.\n\nThe Economy tab shows State GDP, Total Jobs, IGR, and all 8 sectors with output bars and what drives each one." },
     { t: "🏗️ Infrastructure Projects", c: "20 projects in 3 tiers: Quick (1 turn), Medium (2 turns), Megaprojects (3-4 turns). Each has cost, corruption risk, economic sector linkage, and jobs created.\n\nCorruption causes project delays — if corruption is high, projects stall: 'Permanent secretary's office is the bottleneck.' The sidebar shows progress bars with % complete.\n\nCompleted projects boost economic sectors, create jobs, and appear in your Wikipedia biography." },
     { t: "🏭 Private Investors", c: "15 companies (a cement plant, a steel mill, a fintech hub and more) appear every other turn. Three choices: Approve (jobs + IGR + community risk), Approve with Incentives (bigger boost but state bears costs), or Reject (no jobs, business angry).\n\nInvestor approvals can trigger judiciary challenges from displaced communities. 15% of new investment revenue automatically reduces state debt." },
@@ -1946,7 +1959,7 @@ const HowToPlay = ({ show, onClose }) => {
 // keeps the careers you finished. It lives behind one small chip on the title
 // screen. Real accounts (cloud saves, a public Hall) need a server and come later.
 const PROFILE_KEY = "sop_profile";
-const loadProfile = async () => { try { const r = await window.storage.get(PROFILE_KEY); return r?.value ? JSON.parse(r.value) : null; } catch (e) { return null; } };
+const loadProfile = async () => { try { const r = await window.storage.get(PROFILE_KEY); return r?.value ? renameParties(JSON.parse(r.value)) : null; } catch (e) { return null; } };
 const saveProfile = async (p) => { try { await window.storage.set(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} };
 const stateLabel = (id) => String(id || "").replace(/_/g, " ");
 
@@ -3240,7 +3253,7 @@ const WikiArticle = ({ w, onShare }) => {
       <ol style={{ fontSize: TS(27), paddingLeft: 32, margin: 0 }}>{w.refs.map(r => <li key={r.n} id={"wref-" + r.n} style={{ marginBottom: 6 }}>"{r.head}". <i>{r.src}</i>. {r.when}.</li>)}</ol>
     </div>}
     <div style={{ marginTop: 29, border: "1px solid #a2a9b1", background: "#f8f9fa", padding: "8px 12px", fontSize: TS(27) }}>Categories: {w.cats.join(" | ")}</div>
-    {onShare && <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
+    {onShare && !VATAR && <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 22 }}>
       <Bt onClick={() => onShare("status")} style={{ fontSize: TS(30), background: "#25D366", color: "#fff" }}>Share card · WhatsApp status</Bt>
       <Bt onClick={() => onShare("x")} style={{ fontSize: TS(30), background: "#000", color: "#fff" }}>Share card · X</Bt>
     </div>}
@@ -3283,6 +3296,39 @@ const wikiShareCard = async (w, kind) => {
 };
 
 // ─── GOVERNANCE ───
+// Vatar edition: Second Chance (a paid consumable) reruns a lost re-election
+// from the checkpoint saved when the campaign began, once per game.
+const SecondChance = () => {
+  const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
+  const [busy, setBusy] = useState(false), [err, setErr] = useState(null), [cp, setCp] = useState(null);
+  useEffect(() => {
+    const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
+    (async () => { try { const r = await window.storage.get("sop_preelection"); if (r && r.value) setCp(r.value); } catch (e) {} })();
+    return () => window.removeEventListener("sop-ents", f);
+  }, []);
+  if (!cp || !(window.SOP_canBuy && window.SOP_canBuy())) return null;
+  const have = (ents.second_chance || 0) > 0;
+  const go = async () => {
+    setBusy(true); setErr(null);
+    try {
+      if (!have) await window.SOP_buy("second_chance");
+      if (!(await window.SOP_useCredit("second_chance"))) throw new Error("credit");
+      const d = JSON.parse(cp); d.stc = { ...(d.stc || {}), secondChance: true };
+      await window.storage.set("sop_save", JSON.stringify(d));
+      await window.storage.set("sop_preelection", "");
+      setTimeout(() => location.reload(), 600);
+    } catch (e) {
+      setBusy(false);
+      setErr(e && e.code === "cancelled" ? null : e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Nothing was charged twice; try again.");
+    }
+  };
+  return <Cd style={{ maxWidth: 720, margin: "0 auto 22px", borderColor: CL.gold + "88", textAlign: "center" }}>
+    <div style={{ fontSize: TALL() ? TS(30) : TS(44), fontFamily: F.d, fontWeight: 700, color: CL.txt }}>🔁 Second Chance</div>
+    <div style={{ fontSize: TALL() ? TS(19) : TS(30), color: CL.tm, margin: "6px 0 12px" }}>Go back to the start of the re-election campaign and fight it again. Once per game.</div>
+    <Bt onClick={go} disabled={busy}>{busy ? "Rewinding…" : have ? "Use your Second Chance" : "Get a Second Chance"}</Bt>
+    {err && <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.red, marginTop: 8 }}>{err}</div>}
+  </Cd>;
+};
 const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const setup = rawSetup && rawSetup.state && STATES[rawSetup.state] ? rawSetup : null;
   if (!setup) {
@@ -3526,15 +3572,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // Auto-save every turn change
   useEffect(() => { try { if (!gEnd) window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch(e) {} }, [turn]);
+  // Vatar edition: a checkpoint before the re-election, for Second Chance.
+  useEffect(() => { if (VATAR && phase === "reelection" && !gEnd) { try { window.storage?.set("sop_preelection", JSON.stringify(buildSnapshot())); } catch (e) {} } }, [phase]);
   // When the game ends, the save goes: the title screen offers a new game only.
   useEffect(() => { if (gEnd) { try { window.storage?.set("sop_save", ""); } catch (e) {} } }, [gEnd]);
   // A finished career goes into the Hall of Governors on this device.
   useEffect(() => {
     if (!gEnd) return;
     (async () => {
-      const p = await loadProfile(); if (!p) return;
       const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - s.debt * 4 - s.cor * 40);
       const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2;
+      // The career score for the Vatar leaderboard: the grade's points, plus honours and a second term.
+      try { window.SOP_vatarScore && window.SOP_vatarScore(Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 ? 200 : 0)); } catch (e) {}
+      const p = await loadProfile(); if (!p) return;
       const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
       const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
       const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
@@ -6154,13 +6204,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <WikiArticle w={buildWiki(true)} onShare={(k) => shareWiki(buildWiki(true), k)} />
         </div>
         <div style={{ textAlign: "center", marginTop: 43, display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
-          <Bt onClick={() => {
+          {!VATAR && <Bt onClick={() => {
             const bioText = "🇳🇬 WIKIPEDIA: " + pName + "\nGovernor of " + state.replace("_", " ") + " State (" + (pa?.id || party) + ")\n\n📊 Score: " + ov + "/100 (Grade " + gr + ")\n👥 Approval: " + Math.round(s.app) + "% (Peak: " + appPeak + "%)\n🏗️ Projects: " + allCompleted.length + " delivered\n" + (allCompleted.length > 0 ? "   " + allCompleted.slice(0, 3).map(p => "✅ " + p.nm).join("\n   ") + "\n" : "") + "💰 Debt: " + naira(s.debt) + "\n" + (constViolations > 0 ? "⚖️ " + constViolations + " Supreme Court loss(es)\n" : "") + (scandals.length > 0 ? "💀 " + scandals.length + " scandal(s)\n" : "🧼 Clean governance\n") + "\n" + wikiLegacy.split(".")[0] + ".\n\n#SeatOfPower #NigerianGovernance";
             navigator.clipboard?.writeText(bioText);
-          }} v="secondary" style={{ fontSize: TS(34) }}>📖 Share Bio</Bt>
-          <Bt onClick={() => navigator.clipboard?.writeText(shareT)} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>
-          <Bt onClick={() => window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareT))} style={{ background: "#000", color: "#fff", fontSize: TS(34) }}>𝕏 Post</Bt>
-          <Bt onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(shareT))} style={{ background: "#25D366", color: "#fff", fontSize: TS(34) }}>WhatsApp</Bt>
+          }} v="secondary" style={{ fontSize: TS(34) }}>📖 Share Bio</Bt>}
+          {!VATAR && <Bt onClick={() => navigator.clipboard?.writeText(shareT)} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>}
+          {!VATAR && <Bt onClick={() => window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareT))} style={{ background: "#000", color: "#fff", fontSize: TS(34) }}>𝕏 Post</Bt>}
+          {!VATAR && <Bt onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(shareT))} style={{ background: "#25D366", color: "#fff", fontSize: TS(34) }}>WhatsApp</Bt>}
           <Bt v="ghost" onClick={() => setShowWiki(false)} style={{ fontSize: TS(34) }}>← Back</Bt>
         </div>
       </div>
@@ -6176,6 +6226,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {gEnd === "impeached" ? "IMPEACHED" : gEnd === "nullified" ? "ELECTION NULLIFIED" : gEnd === "bankrupt" ? "STATE BANKRUPT" : gEnd === "defeated" ? "VOTED OUT" : gEnd === "stepped_down" ? "STEPPED DOWN" : gEnd === "pres_bid" ? "PRESIDENTIAL BID" : "Tenure Complete"}
           </h2>
           <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 14 }}>Gov. {pName} · {party} · {state.replace("_", " ")} · {termsServed}</p>
+          {gEnd === "defeated" && VATAR && !stc.secondChance && <SecondChance />}
           {gEnd === "defeated" && <p style={{ color: CL.red, fontSize: TS(36), marginBottom: 29 }}>The people rejected your bid for a second term.</p>}
           {gEnd === "nullified" && <p style={{ color: CL.red, fontSize: TS(36), marginBottom: 29 }}>The Supreme Court nullified your election. {(stc.petition && stc.petition.opp) || "The petitioner"} was sworn in.</p>}
           {gEnd === "complete" && <p style={{ color: CL.grn, fontSize: TS(36), marginBottom: 29 }}>You served the full 8 years — two complete terms.</p>}
@@ -6195,12 +6246,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             {st0.keyDecisions.length > 0 && <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10 }}>Decisions people remember: {st0.keyDecisions.map(k => k.what).join(" · ")}</div>}
           </Cd>; })()}
-          <div style={{ marginTop: 36 }}><ShareCard img={heroImg} name={"Gov. " + pName} line1={state.replace("_", " ") + " State · " + party + " · " + termsServed} line2={"Approval " + Math.round(s.app) + "% · Score " + ov + " · #SeatOfPower"} grade={gr} /></div>
+          {!VATAR && <div style={{ marginTop: 36 }}><ShareCard img={heroImg} name={"Gov. " + pName} line1={state.replace("_", " ") + " State · " + party + " · " + termsServed} line2={"Approval " + Math.round(s.app) + "% · Score " + ov + " · #SeatOfPower"} grade={gr} /></div>}
           <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "22px 0 43px" }}>
             <Bt onClick={() => setShowWiki(true)}>📖 Wikipedia Bio</Bt>
-            <Bt onClick={() => navigator.clipboard?.writeText(shareT)} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>
-            <Bt onClick={() => window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareT))} style={{ background: "#000", color: "#fff", fontSize: TS(34) }}>𝕏</Bt>
-            <Bt onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(shareT))} style={{ background: "#25D366", color: "#fff", fontSize: TS(34) }}>WhatsApp</Bt>
+            {!VATAR && <Bt onClick={() => navigator.clipboard?.writeText(shareT)} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>}
+            {!VATAR && <Bt onClick={() => window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareT))} style={{ background: "#000", color: "#fff", fontSize: TS(34) }}>𝕏</Bt>}
+            {!VATAR && <Bt onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(shareT))} style={{ background: "#25D366", color: "#fff", fontSize: TS(34) }}>WhatsApp</Bt>}
           </div>
           {gEnd === "complete" && (
             <Cd style={{ borderColor: CL.grn + "44" }}>
@@ -6485,7 +6536,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
               [(soundOn ? "🔊 Sound: on" : "🔇 Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
               ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
-            ].map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
+            ].filter(([l]) => !(VATAR && /Fullscreen/.test(l))).map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
             <div style={{ fontSize: TS(20), opacity: .7, padding: "2px 4px" }}>The game also saves itself every turn.</div>
           </div>}
         </div>}
@@ -8427,7 +8478,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const marginFactor = tribunal.margin < 5 ? 1.25 : tribunal.margin < 15 ? 1.0 : tribunal.margin < 30 ? 0.75 : 0.5;
             const narrBonus = narrative === "reformer" || narrative === "technocrat" ? 0.08 : narrative === "corrupt" ? -0.12 : 0;
             const oppP = PARTIES.find(p => p.id === tribunal.oppPartyId);
-            const rulingPartyDisadvantage = oppP?.strength >= 1.1 ? -0.08 : 0; // APC/PDP-backed opponents harder to unseat
+            const rulingPartyDisadvantage = oppP?.strength >= 1.1 ? -0.08 : 0; // NRA/PFP-backed opponents harder to unseat
 
             const decideGround = (id) => setTribunal(t => ({ ...t, groundId: id, log: [...t.log, "Pleaded ground: " + TRIBUNAL_GROUNDS.find(g => g.id === id).nm] }));
 
