@@ -731,6 +731,10 @@ const NEED_TYPES = [
     win: (l) => "Displaced families in " + l + " have keys to new homes." },
 ];
 const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
+// What kind of need each project type answers, and what it improves when done.
+const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security" };
+const PROJ_STAT = { road: "infra", bridge: "infra", hospital: "hp", school: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
+const STAT_NAME = { infra: "Infrastructure", hp: "Health", lit: "Education", agr: "Agriculture", sec: "Security", igr: "Own revenue" };
 // ─── PERSONNEL ───
 // Every commissioner (and the adviser) has a hidden competence and honesty,
 // fixed by name. Each half-year they act on it, and what they do is on record.
@@ -3412,7 +3416,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       skApp, setSkApp, pApp, setPApp,
       ministries, setMinistries, projects, setProjects, procLog, setProcLog,
       council, setCouncil, wikiEvents, setWikiEvents, nepotismCount, setNepotismCount,
-      pendingProc, setPendingProc, finance: (proj) => setFinProj({ proj, tried: [] }), saMemory, setSaMemory, saOffice, setSaOffice, personalFund, setPersonalFund,
+      pendingProc, setPendingProc, finance: (proj) => setFinProj({ proj, tried: [] }), saMemory,
+      openNeeds: needs.filter(n => n.status === "open").map(n => ({ id: n.id, k: n.k, label: needType(n) ? needType(n).icon + " " + needType(n).title(n.lga) : n.k })),
+      onDelivered: (p) => projDelivered(p), setSaMemory, saOffice, setSaOffice, personalFund, setPersonalFund,
       phase, nav, pol,
       SNAMES: window.SNAMES_PATCHED || null, CL: window.CL_REF || null, F: window.F_REF || null,
       ledger: window.SOP_LEDGER ? window.SOP_LEDGER.all() : [],
@@ -3587,6 +3593,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { ...n, status: "started", link: hit.id, proj: hit.projectId || null, stall: 0 };
     }); return changed ? out : ns; });
   }, [pol]);
+  // A project you start yourself also answers a need: the one you aimed it at,
+  // or any open need of the same kind.
+  useEffect(() => {
+    setNeeds(ns => { let changed = false; const out = ns.map(n => {
+      if (n.status !== "open") return n;
+      const hit = (projects || []).find(p => p.status !== "delivered" && p.status !== "abandoned" && (p.need === n.id || (!p.need && PROJ_NEED[p.type] === n.k)));
+      if (!hit) return n;
+      changed = true;
+      return { ...n, status: "started", link: "proj:" + hit.id, proj: hit.id, stall: 0 };
+    }); return changed ? out : ns; });
+  }, [projects]);
   // Each new half-year, judge last half-year's needs.
   useEffect(() => {
     if (turn <= 1 || needsReviewed.current >= turn || !needs.length) { if (turn > needsReviewed.current) needsReviewed.current = turn; return; }
@@ -4426,6 +4443,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setCapProj(null);
   };
 
+  // A delivered project improves its sector, scaled by its size and by how
+  // much of the money reached the site.
+  const projDelivered = (p) => {
+    const k = PROJ_STAT[p.type]; if (!k) return;
+    const eff = typeof p.effective === "number" ? p.effective : .8, size = +(p.cost || p.baseCost || 1);
+    const gain = k === "igr" ? Math.round(Math.min(1.5, size * .12) * eff * 10) / 10 : Math.round(Math.min(.06, .01 + size * .006) * eff * 1000) / 1000;
+    setS(x => ({ ...x, [k]: k === "igr" ? (x.igr || 0) + gain : cl(x[k] + gain) }));
+    announce({ icon: "🎉", title: p.title + " is open", text: "Built by " + (p.contractor || "the contractor") + (p.leakage > .2 ? ", but a lot of the money went missing on the way." : "."), tone: "good", rows: [{ l: STAT_NAME[k], v: k === "igr" ? "+₦" + gain + "B" : "+" + Math.round(gain * 100) + "%", good: true }, { l: "Approval", v: "+" + Math.round(6 * eff) + "%", good: true }] });
+  };
   // ── FINANCING A PROJECT ──
   // Every capital project needs money from somewhere. Each source has its own
   // rules, odds and price, and every answer comes back as a letter with the

@@ -323,6 +323,7 @@
         SOP.addL && SOP.addL(`🎉 ${p.title} DELIVERED (${p.contractor}). Approval +${bonus}.`, "success");
         SOP.setS(x => ({ ...x, app: Math.min(100, x.app + bonus) }));
         pushWiki(SOP, { section:"Governorship", txt:`Commissioned ${p.title} — completed ${SOP.turn - p.startTurn} turns after award.` });
+        try { SOP.onDelivered && SOP.onDelivered(p); } catch(e){}
       }
       changed = true;
     });
@@ -490,35 +491,44 @@
     if (SOP.pendingProc) return SOP_H(ProcurementModal, { SOP, project: SOP.pendingProc, key: SOP.pendingProc.id });
     return SOP_H('div',{},[
       SOP_H('h3',{style:{margin: "0 0 22px",color:c.txt,fontFamily:F().d,fontSize: TS(58),fontWeight:600}},`🏗️ Projects Portfolio`),
-      SOP_H('div',{style:{fontSize: TS(36),color:c.td,marginBottom: 29}}, "Every capital project runs a real lifecycle: need → procurement method → EIA → contractor → execution → delivery. Shortcuts leak treasury and bio."),
-      SOP_H(Btn,{onClick:()=>setShowNew(!showNew)},"➕ Initiate New Project"),
-      showNew && SOP_H(Card,{style:{marginTop: 29}},[
-        SOP_H('div',{style:{fontSize: TS(38),fontWeight:600,marginBottom: 22}},"New Capital Project"),
-        SOP_H('input',{value:draft.title,onChange:e=>setDraft({...draft,title:e.target.value}),placeholder:"e.g. Ikeja–Agege 4-lane arterial road",style:{padding: 22,border:"1px solid "+c.bdr,borderRadius: 8,width:"100%",fontSize: TS(38),marginBottom: 22}}),
-        SOP_H('div',{style:{display:"flex",gap: 22,marginBottom: 22}},[
-          SOP_H('select',{value:draft.type,onChange:e=>setDraft({...draft,type:e.target.value,needsEIA:EIA_REQUIRED_TYPES.includes(e.target.value)}),style:{padding: 19,fontSize: TS(38),border:"1px solid "+c.bdr,borderRadius: 8}},
-            ["road","bridge","hospital","school","market","dam","housing","water","power","vehicles","cctv","landfill","industrial"].map(t=>SOP_H('option',{key:t,value:t},t))),
-          SOP_H('input',{type:"number",step:0.5,value:draft.baseCost,onChange:e=>setDraft({...draft,baseCost:+e.target.value}),style:{padding: 19,fontSize: TS(38),border:"1px solid "+c.bdr,borderRadius: 8,width: 228}}),
-          SOP_H('span',{style:{fontSize: TS(36),color:c.td,alignSelf:"center"}},"₦B base cost"),
-          SOP_H('select',{value:draft.ministryId,onChange:e=>setDraft({...draft,ministryId:e.target.value}),style:{padding: 19,fontSize: TS(38),border:"1px solid "+c.bdr,borderRadius: 8}},
+      SOP_H('div',{style:{fontSize: TS(30),color:c.td,marginBottom: 22}}, "Start any project the state needs: name it, aim it at a need, cost it. Then find the money and pick a contractor."),
+      SOP_H(Btn,{onClick:()=>setShowNew(!showNew)},"➕ New project"),
+      showNew && SOP_H(Card,{style:{marginTop: 22}},(() => {
+        const NEED_TYPE = { road:"road", clinic:"hospital", school:"school", water:"water", security:"cctv", farm:"dam", power:"power", housing:"housing" };
+        const field = { padding: 16, fontSize: TS(32), border:"1px solid "+c.bdr, borderRadius: 10, width:"100%", boxSizing:"border-box", background:"#fff", color:c.txt };
+        const lab = (t) => SOP_H('div',{style:{fontSize: TS(26), fontWeight:700, color:c.grn, margin:"14px 0 6px"}}, t);
+        const needs = SOP.openNeeds || [];
+        return [
+          lab("Which need does it answer?"),
+          SOP_H('select',{key:"need",value:draft.need||"",style:field,onChange:e=>{ const n = needs.find(x=>x.id===e.target.value); const t = n ? (NEED_TYPE[n.k]||draft.type) : draft.type; setDraft({...draft, need: e.target.value || null, type: t, needsEIA: EIA_REQUIRED_TYPES.includes(t)}); }},
+            [SOP_H('option',{key:"none",value:""},"None: my own idea")].concat(needs.map(n=>SOP_H('option',{key:n.id,value:n.id},n.label)))),
+          lab("Name"),
+          SOP_H('input',{key:"title",value:draft.title,onChange:e=>setDraft({...draft,title:e.target.value}),placeholder:"e.g. Ikeja–Agege 4-lane road",style:field}),
+          SOP_H('div',{key:"row",style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap: 12}},[
+            SOP_H('div',{key:"t"},[lab("Type"), SOP_H('select',{value:draft.type,onChange:e=>setDraft({...draft,type:e.target.value,needsEIA:EIA_REQUIRED_TYPES.includes(e.target.value)}),style:field},
+              ["road","bridge","hospital","school","market","dam","housing","water","power","vehicles","cctv","landfill","industrial"].map(t=>SOP_H('option',{key:t,value:t},t)))]),
+            SOP_H('div',{key:"c"},[lab("Cost (₦ billion)"), SOP_H('input',{type:"number",min:0.5,step:0.5,value:draft.baseCost,onChange:e=>setDraft({...draft,baseCost:Math.max(.5,+e.target.value||.5)}),style:field})]),
+          ]),
+          lab("Supervising ministry"),
+          SOP_H('select',{key:"min",value:draft.ministryId,onChange:e=>setDraft({...draft,ministryId:e.target.value}),style:field},
             (SOP.ministries||[]).map(m=>SOP_H('option',{key:m.id,value:m.id},m.name))),
-        ]),
-        draft.needsEIA && SOP_H('div',{style:{fontSize: TS(36),color:c.org,marginBottom: 22}}, `⚠️ ${draft.type.toUpperCase()} projects require an EIA (EIA Act Cap E12, 2004). Skipping = NESREA court risk.`),
-        SOP_H('div',{style:{display:"flex",gap: 22}},[
-          SOP_H(Btn,{onClick:()=>{
+          draft.needsEIA && SOP_H('label',{key:"eia",style:{display:"flex",gap:10,alignItems:"center",fontSize: TS(28),color: draft.eiaDone ? c.grn : c.org, marginTop: 14, cursor:"pointer"}},[
+            SOP_H('input',{key:"cb",type:"checkbox",checked:!!draft.eiaDone,onChange:()=>setDraft({...draft,eiaDone:!draft.eiaDone}),style:{width:24,height:24}}),
+            "Commission an environmental assessment (₦120M). " + (draft.eiaDone ? "Lenders and courts are satisfied." : "Without it NESREA can halt the works and development banks won't lend.")]),
+          SOP_H('div',{key:"go",style:{marginTop: 18}}, SOP_H(Btn,{disabled: !draft.title.trim(), onClick:()=>{
             if (!draft.title.trim()) return;
-            if (!SOP.ministries || !SOP.ministries.length) { alert("Initialise Ministries first."); return; }
+            if (!SOP.ministries || !SOP.ministries.length) { alert("Set up your ministries first."); return; }
             const proj = { id:"p_"+Date.now(), status:"pending_procurement", progress:0, events:[], ...draft };
             const min = SOP.ministries.find(m=>m.id===draft.ministryId);
             pushWiki(SOP, {section:"Governorship",txt:`Initiated ${draft.title} under ${min?.name || "a state ministry"}, with an estimated base cost of ₦${(+draft.baseCost || 0).toFixed(1)}B${draft.needsEIA ? (draft.eiaDone ? " after commissioning an Environmental Impact Assessment." : ", despite requiring an Environmental Impact Assessment.") : "."}`});
-            SOP.addL && SOP.addL(`🏗️ PROJECT INITIATED: ${draft.title} under ${min?.name || "a state ministry"}. Proceed to procurement.`, "policy");
+            SOP.addL && SOP.addL(`🏗️ PROJECT INITIATED: ${draft.title} under ${min?.name || "a state ministry"}.`, "policy");
             SOP.setProjects(prev => [ ...(prev || []), proj ]);
             if (SOP.finance) SOP.finance(proj); else SOP.setPendingProc(proj);
             setShowNew(false);
-          }},"→ Proceed to Procurement"),
-          draft.needsEIA && SOP_H(Btn,{onClick:()=>setDraft({...draft,eiaDone:!draft.eiaDone}), tone:"teal"}, draft.eiaDone?"✅ EIA commissioned (₦120M, +1 turn delay)":"⏳ Commission EIA (₦120M)"),
-        ]),
-      ]),
+            setDraft({ title:"", type:"road", baseCost:2, ministryId: draft.ministryId, needsEIA:true, eiaDone:false, need:null });
+          }},"Next: find the money →")),
+        ];
+      })()),
       SOP_H('div',{style:{marginTop: 36}},
         (!SOP.projects || !SOP.projects.length) ? SOP_H('div',{style:{fontSize: TS(38),color:c.td,padding: 43,textAlign:"center"}},"No projects yet.") :
         SOP.projects.map(p => {
