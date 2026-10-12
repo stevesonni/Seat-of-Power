@@ -3720,6 +3720,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [stc, setStc] = useState(() => ld?.stc || { lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
   const [scCards, setScCards] = useState([]);
   const [revOpen, setRevOpen] = useState(false);
+  const [promOpen, setPromOpen] = useState(false);
+  const [needsAll, setNeedsAll] = useState(false);
   const faacSwingRef = React.useRef(0);
   const scPending = React.useRef([]);
   const scLast = React.useRef(null);
@@ -6407,8 +6409,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     : phase === "end_turn" ? { id: "gh", label: "Review the half-year" } : null;
   const hubPalace = ["NW", "NE"].includes(sd?.zone) || ["Kwara", "Niger", "Nassarawa", "FCT"].includes(state) ? "b05-palace-north" : "b06-palace-south";
   const hubArrive = (id) => {
-    if (id === "gh") return goTab("gov");
-    if (id === "assembly" && phase === "house_vote") return goTab("gov");
+    const toTask = () => { goTab("gov"); setTimeout(() => { try { document.getElementById("sop-task")?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); };
+    if (id === "gh") return toTask();
+    if (id === "assembly" && phase === "house_vote") return toTask();
     if (id === "finance") { setRevOpen(true); goTab("gov"); setTimeout(() => { try { document.getElementById("sop-money")?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); return; }
     if (id === "secretariat") return goTab("cab");
     if (id === "palace") return goTab("coun");
@@ -6555,7 +6558,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>The street</b>
               <span style={{ fontSize: fz.s, color: CL.blu, fontWeight: 800 }}>Trending: {sv.tag}</span>
             </div>
-            {sv.lines.map((l, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
+            {sv.lines.slice(0, 1).map((l, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
               <img src={"./art/characters/" + voiceArt(l.w) + ".webp"} alt="" loading="lazy" style={{ width: TALL() ? 40 : 52, height: TALL() ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "14" }} />
               <span><span style={{ color: CL.txt }}>“{l.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {l.w}</span></span>
             </div>)}
@@ -6573,9 +6576,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               pr.filter(p => p.term === term).forEach(p => rows.push({ icon: "📍", text: p.text, st: p.status === "pending" ? "open" : p.status, note: p.status === "pending" ? "answer " + (/^[aeiou]/i.test(SECTOR_NAME[p.sector] || p.sector) ? "an " : "a ") + (SECTOR_NAME[p.sector] || p.sector).toLowerCase() + " need in " + zoneName(p.zone) + " or lift it statewide by the " + (term === 2 ? "end of your tenure" : "re-election") : null }));
               if (!rows.length) return null;
               const tone = { kept: [CL.grn, "✓ Kept"], broken: [CL.red, "✗ Broken"], behind: [CL.org, "Behind"], open: [CL.td, "Open"] };
+              const cnt = (k) => rows.filter(r0 => r0.st === k).length;
+              const sum = [cnt("kept") && cnt("kept") + " kept", cnt("broken") && cnt("broken") + " broken", cnt("behind") && cnt("behind") + " behind", cnt("open") && cnt("open") + " open"].filter(Boolean).join(" · ");
               return <div style={{ marginTop: 12, borderTop: "1px solid " + CL.bdr, paddingTop: 10 }}>
-                <b style={{ fontSize: fz.m, color: CL.txt }}>Your promises</b>
-                {rows.map((r0, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 8, alignItems: "baseline", padding: "6px 0", fontSize: fz.s }}>
+                <button onClick={() => setPromOpen(o => !o)} aria-expanded={promOpen} style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: F.b, color: CL.txt, textAlign: "left" }}>
+                  <b style={{ fontSize: fz.m }}>Your promises</b><span style={{ fontSize: fz.s, color: cnt("broken") ? CL.red : CL.td, fontWeight: 700 }}>{sum} {promOpen ? "▲" : "▼"}</span>
+                </button>
+                {promOpen && rows.map((r0, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 8, alignItems: "baseline", padding: "6px 0", fontSize: fz.s }}>
                   <span>{r0.icon}</span>
                   <span style={{ color: CL.txt, minWidth: 0 }}>{r0.text}{r0.note ? <span style={{ display: "block", color: CL.td }}>{r0.note}</span> : null}</span>
                   <span style={{ color: tone[r0.st][0], fontWeight: 800, whiteSpace: "nowrap" }}>{tone[r0.st][1]}</span>
@@ -6636,10 +6643,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "gov" && !needSetup && activeNeeds.length > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 2px 8px" }}>
             <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>What the state needs</b>
-            <span style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.td }}>Answer these or pay for it</span>
+            {activeNeeds.length > 1 ? <button onClick={() => setNeedsAll(v => !v)} style={{ background: "transparent", border: 0, cursor: "pointer", fontSize: TALL() ? TS(18) : TS(26), color: CL.grn, fontWeight: 800, fontFamily: F.b }}>{needsAll ? "Show fewer ▲" : "All " + activeNeeds.length + " ▼"}</button> : <span style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.td }}>Answer it or pay for it</span>}
           </div>
           <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fit, minmax(420px, 1fr))", gap: 10, alignItems: "start" }}>
-            {activeNeeds.map(n => {
+            {(needsAll ? activeNeeds : activeNeeds.slice().sort((a, b) => (a.due - b.due) || (b.sev - a.sev)).slice(0, 1)).map(n => {
               const T = needType(n); if (!T) return null;
               const left = n.due - turn + 1;
               const funded = (bud[T.sector] || 0) >= (BUDGET_MIN[T.sector] || 0);
@@ -6975,14 +6982,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             kickerColor={CL.org}
             title={curD.nm}
             brief={curD.id === "strike" ? curD.d + " " + cast.labour.name + ", " + cast.labour.title + ", is leading the walkout." : curD.d}
-            stakes="Every option below has a price and a risk. Nothing here is free."
             aside={<AdvBubble text={ADV.dilemma} saName={cast.adviser.name} />}
             options={curD.ch.map(ch => ({
               label: ch.l,
               risk: ch.rk,
               raw: ch,
               chips: [
-                ...Object.entries(ch.fx || {}).map(([k, v]) => ({ text: k + " " + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v), color: v > 0 ? CL.grn : CL.red })),
+                ...Object.entries(ch.fx || {}).map(([k, v]) => ({ text: fxChip(k, v), color: (k === "corM" ? -v : v) > 0 ? CL.grn : CL.red })),
                 ...(ch.dc ? [{ text: "Debt +" + naira(ch.dc), color: CL.red }] : []),
               ],
             }))}
@@ -7013,7 +7019,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{judEvent.d}</p>
             {judEvent.target && <p style={{ color: CL.org, fontSize: TS(36), marginBottom: 14 }}>Affected policy: {judEvent.target}</p>}
             {judEvent.cause && <p style={{ color: CL.txt, fontSize: TS(34), marginBottom: 29 }}><b>Why this case:</b> {judEvent.cause}</p>}
-            <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 43 }}>Under S.6 of the Constitution, the judiciary has power of review over executive actions. You must decide whether to comply or defy the ruling.</p>
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => resolveJudiciary(true)} style={{ padding: 36 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.grn, marginBottom: 7 }}>✅ Comply Fully & Swiftly</div>
@@ -8706,13 +8711,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             return <Cd style={{ borderColor: CL.org + "44", maxWidth: 984 }}>
               <div style={{ textAlign: "center", marginBottom: 29 }}>
                 <ObjArt name="contract-envelope" alt="" size={TALL() ? 96 : 130} />
-                <Bg text="STEP 1 · PROJECT INTAKE" color={CL.org} />
+                <Bg text="Step 1 of 3: the project" color={CL.org} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(58), fontWeight: 600, margin: "14px 0 7px" }}>Initiate {p.nm}</h3>
-                <div style={{ fontSize: TS(36), color: CL.td }}>Base ₦{p.c.toFixed(1)}B · {p.t}T baseline · you pick contractor next</div>
+                <div style={{ fontSize: TS(36), color: CL.td }}>₦{p.c.toFixed(1)}B · {p.t} half-year{p.t === 1 ? "" : "s"} to build</div>
               </div>
-              <div style={{ fontSize: TS(36), color: CL.tm, marginBottom: 29, padding: 29, background: CL.org + "0c", borderRadius: 8, lineHeight: 1.5 }}>
-                Name the project, assign a ministry, decide on EIA. On <b>Next</b> you'll pick a bidder from the contractor pool or a nepotism-flagged one. Every choice affects cost, delivery time, corruption index and your Wikipedia bio.
-              </div>
+
 
               <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.grn, marginBottom: 10 }}>1. Project name</div>
               <input value={capProj.title} onChange={e => setCapProj({ ...capProj, title: e.target.value })} placeholder="e.g. Ikeja–Agege 4-lane arterial road" style={{ width: "100%", padding: 24, fontSize: TS(43), border: "1px solid " + CL.bdr, borderRadius: 8, marginBottom: 29, fontFamily: "inherit" }} />
@@ -8758,7 +8761,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
 
         {nav === "gov" && <div className="sop-gov-grid" style={{ maxWidth: TALL() ? 900 : 1320, margin: "0 auto" }}>
-          <div key={phase} className="sop-step">
+          <div key={phase} id="sop-task" className="sop-step" style={{ scrollMarginTop: TALL() ? 100 : 20 }}>
 
             {phase === "budget" && needSetup && (() => {
               const fs = TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };

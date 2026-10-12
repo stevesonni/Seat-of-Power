@@ -303,17 +303,61 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
 
 ## The compound (landscape hub map)
 - **Desk → Compound** is the default view (`CompoundHub` in `game/seat-of-power.jsx`).
-  - **The map** is one painted image from Lovable with every building drawn in place: `public/art/compound/compound-full.webp`, 1500×850. All points in the code are in its pixels. At night (while the half-year is being reviewed) the same image is dimmed and tinted blue in CSS.
-  - **Buildings:** `HUB_BUILDINGS` gives each building's box on the map. A transparent click area covers each box, lights up on hover, and glows amber or red when the building needs you.
-  - **Labels and alerts** sit on a top layer at the bottom edge of each box.
-  - **Motorcade:**
-    - Clicking a building drives the convoy there, then opens that place.
-    - The road graph is `HUB_NODES` / `HUB_ROADS`, plotted from the painted roads and including the roundabout ring. Each parking bay is spliced into its road, and `hubRoute` uses Dijkstra.
-    - The convoy sprites face the diagonals. `hubHeading` rotates the nearest one to the road's heading.
-  - **Overlays** are placed at fixed map points:
-    - a protest by the State Secretariat;
-    - the press at the High Court or the Assembly;
-    - a cheering crowd at the Party Secretariat.
-  - **Phones:** a two-column list sits under the map, using the building cut-outs as thumbnails.
-- **Art:** `compound-full.webp` is the map. `buildings/b01–b12` are now used only as list thumbnails. `motorcade/` and `overlays/` are still used. The empty plates (`compound-base(.webp|-night.webp)`) and the static `o-motorcade` overlay are no longer used.
-- **Upgrade path:** a higher-resolution or true night version of the painted map can replace `compound-full.webp` directly. If the size changes, scale the coordinates in `HUB_NODES` / `HUB_BUILDINGS`.
+  - **The map** is Lovable's painted image, `public/art/compound/compound-full.webp` (1500×850), with every building in place. All points in the code are in its pixels. At night (while the half-year is being reviewed) it is dimmed and tinted in CSS.
+  - **Buildings:** `HUB_BUILDINGS` holds each building's box. A transparent click area covers it, lights up on hover, and glows when the building needs you. Tapping opens the building at once; the motorcade was removed at the player's request.
+  - **Overlays** sit at fixed map points: a protest by the State Secretariat, the press at the High Court or the Assembly, and a cheering crowd at the Party Secretariat.
+  - **Phones:** a two-column list sits under the map.
+
+## Results you can see
+- **Result cards.** `SOP_outcome` in `public/seat-of-power.html` shows a dark card with an icon, a title, one line, and chips for what changed; cards queue. In `GovScreen`:
+  - `decide(fn)` notes Approval, Treasury, Party, Corruption, Debt and the war chest, runs the decision, then shows the card with the real changes.
+  - `announce(o, before)` does the same for async flows.
+  - Wired into: statecraft cards (a card's `run()` may return its own result, as the election-petition rulings do), flagship choices, tribunal stages 1–3, judicial reviews, revenue reforms, debt relief / deferral / notes, firing, programmes, bills, executive orders, ministries, commissioner meetings, financing and project delivery.
+- **Change readout.** Any change to the four headline numbers, from any screen, floats up under the status strip for three seconds. It is muted while a save loads.
+
+## Paying for projects
+- After a capital project's intake, or a new project in Map → Projects, a **Financing** sheet (`finOptions` / `pickFinance`) offers seven sources. Each shows its odds and its reasons (✗ blockers first):
+  - **Treasury cash:** needs surplus; takes revenue for two half-years.
+  - **Bank syndicate:** odds fall with debt service over revenue; +30% interest.
+  - **State bond:** needs IGR ₦3B+, a rating and a friendly House; +15%.
+  - **AfDB / World Bank:** needs the federal guarantee, low corruption and an EIA; +5%.
+  - **Federal fund:** TETFund, BHCPF, Ecological Fund or REA; covers half.
+  - **PPP:** no debt, approval −2.
+  - **Contractor pre-financing:** always available; +35% and corruption +3%.
+- A decline names its reasons and that source is closed for the project. Approval sets `project.fin.share`, which `applyProcurement` (`sop-realism.js`) uses to put the contract on debt.
+
+## Projects you create
+- **Map → Projects → New project:** choose the need it answers (or none), name, type, cost, ministry and EIA, then find the money and pick a contractor.
+- A project answers its chosen need, or any open need of the same kind (`PROJ_NEED`).
+- On delivery (`projDelivered`) it raises its sector (`PROJ_STAT`), scaled by size and by how much money reached the site.
+- Fix: the contractor screen was called as a plain function inside the Projects panel (React hook-order crash #310); it is now a component.
+
+## Ministries and commissioners
+- **People → Cabinet → New ministry:** `MINISTRY_CATALOGUE` has 11 ministries:
+  - Sports & Youth (unlocks stadiums), Commerce, Tourism, Environment, Water, Housing, Transport, Digital, Power, Humanitarian, Lands.
+  - Each has a sector key and a setup cost. A hostile House may refuse the money.
+- **Choosing the commissioner:** three candidates (a technocrat, a party loyalist, a former permanent secretary). Each shows their reputation for ability, integrity and loyalty: the hidden truth plus noise.
+- **Meetings:** once a half-year each commissioner can be met:
+  - demand results (performance up, loyalty down);
+  - audit their books (catches graft and gives grounds to fire);
+  - back them with ₦0.5B.
+- **Sector effects:** every half-year each ministry moves its sector by its commissioner's performance, discounted by corruption.
+
+## Wiki
+- The article now includes every `wikiEvents` entry the game writes. Before, they were collected but never shown.
+  - Entries are told year by year under themed headings: projects, economy, cabinet, security, and courts and elections.
+  - Controversies also come from the record.
+- A **Record in numbers** section covers projects, needs, debt, revenue, ministries, laws, approval and corruption.
+
+## Programmes, bills and orders
+- **Executive orders:** 12 lawful orders (`ORDERS`), once per term each. Some carry a backlash risk; some answer a need (a curfew answers security). The unconstitutional orders remain under "Beyond your powers".
+- **Bills:** 7 new ones, including anti-open grazing, VAPP, procurement, FOI, child rights, contributory pension and tenancy.
+- **Programmes:** 4 new ones (cash transfers, medical outreach, 5,000 teachers, youth skills). Every programme card shows its effects and jobs.
+- **Effect labels:** chips use plain names (`fxChip`).
+
+## Less reading, less scrolling
+- On the Govern page:
+  - "Your promises" collapses to a one-line tally;
+  - the street shows one voice;
+  - needs show the most urgent one with "All N ▼".
+- Shorter project intake, and filler lines removed from dilemmas and judicial reviews.
