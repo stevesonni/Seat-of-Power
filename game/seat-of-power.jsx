@@ -6536,7 +6536,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
               [(soundOn ? "🔊 Sound: on" : "🔇 Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
               ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
-            ].filter(([l]) => !(VATAR && /Fullscreen/.test(l))).map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
+            ].concat(VATAR && window.SOP_canBuy && window.SOP_canBuy() ? [["🔁 Second Chance" + ((window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + " ready)" : ""), () => {
+              window.SOP_buy("second_chance").then(() => window.SOP_outcome({ icon: "🔁", title: "Second Chance ready", text: "If the voters turn you out at the re-election, you can rerun the campaign from the start. Once per game.", tone: "good" }))
+                .catch((e) => { if (!e || e.code !== "cancelled") window.SOP_outcome({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); });
+            }]] : []).filter(([l]) => !(VATAR && /Fullscreen/.test(l))).map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
             <div style={{ fontSize: TS(20), opacity: .7, padding: "2px 4px" }}>The game also saves itself every turn.</div>
           </div>}
         </div>}
