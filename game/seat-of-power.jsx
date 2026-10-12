@@ -3626,6 +3626,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const o = fn();
     if (o) announce(o, before);
   };
+  // Vatar edition: buy a Second Chance ahead, for the re-election.
+  const [, setEntsTick] = useState(0);
+  useEffect(() => { const f = () => setEntsTick(t => t + 1); window.addEventListener("sop-ents", f); return () => window.removeEventListener("sop-ents", f); }, []);
+  const buySecondChance = () => {
+    window.SOP_buy("second_chance").then(() => window.SOP_outcome({ icon: "🔁", title: "Second Chance ready", text: "If the voters turn you out at the re-election, you can rerun the campaign from the start. Once per game.", tone: "good" }))
+      .catch((e) => { if (!e || e.code !== "cancelled") window.SOP_outcome({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); });
+  };
   // ── HALF-YEAR REPORT AND HONOURS ──
   // When a new half-year's budget opens, one card says what changed since the
   // last one, what happened, and any honour earned.
@@ -6536,10 +6543,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
               [(soundOn ? "🔊 Sound: on" : "🔇 Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
               ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
-            ].concat(VATAR && window.SOP_canBuy && window.SOP_canBuy() ? [["🔁 Second Chance" + ((window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + " ready)" : ""), () => {
-              window.SOP_buy("second_chance").then(() => window.SOP_outcome({ icon: "🔁", title: "Second Chance ready", text: "If the voters turn you out at the re-election, you can rerun the campaign from the start. Once per game.", tone: "good" }))
-                .catch((e) => { if (!e || e.code !== "cancelled") window.SOP_outcome({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); });
-            }]] : []).filter(([l]) => !(VATAR && /Fullscreen/.test(l))).map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
+            ].concat(VATAR && window.SOP_canBuy && window.SOP_canBuy() ? [["🔁 Second Chance" + ((window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + " ready)" : ""), buySecondChance]] : []).filter(([l]) => !(VATAR && /Fullscreen/.test(l))).map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
             <div style={{ fontSize: TS(20), opacity: .7, padding: "2px 4px" }}>The game also saves itself every turn.</div>
           </div>}
         </div>}
@@ -6578,6 +6582,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={subBtn(false, CL.gold)}>Standing</button>}
             {curScreen.id === "wiki" && <button onClick={onHelp} style={subBtn(false, CL.grn)}>Help</button>}
             <button onClick={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} aria-pressed={soundOn} style={{ ...subBtn(false, CL.grn), marginLeft: "auto" }}>{soundOn ? "🔊 Sound on" : "🔇 Sound off"}</button>
+            {VATAR && window.SOP_canBuy && window.SOP_canBuy() && <button onClick={buySecondChance} style={subBtn(false, CL.gold)}>🔁 Second Chance{(window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + ")" : ""}</button>}
             <button onClick={saveGame} style={subBtn(true, CL.teal)}>💾 Save</button>
           </div>
         </div>}
