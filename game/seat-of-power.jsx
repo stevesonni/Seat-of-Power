@@ -1064,7 +1064,7 @@ const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) 
       {night && <div style={{ position: "absolute", inset: 0, background: "rgba(20,34,90,.32)", mixBlendMode: "multiply", pointerEvents: "none" }} />}
       {/* a click area over each painted building; it lights up when it needs you */}
       {HUB_BUILDINGS.map(b => { const badge = badges[b.id], [x0, y0, x1, y1] = b.box;
-        return <button key={b.id} onClick={() => go(b)} aria-label={b.name + (badge ? ": " + badge.text : "")} title={b.name} className="sop-hub-spot"
+        return <button key={b.id} onClick={() => go(b)} aria-label={b.name + (badge ? ": " + badge.text : "")} title={b.name} className={"sop-hub-spot" + (nextB && nextB.id === b.id ? " sop-next" : "")}
           style={{ position: "absolute", left: (x0 / HUB_W * 100) + "%", top: (y0 / HUB_H * 100) + "%", width: ((x1 - x0) / HUB_W * 100) + "%", height: ((y1 - y0) / HUB_H * 100) + "%", padding: 0, border: 0, borderRadius: 10, background: "transparent", cursor: "pointer", zIndex: 10,
             boxShadow: badge ? "inset 0 0 0 2px " + (badge.tone === "bad" ? "rgba(192,57,43,.85)" : "rgba(233,162,59,.9)") + ", 0 0 14px " + (badge.tone === "bad" ? "rgba(192,57,43,.55)" : "rgba(255,209,102,.6)") : "none" }} />; })}
       {/* names and alerts sit above every building so none is hidden */}
@@ -2248,10 +2248,11 @@ const Flow = ({ n, kicker, title, sub, onBack, onHelp, children, cta, ctaLabel, 
 };
 // A soft card in the style of the reference: tinted, rounded, an icon in a
 // white circle, a bold title and one grey line; a dark ring when chosen.
-const Tile = ({ tint = "#fff", icon, title, sub, on, onClick, children, style: st, disabled }) => <button onClick={disabled ? undefined : onClick} style={{
+const Tile = ({ tint = "#fff", icon, title, sub, on, onClick, children, style: st, disabled, badge }) => <button onClick={disabled ? undefined : onClick} style={{
   textAlign: "left", background: tint, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 28, padding: TALL() ? "16px 16px" : "20px 20px",
   display: "flex", flexDirection: "column", gap: 6, cursor: disabled ? "default" : "pointer", position: "relative", color: UI.ink, fontFamily: F.b, fontWeight: 400,
   boxShadow: on ? "0 10px 24px rgba(18,48,31,.14)" : "none", opacity: disabled ? .5 : 1, transition: "box-shadow .15s, border-color .15s", minHeight: 0, ...st }}>
+  {badge && <span style={{ alignSelf: "flex-start", background: "#0b7a4b", color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 700 }}>⭐ {badge}</span>}
   {icon && <span style={{ width: 46, height: 46, borderRadius: 23, background: "rgba(255,255,255,.75)", display: "grid", placeItems: "center", fontSize: 24, marginBottom: 6 }}>{icon}</span>}
   {title && <span style={{ fontWeight: 700, fontSize: DS.t.body, lineHeight: 1.22 }}>{title}</span>}
   {sub && <span style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.35 }}>{sub}</span>}
@@ -2268,6 +2269,21 @@ const Field = ({ label, value, onChange, placeholder, autoFocus }) => <label sty
   <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} autoFocus={autoFocus} autoComplete="off" autoCapitalize="words" spellCheck={false}
     style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, outline: "none", fontFamily: F.b, fontWeight: 600, boxSizing: "border-box" }} />
 </label>;
+
+// A first game's recommended picks: a calmer state, a promise that fits it,
+// a strong party that still leaves campaign money, and a slogan the party
+// helps you keep.
+// Matches buildBattlegrounds' regional pull: UCP in the North, YDM in the
+// South-East, South-South and Lagos, the NRA elsewhere.
+const recParty = (k) => { const z = STATES[k]?.zone; return ["NW", "NE", "NC"].includes(z) ? "UCP" : ["SE", "SS"].includes(z) || k === "Lagos" ? "YDM" : "NRA"; };
+const recState = (zone) => {
+  const ks = Object.keys(STATES).filter(k => k !== "FCT" && (!zone || STATES[k].zone === zone));
+  const med = ks.filter(k => STATES[k].diff === "Medium");
+  return (med.length ? med : ks).reduce((a, b) => (STATES[b].sec || 0) > (STATES[a].sec || 0) ? b : a);
+};
+const recAgenda = (k) => (STATES[k]?.sec || 1) < .45 ? "security" : "infrastructure";
+const recSlogan = (k) => "Building " + String(k || "").replace("_", " ") + " Together";
+const PLAYED_KEY = "sop_played"; // set once a first governorship begins
 
 const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   useMode("public");
@@ -2311,6 +2327,13 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   const [enightPlayed, setEnightPlayed] = useState({});
   const [enightSummary, setEnightSummary] = useState(null);
   const [anchorsShown, setAnchorsShown] = useState(false);
+  // First game: recommended picks, a Quick start, and the party's veterans on election day.
+  const [firstRun, setFirstRun] = useState(!(profile?.games || []).length);
+  useEffect(() => { if (!firstRun) return; Promise.resolve(window.storage && window.storage.get(PLAYED_KEY)).then(r => { if (r && r.value) setFirstRun(false); }).catch(() => {}); }, []);
+  const [quick, setQuick] = useState(false); // Quick start running: waits for the deputies of the chosen state
+  const [quickUsed, setQuickUsed] = useState(false);
+  const [ticketPaid, setTicketPaid] = useState(0); // so going Back and choosing again doesn't charge twice
+  const payTicket = (t) => { setWarChest(w => w + ticketPaid - t); setTicketPaid(t); };
   useEffect(() => {
     if (sCampRound >= 8 && !enightPlayed.first && st && window.SOP && window.SOP.playElectionNight) {
       // Derive opponent identity the same way the render path does (line 1312),
@@ -2332,6 +2355,23 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   const fs = useMemo(() => { const e = Object.entries(STATES); return zf ? e.filter(([, d]) => d.zone === zf) : e; }, [zf]);
   const depCands = useMemo(() => st ? (() => { const base = genDepGov(st, 999, STATES[st]?.zone); const surs = new Set(base.map(c => c.nm.split(" ").slice(1).join(" "))); return base.concat([(() => { const r2 = rng(st.length * 88); let wn = gN(r2, STATES[st]?.zone, st); for (let i = 0; i < 12 && surs.has(wn.split(" ").slice(1).join(" ")); i++) wn = gN(r2, STATES[st]?.zone, st); return { nm: wn, co: ri(50, 85, r2), lo: ri(40, 80, r2), cr: ri(5, 30, r2), pu: ri(50, 90, r2), bg: "Wildcard", bio: genBio(r2), desc: "Unknown quantity. Could be brilliant or a disaster." }; })()]); })() : [], [st]);
   const dc = { "Medium": CL.grn, "Hard": CL.org, "Very Hard": CL.red, "Extreme": "#8b0000" };
+  useEffect(() => {
+    if (!quick || !depCands.length) return;
+    setDepGov(depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]));
+    setQuick(false); setQuickUsed(true); setStep(7);
+  }, [quick, depCands]);
+  // Fill every step with the recommended pick and jump to the ticket. Anything can be changed with Back.
+  const quickStart = () => {
+    const k = st || (profile?.origin && STATES[profile.origin] && profile.origin !== "FCT" ? profile.origin : recState(zf));
+    setSt(k);
+    if (!avatar) setAvatar(AVATARS[0].id);
+    if (!(firstNm.trim() && lastNm.trim())) setNm(gN(rng(Date.now() % 100000), STATES[k].zone, k));
+    setAgenda(recAgenda(k));
+    const P = PARTIES.find(x => x.id === recParty(k));
+    setParty(P.id); payTicket(P.ticket);
+    setSlogan(recSlogan(k));
+    setQuick(true);
+  };
   const saName = (typeof SA_ROSTER !== "undefined" && SA_ROSTER[0]) ? SA_ROSTER[0].name : "Adviser";
 
   // AGENDA_EFFECTS drives real gameplay each turn (see endTurn hook). Every option here
@@ -2369,8 +2409,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     const pick = (k) => { if (k === "FCT") { setShowFCT(true); return; } setSt(k); };
     const randomState = () => { const keys = Object.keys(STATES).filter(k => k !== "FCT" && (!zf || STATES[k].zone === zf)); setSt(keys[Math.floor(Math.random() * keys.length)]); };
     const d = st ? STATES[st] : null;
+    const rec = recState(zf);
     return <Flow n={1} kicker="Step 1 of 7 · Your state" title="Where will you run?" wide
       cta={() => setStep(2)} ctaDisabled={!st} ctaLabel={st ? "Run in " + st.replace("_", " ") : "Tap a state on the map"}>
+      <Tile tint={UI.tints[4]} icon="⚡" onClick={quickStart} badge={firstRun ? "Best for a first game" : null} style={{ marginBottom: 14, border: "2px solid #0b7a4b" }}
+        title={"Quick start" + (st ? " in " + st.replace("_", " ") : "")} sub="We pick a good first campaign: name, promise, party, slogan and deputy. You see the ticket and can change anything." />
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <Seg items={[["easy", "Easy"], ["medium", "Medium"], ["hard", "Hard"]]} value={level} onChange={setLevel} style={{ margin: "0 0 4px" }} />
       </div>
@@ -2393,6 +2436,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
           </> : <>
             <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: TALL() ? 30 : 36 }}>Choose a state</div>
             <div style={{ fontSize: DS.t.body, color: UI.sub, marginTop: 6, lineHeight: 1.45 }}>Tap it on the map. Each starts differently: how much money it raises itself, how safe it is, and how strong its godfather is.</div>
+            <button onClick={() => pick(rec)} style={{ marginTop: 12, minHeight: 48, padding: "10px 20px", borderRadius: 999, border: 0, background: "#0b7a4b", color: "#fff", fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer" }}>⭐ Recommended: {rec.replace("_", " ")}</button>
           </>}
           <button onClick={randomState} style={{ marginTop: 14, minHeight: 48, padding: "10px 20px", borderRadius: 999, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer" }}>🎲 Random state</button>
         </div>
@@ -2455,7 +2499,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       sub="Your flagship. The adviser, the news and your Wikipedia page will judge you by it."
       cta={() => setStep(4)} ctaDisabled={!agenda} ctaLabel={ag ? "Promise " + ag.nm : "Pick a promise"} ctaNote={ag ? ag.bonus : null}>
       <Grid2 min={220}>
-        {AGENDAS.map((a, i) => <Tile key={a.id} tint={UI.tints[i % UI.tints.length]} icon={a.i} title={a.nm} sub={a.d} on={agenda === a.id} onClick={() => setAgenda(a.id)} style={{ minHeight: TALL() ? 170 : 190 }} />)}
+        {AGENDAS.map((a, i) => <Tile key={a.id} tint={UI.tints[i % UI.tints.length]} icon={a.i} title={a.nm} sub={a.d} on={agenda === a.id} onClick={() => setAgenda(a.id)} badge={a.id === recAgenda(st) ? "Recommended" : null} style={{ minHeight: TALL() ? 170 : 190 }} />)}
       </Grid2>
     </Flow>;
   }
@@ -2463,20 +2507,20 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   // STEP 4: Party Selection + Primaries
   if (step === 4) {
     const selectedParty = PARTIES.find(p => p.id === party);
-    const canAffordTicket = selectedParty ? warChest >= selectedParty.ticket : true;
+    const canAffordTicket = selectedParty ? warChest + ticketPaid >= selectedParty.ticket : true;
     return <Flow n={4} kicker="Step 4 of 7 · Your party" title="Which party's ticket?" onBack={() => { setParty(null); setStep(3); }}
       sub="Each party charges a nomination fee. Bigger parties cost more and have stronger machines. What is left pays for your campaign."
-      cta={() => { setWarChest(w => w - selectedParty.ticket); setStep(5); }} ctaDisabled={!selectedParty || !canAffordTicket}
+      cta={() => { payTicket(selectedParty.ticket); setStep(5); }} ctaDisabled={!selectedParty || !canAffordTicket}
       ctaLabel={!selectedParty ? "Pick a party" : !canAffordTicket ? "You can't afford the " + selectedParty.id + " ticket" : selectedParty.custom ? "Register the " + selectedParty.id + " for ₦" + selectedParty.ticket + "B and stand" : "Pay ₦" + selectedParty.ticket + "B and win the " + selectedParty.id + " primary"}
-      ctaNote={selectedParty && canAffordTicket ? "₦" + (warChest - selectedParty.ticket).toFixed(1) + "B left for the campaign" : null}>
+      ctaNote={selectedParty && canAffordTicket ? "₦" + (warChest + ticketPaid - selectedParty.ticket).toFixed(1) + "B left for the campaign" : null}>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
-        <span style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>💰 War chest ₦{warChest.toFixed(1)}B</span>
+        <span style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>💰 War chest ₦{(warChest + ticketPaid).toFixed(1)}B</span>
         {gfDebt > 0 && <span style={{ background: UI.tints[1], borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>🎩 Owed to the godfather ₦{gfDebt}B</span>}
       </div>
       <div style={{ display: "grid", gap: 12 }}>
         {PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) || (customParty && p.id === customParty.id)).map((p, i) => {
-          const afford = warChest >= p.ticket;
-          return <Tile key={p.id} tint={party === p.id ? "#fff" : UI.tints[i % UI.tints.length]} on={party === p.id} onClick={() => setParty(p.id)}>
+          const afford = warChest + ticketPaid >= p.ticket;
+          return <Tile key={p.id} tint={party === p.id ? "#fff" : UI.tints[i % UI.tints.length]} on={party === p.id} onClick={() => setParty(p.id)} badge={p.id === recParty(st) ? "Recommended: strongest here" : null}>
             <span style={{ display: "flex", alignItems: "center", gap: 10, paddingRight: 34 }}>
               <span style={{ width: 14, height: 14, borderRadius: 7, background: p.c, flexShrink: 0 }} />
               <span style={{ fontWeight: 800, fontSize: DS.t.body }}>{p.id}</span>
@@ -2516,7 +2560,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       sub="It does two jobs. In the campaign, the moves that match it work better. In office, voters hold you to its promise once a year."
       cta={() => setStep(6)} ctaDisabled={!slogan} ctaLabel={slogan ? "Go with this slogan" : "Pick a slogan"}>
       <div style={{ display: "grid", gap: 10 }}>
-        {SLOGANS.map((sl, i) => { const sd = sloganDef(sl); return <Tile key={i} tint={slogan === sl ? "#fff" : UI.tints[i % UI.tints.length]} on={slogan === sl} onClick={() => setSlogan(sl)}>
+        {SLOGANS.map((sl, i) => { const sd = sloganDef(sl); return <Tile key={i} tint={slogan === sl ? "#fff" : UI.tints[i % UI.tints.length]} on={slogan === sl} onClick={() => setSlogan(sl)} badge={sl === recSlogan(st) ? "Recommended: easiest promise to keep" : null}>
           <span style={{ fontFamily: F.d, fontSize: TALL() ? 28 : 34, fontWeight: 600, lineHeight: 1.2, paddingRight: 34 }}>“{sl}”</span>
           {sd && <span style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.4 }}><b style={{ color: UI.ink }}>Campaign:</b> {sd.boostText} · <b style={{ color: UI.ink }}>In office:</b> {sd.promise}</span>}
         </Tile>; })}
@@ -2580,6 +2624,10 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
         <Tile tint={UI.tints[4]} title={startingStab + "%"} sub="Party support at the start" />
         <Tile tint={UI.tints[0]} title={"₦" + warChest.toFixed(1) + "B"} sub="Left for the campaign" />
       </div>
+      {(quickUsed || firstRun) && <div style={{ marginTop: 14, background: "#fff", border: "1px solid " + UI.line, borderRadius: 20, padding: "12px 16px", fontSize: DS.t.label, color: UI.sub, lineHeight: 1.45 }}>
+        {quickUsed && <div>⚡ Quick start chose <b style={{ color: UI.ink }}>{FLAGSHIP[agenda]?.nm}</b>, the <b style={{ color: UI.ink }}>{party}</b> and the party's deputy. Tap ‹ to change any of them.</div>}
+        {firstRun && level !== "hard" && <div style={{ marginTop: quickUsed ? 6 : 0 }}>🤝 Your first campaign: party veterans lend you their polling-unit agents, worth about 2 points on election day.</div>}
+      </div>}
       <div style={{ marginTop: 14 }}><AdvBubble text={ADV.conventionResult(accepted)} saName={saName} /></div>
     </Flow>;
   }
@@ -2710,7 +2758,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     const restartElectionSetup = () => {
       setParty(null); setDepGov(null); setSlogan(null);
       setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null);
-      setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setPreTrib(null);
+      setWarChest(0.8); setTicketPaid(0); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setPreTrib(null);
       setStep(4);
     };
 
@@ -2742,7 +2790,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       const swayedZones = activeZones.map(z => {
         // Collation: noise plus a small party-machine push for the opponent (bigger on hard).
         // The campaign itself is now where they fight you, so the final poll is a fair guide.
-        const swing = (sCampScore - sCampOpp) * 0.32;
+        const swing = (sCampScore - sCampOpp) * 0.32 + (firstRun && !hardMode ? 2 : 0);
         const jitter = (eDay() - 0.5) * (hardMode ? 10 : 7);
         return { ...z, support: cl100(z.support + swing + jitter - 1), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 2 : 1) + (eDay() - 0.5) * (hardMode ? 7 : 5)) };
       });
@@ -2756,6 +2804,15 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
             <Sfx k={won ? "win" : "lose"} /><ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />
             <h2 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(58), fontWeight: 700, margin: "7px 0" }}>{won ? "GOVERNOR-ELECT!" : "DEFEATED"}</h2>
             <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 29 }}>{won ? "INEC Returning Officer declares " + nm + " (" + party + ") duly elected — carrying " + collation.zonesWon + " of 3 senatorial zones with a " + marginPct.toFixed(1) + "% margin." : oName + " (" + (oParty?.id || "OPP") + ") wins. You carried only " + collation.zonesWon + "/3 zones. Margin against you: " + marginPct.toFixed(1) + "%."}</p>
+            {!won && (() => {
+              // A loss ends with one thing to try, not just a red screen.
+              const sh = (rw) => rw.yourVotes / Math.max(1, rw.yourVotes + rw.oppVotes);
+              const weak = collation.rows.reduce((a, b) => sh(b) < sh(a) ? b : a, collation.rows[0]);
+              const behind = sCampOpp > sCampScore;
+              return <div style={{ textAlign: "left", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 17, padding: "16px 20px", marginBottom: 18, fontSize: TS(30), color: CL.tm, lineHeight: 1.45 }}>
+                <b style={{ color: CL.txt }}>Next time:</b> {weak ? "you were weakest in the " + weak.zone + " district (" + Math.round(sh(weak) * 100) + "% of the vote). Spend more campaign days there. " : ""}{behind ? "The opponent's attacks outscored your campaign: answer them instead of sitting them out." : "Pick moves that match your slogan; they count for more."}{firstRun && level !== "easy" ? " Easy mode is a gentler first race." : ""}
+              </div>;
+            })()}
             {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36, padding: "29px", background: "#fff8f0", border: "1px solid " + CL.gold + "55", borderRadius: 17 }}>
               <Bt onClick={() => { setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }} style={{ padding: "29px 50px", fontSize: TS(38) }}>😔 Try Again</Bt>
               <Bt onClick={() => {
@@ -3036,10 +3093,14 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       <div style={{ minHeight: "100%", background: "linear-gradient(180deg,#f0f5e8,#fafdf7)", padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
         <div style={{ maxWidth: 912, margin: "120px auto", textAlign: "center" }}>
           <SceneArt bg="government-house" h={TALL() ? 220 : 300} />
-          <h2 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(94), fontWeight: 700, margin: "0 0 36px" }}>Welcome to Government House</h2>
+          {/* The arrival: your portrait, your new title, the mandate you won. */}
+          <img src={AVATAR_IMGS[avatar]} alt={nm} className="sop-pop" style={{ width: TALL() ? 110 : 150, height: TALL() ? 140 : 190, objectFit: "cover", objectPosition: "top", borderRadius: 24, border: "5px solid #fff", boxShadow: "0 12px 30px rgba(18,48,31,.28)", margin: TALL() ? "-70px auto 10px" : "-90px auto 14px", display: "block", position: "relative", background: UI.tints[3] }} />
+          <div style={{ fontSize: TS(TALL() ? 26 : 32), letterSpacing: 2, textTransform: "uppercase", color: CL.td, fontWeight: 800 }}>Executive Governor of {(st || "").replace("_", " ")} State</div>
+          <h2 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(94), fontWeight: 700, margin: "4px 0 10px" }}>Welcome to Government House</h2>
+          {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null })} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -3658,7 +3719,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const last = logs.filter(l => l.t === turn - 1 && ["success", "crisis", "scandal"].includes(l.tp)).slice(-3).map(l => l.tx.replace(/^\S+\s/, "").split(/(?<=\.)\s/)[0]);
     const big = (r) => ["Approval", "Treasury", "Party", "Corruption", "Debt"].includes(r.l) || (r.l !== "War chest" && r.l !== "Own revenue" && parseFloat(String(r.v).replace(/[^\d.]/g, "")) >= 3);
     const rows = statRows(prev.snap, snap).filter(big).concat(fresh.map(h => ({ l: h.i + " " + h.nm, v: "", good: true })));
-    try { window.SOP_outcome && window.SOP_outcome({ icon: "🗓️", title: "How the last half-year went", text: last.length ? last.join(" ") : "A quiet six months.", rows, tone: "neutral", ok: "On to the next" }); } catch (e) {}
+    let text = last.length ? last.join(" ") : "A quiet six months.";
+    const first = turn === 2;
+    if (first) {
+      // The end of the first half-year: what you got done, and one clear goal for the next.
+      const done = needs.filter(n => n.status === "met" || n.status === "started").length;
+      const open = needs.find(n => n.status === "open"), ot = open && needType(open);
+      const goal = ot ? "answer \u201c" + ot.title(open.lga) + "\u201d" : !(projects || []).length ? "start a capital project from the Projects tab" : "keep approval above 50% for your next report";
+      text = "You got through your first six months: the budget passed" + (done ? " and " + done + (done === 1 ? " need is" : " needs are") + " being answered" : "") + ". " + text + " Next goal: " + goal + ".";
+    }
+    try { window.SOP_outcome && window.SOP_outcome({ icon: first ? "🎉" : "🗓️", title: first ? "Your first half-year" : "How the last half-year went", text, rows, tone: first ? "good" : "neutral", ok: first ? "On to the next six months" : "On to the next" }); } catch (e) {}
   }, [phase, turn]);
   const bs = Object.values(bud).reduce((a, b) => a + b, 0);
   const termNum = turn <= 4 ? 1 : 2;
@@ -6619,6 +6689,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             ["End the half-year", "Then your decisions come in, a few at a time.", false],
           ];
           const cur = steps.findIndex(x => !x[2]);
+          // "Show me": scroll to the one thing to do now and make it pulse.
+          const showMe = () => { const el = document.getElementById(cur === 2 ? "sop-needs" : "sop-task"); if (!el) return; try { el.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} el.classList.remove("sop-flash"); void el.offsetWidth; el.classList.add("sop-flash"); setTimeout(() => el.classList.remove("sop-flash"), 3200); };
           return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: "#12301f", color: "#f3f7ef", borderRadius: 18, padding: TALL() ? "12px 14px" : "16px 20px", display: "grid", gridTemplateColumns: "auto 1fr", gap: 12 }}>
             {saOffice.adviser ? <img src={saPortrait(saOffice.adviser.name)} alt="" style={{ width: TALL() ? 44 : 60, height: TALL() ? 44 : 60, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#ffffff22" }} /> : <span style={{ fontSize: 32 }}>🧭</span>}
             <div style={{ minWidth: 0 }}>
@@ -6628,7 +6700,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>
               {steps.map(([t, d, done], i) => <div key={t} style={{ display: "flex", gap: 8, alignItems: "baseline", marginTop: 6, fontSize: fz.s, opacity: done || i === cur ? 1 : .55 }}>
                 <span style={{ fontWeight: 800, color: done ? "#7ee2a8" : i === cur ? "#ffd166" : "#cfe3d6" }}>{done ? "✓" : i + 1}</span>
-                <span><b>{t}.</b>{i === cur ? " " + d : ""}</span>
+                <span><b>{t}.</b>{i === cur ? " " + d : ""}{i === cur && <button onClick={showMe} style={{ marginLeft: 8, border: 0, borderRadius: 999, background: "#ffd166", color: "#12301f", padding: "4px 12px", minHeight: 32, fontWeight: 800, fontSize: fz.s, cursor: "pointer", fontFamily: F.b }}>Show me ↓</button>}</span>
               </div>)}
             </div>
           </div>;
@@ -6733,7 +6805,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>}
           </div>;
         })()}
-        {nav === "gov" && !needSetup && activeNeeds.length > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
+        {nav === "gov" && !needSetup && activeNeeds.length > 0 && <div id="sop-needs" style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", scrollMarginTop: TALL() ? 100 : 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 2px 8px" }}>
             <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>What the state needs</b>
             {activeNeeds.length > 1 ? <button onClick={() => setNeedsAll(v => !v)} style={{ background: "transparent", border: 0, cursor: "pointer", fontSize: TALL() ? TS(18) : TS(26), color: CL.grn, fontWeight: 800, fontFamily: F.b }}>{needsAll ? "Show fewer ▲" : "All " + activeNeeds.length + " ▼"}</button> : <span style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.td }}>Answer it or pay for it</span>}
@@ -10002,6 +10074,12 @@ function App() {
         .sop-fade-in { animation: sopFadeIn .4s ease-out; }
         .sop-slide-up { animation: sopSlideUp .35s ease-out; }
         @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes sopPop { 0% { transform: scale(.6); opacity: 0; } 70% { transform: scale(1.06); opacity: 1; } 100% { transform: scale(1); } }
+        .sop-pop { animation: sopPop .7s ease-out both; }
+        @keyframes sopPulse { 0%, 100% { box-shadow: 0 0 0 3px #ffd166, 0 0 0 0 rgba(255,209,102,.7); } 50% { box-shadow: 0 0 0 3px #ffd166, 0 0 0 14px rgba(255,209,102,0); } }
+        .sop-next { animation: sopPulse 1.6s ease-in-out infinite; }
+        .sop-flash { animation: sopPulse 1s ease-in-out 3; border-radius: 16px; }
+        @media (prefers-reduced-motion: reduce) { .sop-pop, .sop-next, .sop-flash { animation: none; } .sop-next, .sop-flash { box-shadow: 0 0 0 3px #ffd166; } }
         .sop-hub-spot { transition: box-shadow .2s, background .2s; }
         .sop-hub-spot:hover, .sop-hub-spot:focus-visible { background: rgba(255,255,255,.14) !important; box-shadow: inset 0 0 0 2px rgba(255,255,255,.85), 0 0 16px rgba(255,255,255,.5) !important; outline: none; }
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

@@ -394,3 +394,11 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
 - **Saving:** the run saves at every step (`sop_pres`), and the title screen offers to continue it.
 - **Balance:** modelled with `scratchpad/pressim.mjs` in the dev session. An equal-strength party wins about 46% of runs, a weaker one about 16%, a stronger one about 77%, before record and choices.
 - **Vatar edition:** the run is the one-off product `presidential_run`. Elsewhere it is free.
+
+## Onboarding
+- **Quick start** (setup step 1): fills in a recommended first campaign and jumps to the ticket. It picks a Medium state (the calmest in the region), a promise that fits the state, the party strongest there, "Building X Together" and the party's deputy. Back changes anything. Each setup step also marks its recommended pick.
+- **The party ticket is charged once**, even when the player goes Back and chooses again.
+- **First campaign** (no finished careers and no `sop_played`): party veterans add about 2 points on election day (not on Hard). A loss shows one tip: the weakest district and what to change.
+- **The arrival:** Government House shows the governor's portrait, the new title and the votes and margin that won it.
+- **End of the first half-year:** "Your first half-year" sums up what was done and sets one next goal.
+- **The one thing to do next:** the hub's next building pulses, and the first-half-year guide has **Show me**, which scrolls to the task and flashes it. Both respect reduced motion.
