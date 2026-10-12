@@ -680,14 +680,14 @@ const NEED_TYPES = [
     fail: (l) => "Another crash on the " + l + " road. Eleven people dead. The community blocks the highway and blames Government House.",
     abandon: (l) => "The contractors have left the " + l + " road half-built. The open trenches are worse than the potholes.",
     win: (l) => "The " + l + " road is open again. Traders were back on it before the paint was dry." },
-  { k: "clinic", icon: "🏥", stat: "hp", sector: "health", fix: ["phc", "free_csec", "health_ins", "mega_hospital"],
+  { k: "clinic", icon: "🏥", stat: "hp", sector: "health", fix: ["phc", "free_csec", "health_ins", "mega_hospital", "outreach"],
     title: (l) => "Mothers are dying at the " + l + " general hospital",
     why: (l) => "One doctor, no blood bank and no generator. Women in labour are turned away at night.",
     ask: "Revive primary healthcare, fund free caesarean sections or upgrade the hospital.",
     fail: (l) => "Three women died in childbirth at the " + l + " general hospital this month. Nurses march on Government House.",
     abandon: (l) => "The new wing at the " + l + " hospital is an empty shell. The builders were never paid.",
     win: (l) => "The " + l + " hospital has doctors, blood and light again. Births there are safe." },
-  { k: "school", icon: "🏫", stat: "lit", sector: "education", fix: ["free_edu", "school_feed", "school_voucher", "uni"],
+  { k: "school", icon: "🏫", stat: "lit", sector: "education", fix: ["free_edu", "school_feed", "school_voucher", "uni", "teachers"],
     title: (l) => "Pupils in " + l + " sit on the floor",
     why: (l) => "Roofs are gone, there are no desks, and teachers have not been paid for two months. Attendance has halved.",
     ask: "Fund free education, school feeding or a school voucher.",
@@ -1209,7 +1209,11 @@ const POLICIES = [
   { id: "comm_pol", nm: "Community Policing", s: "security", c: 2, t: 1, fx: { sec: .05, app: 4 }, d: "5,000 volunteer safety corps.", cr: 0, ecoSec: null, ecoBoost: 0, jobsAdd: 5000, compDesc: "Community policing network across all LGAs" },
   { id: "farm_sub", nm: "Farm Input Subsidies", s: "agriculture", c: 2.5, t: 1, fx: { agr: .05, app: 6 }, d: "Seeds, fertilizer, pesticides for 100K farmers.", cr: .1, ecoSec: "agriculture", ecoBoost: .03, jobsAdd: 1000, compDesc: "Farm subsidies reaching 100K farmers" },
   { id: "anti_cor", nm: "Anti-Corruption Unit", s: "administration", c: 1, t: 1, fx: { corM: -.08, app: 5 }, d: "Independent audit and prosecution body.", cr: 0, ecoSec: null, ecoBoost: 0, jobsAdd: 200, compDesc: "Anti-corruption unit operational" },
+  { id: "cct", nm: "Conditional Cash Transfer", s: "administration", c: 2, t: 1, fx: { app: 6, hp: .01 }, d: "₦10,000 a month to the 50,000 poorest households, if their children stay in school.", cr: .12, ecoSec: "services", ecoBoost: .01, jobsAdd: 0, compDesc: "Cash transfers reaching 50,000 poor households" },
+  { id: "outreach", nm: "Free Medical Outreach", s: "health", c: 1.2, t: 1, fx: { hp: .02, app: 5 }, d: "Mobile clinics in every LGA: eye surgery, safe deliveries, free drugs.", cr: .05, ecoSec: "services", ecoBoost: .01, jobsAdd: 600, compDesc: "Free medical outreach in every LGA" },
   // ─── MEDIUM PROJECTS (2 turns) ───
+  { id: "teachers", nm: "Recruit 5,000 Teachers", s: "education", c: 3, t: 2, fx: { lit: .05, app: 4 }, d: "Tested, qualified teachers posted to rural schools.", cr: .05, ecoSec: "services", ecoBoost: .01, jobsAdd: 5000, compDesc: "5,000 new teachers in rural classrooms" },
+  { id: "skills", nm: "Youth Skills & Tech Training", s: "education", c: 2.5, t: 2, fx: { lit: .02, app: 5 }, d: "Six-month courses in coding, solar installation and tailoring for 20,000 young people.", cr: .06, ecoSec: "tech", ecoBoost: .03, jobsAdd: 20000, compDesc: "20,000 young people trained in trades and tech" },
   { id: "free_edu", nm: "Free Education Programme", s: "education", c: 3.5, t: 2, fx: { lit: .04, app: 5 }, d: "Abolish school fees K-12. Teacher recruitment.", cr: 0, ecoSec: "services", ecoBoost: .02, jobsAdd: 8000, compDesc: "Free education for all — fees abolished statewide" },
   { id: "phc", nm: "Primary Healthcare Revival", s: "health", c: 4, t: 2, fx: { hp: .06, app: 6 }, d: "Renovate 200 PHCs. Drugs, nurses, equipment.", cr: .05, ecoSec: "services", ecoBoost: .02, jobsAdd: 4000, compDesc: "200 health centres renovated and equipped" },
   { id: "health_ins", nm: "State Health Insurance", s: "health", c: 3, t: 2, fx: { hp: .04, app: 4 }, d: "Universal coverage scheme. ₦500/month.", cr: 0, ecoSec: "services", ecoBoost: .01, jobsAdd: 1500, compDesc: "Health insurance covering 2M residents" },
@@ -3024,7 +3028,33 @@ const BILLS = [
   { id: "market_mod", nm: "Market Modernization Bill", d: "Regulate and upgrade state markets with trader protections.", fx: { app: 5 }, sk: { business: 10, unions: 5 }, cost: 1.5 },
   { id: "env_protect", nm: "Environmental Protection Bill", d: "Create state environmental agency with enforcement powers.", fx: { hp: .02, app: 3 }, sk: { business: -5, youth: 6 }, cost: 0.5 },
   { id: "youth_employ", nm: "Youth Employment Bill", d: "Mandate state agencies to reserve 30% of new positions for under-35s.", fx: { app: 6 }, sk: { youth: 12, unions: -4 }, cost: 1 },
+  { id: "open_grazing", nm: "Anti-Open Grazing Law", d: "Ranching only; cattle may not roam farms. Ends most farmer–herder clashes, angers herders' groups.", fx: { sec: .04, app: 4 }, sk: { traditional: -4, religious: -3 }, cost: .5 },
+  { id: "vapp", nm: "Violence Against Persons (Prohibition) Law", d: "Domesticates the federal VAPP Act: rape, domestic violence and harmful widowhood rites become crimes.", fx: { app: 3, hp: .01 }, sk: { religious: -4, youth: 6, media: 5 }, cost: 0 },
+  { id: "procurement_law", nm: "Public Procurement Law", d: "A procurement bureau, open tenders and published contracts. Contractors hate it.", fx: { corM: -.05, app: 2 }, sk: { business: 4, party: -6 }, cost: .3 },
+  { id: "foi", nm: "Freedom of Information Law", d: "Anyone can request government records within seven days.", fx: { corM: -.02, app: 2 }, sk: { media: 10, party: -3 }, cost: 0 },
+  { id: "child_rights", nm: "Child Rights Law", d: "Bans child marriage and street hawking by children. Some clerics object.", fx: { lit: .02, app: 2 }, sk: { religious: -6, youth: 4 }, cost: .3 },
+  { id: "pension", nm: "Contributory Pension Law", d: "Moves workers to funded pensions; ends the arrears that pile up on retirees.", fx: { app: 3 }, sk: { unions: 6 }, cost: 1.2 },
+  { id: "tenancy", nm: "Tenancy Law", d: "Caps advance rent at one year and stops arbitrary evictions.", fx: { app: 4 }, sk: { business: -5, youth: 6 }, cost: 0 },
 ];
+// Lawful executive orders: quick, cheap, immediate, and each has a price.
+// risk: chance of a backlash (fx2) when you sign. Once per term each.
+const ORDERS = [
+  { id: "sanitation", i: "🧹", nm: "Monthly sanitation day", d: "Everyone stays home to clean up on the last Saturday of the month.", fx: { hp: .02, app: -1 }, sk: { business: -3 } },
+  { id: "curfew", i: "🌙", nm: "Dusk-to-dawn curfew in hotspot areas", d: "Troops and police enforce it. Fewer attacks; trade suffers.", fx: { sec: .04, app: -2 }, sk: { business: -4 }, need: "security" },
+  { id: "okada", i: "🛺", nm: "Ban okada in the state capital", d: "Motorcycle taxis off city roads. Safer streets; thousands of riders lose work.", fx: { sec: .02, app: -2 }, sk: { youth: -8 }, risk: { p: .3, fx: { app: -2 }, log: "Okada riders blocked the city's main roads in protest." } },
+  { id: "street_trading", i: "🚫", nm: "Ban street trading on major roads", d: "Clears traffic; traders lose their pitches.", fx: { infra: .01, app: -2 }, sk: { unions: -4, business: 2 } },
+  { id: "emerg_health", i: "🏥", nm: "State of emergency in health", d: "Fast-track drugs and staff, skipping normal procurement.", fx: { hp: .025, app: 2, corM: .01 }, sk: {} },
+  { id: "emerg_edu", i: "🎓", nm: "State of emergency in education", d: "Emergency teacher hiring and classroom repairs.", fx: { lit: .025, app: 2, corM: .01 }, sk: { unions: 3 } },
+  { id: "hiring_freeze", i: "🧊", nm: "Freeze civil service hiring", d: "Saves money on the wage bill; graduates and unions are angry.", fx: { app: -2 }, rev: .4, sk: { unions: -6, youth: -4 } },
+  { id: "min_wage", i: "💵", nm: "Pay the new minimum wage now", d: "Workers get the federal minimum wage from this month.", fx: { app: 5 }, rev: -.6, sk: { unions: 12 } },
+  { id: "four_day", i: "📆", nm: "Four-day week for civil servants", d: "Relief from transport costs; services slow down.", fx: { app: 2 }, sk: { unions: 6, business: -3 } },
+  { id: "open_grazing_eo", i: "🌾", nm: "Order: no open grazing", d: "Bans cattle on farmland until the House passes a law.", fx: { sec: .03, agr: .01, app: 3 }, sk: { traditional: -3 }, risk: { p: .25, fx: { app: -2, pStab: -2 }, log: "Herders' groups went to court and Abuja criticised the order." } },
+  { id: "revoke_land", i: "📃", nm: "Revoke your predecessor's land allocations", d: "Takes back plots handed to cronies. Popular, and it will be challenged.", fx: { app: 3, corM: -.01 }, sk: { traditional: -5, business: -3 }, risk: { p: .35, fx: { app: -2 }, log: "The former allottees won an injunction; some plots are back in court." } },
+  { id: "close_schools", i: "🔒", nm: "Close schools in bandit-hit areas", d: "Keeps children safe; they fall behind.", fx: { sec: .02, lit: -.02, app: -1 }, sk: { religious: 2 }, need: "security" },
+];
+// Plain names for effect chips.
+const FX_NAME = { app: "Approval", corM: "Corruption", cor: "Corruption", lit: "Education", hp: "Health", sec: "Security", infra: "Infrastructure", agr: "Agriculture", pStab: "Party" };
+const fxChip = (k, v) => (FX_NAME[k] || k) + " " + (v > 0 ? "+" : "−") + (Math.abs(v) < 1 ? Math.round(Math.abs(v) * 100) + (k === "app" || k === "pStab" ? "" : "%") : Math.abs(v));
 
 // ─── JUDICIARY EVENTS ───
 const JUDICIARY_EVENTS = [
@@ -4576,6 +4606,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     announce({ icon: o.icon, title: o.lender + ": approved", text: proj.title + " is funded. " + o.terms + " Next: pick a contractor.", tone: "good" }, before);
   };
 
+  const orderSigned = (o) => ((stc.orders || {})[o.id] || 0) > (turn > 4 ? 4 : 0);
+  const signOrder = (o) => decide(() => {
+    if (orderSigned(o)) return;
+    const hit = o.risk && Math.random() < o.risk.p;
+    const fx = { ...o.fx };
+    setS(p => { const n = { ...p }; Object.entries(fx).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "pStab") n.pStab = cl100(n.pStab + v); else if (n[k] != null) n[k] = cl(n[k] + v); }); if (o.rev) n.revIGR = (n.revIGR || 0) + o.rev; if (hit) Object.entries(o.risk.fx).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "pStab") n.pStab = cl100(n.pStab + v); }); return n; });
+    setSkApp(p => { const n = { ...p }; Object.entries(o.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
+    setStc(p => ({ ...p, orders: { ...(p.orders || {}), [o.id]: turn } }));
+    if (o.need) setNeeds(ns => { const i = ns.findIndex(n => n.status === "open" && n.k === o.need); if (i < 0) return ns; const c = ns.slice(); c[i] = { ...c[i], status: "met", closed: turn }; return c; });
+    addL(o.i + " Executive order: " + o.nm + "." + (hit ? " " + o.risk.log : ""), "policy");
+    scWiki(hit ? "Controversies" : "Governorship", "Signed an executive order: " + o.nm.toLowerCase() + "." + (hit ? " " + o.risk.log : ""));
+    const sk = Object.entries(o.sk || {}).filter(([, v]) => v).map(([k, v]) => ({ l: (STAKEHOLDERS.find(x => x.id === k) || { nm: k }).nm, v: (v > 0 ? "+" : "−") + Math.abs(v), good: v > 0 }));
+    sk.unshift(...Object.entries(o.fx).filter(([k]) => !["app", "corM", "pStab"].includes(k)).map(([k, v]) => ({ l: FX_NAME[k] || k, v: (v > 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%", good: v > 0 })));
+    return { icon: o.i, title: "Order signed: " + o.nm, text: o.d + (o.rev ? (o.rev > 0 ? " Saves about ₦" + o.rev + "B a half-year." : " Costs about ₦" + Math.abs(o.rev) + "B a half-year.") : "") + (hit ? " But: " + o.risk.log : ""), tone: hit ? "bad" : "good", rows: sk };
+  });
   const [constChallenge, setConstChallenge] = useState(null);
   const uTried = (u) => { try { return !!(window.SOP_MEMORY && window.SOP_MEMORY.did("unconst_order", e => e.meta && e.meta.id === u.id)); } catch (e) { return false; } };
   const tryU = (u) => {
@@ -8891,7 +8936,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 {answers(p).map(n => <div key={n.id} style={{ display: "inline-block", marginBottom: 6, padding: "3px 10px", borderRadius: 999, background: CL.grn + "16", color: CL.grn, fontSize: PFS.s, fontWeight: 700 }}>{needType(n).icon} Answers: {needType(n).title(n.lga)}</div>)}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)}/half-year</span></div>
                 <div style={{ fontSize: PFS.s, color: CL.tm, margin: "4px 0" }}>{p.d}</div>
-                <div style={{ fontSize: PFS.s, color: CL.td }}>{p.t === 1 ? "One half-year" : p.t + " half-years (" + naira(p.c) + " in all)"}{isCapital(p) ? " · goes to tender, may need an environmental assessment" : ""}{p.cr > .09 ? " · money can leak" : ""}</div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0" }}>{Object.entries(p.fx || {}).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}{p.jobsAdd ? <Bg text={p.jobsAdd.toLocaleString() + " jobs"} color={CL.blu} /> : null}</div>
+                <div style={{ fontSize: PFS.s, color: CL.td }}>{p.t === 1 ? "One half-year" : p.t + " half-years (" + naira(p.c) + " in all)"}{isCapital(p) ? " · you find the money and a contractor" : ""}{p.cr > .09 ? " · money can leak" : ""}</div>
                 <div style={{ fontSize: PFS.s, marginTop: 4 }}><span style={{ color: CL.grn }}>For: {forS}</span> · <span style={{ color: CL.red }}>Against: {againstS}</span></div>
               </Cd>; })}</div>
                 {ranked.length > 5 && <button onClick={() => setPolAll(o => !o)} style={{ background: "none", border: 0, padding: "12px 0 0", color: CL.grn, fontSize: PFS.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{polAll ? "Show fewer" : "Show all " + ranked.length + " programmes"}</button>}
@@ -8921,14 +8967,25 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                         {b.cost > 0 && <Bg text={naira(b.cost)} color={CL.gold} />}
                         <Bg text={s.pStab < 25 ? "Caucus too weak" : s.pStab < 40 ? "Tense vote" : "Likely to pass"} color={s.pStab < 25 ? CL.red : s.pStab < 40 ? CL.org : CL.grn} />
-                        {Object.entries(b.fx || {}).map(([k, v]) => <Bg key={k} text={k + ":" + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v)} color={v > 0 ? CL.grn : CL.red} />)}
+                        {Object.entries(b.fx || {}).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}
                       </div>
                     </Cd>
                   ))}
                   {BILLS.filter(b => !billsPassed.find(bp => bp.id === b.id)).length === 0 && <div style={{ fontSize: PFS.s, color: CL.td }}>All bills have been passed.</div>}
                 </div>
               </div>}
-              {polTab === "eo" &&               <div><p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 14px" }}>Orders you can sign without the House. Each may be unconstitutional, and a court can strike it down.</p><div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 19, borderColor: CL.red + "33" }}>{activeNeeds.filter(n => n.status === "open" && (needType(n)?.eo || []).includes(u.id)).slice(0, 1).map(n => <div key={n.id} style={{ fontSize: PFS.s, color: CL.grn, fontWeight: 700, marginBottom: 4 }}>{needType(n).icon} Would answer: {needType(n).title(n.lga)}, until the courts strike it down</div>)}<div style={{ fontSize: PFS.s, color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: PFS.s, color: CL.td }}>{u.r}</div></Cd>)}</div></div>}
+              {polTab === "eo" && <div>
+                <p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 10px" }}>Signed today, no House vote. Once a term each.</p>
+                <div style={{ display: "grid", gap: 8, marginBottom: 18 }}>{ORDERS.map(o => { const done = orderSigned(o); const nd = o.need && activeNeeds.find(n => n.status === "open" && n.k === o.need); return <Cd key={o.id} onClick={done ? undefined : () => signOrder(o)} style={{ padding: 14, opacity: done ? .5 : 1 }}>
+                  {nd && <div style={{ fontSize: PFS.s, color: CL.grn, fontWeight: 700, marginBottom: 4 }}>{needType(nd).icon} Answers: {needType(nd).title(nd.lga)}</div>}
+                  <div style={{ fontWeight: 700, fontSize: PFS.m, color: CL.txt }}>{done ? "✅ " : o.i + " "}{o.nm}</div>
+                  <div style={{ fontSize: PFS.s, color: CL.td, margin: "2px 0 6px" }}>{o.d}</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{Object.entries(o.fx).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}{o.rev ? <Bg text={(o.rev > 0 ? "Saves ₦" : "Costs ₦") + Math.abs(o.rev) + "B/half-year"} color={o.rev > 0 ? CL.grn : CL.red} /> : null}{o.risk ? <Bg text={"Risk " + Math.round(o.risk.p * 100) + "%"} color={CL.org} /> : null}</div>
+                </Cd>; })}</div>
+                <p style={{ color: CL.red, fontSize: PFS.s, fontWeight: 700, margin: "0 0 8px" }}>Beyond your powers</p>
+                <p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 10px" }}>You can sign these too. The courts will strike them down, and it will cost you.</p>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 14, borderColor: CL.red + "33" }}><div style={{ fontSize: PFS.s, color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: PFS.s, color: CL.td }}>{u.r}</div></Cd>)}</div>
+              </div>}
               <Bt onClick={() => { setPhase("end_turn"); endTurn(); }} style={{ width: "100%", marginTop: 22 }}>Done: end the half-year →</Bt>
             </Cd>}
             {phase === "end_turn" && !curD && <Cd style={{ textAlign: "center", padding: 58 }}>
