@@ -779,6 +779,7 @@ const HONOURS = [
   { id: "vindicated", i: "⚖️", nm: "Vindicated", d: "Beat an election petition.", ok: (c) => c.petitionWon },
   { id: "second", i: "🗳️", nm: "Second term", d: "Won re-election.", ok: (c) => c.turn >= 5 },
   { id: "unifier", i: "🤝", nm: "Unifier", d: "A cabinet balanced across all three zones.", ok: (c) => c.balanced && c.ministries >= 8 },
+  { id: "aso_rock", i: "🇳🇬", nm: "President", d: "Won the presidency.", ok: () => false }, // awarded by the presidential run
 ];
 // ─── PERSONNEL ───
 // Every commissioner (and the adviser) has a hidden competence and honesty,
@@ -2016,10 +2017,12 @@ const ProfileForm = ({ initial, onSave, onCancel }) => {
   </EntranceSheet>;
 };
 
-const TitleScreen = ({ onStart, onHelp, onLoad, profile, setProfile }) => {
+const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
   const [hasSave, setHasSave] = useState(false);
+  const [hasPres, setHasPres] = useState(false);
+  useEffect(() => { (async () => { try { const r = await window.storage.get(PRES_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setHasPres(true); } } catch (e) {} })(); }, []);
   const [saveName, setSaveName] = useState("");
   const [sheet, setSheet] = useState(null); // "profile" | "me"
   useEffect(() => {
@@ -2064,6 +2067,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, profile, setProfile }) => {
       </div>
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
         <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
+        <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 {hasPres ? "Continue: Road to Aso Rock" : "Road to Aso Rock"}<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>{hasPres ? "Your presidential run" : "Run for president"}</span></PillBtn>
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
@@ -6266,7 +6270,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
                 <Bt v="secondary" onClick={() => onEnd("senate", s)}>🏛️ Senate</Bt>
-                <Bt onClick={() => onEnd("president", s)} disabled={!canP}>🇳🇬 President</Bt>
+                <Bt onClick={() => onEnd("president", { ...s, rec: { name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund } })} disabled={!canP}>🇳🇬 President</Bt>
               </div>
               {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
               {canFctm && (
@@ -6298,7 +6302,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
                 <Bt v="secondary" onClick={() => onEnd("senate", s)}>🏛️ Run for Senate</Bt>
-                <Bt onClick={() => onEnd("president", s)} disabled={!canP}>🇳🇬 Run for President</Bt>
+                <Bt onClick={() => onEnd("president", { ...s, rec: { name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund } })} disabled={!canP}>🇳🇬 Run for President</Bt>
               </div>
               {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
             </Cd>
@@ -6307,7 +6311,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <Cd style={{ borderColor: CL.gold + "44" }}>
               <h3 style={{ fontFamily: F.d, color: CL.gold, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>The Race for Aso Rock</h3>
               <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 29 }}>You've resigned the governorship. The national campaign begins. Your record will be scrutinized like never before.</p>
-              <Bt onClick={() => onEnd("president", s)}>🇳🇬 ENTER PRESIDENTIAL RACE →</Bt>
+              <Bt onClick={() => onEnd("president", { ...s, rec: { name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund } })}>🇳🇬 ENTER PRESIDENTIAL RACE →</Bt>
             </Cd>
           )}
           {(gEnd === "impeached" || gEnd === "bankrupt" || gEnd === "nullified") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
@@ -9335,134 +9339,449 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
 
 // ─── END SCREENS ───
 // ─── PRESIDENTIAL RACE ───
-const PresRace = ({ setup, stats, onResult }) => {
-  const [phase, setPhase] = useState("choose");
-  const [alliance, setAlliance] = useState(null);
-  const [strategy, setStrategy] = useState(null);
-  const [result, setResult] = useState(null);
+// ─── ROAD TO ASO ROCK (the presidential run) ───
+// Release 1 of the presidency: the party primary, a running mate, a six-week
+// national campaign across the six geopolitical zones, and election night under
+// the constitutional rule (most votes AND 25% in at least two-thirds of the
+// 36 states; otherwise a runoff). A governor carries their record in; a fresh
+// candidate starts from a background. All people and parties are fictional.
+// Inside a Vatar world the run is the "presidential_run" product.
+const PZ = [
+  { id: "NW", nm: "North-West", w: .27, north: true }, { id: "NE", nm: "North-East", w: .13, north: true }, { id: "NC", nm: "North-Central", w: .15, north: true },
+  { id: "SW", nm: "South-West", w: .19, north: false }, { id: "SE", nm: "South-East", w: .12, north: false }, { id: "SS", nm: "South-South", w: .14, north: false },
+];
+const PZN = (id) => (PZ.find(z => z.id === id) || {}).nm || id;
+const pNorth = (id) => !!(PZ.find(z => z.id === id) || {}).north;
+const PRES_STATES = Object.keys(STATES).filter(k => k !== "FCT");
+const PRES_BACKGROUNDS = [
+  { id: "senator", nm: "Three-term Senator", d: "Known in Abuja, owed favours in every caucus.", chest: 5, nat: 2, delegates: 6 },
+  { id: "business", nm: "Business magnate", d: "Deep pockets; voters wonder what you will want back.", chest: 9, nat: 0, delegates: 2, cor: .38 },
+  { id: "technocrat", nm: "Technocrat and former minister", d: "Admired by the urban young; the party machine is cool on you.", chest: 4, nat: 1, delegates: -4, tech: true },
+];
+const pres$ = (v) => "₦" + (Math.round(v * 10) / 10).toFixed(1) + "B";
+const PRES_KEY = "sop_pres";
 
-  const st = stats || { app: 50, lit: .5, hp: .5, infra: .5, sec: .5, agr: .5, cor: .3, debt: 5, pStab: 50 };
-  const di = (st.lit + st.hp + st.infra + st.sec + st.agr) / 5 * 100;
-  const fi = Math.max(0, 100 - st.debt * 4 - st.cor * 40);
+const AsoRock = ({ setup, stats, onExit }) => {
+  const fz = TALL() ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(40) } : { s: TS(27), m: TS(33), l: TS(46), xl: TS(64) };
+  const rec = (stats && stats.rec) || null;
+  const [g, setG] = useState(null);           // the whole run; null until loaded or begun
+  const [loaded, setLoaded] = useState(false);
+  const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
+    (async () => { try { const r = await window.storage.get(PRES_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over && (!rec || d.name === rec.name)) setG(d); } } catch (e) {} setLoaded(true); })();
+    return () => window.removeEventListener("sop-ents", f);
+  }, []);
+  // Every step is saved, so a reload continues the run.
+  useEffect(() => { if (g) { try { window.storage.set(PRES_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
+  const card = (o) => { try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} };
+  const r0 = () => Math.random();
 
-  const alliances = [
-    { id: "north", nm: "Northern Alliance", d: "Coalition with Northern governors and emirs. Broadest voter base but many IOUs.", bonus: 12 },
-    { id: "south", nm: "Southern Coalition", d: "Unite the South. Strong identity, passionate base, limited reach up North.", bonus: 8 },
-    { id: "cross", nm: "Cross-Regional Pact", d: "Bridge North and South. Hardest to build but most legitimate if you pull it off.", bonus: 18 },
-  ];
-  const strategies = [
-    { id: "populist", nm: "Populist Campaign", d: "Promise everything. Free this, free that. High energy rallies. Could backfire if record is weak.", bonus: st.app > 55 ? 14 : 4 },
-    { id: "techno", nm: "Technocratic Appeal", d: "Lead with data and your track record. Credible but boring. Works if your numbers are strong.", bonus: di > 55 ? 16 : 6 },
-    { id: "grass", nm: "Grassroots Movement", d: "Youth-led, social media-driven. The new playbook. Cheap but unpredictable.", bonus: 10 + Math.floor(Math.random() * 8) },
-  ];
+  // ── The gate: inside a Vatar world the run is a purchase ──
+  const locked = VATAR && window.SOP_canBuy && window.SOP_canBuy() && !(ents.presidential_run > 0);
+  const buy = () => { setBusy(true); window.SOP_buy("presidential_run").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); }); };
 
-  function runElection() {
-    const ab = alliances.find(a => a.id === alliance)?.bonus || 0;
-    const sb = strategies.find(s2 => s2.id === strategy)?.bonus || 0;
+  // ── Starting a run ──
+  const PARTY_IDS = MAIN_PARTY_IDS.filter(id => PARTIES.find(p => p.id === id));
+  const begin = (o) => {
+    const myP = PARTIES.find(p => p.id === o.party) || PARTIES[0];
+    const oppP = PARTIES.filter(p => PARTY_IDS.includes(p.id) && p.id !== myP.id).sort((a, b) => b.strength - a.strength)[0] || PARTIES[1];
+    const myZ = STATES[o.state]?.zone || "SW";
+    const r = rng(Date.now() % 99991);
+    // The opponent comes from the other half of the country.
+    const oppZ = pick(PZ.filter(z => z.north !== pNorth(myZ)).map(z => z.id), r);
+    const oppState = pick(PRES_STATES.filter(k => STATES[k].zone === oppZ), r);
+    const rivals = [pick(PZ.filter(z => z.id !== myZ && z.north === pNorth(myZ)).map(z => z.id), r), pick(PZ.filter(z => z.north !== pNorth(myZ)).map(z => z.id), r)]
+      .map(z => ({ zone: z, name: "Sen. " + gN(r, z), out: false }));
+    // Where the country starts: party strength, home regions, the record.
+    const zones = {};
+    PZ.forEach(z => {
+      let v = 50 + (myP.strength - oppP.strength) * 18;
+      if (z.id === myZ) v += 12; else if (z.north === pNorth(myZ)) v += 5; else v -= 5;
+      if (z.id === oppZ) v -= 12; else if (z.north === pNorth(oppZ)) v -= 3;
+      v += o.nat || 0;
+      if (o.app != null) v += (o.app - 50) * .12 - Math.max(0, (o.cor || .3) - .3) * 25 + (o.honours || 0) * .5;
+      if (o.tech && !z.north) v += 3; if (o.tech && z.north) v -= 2;
+      zones[z.id] = Math.max(15, Math.min(85, Math.round(v * 10) / 10));
+    });
+    const del = {}; PZ.forEach(z => { del[z.id] = Math.max(15, Math.min(70, 34 + (z.id === myZ ? 18 : z.north === pNorth(myZ) ? 4 : -4) + (o.delegates || 0) + (o.app != null ? (o.app - 50) * .2 + ((o.pStab || 50) - 50) * .2 : 0))); });
+    setG({ v: 1, seed: Date.now(), name: o.name, avatar: o.avatar, state: o.state, zone: myZ, party: myP.id, partyNm: myP.nm, from: o.from, chest: o.chest, cor: o.cor || .3,
+      app: o.app, opp: { name: gN(r, oppZ, oppState), party: oppP.id, partyNm: oppP.nm, zone: oppZ, state: oppState },
+      rivals, del, primaryRound: 0, ious: [], step: "primary", zones, week: 0, log: [], pledges: [], agents: false, debated: false, lastHit: null, mate: null, scandal: false, k: setup?.level === "hard" ? 1.25 : setup?.level === "easy" ? .75 : 1 });
+  };
 
-    // Base score from governance
-    const govScore = di * 0.2 + st.app * 0.25 + fi * 0.15;
-    // Penalties
-    const corPenalty = st.cor * 35;
-    const debtPenalty = st.debt > 10 ? (st.debt - 10) * 2 : 0;
-    const partyPenalty = st.pStab < 50 ? (50 - st.pStab) * 0.3 : 0;
-    // Bonuses
-    const allianceBonus = ab;
-    const strategyBonus = sb;
-    // Randomness — elections are unpredictable
-    const luck = (Math.random() - 0.5) * 20;
+  // ── Primary: three moves, then the convention ──
+  const primaryMoves = (G) => {
+    const region = pNorth(G.zone) ? "the North" : "the South", other = pNorth(G.zone) ? "the South" : "the North";
+    const live = G.rivals.filter(x => !x.out);
+    return [
+      { id: "govs", ic: "🤝", l: "Court the governors of " + region, d: "Their delegates follow them. Each one will want a ministry.", run: (p) => ({ del: Object.fromEntries(PZ.map(z => [z.id, p.del[z.id] + (z.north === pNorth(G.zone) ? 10 : 0)])), ious: [...p.ious, "ministries for " + region + "'s governors"] }), msg: "The governors of " + region + " are with you, for a price." },
+      { id: "govs2", ic: "🧭", l: "Win over governors in " + other, d: "Harder: they have their own sons and daughters in the race.", run: (p) => { const ok = r0() < .55; return { del: Object.fromEntries(PZ.map(z => [z.id, p.del[z.id] + (z.north !== pNorth(G.zone) ? (ok ? 9 : 2) : 0)])), ious: ok ? [...p.ious, "a power-sharing deal with " + other] : p.ious, _msg: ok ? "Governors in " + other + " agreed to back you." : "Most governors in " + other + " stayed loyal to their own." }; } },
+      { id: "cash", ic: "💰", l: "“Delegate logistics” (₦2B)", d: "Everyone knows how conventions are won. If it leaks, it follows you to the general election.", cost: 2, run: (p) => { const leak = r0() < .3; return { chest: p.chest - 2, cor: p.cor + .04, scandal: p.scandal || leak, del: Object.fromEntries(PZ.map(z => [z.id, p.del[z.id] + (leak ? 4 : 9)])), _msg: leak ? "It worked, but a delegate went to the press with a bag of cash." : "Delegates are “comfortable”. Nobody talked." }; } },
+      { id: "town", ic: "🎤", l: "Town halls with delegates", d: G.app != null ? "Your record in " + (G.state || "").replace("_", " ") + " speaks for you." : "Make your case, state by state.", run: (p) => { const g2 = G.app != null ? (G.app >= 55 ? 6 : 2) : 4; return { del: Object.fromEntries(PZ.map(z => [z.id, p.del[z.id] + g2])), _msg: "Delegates heard you out." + (g2 >= 6 ? " Your record impressed them." : "") }; } },
+    ].concat(live.length ? [{ id: "deal", ic: "🤲", l: "Offer " + live[0].name + " your running-mate slot", d: "They step down and most of their delegates follow. The ticket will be theirs to share.", run: (p) => ({ rivals: p.rivals.map(x => x.name === live[0].name ? { ...x, out: true } : x), del: Object.fromEntries(PZ.map(z => [z.id, p.del[z.id] + (z.id === live[0].zone ? 14 : 4)])), mate: { name: live[0].name.replace(/^Sen\. /, ""), zone: live[0].zone, kind: "rival" }, _msg: live[0].name + " stepped down and endorsed you." }) }] : []);
+  };
+  const playPrimary = (m) => {
+    const before = G.del;
+    const res = m.run(G); const msg = res._msg || m.msg; delete res._msg;
+    const del = res.del || before;
+    const gain = Math.round(PZ.reduce((t, z) => t + (del[z.id] - before[z.id]) * z.w, 0) * 10) / 10;
+    up({ ...res, primaryRound: G.primaryRound + 1 });
+    card({ icon: m.ic, title: m.l.replace(/ \(₦2B\)$/, ""), text: msg, tone: "good", rows: [{ l: "Delegates", v: (gain >= 0 ? "+" : "−") + Math.abs(gain) + "%", good: gain > 0 }].concat(m.cost ? [{ l: "War chest", v: "−₦" + m.cost + "B", good: false }] : []) });
+  };
+  const DELEGATES = { NW: 160, NE: 110, NC: 130, SW: 130, SE: 90, SS: 100 };
+  const convention = () => {
+    const live = G.rivals.filter(x => !x.out);
+    let mine = 0, total = 0; const theirs = live.map(() => 0);
+    PZ.forEach(z => {
+      const n = DELEGATES[z.id]; total += n;
+      const myShare = Math.max(5, Math.min(90, G.del[z.id] + (r0() - .5) * 8));
+      const rest = 100 - myShare; mine += n * myShare / 100;
+      const weights = live.map(x => x.zone === z.id ? 3 : pNorth(x.zone) === z.north ? 1.6 : 1);
+      const ws = weights.reduce((a, b) => a + b, 0) || 1;
+      live.forEach((x, i) => { theirs[i] += n * rest / 100 * weights[i] / ws; });
+    });
+    mine = Math.round(mine); const t2 = theirs.map(Math.round);
+    const top = t2.length ? Math.max(...t2) : 0;
+    const won = mine > total / 2 || (mine > top && r0() < .5 + (mine - top) / total);
+    const rows = [{ l: "You", v: mine, good: won }].concat(live.map((x, i) => ({ l: x.name, v: t2[i], good: false })));
+    if (won) {
+      up(p => ({ step: "mate", primary: { mine, total }, zones: Object.fromEntries(PZ.map(z => [z.id, p.zones[z.id] + 1])) }));
+      card({ icon: "🎉", title: "You are the " + G.party + " candidate", text: "The convention gave you " + mine + " of " + total + " delegates" + (mine > total / 2 ? "." : ", and the second ballot." ), tone: "good", rows });
+    } else {
+      up({ step: "lostPrimary", primary: { mine, total } });
+      card({ icon: "🗳️", title: "The convention went the other way", text: "You won " + mine + " of " + total + " delegates. " + live[t2.indexOf(top)].name + " is the " + G.party + " candidate.", tone: "bad", rows });
+    }
+  };
+  // Lost the primary: take a smaller party's ticket, or go home.
+  const defect = () => {
+    const small = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== G.party && p.id !== G.opp.party).sort((a, b) => a.strength - b.strength)[0] || PARTIES[2];
+    up(p => ({ party: small.id, partyNm: small.nm, step: "mate", defected: true, zones: Object.fromEntries(PZ.map(z => [z.id, p.zones[z.id] - 6])), chest: p.chest * .7 }));
+    card({ icon: "🔀", title: "You switch to the " + small.id, text: "A smaller party with a thinner machine: −6 everywhere, and part of your war chest stays behind.", tone: "neutral" });
+  };
 
-    const finalScore = govScore + allianceBonus + strategyBonus - corPenalty - debtPenalty - partyPenalty + luck;
-    // Threshold is 55 — intentionally hard
-    const won = finalScore > 55;
+  // ── Running mate ──
+  const mates = (G) => {
+    if (G.mate && G.mate.kind === "rival") return null;
+    const r = rng(G.seed % 7919 + 3);
+    const otherZ = PZ.filter(z => z.north !== pNorth(G.zone)).sort((a, b) => b.w - a.w)[0].id;
+    const sameZ = G.zone, techZ = pNorth(G.zone) ? "SW" : "NC";
+    return [
+      { zone: otherZ, name: gN(r, otherZ), kind: "balance", d: "From " + PZN(otherZ) + ". Balances the ticket across North and South.", fx: { [otherZ]: 6, region: 3 } },
+      { zone: sameZ, name: gN(r, sameZ), kind: "loyal", d: "Your closest ally, from your own zone. Loyal, but the other half of the country notices.", fx: { [sameZ]: 3, otherRegion: -4 } },
+      { zone: techZ, name: gN(r, techZ), kind: "tech", d: "A respected economist from " + PZN(techZ) + ". Calms investors and young voters.", fx: { all: 2 } },
+    ];
+  };
+  const pickMate = (m) => {
+    up(p => {
+      const z = { ...p.zones };
+      PZ.forEach(x => {
+        if (m.fx[x.id]) z[x.id] += m.fx[x.id];
+        if (m.fx.region && x.north === pNorth(m.zone) && x.id !== m.zone) z[x.id] += m.fx.region;
+        if (m.fx.otherRegion && x.north !== pNorth(p.zone)) z[x.id] += m.fx.otherRegion;
+        if (m.fx.all) z[x.id] += m.fx.all;
+      });
+      return { mate: { name: m.name, zone: m.zone, kind: m.kind }, zones: z, step: "campaign" };
+    });
+    card({ icon: "🤝", title: m.name + " is your running mate", text: m.d, tone: "good" });
+  };
+  const keepRivalMate = () => {
+    up(p => { const z = { ...p.zones }; z[p.mate.zone] += 5; return { zones: z, step: "campaign" }; });
+    card({ icon: "🤝", title: G.mate.name + " joins the ticket", text: "Your former rival brings " + PZN(G.mate.zone) + " with them (+5 there).", tone: "good" });
+  };
 
-    setResult({ won, score: finalScore.toFixed(1), govScore: govScore.toFixed(1), penalties: (corPenalty + debtPenalty + partyPenalty).toFixed(1), bonuses: (allianceBonus + strategyBonus).toFixed(1) });
-    setPhase("result");
+  // ── National campaign ──
+  const share = (G2, id) => Math.max(5, Math.min(95, G2.zones[id]));
+  const national = (G2) => PZ.reduce((t, z) => t + share(G2, z.id) * z.w, 0);
+  const battle = (G2) => PZ.slice().sort((a, b) => Math.abs(share(G2, a.id) - 50) - Math.abs(share(G2, b.id) - 50)).map(z => z.id);
+  const PLEDGES = { NW: "Make the rural roads safe from bandits", NE: "Rebuild the North-East and bring the displaced home", NC: "End the farmer–herder clashes", SW: "Ports, power and a tech economy", SE: "A trade corridor and fair federal roads for the East", SS: "Clean up the creeks; jobs from the oil money" };
+  const campaignMoves = (G2) => {
+    const [b1, b2] = battle(G2);
+    const pz = battle(G2).find(id => !G2.pledges.includes(id)) || b1;
+    const list = [
+      { id: "rally1", ic: "📣", l: "Mega rally in " + PZN(b1), d: "A battleground. ₦0.6B.", cost: .6, fx: { [b1]: 5, near: 1.5 } },
+      { id: "rally2", ic: "📣", l: "Mega rally in " + PZN(b2), d: "Another close one. ₦0.6B.", cost: .6, fx: { [b2]: 5, near: 1.5 } },
+      { id: "pledge", ic: "📜", l: "Pledge: " + PLEDGES[pz], d: "Wins " + PZN(pz) + "; other zones notice what they didn't get.", fx: { [pz]: 5.5, others: -.5 }, pledge: pz },
+      !G2.debated ? { id: "debate", ic: "🎙️", l: "Take on " + G2.opp.name + " in the TV debate", d: G2.app != null ? "Your governorship will be the subject." : "Your first big national test.", debate: true } : { id: "media", ic: "📺", l: "National media blitz", d: "TV, radio and influencers everywhere. ₦1.2B.", cost: 1.2, fx: { all: 2.5 } },
+      { id: "endorse", ic: pNorth(G2.zone) ? "👑" : "⛪", l: pNorth(G2.zone) ? "Endorsements from Southern obas and clergy" : "Endorsements from Northern emirs and clerics", d: "Reach across. It can backfire at home.", endorse: true },
+      !G2.agents ? { id: "agents", ic: "🧾", l: "Train polling agents for every unit (₦0.8B)", d: "Protects your votes on election day.", cost: .8, agents: true } : null,
+      { id: "cash", ic: "💰", l: "“Logistics” in " + PZN(b1) + " (₦2B)", d: "Vote-buying by another name. If exposed, it costs you everywhere.", cost: 2, fx: { [b1]: 6 }, cash: true },
+      G2.lastHit && G2.lastHit.d > 0 ? { id: "answer", ic: "🛡️", l: "Answer: " + G2.lastHit.t, d: "Win back most of what it cost you.", answer: true } : null,
+    ].filter(Boolean);
+    // Show four: the answer if there is one, then a rotating mix.
+    const ans = list.find(m => m.answer);
+    const rest = list.filter(m => !m.answer);
+    const off = G2.week % rest.length;
+    return [ans].concat(rest.slice(off).concat(rest.slice(0, off))).filter(Boolean).slice(0, 4);
+  };
+  const strike = (G2) => {
+    const k = G2.k, opts = [];
+    if (G2.cor > .35 || G2.scandal) opts.push({ t: G2.opp.name + "'s ads on your corruption record", fx: { all: -4 * k }, ans: true });
+    if (G2.app != null && G2.app < 50) opts.push({ t: "“They couldn't run a state” attack ads", fx: { all: -3 * k }, ans: true });
+    opts.push({ t: G2.opp.name + " rallies " + PZN(G2.opp.zone) + " around a native son", fx: { [G2.opp.zone]: -5 * k, oppRegion: -2 * k } });
+    const b = battle(G2)[0];
+    opts.push({ t: "Defections to " + G2.opp.party + " in " + PZN(b), fx: { [b]: -3.5 * k }, ans: true });
+    opts.push({ t: G2.opp.name + "'s mega rally in " + PZN(b), fx: { [b]: -3.5 * k, near: -1 * k } });
+    return opts[Math.floor(r0() * opts.length)];
+  };
+  const applyFx = (zones, fx, G2) => {
+    const z = { ...zones };
+    PZ.forEach(x => {
+      if (fx[x.id]) z[x.id] += fx[x.id];
+      if (fx.all) z[x.id] += fx.all;
+      if (fx.others && !fx[x.id]) z[x.id] += fx.others;
+      if (fx.near) { const tgt = Object.keys(fx).find(k2 => PZ.some(p => p.id === k2)); if (tgt && x.id !== tgt && x.north === pNorth(tgt)) z[x.id] += fx.near; }
+      if (fx.oppRegion && x.id !== G2.opp.zone && x.north === pNorth(G2.opp.zone)) z[x.id] += fx.oppRegion;
+    });
+    PZ.forEach(x => { z[x.id] = Math.max(5, Math.min(95, Math.round(z[x.id] * 10) / 10)); });
+    return z;
+  };
+  const playWeek = (m) => {
+    const G2 = G; if (m.cost && G2.chest < m.cost) return;
+    let zones = G2.zones, fx = m.fx || {}, note = "", extra = {}, rows = [];
+    const nat0 = national(G2);
+    if (m.debate) {
+      const strong = G2.app != null ? (G2.app >= 55 && G2.cor < .4) : r0() < .6;
+      fx = { all: strong ? 3 : -2 }; note = strong ? "You won the debate. The clips are everywhere." : G2.opp.name + " landed the blows; your answers sounded rehearsed.";
+      extra.debated = true;
+    }
+    if (m.endorse) { const bad = r0() < .2; fx = Object.fromEntries(PZ.map(z => [z.id, z.north !== pNorth(G2.zone) ? 3.5 : bad ? -2 : 0])); note = bad ? "It worked there, but your own base calls it a betrayal." : "Leaders across the divide stood on your platform."; }
+    if (m.agents) { extra.agents = true; note = "Agents in every polling unit. Your votes will be counted."; }
+    if (m.cash) { const leak = r0() < .35; extra.cor = G2.cor + .04; if (leak) { fx = { all: -5 }; extra.scandal = true; note = "A video of the cash went viral. It is costing you everywhere."; } else note = "Your people “mobilised” voters. It worked, this time."; }
+    if (m.answer && G2.lastHit) { fx = Object.fromEntries(Object.entries(G2.lastHit.fx).map(([k2, v]) => [k2, -v * .7])); note = "Your rebuttal took most of the sting out."; extra.lastHit = null; }
+    if (m.pledge) extra.pledges = [...G2.pledges, m.pledge];
+    zones = applyFx(zones, fx, G2);
+    // Their move, straight after yours.
+    const week = G2.week + 1, done = week >= 6;
+    const hit = strike({ ...G2, ...extra, zones });
+    const zones2 = applyFx(zones, hit.fx, G2);
+    const G3 = { ...G2, ...extra, zones: zones2, week, chest: G2.chest - (m.cost || 0), log: [...G2.log, { w: week, you: m.l, them: hit.t }], lastHit: hit.ans ? { t: hit.t, fx: hit.fx, d: 1 } : null, step: done ? "eday" : "campaign" };
+    setG(G3);
+    const d1 = Math.round((national({ ...G2, zones }) - nat0) * 10) / 10, d2 = Math.round((national(G3) - national({ ...G2, zones })) * 10) / 10;
+    rows = [{ l: "Your move", v: (d1 >= 0 ? "+" : "−") + Math.abs(d1) + "%", good: d1 >= 0 }, { l: "Their strike", v: (d2 >= 0 ? "+" : "−") + Math.abs(d2) + "%", good: d2 >= 0 }];
+    card({ icon: m.ic, title: "Week " + week + ": " + m.l.replace(/ \(₦[\d.]+B\)$/, ""), text: (note ? note + " " : "") + "Then: " + hit.t + ".", tone: d1 + d2 >= 0 ? "good" : "bad", rows });
+  };
+
+  // ── Election night ──
+  const electionDay = () => {
+    const noise = G.agents ? 2 : 4.5;
+    const z = {}; PZ.forEach(x => { z[x.id] = Math.max(5, Math.min(95, share(G, x.id) + (r0() - .5) * 2 * noise - (G.agents ? 0 : 1))); });
+    const others = .08;
+    const states = PRES_STATES.map(st => {
+      const off = ((hashStr(st + G.seed) % 15) - 7);
+      let v = z[STATES[st].zone] + off + (st === G.state ? 10 : 0) - (st === G.opp.state ? 10 : 0);
+      v = Math.max(3, Math.min(97, v));
+      return { st, zone: STATES[st].zone, you: v * (1 - others), them: (100 - v) * (1 - others) };
+    });
+    const nat = PZ.reduce((t, x) => t + z[x.id] * x.w, 0) * (1 - others), natThem = (100 - nat / (1 - others)) * (1 - others);
+    const s25 = states.filter(x => x.you >= 25).length, t25 = states.filter(x => x.them >= 25).length;
+    const statesWon = states.filter(x => x.you > x.them).length;
+    const res = { z, nat: Math.round(nat * 10) / 10, them: Math.round(natThem * 10) / 10, s25, t25, statesWon };
+    let outcome;
+    if (nat > natThem && s25 >= 24) outcome = "won";
+    else if (nat > natThem) outcome = "runoff";
+    else if (natThem > nat && t25 >= 24) outcome = (natThem - nat) < 3 ? "close" : "lost";
+    else outcome = "runoff";
+    up({ step: "results", res, outcome });
+  };
+  const runoff = (choice) => {
+    const bonus = choice === "ally" ? 3 : choice === "broadcast" ? 1.5 : 0;
+    const v = G.res.nat / (G.res.nat + G.res.them) * 100 + bonus + (r0() - .5) * 6;
+    const won = v > 50;
+    up({ step: won ? "sworn" : "over_lost", runoffShare: Math.round(v * 10) / 10, ious: choice === "ally" ? [...G.ious, "a ministry for the third-place party"] : G.ious, over: true });
+    card({ icon: won ? "🇳🇬" : "🗳️", title: won ? "You won the runoff" : "You lost the runoff", text: "Runoff share: " + (Math.round(v * 10) / 10) + "%.", tone: won ? "good" : "bad" });
+  };
+  const petition = () => {
+    const odds = Math.max(.05, .2 + (G.agents ? .12 : 0) - Math.max(0, G.cor - .3) * .6);
+    const won = r0() < odds;
+    up({ step: won ? "sworn" : "over_lost", petitioned: true, petitionWon: won, over: true });
+    card({ icon: "⚖️", title: won ? "The Supreme Court ruled for you" : "Petition dismissed", text: won ? "The court found the results in several states could not stand. You are declared President-elect." : "The court upheld " + G.opp.name + "'s victory. Odds were " + Math.round(odds * 100) + "%.", tone: won ? "good" : "bad" });
+  };
+  const concede = () => up({ step: "over_lost", conceded: true, over: true });
+
+  // ── The end: the Hall, the leaderboard, a clean slate ──
+  const finish = async () => {
+    const won = G.step === "sworn";
+    try {
+      const p = await loadProfile();
+      if (p) await saveProfile({ ...p, games: [...(p.games || []), { name: G.name, avatar: G.avatar, state: G.state, party: G.party, title: won ? "President of Nigeria" : "Presidential candidate", grade: won ? "A" : "C", ending: won ? "elected president" : G.conceded ? "conceded the presidency" : "lost the presidency", turn: 0, at: Date.now(), honours: won ? ["aso_rock"] : [] }].slice(-30) });
+    } catch (e) {}
+    try { window.SOP_vatarScore && window.SOP_vatarScore((won ? 1500 : 300) + Math.round((G.res ? G.res.nat : 0) * 10)); } catch (e) {}
+    try { await window.storage.set(PRES_KEY, ""); } catch (e) {}
+    onExit();
+  };
+
+  // ── Rendering ──
+  const G = g;
+  const Frame = ({ bg, who, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 16px 120px" : "36px 43px" }}>
+    <Flag />
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      {bg && <SceneArt bg={bg} who={who} h={TALL() ? 170 : 230} />}
+      {children}
+    </div>
+  </div>;
+  const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
+    {kick && <div style={{ fontSize: fz.s, letterSpacing: 3, color: CL.gold, fontFamily: F.m, textTransform: "uppercase" }}>{kick}</div>}
+    <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.xl, margin: "4px 0", fontWeight: 700 }}>{title}</h2>
+    {sub && <div style={{ fontSize: fz.s, color: CL.td }}>{sub}</div>}
+  </div>;
+  const Opt = ({ ic, l, d, right, onClick, disabled }) => <button onClick={onClick} disabled={disabled} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", width: "100%", padding: TALL() ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + CL.bdr, background: disabled ? CL.bg : CL.card, opacity: disabled ? .5 : 1, cursor: disabled ? "not-allowed" : "pointer", fontFamily: F.b, color: CL.txt }}>
+    <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b>{d && <span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span>}</span>{right ? <span style={{ fontWeight: 800, fontSize: fz.s, color: CL.org, whiteSpace: "nowrap" }}>{right}</span> : <span />}
+  </button>;
+  const ZoneBars = ({ values, label = "You", fmt = (v) => Math.round(v) + "%" }) => <div style={{ display: "grid", gap: 6, margin: "8px 0 14px" }}>
+    {PZ.map(z => { const v = values[z.id]; return <div key={z.id} style={{ display: "grid", gridTemplateColumns: TALL() ? "92px 1fr 46px" : "160px 1fr 70px", gap: 8, alignItems: "center", fontSize: fz.s }}>
+      <span style={{ color: CL.txt, fontWeight: 700 }}>{z.nm}{G && z.id === G.zone ? " 🏠" : ""}</span>
+      <div style={{ height: 12, borderRadius: 6, background: "#c0392b33", overflow: "hidden" }}><div style={{ width: Math.max(0, Math.min(100, v)) + "%", height: "100%", background: v >= 50 ? "#2fa866" : "#e9a23b", transition: "width .5s" }} /></div>
+      <b style={{ textAlign: "right", color: v >= 50 ? CL.grn : CL.org }}>{fmt(v)}</b></div>; })}
+  </div>;
+  const Stat = ({ k, v, bad }) => <span style={{ display: "inline-block", padding: "5px 12px", borderRadius: 999, background: (bad ? CL.red : CL.grn) + "14", color: bad ? CL.red : CL.grn, fontSize: fz.s, fontWeight: 800, margin: 3 }}>{k} {v}</span>;
+
+  if (!loaded) return <Frame><H title="Loading…" /></Frame>;
+
+  if (locked) return <Frame bg="abuja-federal-office" who="party-chairman">
+    <H kick="The presidential run" title="Road to Aso Rock" sub="Win your party's primary, pick a running mate, and take on the country: six zones, 36 states, one election night." />
+    <Cd style={{ textAlign: "center" }}>
+      <div style={{ fontSize: fz.m, color: CL.tm, marginBottom: 12 }}>Unlock the full presidential campaign. Yours to replay as often as you like.</div>
+      <Bt onClick={buy} disabled={busy}>{busy ? "Opening…" : "Unlock the presidential run"}</Bt>
+      <div style={{ marginTop: 12 }}><Bt v="ghost" onClick={onExit}>Not now</Bt></div>
+    </Cd>
+  </Frame>;
+
+  // Begin: a governor walks in with their record; anyone else picks a background.
+  if (!G) {
+    if (rec) {
+      const go = () => begin({ name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, from: "governor", app: stats.app, cor: stats.cor, pStab: stats.pStab, honours: (rec.honours || []).length, chest: Math.max(2, 4 + ((stats.pStab || 50) - 50) / 20 + (rec.fund || 0)) });
+      return <Frame bg="abuja-federal-office" who="party-chairman">
+        <H kick="The presidential run" title="Road to Aso Rock" sub={"Governor " + rec.name + " of " + (rec.state || "").replace("_", " ") + " steps onto the national stage."} />
+        <Cd>
+          <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>What you bring with you</div>
+          <Stat k="Approval" v={Math.round(stats.app) + "%"} bad={stats.app < 50} /><Stat k="Corruption" v={Math.round(stats.cor * 100) + "%"} bad={stats.cor > .4} /><Stat k="Party" v={Math.round(stats.pStab) + "%"} bad={stats.pStab < 45} /><Stat k="Honours" v={(rec.honours || []).length} />
+          <div style={{ fontSize: fz.s, color: CL.tm, margin: "10px 0 14px" }}>Your record follows you: a clean, popular governor starts ahead; a scandal becomes your opponent's favourite advert.</div>
+          <Bt onClick={go} style={{ width: "100%" }}>Declare for the presidency →</Bt>
+        </Cd>
+      </Frame>;
+    }
+    return <FreshStart onBegin={begin} onExit={onExit} fz={fz} />;
   }
 
-  if (phase === "result" && result) return (
-    <div style={{ minHeight: "100%", background: result.won ? "#f0fff0" : CL.bg, padding: "72px 43px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Flag />
-      <div style={{ textAlign: "center", maxWidth: 948, marginTop: 72 }}>
-        <div style={{ fontSize: TS(142), marginBottom: 36 }}>{result.won ? "🇳🇬" : "😔"}</div>
-        <h2 style={{ fontFamily: F.d, color: result.won ? CL.grn : CL.red, fontSize: TS(102), fontWeight: 700, margin: "0 0 29px" }}>
-          {result.won ? "PRESIDENT-ELECT!" : "DEFEATED"}
-        </h2>
-        <p style={{ color: CL.tm, fontSize: TS(43), lineHeight: 1.6, marginBottom: 43 }}>
-          {result.won
-            ? "From " + (setup?.state || "").replace("_", " ") + " to Aso Rock Villa. Nigeria has chosen you. The highest office in the land is yours."
-            : "The presidency eluded you. The national stage proved more demanding than state politics. Your " + (setup?.state || "").replace("_", " ") + " legacy endures — but Aso Rock belongs to someone else."}
-        </p>
-        <Cd style={{ marginBottom: 43, textAlign: "left" }}>
-          <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14 }}>ELECTION BREAKDOWN</div>
-          <div style={{ fontSize: TS(34), color: CL.tm, lineHeight: 1.5 }}>
-            Governance record: {result.govScore} points{"\n"}
-            Alliance + Strategy: +{result.bonuses} points{"\n"}
-            Penalties (corruption, debt, party): -{result.penalties} points{"\n"}
-            Election volatility: applied{"\n"}
-            Final score: {result.score} (needed 55 to win)
-          </div>
-        </Cd>
-        <Bt onClick={() => onResult(result.won)} style={{ padding: "38px 113px", fontSize: TS(48) }}>
-          {result.won ? "ACCEPT THE MANDATE" : "RETURN TO PRIVATE LIFE"}
-        </Bt>
-      </div>
-    </div>
-  );
+  const myP = PARTIES.find(p => p.id === G.party);
+  const header = <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap", fontSize: fz.s, color: CL.td, margin: "6px 0" }}>
+    <span><b style={{ color: CL.txt }}>{G.name}</b> · {G.party}{G.mate ? " · with " + G.mate.name : ""}</span>
+    <span>War chest <b style={{ color: G.chest < 1 ? CL.red : CL.txt }}>{pres$(G.chest)}</b></span>
+  </div>;
 
-  return (
-    <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px" }}>
-      <Flag />
-      <div style={{ maxWidth: 1056, margin: "72px auto" }}>
-        <div style={{ textAlign: "center", marginBottom: 58 }}>
-          <div style={{ fontSize: TS(34), letterSpacing: 14, color: CL.gold, fontFamily: F.m, textTransform: "uppercase", marginBottom: 14 }}>Presidential Campaign</div>
-          <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(86), fontWeight: 600, margin: "0 0 14px" }}>The Race for Aso Rock</h2>
-          <p style={{ color: CL.td, fontSize: TS(38) }}>Your governance record is your platform. Choose your alliance and strategy wisely.</p>
-          <div style={{ display: "flex", gap: 22, justifyContent: "center", marginTop: 29, flexWrap: "wrap" }}>
-            <Bg text={"Dev Index: " + di.toFixed(0) + "%"} color={di > 55 ? CL.grn : CL.org} />
-            <Bg text={"Approval: " + Math.round(st.app) + "%"} color={st.app > 50 ? CL.grn : CL.red} />
-            <Bg text={"Corruption: " + Math.round(st.cor * 100) + "%"} color={st.cor < .3 ? CL.grn : CL.red} />
-            <Bg text={"Debt: " + naira(st.debt)} color={st.debt < 10 ? CL.grn : CL.red} />
-          </div>
+  if (G.step === "primary") {
+    const live = G.rivals.filter(x => !x.out);
+    const nat = Math.round(PZ.reduce((t, z) => t + G.del[z.id] * z.w, 0));
+    return <Frame bg="party-convention-hall" who="party-chairman">
+      <H kick={"The " + G.party + " primary · move " + Math.min(3, G.primaryRound + 1) + " of 3"} title="Win the delegates" sub={live.length ? "Against " + live.map(x => x.name + " (" + PZN(x.zone) + ")").join(" and ") : "Your rivals have stepped aside."} />
+      {header}
+      <Cd><div style={{ fontSize: fz.s, color: CL.td }}>Your share of delegates by zone · overall about <b style={{ color: nat > 50 ? CL.grn : CL.org }}>{nat}%</b></div><ZoneBars values={G.del} />
+        {G.ious.length > 0 && <div style={{ fontSize: fz.s, color: CL.org }}>You owe: {G.ious.join("; ")}.</div>}</Cd>
+      <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+        {G.primaryRound < 3 ? primaryMoves(G).map(m => <Opt key={m.id} ic={m.ic} l={m.l} d={m.d} disabled={m.cost && G.chest < m.cost} onClick={() => playPrimary(m)} />)
+          : <Bt onClick={convention} style={{ width: "100%" }}>🗳️ The convention votes →</Bt>}
+      </div>
+    </Frame>;
+  }
+  if (G.step === "lostPrimary") return <Frame bg="party-convention-hall">
+    <H kick="The primary" title="Not your party's choice" sub={"You won " + G.primary.mine + " of " + G.primary.total + " delegates."} />
+    <div style={{ display: "grid", gap: 8 }}>
+      <Opt ic="🔀" l="Take a smaller party's ticket" d="Many have done it. You start the general election weaker." onClick={defect} />
+      <Opt ic="🏡" l="Accept the result" d="Back the winner and wait for another day." onClick={() => { up({ step: "over_lost", conceded: true, over: true }); }} />
+    </div>
+  </Frame>;
+  if (G.step === "mate") {
+    const ms = mates(G);
+    return <Frame bg="abuja-federal-office" who="deputy-male-suit">
+      <H kick="The ticket" title="Choose your running mate" sub="North and South, Muslim and Christian: Nigerians notice who stands beside you." />
+      {header}
+      {ms ? <div style={{ display: "grid", gap: 8 }}>{ms.map(m => <Opt key={m.kind} ic={m.kind === "balance" ? "⚖️" : m.kind === "loyal" ? "🤝" : "📊"} l={m.name + " · " + PZN(m.zone)} d={m.d} onClick={() => pickMate(m)} />)}</div>
+        : <Cd><div style={{ fontSize: fz.m, color: CL.txt, marginBottom: 12 }}>You promised the slot to {G.mate.name} at the convention. A promise is a promise.</div><Bt onClick={keepRivalMate}>Name {G.mate.name} →</Bt></Cd>}
+    </Frame>;
+  }
+  if (G.step === "campaign") {
+    const nat = national(G);
+    return <Frame bg="rally" who={G.week ? "rival" : null}>
+      <H kick={"The general election · week " + (G.week + 1) + " of 6"} title={"You vs " + G.opp.name} sub={G.opp.party + " · from " + (G.opp.state || "").replace("_", " ") + " (" + PZN(G.opp.zone) + ")"} />
+      {header}
+      <Cd><div style={{ fontSize: fz.s, color: CL.td }}>Polls (your share of the two leading candidates) · national <b style={{ color: nat >= 50 ? CL.grn : CL.org }}>{Math.round(nat * 10) / 10}%</b></div>
+        <ZoneBars values={G.zones} />
+        <div style={{ fontSize: fz.s, color: CL.tm }}>To win outright: the most votes <b>and</b> at least 25% in 24 of the 36 states.</div></Cd>
+      <div style={{ display: "grid", gap: 8, marginTop: 12 }}>{campaignMoves(G).map(m => <Opt key={m.id} ic={m.ic} l={m.l} d={m.d} right={m.cost ? pres$(m.cost) : null} disabled={m.cost && G.chest < m.cost} onClick={() => playWeek(m)} />)}</div>
+      {G.log.length > 0 && <div style={{ fontSize: fz.s, color: CL.td, marginTop: 12 }}>Last week: {G.log[G.log.length - 1].them}.</div>}
+    </Frame>;
+  }
+  if (G.step === "eday") return <Frame bg="polling-unit">
+    <H kick="Election day" title="Nigeria votes" sub={G.agents ? "Your agents are in every polling unit." : "You have no agents in most polling units. Every vote has to survive the count."} />
+    <Cd style={{ textAlign: "center" }}><ZoneBars values={G.zones} /><Bt onClick={electionDay}>🗳️ Count the votes →</Bt></Cd>
+  </Frame>;
+  if (G.step === "results") {
+    const R = G.res;
+    return <Frame bg="collation-centre" who="electoral-commissioner">
+      <H kick="The national collation centre" title={G.outcome === "won" ? "Declared winner" : G.outcome === "runoff" ? "No outright winner" : "Declared for " + G.opp.name} />
+      <Cd>
+        <div style={{ display: "flex", justifyContent: "space-between", fontFamily: F.d, fontWeight: 700, fontSize: fz.l }}><span style={{ color: CL.grn }}>You {R.nat}%</span><span style={{ color: CL.red }}>{R.them}% {G.opp.name.split(" ").slice(-1)[0]}</span></div>
+        <div style={{ fontSize: fz.s, color: CL.td, marginTop: 6 }}>Your share against {G.opp.name.split(" ").slice(-1)[0]}, zone by zone</div>
+        <ZoneBars values={R.z} />
+        <div style={{ fontSize: fz.s, color: CL.tm }}>States won: <b>{R.statesWon} of 36</b> · 25% or more in <b>{R.s25}</b> states (need 24) · {G.opp.name} reached 25% in {R.t25}.</div>
+      </Cd>
+      <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+        {G.outcome === "won" && <Bt onClick={() => { up({ step: "sworn", over: true }); }} style={{ width: "100%" }}>Accept the certificate of return →</Bt>}
+        {G.outcome === "runoff" && <>
+          <div style={{ fontSize: fz.s, color: CL.tm, textAlign: "center" }}>{R.nat > R.them ? "You won the most votes but not 25% in enough states." : "Neither of you met the constitutional spread."} A runoff in seven days.</div>
+          <Opt ic="🤝" l="Ally with the third-placed candidate" d="Their voters, for a ministry." onClick={() => runoff("ally")} />
+          <Opt ic="📺" l="A final national broadcast" d="Speak to the whole country." onClick={() => runoff("broadcast")} />
+        </>}
+        {(G.outcome === "close" || G.outcome === "lost") && <>
+          {G.outcome === "close" && <Opt ic="⚖️" l="Petition the tribunal" d={"A narrow loss. Your odds depend on your agents" + (G.cor > .4 ? " and your own record." : ".")} onClick={petition} />}
+          <Opt ic="🤝" l="Concede and congratulate the winner" d="History remembers who accepted the result." onClick={concede} />
+        </>}
+      </div>
+    </Frame>;
+  }
+  // The end.
+  const won = G.step === "sworn";
+  return <Frame bg={won ? "supreme-court-abuja" : "veranda-night"} who={won ? null : null}>
+    <Sfx k={won ? "win" : "lose"} />
+    <H kick={won ? "29 May" : "After the election"} title={won ? "President of the Federal Republic" : "The presidency eluded you"} sub={won ? G.name + " is sworn in at Eagle Square, with " + (G.mate ? G.mate.name : "the vice-president") + " beside them." : G.conceded ? "You conceded. Your supporters wept; the country noticed." : G.opp.name + " is sworn in."} />
+    <Cd>
+      {G.res && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 8 }}>Final share {G.runoffShare != null ? "(runoff) " + G.runoffShare : G.res.nat}% · {G.res.statesWon} states won · 25% in {G.res.s25}.</div>}
+      {G.ious.length > 0 && <div style={{ fontSize: fz.s, color: CL.org, marginBottom: 8 }}>Promises you made to get here: {G.ious.join("; ")}.</div>}
+      {G.pledges.length > 0 && <div style={{ fontSize: fz.s, color: CL.txt, marginBottom: 8 }}>You pledged: {G.pledges.map(z => PLEDGES[z].toLowerCase()).join("; ")}.</div>}
+      {won && <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 12 }}>Governing Nigeria is the next chapter: <b>The Presidency</b> is coming. Your promises and debts will be waiting.</div>}
+      <Bt onClick={finish} style={{ width: "100%" }}>{won ? "🏅 Into the Hall of Governors" : "Return to the title"}</Bt>
+    </Cd>
+  </Frame>;
+};
+
+// A fresh candidate: name, home state, party and background.
+const FreshStart = ({ onBegin, onExit, fz }) => {
+  const [p, setP] = useState(null);
+  const [f, setF] = useState({ name: "", state: "Lagos", party: MAIN_PARTY_IDS[0], bg: "senator" });
+  useEffect(() => { loadProfile().then(pr => { if (pr) { setP(pr); setF(x => ({ ...x, name: pr.first + " " + pr.last, state: pr.origin && STATES[pr.origin] && pr.origin !== "FCT" ? pr.origin : x.state, party: MAIN_PARTY_IDS.includes(pr.leaning) ? pr.leaning : x.party })); } }); }, []);
+  const field = { width: "100%", padding: 14, fontSize: fz.m, border: "1px solid " + CL.bdr, borderRadius: 12, boxSizing: "border-box", background: "#fff", color: CL.txt, fontFamily: F.b };
+  const lab = (t) => <div style={{ fontSize: fz.s, fontWeight: 800, color: CL.grn, margin: "12px 0 6px" }}>{t}</div>;
+  const B = PRES_BACKGROUNDS.find(b => b.id === f.bg);
+  return <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 16px 120px" : "36px 43px" }}>
+    <Flag />
+    <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <SceneArt bg="abuja-federal-office" who="party-chairman" h={TALL() ? 160 : 220} />
+      <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.xl, textAlign: "center", margin: "6px 0" }}>Road to Aso Rock</h2>
+      <Cd>
+        {lab("Your name")}<input value={f.name} onChange={e => setF({ ...f, name: e.target.value })} placeholder="First and last name" style={field} />
+        {lab("Home state")}<select value={f.state} onChange={e => setF({ ...f, state: e.target.value })} style={field}>{PRES_STATES.slice().sort().map(st => <option key={st} value={st}>{st.replace("_", " ")} · {PZN(STATES[st].zone)}</option>)}</select>
+        {lab("Party")}<select value={f.party} onChange={e => setF({ ...f, party: e.target.value })} style={field}>{MAIN_PARTY_IDS.map(id => { const pp = PARTIES.find(x => x.id === id); return pp ? <option key={id} value={id}>{pp.nm} ({id})</option> : null; })}</select>
+        {lab("Background")}<div style={{ display: "grid", gap: 8 }}>{PRES_BACKGROUNDS.map(b => <button key={b.id} onClick={() => setF({ ...f, bg: b.id })} style={{ textAlign: "left", padding: "10px 14px", borderRadius: 12, border: "2px solid " + (f.bg === b.id ? CL.grn : CL.bdr), background: f.bg === b.id ? CL.grn + "0f" : "#fff", cursor: "pointer", fontFamily: F.b, color: CL.txt }}><b style={{ fontSize: fz.m }}>{b.nm}</b><div style={{ fontSize: fz.s, color: CL.tm }}>{b.d} War chest {pres$(b.chest)}.</div></button>)}</div>
+        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <Bt v="ghost" onClick={onExit}>Back</Bt>
+          <Bt disabled={!f.name.trim()} onClick={() => onBegin({ name: f.name.trim(), avatar: p && p.avatar, state: f.state, party: f.party, from: f.bg, chest: B.chest, nat: B.nat, delegates: B.delegates, cor: B.cor || .3, tech: !!B.tech })} style={{ flex: 1 }}>Declare →</Bt>
         </div>
-
-        <Cd style={{ marginBottom: 36 }}>
-          <h3 style={{ color: CL.gold, fontFamily: F.b, fontSize: TS(38), fontWeight: 700, margin: "0 0 14px" }}>CHOOSE YOUR ALLIANCE</h3>
-          <div style={{ display: "grid", gap: 22 }}>
-            {alliances.map(a => (
-              <Cd key={a.id} onClick={() => setAlliance(a.id)} active={alliance === a.id} style={{ padding: 36 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>{a.nm}</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginTop: 7 }}>{a.d}</div>
-              </Cd>
-            ))}
-          </div>
-        </Cd>
-
-        <Cd style={{ marginBottom: 36 }}>
-          <h3 style={{ color: CL.gold, fontFamily: F.b, fontSize: TS(38), fontWeight: 700, margin: "0 0 22px" }}>CHOOSE YOUR STRATEGY</h3>
-          <div style={{ display: "grid", gap: 22 }}>
-            {strategies.map(st2 => (
-              <Cd key={st2.id} onClick={() => setStrategy(st2.id)} active={strategy === st2.id} style={{ padding: 36 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>{st2.nm}</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginTop: 7 }}>{st2.d}</div>
-              </Cd>
-            ))}
-          </div>
-        </Cd>
-
-        <Cd style={{ background: CL.org + "08", borderColor: CL.org + "30" }}>
-          <div style={{ fontSize: TS(34), color: CL.org, fontWeight: 700, marginBottom: 10 }}>⚠️ WARNING</div>
-          <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.5 }}>Presidential elections are not won on governance alone. Alliance, strategy, corruption record, debt, party unity, and sheer luck all play a role. Even the best governor can lose. This is Nigeria — expect the unexpected.</div>
-        </Cd>
-
-        {alliance && strategy && (
-          <div style={{ textAlign: "center", marginTop: 50 }}>
-            <SceneArt bg="polling-unit" h={TALL() ? 200 : 260} /><Bt onClick={runElection} style={{ padding: "43px 120px", fontSize: TS(50) }}>🗳️ ELECTION DAY</Bt>
-          </div>
-        )}
-      </div>
+      </Cd>
     </div>
-  );
+  </div>;
 };
 
 // ─── SENATE RACE ───
@@ -9685,10 +10004,10 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen profile={profile} setProfile={setProfile} onStart={(p) => { try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "title" && <TitleScreen onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <SetupScreen profile={startProfile} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
-      {scr === "pres" && <PresRace setup={setup} stats={finalStats} onResult={won => setScr(won ? "end_pres_w" : "end_pres_l")} />}
+      {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} />}
       {scr === "senate" && <SenateRace setup={setup} stats={finalStats} onResult={won => setScr(won ? "end_sen_w" : "end_sen_l")} />}
       {scr === "end_ret" && <EndScr type="retire" state={setup?.state} onRestart={rst} />}
       {scr === "end_sen_w" && <EndScr type="senate_w" state={setup?.state} onRestart={rst} />}

@@ -379,3 +379,18 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
   - any honour earned.
 - `HONOURS` lists 12 milestones: first ribbon, master builder, the listener, clean hands, people's governor, fiscal hawk, revenue reformer, lawmaker, survivor, vindicated, second term and unifier.
 - Honours are kept in `stc.honours`, written to the wiki (infobox and record), and saved with the career in the Hall of Governors.
+
+## Road to Aso Rock (presidential run, release 1)
+- `AsoRock` in `game/seat-of-power.jsx` replaces the old one-screen `PresRace`.
+- **Two ways in:**
+  - a governor's "Run for President" carries their record in (approval, corruption, party, honours, war chest);
+  - the title screen's **Road to Aso Rock** starts a fresh candidate (name, home state, party, and a background: senator, business magnate or technocrat).
+- **Stages:**
+  1. The party primary: three moves for delegates across six zones against two named rivals, then the convention, with a second ballot if needed. If you lose, you can take a smaller party's ticket or accept the result.
+  2. A running mate: balanced, loyal, or a technocrat; or the rival you promised the slot to.
+  3. Six campaign weeks. Each week you make a move (rallies, zonal pledges, the debate, endorsements across the divide, polling agents, "logistics" cash), and the opponent strikes back. Some strikes can be answered.
+  4. Election night under the constitutional rule: the most votes **and** 25% in 24 of the 36 states, or a runoff. A narrow loss can be petitioned.
+- **Afterwards:** the result goes to the Hall of Governors (title and "President" honour) and the leaderboard.
+- **Saving:** the run saves at every step (`sop_pres`), and the title screen offers to continue it.
+- **Balance:** modelled with `scratchpad/pressim.mjs` in the dev session. An equal-strength party wins about 46% of runs, a weaker one about 16%, a stronger one about 77%, before record and choices.
+- **Vatar edition:** the run is the one-off product `presidential_run`. Elsewhere it is free.
