@@ -361,3 +361,21 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
   - the street shows one voice;
   - needs show the most urgent one with "All N ▼".
 - Shorter project intake, and filler lines removed from dilemmas and judicial reviews.
+
+## Hard-mode elections
+- Before this change Hard was effectively unwinnable. A simplified simulation of the scoring (`scratchpad/elsim.mjs` in the dev session) won about 0.3% of elections even with strong play.
+- New Hard settings, in both campaigns:
+  - your moves lose 2 points instead of 3;
+  - the opponent gains +1 a round instead of +3 (the same as Medium);
+  - their strikes hit at ×1.3 instead of ×1.5;
+  - negative campaigning backfires 65% of the time instead of 75%;
+  - the election-day handicap is smaller.
+- Hard stays clearly harder than Medium, but strong campaigns win.
+
+## Half-year report and honours
+- When a new half-year's budget opens, a result card shows how the last half-year went:
+  - the headline numbers, plus any sector that moved 3% or more;
+  - up to three things that happened;
+  - any honour earned.
+- `HONOURS` lists 12 milestones: first ribbon, master builder, the listener, clean hands, people's governor, fiscal hawk, revenue reformer, lawmaker, survivor, vindicated, second term and unifier.
+- Honours are kept in `stc.honours`, written to the wiki (infobox and record), and saved with the career in the Hall of Governors.

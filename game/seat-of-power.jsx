@@ -328,7 +328,7 @@ const shiftZones = (zones, target, your = 0, opp = 0, turnout = 0) => zones.map(
 // The opponent's own move. It lands on the polls before you answer, harder on
 // hard mode and harder still when you lead (a trailing opponent goes all out).
 const oppStrike = (zones, hit, level, week) => {
-  const k = level === "hard" ? 1.5 : level === "easy" ? 0.7 : 1.1;
+  const k = level === "hard" ? 1.3 : level === "easy" ? 0.7 : 1.1;
   const state0 = zones.reduce((a, z) => a + pollShare(z), 0) / zones.length;
   const press = state0 > 54 ? 3 : state0 > 50 ? 1 : 0;
   const after = shiftZones(zones, hit.target ?? "all", -Math.round((hit.your || 0) * k), Math.round(((hit.opp || 0) + press) * k), hit.turnout ? -hit.turnout : 0);
@@ -752,6 +752,21 @@ const MINISTRY_CATALOGUE = [
 ];
 // How the public sees a candidate's hidden competence and honesty.
 const band = (v) => v >= 70 ? "Strong" : v >= 50 ? "Solid" : "Weak";
+// Honours: milestones earned in office. c is a snapshot of the record.
+const HONOURS = [
+  { id: "ribbon", i: "✂️", nm: "First ribbon", d: "Delivered your first project.", ok: (c) => c.delivered >= 1 },
+  { id: "builder", i: "🏗️", nm: "Master builder", d: "Delivered five projects.", ok: (c) => c.delivered >= 5 },
+  { id: "listener", i: "👂", nm: "The listener", d: "Answered three community needs.", ok: (c) => c.met >= 3 },
+  { id: "clean", i: "🧼", nm: "Clean hands", d: "Corruption under 20% after two years.", ok: (c) => c.turn >= 4 && c.cor < .2 },
+  { id: "beloved", i: "❤️", nm: "People's governor", d: "Approval at 75% or more.", ok: (c) => c.app >= 75 },
+  { id: "hawk", i: "🦅", nm: "Fiscal hawk", d: "Debt under ₦3B after two years.", ok: (c) => c.turn >= 4 && c.debt < 3 },
+  { id: "reformer", i: "🧾", nm: "Revenue reformer", d: "Adopted three revenue reforms.", ok: (c) => c.reforms >= 3 },
+  { id: "lawmaker", i: "📜", nm: "Lawmaker", d: "Signed four laws.", ok: (c) => c.laws >= 4 },
+  { id: "survivor", i: "🛡️", nm: "Survivor", d: "Survived impeachment.", ok: (c) => c.impSurv },
+  { id: "vindicated", i: "⚖️", nm: "Vindicated", d: "Beat an election petition.", ok: (c) => c.petitionWon },
+  { id: "second", i: "🗳️", nm: "Second term", d: "Won re-election.", ok: (c) => c.turn >= 5 },
+  { id: "unifier", i: "🤝", nm: "Unifier", d: "A cabinet balanced across all three zones.", ok: (c) => c.balanced && c.ministries >= 8 },
+];
 // ─── PERSONNEL ───
 // Every commissioner (and the adviser) has a hidden competence and honesty,
 // fixed by name. Each half-year they act on it, and what they do is on record.
@@ -1876,7 +1891,7 @@ const HowToPlay = ({ show, onClose }) => {
   const sections = [
     { t: "🎮 How to Play", c: "You are the Executive Governor of a Nigerian state. Before governing, you must fund your campaign, buy a party ticket, choose your deputy, and WIN an election — none of it is automatic.\n\nOnce in Government House, you govern for up to 8 half-year turns (2 terms of 4 years). Each turn brings: budget allocation, policies, projects, dilemmas, media events, federal government dynamics, shock events, court challenges, investor proposals, godfather demands, and hidden threats.\n\nImpeachment requires BOTH low approval (<30%) AND low party stability (<40%). Bankruptcy (revenue < ₦2B) ends your tenure immediately. Defying the Supreme Court is near-certain impeachment." },
     { t: "💰 Campaign Finance & The Godfather", c: "You start with ₦800M in personal funds — your war chest. Party tickets cost money: APC ₦500M (the deepest campaign money), PDP, NDC, ADC and LP cost less. The ticket is deducted from your war chest.\n\nIf you can't afford a ticket, the Godfather offers a loan — but you start governance with +5% corruption per billion borrowed. He WILL demand repayment through contracts, land, and positions.\n\nThe campaign runs four weeks. Each week you see one poll line per senatorial zone, your money and your campaign days (6 a week), and three moves, each with its cost in money and days and the zone it affects. Every move costs money, time or both. The opponent strikes back every week. The result screen shows how each zone moved and which of your moves moved it." },
-    { t: "🗳️ Elections & Campaigns", c: "Both elections (first and re-election) are 8-decision, 4-week campaigns. Each week: YOUR move → the OPPONENT strikes (their move hits the polls at once, in the zone it targets) → you respond to win the ground back. Ignore an attack and it sticks. The further you lead, the harder they hit. A named opponent from another party campaigns against you.\n\nParty strength multiplies your score: APC 1.15x, ADC 0.85x. Underdogs CAN win with perfect campaigns.\n\nOn Hard mode: your points are reduced by 2 per action, opponent gains +2 bonus every round, backfire chance is 60%. You can genuinely LOSE.\n\nFor re-election: if party stability ≥ 50%, you get an automatic ticket. If < 50%, your ticket is contested — you must buy it (godfather funds or self-fund) or switch to a cheaper party (-15 party stability)." },
+    { t: "🗳️ Elections & Campaigns", c: "Both elections (first and re-election) are 8-decision, 4-week campaigns. Each week: YOUR move → the OPPONENT strikes (their move hits the polls at once, in the zone it targets) → you respond to win the ground back. Ignore an attack and it sticks. The further you lead, the harder they hit. A named opponent from another party campaigns against you.\n\nParty strength multiplies your score: APC 1.15x, ADC 0.85x. Underdogs CAN win with perfect campaigns.\n\nOn Hard mode: your moves count for less, the opponent's attacks land harder, and negative campaigning backfires 65% of the time. Strong campaigns still win.\n\nFor re-election: if party stability ≥ 50%, you get an automatic ticket. If < 50%, your ticket is contested — you must buy it (godfather funds or self-fund) or switch to a cheaper party (-15 party stability)." },
     { t: "📊 Economic Production Engine", c: "8 economic sectors per state: Agriculture, Manufacturing, Services, Oil & Gas, Mining, Trade, Tourism, Technology. Each produces output, jobs, and tax revenue.\n\nIGR is derived from economic output: IGR = Σ(sector output × population × tax rate). Budget allocation, policies, security, and literacy all drive sector growth. Corruption and insecurity drag ALL sectors down.\n\nThe Economy tab shows State GDP, Total Jobs, IGR, and all 8 sectors with output bars and what drives each one." },
     { t: "🏗️ Infrastructure Projects", c: "20 projects in 3 tiers: Quick (1 turn), Medium (2 turns), Megaprojects (3-4 turns). Each has cost, corruption risk, economic sector linkage, and jobs created.\n\nCorruption causes project delays — if corruption is high, projects stall: 'Permanent secretary's office is the bottleneck.' The sidebar shows progress bars with % complete.\n\nCompleted projects boost economic sectors, create jobs, and appear in your Wikipedia biography." },
     { t: "🏭 Private Investors", c: "15 companies (a cement plant, a steel mill, a fintech hub and more) appear every other turn. Three choices: Approve (jobs + IGR + community risk), Approve with Incentives (bigger boost but state bears costs), or Reject (no jobs, business angry).\n\nInvestor approvals can trigger judiciary challenges from displaced communities. 15% of new investment revenue automatically reduces state debt." },
@@ -2050,7 +2065,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, profile, setProfile }) => {
         {(profile.games || []).length ? <div style={{ display: "grid", gap: 8 }}>
           {(profile.games || []).slice().reverse().map((g, i) => <div key={i} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center" }}>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{g.title}</b>
-              <span style={{ fontSize: DS.t.meta, color: UI.sub }}>{stateLabel(g.state)} · {g.party} · {g.ending}</span></span>
+              <span style={{ fontSize: DS.t.meta, color: UI.sub }}>{stateLabel(g.state)} · {g.party} · {g.ending}</span>{(g.honours || []).length ? <span style={{ display: "block", fontSize: DS.t.meta }}>{g.honours.map(id => (HONOURS.find(h => h.id === id) || {}).i).join(" ")}</span> : null}</span>
             <b style={{ fontFamily: F.d, fontSize: TS(36), color: g.grade === "A" || g.grade === "B" ? UI.green : g.grade === "C" ? "#b7791f" : "#c0392b" }}>{g.grade}</b>
           </div>)}
         </div> : <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>No finished careers yet. Every governorship you complete, win or lose, is recorded here with its title and grade.</div>}
@@ -2631,8 +2646,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       setSCampDays(isOpp ? 0 : (opt.days || 1));
       const hm = level === "hard";
       // TOUGHER CAMPAIGNS: opponent gets a per-round bonus always, harsher on hard mode
-      const yourPts = hm ? Math.max(opt.pts - 3, -4) : Math.max(opt.pts - 1, -2);
-      const oppGain = hm ? (opt.oppPts || 0) + 3 : (opt.oppPts || 0) + 1;
+      const yourPts = hm ? Math.max(opt.pts - 2, -3) : Math.max(opt.pts - 1, -2);
+      const oppGain = (opt.oppPts || 0) + 1;
       setSCampScore(cs => cs + yourPts);
       setSCampOpp(co => co + oppGain);
       // Reduce your zone push, boost opponent zone drift; remember what moved each zone
@@ -2648,7 +2663,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       setSCampZones(strike ? strike.zones : after);
       if (strike) setSCampOpp(co => co + strike.pts);
       if (opt.corAdd) setGfDebt(d => d + opt.corAdd * 3);
-      if (opt.appRisk && Math.random() < (hm ? .75 : .55)) { setSCampScore(cs => cs - 4); setSCampLog(c => [...c, "⚠️ Backfire: the negative campaign cost you support (\u22124)."]); }
+      if (opt.appRisk && Math.random() < (hm ? .65 : .55)) { setSCampScore(cs => cs - 4); setSCampLog(c => [...c, "⚠️ Backfire: the negative campaign cost you support (\u22124)."]); }
       setSCampLog(c => [...c, (isOpp ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + (opt.days || 1) + (opt.days === 1 ? " day" : " days") + " · " + zoneLabel(opt.target)]);
       if (strike) setSCampLog(c => [...c, "🔻 " + oName.replace(/^Hon\. /, "") + "'s " + ev.hit.l + " cost you " + (strike.worstZone ? Math.abs(strike.worstD) + " points in " + strike.worstZone : "ground") + (strike.lost > 0 ? " (" + strike.lost + " statewide)" : "") + ". Answer it or it sticks."]);
       setSCampRound(r => r + 1);
@@ -2712,7 +2727,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
         // The campaign itself is now where they fight you, so the final poll is a fair guide.
         const swing = (sCampScore - sCampOpp) * 0.32;
         const jitter = (eDay() - 0.5) * (hardMode ? 10 : 7);
-        return { ...z, support: cl100(z.support + swing + jitter - (hardMode ? 2 : 1)), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 3 : 1) + (eDay() - 0.5) * (hardMode ? 8 : 5)) };
+        return { ...z, support: cl100(z.support + swing + jitter - 1), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 2 : 1) + (eDay() - 0.5) * (hardMode ? 7 : 5)) };
       });
       const collation = lgaElectionSummary(swayedZones, partyStrength, oppStrength, st);
       const won = collation.totalYou > collation.totalOpp && collation.zonesWon >= 2;
@@ -3493,7 +3508,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
       sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics,
-      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc,
+      turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc, reportAt: reportRef.current ? reportRef.current.t : null, reportSnap: reportRef.current ? reportRef.current.snap : null,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
@@ -3523,7 +3538,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
       const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
       const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
-      const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now() };
+      const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now(), honours: (stc.honours || []).slice() };
       const games = p.games || [], last = games[games.length - 1];
       if (last && last.name === rec.name && last.state === rec.state && last.ending === rec.ending && last.turn === rec.turn) return;
       await saveProfile({ ...p, games: [...games, rec].slice(-30) });
@@ -3561,6 +3576,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const o = fn();
     if (o) announce(o, before);
   };
+  // ── HALF-YEAR REPORT AND HONOURS ──
+  // When a new half-year's budget opens, one card says what changed since the
+  // last one, what happened, and any honour earned.
+  const reportRef = React.useRef(ld?.reportAt ? { t: ld.reportAt, snap: ld.reportSnap } : null);
+  const honourCtx = () => ({ turn, app: s.app, cor: s.cor || 0, debt: s.debt || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
+  useEffect(() => {
+    if (phase !== "budget" || gEnd) return;
+    const prev = reportRef.current;
+    if (prev && prev.t >= turn) return;
+    const snap = { ...snapRef.current };
+    reportRef.current = { t: turn, snap };
+    const c = honourCtx(), have = stc.honours || [];
+    const fresh = HONOURS.filter(h => !have.includes(h.id) && h.ok(c));
+    if (fresh.length) {
+      setStc(p => ({ ...p, honours: [...(p.honours || []), ...fresh.map(h => h.id)] }));
+      fresh.forEach(h => scWiki("Governorship", "Earned the honour \u201c" + h.nm + "\u201d: " + h.d.replace(/\.$/, "").toLowerCase() + "."));
+    }
+    if (!prev || turn <= 1) return;
+    const last = logs.filter(l => l.t === turn - 1 && ["success", "crisis", "scandal"].includes(l.tp)).slice(-3).map(l => l.tx.replace(/^\S+\s/, "").split(/(?<=\.)\s/)[0]);
+    const big = (r) => ["Approval", "Treasury", "Party", "Corruption", "Debt"].includes(r.l) || (r.l !== "War chest" && r.l !== "Own revenue" && parseFloat(String(r.v).replace(/[^\d.]/g, "")) >= 3);
+    const rows = statRows(prev.snap, snap).filter(big).concat(fresh.map(h => ({ l: h.i + " " + h.nm, v: "", good: true })));
+    try { window.SOP_outcome && window.SOP_outcome({ icon: "🗓️", title: "How the last half-year went", text: last.length ? last.join(" ") : "A quiet six months.", rows, tone: "neutral", ok: "On to the next" }); } catch (e) {}
+  }, [phase, turn]);
   const bs = Object.values(bud).reduce((a, b) => a + b, 0);
   const termNum = turn <= 4 ? 1 : 2;
   const termTurn = turn <= 4 ? turn : turn - 4;
@@ -5681,7 +5719,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       portrait: av ? AVATAR_IMGS[av.id] : null,
       office: "Governor of " + stName + " State",
       inOffice: "In office · 29 May " + startYear + " – " + (ended ? (endYear === 2031 || endYear === 2035 ? "29 May " + endYear : endYear) : "present"),
-      rows: [["Deputy", depGov?.nm || "—"], ["Preceded by", pre], ["Succeeded by", successor], ["Political party", pa?.nm || party], ["Term", termStr]].concat(flag ? [["Flagship", flag.nm]] : []).concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
+      rows: [["Deputy", depGov?.nm || "—"]].concat((stc.honours || []).length ? [["Honours", (stc.honours || []).map(id => (HONOURS.find(h => h.id === id) || {}).nm).filter(Boolean).join(", ")]] : []).concat([["Preceded by", pre], ["Succeeded by", successor], ["Political party", pa?.nm || party], ["Term", termStr]]).concat(flag ? [["Flagship", flag.nm]] : []).concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
       lead, sections, refs,
       cats: ["Governors of " + stName + " State", (pa?.nm || party) + " politicians", "Living people"].concat(gEnd === "impeached" ? ["Impeached Nigerian governors"] : []),
       link: (location.origin + location.pathname).replace(/^https?:\/\//, ""),
@@ -8103,8 +8141,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               setCampDays(isOppEvent ? 0 : (opt.days || 1));
               const hm2 = setup?.level === "hard";
               // TOUGHER re-election: incumbency fatigue — opponent always gets a bonus, sharper on hard
-              const yourPts = hm2 ? Math.max(opt.pts - 3, -4) : Math.max(opt.pts - 1, -2);
-              const oppGain = hm2 ? (opt.oppPts || 0) + 3 : (opt.oppPts || 0) + 1;
+              const yourPts = hm2 ? Math.max(opt.pts - 2, -3) : Math.max(opt.pts - 1, -2);
+              const oppGain = (opt.oppPts || 0) + 1;
               setCampScore(cs => cs + yourPts);
               setCampOpp(co => co + oppGain);
               const moveName = opt.l.replace(/^[^\s]+ /, "");
@@ -8118,7 +8156,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               if (strike) setCampOpp(co => co + strike.pts);
               if (opt.sk) setSkApp(p => { const n2 = { ...p }; Object.entries(opt.sk).forEach(([k, v]) => { if (n2[k] !== undefined) n2[k] = cl100(n2[k] + v); }); return n2; });
               if (opt.corAdd) setS(p => ({ ...p, cor: cl(p.cor + opt.corAdd) }));
-              if (opt.appRisk && Math.random() < (hm2 ? .75 : .55)) { setS(p => ({ ...p, app: cl100(p.app + opt.appRisk) })); setCampLog(c2 => [...c2, "⚠️ Backfire: approval " + sgnN(opt.appRisk) + "."]); }
+              if (opt.appRisk && Math.random() < (hm2 ? .65 : .55)) { setS(p => ({ ...p, app: cl100(p.app + opt.appRisk) })); setCampLog(c2 => [...c2, "⚠️ Backfire: approval " + sgnN(opt.appRisk) + "."]); }
               setCampLog(c2 => [...c2, (isOppEvent ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + (opt.days || 1) + (opt.days === 1 ? " day" : " days") + " · " + zoneLabel(opt.target)]);
               if (strike) setCampLog(c2 => [...c2, "🔻 " + oppName.replace(/^Hon\. /, "") + "'s " + ev.hit.l + " cost you " + (strike.worstZone ? Math.abs(strike.worstD) + " points in " + strike.worstZone : "ground") + (strike.lost > 0 ? " (" + strike.lost + " statewide)" : "") + ". Answer it or it sticks."]);
               setCampRound(r => r + 1);
@@ -8142,7 +8180,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const antiIncumbent = -3 - (turn - 4) * 0.5;
               const recordBoost = (s.app - 50) * 0.22 + (s.pStab - 50) * 0.08 + (0.4 - s.cor) * 22 + narrBonus + (campScore - campOpp) * 0.32 + antiIncumbent;
               const eDay = rng(turn * 977 + (state?.length || 5) * 131 + campScore * 7 + campOpp * 13 + campLog.length * 29);
-              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 10 : 7)), opp: cl100(z.opp - recordBoost * 0.35 + 3 + (eDay() - 0.5) * (hm2 ? 8 : 5)) }));
+              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 10 : 7)), opp: cl100(z.opp - recordBoost * 0.35 + (hm2 ? 2.5 : 2) + (eDay() - 0.5) * (hm2 ? 7 : 5)) }));
               const collation = lgaElectionSummary(swayedReZones, rePartyStrength, reOppStrength, state);
               const won = collation.totalYou > collation.totalOpp && collation.zonesWon >= 2;
               const marginPct = (collation.totalYou + collation.totalOpp) > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
