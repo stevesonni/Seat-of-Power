@@ -4,3 +4,5 @@
 export * from "./money.js";
 export * from "./advisers.js";
 export * from "./agenda.js";
+export * from "./rng.js";
+export * from "./cases.js";

@@ -324,7 +324,7 @@
       });
     };
     /* The result of a decision, shown at once so nothing happens silently.
-       SOP_outcome({ icon, title, text, rows: [{ l, v, good }], tone, ok })
+       SOP_outcome({ icon, title, text, rows: [{ l, v, good }], tone, ok, action: { label, fn } })
        Cards queue: a second result waits until the first is closed. */
     (function () {
       var queue = [], open = false;
@@ -362,6 +362,14 @@
         b.style.cssText = 'width:100%;min-height:58px;border:0;border-radius:999px;background:' + bg + ';color:#fff;font:800 24px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 8px 22px ' + bg + '55';
         function close() { back.remove(); open = false; try { o.onClose && o.onClose(); } catch (e) {} setTimeout(next, 120); }
         b.onclick = close;
+        // An optional action (e.g. "Investigate"): the main button; Okay becomes the quiet one.
+        if (o.action && o.action.label) {
+          var a = document.createElement('button'); a.type = 'button'; a.textContent = o.action.label;
+          a.style.cssText = b.style.cssText; a.style.marginBottom = '10px';
+          b.style.background = 'transparent'; b.style.boxShadow = 'none'; b.style.border = '1px solid #3a4f58'; b.style.color = '#c9d3d7';
+          a.onclick = function () { close(); try { o.action.fn && o.action.fn(); } catch (e) {} };
+          card.appendChild(a);
+        }
         card.appendChild(b); back.appendChild(card);
         document.body.appendChild(back);
         try { window.SOP_sound && window.SOP_sound(o.tone === 'bad' ? 'bad' : o.tone === 'good' ? 'good' : 'neutral'); } catch (e) {}

@@ -3466,6 +3466,139 @@ const SecondChance = () => {
     {err && <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.red, marginTop: 8 }}>{err}</div>}
   </Cd>;
 };
+// ─── THE STATE SECRETARIAT ───
+// Where the governor meets the cabinet. A general visit opens the directory
+// (commissioners, requests for an audience, open cases, commitments); an
+// event opens the right meeting directly (focus.caseId). The rules live in
+// SYS (game/systems/cases.js); this only shows them and passes choices back.
+const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, onClose, onOpen, onMeet, onGather, onDecide, onAppoint, appointPicks, audiences, onAudience }) => {
+  const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(31), l: TS(44) };
+  const holder = (mid) => (ministries || []).find(m => m.id === mid);
+  const chip = (t, col) => <span style={{ display: "inline-block", fontSize: fz.s, fontWeight: 800, color: col, background: col + "16", border: "1px solid " + col + "44", borderRadius: 999, padding: "2px 10px", marginRight: 6 }}>{t}</span>;
+  const GCOL = { rumour: CL.td, credible: CL.org, documented: CL.org, substantiated: CL.red, unsupported: CL.grn };
+  const head = (m, sub) => <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 12 }}>
+    <img src={commissionerArt(m.minister)} alt="" style={{ width: TALL() ? 64 : 84, height: TALL() ? 76 : 100, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: CL.grn + "14", flexShrink: 0 }} />
+    <div style={{ minWidth: 0 }}>
+      <b style={{ fontSize: fz.l, fontFamily: F.d, color: CL.txt, display: "block", lineHeight: 1.15 }}>{m.acting ? "" : "Hon. "}{m.minister}</b>
+      <div style={{ fontSize: fz.s, color: CL.td }}>{m.icon} {m.acting ? "Acting Commissioner (Permanent Secretary), " : "Commissioner for "}{m.name}{sub ? " · " + sub : ""}</div>
+    </div>
+  </div>;
+
+  // ── One case: the meeting, the evidence, the findings, the decision ──
+  if (focus && focus.caseId) {
+    const c = cases.find(x => x.id === focus.caseId);
+    const m = c && holder(c.ministryId);
+    if (!c || !m) return <Cd><div style={{ fontSize: fz.m }}>This file is no longer open.</div><div style={{ marginTop: 12 }}><Bt onClick={() => onOpen({ view: "dir" })}>Back to the Secretariat</Bt></div></Cd>;
+    const metThisYear = c.meetings.some(x => x.year === year && x.who === m.minister);
+    const last = c.meetings[c.meetings.length - 1];
+    const myCommits = (commits || []).filter(x => x.caseId === c.id);
+    const decided = c.stage === "decided" || c.stage === "closed";
+    const ready = SYS.findingsReady(c);
+    return <Cd style={{ maxWidth: 900 }}>
+      <div style={{ fontSize: fz.s, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: CL.td, marginBottom: 8 }}>State Secretariat · Case file · Year {year}</div>
+      {head(m, c.officer !== m.minister ? "inherited the file from Hon. " + c.officer : null)}
+      <div style={{ background: CL.bg, border: "1px solid " + CL.bdr, borderRadius: 14, padding: "10px 14px", marginBottom: 12 }}>
+        <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 4 }}>Why you are meeting</div>
+        <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.4 }}>{c.what}. {c.officer !== m.minister ? "It happened under Hon. " + c.officer + "." : ""}</div>
+        <div style={{ marginTop: 8 }}>{chip(SYS.GRADE_NAME[c.grade], GCOL[c.grade])}{chip(SYS.fmtM(c.amountM) + " in question", CL.blu)}{chip(SYS.STAGE_NAME[c.stage], CL.td)}</div>
+      </div>
+      <div style={{ fontSize: fz.s, color: CL.td, margin: "4px 0" }}>What you know</div>
+      {c.evidence.length ? <ul style={{ margin: "0 0 10px 18px", padding: 0, fontSize: fz.s, color: CL.tm, lineHeight: 1.45 }}>{c.evidence.map(e => <li key={e.id}>{e.label} <span style={{ color: CL.td }}>({e.by}, Year {e.year})</span></li>)}</ul>
+        : <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 10 }}>Only the allegation itself.</div>}
+      {!decided && <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 12, lineHeight: 1.4 }}>Still unknown: whether the money was stolen, wasted through carelessness, lost to a failed contractor, or never missing at all.</div>}
+      {c.meetings.length > 0 && <div style={{ marginBottom: 12 }}>
+        <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 4 }}>Your meetings on this file</div>
+        {c.meetings.map((x, i) => <div key={i} style={{ fontSize: fz.s, color: CL.tm, marginBottom: 6, lineHeight: 1.4 }}><b style={{ color: CL.txt }}>Year {x.year}, Hon. {x.who}:</b> {x.lines.map(l => "“" + l.text + "”").join(" ")}</div>)}
+        {myCommits.map(x => <div key={x.id} style={{ fontSize: fz.s, color: x.status === "broken" ? CL.red : x.status === "kept" ? CL.grn : CL.org }}>Promised: {x.action} (by Year {x.reviewYear}) · {x.status === "open" ? "pending" : x.status === "kept" ? "done" : "not done"}{x.notes.length ? " · " + x.notes[x.notes.length - 1] : ""}</div>)}
+      </div>}
+      {!decided && !metThisYear && <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        <div style={{ fontSize: fz.s, color: CL.td }}>{last ? "Meet again" : "How do you open the meeting?"} (a meeting is not a major action)</div>
+        {[["explain", "🗣️", "Ask for their account", "Let them explain before you decide anything."], ["confront", "📂", "Put the allegation to them", "Show what you know and watch the answer."], ["notice", "⚠️", "Give a formal warning", "On the record. It protects you if this grows; it tells them you suspect them."]].map(([k, ic, l, d]) =>
+          <button key={k} onClick={() => onMeet(c.id, k)} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", padding: "10px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+            <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span></span>
+          </button>)}
+      </div>}
+      {!decided && c.meetings.length > 0 && <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        <div style={{ fontSize: fz.s, color: CL.td }}>Find out more {c.methodsUsed.length ? "" : "(opening a formal investigation uses one of this year's major actions: " + agendaLeft + " left)"}</div>
+        {Object.entries(SYS.METHODS).filter(([k]) => !c.methodsUsed.includes(k)).map(([k, M]) =>
+          <button key={k} onClick={() => onGather(c.id, k)} style={{ textAlign: "left", padding: "10px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+            <b style={{ display: "block", fontSize: fz.m }}>🔎 {M.nm}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{M.note}</span>
+          </button>)}
+      </div>}
+      {!decided && ready && <div style={{ background: CL.bg, border: "1px solid " + CL.bdr, borderRadius: 14, padding: "10px 14px", marginBottom: 12 }}>
+        <div style={{ fontSize: fz.m, fontWeight: 800, color: CL.txt, marginBottom: 6 }}>Findings: {SYS.GRADE_NAME[c.grade]}</div>
+        <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 8 }}>{c.grade === "substantiated" ? "The file supports misconduct." : c.grade === "documented" ? "Rules were broken; whether it was theft or carelessness is not settled." : c.grade === "unsupported" ? "The evidence points away from wrongdoing." : "Nothing conclusive either way."} You can decide now, or gather more first.</div>
+        <div style={{ display: "grid", gap: 8 }}>
+          {Object.entries(SYS.DECISIONS).map(([k, D]) => { const ok = !D.needs || D.needs.includes(c.grade);
+            return <button key={k} disabled={!ok} onClick={() => ok && onDecide(c.id, k)} style={{ textAlign: "left", padding: "10px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: ok ? CL.card : CL.bg, opacity: ok ? 1 : .55, cursor: ok ? "pointer" : "not-allowed", fontFamily: F.b, color: CL.txt, fontSize: fz.m }}>
+              {D.nm}{!ok ? <span style={{ display: "block", fontSize: fz.s, color: CL.td }}>Needs at least a documented irregularity.</span> : null}
+            </button>; })}
+        </div>
+      </div>}
+      {decided && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 12, lineHeight: 1.45 }}>Decided in Year {c.decision.year}: {SYS.DECISIONS[c.decision.id].nm.toLowerCase()}. {c.recoveredM ? SYS.fmtM(c.recoveredM) + " recovered. " : ""}{c.outstandingM ? SYS.fmtM(c.outstandingM) + " is still missing and stays on the state's books." : ""}</div>}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <Bt v="ghost" onClick={() => onOpen({ view: "dir" })}>The Secretariat</Bt>
+        <Bt onClick={onClose}>{focus.from ? "Back to where you were" : "Done"}</Bt>
+      </div>
+    </Cd>;
+  }
+
+  // ── An audience a commissioner asked for ──
+  if (focus && focus.audience) {
+    const a = (audiences || []).find(x => x.id === focus.audience), m = a && holder(a.ministryId);
+    if (!a || !m) return <Cd><div style={{ fontSize: fz.m }}>That audience has passed.</div><div style={{ marginTop: 12 }}><Bt onClick={() => onOpen({ view: "dir" })}>Back to the Secretariat</Bt></div></Cd>;
+    return <Cd style={{ maxWidth: 900 }}>
+      <div style={{ fontSize: fz.s, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: CL.td, marginBottom: 8 }}>State Secretariat · Audience · Year {year}</div>
+      {head(m)}
+      {a.memory && <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 8, fontStyle: "italic" }}>{a.memory}</div>}
+      <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.45, marginBottom: 12 }}>“{a.say}”</div>
+      <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        {a.options.map(o => <button key={o.id} onClick={() => onAudience(a, o)} style={{ textAlign: "left", padding: "10px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+          <b style={{ display: "block", fontSize: fz.m }}>{o.label}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{o.note}</span>
+        </button>)}
+      </div>
+      <div style={{ textAlign: "right" }}><Bt v="ghost" onClick={() => onOpen({ view: "dir" })}>Not now</Bt></div>
+    </Cd>;
+  }
+
+  // ── The directory ──
+  const openCases = cases.filter(c => c.stage !== "closed" && c.stage !== "decided"); // decided files leave the list; what follows from them arrives as news
+  const openCommits = (commits || []).filter(x => x.status === "open");
+  return <Cd style={{ maxWidth: 960 }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
+      <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, margin: 0 }}>🏢 The State Secretariat</h3>
+      <span style={{ fontSize: fz.s, color: CL.td }}>Year {year} · {agendaLeft} major actions left</span>
+    </div>
+    {(audiences || []).length > 0 && <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Asking to see you</div>
+      {audiences.map(a => { const m = holder(a.ministryId); return m && <button key={a.id} onClick={() => onOpen({ audience: a.id })} style={{ display: "flex", width: "100%", gap: 10, alignItems: "center", textAlign: "left", padding: "8px 12px", borderRadius: 14, border: "1px solid " + CL.org + "55", background: CL.org + "0d", cursor: "pointer", marginBottom: 6, fontFamily: F.b, color: CL.txt }}>
+        <img src={commissionerArt(m.minister)} alt="" style={{ width: 40, height: 48, objectFit: "cover", objectPosition: "top", borderRadius: 10 }} />
+        <span style={{ fontSize: fz.s }}><b>{m.acting ? "" : "Hon. "}{m.minister}</b> ({m.name}): {a.reason}</span></button>; })}
+    </div>}
+    {openCases.length > 0 && <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Open files</div>
+      {openCases.map(c => <button key={c.id} onClick={() => onOpen({ caseId: c.id })} style={{ display: "block", width: "100%", textAlign: "left", padding: "8px 12px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, cursor: "pointer", marginBottom: 6, fontFamily: F.b, color: CL.txt, fontSize: fz.s }}>
+        📁 <b>{c.ministryName}</b>: {c.what} · {SYS.GRADE_NAME[c.grade]} · {SYS.STAGE_NAME[c.stage]}</button>)}
+    </div>}
+    <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>The cabinet</div>
+    <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 8 }}>
+      {(ministries || []).map(m => { const mc = openCases.filter(c => c.ministryId === m.id).length, mk = openCommits.filter(x => x.ministryId === m.id).length;
+        return <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 10px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card }}>
+          <img src={commissionerArt(m.minister)} alt="" style={{ width: 44, height: 52, objectFit: "cover", objectPosition: "top", borderRadius: 10, flexShrink: 0 }} />
+          <div style={{ minWidth: 0, flex: 1, fontSize: fz.s, color: CL.tm }}>
+            <b style={{ color: CL.txt }}>{m.acting ? "Acting: " : "Hon. "}{m.minister}</b><div>{m.icon} {m.name}{mc ? " · " + mc + " open file" + (mc > 1 ? "s" : "") : ""}{mk ? " · " + mk + " commitment" + (mk > 1 ? "s" : "") : ""}</div>
+            {m.acting && <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>{(appointPicks(m) || []).map(p => <button key={p.nm} onClick={() => onAppoint(m.id, p)} style={{ border: "1px solid " + CL.grn + "66", background: CL.grn + "12", color: CL.grn, borderRadius: 999, padding: "4px 10px", fontSize: fz.s, cursor: "pointer", fontFamily: F.b }}>Appoint {p.nm} ({p.bg.toLowerCase()})</button>)}</div>}
+          </div>
+        </div>; })}
+    </div>
+    {openCommits.length > 0 && <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Commitments still open</div>
+      {openCommits.map(x => <div key={x.id} style={{ fontSize: fz.s, color: CL.tm, marginBottom: 4 }}>• Hon. {x.who} ({(holder(x.ministryId) || {}).name || x.ministryId}): {x.action}, by Year {x.reviewYear}{x.resourcesM ? " · " + SYS.fmtM(x.resourcesM) : ""}</div>)}
+    </div>}
+    <div style={{ textAlign: "right", marginTop: 14 }}><Bt onClick={onClose}>Leave the Secretariat</Bt></div>
+  </Cd>;
+};
+
 const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const setup = rawSetup && rawSetup.state && STATES[rawSetup.state] ? rawSetup : null;
   if (!setup) {
@@ -3690,7 +3823,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { civic = window.SOP_CIVIC?.getCorruption ? window.SOP_CIVIC.getCorruption() : null; } catch (e) {}
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
-      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current,
+      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone,
       turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc, reportAt: reportRef.current ? reportRef.current.t : null, reportSnap: reportRef.current ? reportRef.current.snap : null,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
@@ -3816,6 +3949,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const goal = ot ? "answer \u201c" + ot.title(open.lga) + "\u201d" : !(projects || []).length ? "start a capital project from the Projects tab" : "keep approval above 50% for your next report";
       text = "You got through your first six months: the budget passed" + (done ? " and " + done + (done === 1 ? " need is" : " needs are") + " being answered" : "") + ". " + text + " Next goal: " + goal + ".";
     }
+    // What is still owed: commitments made in meetings, files still open.
+    try { const oc = (commits || []).filter(x => x.status === "open").length, of = (cases || []).filter(c => c.stage !== "decided" && c.stage !== "closed").length; if (oc || of) text += " Still open: " + [of ? of + (of === 1 ? " case file" : " case files") : null, oc ? oc + (oc === 1 ? " commitment" : " commitments") : null].filter(Boolean).join(" and ") + " (see the Secretariat)."; } catch (e) {}
     try { window.SOP_outcome && window.SOP_outcome({ icon: first ? "🎉" : "🗓️", title: first ? "Your first year" : "How the last year went", text, rows, tone: first ? "good" : "neutral", ok: first ? "On to the next six months" : "On to the next" }); } catch (e) {}
   }, [phase, turn]);
   const bs = Object.values(bud).reduce((a, b) => a + b, 0);
@@ -4508,6 +4643,108 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return null;
   };
 
+  // ── THE SECRETARIAT: cases, commitments, audiences (rules in SYS/cases.js) ──
+  const [cases, setCases] = useState(() => ld?.cases || []);
+  const [commits, setCommits] = useState(() => ld?.commits || []);
+  const [audDone, setAudDone] = useState(() => ld?.audDone || {});
+  const [secr, setSecr] = useState(null); // null | { view: "dir" } | { caseId } | { audience }, plus { from: the tab to return to }
+  const openSecr = (f) => setSecr(s0 => ({ ...(f || { view: "dir" }), from: (f && f.from) || (s0 && s0.from) || null }));
+  const closeSecr = () => { const back = secr && secr.from; setSecr(null); if (back) setNav(back); };
+  const minById = (id) => (ministries || []).find(x => x.id === id);
+  // A new allegation becomes a case. One per ministry, year and source.
+  const allege = (m, amountM, source, what) => {
+    const id = "case_" + m.id + "_y" + turn + "_" + source;
+    const c = SYS.openCase({ id, year: turn, ministryId: m.id, ministryName: m.name, officer: m.minister, hon: traits(m.minister).hon, amountM, source, what });
+    setCases(cs => cs.some(x => x.id === id) ? cs : [...cs, c]);
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "allegation", actor: "press", target: m.minister, gravity: 2, evidence: 1, decision: "Allegation recorded", note: what }); } catch (e) {}
+    return c;
+  };
+  const meetCase = (id, approach) => {
+    const c = cases.find(x => x.id === id), m = c && minById(c.ministryId); if (!c || !m) return;
+    const r = SYS.meetLines(c, approach, m.minister, turn);
+    const n = SYS.recordMeeting(c, { approach, who: m.minister, year: turn, lines: r.lines });
+    setCases(cs => cs.map(x => x.id === id ? n : x));
+    setCommits(l => SYS.addCommitment(l, { id: "cm_" + id + "_" + n.meetings.length, who: m.minister, ministryId: m.id, action: r.commitment.action, reviewYear: r.commitment.reviewYear, caseId: id, year: turn }));
+    if (approach !== "explain") setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, loyalty: Math.max(5, (x.loyalty == null ? 50 : x.loyalty) - (approach === "notice" ? 6 : 3)), met: turn } : x));
+    addL("🏢 Secretariat: met " + (m.acting ? "" : "Hon. ") + m.minister + " about the " + c.ministryName + " allegation.", "info");
+  };
+  const gatherCase = (id, method) => {
+    const c = cases.find(x => x.id === id); if (!c) return;
+    if (!c.methodsUsed.length && !takeAgenda("investigation", "Investigation: " + c.ministryName, "inv:" + id)) return;
+    const r = SYS.gatherEvidence(c, method, turn), M = SYS.METHODS[method];
+    setCases(cs => cs.map(x => x.id === id ? r.c : x));
+    if (M.costM) setS(p => ({ ...p, debt: p.debt + SYS.toB(M.costM) }));
+    if (M.party) setS(p => ({ ...p, pStab: cl100(p.pStab + M.party) }));
+    if (method === "agf" && (r.c.grade === "documented" || r.c.grade === "substantiated")) setS(p => ({ ...p, app: cl100(p.app - 1) }));
+    addL("🔎 " + M.nm + " on the " + c.ministryName + " file: " + (r.found.length ? r.found.map(f => f.label.toLowerCase()).join("; ") : "nothing new") + ".", "info");
+  };
+  const decideCaseNow = (id, dId) => {
+    const c = cases.find(x => x.id === id), m = c && minById(c.ministryId); if (!c) return;
+    const before = { ...snapRef.current };
+    const r = SYS.decideCase(c, dId, turn);
+    setCases(cs => cs.map(x => x.id === id ? r.c : x));
+    setS(p => ({ ...p, app: cl100(p.app + r.fx.app), cor: cl(p.cor + r.fx.cor), pStab: cl100(p.pStab + r.fx.pStab), debt: Math.max(0, p.debt - SYS.toB(r.c.recoveredM)) }));
+    let acting = null;
+    if (r.removes && m && m.minister === c.officer) {
+      acting = m.permSec || gN(rng(hashStr(id)), sd.zone, state);
+      setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, minister: acting, acting: true, perf: Math.max(25, (x.perf || 50) - 10), hired: turn, record: [], flag: null } : x));
+      setCommits(l => SYS.transferCommitments(l, m.id, m.minister, acting, turn));
+    }
+    const D = SYS.DECISIONS[dId];
+    addL("⚖️ " + c.ministryName + " file: " + D.nm.toLowerCase() + " (Hon. " + c.officer + ")." + (r.c.outstandingM ? " " + SYS.fmtM(r.c.outstandingM) + " is still missing." : ""), "political");
+    scWiki(dId === "clear" || dId === "bury" ? "Controversies" : "Governorship", D.nm + " in the " + c.ministryName + " payment case against Hon. " + c.officer + " (" + SYS.GRADE_NAME[r.c.grade].toLowerCase() + ").");
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "case_decided", actor: "governor", target: c.officer, gravity: 2, evidence: c.evidence.length, decision: D.nm, note: SYS.GRADE_NAME[r.c.grade] }); } catch (e) {}
+    announce({ icon: "⚖️", title: D.nm, text: "Hon. " + c.officer + ", " + c.ministryName + ". The file says: " + SYS.GRADE_NAME[r.c.grade].toLowerCase() + "." + (acting ? " " + acting + ", the Permanent Secretary, is acting commissioner until you appoint one." : "") + (r.c.outstandingM ? " " + SYS.fmtM(r.c.outstandingM) + " is still missing." : "") + " What really happened may still come out.", tone: "neutral" }, before);
+  };
+  const appointPicks = (m) => candidates(hashStr(m.id + "_" + turn)).slice(0, 3);
+  const appointFor = (mid, p) => {
+    const m = minById(mid); if (!m) return;
+    setMinistries(ms => ms.map(x => x.id === mid ? { ...x, minister: p.nm, acting: false, perf: Math.round(40 + (p.comp - 50) * .4), cor: Math.max(8, Math.round((100 - p.hon) * .5)), loyalty: p.loyalty, zone: p.zone, hired: turn, record: [], flag: null } : x));
+    setCommits(l => SYS.transferCommitments(l, mid, m.minister, p.nm, turn));
+    addL("🎓 Hon. " + p.nm + " sworn in as " + m.name + " Commissioner. The open files and the ministry's commitments pass to them.", "info");
+  };
+  // What a commissioner remembers of your last dealings.
+  const memoryOf = (m) => {
+    const ks = (commits || []).filter(x => x.ministryId === m.id && x.status !== "open").slice(-1)[0];
+    if (ks) return "Year " + ks.madeYear + ": " + (ks.who === m.minister ? "they" : "Hon. " + ks.who) + " promised to " + ks.action.charAt(0).toLowerCase() + ks.action.slice(1) + ". " + (ks.status === "kept" ? "It was done." : "It was not done.");
+    const mt = cases.filter(c => c.ministryId === m.id && c.meetings.length).slice(-1)[0];
+    if (mt) { const x = mt.meetings[mt.meetings.length - 1]; return "You last met in Year " + x.year + " about the " + mt.ministryName + " file."; }
+    return null;
+  };
+  // Commissioners ask for an audience when something real is happening.
+  const audiences = (() => {
+    if (turn <= 1 || needSetup) return [];
+    const out = [];
+    (ministries || []).forEach(m => {
+      const id = "aud_" + m.id + "_y" + turn; if (audDone[id] || m.acting) return;
+      const mem = memoryOf(m);
+      if ((m.perf || 50) < 45) out.push({ id, ministryId: m.id, reason: "asks for money to get stalled work moving", memory: mem,
+        say: "Your Excellency, we are short of staff and money. With ₦500M I can get the stalled work in " + m.name.toLowerCase() + " moving this year.",
+        options: [{ id: "fund", label: "Give them ₦500M", note: "A commitment: they must show results by next year." }, { id: "plan", label: "No money: ask for a recovery plan", note: "Free. They may not manage without the money." }, { id: "no", label: "Decline", note: "Nothing changes. They remember." }] });
+      else if ((m.perf || 50) > 72) out.push({ id, ministryId: m.id, reason: "wants to report results", memory: mem,
+        say: "We hit our targets early this year. I want to show you, and ask what you want from us next.",
+        options: [{ id: "praise", label: "Praise them in public", note: "Approval +1; their loyalty rises." }, { id: "more", label: "Set a harder target for next year", note: "A commitment. Performance rises if they deliver." }] });
+    });
+    return out.slice(0, 3);
+  })();
+  const answerAudience = (a, o) => decide(() => {
+    const m = minById(a.ministryId); if (!m) return;
+    setAudDone(d => ({ ...d, [a.id]: turn })); setSecr(f => ({ view: "dir", from: f && f.from }));
+    const cm = (action, resourcesM = 0) => setCommits(l => SYS.addCommitment(l, { id: "cm_" + a.id, who: m.minister, ministryId: m.id, action, resourcesM, reviewYear: turn + 1, year: turn }));
+    const upd = (f) => setMinistries(ms => ms.map(x => x.id === m.id ? { ...f(x), met: turn } : x));
+    if (o.id === "fund") { setS(p => ({ ...p, debt: p.debt + .5 })); upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 6) })); cm("Show results from the extra ₦500M", 500); return { icon: "💰", title: "₦500M for " + m.name, text: "Hon. " + m.minister + " promised results by next year. You will see whether they kept it.", tone: "neutral" }; }
+    if (o.id === "plan") { upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 2) })); cm("Present a recovery plan and start it"); return { icon: "📝", title: "A plan, not money", text: "Hon. " + m.minister + " will come back with a recovery plan.", tone: "neutral" }; }
+    if (o.id === "no") { upd(x => ({ ...x, loyalty: Math.max(5, (x.loyalty == null ? 50 : x.loyalty) - 4) })); return { icon: "🚪", title: "Request declined", text: "Hon. " + m.minister + " leaves without the money.", tone: "neutral" }; }
+    if (o.id === "praise") { setS(p => ({ ...p, app: cl100(p.app + 1) })); upd(x => ({ ...x, loyalty: Math.min(95, (x.loyalty == null ? 50 : x.loyalty) + 5) })); return { icon: "🏅", title: "Credit where it is due", text: "You praised Hon. " + m.minister + " in public.", tone: "good" }; }
+    upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 4) })); cm("Hit a harder target next year");
+    return { icon: "🎯", title: "A harder target", text: "Hon. " + m.minister + " accepts it. You will check next year.", tone: "neutral" };
+  });
+
+  // Records that must survive a reload mid-year (cases, commitments, the
+  // year's agenda) are saved as soon as they change, not only at year end.
+  const recSaveT = React.useRef(null);
+  useEffect(() => { if (gEnd || turn < 1) return; clearTimeout(recSaveT.current); recSaveT.current = setTimeout(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, 600); }, [cases, commits, agenda]);
+
   // ── PERSONNEL: what your people did this year ──
   const staffReviewed = React.useRef(ld?.staffReviewed || 1);
   useEffect(() => {
@@ -4516,6 +4753,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const r = rng(turn * 977 + state.length * 31);
     let dApp = 0, dCor = 0, dParty = 0; const notes = []; const slowSectors = [];
     let incidents = 0;
+    const allegations = [];
     const next = ministries.map(m => {
       const t = traits(m.minister);
       let perf = Math.round(Math.max(10, Math.min(95, (m.perf || 50) + (t.comp - (m.perf || 50)) * .3 + (r() - .5) * 8)));
@@ -4523,15 +4761,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const loyalty = Math.round(Math.max(5, Math.min(95, (m.loyalty == null ? 50 : m.loyalty) + (r() - .55) * 8)));
       let record = (m.record || []).slice(-3), flag = m.flag || null;
       // Shielding: a scandal left unanswered for a year costs you again.
+      // (Payment allegations are now cases: see the review of open files below.)
       if (flag && flag.t < turn - 1 && (flag.kind === "graft" || flag.kind === "disloyal")) {
         if (flag.kind === "graft") { dApp -= 3; dCor += .02; notes.push(["📰 \u201cGovernor shields corrupt commissioner\u201d: Hon. " + m.minister + " is still in the cabinet after the " + m.name + " contract scandal.", "scandal"]); }
         else { dParty -= 3; notes.push(["🗝️ Hon. " + m.minister + " is still briefing your opponents from inside the cabinet. Party leaders ask why you tolerate it.", "political"]); }
       }
       const add = (kind, text) => { record = [...record, { t: turn, kind, text }].slice(-4); if (kind !== "praise") flag = { kind, t: turn, text }; incidents++; };
-      if (incidents < 2 && cor > 55 && r() < .4) {
-        const amt = (0.4 + r() * 1.6).toFixed(1);
-        add("graft", "Paid ₦" + amt + "B to a contractor for work that was never done.");
-        dApp -= 2; dCor += .02; notes.push(["💀 Hon. " + m.minister + " (" + m.name + ") was caught paying ₦" + amt + "B for work that was never done. Fire them, or own it.", "scandal"]);
+      const forced = window.SOP_TEST && window.SOP_TEST.allege === m.id && turn === 2; // test-only (tests/e2e)
+      if (incidents < 2 && (forced || (cor > 55 && r() < .4)) && !cases.some(c => c.ministryId === m.id && c.stage !== "decided" && c.stage !== "closed")) {
+        // An allegation, not a verdict: what happened is for the investigation to find.
+        const amtM = Math.round((0.4 + r() * 1.6) * 100) * 10;
+        record = [...record, { t: turn, kind: "alleged", text: "Alleged: paid " + SYS.fmtM(amtM) + " for work that may never have been done." }].slice(-4); incidents++;
+        allegations.push({ m, amtM });
+        dApp -= 1; notes.push(["📰 A newspaper alleges the " + m.name + " ministry under Hon. " + m.minister + " paid " + SYS.fmtM(amtM) + " for work that was never done. Nothing is proven yet.", "scandal"]);
       } else if (incidents < 2 && perf < 40 && r() < .5) {
         add("failure", "Missed every target this year; the ministry's work slowed.");
         dApp -= 1; if (MIN_SECTOR[m.id]) slowSectors.push(MIN_SECTOR[m.id]);
@@ -4546,6 +4788,27 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { ...m, perf, cor, loyalty, record, flag };
     });
     setMinistries(next);
+    // New allegations: each opens a case and offers to take you straight to the meeting.
+    allegations.forEach(({ m, amtM }) => {
+      const c = allege(m, amtM, "press", "Paid " + SYS.fmtM(amtM) + " for work that may never have been done");
+      try { window.SOP_outcome({ icon: "📰", title: "Allegation: " + m.name, text: "The papers say the ministry paid " + SYS.fmtM(amtM) + " for work that was never done. It is a claim, not a finding. Hon. " + m.minister + " is waiting to see you.", tone: "bad", ok: "Later", action: { label: "Investigate: meet Hon. " + m.minister.split(" ").pop(), fn: () => setSecr({ caseId: c.id, from: "gov" }) } }); } catch (e) {}
+    });
+    // Last year's commitments, open files and delayed consequences.
+    {
+      const evAdd = {};
+      const rv = SYS.reviewCommitments(commits, turn - 1, (x) => {
+        if (x.caseId) { const c = cases.find(k => k.id === x.caseId); if (!c) return true; const o = SYS.commitmentOutcome(c, traits(x.who).hon); if (o.evidence) evAdd[x.caseId] = { ...o.evidence, by: "Hon. " + x.who + (o.kept ? "'s file" : ""), year: turn - 1 }; return o.kept; }
+        const mm = next.find(k => k.id === x.ministryId); return SYS.seeded("commit", x.id)() < ((mm && mm.perf) || 50) / 100 + .15;
+      });
+      if (rv.due.length) setCommits(prev => prev.map(x => rv.list.find(y => y.id === x.id) || x));
+      rv.due.forEach(x => notes.push([(x.status === "kept" ? "✅ Hon. " + x.who + " kept their word: " : "❌ Hon. " + x.who + " did not deliver: ") + x.action.charAt(0).toLowerCase() + x.action.slice(1) + ".", x.status === "kept" ? "success" : "political"]));
+      let cs = cases.map(c => evAdd[c.id] && !c.evidence.some(e => e.id === evAdd[c.id].id) ? { ...c, evidence: [...c.evidence, evAdd[c.id]] } : c).map(c => evAdd[c.id] ? { ...c, grade: SYS.gradeOf(c) } : c);
+      const lt = SYS.dueLater(cs, turn); cs = lt.cases;
+      lt.events.forEach(e => { dApp += (e.fx && e.fx.app) || 0; dCor += (e.fx && e.fx.cor) || 0; notes.push(["📰 " + e.text, "scandal"]); scWiki("Controversies", e.text); });
+      cs = cs.map(c => { if (c.stage === "allegation" && c.year < turn && !c.ignoredHit) { dApp -= 2; notes.push(["📰 \u201cGovernor sits on allegation\u201d: a year on, nobody has even met Hon. " + c.officer + " about the " + c.ministryName + " payment.", "scandal"]); return { ...c, ignoredHit: true }; } return c; });
+      // Merge into the latest list: allegations opened above are already queued in it.
+      setCases(prev => prev.map(c => cs.find(x => x.id === c.id) || c));
+    }
     // Good commissioners move their sector; weak ones let it slide.
     const KEY = { works: "infra", health: "hp", educ: "lit", agric: "agr", sec: "sec" };
     const moves = {};
@@ -4633,9 +4896,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { icon: "📋", title: "You read Hon. " + m.minister + " the riot act", text: t.comp > 50 ? "They came back with a plan and deadlines. Expect results." : "They promised a lot. Their team is not good enough to deliver much more.", tone: t.comp > 50 ? "good" : "neutral", rows: [{ l: "Performance", v: "+" + (t.comp > 50 ? 9 : 4), good: true }, { l: "Loyalty", v: "−5", good: false }] };
     }
     if (kind === "audit") {
-      if (t.hon < 45) {
-        upd(x => ({ ...x, flag: { kind: "graft", t: turn, text: "Your auditors found inflated contracts." }, record: [...(x.record || []), { t: turn, kind: "graft", text: "Your auditors found inflated contracts." }].slice(-4) }));
-        return { icon: "🔍", title: "The books don't add up", text: "Your auditors found inflated contracts in " + m.name + ". You now have grounds to fire Hon. " + m.minister + ".", tone: "bad" };
+      // A spot check. Irregularities are an allegation to investigate, not a verdict.
+      if (SYS.seeded("spot", m.id, m.minister, turn)() < (100 - t.hon) / 100) {
+        const amtM = Math.round((300 + t.comp * 7) / 10) * 10;
+        const c = allege(m, amtM, "auditor", "Your auditors flagged " + SYS.fmtM(amtM) + " of payments that do not match the work on site");
+        setTimeout(() => setSecr({ caseId: c.id, from: nav }), 400);
+        return { icon: "🔍", title: "The books don't add up", text: "Your auditors flagged " + SYS.fmtM(amtM) + " of payments in " + m.name + " that do not match the work on site. That is a credible allegation, not proof. The file is open in the Secretariat.", tone: "bad" };
       }
       upd(x => ({ ...x, loyalty: Math.min(95, (x.loyalty || 50) + 3), cor: Math.max(5, (x.cor || 30) - 5) }));
       return { icon: "🔍", title: "Clean books", text: "Hon. " + m.minister + " runs a clean ministry. Knowing you checked, staff are more careful.", tone: "good", rows: [{ l: "Ministry corruption", v: "−5", good: true }] };
@@ -4654,6 +4920,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!ministries || ministries.length === 0) return { urgent: true, icon: "🏛️", title: "Convene your ministries first", body: "Executive Command rule: no cabinet, no execution. Create at least Finance, Works, Health and Security before serious governance begins.", actionLabel: "Open Ministries", action: () => goTab("min") };
     if (ministries.length < 4) return { urgent: true, icon: "🏛️", title: "Your cabinet is under-strength", body: "You have " + ministries.length + " ministr" + (ministries.length === 1 ? "y" : "ies") + ". The House, contractors and crises will overpower a thin Exco.", actionLabel: "Add Ministries", action: () => goTab("min") };
     if (!council) return { urgent: true, icon: "👑", title: "Convene the Traditional Rulers Council", body: "Rural turnout, land disputes and security intelligence run through the palaces. Meet them before your next big project or campaign push.", actionLabel: "Open Council", action: () => goTab("coun") };
+    const unmet = cases.find(c => c.stage === "allegation");
+    if (unmet) return { urgent: true, icon: "📁", title: "Allegation in " + unmet.ministryName + ": meet the commissioner", body: SYS.GRADE_NAME[unmet.grade] + ". " + unmet.what + ". Hear them out, then decide whether to investigate. Ignoring it for a year will cost you.", actionLabel: "Open the file", action: () => setSecr({ caseId: unmet.id, from: nav }) };
     const scandal = (ministries || []).find(m => m.flag && m.flag.t >= turn - 1 && (m.flag.kind === "graft" || m.flag.kind === "disloyal"));
     if (scandal) return { urgent: true, icon: scandal.flag.kind === "graft" ? "💀" : "🗝️", title: "Hon. " + scandal.minister + " (" + scandal.name + "): " + OFFENCE[scandal.flag.kind].label.toLowerCase() + ". Fire or keep them?", body: scandal.flag.text, actionLabel: "Decide", action: () => goTab("cab") };
     const urgentNeed = activeNeeds.slice().sort((a, b) => (b.status === "stalled") - (a.status === "stalled") || a.due - b.due)[0];
@@ -6666,7 +6934,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     else if (stc.gf === "enemy" || stc.gf === "opposition") b.party = { text: "Godfather hostile", tone: "bad" };
     else if (turn >= MT - 1 && !stc.successor) b.party = { text: "Choose a successor", tone: "warn" };
     const scandal = (ministries || []).find(m => m.flag && m.flag.t >= turn - 1 && (m.flag.kind === "graft" || m.flag.kind === "disloyal"));
+    const openFiles = cases.filter(c => c.stage !== "decided" && c.stage !== "closed").length;
     if (scandal) b.secretariat = { text: "Scandal", tone: "bad" };
+    else if (openFiles) b.secretariat = { text: openFiles + (openFiles === 1 ? " open file" : " open files"), tone: "warn" };
+    else if (audiences.length) b.secretariat = { text: audiences.length + (audiences.length === 1 ? " wants to see you" : " want to see you"), tone: "warn" };
     else if (balanceIssue() != null) b.secretariat = { text: "Zonal row", tone: "warn" };
     if (s.sec < .4) b.police = { text: "Insecurity", tone: "bad" };
     if (!council) b.palace = { text: "Not convened", tone: "warn" };
@@ -6698,7 +6969,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (id === "gh") return toTask();
     if (id === "assembly" && phase === "house_vote") return toTask();
     if (id === "finance") { setRevOpen(true); goTab("gov"); setTimeout(() => { try { document.getElementById("sop-money")?.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); return; }
-    if (id === "secretariat") return goTab("cab");
+    if (id === "secretariat") return setSecr({ view: "dir", from: nav });
     if (id === "palace") return goTab("coun");
     if (id === "projects") return goTab("prj");
     if (id === "efcc") { try { window.SOP_CIVIC && window.SOP_CIVIC.openPanel(); } catch (e) {} return; }
@@ -6716,6 +6987,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
+    <button onClick={() => setSecr({ view: "dir", from: nav })} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: CL.txt, border: "1px solid " + ((cases.some(c => c.stage !== "decided" && c.stage !== "closed") || audiences.length) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>🏢 Secretariat{(() => { const n = cases.filter(c => c.stage !== "decided" && c.stage !== "closed").length + audiences.length; return n ? " (" + n + ")" : ""; })()}</button>
     <span title="Major actions left this year: programmes, projects, orders, bills, reforms, new ministries. Meetings and inspections are free." style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Agenda {agendaLeftNow}/{SYS.agendaSize(setup?.level || "medium")} left</span>
         {["Budget", "House vote", "Policies", "Review", "Events"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
@@ -8941,6 +9213,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           })()}
         </OL>
 
+        <OL show={!!secr}>
+          {secr && <SecretariatView year={turn} ministries={ministries} cases={cases} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
+            onClose={closeSecr} onOpen={openSecr} onMeet={meetCase} onGather={gatherCase} onDecide={decideCaseNow}
+            onAppoint={appointFor} appointPicks={appointPicks} audiences={audiences} onAudience={answerAudience} />}
+        </OL>
         <OL show={!!meetMin}>
           {meetMin && (() => {
             const m = (ministries || []).find(x => x.id === meetMin); if (!m) return null;
