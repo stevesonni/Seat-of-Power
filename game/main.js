@@ -13,9 +13,11 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import startGame from "./seat-of-power.jsx";
+import * as SYS from "./systems/index.js";
 
 window.React = React;
 window.ReactDOM = ReactDOM;
+window.SOP_SYS = SYS;
 
 if (document.readyState === "complete") startGame();
 else document.addEventListener("DOMContentLoaded", startGame, { once: true });

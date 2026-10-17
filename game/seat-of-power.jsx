@@ -1,5 +1,6 @@
 const React = window.React;
 const { useState, useEffect, useMemo } = React;
+const SYS = window.SOP_SYS; // the screen-independent rules (game/systems)
 
 /* THE SEAT OF POWER V3 */
 
@@ -66,6 +67,10 @@ if (!window.storage) {
         always wrote phase:"budget".
    v2 → carries `sv`, `savedAt` and the serialised Historic Ledger,
         and stores the real phase.
+   v3 → campaign loans are a list of accepted loans (setup.gfLoans) and
+        patronage favours are separate (setup.favours). Older totals are
+        cleaned of the ghost amounts patronage moves added (see
+        SYS.migrateCampaignLoans); the chosen adviser is kept as saved.
    migrateSave() upgrades an old save in place rather than rejecting
    it, so runs in progress survive this change.
    ───────────────────────────────────────────────────────────────── */
@@ -73,7 +78,7 @@ if (!window.storage) {
 // window.SOP_VATAR. Popups, downloads, clipboard and fullscreen are blocked
 // there, so those controls are hidden.
 const VATAR = typeof window !== "undefined" && !!window.SOP_VATAR;
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 function migrateSave(d) {
   if (!d || typeof d !== "object") return d;
   if (!d.sv) {
@@ -83,6 +88,7 @@ function migrateSave(d) {
     if (d.phase === "budget" && d.nav === "gov") d.phase = "budget"; // best we can do
     d._migratedFrom = 1;
   }
+  if (d.sv < 3 && d.setup) { d.setup = window.SOP_SYS.migrateCampaignLoans(d.setup); d._migratedFrom = d._migratedFrom || d.sv; }
   d.sv = SAVE_VERSION;
   scrubRemovedContent(d);
   return renameParties(d);
@@ -1636,7 +1642,7 @@ const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppPar
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
       <CampChip txt={"₦" + money.toFixed(2) + "B left"} col={CL.gold} />
       <CampChip txt={days + " of " + maxDays + " days"} col={CL.pur} />
-      {gfDebt > 0 && <CampChip txt={"Godfather debt ₦" + gfDebt.toFixed(2) + "B"} col={CL.red} />}
+      {gfDebt > 0 && <CampChip txt={"Godfather debt " + SYS.fmtB(gfDebt)} col={CL.red} />}
       {slogan && <CampChip txt={"“" + slogan + "”"} col={CL.grn} />}
     </div>
     {lastLog && (/^🔻/.test(lastLog)
@@ -2017,6 +2023,38 @@ const ProfileForm = ({ initial, onSave, onCancel }) => {
   </EntranceSheet>;
 };
 
+// The title group. The portraits are drawn at different scales (the hijab
+// figure is framed wider, so her face is about a quarter smaller and sits
+// higher in the canvas), so equal image heights look uneven. Each figure is
+// placed by its measured eye line and face size instead: faces match, the
+// centre figure stands slightly forward, and eye lines follow a gentle arc.
+// eye/chin: fractions of the image height; body: share of the image width
+// the figure fills.
+const TITLE_FIG = {
+  female: { eye: .247, chin: .363, body: .66 }, babariga: { eye: .279, chin: .412, body: .62 },
+  f_isiagu: { eye: .275, chin: .406, body: .6 }, m_suit: { eye: .296, chin: .427, body: .62 },
+  f_kaftan: { eye: .154, chin: .249, body: .56 },
+};
+const TITLE_DEPTH = [{ face: 12.4, eye: 28 }, { face: 11.8, eye: 31 }, { face: 11.2, eye: 34 }]; // by distance from the centre, in % of the group's height
+const TitleLineup = ({ ids, tall }) => {
+  const ref = React.useRef(null);
+  const [box, setBox] = React.useState({ w: 0, h: 0 });
+  React.useEffect(() => { const el = ref.current; if (!el) return; const f = () => setBox({ w: el.clientWidth, h: el.clientHeight }); const ro = new ResizeObserver(f); ro.observe(el); f(); return () => ro.disconnect(); }, []);
+  const mid = (ids.length - 1) / 2, ASPECT = 474 / 700;
+  const figs = ids.map((id, i) => { const m = TITLE_FIG[id], dep = TITLE_DEPTH[Math.min(2, Math.round(Math.abs(i - mid)))], h = dep.face / (m.chin - m.eye); return { id, d: Math.abs(i - mid), h, top: dep.eye - m.eye * h, slot: h * ASPECT * m.body }; });
+  const units = figs.reduce((a, f) => a + f.slot, 0) || 1;
+  // px per unit. Phone: set by the width, and the group takes only the height it needs
+  // (the logo area above centres itself in the rest). Wider screens: the smaller of the two.
+  const u = tall ? Math.min((box.w * .98) / units, 4.2) : Math.min(box.h / 100, (box.w * .96) / units);
+  return <div ref={ref} style={{ position: "relative", height: tall ? (u ? 100 * u : "36%") : "40%", flexShrink: 0, minHeight: 0, overflow: "hidden", pointerEvents: "none" }}>
+    <div style={{ position: "absolute", left: "50%", bottom: 0, height: 100 * u, width: units * u, transform: "translateX(-50%)" }}>
+      {(() => { let x = 0; return figs.map(f => { const left = x + f.slot / 2; x += f.slot; const w = f.h * ASPECT;
+        return <img key={f.id} src={AVATAR_IMGS[f.id]} alt="" style={{ position: "absolute", top: f.top * u, left: (left - w / 2) * u, height: f.h * u, width: w * u, zIndex: 10 - f.d * 2, filter: f.d ? "saturate(.92)" : "none" }} />; }); })()}
+    </div>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: -2, height: "36%", background: "linear-gradient(180deg, rgba(246,242,234,0), " + UI.cream + " 72%)", zIndex: 20 }} />
+  </div>;
+};
+
 const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
@@ -2043,7 +2081,8 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile
   // One clean front screen: the logo, the people you can play, and three
   // ways in. "How to play" is the only help button.
   const tall = TALL();
-  const lineup = ["female", "babariga", "f_isiagu", "m_suit", "f_kaftan"];
+  // Phone: three figures that fit the width; wider screens: all five.
+  const lineup = tall ? ["babariga", "f_isiagu", "f_kaftan"] : ["female", "babariga", "f_isiagu", "m_suit", "f_kaftan"];
   return (
     <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
@@ -2053,18 +2092,12 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile
         </button>
         <button onClick={onHelp} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "10px 20px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer" }}>How to play</button>
       </div>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: tall ? "flex-start" : "center", padding: tall ? "4% 20px 0" : "0 40px" }}>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: tall ? "0 20px" : "0 40px" }}>
         <img src={TITLE_LOGO} alt="The Seat of Power" style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
         <div style={{ marginTop: tall ? 8 : 12, fontSize: DS.t.label, letterSpacing: 2, textTransform: "uppercase", color: UI.sub, fontWeight: 700, textAlign: "center" }}>Campaign · Govern · Survive</div>
-        <div style={{ marginTop: 6, fontFamily: F.d, fontSize: TS(30), color: UI.ink, textAlign: "center", maxWidth: 560, lineHeight: 1.3 }}>Win a governorship in Nigeria, then live with every promise you made.</div>
+        <div style={{ marginTop: 6, fontFamily: F.d, fontSize: TS(30), color: UI.ink, textAlign: "center", maxWidth: 560, lineHeight: 1.3 }}>Win a governorship in Nigeria, then lead with every promise you made.</div>
       </div>
-      <div style={{ position: "relative", height: tall ? "34%" : "38%", minHeight: 0, display: "flex", justifyContent: "center", alignItems: "flex-end", pointerEvents: "none" }}>
-        {lineup.map((id, i) => {
-          const mid = (lineup.length - 1) / 2, d = i - mid;
-          return <img key={id} src={AVATAR_IMGS[id]} alt="" style={{ height: (100 - Math.abs(d) * 9) + "%", width: "auto", marginLeft: i ? (tall ? -42 : -70) : 0, zIndex: 10 - Math.abs(d), objectFit: "contain", objectPosition: "bottom", filter: Math.abs(d) ? "saturate(.9)" : "none" }} />;
-        })}
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "38%", background: "linear-gradient(180deg, rgba(246,242,234,0), " + UI.cream + " 85%)", zIndex: 20 }} />
-      </div>
+      <TitleLineup ids={lineup} tall={tall} />
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
         <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
@@ -2314,8 +2347,17 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   const [sCampDays, setSCampDays] = useState(0); // campaign days spent on this week's main move
   const [election, setElection] = useState(null); // the first election's result, for the Wikipedia article
   const [warChest, setWarChest] = useState(0.8); // ₦800M starting campaign funds
-  const [gfDebt, setGfDebt] = useState(0); // how much you owe the godfather
-  const [gfBorrowed, setGfBorrowed] = useState(false);
+  // Personal campaign loans from the godfather: one record per accepted offer
+  // (SYS.addLoan ignores a repeat of the same key). gfDebt is their total in ₦B.
+  const [gfLoans, setGfLoans] = useState([]);
+  const gfDebt = SYS.toB(SYS.loanTotalM(gfLoans));
+  const takeGfLoan = (key, amountB, reason) => setGfLoans(l => SYS.addLoan(l, { key, amountM: SYS.toM(amountB), reason }));
+  const setGfDebt = () => setGfLoans([]); // only ever used to clear (restart)
+  const gfBorrowed = gfLoans.length > 0;
+  const setGfBorrowed = () => {};
+  // Patronage promised in the campaign (LGA chairs, gifts, agents). An obligation
+  // that raises corruption in office, not money owed: kept apart from the loans.
+  const [favours, setFavours] = useState(0);
   const [gfMandates, setGfMandates] = useState([]); // concrete godfather obligations that must handshake with cabinet/projects
   const [preTrib, setPreTrib] = useState(null); // {level, spent, log, oppName, oppPartyId, margin, zonesWon, evidence}
   // Each new screen (and each new court stage) opens at its top, not at the
@@ -2358,7 +2400,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   useEffect(() => {
     if (!quick || !depCands.length) return;
     setDepGov(depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]));
-    setQuick(false); setQuickUsed(true); setStep(7);
+    setQuick(false); setQuickUsed(true);
+    if (saName) setStep(7); else { setQuickNext(true); setStep(25); }
   }, [quick, depCands]);
   // Fill every step with the recommended pick and jump to the ticket. Anything can be changed with Back.
   const quickStart = () => {
@@ -2372,7 +2415,9 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     setSlogan(recSlogan(k));
     setQuick(true);
   };
-  const saName = (typeof SA_ROSTER !== "undefined" && SA_ROSTER[0]) ? SA_ROSTER[0].name : "Adviser";
+  // The Special Adviser is the player's choice (step 25), never a default.
+  const [saName, setSaName] = useState(null);
+  const [quickNext, setQuickNext] = useState(false); // Quick start: after choosing the adviser, go straight to the ticket
 
   // AGENDA_EFFECTS drives real gameplay each turn (see endTurn hook). Every option here
   // is a permanent multiplier on that domain plus a stakeholder tilt, so the choice is not cosmetic.
@@ -2477,9 +2522,33 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     </Flow>;
   }
 
-  // STEP 2.5: Meet your Special Adviser
-  if (step === 25) return (
-    <Flow n={2} kicker="Your team" title={"Meet " + saName} onBack={() => setStep(2)} cta={() => setStep(3)} ctaLabel="Let's get to work">
+  // STEP 2.5: Choose your Special Adviser. Each sees government differently;
+  // none of them is always right (see SYS.SA_LENSES).
+  if (step === 25) {
+    const picks = SYS.SA_SHORTLIST.map(n => SA_ROSTER.find(a => a.name === n)).filter(Boolean);
+    const cur = picks.find(a => a.name === saName);
+    return <Flow n={2} kicker="Your team" title="Choose your Special Adviser" onBack={() => setStep(quickNext ? 1 : 2)}
+      sub="They advise across the whole government. What they notice first, and what they miss, depends on who you pick."
+      cta={() => setStep(26)} ctaDisabled={!cur} ctaLabel={cur ? "Appoint " + cur.name : "Pick an adviser"} ctaNote={cur ? SYS.lensOf(cur.name).note : null}>
+      <div style={{ display: "grid", gap: 12 }}>
+        {picks.map((a, i) => { const L = SYS.lensOf(a.name); return <Tile key={a.name} tint={saName === a.name ? "#fff" : UI.tints[i % UI.tints.length]} on={saName === a.name} onClick={() => setSaName(a.name)}>
+          <span style={{ display: "flex", gap: 12, alignItems: "center", paddingRight: 34 }}>
+            <img src={saPortrait(a.name)} alt="" style={{ width: 64, height: 76, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: "rgba(255,255,255,.7)", flexShrink: 0 }} />
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: "block", fontWeight: 800, fontSize: DS.t.body }}>{a.name}</span>
+              <span style={{ display: "block", fontSize: DS.t.label, color: UI.sub }}>{L.nm} · {a.file}</span>
+            </span>
+          </span>
+          <span style={{ fontSize: DS.t.label, color: UI.ink, lineHeight: 1.4 }}><b>Good at:</b> {L.strength}</span>
+          <span style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.4 }}><b style={{ color: UI.ink }}>Blind spot:</b> {L.blind}</span>
+        </Tile>; })}
+      </div>
+    </Flow>;
+  }
+
+  // STEP 2.6: Meet the adviser you chose
+  if (step === 26 && saName) return (
+    <Flow n={2} kicker="Your team" title={"Meet " + saName} onBack={() => setStep(25)} cta={() => { if (quickNext) { setQuickNext(false); setStep(7); } else setStep(3); }} ctaLabel={quickNext ? "See the ticket" : "Let's get to work"}>
       <div style={{ display: "flex", flexDirection: TALL() ? "column" : "row", gap: 18, alignItems: TALL() ? "stretch" : "flex-start" }}>
         <div style={{ background: UI.tints[2], borderRadius: 28, display: "flex", justifyContent: "center", alignItems: "flex-end", height: TALL() ? 300 : 360, flex: TALL() ? "none" : "0 0 300px", overflow: "hidden" }}>
           <img src={saPortrait(saName)} alt={saName} className="sop-fade-in" style={{ height: "100%", width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
@@ -2495,7 +2564,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   // STEP 3: Agenda (10 options)
   if (step === 3) {
     const ag = AGENDAS.find(a => a.id === agenda);
-    return <Flow n={3} kicker="Step 3 of 7 · Your promise" title="What is your one big promise?" onBack={() => setStep(25)} wide
+    return <Flow n={3} kicker="Step 3 of 7 · Your promise" title="What is your one big promise?" onBack={() => setStep(26)} wide
       sub="Your flagship. The adviser, the news and your Wikipedia page will judge you by it."
       cta={() => setStep(4)} ctaDisabled={!agenda} ctaLabel={ag ? "Promise " + ag.nm : "Pick a promise"} ctaNote={ag ? ag.bonus : null}>
       <Grid2 min={220}>
@@ -2515,7 +2584,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       ctaNote={selectedParty && canAffordTicket ? "₦" + (warChest + ticketPaid - selectedParty.ticket).toFixed(1) + "B left for the campaign" : null}>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
         <span style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>💰 War chest ₦{(warChest + ticketPaid).toFixed(1)}B</span>
-        {gfDebt > 0 && <span style={{ background: UI.tints[1], borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>🎩 Owed to the godfather ₦{gfDebt}B</span>}
+        {gfDebt > 0 && <span style={{ background: UI.tints[1], borderRadius: 999, padding: "8px 16px", fontSize: DS.t.label, fontWeight: 700 }}>🎩 Owed to the godfather {SYS.fmtB(gfDebt)}</span>}
       </div>
       <div style={{ display: "grid", gap: 12 }}>
         {PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) || (customParty && p.id === customParty.id)).map((p, i) => {
@@ -2549,7 +2618,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
           })()}
         </div>
       </CivicPanel>}
-      {!gfBorrowed && (warChest < 0.5 || (party && !canAffordTicket)) && <Tile tint={UI.tints[1]} icon="🎩" onClick={() => { setWarChest(w => w + 1); setGfDebt(d => d + 1); setGfBorrowed(true); }} style={{ marginTop: 14 }}
+      {!gfBorrowed && (warChest < 0.5 || (party && !canAffordTicket)) && <Tile tint={UI.tints[1]} icon="🎩" onClick={() => { if (gfLoans.some(l => l.key === "ticket")) return; setWarChest(w => w + 1); takeGfLoan("ticket", 1, "Party ticket and campaign"); }} style={{ marginTop: 14 }}
         title="Borrow ₦1B from the godfather" sub={"It pays for the ticket and the campaign. You start in office owing him, with +5% corruption, and he will collect." + (party && !canAffordTicket ? " You need it for the " + party + " ticket." : "")} />}
     </Flow>;
   }
@@ -2727,7 +2796,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       const strike = ev && ev.hit ? oppStrike(after, ev.hit, level, week) : null;
       setSCampZones(strike ? strike.zones : after);
       if (strike) setSCampOpp(co => co + strike.pts);
-      if (opt.corAdd) setGfDebt(d => d + opt.corAdd * 3);
+      if (opt.corAdd) setFavours(f => Math.round((f + opt.corAdd) * 1000) / 1000);
       if (opt.appRisk && Math.random() < (hm ? .65 : .55)) { setSCampScore(cs => cs - 4); setSCampLog(c => [...c, "⚠️ Backfire: the negative campaign cost you support (\u22124)."]); }
       setSCampLog(c => [...c, (isOpp ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + (opt.days || 1) + (opt.days === 1 ? " day" : " days") + " · " + zoneLabel(opt.target)]);
       if (strike) setSCampLog(c => [...c, "🔻 " + oName.replace(/^Hon\. /, "") + "'s " + ev.hit.l + " cost you " + (strike.worstZone ? Math.abs(strike.worstD) + " points in " + strike.worstZone : "ground") + (strike.lost > 0 ? " (" + strike.lost + " statewide)" : "") + ". Answer it or it sticks."]);
@@ -2758,25 +2827,25 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     const restartElectionSetup = () => {
       setParty(null); setDepGov(null); setSlogan(null);
       setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null);
-      setWarChest(0.8); setTicketPaid(0); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setPreTrib(null);
+      setWarChest(0.8); setTicketPaid(0); setGfDebt(0); setFavours(0); setGfMandates([]); setPreTrib(null);
       setStep(4);
     };
 
     const borrowFromGF = () => {
       const amount = 0.8; // ₦800M from godfather
+      if (gfLoans.some(l => l.key === "campaign")) return;
       setWarChest(w => w + amount);
-      setGfDebt(d => d + amount);
-      setGfBorrowed(true);
+      takeGfLoan("campaign", amount, "Campaign money when the war chest ran low");
       setSCampLog(c => [...c, "🎩 GODFATHER: Borrowed ₦" + amount + "B from political godfather. This money comes with strings."]);
     };
 
     const borrowFromGFWithMandate = () => {
       const amount = 0.6;
+      if (gfLoans.some(l => l.key === "bailout")) return;
       const mandate = makeGfEducationMandate();
       addGfMandate(mandate);
       setWarChest(w => w + amount);
-      setGfDebt(d => d + amount);
-      setGfBorrowed(true);
+      takeGfLoan("bailout", amount, "Emergency bailout; his man becomes Education Commissioner");
       setSCampLog(c => [...c, "🎩 GODFATHER EMERGENCY BAILOUT: Borrowed ₦" + amount + "B. Condition accepted: " + mandate.name + " must become Commissioner for Education when ministries are convened."]);
     };
 
@@ -2814,7 +2883,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
               </div>;
             })()}
             {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36, padding: "29px", background: "#fff8f0", border: "1px solid " + CL.gold + "55", borderRadius: 17 }}>
-              <Bt onClick={() => { setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }} style={{ padding: "29px 50px", fontSize: TS(38) }}>😔 Try Again</Bt>
+              <Bt onClick={() => { setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }} style={{ padding: "29px 50px", fontSize: TS(38) }}>😔 Try Again</Bt>
               <Bt onClick={() => {
                 const zonesWon = collation.zonesWon;
                 const marginPts = Math.round(marginPct * 10) / 10;
@@ -2866,8 +2935,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
               </div>
             </Cd>
             {won && gfDebt > 0 && <Cd style={{ borderColor: CL.red + "44", marginBottom: 29, textAlign: "left" }}>
-              <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, fontFamily: F.m, marginBottom: 10 }}>🎩 GODFATHER DEBT: ₦{gfDebt}B</div>
-              <div style={{ fontSize: TS(34), color: CL.tm }}>You borrowed ₦{gfDebt}B from your political godfather to fund this campaign. He WILL come collecting. You start governance with +{Math.round(gfDebt * 5)}% corruption and the godfather expects contracts, land, and positions. Refuse him at your peril.</div>
+              <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, fontFamily: F.m, marginBottom: 10 }}>🎩 GODFATHER DEBT: {SYS.fmtB(gfDebt)}</div>
+              <div style={{ fontSize: TS(34), color: CL.tm }}>You borrowed {SYS.fmtB(gfDebt)} from your political godfather ({gfLoans.map(l => SYS.fmtM(l.amountM) + " · " + l.reason.toLowerCase()).join("; ")}). It is your personal debt, not the state's. He WILL come collecting. You start governance with +{Math.round(gfDebt * 5)}% corruption and the godfather expects contracts, land, and positions. Refuse him at your peril.</div>
             </Cd>}
             <Cd style={{ textAlign: "left", marginBottom: 36 }}>
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 10 }}>CAMPAIGN LOG</div>
@@ -2876,7 +2945,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
             <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>Campaign funds remaining: ₦{warChest.toFixed(1)}B</div>
             {won ? <Bt onClick={() => { setElection({ opp: oName, oppParty: oParty?.id || "OPP", zonesWon: collation.zonesWon, marginPct: Math.round(marginPct * 10) / 10, votes: collation.totalYou, oppVotes: collation.totalOpp }); setSCampRound(0); setStep(9); }} style={{ padding: "43px 113px" }}>PROCEED TO GOVERNMENT HOUSE →</Bt>
               : <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
-                  <Bt onClick={() => { setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }} style={{ padding: "43px 86px" }}>😔 Try Again</Bt>
+                  <Bt onClick={() => { setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }} style={{ padding: "43px 86px" }}>😔 Try Again</Bt>
                   <Bt onClick={() => {
                     const zonesWon = collation.zonesWon;
                     const marginPts = Math.round(marginPct * 10) / 10;
@@ -3014,7 +3083,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
               <div style={{ fontSize: TS(120) }}>😔</div>
               <h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(79), margin: "22px 0" }}>PETITION DISMISSED</h3>
               <p style={{ color: CL.txt, fontSize: TS(38), lineHeight: 1.5 }}>The Supreme Court has dismissed your petition. You spent ₦{preTrib.spent.toFixed(1)}B on legal fees and walk away with nothing but a legacy of a fight taken to the highest court in the land.</p>
-              <Bt onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }} style={{ padding: "43px 106px", marginTop: 36 }}>😔 Try Again</Bt>
+              <Bt onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }} style={{ padding: "43px 106px", marginTop: 36 }}>😔 Try Again</Bt>
             </Cd>
           )}
 
@@ -3030,7 +3099,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
                 </Cd>)}
               </div>
               <div style={{ textAlign: "center", marginTop: 36 }}>
-                <Bt v="ghost" onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }} style={{ fontSize: TS(34) }}>🏳️ Withdraw and try new campaign</Bt>
+                <Bt v="ghost" onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }} style={{ fontSize: TS(34) }}>🏳️ Withdraw and try new campaign</Bt>
               </div>
             </Cd>
           )}
@@ -3048,19 +3117,20 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
                 {warChest >= 5 && <Bt onClick={() => runHearing("bribe")} style={{ background: CL.red }}>💼 "Settle" the panel · ₦5B · +35% odds · risky corruption</Bt>}
                 {warChest < 3.5 && gfDebt < 6 && <Bt onClick={() => {
                   const amt = 2;
+                  const k = "petition" + gfLoans.filter(l => /^petition/.test(l.key)).length;
                   if (gfMandates.some(m => m.type === "commissioner" && m.ministryId === "educ")) {
-                    setWarChest(w => w + amt); setGfDebt(d => d + amt);
+                    setWarChest(w => w + amt); takeGfLoan(k, amt, "Legal fees for the election petition");
                     setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather wired another ₦" + amt + "B. Debt now ₦" + (gfDebt + amt).toFixed(1) + "B. He will want contracts for this one."] }));
                     return;
                   }
                   const mandate = makeGfEducationMandate();
                   addGfMandate(mandate);
                   setWarChest(w => w + amt);
-                  setGfDebt(d => d + amt);
+                  takeGfLoan(k, amt, "Legal fees for the election petition; Education Commissioner condition");
                   setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather wired ₦" + amt + "B for the petition. Debt now ₦" + (gfDebt + amt).toFixed(1) + "B. Condition accepted: " + mandate.name + " must be Commissioner for Education once ministries are convened."] }));
                 }} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2B from Godfather{gfMandates.some(m => m.type === "commissioner" && m.ministryId === "educ") ? " · he'll want contracts" : " · Education Commissioner condition"}</Bt>}
                 {warChest < 3.5 && gfDebt >= 6 && <div style={{ fontSize: TS(31), color: CL.red, textAlign: "center" }}>🎩 The godfather won't lend more: you already owe him ₦{gfDebt.toFixed(1)}B.</div>}
-                <Bt v="ghost" onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setGfBorrowed(false); setGfMandates([]); setStep(8); }}>🏳️ Withdraw petition — accept defeat</Bt>
+                <Bt v="ghost" onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }}>🏳️ Withdraw petition — accept defeat</Bt>
               </div>
             </Cd>
           )}
@@ -3100,7 +3170,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
           {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfMandates, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -3414,7 +3484,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const ld = loadedSave; // shorthand
   const [turn, setTurn] = useState(ld?.turn || 1);
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05, app: 55, debt: campaignGfDebt * .5, pStab: startingStab || 65,
+  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0), app: 55, debt: 0, pStab: startingStab || 65,
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
@@ -4015,6 +4085,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const addZ = (z, v) => { dZone[z] = (dZone[z] || 0) + v; };
     const r = rng(turn * 4241 + state.length * 17);
 
+    // The adviser's steady influence over the past year (SYS.SA_LENSES).
+    if (saOffice.adviser && turn > 1) {
+      const L = SYS.lensOf(saOffice.adviser.name), py = L.perYear || {};
+      if (py.app) dApp += py.app;
+      if (py.cor) dStat.cor = (dStat.cor || 0) + py.cor;
+      if (py.sec) dStat.sec = (dStat.sec || 0) + py.sec;
+      if (py.pStab) setS(p => ({ ...p, pStab: cl100(p.pStab + py.pStab) }));
+      notes.push(["🧭 " + saOffice.adviser.name + " (" + L.nm.toLowerCase() + "): " + L.note, "info"]);
+    }
+
     // Debt pushed into the next term comes back if you are still in office.
     if (next.defDebt && next.defDebt.due && turn >= next.defDebt.due) {
       const amt = next.defDebt.amt; setS(p => ({ ...p, debt: (p.debt || 0) + amt }));
@@ -4564,6 +4644,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (risky) return { urgent: true, icon: "🚧", title: "Unblock " + (risky.title || risky.name || "a stalled project"), body: "A stalled site becomes an opposition billboard. Visit, terminate, audit or renegotiate before it enters your Wikipedia controversies.", actionLabel: "Open Projects", action: () => goTab("prj") };
     if (s.cor > .45) return { urgent: true, icon: "🧾", title: "Publish an audit before EFCC does", body: "Corruption above 45% compounds through contracts, cabinet loyalty, press attacks and tribunal credibility.", actionLabel: "Open Wiki Bio", action: () => goTab("bio") };
     if (s.app < 40) return { urgent: true, icon: "📉", title: "Approval crisis: deliver something now", body: "Below 40% approval, the House blocks bills because members fear losing their seats with you.", actionLabel: "Open Projects", action: () => goTab("prj") };
+    // Nothing urgent: the adviser says what their outlook notices first.
+    const lensId = SYS.lensIdOf(saOffice.adviser.name);
+    if (turn > 1) return { urgent: false, icon: "🧭", title: SYS.lensRead(lensId, { s, stalled: (projects || []).filter(p => p.status === "suspended" || p.status === "abandoned").length }).replace(/\.$/, ""), body: "Your adviser's read (" + SYS.SA_LENSES[lensId].nm.toLowerCase() + "). Weigh it against the others: " + SYS.SA_LENSES[lensId].blind, actionLabel: "Open Govern", action: () => goTab("gov") };
     return { urgent: false, icon: "📥", title: "Inbox clear enough to sponsor a bill", body: "Quiet quarters are for agenda-setting: table a reform bill, strengthen procurement, or prepare for the next shock.", actionLabel: "Open Govern", action: () => goTab("gov") };
   };
 
@@ -9981,6 +10064,7 @@ const SA_ROSTER = [
   { name: "Amb. Bello Gimba",          title: "SA, Special Duties",                zone: "NC", avatar: "🧑🏾‍💼", file: "Retired diplomat · Nasarawa native", pic: "commissioner-male-suit" },
   { name: "Dr. Uche Onwuka",           title: "SA, Digital Economy",               zone: "SE", avatar: "👨🏾‍💻", file: "Ex-NITDA · Anambra tech entrepreneur", pic: "adviser-southeast-male" },
   { name: "Mai Musa Kachalla",         title: "SA, Traditional Institutions",      zone: "NE", avatar: "🧑🏾‍🏫", file: "Palace-trained · Kanuri elder", pic: "commissioner-male-agbada" },
+  { name: "Ms. Kemi Ajayi",           title: "SA, Media & Public Communication",  zone: "SW", avatar: "🎙️",  file: "Former newspaper editor · campaign spokesman", pic: "reporter" },
 ];
 
 
