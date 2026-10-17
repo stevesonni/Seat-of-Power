@@ -473,7 +473,7 @@
     const actions = logs.map(function (l) { return l.tx; });
     const whatYouDid = actions.length ? actions.slice(0, 6).map(function (a) {
       return '<div style="font-size:21px;color:' + txt + ';padding:6px 0;border-bottom:1px solid ' + border + '30;line-height:1.4">' + a + '</div>';
-    }).join("") : '<div style="font-size:21px;color:' + td + ';font-style:italic">No major actions recorded this half-year.</div>';
+    }).join("") : '<div style="font-size:21px;color:' + td + ';font-style:italic">No major actions recorded this year.</div>';
 
     // WHAT GOVERNMENT DID — derived from state changes
     const gov = [];
@@ -622,8 +622,8 @@
       </div>
     `;
 
-    // Mount hidden: the end-of-half-year screen already summarises the
-    // half-year, so the full review opens only from its "Full review" button.
+    // Mount hidden: the end-of-year screen already summarises the
+    // year, so the full review opens only from its "Full review" button.
     const stage = document.getElementById("sop-stage") || document.body;
     reviewEl.style.display = "none";
     stage.appendChild(reviewEl);

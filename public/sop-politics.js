@@ -454,12 +454,12 @@
     P.turnSeen = turn;
     if (turn < 1) return;
     advance(S);
-    if (turn % 2 === 0 || Math.random() < .55) {
+    if (turn > 1 || Math.random() < .55) { // once a year from Year 2
       const d = buildPressure(S);
       if (!d) return;
       // The same pressure, from the same person, is never put to you twice.
       if (P.history.some(function (h) { return h.title === d.title && h.who === d.who; })) return;
-      // Hand the card to the Desk, which shows it with the half-year's other
+      // Hand the card to the Desk, which shows it with the year's other
       // decisions and drops it if a core event already covers the topic.
       if (S.desk && S.desk.offer) {
         S.desk.offer({

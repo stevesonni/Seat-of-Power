@@ -3,3 +3,4 @@
    screen. The game reads them as window.SOP_SYS (set in main.js). */
 export * from "./money.js";
 export * from "./advisers.js";
+export * from "./agenda.js";

@@ -212,7 +212,7 @@
     const { s, turn, cab, ministries, projects, nepotismCount, council, bud } = SOP;
     const advice = [];
     if (s.cor > 0.45) advice.push({ tone:"red", txt:`Corruption is at ${Math.round(s.cor*100)}%. ICPC has an open file on your Works Ministry. Every naira loses ~${Math.round(s.cor*100)}% to leakage.` });
-    if (s.app < 40) advice.push({ tone:"org", txt:`Approval at ${Math.round(s.app)}%. Two more bad quarters and the House will scent blood. Lagos '05 lost a governor at 38%.` });
+    if (s.app < 40) advice.push({ tone:"org", txt:`Approval at ${Math.round(s.app)}%. Two more bad years and the House will scent blood. Lagos '05 lost a governor at 38%.` });
     if (s.sec < 0.35) advice.push({ tone:"red", txt:`Security is at ${Math.round(s.sec*100)}%. If you push federal too hard now, DSS may hand-brief the president. Recall what happened to El-Rufai/Wike axis.` });
     if (nepotismCount >= 3) advice.push({ tone:"red", txt:`${nepotismCount} nepotism flags on your record. Wikipedia editors have added a "Controversies" section. EFCC probability rising.` });
     if (ministries) {
@@ -428,7 +428,7 @@
             SOP_H('div',{style:{fontSize: TS(48),fontWeight:600,color:c.txt}}, `${m.icon} ${m.name}`),
             SOP_H('div',{style:{fontSize: TS(34),color:c.tm,marginTop: 7}}, `Minister: ${m.minister} · PS: ${m.permSec} · Staff: ${m.staff.toLocaleString()}`),
             m.godfatherMandate && SOP_H('div',{style:{fontSize: TS(31),color:c.red,marginTop: 10,fontWeight:700}}, `🎩 Godfather-imposed appointment from campaign bailout`),
-            ...((m.record || []).slice(-2).reverse().map((e, i) => SOP_H('div',{key:"rec"+i, style:{fontSize: TS(29), color: e.kind === "praise" ? c.grn : c.red, marginTop: 8, lineHeight: 1.35}}, (e.kind === "praise" ? "🏅 " : "⚠️ ") + "Half-year " + e.t + ": " + e.text))),
+            ...((m.record || []).slice(-2).reverse().map((e, i) => SOP_H('div',{key:"rec"+i, style:{fontSize: TS(29), color: e.kind === "praise" ? c.grn : c.red, marginTop: 8, lineHeight: 1.35}}, (e.kind === "praise" ? "🏅 " : "⚠️ ") + "Year " + e.t + ": " + e.text))),
           ]),
           SOP_H('div',{style:{display:"flex",gap: 14}},[
             SOP_H('input',{type:"checkbox", checked: mergeSel.includes(m.id), onChange:e=>{
@@ -518,6 +518,7 @@
           SOP_H('div',{key:"go",style:{marginTop: 18}}, SOP_H(Btn,{disabled: !draft.title.trim(), onClick:()=>{
             if (!draft.title.trim()) return;
             if (!SOP.ministries || !SOP.ministries.length) { alert("Set up your ministries first."); return; }
+            if (SOP.takeAgenda && !SOP.takeAgenda("project", draft.title.trim())) return; // a major action: counts against this year's agenda
             const proj = { id:"p_"+Date.now(), status:"pending_procurement", progress:0, events:[], ...draft };
             const min = SOP.ministries.find(m=>m.id===draft.ministryId);
             pushWiki(SOP, {section:"Governorship",txt:`Initiated ${draft.title} under ${min?.name || "a state ministry"}, with an estimated base cost of ₦${(+draft.baseCost || 0).toFixed(1)}B${draft.needsEIA ? (draft.eiaDone ? " after commissioning an Environmental Impact Assessment." : ", despite requiring an Environmental Impact Assessment.") : "."}`});
