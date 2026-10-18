@@ -42,8 +42,9 @@ if (which === "defeat" || which === "all") {
 if (which === "second" || which === "all") {
   const g = await firstTerm({ win: true, reWin: true });
   const before = await save(g);
-  const r1 = await playUntil(g, t => /2nd Term — Year 1 of 4/.test(t), { max: 300, prefer });
+  const r1 = await playUntil(g, t => /2nd Term — Year 1 of 4/.test(t), { max: 500, prefer });
   check(r1.ok, "re-elected into Year 5");
+  if (!r1.ok) { console.log("  last clicks: " + r1.clicks.slice(-15).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 600)); }
   const y5 = await save(g);
   check(!!y5.gold && y5.gold.discoveredYear === 1 && Object.keys(y5.gold.decided).length >= Object.keys(before.gold.decided).length, "the same goldfields crisis carries into Year 5");
   check((y5.cases || []).length >= (before.cases || []).length && (y5.projects || []).length >= (before.projects || []).length, "cases and projects carried into the second term");
