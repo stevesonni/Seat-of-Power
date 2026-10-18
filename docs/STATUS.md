@@ -1,5 +1,29 @@
 # Seat of Power — status (4 Oct)
 
+
+## Projects: approval → procurement dead end (fixed, 18 Oct)
+- **Cause (reproduced in the browser).**
+  - Capital programmes from the Policies step still used the old pipeline (`capProj` → `confirmCapital` → `pendingProc`).
+  - That pipeline's contractor screen (the old ProcurementModal) only rendered inside the old realism Projects panel, which Stage D unmounted.
+  - The adviser read `pendingProc` and said "Award a contractor…" with an "Open Projects" button. The new Projects tab listed the project as an "older file" with no actions.
+  - So the adviser and the Projects tab read different state, and the player reached an empty screen.
+- **Fix.**
+  - One pipeline: programmes now open the same propose → budget → money → contractor flow as custom projects.
+  - `SYS.nextStep(project)` (in `game/systems/projects.js`) is the single source for the adviser's message, its button, the project card's action and where the button goes.
+  - Each step is one of: due, with a named button ("Review road procurement"); blocked, with the reason and the real ways out; or nothing due, with when.
+- **Approval is only a budget.** Approval sets the budget: no contractor, nothing spent. Money arrives only when a loan offer is accepted. Work starts only at contract award.
+- **Blocked funding.** When every lender has said no, the project says Blocked and offers "Fit the scope to the budget" (`SYS.fitScope`) or "Defer indefinitely".
+- **Old saves (save v4).** `migrateOldProject` converts old-style projects on load. A project stuck in procurement becomes a normal project whose next step is procurement, or finance if it had no money arranged.
+- **The polished slice.**
+  - The project dossier has three layers: the situation, the decision tiles, and a "Full briefing".
+  - A seven-stage milestone strip comes from `SYS.milestoneOf`.
+  - Stamps appear only once a decision is in the project's record: Approved, Funded, Contract signed.
+  - The Special Adviser appears at the desk: portrait, one message, a primary button for the exact task, Why?, Later, mute, and a reduce-motion switch (the device setting is also respected).
+  - The desk shows a "What changed" strip.
+- **Tests.**
+  - `npm run e2e:projects` (`tests/e2e/projects.mjs`) covers: approve; follow the adviser; the right step opens; complete it; the project and the adviser both update; reload and resume; two projects; an old stuck save; and the funding blocker.
+  - Unit tests cover `nextStep`, `migrateOldProject` and `fitScope`.
+
 ## Removed: inauguration / First 100 Days and budget padding (Steve's decision)
 - `public/sop-first100.js` deleted (every DAY scene, including "The oath, and then the microphone", the three speech drafts and the "Name the missing ₦40bn" line), plus its script tag.
 - Budget padding step deleted: all "Padding your PA flagged" envelope cards (every sector) and their four choices, plus the Speaker's late-night constituency-project demand that lived in the same step. The budget itself (Batch F) stays; after a turn, play now goes straight to the budget.

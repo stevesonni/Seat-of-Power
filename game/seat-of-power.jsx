@@ -67,6 +67,9 @@ if (!window.storage) {
         always wrote phase:"budget".
    v2 → carries `sv`, `savedAt` and the serialised Historic Ledger,
         and stores the real phase.
+   v4 → every project uses the one project model (estimate, budget, money,
+        contractor); projects stuck waiting for the old procurement screen
+        are converted to their real next step.
    v3 → campaign loans are a list of accepted loans (setup.gfLoans) and
         patronage favours are separate (setup.favours). Older totals are
         cleaned of the ghost amounts patronage moves added (see
@@ -78,7 +81,7 @@ if (!window.storage) {
 // window.SOP_VATAR. Popups, downloads, clipboard and fullscreen are blocked
 // there, so those controls are hidden.
 const VATAR = typeof window !== "undefined" && !!window.SOP_VATAR;
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
 function migrateSave(d) {
   if (!d || typeof d !== "object") return d;
   if (!d.sv) {
@@ -89,6 +92,9 @@ function migrateSave(d) {
     d._migratedFrom = 1;
   }
   if (d.sv < 3 && d.setup) { d.setup = window.SOP_SYS.migrateCampaignLoans(d.setup); d._migratedFrom = d._migratedFrom || d.sv; }
+  // v4: projects from the old procurement model (some stuck at "Resume
+  // procurement" with no screen to resume on) become actionable projects.
+  if (d.sv < 4 && Array.isArray(d.projects)) { d.projects = d.projects.map(p => window.SOP_SYS.migrateOldProject(p, d.turn || 1)); d.pendingProc = null; d._migratedFrom = d._migratedFrom || d.sv; }
   d.sv = SAVE_VERSION;
   scrubRemovedContent(d);
   return renameParties(d);
@@ -3513,166 +3519,244 @@ const SecondChance = () => {
   </Cd>;
 };
 // ─── PROJECTS (rules in SYS: projects.js, loans.js, proposals.js) ───
-// The portfolio and the path of a new project: proposal → budget plan →
-// financing (offer letters) → contractor → yearly delivery and recovery.
-const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, agendaLeft }) => {
-  const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(31), l: TS(44) };
-  const card = { background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "12px 14px" : "16px 20px", marginBottom: 12 };
-  const field = { padding: 12, fontSize: fz.m, border: "1px solid " + CL.bdr, borderRadius: 10, width: "100%", boxSizing: "border-box", background: "#fff", color: CL.txt, fontFamily: F.b };
-  const lab = (t) => <div style={{ fontSize: fz.s, fontWeight: 800, color: CL.grn, margin: "12px 0 6px" }}>{t}</div>;
-  const row = (k, v, bad) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: fz.s, padding: "3px 0" }}><span style={{ color: CL.td }}>{k}</span><b style={{ color: bad ? CL.red : CL.txt, textAlign: "right" }}>{v}</b></div>;
-  const opt = (key, title, note, on, onClick, disabled) => <button key={key} disabled={disabled} onClick={onClick} style={{ textAlign: "left", width: "100%", padding: "10px 14px", borderRadius: 14, border: "2px solid " + (on ? CL.grn : CL.bdr), background: disabled ? CL.bg : on ? CL.grn + "10" : CL.card, cursor: disabled ? "not-allowed" : "pointer", marginBottom: 8, fontFamily: F.b, color: CL.txt, opacity: disabled ? .55 : 1 }}><b style={{ display: "block", fontSize: fz.m }}>{title}</b>{note && <span style={{ fontSize: fz.s, color: CL.tm }}>{note}</span>}</button>;
-  const F0 = flow;
+// Every screen has three layers: the situation (a headline and a sentence),
+// the decision (cards with real figures and only the actions the simulation
+// supports), and an optional full briefing. Milestones and the next step
+// come from SYS.milestoneOf / SYS.nextStep, so what you see is what is true.
+const SECTOR_ICON = { roads: "🛣️", health: "🏥", education: "🏫", water: "🚰", energy: "⚡", markets: "🏬", security: "🛡️", waste: "♻️", industry: "🏭", sports: "🏟️" };
+const MilestoneStrip = ({ at }) => <div className="sp-ms" role="list" aria-label="Project stages">
+  {SYS.MILESTONES.map(([k, l], i) => <div key={k} role="listitem" className={"s" + (i < at ? " done" : i === at ? " now" : "")} aria-current={i === at ? "step" : undefined}><span>{l}</span></div>)}
+</div>;
+const Tiles = ({ items }) => <div className="sp-tiles">{items.filter(Boolean).map(([l, v, tone]) => <div key={l} className={"sp-tile" + (tone ? " " + tone : "")}><div className="l">{l}</div><div className="v">{v}</div></div>)}</div>;
+const Dossier = ({ icon, kicker, title, place, at, children, wide }) => <div className="sp-card sp-step" style={{ maxWidth: wide ? 980 : 900, margin: "0 auto", padding: TALL() ? "16px 16px 18px" : "22px 26px 24px" }}>
+  <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+    <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: 16, background: "linear-gradient(180deg,#fff7e2,#f1e2b8)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, boxShadow: "inset 0 0 0 1px #e7d6a8" }}>{icon}</div>
+    <div style={{ minWidth: 0 }}>
+      {kicker && <div className="sp-kicker">{kicker}</div>}
+      <div style={{ font: "700 " + (TALL() ? 24 : 30) + "px/1.15 'Fraunces', Georgia, serif", color: "#17301f", marginTop: 3 }}>{title}</div>
+      {place && <div style={{ font: "600 14px 'Plus Jakarta Sans', sans-serif", color: "#7a6c4c", marginTop: 2 }}>{place}</div>}
+    </div>
+  </div>
+  {at != null && <div style={{ margin: "14px 0 4px" }}><MilestoneStrip at={at} /></div>}
+  {children}
+</div>;
+const Situation = ({ head, text, tone }) => <div style={{ margin: "14px 0 12px", padding: "12px 14px", borderRadius: 16, background: tone === "bad" ? "#fdf0ee" : tone === "warn" ? "#fdf6e7" : "#f1f7f1", borderLeft: "4px solid " + (tone === "bad" ? "#b3261e" : tone === "warn" ? "#c9922a" : "#0b6b42") }}>
+  <div style={{ font: "800 18px/1.3 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{head}</div>
+  {text && <div style={{ font: "500 15px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginTop: 3 }}>{text}</div>}
+</div>;
+const Brief = ({ children, label = "Full briefing" }) => <details className="sp-brief" style={{ marginTop: 10, borderTop: "1px solid #eee3cb", paddingTop: 4 }}><summary>{label}</summary><div style={{ font: "500 14px/1.5 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", paddingBottom: 6 }}>{children}</div></details>;
+const Actions = ({ children }) => <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", flexWrap: "wrap", marginTop: 14 }}>{children}</div>;
+const spField = { padding: "11px 12px", font: "600 16px 'Plus Jakarta Sans', sans-serif", border: "1.5px solid #e2d7bd", borderRadius: 12, width: "100%", boxSizing: "border-box", background: "#fff", color: "#17301f" };
+const spLab = (t) => <div className="sp-kicker" style={{ margin: "12px 0 6px" }}>{t}</div>;
+// The milestone strip moves from where the project was to where it is now,
+// so an advance is seen happening (CSS transitions; none with reduced motion).
+const MilestoneMove = ({ from, at }) => {
+  const [shown, setShown] = useState(from != null && from < at ? from : at);
+  useEffect(() => { if (shown === at) return; const t = setTimeout(() => setShown(at), 650); return () => clearTimeout(t); }, [at]);
+  return <MilestoneStrip at={shown} />;
+};
+// A rubber stamp over the page, once, for a decision that has been recorded.
+const StampOnce = ({ text, sub, green, sound = "gavel" }) => {
+  const [on, setOn] = useState(true);
+  useEffect(() => { try { window.SOP_sound && window.SOP_sound(sound); } catch (e) {} const t = setTimeout(() => setOn(false), 1700); return () => clearTimeout(t); }, []);
+  return on ? <div className="sp-stamp-wrap" aria-hidden="true"><div className={"sp-stamp" + (green ? " green" : "")}>{text}{sub && <small>{sub}</small>}</div></div> : null;
+};
+// Reduced motion: the device setting, or the player's own switch.
+const spStill = () => { try { return localStorage.getItem("sop_still") === "1"; } catch (e) { return false; } };
+const setSpStill = (v) => { try { localStorage.setItem("sop_still", v ? "1" : "0"); } catch (e) {} try { document.documentElement.classList.toggle("sp-still", !!v); } catch (e) {} };
+try { document.documentElement.classList.toggle("sp-still", spStill()); } catch (e) {}
+/* The Special Adviser, at the desk: one short message, one button that
+   opens the exact task, the reasoning on request, and Later. */
+const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn, onSound }) => {
+  const [open, setOpen] = useState(false), [still, setStill] = useState(spStill());
+  const ico = { minHeight: 36, padding: "4px 10px", fontSize: 14 };
+  return <div className={"sp-card sp-adviser " + (alert ? "alert" : "calm")} role="status" aria-live="polite">
+    {name ? <img className="pic" src={saPortrait(name)} alt={"Portrait of " + name} /> : <div className="pic" aria-hidden="true" style={{ display: "grid", placeItems: "center", fontSize: 30 }}>🪑</div>}
+    <div style={{ minWidth: 0 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
+        <div style={{ minWidth: 0 }}><b style={{ font: "800 16px 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{name || "The adviser's desk"}</b><div className="sp-kicker" style={{ marginTop: 3 }}>Special Adviser · by your desk</div></div>
+        <div style={{ display: "flex", gap: 2, flexShrink: 0 }}>
+          {onSound && <button className="sp-btn quiet" style={ico} aria-pressed={!soundOn} aria-label={soundOn ? "Mute sounds" : "Turn sounds on"} onClick={onSound}>{soundOn ? "🔊" : "🔇"}</button>}
+          <button className="sp-btn quiet" style={ico} aria-pressed={still} aria-label={still ? "Turn animations on" : "Reduce motion"} title="Reduce motion" onClick={() => { setSpStill(!still); setStill(!still); }}>{still ? "◻" : "✨"}</button>
+        </div>
+      </div>
+      <div className="sp-bubble">{say}</div>
+      {open && why && <div style={{ font: "500 14px/1.5 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", padding: "8px 2px 0" }}>{why}</div>}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+        {action && <button className="sp-btn" onClick={onAction}>{action}</button>}
+        {why && <button className="sp-btn quiet" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Hide why" : "Why?"}</button>}
+        {onLater && <button className="sp-btn quiet" onClick={onLater}>Later</button>}
+      </div>
+    </div>
+  </div>;
+};
+// What changed because of the last decision.
+const Consequence = ({ text, icon = "✅" }) => text ? <div className="sp-con" role="status"><span aria-hidden="true" style={{ fontSize: 20 }}>{icon}</span><span><b>What changed:</b> {text}</span></div> : null;
 
-  // ── 1. The proposal ──
+const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound }) => {
+  const F0 = flow;
+  const proj = F0 && F0.projId ? projects.find(x => x.id === F0.projId) : null;
+  const where = (p) => [p.lga, (ministries || []).find(m => m.id === p.ministryId)?.name].filter(Boolean).join(" · ");
+
+  // ── 1. Proposal: what, where, how big ──
   if (F0 && F0.step === "propose") {
-    const P = F0.parsed;
-    const MIN_FOR = { health: "health", education: "educ", security: "sec" };
-    const d0 = F0.draft || {};
+    const P = F0.parsed, MIN_FOR = { health: "health", education: "educ", security: "sec" }, d0 = F0.draft || {};
     const d = d0.type && !d0.ministryId ? { ...d0, ministryId: ((ministries || []).find(m => m.id === (MIN_FOR[SYS.TYPE_SECTOR[d0.type]] || "works")) || (ministries || [])[0] || {}).id } : d0;
     const est = d.type ? SYS.estimate(d.type, d.qty) : null;
-    return <Cd style={{ maxWidth: 900 }}>
-      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 8px", color: CL.txt }}>A new project</h3>
-      {(needs || []).length > 0 && <>{lab("Answer one of the state's needs")}{needs.slice(0, 4).map(n => opt(n.id, n.label, null, d.need === n.id, () => onFlow({ ...F0, draft: { ...SYS.parseProposal(n.type + " in " + (n.lga || ""), { lgas }).proposal, title: n.label.replace(/^\S+\s/, ""), need: n.id, ministryId: d.ministryId }, parsed: null })))}</>}
-      {lab("Or describe it in your own words")}
-      <textarea value={F0.text || ""} onChange={e => onFlow({ ...F0, text: e.target.value })} rows={2} placeholder="e.g. A 120-bed maternity hospital in Oredo" style={{ ...field, resize: "vertical" }} />
-      <div style={{ marginTop: 8 }}><Bt v="ghost" onClick={() => { const r = SYS.parseProposal(F0.text, { lgas }); onFlow({ ...F0, parsed: r, draft: r.status === "ok" ? { ...r.proposal, title: r.proposal.name, ministryId: d.ministryId } : d }); }}>Read it</Bt></div>
-      {P && P.status === "clarify" && <div style={{ ...card, marginTop: 10 }}><div style={{ fontSize: fz.m, marginBottom: 8 }}>{P.question}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name, ministryId: d.ministryId } }); }} style={{ border: "1px solid " + CL.bdr, background: CL.bg, borderRadius: 999, padding: "6px 12px", fontSize: fz.s, cursor: "pointer", fontFamily: F.b }}>{SYS.UNIT[c].nm}</button>)}</div></div>}
-      {P && P.status === "unsupported" && <div style={{ ...card, marginTop: 10, borderColor: CL.org + "66", fontSize: fz.m, color: CL.txt }}>Not something the state can build: {P.why}</div>}
-      {d.type && est && <div style={{ ...card, marginTop: 12 }}>
-        <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>How the Ministry reads it. Check before you commit.</div>
-        {lab("Name")}<input value={d.title || ""} onChange={e => onFlow({ ...F0, draft: { ...d, title: e.target.value } })} style={field} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div>{lab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need } }); }} style={field}>{Object.keys(SYS.UNIT).map(k => <option key={k} value={k}>{SYS.UNIT[k].nm}</option>)}</select></div>
-          <div>{lab("Size (" + est.unit + "s)")}<input type="number" min={1} value={d.qty} onChange={e => onFlow({ ...F0, draft: { ...d, qty: Math.max(1, +e.target.value || 1) } })} style={field} /></div>
+    const ready = d.type && d.lga && d.ministryId && (d.title || "").trim();
+    return <Dossier icon={d.type ? SECTOR_ICON[SYS.TYPE_SECTOR[d.type]] : "🏗️"} kicker="New project" title={d.title || "What will you build?"} place={d.lga ? d.lga : null} at={0}>
+      <Situation head={d.type ? "Check the proposal, then set its budget." : "Describe it, or answer one of the state's needs."} text={d.need ? "This answers: " + ((needs || []).find(n => n.id === d.need) || {}).label?.replace(/^\S+\s/, "") + "." : null} />
+      {!d.type && <>
+        {(needs || []).length > 0 && <div style={{ display: "grid", gap: 8 }}>{needs.slice(0, 4).map(n => <button key={n.id} className="sp-opt" onClick={() => { const r = SYS.parseProposal(n.type + " in " + (n.lga || ""), { lgas }); onFlow({ ...F0, draft: { ...r.proposal, title: n.label.replace(/^\S+\s/, ""), need: n.id } }); }}><b style={{ fontSize: 16 }}>{n.label}</b></button>)}</div>}
+        {spLab("In your own words")}
+        <textarea value={F0.text || ""} onChange={e => onFlow({ ...F0, text: e.target.value })} rows={2} placeholder="e.g. A 120-bed maternity hospital in Oredo" style={{ ...spField, resize: "vertical" }} />
+        <Actions><button className="sp-btn ghost" onClick={() => { const r = SYS.parseProposal(F0.text, { lgas }); onFlow({ ...F0, parsed: r, draft: r.status === "ok" ? { ...r.proposal, title: r.proposal.name } : d }); }}>Read it</button></Actions>
+        {P && P.status === "clarify" && <Situation tone="warn" head={P.question} text={null} />}
+        {P && P.status === "clarify" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} className="sp-btn ghost" style={{ minHeight: 40, padding: "6px 14px", fontSize: 15 }} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name } }); }}>{SYS.UNIT[c].nm}</button>)}</div>}
+        {P && P.status === "unsupported" && <Situation tone="bad" head="Not something the state can build" text={P.why} />}
+      </>}
+      {d.type && est && <>
+        <Tiles items={[["Cost to build", SYS.fmtM(est.buildM)], est.facility && ["To equip", SYS.fmtM(est.equipM)], est.facility && ["To run", SYS.fmtM(est.opsPerYearM) + "/yr"], ["Takes about", est.years + (est.years === 1 ? " year" : " years")]]} />
+        <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: "0 12px" }}>
+          <div>{spLab("Name")}<input value={d.title || ""} onChange={e => onFlow({ ...F0, draft: { ...d, title: e.target.value } })} style={spField} /></div>
+          <div>{spLab("Where")}<select value={d.lga || ""} onChange={e => onFlow({ ...F0, draft: { ...d, lga: e.target.value || null } })} style={spField}><option value="">Pick a local government</option>{lgas.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
+          <div>{spLab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need, srcPolicy: d.srcPolicy, ministryId: null } }); }} style={spField}>{Object.keys(SYS.UNIT).map(k => <option key={k} value={k}>{SYS.UNIT[k].nm}</option>)}</select></div>
+          <div>{spLab("Size (" + est.unit + "s)")}<input type="number" min={1} value={d.qty} onChange={e => onFlow({ ...F0, draft: { ...d, qty: Math.max(1, +e.target.value || 1) } })} style={spField} /></div>
+          <div>{spLab("Supervising ministry")}<select value={d.ministryId || ""} onChange={e => onFlow({ ...F0, draft: { ...d, ministryId: e.target.value } })} style={spField}>{(ministries || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
         </div>
-        {lab("Where")}<select value={d.lga || ""} onChange={e => onFlow({ ...F0, draft: { ...d, lga: e.target.value || null } })} style={field}><option value="">Pick a local government</option>{lgas.map(l => <option key={l} value={l}>{l}</option>)}</select>
-        {lab("Supervising ministry")}<select value={d.ministryId || ""} onChange={e => onFlow({ ...F0, draft: { ...d, ministryId: e.target.value } })} style={field}>{(ministries || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-        <div style={{ marginTop: 12 }}>
-          {row("Sector", SYS.SECTORS[SYS.TYPE_SECTOR[d.type]])}
-          {row("Estimated cost to build", SYS.fmtM(est.buildM))}
-          {est.facility && row("To equip it (once)", SYS.fmtM(est.equipM))}
-          {est.facility && row("To staff and run it", SYS.fmtM(est.opsPerYearM) + " a year")}
-          {row("Typical time", est.years + (est.years === 1 ? " year" : " years"))}
-          {row("Needs", SYS.SECTORS[SYS.TYPE_SECTOR[d.type]] + " contractor")}
-        </div>
-        {d.benefit && <div style={{ fontSize: fz.s, color: CL.tm, marginTop: 8 }}>What it should give: {d.benefit}</div>}
-        {(d.assumptions || []).map((a, i) => <div key={i} style={{ fontSize: fz.s, color: CL.org, marginTop: 4 }}>• {a}</div>)}
-      </div>}
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
-        <Bt v="ghost" onClick={() => onFlow(null)}>Cancel</Bt>
-        <Bt disabled={!d.type || !d.lga || !d.ministryId || !(d.title || "").trim()} onClick={() => { const e = SYS.estimate(d.type, d.qty); onFlow({ ...F0, step: "plan", plan: { approvedM: e.buildM, thisYearM: Math.round(e.buildM / e.years), choice: null } }); }}>Next: the budget →</Bt>
-      </div>
-    </Cd>;
+        <Brief>
+          {d.benefit && <div><b>What it should give:</b> {d.benefit}</div>}
+          <div><b>Needs:</b> a {SYS.SECTORS[SYS.TYPE_SECTOR[d.type]].toLowerCase()} contractor{est.facility ? "; then " + SYS.FACILITY[d.type].what + " before it serves anyone" : ""}.</div>
+          {(d.assumptions || []).map((a, i) => <div key={i} style={{ color: "#9a5b12" }}>• {a}</div>)}
+          <div style={{ marginTop: 4, color: "#7a6c4c" }}>Costs are the game's planning figures, not real tender prices.</div>
+        </Brief>
+      </>}
+      <Actions>
+        <button className="sp-btn quiet" onClick={() => onFlow(null)}>Cancel</button>
+        <button className="sp-btn" disabled={!ready} onClick={() => { const e = SYS.estimate(d.type, d.qty); onFlow({ ...F0, draft: d, step: "plan", plan: { approvedM: e.buildM, thisYearM: Math.round(e.buildM / e.years), choice: null } }); }}>Next: the budget →</button>
+      </Actions>
+    </Dossier>;
   }
 
-  // ── 2. The budget plan: phasing or shortfall ──
+  // ── 2. The budget: phasing or a gap ──
   if (F0 && F0.step === "plan") {
     const d = F0.draft, e = SYS.estimate(d.type, d.qty), P = F0.plan;
     const a = SYS.assessFunding({ needM: e.buildM, approvedM: P.approvedM, thisYearM: P.thisYearM, years: e.years });
-    const room = roomM(SYS.TYPE_SECTOR[d.type]);
-    const overRoom = P.thisYearM > room;
-    const choices = { increase: ["Increase the budget to the full cost", "Approve " + SYS.fmtM(e.buildM) + "."], reduce: ["Reduce the scope to fit the money", "About " + Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)) + " " + e.unit + "s instead of " + d.qty + "."], finance: ["Seek financing for the gap", "Apply to lenders for " + SYS.fmtM(Math.max(a.shortM, P.thisYearM - room)) + "."], defer: ["Defer it", "Nothing starts this year. No agenda used."], proceed: ["Go ahead anyway", "On the record: you were warned the money runs out first."] };
-    return <Cd style={{ maxWidth: 900 }}>
-      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 8px", color: CL.txt }}>{d.title}: the budget</h3>
-      {row("The scope costs", SYS.fmtM(e.buildM) + " over about " + e.years + (e.years === 1 ? " year" : " years"))}
-      {row("The " + SYS.BUDGET_LINE[SYS.TYPE_SECTOR[d.type]] + " budget can pay this year", SYS.fmtM(room), room < P.thisYearM)}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <div>{lab("Total budget you approve (₦M)")}<input type="number" min={0} step={50} value={P.approvedM} onChange={x => onFlow({ ...F0, plan: { ...P, approvedM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={field} /></div>
-        <div>{lab("This year's share (₦M)")}<input type="number" min={0} step={50} value={P.thisYearM} onChange={x => onFlow({ ...F0, plan: { ...P, thisYearM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={field} /></div>
+    const room = roomM(SYS.TYPE_SECTOR[d.type]), gap = Math.max(a.shortM, P.thisYearM - room), overRoom = P.thisYearM > room;
+    const choices = { increase: ["Approve the full cost", "Set the budget to " + SYS.fmtM(e.buildM) + "."], reduce: ["Cut the scope to fit", "About " + Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)) + " " + e.unit + "s instead of " + d.qty + "."], finance: ["Seek financing", "Apply to lenders for " + SYS.fmtM(gap) + ". No debt until you accept an offer."], defer: ["Defer it", "Nothing starts this year. No agenda used."], proceed: ["Go ahead anyway", "On the record: you were warned the money runs out first."] };
+    const head = a.kind === "short" ? "Funding gap: " + SYS.fmtM(a.shortM) : overRoom ? "This year's share is more than the budget line can pay" : a.kind === "phased" ? "Phased over " + e.years + (e.years === 1 ? " year" : " years") : "Fully funded";
+    return <Dossier icon={SECTOR_ICON[SYS.TYPE_SECTOR[d.type]]} kicker="Budget" title={d.title} place={d.lga} at={0}>
+      <Situation tone={a.kind === "short" ? "bad" : overRoom ? "warn" : null} head={head} text={a.kind === "short" ? "The project cannot proceed as planned. Close the gap, cut the scope, or go ahead knowing the money runs out first." : overRoom ? "The " + SYS.BUDGET_LINE[SYS.TYPE_SECTOR[d.type]] + " budget can pay " + SYS.fmtM(room) + " this year; the rest must be borrowed or the work slows." : "Approval sets the budget. It is not a contract: nothing is paid until a contractor is chosen."} />
+      <Tiles items={[["Estimated cost", SYS.fmtM(e.buildM)], ["Approved", SYS.fmtM(P.approvedM), a.kind === "short" ? "bad" : null], ["Funding gap", SYS.fmtM(Math.max(0, a.shortM)), a.shortM ? "bad" : "good"], ["Budget line can pay", SYS.fmtM(room), overRoom ? "bad" : null]]} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div>{spLab("Total budget (₦M)")}<input type="number" min={0} step={50} value={P.approvedM} onChange={x => onFlow({ ...F0, plan: { ...P, approvedM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={spField} /></div>
+        <div>{spLab("This year (₦M)")}<input type="number" min={0} step={50} value={P.thisYearM} onChange={x => onFlow({ ...F0, plan: { ...P, thisYearM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={spField} /></div>
       </div>
-      <div style={{ ...card, marginTop: 12, borderColor: a.kind === "short" ? CL.red + "66" : CL.bdr }}>
-        <b style={{ fontSize: fz.m, color: a.kind === "short" ? CL.red : a.kind === "phased" ? CL.org : CL.grn }}>{a.kind === "short" ? "⚠️ Underfunded" : a.kind === "phased" ? "Phased funding" : "Fully funded"}</b>
-        <div style={{ fontSize: fz.s, color: CL.tm, marginTop: 4 }}>{a.text}{overRoom ? " This year's share is more than the budget line can pay: the rest must be borrowed or the work slows." : ""}</div>
-      </div>
-      {(a.kind === "short" || overRoom) && <div>{lab("What will you do?")}{(a.kind === "short" ? a.options : ["finance", "proceed"]).map(k => opt(k, choices[k][0], choices[k][1], P.choice === k, () => onFlow({ ...F0, plan: { ...P, choice: k } })))}</div>}
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
-        <Bt v="ghost" onClick={() => onFlow({ ...F0, step: "propose" })}>‹ Back</Bt>
-        <Bt disabled={(a.kind === "short" || overRoom) && !P.choice} onClick={() => onConfirmPlan(F0, a, overRoom)}>{P.choice === "defer" ? "Defer" : "Approve the project (uses 1 of " + agendaLeft + " major actions)"}</Bt>
-      </div>
-    </Cd>;
+      {(a.kind === "short" || overRoom) && <div style={{ display: "grid", gap: 8, marginTop: 12 }}>{(a.kind === "short" ? a.options : ["finance", "proceed"]).map(k => <button key={k} className="sp-opt" aria-pressed={P.choice === k} onClick={() => onFlow({ ...F0, plan: { ...P, choice: k } })}><b style={{ display: "block", fontSize: 16 }}>{choices[k][0]}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{choices[k][1]}</span></button>)}</div>}
+      <Brief><div>{a.text}</div><div style={{ marginTop: 4 }}>Phasing (the whole scope funded over several years) is normal. A gap (approving less than the scope costs) means work stops when the money does, quality suffers, and the site may be abandoned.</div></Brief>
+      <Actions>
+        <button className="sp-btn quiet" onClick={() => onFlow({ ...F0, step: "propose" })}>‹ Back</button>
+        <button className="sp-btn" disabled={(a.kind === "short" || overRoom) && !P.choice} onClick={() => onConfirmPlan(F0, a, overRoom)}>{P.choice === "defer" ? "Defer" : "Approve the project"}</button>
+      </Actions>
+      <div style={{ textAlign: "right", font: "600 13px 'Plus Jakarta Sans', sans-serif", color: "#7a6c4c", marginTop: 6 }}>Approving uses 1 of your {agendaLeft} major actions this year.</div>
+    </Dossier>;
   }
 
-  // ── 3. Financing: apply, then an offer letter ──
-  if (F0 && F0.step === "finance") {
-    const p = projects.find(x => x.id === F0.projId); if (!p) return null;
-    return <Cd style={{ maxWidth: 900 }}>
-      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 4px", color: CL.txt }}>Financing {p.title}</h3>
-      <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 10 }}>You need {SYS.fmtM(F0.needM)}. Applying is free and creates no debt; only an accepted offer does.</div>
-      {F0.offer ? <div style={{ ...card, borderColor: CL.grn + "66" }}>
-        <b style={{ fontSize: fz.m, color: CL.grn }}>Offer from {F0.offer.lender}</b>
-        {row("Amount", SYS.fmtM(F0.offer.principalM))}{row("Interest", Math.round(F0.offer.rate * 1000) / 10 + "% a year")}{row("Repaid over", F0.offer.years + " years")}
-        {row("About", SYS.fmtM(F0.offer.serviceM) + " a year")}{row("Total you repay", SYS.fmtM(F0.offer.repayM), true)}
-        <div style={{ fontSize: fz.s, color: CL.tm, margin: "6px 0 10px" }}>Conditions: {F0.offer.conditions}</div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}><Bt v="ghost" onClick={() => onFlow({ ...F0, offer: null, tried: [...(F0.tried || []), F0.offer.lenderId] })}>Decline the offer</Bt><Bt onClick={() => onAcceptOffer(F0)}>Accept: disburse {SYS.fmtM(F0.offer.principalM)}</Bt></div>
+  // ── 3. Money: apply, then an offer letter ──
+  if (F0 && F0.step === "finance" && proj) {
+    return <Dossier icon={SECTOR_ICON[proj.sector]} kicker="Find the money" title={proj.title} place={where(proj)} at={SYS.milestoneOf(proj)}>
+      <Situation head={"It needs " + SYS.fmtM(F0.needM) + " from a lender"} text="Applying is free and creates no debt. Only an offer you accept does." />
+      {F0.offer ? <div className="sp-card" style={{ padding: "16px 18px", background: "#fff", borderColor: "#cfe6d6" }}>
+        <div className="sp-kicker" style={{ color: "#0b6b42" }}>Offer letter</div>
+        <div style={{ font: "700 20px 'Fraunces', serif", color: "#17301f", margin: "4px 0 10px" }}>{F0.offer.lender}</div>
+        <Tiles items={[["Amount", SYS.fmtM(F0.offer.principalM)], ["Interest", Math.round(F0.offer.rate * 1000) / 10 + "% a year"], ["Each year", SYS.fmtM(F0.offer.serviceM)], ["You repay", SYS.fmtM(F0.offer.repayM), "bad"]]} />
+        <div style={{ font: "500 14px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginTop: 8 }}>Over {F0.offer.years} years. {F0.offer.conditions}</div>
+        <Actions><button className="sp-btn ghost" onClick={() => onFlow({ ...F0, offer: null, tried: [...(F0.tried || []), F0.offer.lenderId] })}>Decline</button><button className="sp-btn gold" onClick={() => onAcceptOffer(F0)}>Accept and receive {SYS.fmtM(F0.offer.principalM)}</button></Actions>
       </div> : <>
-        {F0.letter && <div style={{ ...card, borderColor: CL.red + "55", fontSize: fz.s }}><b style={{ color: CL.red }}>{F0.letter.lender}: declined.</b> {F0.letter.reasons.filter(r => r[0] === "✗").map(r => r.slice(2)).join(" ") || "Their credit committee said no."}</div>}
-        {Object.entries(SYS.LENDERS).map(([k, L]) => opt(k, L.nm + " · " + L.lender, "About " + Math.round(L.rate * 100) + "% interest over " + L.years + " years" + ((F0.tried || []).includes(k) ? " · already answered" : ""), false, () => onApplyLoan(F0, k), (F0.tried || []).includes(k)))}
+        {F0.letter && <Situation tone="bad" head={F0.letter.lender + " said no"} text={F0.letter.reasons.filter(r => r[0] === "✗").map(r => r.slice(2)).join(" ") || "Their credit committee declined."} />}
+        <div style={{ display: "grid", gap: 8 }}>{Object.entries(SYS.LENDERS).map(([k, L]) => <button key={k} className="sp-opt" disabled={(F0.tried || []).includes(k)} onClick={() => onApplyLoan(F0, k)}><b style={{ display: "block", fontSize: 16 }}>{L.nm}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{L.lender} · about {Math.round(L.rate * 100)}% over {L.years} years{(F0.tried || []).includes(k) ? " · already answered" : ""}</span></button>)}</div>
       </>}
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}><Bt v="ghost" onClick={() => onFlow({ step: "contractor", projId: p.id })}>Go on without a loan →</Bt></div>
-    </Cd>;
+      <Actions><button className="sp-btn quiet" onClick={() => onFlow({ step: "contractor", projId: proj.id })}>Go on without a loan</button><button className="sp-btn quiet" onClick={() => onFlow(null)}>Later</button></Actions>
+    </Dossier>;
   }
 
-  // ── 4. The contractor ──
-  if (F0 && F0.step === "contractor") {
-    const p = projects.find(x => x.id === F0.projId); if (!p) return null;
-    const list = SYS.eligible(p.type, projects), meth = F0.method || "open";
-    const bar = (v) => <span style={{ display: "inline-block", width: 60, height: 6, borderRadius: 3, background: CL.bdr, verticalAlign: "middle", overflow: "hidden", marginLeft: 6 }}><span style={{ display: "block", height: "100%", width: Math.round(v * 100) + "%", background: v > .75 ? CL.grn : v > .55 ? CL.org : CL.red }} /></span>;
-    return <Cd style={{ maxWidth: 960 }}>
-      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 4px", color: CL.txt }}>Who builds {p.title}?</h3>
-      <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 8 }}>Only firms that can do {SYS.SECTORS[p.sector].toLowerCase()} work are listed.</div>
-      {lab("How the contract is let")}
-      <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>{Object.entries(SYS.PROCUREMENT).map(([k, M]) => opt(k, M.nm, M.note, meth === k, () => onFlow({ ...F0, method: k })))}</div>
-      {lab("Bidders")}
-      {list.map(c => <button key={c.id} disabled={c.full} onClick={() => onAward(p.id, c.id, meth)} style={{ textAlign: "left", width: "100%", padding: "10px 14px", borderRadius: 14, border: "1px solid " + (c.nepotism ? CL.red + "66" : CL.bdr), background: c.full ? CL.bg : CL.card, cursor: c.full ? "not-allowed" : "pointer", marginBottom: 8, fontFamily: F.b, color: CL.txt, opacity: c.full ? .55 : 1 }}>
-        <b style={{ fontSize: fz.m }}>{c.name}</b> <span style={{ fontSize: fz.s, color: CL.td }}>· price {Math.round(c.price * 100)}% of estimate · {c.active}/{c.capacity} jobs{c.full ? " (full)" : ""}</span>
-        <div style={{ fontSize: fz.s, color: CL.tm, display: "flex", flexWrap: "wrap", gap: "2px 14px", marginTop: 4 }}><span>Reliability{bar(c.reliability)}</span><span>Speed{bar(c.speed)}</span><span>Quality{bar(c.quality)}</span><span>Integrity{bar(c.integrity)}</span></div>
-        <div style={{ fontSize: fz.s, color: c.nepotism ? CL.red : CL.td, marginTop: 2 }}>{c.note}{c.ties ? " Ties: " + c.ties + "." : ""} Can also do: {c.sectors.filter(x => x !== p.sector).map(x => SYS.SECTORS[x].toLowerCase()).slice(0, 3).join(", ") || "nothing else"}.</div>
-      </button>)}
-      <div style={{ textAlign: "right" }}><Bt v="ghost" onClick={() => onFlow(null)}>Later</Bt></div>
-    </Cd>;
+  // ── 4. Procurement: who builds it ──
+  if (F0 && F0.step === "contractor" && proj) {
+    const list = SYS.eligible(proj.type, projects), meth = F0.method || "open", n = nextOf(proj);
+    const bar = (l, v) => <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#5b6b55" }}>{l}<span style={{ width: 54, height: 6, borderRadius: 3, background: "#ece3cd", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.round(v * 100) + "%", background: v > .75 ? "#0b6b42" : v > .55 ? "#c9922a" : "#b3261e" }} /></span></span>;
+    return <Dossier icon={SECTOR_ICON[proj.sector]} kicker="Procurement" title={proj.title} place={where(proj)} at={SYS.milestoneOf(proj)} wide>
+      <Situation tone={n.blocked ? "warn" : null} head={n.blocked ? "No qualified contractor is free" : "Award the contract"} text={n.blocked ? n.say : "Only firms that can do " + SYS.SECTORS[proj.sector].toLowerCase() + " work can bid. Awarding the contract is what starts the work."} />
+      {spLab("How the contract is let")}
+      <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>{Object.entries(SYS.PROCUREMENT).map(([k, M]) => <button key={k} className="sp-opt" aria-pressed={meth === k} onClick={() => onFlow({ ...F0, method: k })}><b style={{ display: "block", fontSize: 15 }}>{M.nm}</b><span style={{ fontSize: 13, color: "#5b6b55" }}>{Math.round(M.price * 100)}% of price{M.cor > 0 ? " · corruption risk" : ""}</span></button>)}</div>
+      {spLab("Bidders")}
+      <div style={{ display: "grid", gap: 8 }}>{list.map(c => <div key={c.id} className="sp-card" style={{ padding: "12px 14px", boxShadow: "none", borderColor: c.nepotism ? "#efc2bc" : "#e7dcc4", opacity: c.full ? .6 : 1 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ minWidth: 0 }}><b style={{ font: "700 17px 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{c.name}</b><div style={{ fontSize: 13, color: c.nepotism ? "#b3261e" : "#7a6c4c" }}>{SYS.fmtM(Math.round(proj.estimateM * c.price * (SYS.PROCUREMENT[meth] || {}).price))} · {c.active}/{c.capacity} jobs{c.nepotism ? " · " + c.note : ""}</div></div>
+          <button className="sp-btn" disabled={c.full} onClick={() => onAward(proj.id, c.id, meth)} style={{ minHeight: 42, padding: "8px 16px", fontSize: 15 }}>{c.full ? "Fully booked" : "Award contract"}</button>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 8 }}>{bar("Reliable", c.reliability)}{bar("Quality", c.quality)}{bar("Speed", c.speed)}{bar("Integrity", c.integrity)}</div>
+        <Brief label="About this firm">{c.note}{c.ties ? " Ties: " + c.ties + "." : ""} Also does: {c.sectors.filter(x => x !== proj.sector).map(x => SYS.SECTORS[x].toLowerCase()).slice(0, 3).join(", ") || "nothing else"}.</Brief>
+      </div>)}</div>
+      <Actions><button className="sp-btn quiet" onClick={() => onFlow(null)}>Later</button></Actions>
+    </Dossier>;
   }
+
+  // ── The project dossier (from the adviser or the portfolio) ──
+  const Card = ({ p, big }) => { const n = nextOf(p), C = SYS.contractorById(p.contractorId), bf = SYS.benefitFactor(p);
+    return <Dossier icon={SECTOR_ICON[p.sector] || "🏗️"} kicker={{ pending_finance: "Waiting for money", pending_procurement: "Waiting for a contractor", in_progress: "Under construction", stalled: "Stalled", built: "Built, not working", delivered: "Open", suspended: "Suspended", abandoned: "Abandoned" }[p.status] || p.status} title={p.title} place={where(p) + (C ? " · " + C.name : "")} at={SYS.milestoneOf(p)}>
+      <Situation tone={n.blocked ? "bad" : n.due ? "warn" : null} head={n.due ? (n.blocked ? "Blocked" : "Next: " + n.button.toLowerCase()) : p.status === "delivered" ? "Open and working" : "Nothing due yet"} text={n.say + (n.when ? " Next check: " + n.when + "." : "")} />
+      <Tiles items={[["Scope costs", SYS.fmtM(p.estimateM)], ["Approved", SYS.fmtM(p.approvedM), p.approvedM < p.estimateM * .95 ? "bad" : null], ["Spent", SYS.fmtM(p.spentM)], p.status === "delivered" || p.status === "built" ? ["Benefit", Math.round(bf * 100) + "%", bf < .6 ? "bad" : "good"] : ["Built", p.progress + "%"]]} />
+      {n.due && (n.id === "blocked_finance"
+        ? <Actions><button className="sp-btn quiet" onClick={() => onAction(p.id, "abandon")}>Defer indefinitely</button><button className="sp-btn" onClick={() => onAction(p.id, "fit")}>Fit the scope to the budget</button></Actions>
+        : <Actions><button className="sp-btn" onClick={() => onOpenStep(p)}>{n.button}</button></Actions>)}
+      <Brief>
+        <div>Committed, not yet spent: {SYS.fmtM(SYS.committedM(p))} · Still needed to finish: {SYS.fmtM(SYS.remainingM(p))}{p.loanLeftM > 0 ? " · Loan money in hand: " + SYS.fmtM(p.loanLeftM) : ""}.</div>
+        {p.facility && <div>Working: {p.equipped && p.staffed ? "equipped and staffed" : p.equipped ? "equipped, no staff" : "not equipped"}.</div>}
+        {(p.events || []).slice(-3).map((ev, i) => <div key={i} style={{ color: "#9a5b12" }}>• {ev}</div>)}
+        {(p.decisions || []).length > 0 && <div style={{ marginTop: 4 }}>Record: {p.decisions.slice(-4).map(x => "Year " + x.year + ": " + x.text).join(" · ")}</div>}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+          {(p.status === "stalled" || p.status === "in_progress") && SYS.remainingM(p) > SYS.committedM(p) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.remainingM(p) - SYS.committedM(p))}</button>}
+          {["stalled", "in_progress", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</button>}
+          {(p.status === "stalled" || p.status === "in_progress") && <button className="sp-btn ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</button>}
+          {p.status === "in_progress" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</button>}
+          {["stalled", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "abandon")}>{p.status === "pending_finance" ? "Defer indefinitely" : "Abandon"}</button>}
+          {p.facility && p.status === "built" && p.equipped && !p.staffed && <button className="sp-btn ghost" onClick={() => onAction(p.id, "staff")}>Staff it</button>}
+        </div>
+      </Brief>
+      {big && <Actions><button className="sp-btn quiet" onClick={() => onFlow(null)}>Close</button></Actions>}
+    </Dossier>; };
+  if (F0 && F0.step === "dossier" && proj) return <Card p={proj} big />;
+  // ── 5. Recorded: the stamp, the milestone moving, the adviser's next step ──
+  // Shown only once the decision is in the project's own record.
+  if (F0 && F0.step === "done" && proj) {
+    const n = nextOf(proj), C = SYS.contractorById(proj.contractorId), k = F0.kind;
+    const recorded = k === "approved" ? true : k === "funded" ? proj.loanKey === F0.loanKey && proj.loanLeftM > 0 : k === "contract" ? proj.status === "in_progress" && proj.contractorId === F0.contractorId : false;
+    const S = { approved: ["Approved", "Budget " + SYS.fmtM(proj.approvedM), false, "Budget approved: " + SYS.fmtM(proj.approvedM), "Approval sets the budget. No contract is signed, nothing has been paid and no one is building yet."],
+      funded: ["Funded", SYS.fmtM(F0.amountM || 0) + " received", true, SYS.fmtM(F0.amountM || 0) + " received from " + (F0.lender || "the lender"), "The money is held for this project. No contractor has been paid; the debt is on the state's books."],
+      contract: ["Contract signed", C ? C.name : "", true, "Contract signed with " + (C ? C.name : "the contractor"), "Work starts this year. How far it gets depends on the money released and on the contractor; you will see it at year end."] }[k];
+    if (!S || !recorded) return <Card p={proj} big />;
+    return <Dossier icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
+      <StampOnce key={F0.at} text={S[0]} sub={S[1]} green={S[2]} sound={k === "approved" ? "gavel" : "good"} />
+      <div style={{ margin: "14px 0 4px" }}><MilestoneMove from={F0.fromAt} at={SYS.milestoneOf(proj)} /></div>
+      <Situation head={S[3]} text={S[4]} />
+      <Tiles items={[["Scope costs", SYS.fmtM(proj.estimateM)], ["Approved", SYS.fmtM(proj.approvedM)], k === "funded" ? ["Loan in hand", SYS.fmtM(proj.loanLeftM), "good"] : ["Spent", SYS.fmtM(proj.spentM)], ["Stage", SYS.MILESTONES[SYS.milestoneOf(proj)][1]]]} />
+      <div style={{ marginTop: 14 }}>
+        <AdviserDesk name={adviser} alert={n.due} say={n.say + (!n.due && n.when ? " Nothing is due until " + n.when + "." : "")} why={n.due ? (n.blocked ? "It cannot move until this is dealt with." : "Until this is done, " + proj.title + " stays where it is on the strip above.") : null}
+          action={n.due ? n.button : "Back to the desk"} onAction={() => n.due ? onOpenStep(proj) : onFlow(null)} onLater={n.due ? () => onFlow(null) : null} soundOn={soundOn} onSound={onSound} />
+      </div>
+    </Dossier>;
+  }
+
 
   // ── The portfolio ──
   const mine = (projects || []).filter(p => p.estimateM != null);
-  const old = (projects || []).filter(p => p.estimateM == null);
-  const ST = { pending_finance: "Waiting for money", pending_procurement: "Waiting for a contractor", in_progress: "Under construction", stalled: "Stalled", built: "Built, not yet working", delivered: "Open and working", suspended: "Suspended", abandoned: "Abandoned" };
   return <div>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: 0, color: CL.txt }}>🏗️ Projects</h3>
-      <Bt onClick={() => onFlow({ step: "propose", draft: {} })}>➕ New project</Bt>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
+      <div><div className="sp-kicker">Year {year}</div><div style={{ font: "700 32px/1.1 'Fraunces', serif", color: "#17301f" }}>Projects</div></div>
+      <button className="sp-btn" onClick={() => onFlow({ step: "propose", draft: {} })}>＋ New project</button>
     </div>
-    {!mine.length && !old.length && <div style={{ fontSize: fz.m, color: CL.td }}>No projects yet. Start one: describe it, set its budget, find the money and a contractor.</div>}
-    {mine.map(p => { const C = SYS.contractorById(p.contractorId); const bf = SYS.benefitFactor(p);
-      return <div key={p.id} style={{ ...card, borderLeft: "4px solid " + (p.status === "stalled" || p.status === "abandoned" ? CL.red : p.status === "delivered" ? CL.grn : CL.org) }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}><b style={{ fontSize: fz.m, color: CL.txt }}>{p.title}</b><span style={{ fontSize: fz.s, fontWeight: 800, color: p.status === "delivered" ? CL.grn : p.status === "stalled" || p.status === "abandoned" ? CL.red : CL.org }}>{ST[p.status] || p.status}</span></div>
-        <div style={{ fontSize: fz.s, color: CL.td }}>{p.qty} {p.unit}s · {p.lga} · {C ? C.name : "no contractor yet"}{p.quality != null ? " · quality " + Math.round(p.quality * 100) + "%" : ""}</div>
-        <div style={{ height: 8, borderRadius: 4, background: CL.bdr, overflow: "hidden", margin: "8px 0" }}><div style={{ height: "100%", width: p.progress + "%", background: p.status === "stalled" ? CL.red : CL.grn }} /></div>
-        <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", columnGap: 20 }}>
-          {row("Scope costs", SYS.fmtM(p.estimateM))}{row("Approved", SYS.fmtM(p.approvedM), p.approvedM < p.estimateM * .95)}
-          {row("This year", SYS.fmtM((p.alloc || {})[year] || 0))}{row("Spent", SYS.fmtM(p.spentM))}
-          {row("Committed, not spent", SYS.fmtM(SYS.committedM(p)))}{row("Still needed to finish", SYS.fmtM(SYS.remainingM(p)), SYS.remainingM(p) > SYS.committedM(p))}
-          {p.loanLeftM > 0 && row("Loan money in hand", SYS.fmtM(p.loanLeftM))}
-          {p.facility && row("Working", p.equipped && p.staffed ? "Equipped and staffed" : p.equipped ? "Equipped; no staff" : "Not equipped", !(p.equipped && p.staffed))}
-          {(p.status === "delivered" || p.status === "built") && row("Benefit delivered", Math.round(bf * 100) + "% of what was promised", bf < .6)}
-        </div>
-        {(p.events || []).slice(-2).map((ev, i) => <div key={i} style={{ fontSize: fz.s, color: CL.org, marginTop: 4 }}>• {ev}</div>)}
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-          {p.status === "pending_finance" && <Bt onClick={() => onFlow({ step: "finance", projId: p.id, needM: Math.max(0, p.approvedM - roomM(p.sector)) })}>Find the money</Bt>}
-          {p.status === "pending_procurement" && <Bt onClick={() => onFlow({ step: "contractor", projId: p.id })}>Pick a contractor</Bt>}
-          {(p.status === "stalled" || p.status === "in_progress") && SYS.remainingM(p) > SYS.committedM(p) && <Bt v="ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.remainingM(p) - SYS.committedM(p))}</Bt>}
-          {(p.status === "stalled" || p.status === "in_progress") && <Bt v="ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</Bt>}
-          {(p.status === "stalled" || p.status === "in_progress") && <Bt v="ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</Bt>}
-          {p.status === "stalled" && <Bt v="ghost" onClick={() => onAction(p.id, "abandon")}>Abandon</Bt>}
-          {p.status === "in_progress" && <Bt v="ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</Bt>}
-          {p.status === "suspended" && <Bt v="ghost" onClick={() => onAction(p.id, "resume")}>Resume</Bt>}
-          {p.facility && (p.status === "built" || p.status === "delivered") && !p.equipped && <Bt onClick={() => onAction(p.id, "equip")}>Equip it ({SYS.fmtM(p.equipM)})</Bt>}
-          {p.facility && (p.status === "built" || p.status === "delivered") && !p.staffed && <Bt onClick={() => onAction(p.id, "staff")}>Staff it ({SYS.fmtM(p.opsPerYearM)} a year)</Bt>}
-          {(p.status === "delivered" || p.status === "built") && (p.quality || 1) < .6 && <Bt v="ghost" onClick={() => onAction(p.id, "repair")}>Repair defects ({SYS.fmtM(SYS.repairCostM(p))})</Bt>}
-        </div>
-        {(p.decisions || []).length > 0 && <div style={{ fontSize: fz.s, color: CL.td, marginTop: 6 }}>Record: {p.decisions.slice(-3).map(x => "Year " + x.year + ": " + x.text).join(" · ")}</div>}
-      </div>; })}
-    {old.length > 0 && <div style={{ fontSize: fz.s, color: CL.td, marginTop: 8 }}>Older project files: {old.map(p => p.title + " (" + (p.status || "") + ")").join(", ")}.</div>}
+    {!mine.length && <div className="sp-card" style={{ padding: 22, textAlign: "center", font: "500 16px 'Plus Jakarta Sans', sans-serif", color: "#5b6b55" }}>No projects yet. Answer a need: describe the project, set its budget, find the money and a contractor.</div>}
+    <div style={{ display: "grid", gap: 14 }}>{mine.slice().sort((a, b) => (nextOf(b).due ? 1 : 0) - (nextOf(a).due ? 1 : 0)).map(p => <Card key={p.id} p={p} />)}</div>
   </div>;
 };
 
@@ -4138,7 +4222,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { civic = window.SOP_CIVIC?.getCorruption ? window.SOP_CIVIC.getCorruption() : null; } catch (e) {}
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
-      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, gold, goldShown: goldShown.current, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current,
+      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, gold, goldShown: goldShown.current, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current, lastCon,
       turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc, reportAt: reportRef.current ? reportRef.current.t : null, reportSnap: reportRef.current ? reportRef.current.snap : null,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
@@ -5078,6 +5162,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const sectorRoomRawM = (line) => Math.round(((bud[line] || 0) / (bs || 100)) * ((s.igr || 0) + (s.faac || 0)) * 350);
   const roomM = (sector) => { const line = SYS.BUDGET_LINE[sector] || "infrastructure"; const used = (projects || []).filter(p => p.estimateM != null && (SYS.BUDGET_LINE[p.sector] || "infrastructure") === line && ["in_progress", "pending_procurement", "pending_finance"].includes(p.status)).reduce((a, p) => a + ((p.alloc || {})[turn] || 0), 0); return Math.max(0, sectorRoomRawM(line) - used); };
   const openNeedsForProj = needs.filter(n => n.status === "open").map(n => { const T = needType(n); const type = Object.keys(PROJ_NEED).find(k => PROJ_NEED[k] === n.k); return T && type ? { id: n.id, lga: n.lga, type, label: T.icon + " " + T.title(n.lga) } : null; }).filter(Boolean);
+  // Where a project's next step happens (SYS.nextStep decides what it is).
+  const nextOf = (p) => SYS.nextStep(p, { projects: projects || [], tried: p.triedLenders || [], lenders: SYS.LENDERS });
+  const openStep = (p) => {
+    const n = nextOf(p);
+    if (n.id === "finance") return setPflow({ step: "finance", projId: p.id, needM: Math.max(100, p.needM || Math.round(p.approvedM / 2)), tried: p.triedLenders || [] });
+    if (n.id === "contractor" || n.id === "blocked_contractor") return setPflow({ step: "contractor", projId: p.id });
+    if (n.id === "equip" || n.id === "staff" || n.id === "repair" || n.id === "resume") return projAction(p.id, n.id);
+    return setPflow({ step: "dossier", projId: p.id });
+  };
+  const [lastCon, setLastCon] = useState(() => ld?.lastCon || null); // the most recent consequence, shown on the desk
   const confirmPlan = (F0, a, overRoom) => {
     const d = F0.draft, P = F0.plan, e = SYS.estimate(d.type, d.qty);
     if (P.choice === "defer") { setPflow(null); addL("🗂️ Deferred " + d.title + ": nothing starts this year.", "info"); return; }
@@ -5090,17 +5184,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const proj = SYS.makeProject({ id, title: d.title.trim(), type: d.type, qty, lga: d.lga, ministryId: d.ministryId, need: d.need || null, approvedM: approved, thisYearM: Math.min(approved, P.thisYearM), year: turn, decision: note, proposal: { text: d.description || null, assumptions: d.assumptions || [] } });
     const needsLoan = P.choice === "finance" || overRoom;
     proj.status = needsLoan ? "pending_finance" : "pending_procurement";
+    if (needsLoan) proj.needM = Math.max(a.shortM && P.choice !== "increase" ? a.shortM : 0, Math.min(approved, P.thisYearM) - roomM(SYS.TYPE_SECTOR[d.type])) || Math.round(approved / 2);
+    if (d.srcPolicy) { proj.srcPolicy = d.srcPolicy; const src = POLICIES.find(x => x.id === d.srcPolicy); if (src) setPol(pp => pp.some(x => x.id === src.id) ? pp : [...pp, { ...src, pending: true, projectId: id }]); }
     setProjects(prev => [...(prev || []), proj]);
+    setLastCon({ turn, icon: "🖋️", text: proj.title + " approved: " + SYS.fmtM(proj.approvedM) + ". Next: " + (needsLoan ? "find the money." : "award the contract.") });
     addL("🏗️ Approved " + proj.title + " (" + SYS.fmtM(proj.approvedM) + "; the scope costs " + SYS.fmtM(proj.estimateM) + ")." + (note ? " " + note : ""), "policy");
     scWiki(P.choice === "proceed" ? "Controversies" : "Governorship", "Approved " + proj.title + " in " + d.lga + " at " + SYS.fmtM(proj.approvedM) + (P.choice === "proceed" ? ", although the scope was costed at " + SYS.fmtM(proj.estimateM) : "") + ".");
-    setPflow(needsLoan ? { step: "finance", projId: id, needM: Math.max(a.shortM && P.choice !== "increase" ? a.shortM : 0, Math.min(approved, P.thisYearM) - roomM(SYS.TYPE_SECTOR[d.type])) || Math.round(approved / 2) } : { step: "contractor", projId: id });
+    // The approval is recorded; the dossier shows it, and the adviser names the next step.
+    setPflow({ step: "done", kind: "approved", projId: id, fromAt: 0, at: Date.now() });
   };
   const loanCtx = () => ({ debtM: SYS.toM(s.debt), revenueM: SYS.toM((s.igr || 0) + (s.faac || 0)), revenueIgrM: SYS.toM(s.igr || 0), cor: s.cor || 0, fgRelation, rateCut: saOffice.adviser && SYS.lensOf(saOffice.adviser.name).loanRateCut || 0 });
   const applyLoan = (F0, lenderId) => {
     const p = (projects || []).find(x => x.id === F0.projId); if (!p) return;
     const r = SYS.assessLoan(lenderId, { projectId: p.id, amountM: Math.max(100, F0.needM || 0), year: turn }, { ...loanCtx(), eia: true });
     addL("📨 Applied to " + SYS.LENDERS[lenderId].lender + " for " + SYS.fmtM(Math.max(100, F0.needM || 0)) + " (" + p.title + "): " + (r.ok ? "an offer came back." : "declined."), "info");
-    if (r.ok) setPflow({ ...F0, offer: r.offer, letter: null }); else setPflow({ ...F0, letter: { lender: SYS.LENDERS[lenderId].lender, reasons: r.reasons }, tried: [...(F0.tried || []), lenderId] });
+    if (r.ok) setPflow({ ...F0, offer: r.offer, letter: null });
+    else { setPflow({ ...F0, letter: { lender: SYS.LENDERS[lenderId].lender, reasons: r.reasons }, tried: [...(F0.tried || []), lenderId] }); setProjects(prev => prev.map(x => x.id === p.id ? { ...x, triedLenders: [...new Set([...(x.triedLenders || []), lenderId])] } : x)); }
   };
   const acceptOfferNow = (F0) => {
     const o = F0.offer; if (!o) return;
@@ -5110,9 +5209,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setProjects(prev => prev.map(x => x.id === F0.projId ? { ...x, loanLeftM: (x.loanLeftM || 0) + o.principalM, loanKey: o.key, status: x.status === "pending_finance" ? "pending_procurement" : x.status, decisions: [...(x.decisions || []), { year: turn, text: "Borrowed " + SYS.fmtM(o.principalM) + " from " + o.lender + " at " + Math.round(o.rate * 1000) / 10 + "% over " + o.years + " years." }] } : x));
     addL("🏦 Accepted " + o.lender + "'s offer: " + SYS.fmtM(o.principalM) + " at " + Math.round(o.rate * 1000) / 10 + "% over " + o.years + " years (about " + SYS.fmtM(o.serviceM) + " a year).", "policy");
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "loan_accepted", actor: "governor", target: o.lender, gravity: 1, evidence: 3, decision: "Borrowed " + SYS.fmtM(o.principalM), note: o.nm }); } catch (e) {}
-    setPflow({ step: "contractor", projId: F0.projId });
+    const p0 = (projects || []).find(x => x.id === F0.projId);
+    setLastCon({ turn, icon: "🏦", text: SYS.fmtM(o.principalM) + " from " + o.lender + " is in hand for " + (p0 ? p0.title : "the project") + ". Next: award the contract." });
+    setPflow({ step: "done", kind: "funded", projId: F0.projId, fromAt: p0 ? SYS.milestoneOf(p0) : 1, loanKey: o.key, amountM: o.principalM, lender: o.lender, at: Date.now() });
   };
-  const awardProject = (id, cid, mth) => decide(() => {
+  const awardProject = (id, cid, mth) => {
     const p = (projects || []).find(x => x.id === id), C = SYS.contractorById(cid), M = SYS.PROCUREMENT[mth] || SYS.PROCUREMENT.open; if (!p || !C) return;
     const est = Math.round(p.estimateM * M.price);
     setProjects(prev => prev.map(x => x.id === id ? { ...x, contractorId: cid, contractor: C.name, method: M.nm, estimateM: est, baseCost: est / 1000, status: "in_progress", startTurn: turn, decisions: [...(x.decisions || []), { year: turn, text: "Awarded to " + C.name + " by " + M.nm.toLowerCase() + (est !== p.estimateM ? " (" + SYS.fmtM(est) + ")" : "") + "." }] } : x));
@@ -5120,13 +5221,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (C.nepotism) { setNepotismCount(n => (n || 0) + 1); scWiki("Controversies", "Awarded " + p.title + " to " + C.name + " (" + C.note.toLowerCase().replace(/\.$/, "") + ")."); }
     else scWiki("Governorship", "Awarded " + p.title + " to " + C.name + " by " + M.nm.toLowerCase() + ".");
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: C.nepotism ? "nepotism_flag" : "contract_awarded", actor: "governor", target: C.name, gravity: C.nepotism ? 4 : mth === "sole" ? 3 : 1, evidence: 3, corruptionDelta: Math.round((M.cor + (C.nepotism ? .04 : 0)) * 100), note: p.title + " via " + M.nm, meta: { project: p.title } }); } catch (e) {}
-    setPflow(null);
-    return { icon: "📝", title: "Contract awarded", text: p.title + " goes to " + C.name + " (" + M.nm.toLowerCase() + "). Work starts now; how far it gets each year depends on the money released and on the contractor.", tone: C.nepotism ? "bad" : "good" };
-  });
+    setLastCon({ turn, icon: "📝", text: p.title + ": contract signed with " + C.name + " (" + M.nm.toLowerCase() + ", " + SYS.fmtM(est) + "). Work starts this year; progress shows at year end." });
+    setPflow({ step: "done", kind: "contract", projId: id, contractorId: cid, fromAt: SYS.milestoneOf(p), at: Date.now() });
+  };
   const projAction = (id, act) => decide(() => {
     const p = (projects || []).find(x => x.id === id); if (!p) return;
     let n = p, text = "", tone = "neutral";
     if (act === "fund") { const add = SYS.remainingM(p) - SYS.committedM(p); n = SYS.addFunding(p, add, turn); text = "Added " + SYS.fmtM(add) + ". The money still has to be released from the budget or borrowed."; }
+    else if (act === "fit") { const r = SYS.fitScope(p, roomM(p.sector) + ((p.alloc || {})[turn] || 0), turn); if (!r.ok) return { icon: "🚧", title: "It still does not fit", text: r.why, tone: "bad" }; n = r.p; text = r.factor < 1 ? "Scope cut to " + Math.round(r.factor * 100) + "% (" + SYS.fmtM(n.estimateM) + ") so the budget line pays for it without a loan. Next: award the contract." : "The budget line can pay for it without a loan. Next: award the contract."; setLastCon({ turn, icon: "✂️", text: p.title + ": " + text }); }
     else if (act === "reduce") { n = SYS.reduceScope(p, Math.max(.3, (p.approvedM - 0) / Math.max(1, p.estimateM)), turn); text = "The scope now fits the money approved. " + SYS.fmtM(p.spentM) + " already spent stays spent."; }
     else if (act === "replace") { const alt = SYS.eligible(p.type, projects).filter(c => c.id !== p.contractorId && !c.full && !c.nepotism).sort((a, b) => b.reliability - a.reliability)[0]; if (!alt) return { icon: "🚧", title: "No one free", text: "No other qualified contractor has capacity this year.", tone: "bad" }; n = SYS.replaceContractor(p, alt.id, turn); text = alt.name + " takes over. The handover adds " + SYS.fmtM(n.estimateM - p.estimateM) + "; nothing already paid is paid again."; }
     else if (act === "suspend") { n = SYS.suspend(p, turn); text = "Work stops. " + SYS.fmtM(p.spentM) + " spent so far."; }
@@ -5406,14 +5508,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   const getSABrief = () => {
     if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
-    const waiting = (projects || []).find(p => p && p.estimateM != null && (p.status === "pending_procurement" || p.status === "pending_finance"));
-    if (waiting) return { urgent: true, icon: waiting.status === "pending_finance" ? "🏦" : "📝", title: (waiting.status === "pending_finance" ? "Find the money for " : "Pick a contractor for ") + waiting.title, body: "Approved but not started. Every year it waits, the need it answers gets worse.", actionLabel: waiting.status === "pending_finance" ? "Find the money" : "Pick a contractor", action: () => setPflow(waiting.status === "pending_finance" ? { step: "finance", projId: waiting.id, needM: Math.max(100, waiting.approvedM - roomM(waiting.sector)) } : { step: "contractor", projId: waiting.id }) };
-    const stalledP = (projects || []).find(p => p && p.estimateM != null && p.status === "stalled");
-    if (stalledP) return { urgent: true, icon: "🚧", title: stalledP.title + " has stalled", body: SYS.fmtM(SYS.remainingM(stalledP)) + " of work is left and the money has run out. Add funding, cut the scope, replace the contractor, or abandon it.", actionLabel: "Open Projects", action: () => goTab("prj") };
-    const emptyF = (projects || []).find(p => p && p.estimateM != null && p.status === "built");
-    if (emptyF) return { urgent: true, icon: "🏥", title: emptyF.title + " is built but empty", body: "A building is not a service. Equip it and staff it, or it helps no one.", actionLabel: "Open Projects", action: () => goTab("prj") };
-    const awaitingContract = (projects || []).find(p => p && (p.status === "awarded_pending" || p.status === "eia_done" || p.status === "bidding") && !p.contractor);
-    if (awaitingContract || pendingProc) return { urgent: true, icon: "📝", title: "Award a contractor for " + ((pendingProc?.title) || awaitingContract?.title || "a pending project"), body: "Procurement is stalled at contractor selection. Open the project, review bidders, and award — sole-source is fast but leaks treasury and lands on your Wikipedia.", actionLabel: "Open Projects", action: () => goTab("prj") };
+    // Projects: the adviser says the real next step and the button opens it.
+    const dueP = (projects || []).filter(p => p && p.estimateM != null).map(p => ({ p, n: nextOf(p) })).find(x => x.n.due);
+    if (dueP) return { urgent: true, icon: dueP.n.blocked ? "🚧" : "📝", project: dueP.p.id, title: dueP.n.say, body: dueP.n.blocked ? "This is blocked until it is dealt with. Every year it waits, the need it answers gets worse." : "Approval is not a contract: nothing is paid and no one is building until this step is done.", actionLabel: dueP.n.button, action: () => openStep(dueP.p) };
+    const awaitingContract = (projects || []).find(p => p && p.estimateM == null && (p.status === "awarded_pending" || p.status === "eia_done" || p.status === "bidding") && !p.contractor);
+    if (awaitingContract) return { urgent: true, icon: "📝", title: "Award a contractor for " + ((pendingProc?.title) || awaitingContract?.title || "a pending project"), body: "Procurement is stalled at contractor selection. Open the project, review bidders, and award — sole-source is fast but leaks treasury and lands on your Wikipedia.", actionLabel: "Open Projects", action: () => goTab("prj") };
 
     if (!ministries || ministries.length === 0) return { urgent: true, icon: "🏛️", title: "Convene your ministries first", body: "Executive Command rule: no cabinet, no execution. Create at least Finance, Works, Health and Security before serious governance begins.", actionLabel: "Open Ministries", action: () => goTab("min") };
     if (ministries.length < 4) return { urgent: true, icon: "🏛️", title: "Your cabinet is under-strength", body: "You have " + ministries.length + " ministr" + (ministries.length === 1 ? "y" : "ies") + ". The House, contractors and crises will overpower a thin Exco.", actionLabel: "Add Ministries", action: () => goTab("min") };
@@ -5440,6 +5539,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   const saBrief = getSABrief();
+  const [saLater, setSaLater] = useState(null); // "Later" hides this brief until it changes or the year turns
   const saInbox = [
     { label: "Cabinet", done: !!(ministries && ministries.length >= 4), urgent: !(ministries && ministries.length >= 4), detail: ministries && ministries.length ? ministries.length + " ministries convened" : "No ministries convened", action: () => goTab("min") },
     { label: "Traditional Council", done: !!council, urgent: !!(ministries && ministries.length >= 4 && !council), detail: council ? "Palace channel active" : "Rural legitimacy not yet secured", action: () => goTab("coun") },
@@ -5544,9 +5644,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
     if (!isCapital(p)) return enactP(p);
+    // Capital programmes are projects: they go through the one project flow
+    // (proposal → budget → money → contractor), prefilled from the programme.
     const type = POLICY_TYPE[p.id] || "road";
-    const defaultMin = (ministries && ministries[0]) ? ministries[0].id : null;
-    setCapProj({ p, title: p.nm.replace(/^⭐\s*/, ""), type, ministryId: defaultMin, eia: EIA_TYPES.has(type) });
+    const need = openNeedsForProj.find(n => n.type === type) || null;
+    const qty = Math.max(1, Math.round(((+p.c || 1) * 1000) / SYS.UNIT[type].per));
+    const r = SYS.parseProposal(type + " " + qty + " " + SYS.UNIT[type].unit + "s " + (need ? need.lga : ""), { lgas: getLGAs(state) });
+    setPflow({ step: "propose", draft: { ...r.proposal, title: p.nm.replace(/^⭐\s*/, ""), qty, need: need ? need.id : null, srcPolicy: p.id, ministryId: null } });
   };
   const confirmCapital = () => {
     if (!capProj) return;
@@ -7619,10 +7723,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
           </div>;
         })()}
-        {nav === "gov" && saBrief.urgent && !(phase === "budget" && needSetup) && !/^Balance the Appropriation/.test(saBrief.title) && <div style={{ display: "flex", gap: 12, alignItems: "center", padding: TALL() ? "10px 12px" : "14px 20px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, margin: TALL() ? "0 0 14px" : "0 auto 22px", maxWidth: TALL() ? 900 : 1320 }}>
-          {saOffice.adviser ? <img src={saPortrait(saOffice.adviser.name)} alt="" style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "18", flexShrink: 0 }} /> : null}
-          <div style={{ flex: 1, minWidth: 0, fontSize: TALL() ? TS(20) : TS(31), color: CL.tm, lineHeight: 1.35 }}><b style={{ color: CL.txt }}>{saOffice.adviser ? saOffice.adviser.name.split(" ").slice(-1)[0] : "Adviser's desk"}:</b> {saBrief.title}.</div>
-          {saBrief.action && <button onClick={saBrief.action} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: CL.grn, color: "#fff", padding: TALL() ? "10px 14px" : "12px 22px", minHeight: 44, fontSize: TALL() ? TS(20) : TS(29), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>{saBrief.actionLabel}</button>}
+        {nav === "gov" && !(phase === "budget" && needSetup) && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 22px", display: "grid", gap: 10 }}>
+          {lastCon && lastCon.turn >= turn - 1 && <Consequence icon={lastCon.icon} text={lastCon.text} />}
+          {!/^Balance the Appropriation/.test(saBrief.title) && saLater !== saBrief.title + "|" + turn && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaLater(saBrief.title + "|" + turn)} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </div>}
 
         {nav === "gov" && !needSetup && (() => {
@@ -9740,7 +9843,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
         </OL>
         <OL show={!!pflow}>
-          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} agendaLeft={agendaLeftNow} />}
+          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </OL>
         <OL show={!!secr}>
           {secr && <SecretariatView year={turn} ministries={ministries} cases={cases} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
@@ -10305,7 +10408,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "con" && <div className="sop-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 29 }}><Cd><h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>✅ CAN</h3>{CONST_CAN.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd><Cd><h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>❌ CANNOT</h3>{CONST_CANT.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd></div>}
 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
-        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} agendaLeft={agendaLeftNow} /></div>}
+        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
         {nav === "bio" && <WikiArticle w={buildWiki(false)} onShare={(k) => shareWiki(buildWiki(false), k)} />}
@@ -10997,6 +11100,62 @@ function App() {
         /* Portrait: the stage is 720 design px wide, so the media query above
            never fires; stack the two-column pages here instead. */
         #sop-stage.sop-tall .sop-gov-grid, #sop-stage.sop-tall .sop-2col { grid-template-columns: 1fr !important; }
+
+        /* ── sp-: the governing slice's design system (adviser, dossier, stamp) ── */
+        .sp-card { background: #fffdf8; border: 1px solid #e7dcc4; border-radius: 22px; box-shadow: 0 1px 0 #fff inset, 0 12px 30px rgba(18,48,31,.10); }
+        .sp-btn { appearance: none; border: 0; border-radius: 999px; min-height: 48px; padding: 11px 22px; font: 800 17px/1.15 'Plus Jakarta Sans', sans-serif; letter-spacing: .1px; background: #12301f; color: #fff; cursor: pointer; box-shadow: 0 6px 16px rgba(18,48,31,.24); transition: transform .12s ease, box-shadow .12s ease, background .15s ease; }
+        .sp-btn:hover { background: #0b6b42; transform: translateY(-1px); box-shadow: 0 9px 20px rgba(11,107,66,.28); }
+        .sp-btn:active { transform: translateY(1px) scale(.98); box-shadow: 0 2px 6px rgba(18,48,31,.25); }
+        .sp-btn:focus-visible { outline: 3px solid #f2c14e; outline-offset: 3px; }
+        .sp-btn:disabled { background: #cfc8b8; color: #fff; box-shadow: none; cursor: not-allowed; transform: none; }
+        .sp-btn.ghost { background: transparent; color: #12301f; border: 1.5px solid #d6caae; box-shadow: none; }
+        .sp-btn.ghost:hover { background: #f4ecd9; }
+        .sp-btn.quiet { background: transparent; color: #5b6b55; box-shadow: none; padding: 10px 14px; font-weight: 700; }
+        .sp-btn.quiet:hover { background: #f1ead8; color: #12301f; transform: none; }
+        .sp-btn.gold { background: linear-gradient(180deg, #e9b949, #c9922a); color: #2a1d05; box-shadow: 0 6px 16px rgba(201,146,42,.35); }
+        .sp-opt { display: block; width: 100%; text-align: left; border: 1.5px solid #e2d7bd; background: #fff; border-radius: 16px; padding: 12px 16px; cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif; color: #17301f; transition: border-color .15s, box-shadow .15s, transform .12s; }
+        .sp-opt:hover { border-color: #0b6b42; box-shadow: 0 6px 16px rgba(11,107,66,.12); }
+        .sp-opt:active { transform: scale(.99); }
+        .sp-opt:focus-visible { outline: 3px solid #f2c14e; outline-offset: 2px; }
+        .sp-opt[aria-pressed="true"] { border-color: #0b6b42; background: #effaf3; box-shadow: inset 0 0 0 1px #0b6b42; }
+        .sp-opt:disabled { opacity: .5; cursor: not-allowed; }
+        .sp-kicker { font: 800 12px/1 'Plus Jakarta Sans', sans-serif; letter-spacing: 1.6px; text-transform: uppercase; color: #8a7a55; }
+        .sp-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        #sop-stage.sop-tall .sp-tiles { grid-template-columns: repeat(2, 1fr); }
+        .sp-tile { background: #f8f2e3; border-radius: 14px; padding: 10px 12px; min-width: 0; }
+        .sp-tile .l { font: 700 12px/1.2 'Plus Jakarta Sans', sans-serif; color: #7a6c4c; text-transform: uppercase; letter-spacing: .8px; }
+        .sp-tile .v { font: 700 22px/1.2 'Fraunces', Georgia, serif; color: #17301f; margin-top: 4px; overflow-wrap: anywhere; }
+        .sp-tile.bad .v { color: #b3261e; } .sp-tile.good .v { color: #0b6b42; }
+        .sp-ms { display: flex; align-items: flex-start; gap: 0; margin: 6px 0 2px; }
+        .sp-ms .s { flex: 1; text-align: center; position: relative; font: 700 11px/1.2 'Plus Jakarta Sans', sans-serif; color: #a39776; padding-top: 22px; min-width: 0; }
+        .sp-ms .s::before { content: ""; position: absolute; top: 6px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #e3d9c1; z-index: 1; transition: background .4s, box-shadow .4s, transform .4s; }
+        .sp-ms .s::after { content: ""; position: absolute; top: 11px; left: -50%; width: 100%; height: 2px; background: #e3d9c1; transition: background .5s .1s; }
+        .sp-ms .s:first-child::after { display: none; }
+        .sp-ms .s.done { color: #0b6b42; } .sp-ms .s.done::before, .sp-ms .s.done::after, .sp-ms .s.now::after { background: #0b6b42; }
+        .sp-ms .s.now { color: #17301f; } .sp-ms .s.now::before { background: #e9b949; box-shadow: 0 0 0 4px rgba(233,185,73,.3); transform: scale(1.25); }
+        #sop-stage.sop-tall .sp-ms .s span { display: none; } #sop-stage.sop-tall .sp-ms .s.now span { display: block; white-space: nowrap; }
+        .sp-brief > summary { cursor: pointer; list-style: none; font: 800 14px 'Plus Jakarta Sans', sans-serif; color: #0b6b42; padding: 8px 0; }
+        .sp-brief > summary::-webkit-details-marker { display: none; }
+        .sp-brief > summary::before { content: "▸ "; } .sp-brief[open] > summary::before { content: "▾ "; }
+        .sp-adviser { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; padding: 14px 16px; animation: spAdvIn .45s cubic-bezier(.2,.8,.2,1) both; }
+        .sp-adviser .pic { width: 74px; height: 88px; border-radius: 18px; object-fit: cover; object-position: top; background: linear-gradient(180deg, #e8f3ea, #cfe6d6); box-shadow: 0 0 0 3px #fff, 0 0 0 5px #e9b949; }
+        .sp-adviser.calm .pic { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #cfe6d6; }
+        .sp-adviser.alert .pic { animation: spRing 1.8s ease-in-out 2; }
+        .sp-bubble { position: relative; background: #fff; border: 1px solid #e7dcc4; border-radius: 18px; padding: 10px 14px; font: 600 17px/1.4 'Plus Jakarta Sans', sans-serif; color: #17301f; }
+        .sp-bubble::before { content: ""; position: absolute; left: -8px; top: 18px; width: 14px; height: 14px; background: #fff; border-left: 1px solid #e7dcc4; border-bottom: 1px solid #e7dcc4; transform: rotate(45deg); }
+        .sp-con { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 14px; background: #eef7f0; border-left: 4px solid #0b6b42; font: 600 15px/1.35 'Plus Jakarta Sans', sans-serif; color: #17301f; animation: sopFadeIn .5s ease-out; }
+        .sp-stamp-wrap { position: fixed; inset: 0; z-index: 9800; display: flex; align-items: center; justify-content: center; pointer-events: none; background: radial-gradient(circle, rgba(18,48,31,.18), rgba(18,48,31,0) 60%); animation: spFadeOut 1.6s ease-in forwards; }
+        .sp-stamp { border: 6px double #b3261e; color: #b3261e; border-radius: 14px; padding: 10px 26px; font: 900 44px/1 'Fraunces', Georgia, serif; letter-spacing: 4px; text-transform: uppercase; background: rgba(255,250,240,.92); transform: rotate(-9deg); animation: spStamp .55s cubic-bezier(.2,1.4,.4,1) both; text-align: center; box-shadow: 0 14px 40px rgba(0,0,0,.18); }
+        .sp-stamp.green { border-color: #0b6b42; color: #0b6b42; }
+        .sp-stamp small { display: block; font: 800 14px/1.3 'Plus Jakarta Sans', sans-serif; letter-spacing: 1px; margin-top: 6px; text-transform: none; }
+        @keyframes spStamp { 0% { transform: rotate(-9deg) scale(2.6); opacity: 0; } 60% { transform: rotate(-9deg) scale(.94); opacity: 1; } 80% { transform: rotate(-9deg) scale(1.03); } 100% { transform: rotate(-9deg) scale(1); } }
+        @keyframes spFadeOut { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes spAdvIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        @keyframes spRing { 0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #e9b949; } 50% { box-shadow: 0 0 0 3px #fff, 0 0 0 10px rgba(233,185,73,.35); } }
+        .sp-step { animation: spAdvIn .35s cubic-bezier(.2,.8,.2,1) both; }
+        #sop-stage.sop-tall .sp-adviser { gap: 10px; padding: 12px; } #sop-stage.sop-tall .sp-adviser .pic { width: 54px; height: 64px; border-radius: 14px; } #sop-stage.sop-tall .sp-bubble { font-size: 16px; }
+        .sp-still .sp-adviser, .sp-still .sp-adviser .pic, .sp-still .sp-stamp, .sp-still .sp-stamp-wrap, .sp-still .sp-con, .sp-still .sp-step, .sp-still .sp-btn, .sp-still .sp-opt, .sp-still .sp-ms .s::before, .sp-still .sp-ms .s::after { animation: none !important; transition: none !important; }
+        @media (prefers-reduced-motion: reduce) { .sp-adviser, .sp-adviser .pic, .sp-stamp, .sp-stamp-wrap, .sp-con, .sp-step, .sp-btn, .sp-opt, .sp-ms .s::before, .sp-ms .s::after { animation: none !important; transition: none !important; } }
         .sop-fade-in { animation: sopFadeIn .4s ease-out; }
         .sop-slide-up { animation: sopSlideUp .35s ease-out; }
         @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }

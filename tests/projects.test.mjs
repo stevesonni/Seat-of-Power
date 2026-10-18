@@ -91,3 +91,45 @@ test("restructuring moves work explicitly and does not double budgets", () => {
   assert.equal(expireTaskForces(tf.ministries, 5).ended.length, 1);
   assert.equal(planRestructure("reassign", { ministries, a: "lg", b: "works" }).ok, false); // LG has no area to move
 });
+
+import { nextStep, milestoneOf, migrateOldProject, MILESTONES, fitScope } from "../game/systems/projects.js";
+import { LENDERS } from "../game/systems/loans.js";
+test("every state has a next step: an action, a named blocker, or 'nothing due yet' with when", () => {
+  const base = { ...makeProject({ id: "n1", title: "Benin road", type: "road", qty: 10, ministryId: "works", approvedM: 9000, thisYearM: 4500, year: 2 }) };
+  for (const st of ["pending_finance", "pending_procurement", "in_progress", "stalled", "built", "delivered", "suspended", "abandoned"]) {
+    const n = nextStep({ ...base, status: st, facility: st === "built", equipped: false });
+    assert.ok(n.say && n.say.length > 10, st); if (n.due) assert.ok(n.button, st + " has a button");
+    if (!n.due && st === "in_progress") assert.ok(n.when);
+  }
+  assert.match(nextStep({ ...base, status: "pending_procurement" }).button, /^Review road procurement$/);
+  assert.match(nextStep({ ...base, status: "pending_procurement" }).say, /approved.*procurement/);
+});
+test("blocked steps say what blocks them", () => {
+  const base = { ...makeProject({ id: "n2", title: "Clinic", type: "hospital", qty: 50, ministryId: "health", approvedM: 1000, thisYearM: 500, year: 2 }) };
+  const busy = ["medibuild", "medibuild", "kestrel", "kestrel", "kestrel", "cranfield", "cranfield", "cranfield", ...Array(5).fill("bastion"), ...Array(9).fill("rainbow"), ...Array(9).fill("muhammad")].map(id => ({ contractorId: id, status: "in_progress" }));
+  const b = nextStep({ ...base, status: "pending_procurement" }, { projects: busy }); assert.ok(b.blocked); assert.match(b.say, /busy/);
+  const f = nextStep({ ...base, status: "pending_finance" }, { tried: ["bank", "bond", "dfi", "pre"], lenders: { bank: 1, bond: 1, dfi: 1, pre: 1 } }); assert.ok(f.blocked);
+});
+test("milestones never run ahead of the simulation", () => {
+  assert.equal(MILESTONES[milestoneOf({ status: "pending_procurement" })][0], "financed");
+  assert.equal(MILESTONES[milestoneOf({ status: "pending_finance" })][0], "approved");
+  assert.equal(MILESTONES[milestoneOf({ status: "in_progress" })][0], "building");
+});
+test("projects stuck in old saves are converted to an actionable step, with nothing charged again", () => {
+  const stuck = { id: "old1", title: "500km Road Network", type: "road", baseCost: 8, status: "pending_procurement", progress: 0, fin: { id: "cash" } };
+  const m = migrateOldProject(stuck, 3);
+  assert.equal(m.status, "pending_procurement"); assert.equal(m.estimateM, 8000); assert.equal(m.spentM, 0); assert.equal(nextStep(m).id, "contractor");
+  const noFin = migrateOldProject({ ...stuck, fin: undefined }, 3); assert.equal(nextStep(noFin).id, "finance");
+  const running = migrateOldProject({ id: "o2", title: "Bridge", type: "bridge", cost: 4, status: "in_progress", progress: 40, contractor: "Kestrel Construction Nig. PLC" }, 3);
+  assert.equal(running.builtM, 1600); assert.equal(running.contractorId, "kestrel"); assert.equal(migrateOldProject(running, 4), running);
+});
+
+test("when every lender says no, fitting the scope leads to procurement, never back to the blocker", () => {
+  const p = { ...makeProject({ id: "fz", title: "Big road", type: "road", qty: 100, lga: "X", approvedM: 0, thisYearM: 0, year: 1 }), status: "pending_finance" };
+  const all = Object.keys(LENDERS);
+  assert.equal(nextStep(p, { tried: all, lenders: LENDERS }).id, "blocked_finance");
+  const r = fitScope({ ...p, approvedM: p.estimateM }, p.estimateM / p.years / 2, 1);
+  assert.ok(r.ok); assert.equal(r.p.status, "pending_procurement"); assert.ok(r.p.estimateM < p.estimateM);
+  assert.equal(nextStep(r.p, { tried: all, lenders: LENDERS, projects: [] }).id, "contractor");
+  const no = fitScope(p, 1, 1); assert.equal(no.ok, false); assert.match(no.why, /Defer it/);
+});

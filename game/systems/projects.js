@@ -160,6 +160,16 @@ export const reduceScope = (p, factor, year) => {
   const est = Math.max(p.builtM, Math.round(p.estimateM * f));
   return { ...p, qty: Math.round(p.qty * f * 10) / 10, estimateM: est, equipM: Math.round(p.equipM * f), opsPerYearM: Math.round(p.opsPerYearM * f), decisions: [...p.decisions, { year, text: "Scope cut to " + Math.round(f * 100) + "%." }] };
 };
+/* When no lender will fund it: cut the scope to what the budget line can pay
+   over the project's years. Nothing is borrowed; it goes to procurement. */
+export const fitScope = (p, roomPerYearM, year) => {
+  const fundable = Math.max(0, Math.round(roomPerYearM)) * Math.max(1, p.years || 1);
+  const f = fundable / Math.max(1, p.estimateM);
+  if (f < .2) return { ok: false, why: "The budget line can pay only " + fmtM(fundable) + " over " + (p.years || 1) + " years, under a fifth of the scope. Defer it, or raise the line in next year's budget." };
+  if (f >= 1) return { ok: true, p: { ...p, status: "pending_procurement", needM: 0, decisions: [...p.decisions, { year, text: "Paid from the budget line, without a loan." }] }, factor: 1 };
+  const q = reduceScope(p, f, year);
+  return { ok: true, factor: f, p: { ...q, approvedM: q.estimateM, needM: 0, status: "pending_procurement", alloc: { ...p.alloc, [year]: Math.min(q.estimateM, Math.round(roomPerYearM)) } } };
+};
 export const replaceContractor = (p, newId, year) => {
   const remob = Math.round(remainingM(p) * .08); // remobilisation: a new contractor prices the handover
   return { ...p, contractorId: newId, contractor: (contractorById(newId) || {}).name, status: remainingM(p) > 0 ? "in_progress" : p.status, estimateM: p.estimateM + remob, decisions: [...p.decisions, { year, text: "Replaced the contractor; handover adds " + fmtM(remob) + "." }] };
@@ -179,3 +189,63 @@ export const PROCUREMENT = {
 };
 // Which budget line pays for which sector's capital work.
 export const BUDGET_LINE = { roads: "infrastructure", markets: "infrastructure", industry: "infrastructure", energy: "infrastructure", waste: "infrastructure", sports: "infrastructure", water: "infrastructure", health: "health", education: "education", security: "security" };
+
+/* ── The next step: ONE answer used by the adviser, the project card and the
+   hub, so they can never disagree. Returns what to do now, what blocks it,
+   or that nothing is due yet and when it will be. ── */
+export const MILESTONES = [
+  ["proposed", "Proposed"], ["approved", "Budget approved"], ["financed", "Money found"], ["contracted", "Contract signed"],
+  ["building", "Under construction"], ["built", "Built"], ["working", "Open and working"],
+];
+export const milestoneOf = (p) => {
+  if (!p) return 0;
+  if (p.status === "delivered") return 6;
+  if (p.status === "built") return 5;
+  if (["in_progress", "stalled", "suspended", "abandoned"].includes(p.status)) return 4;
+  if (p.status === "pending_procurement") return 2;
+  if (p.status === "pending_finance") return 1;
+  return 0;
+};
+const short = (p) => (UNIT[p.type] ? UNIT[p.type].nm.toLowerCase() : "project");
+export const nextStep = (p, ctx = {}) => {
+  if (!p) return { id: "none", due: false, say: "" };
+  const t = p.title;
+  if (p.status === "pending_finance") {
+    const tried = (ctx.tried || []).length, total = Object.keys(ctx.lenders || {}).length || 4;
+    if (tried >= total) return { id: "blocked_finance", due: true, blocked: true, button: "Revise the scope", say: "Governor, every lender has turned down " + t + ". It cannot start until the scope fits what the budget can pay, or you defer it.", options: ["reduce", "defer"] };
+    return { id: "finance", due: true, button: "Find the money", say: "Governor, " + t + " is approved, but the budget line cannot pay for it this year. The next step is to find the money: a loan offer, or a smaller scope." };
+  }
+  if (p.status === "pending_procurement") {
+    const free = eligible(p.type, ctx.projects || []).filter(c => !c.full);
+    if (!free.length) return { id: "blocked_contractor", due: true, blocked: true, button: "See the bidders", say: "Every qualified " + short(p) + " contractor is busy. One frees up when one of their projects finishes at year end." };
+    return { id: "contractor", due: true, button: "Review " + short(p) + " procurement", say: "Governor, " + t + " is approved and the money is in place. The next step is to review its procurement and award the contract." };
+  }
+  if (p.status === "in_progress") return { id: "wait", due: false, say: t + " is under construction. Progress is measured at the end of the year.", when: "year end" };
+  if (p.status === "stalled") return { id: "stalled", due: true, blocked: true, button: "Fix the funding", say: t + " has stalled: " + fmtM(remainingM(p)) + " of work is left and the approved money is spent. Add funding, cut the scope or change the contractor." };
+  if (p.status === "built") return { id: !p.equipped ? "equip" : "staff", due: true, button: !p.equipped ? "Equip it (" + fmtM(p.equipM) + ")" : "Staff it (" + fmtM(p.opsPerYearM) + " a year)", say: t + " is built but empty. It needs " + (FACILITY[p.type] || {}).what + " before it serves anyone." };
+  if (p.status === "suspended") return { id: "resume", due: false, button: "Resume", say: t + " is suspended by your order." };
+  if (p.status === "delivered" && (p.quality || 1) < .6) return { id: "repair", due: true, button: "Repair defects", say: t + " is open, but badly built. Repairs cost " + fmtM(repairCostM(p)) + "." };
+  return { id: "none", due: false, say: t + (p.status === "delivered" ? " is open and working." : p.status === "abandoned" ? " was abandoned." : "") };
+};
+
+/* Saves made before this model held projects with only baseCost/progress
+   (and the "Resume procurement" ones stuck waiting for a screen that no
+   longer exists). Convert them; nothing is charged again. */
+const OLD_NAME_ID = { kestrel: "kestrel", great: "greatwall", riverside: "riverside", danbala: "danbala", bastion: "bastion", rainbow: "rainbow", alhaji: "muhammad", sentinel: "kestrel", levant: "cranfield", cranfield: "cranfield", continental: "rainbow", best: "bastion" };
+export const migrateOldProject = (p, year) => {
+  if (!p || p.estimateM != null) return p;
+  const type = UNIT[p.type] ? p.type : "road";
+  const est = Math.max(100, Math.round(((p.cost || p.baseCost || 1) * 1) * 1000));
+  const built = Math.round(est * Math.min(100, p.progress || 0) / 100);
+  const status = p.status === "pending_procurement" ? (p.fin ? "pending_procurement" : "pending_finance")
+    : ["in_progress", "delivered", "suspended", "abandoned"].includes(p.status) ? p.status : "pending_finance";
+  const key = String(p.contractor || "").toLowerCase().split(/\s+/)[0];
+  const facility = !!FACILITY[type];
+  return {
+    ...p, type, sector: TYPE_SECTOR[type], qty: p.qty || Math.max(1, Math.round(est / UNIT[type].per)), unit: UNIT[type].unit,
+    estimateM: est, equipM: facility ? Math.round(est * FACILITY[type].equip) : 0, opsPerYearM: 0, facility, years: UNIT[type].years,
+    approvedM: est, alloc: {}, spentM: built, builtM: built, progress: Math.round(built / est * 100), quality: typeof p.effective === "number" ? Math.round(p.effective * 100) / 100 : null,
+    status, equipped: true, staffed: true, startYear: p.startTurn || year, contractorId: p.contractor ? (OLD_NAME_ID[key] || "kestrel") : null,
+    decisions: [...(p.decisions || []), { year, text: "Carried over from an earlier save." }], events: p.events || [], migrated: true,
+  };
+};
