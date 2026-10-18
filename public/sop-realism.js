@@ -108,7 +108,7 @@
   }
 
   // Rich NPC generator — persistent identity with LGA, age, background, one liability.
-  const BACKGROUNDS = ["Ex-permanent secretary", "Former House of Assembly member", "Retired Army colonel", "Ex-banker (First Bank)", "Former LGA chairman", "Ex-federal permanent secretary", "Ex-university professor", "SAN (Senior Advocate)", "Former SSG", "Ex-commissioner of finance", "Former party ward chairman", "Ex-NDDC director", "Ex-military governor's aide", "Retired customs deputy comptroller", "Former Central Bank director"];
+  const BACKGROUNDS = ["Ex-permanent secretary", "Former House of Assembly member", "Retired Army colonel", "Ex-banker", "Former LGA chairman", "Ex-federal permanent secretary", "Ex-university professor", "SAN (Senior Advocate)", "Former SSG", "Ex-commissioner of finance", "Former party ward chairman", "Ex-NDDC director", "Ex-military governor's aide", "Retired customs deputy comptroller", "Former Central Bank director"];
   const LIABILITIES = ["EFCC probe pending from 2018 tenure","brother-in-law owns 3 state contracts","daughter's private university received a state grant","known womanizer, one paternity suit pending","ICPC has an open file","alleged link to a cult confraternity","spouse's NGO receives ₦40M yearly from the state","owes ₦120M to a commercial bank","named in the Pandora Papers","land grab dispute in home LGA","has quietly funded opposition candidates","child studies at ₦18M/yr school in UK","personal Range Rover convoy of 8","associated with a bureau de change under FIU scrutiny"];
 
   function seededPick(arr, seed) { return arr[Math.abs(seed) % arr.length]; }

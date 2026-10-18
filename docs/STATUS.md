@@ -1,6 +1,33 @@
 # Seat of Power — status (4 Oct)
 
 
+
+## Money, the House and elections (18 Oct, later)
+- **One bank (`game/systems/treasury.js`, `s.cash` in ₦B).**
+  - When the year's budget is settled, the year's revenue arrives. The budget's running lines (salaries, offices, debt) come off the top; the rest goes into the bank. Unspent money stays.
+  - Everything the governor buys goes through `spendB`: programmes (each year's share), projects (contractors paid at year end), bills, new ministries, restructuring, commissioner money, House deals, trips, investor incentives, flagship and event choices.
+  - Each payment comes from the bank first. Only the shortfall is borrowed, up to a debt limit of about a year's revenue (1.5× Easy, 1.2× Medium, 1× Hard).
+  - Past that limit the state is broke: the action is refused with the reason. A running programme pauses for the year.
+  - Obligations (court awards, running costs of facilities, wages owed) are still met (`force`).
+  - The status strip shows "In the bank". A card says what came in each year.
+- **The House.**
+  - A blocked vote now offers ways to clear it: pay the godfather what is owed (₦0.5B, corruption +3%), make peace through party elders (₦0.3B), or go over the members' heads to the voters (works at 55% approval or more).
+  - The funding objection fires only when the bank can't pay and debt is near a year's revenue.
+  - The budget vote shows one dot per seat.
+- **Elections.**
+  - **One screen a week:** your best answer to their last attack plus the two strongest moves you can afford. Their attack lands right after your move. No "days" resource and no list of things you can't do.
+  - **The win rule is Section 179(2):** the most votes and 25% in two-thirds of the local governments, counted by LGA. A second election is held if the leader misses the spread.
+  - **The result page:** the verdict and the button first, then "See the full count".
+- **Smaller fixes.**
+  - The lender is "a syndicate of three commercial banks" (no real names).
+  - EFCC investigations open with the record entry that caused them.
+  - The adviser's key words can be tapped for one plain line, and the line can be read aloud.
+  - The profile shows the ending titles earned and locked.
+- **Tests:**
+  - `tests/treasury.test.mjs`;
+  - `npm run e2e:projects` adds a "bank pays, nothing borrowed" journey and a "broke: refused, nothing borrowed" journey;
+  - `npm run e2e` (both full playthroughs) passes.
+
 ## Projects: approval → procurement dead end (fixed, 18 Oct)
 - **Cause (reproduced in the browser).**
   - Capital programmes from the Policies step still used the old pipeline (`capProj` → `confirmCapital` → `pendingProc`).

@@ -9,7 +9,7 @@ import { seeded } from "./rng.js";
 import { fmtM } from "./money.js";
 
 export const LENDERS = {
-  bank: { nm: "Commercial bank loan", lender: "A Zenith–Access–UBA syndicate", rate: .22, years: 4, base: .9 },
+  bank: { nm: "Commercial bank loan", lender: "A syndicate of three commercial banks", rate: .22, years: 4, base: .9 },
   bond: { nm: "State bond", lender: "Investors, via the SEC and the DMO", rate: .15, years: 7, base: .8, minIgrM: 3000 },
   dfi: { nm: "AfDB / World Bank loan", lender: "The African Development Bank and World Bank", rate: .05, years: 15, base: .85 },
   pre: { nm: "Contractor pre-financing", lender: "The contractor", rate: .3, years: 3, base: 1 },

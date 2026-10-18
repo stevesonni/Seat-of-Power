@@ -1,5 +1,10 @@
 # Seat of Power: everything left to do, plus revenue and elections audits
 
+> **Update, 18 Oct (later):**
+> - **Done:** money now runs from one bank (section 3's proposal, built); the House blockers can be cleared; elections use Section 179 and one screen a week.
+> - **Dropped (your call):** the big meters, election night, primaries and off-cycle elections.
+> - **Still open:** bills as documents, events in the new pattern, the budget redesign, compound badges, the desktop overlay size, the goldfields as a yearly event, and the art pack.
+
 *18 October 2026. Sources: your playtests, Gemini's two reviews, the Executive Command screenshots, and a read through the code.*
 
 ---
@@ -31,31 +36,31 @@ You sent two screens: the adviser on the map, and a bill being signed.
 | # | Item | Source | Status |
 |---|---|---|---|
 | A1 | Project sequence: adviser at the desk, three-layer dossier, stamps, milestone strip, "What changed" | You | ✅ |
-| A2 | Large full-body adviser with an entrance, coloured glossary words and a speaker icon per line | You, screenshots | ⬜ |
-| A3 | Animated meters (approval, party, treasury) that move when a result lands | You, G, screenshots | ⬜ |
+| A2 | Large full-body adviser with an entrance, coloured glossary words and a speaker icon per line | You, screenshots | ✅ (tap a key word for a one-line meaning; 🔈 reads the line aloud) |
+| A3 | Animated meters (approval, party, treasury) that move when a result lands | You, G, screenshots | Dropped (your call) |
 | A4 | Bills as clause-by-clause documents, signed with a pen and stamp | Screenshots | ⬜ |
 | A5 | The year's events in the new pattern: who's in the room, the street's reaction previewed before you sign, a "Delegate" button | G | ⬜ |
 | A6 | Budget in the new pattern | You, G | ⬜ |
 | A7 | Numbered badges on compound buildings | Screenshots | ⬜ |
 | A8 | Desktop: overlays render too small on large screens | C | ⬜ |
-| A9 | Ending-title gallery (earned and locked) | G | ⬜ |
+| A9 | Ending-title gallery (earned and locked) | G | ✅ |
 
 ### B. The House of Assembly
 | # | Item | Source | Status |
 |---|---|---|---|
-| B1 | A grudge (an overdue godfather favour, or having refused him) blocks every bill and the budget, with no way to clear it on the rejection screen | You, C | ⬜ |
-| B2 | Clearing a grudge: settle the favour, reconcile through party elders, or appeal to members' constituents | G, C | ⬜ |
+| B1 | A grudge (an overdue godfather favour, or having refused him) blocks every bill and the budget, with no way to clear it on the rejection screen | You, C | ✅ |
+| B2 | Clearing a grudge: settle the favour, reconcile through party elders, or appeal to members' constituents | G, C | ✅ |
 | B3 | Lobbying before the vote: blocs (majority, opposition, godfather loyalists, undecided), each with a price | G | ⬜ |
-| B4 | The vote shown in the chamber: a live yes/no tally and faces | G | ⬜ |
-| B5 | The flat ₦18B debt line that blocks costed bills: scale it to each state's revenue | C | ⬜ |
-| B6 | The negotiate → more debt → more blocked bills spiral | C | ⬜ |
+| B4 | The vote shown in the chamber: a live yes/no tally and faces | G | 🟡 (a seat count, one dot per member) |
+| B5 | The flat ₦18B debt line that blocks costed bills: scale it to each state's revenue | C | ✅ (now: the bank can't pay and debt is close to a year's revenue) |
+| B6 | The negotiate → more debt → more blocked bills spiral | C | ✅ (deals are paid from the bank) |
 
 ### C. Money (detail in section 3)
 | # | Item | Source | Status |
 |---|---|---|---|
-| C1 | One money system: the budget pays for things, and only the shortfall is borrowed | You, C | ⬜ |
-| C2 | "Treasury" is a running balance, not this year's income | C | ⬜ |
-| C3 | Year-end money panel: in, out, borrowed, debt service | You, G | ⬜ |
+| C1 | One money system: the budget pays for things, and only the shortfall is borrowed | You, C | ✅ |
+| C2 | "Treasury" is a running balance, not this year's income | C | ✅ |
+| C3 | Year-end money panel: in, out, borrowed, debt service | You, G | 🟡 (a card when each year's money arrives) |
 | C4 | Revenue reforms show a projected revenue line that visibly rises | G | ⬜ |
 | C5 | Reward for a year without new borrowing | G | ⬜ |
 | C6 | Old debt and new project loans brought under one model, with interest | C | ⬜ |
@@ -64,18 +69,18 @@ You sent two screens: the adviser on the map, and a bill being signed.
 ### D. Elections (detail in section 4)
 | # | Item | Source | Status |
 |---|---|---|---|
-| D1 | The win rule is invented ("most votes and 2 of 3 zones"). Use the constitutional rule | C | ⬜ |
-| D2 | Collation by local government (and ward), not by three zones | C | ⬜ |
-| D3 | Inconclusive results and supplementary elections | C | ⬜ |
-| D4 | A governorship primary (none today; the presidential run has one) | C | ⬜ |
-| D5 | Election night: the module exists (BVAS failures, vote buying, IReV mismatches) but is switched off | C | ⬜ |
+| D1 | The win rule is invented ("most votes and 2 of 3 zones"). Use the constitutional rule | C | ✅ |
+| D2 | Collation by local government (and ward), not by three zones | C | 🟡 (LGA count for the 25% rule; collation still shown by zone) |
+| D3 | Inconclusive results and supplementary elections | C | 🟡 (a second election when the leader misses the spread) |
+| D4 | A governorship primary (none today; the presidential run has one) | C | Not for now (your call) |
+| D5 | Election night: the module exists (BVAS failures, vote buying, IReV mismatches) but is switched off | C | Not coming back (your call) |
 | D6 | More than two candidates | C | ⬜ |
 | D7 | Turnout closer to recent governorship elections | C | ⬜ |
 
 ### E. Gameplay and fairness
 | # | Item | Source | Status |
 |---|---|---|---|
-| E1 | Make every anti-corruption investigation (EFCC) name the record entries that caused it | G | 🟡 (one briefing does; the rest don't) |
+| E1 | Make every anti-corruption investigation (EFCC) name the record entries that caused it | G | ✅ |
 | E2 | A shorter path from "New game" to Government House | G | ⬜ (measure the taps first) |
 | E3 | The goldfields' yearly decision arrives as one of the year's events, not a separate button | G | ⬜ |
 | E4 | Move the "Standing" panel (rivals, factions, institutions) out of the main path | G | ⬜ |
@@ -86,7 +91,7 @@ You sent two screens: the adviser on the map, and a bill being signed.
 |---|---|---|---|
 | F1 | Art pack 2 brief (about 100 images) | You | ✅ brief written; images not made |
 | F2 | Remove the coat of arms and real organisation text from pack 1 | C | ⬜ (needs the images) |
-| F3 | The "Zenith–Access–UBA" lender: rename it to a fictional bank | C | ⬜ |
+| F3 | The "Zenith–Access–UBA" lender: rename it to a fictional bank | C | ✅ |
 | F4 | Real senatorial districts for every state (only Edo has them) | C | ⬜ |
 | F5 | Fix `GAME-OVERVIEW.md`: it describes the election night as live, but it is switched off | C | ✅ corrected in this commit |
 

@@ -388,7 +388,16 @@ const lgaElectionSummary = (zones, partyStrength = 1, oppStrength = 1, state = n
   });
   const totalYou = rows.reduce((a, r) => a + r.yourVotes, 0);
   const totalOpp = rows.reduce((a, r) => a + r.oppVotes, 0);
-  return { rows, zonesWon: rows.filter(r => r.won).length, totalYou, totalOpp, margin: totalYou - totalOpp, registeredTotal };
+  // Section 179(2): the most votes AND at least a quarter of the votes in two-thirds of
+  // the local governments. Each LGA's share varies around its zone's (seeded by name).
+  const lgas = rows.flatMap(r => { const share = r.yourVotes / Math.max(1, r.yourVotes + r.oppVotes); return (r.names && r.names.length ? r.names : [r.zone]).map(nm => { const j = (hashStr(nm + (state || "")) % 1000) / 1000 - .5; const you = Math.max(.02, Math.min(.98, share + j * .36)); return { nm, you: Math.round(you * 1000) / 10, opp: Math.round((1 - you) * 1000) / 10 }; }); });
+  const need = Math.ceil(lgas.length * 2 / 3);
+  const you25 = lgas.filter(l => l.you >= 25).length, opp25 = lgas.filter(l => l.opp >= 25).length;
+  const most = totalYou > totalOpp;
+  // If the leader misses the spread, the Constitution calls a further election between
+  // the top two. With two serious candidates, the leader on votes carries it.
+  const runoff = most ? you25 < need : opp25 < need;
+  return { rows, zonesWon: rows.filter(r => r.won).length, totalYou, totalOpp, margin: totalYou - totalOpp, registeredTotal, lgas, need, you25, opp25, won: most, runoff };
 };
 const fmtVotes = (n) => n >= 1_000_000 ? (n / 1_000_000).toFixed(2) + "M" : n >= 1_000 ? (n / 1_000).toFixed(0) + "k" : String(n);
 const fmtVotesFull = (n) => Math.round(n).toLocaleString("en-US");
@@ -1116,6 +1125,8 @@ const reportTitle = (r) =>
   r.app >= 65 ? "The People's Governor" :
   r.app < 35 ? "The Unloved" : "The Survivor";
 
+// Every title a career can end with, for the gallery of titles earned and still locked.
+const ALL_TITLES = ["The Builder", "Promise Keeper", "The People's Governor", "The Survivor", "The Unloved", "Mr Autopilot", "The Governor Who Owed Salaries", "The Contractors' Governor", "Impeached", "Removed by the Supreme Court"];
 // What each flagship does every quarter (shown on the State sheet).
 const FLAGSHIP_BONUS = {
   education: "+50% literacy growth · +2 youth/turn", health: "+50% health growth · +2 women/turn",
@@ -1626,14 +1637,14 @@ const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppPar
   const youState = Math.round(zones.reduce((a, z) => a + pollShare(z), 0) / zones.length);
   const lastMove = (z) => { const m = (z.moves || []).slice(-1)[0]; return m && m.w >= week - 1 ? m : null; };
   const nameBox = (img, nm, pty) => <div style={{ textAlign: "center" }}>
-    <img src={img} alt="" style={{ height: tall ? 92 : 130, width: "auto", display: "block", margin: "0 auto" }} />
+    <img src={img} alt="" style={{ height: tall ? 64 : 120, width: "auto", display: "block", margin: "0 auto" }} />
     <div style={{ fontSize: fz.s, fontWeight: 800, maxWidth: tall ? 96 : 200, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nm}</div>
     <div style={{ fontSize: fz.s, opacity: .75 }}>{pty}</div>
   </div>;
   return <>
     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
       {[1, 2, 3, 4].map(w => <div key={w} style={{ flex: 1, height: 8, borderRadius: 4, background: w < week ? CL.grn : w === week ? (isOpp ? CL.red : CL.gold) : CL.bdr }} />)}
-      <span style={{ fontSize: fz.s, color: isOpp ? CL.red : CL.td, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 6 }}>Week {week} of 4 · {isOpp ? "their move" : "your move"}</span>
+      <span style={{ fontSize: fz.s, color: CL.td, fontWeight: 800, whiteSpace: "nowrap", marginLeft: 6 }}>Week {week} of 4</span>
     </div>
     <div style={{ background: "#12301f", color: "#fff", borderRadius: 24, padding: tall ? "12px 12px 14px" : "18px 22px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: tall ? 10 : 18, alignItems: "end", marginBottom: 14 }}>
       {nameBox(youImg, youName, youParty)}
@@ -1654,7 +1665,6 @@ const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppPar
     </div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 10 }}>
       <CampChip txt={"₦" + money.toFixed(2) + "B left"} col={CL.gold} />
-      <CampChip txt={days + " of " + maxDays + " days"} col={CL.pur} />
       {gfDebt > 0 && <CampChip txt={"Godfather debt " + SYS.fmtB(gfDebt)} col={CL.red} />}
       {slogan && <CampChip txt={"“" + slogan + "”"} col={CL.grn} />}
     </div>
@@ -1665,8 +1675,17 @@ const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppPar
       <SceneArt bg="rally" who={oppImg} alt={oppName} h={tall ? 160 : 200} />
       <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, lineHeight: 1.15 }}>{(ev?.t || "The opponent moves").replace(/^[^A-Za-z]+/, "")}</div>
       <div style={{ fontSize: fz.m, color: CL.tm, marginTop: 6 }}>{ev?.d}</div>
-    </div> : <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, margin: "4px 0 10px" }}>Pick this week's move</div>}
+    </div> : <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.m, color: CL.txt, margin: "2px 0 8px" }}>Pick one move this week</div>}
   </>;
+};
+/* One screen a week, three choices: your best answer to their last attack
+   (if they made one), then the strongest moves you can afford. Never a list
+   of things you can't do. */
+const weekPicks = (moves, answers, canTake, sitOut) => {
+  const best = (l) => (l || []).filter(canTake).sort((a, b) => (b.pts || 0) - (a.pts || 0));
+  const ans = best(answers)[0], mv = best(moves);
+  const out = ans ? [{ ...ans, answer: true }, ...mv.slice(0, 2)] : mv.slice(0, 3);
+  return out.length ? out : [sitOut];
 };
 const CampaignMove = ({ opt, ok, why, boosted, onPick }) => {
   const tall = TALL(), fz = campFz();
@@ -1686,7 +1705,7 @@ const CampaignMove = ({ opt, ok, why, boosted, onPick }) => {
       <div style={{ fontSize: fz.s, color: CL.td, margin: "2px 0 6px", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }} title={[opt.d, opt.risk].filter(Boolean).join(" ")}>{line}</div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <CampChip txt={cost > 0 ? "₦" + cost.toFixed(2) + "B" : "Free"} col={CL.gold} />
-        <CampChip txt={(opt.days || 1) + ((opt.days || 1) === 1 ? " day" : " days")} col={CL.pur} />
+        {opt.answer && <CampChip txt="Answers their attack" col={CL.red} />}
         {zoneTxt && <CampChip txt={zoneTxt} col={CL.blu} />}
         {boosted && <CampChip txt="Slogan +2" col={CL.grn} />}
         {opt.appRisk && <CampChip txt="Can backfire" col={CL.org} />}
@@ -2124,6 +2143,11 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile
           <div style={{ flex: 1, fontSize: DS.t.label, color: UI.sub }}>{[profile.origin ? stateLabel(profile.origin) + " origin" : null, profile.leaning ? profile.leaning + " leaning" : null].filter(Boolean).join(" · ") || "No home state or party yet"}<div>New games start with your name, portrait{profile.origin ? ", state" : ""}{profile.leaning ? " and party" : ""} filled in.</div></div>
           <button onClick={() => setSheet("profile")} style={{ border: "1px solid " + UI.line, background: "#fff", borderRadius: 999, padding: "10px 16px", minHeight: 44, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", color: UI.ink, fontFamily: F.b }}>Edit</button>
         </div>
+        <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🏅 Titles</b>
+        {(() => { const got = new Set((profile.games || []).map(g => g.title)); return <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }} aria-label={got.size + " of " + ALL_TITLES.length + " titles earned"}>
+          {ALL_TITLES.map(t => <span key={t} title={got.has(t) ? "Earned" : "Not yet earned"} style={{ padding: "6px 12px", borderRadius: 999, fontSize: DS.t.meta, fontWeight: 800, background: got.has(t) ? UI.green + "18" : "#efe9dc", color: got.has(t) ? UI.green : UI.dim, border: "1px solid " + (got.has(t) ? UI.green + "55" : UI.line) }}>{got.has(t) ? "🏅 " + t : "🔒 " + t}</span>)}
+          <span style={{ width: "100%", fontSize: DS.t.meta, color: UI.sub }}>{got.size} of {ALL_TITLES.length} earned. Every ending has one, good or bad.</span>
+        </div>; })()}
         <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🏅 Hall of Governors</b>
         {(profile.games || []).length ? <div style={{ display: "grid", gap: 8 }}>
           {(profile.games || []).slice().reverse().map((g, i) => <div key={i} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center" }}>
@@ -2761,7 +2785,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     const weakZone = activeZones.reduce((a, b) => b.support < a.support ? b : a, activeZones[0]);
     const baseZone = activeZones.reduce((a, b) => b.support > a.support ? b : a, activeZones[0]);
     const week = Math.floor(sCampRound / 2) + 1;
-    const isOpp = sCampRound % 2 === 1 && sCampRound < 8;
+    const isOpp = false; // one screen a week: their move lands straight after yours
     const isResult = sCampRound >= 8;
 
     // Part 1 — where you stand: one poll line per senatorial zone, shares add to 100
@@ -2819,7 +2843,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     const WEEK_DAYS = 6;
     const daysLeft = isOpp ? WEEK_DAYS - sCampDays : WEEK_DAYS;
     const optCost = (opt) => opt.cost || opt.dc || 0;
-    const canTake = (opt) => optCost(opt) <= warChest + 1e-9 && (opt.days || 1) <= daysLeft;
+    const canTake = (opt) => optCost(opt) <= warChest + 1e-9;
     const zoneLabel = (t) => t === "all" || t === undefined ? "All zones" : (activeZones.find(z => z.id === t)?.zone || "").replace(" Senatorial", "") + " zone";
 
     const handleSC = (opt) => {
@@ -2847,9 +2871,9 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       if (strike) setSCampOpp(co => co + strike.pts);
       if (opt.corAdd) setFavours(f => Math.round((f + opt.corAdd) * 1000) / 1000);
       if (opt.appRisk && Math.random() < (hm ? .65 : .55)) { setSCampScore(cs => cs - 4); setSCampLog(c => [...c, "⚠️ Backfire: the negative campaign cost you support (\u22124)."]); }
-      setSCampLog(c => [...c, (isOpp ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + (opt.days || 1) + (opt.days === 1 ? " day" : " days") + " · " + zoneLabel(opt.target)]);
-      if (strike) setSCampLog(c => [...c, "🔻 " + oName.replace(/^Hon\. /, "") + "'s " + ev.hit.l + " cost you " + (strike.worstZone ? Math.abs(strike.worstD) + " points in " + strike.worstZone : "ground") + (strike.lost > 0 ? " (" + strike.lost + " statewide)" : "") + ". Answer it or it sticks."]);
-      setSCampRound(r => r + 1);
+      setSCampLog(c => [...c, (opt.answer ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + zoneLabel(opt.target)]);
+      if (strike) setSCampLog(c => [...c, "🔻 " + oName.replace(/^Hon\. /, "") + "'s " + ev.hit.l + " cost you " + (strike.worstZone ? Math.abs(strike.worstD) + " points in " + strike.worstZone : "ground") + (strike.lost > 0 ? " (" + strike.lost + " statewide)" : "") + (week < 4 ? ". You can answer it next week." : ". There's no week left to answer it.")]);
+      setSCampRound(r => r + 2);
     };
     // Nothing affordable this week: sit it out (costs the remaining days; the opponent gains ground)
     const sitOut = { l: "🪑 Sit this one out", d: "No money or time for anything better. The opponent gains ground everywhere.", days: Math.max(1, daysLeft), pts: 0, oppPts: 3, target: "all", opp: 3 };
@@ -2915,7 +2939,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
         return { ...z, support: cl100(z.support + swing + jitter - 1), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 2 : 1) + (eDay() - 0.5) * (hardMode ? 7 : 5)) };
       });
       const collation = lgaElectionSummary(swayedZones, partyStrength, oppStrength, st);
-      const won = collation.totalYou > collation.totalOpp && collation.zonesWon >= 2;
+      const won = collation.won;
       const marginPct = collation.registeredTotal > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
       const yourTicket = (lastNm || "SURNAME").toUpperCase() + "/" + (depGov?.nm.split(" ").pop() || "DEP").toUpperCase();
       return (
@@ -2923,7 +2947,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
             <div style={{ maxWidth: 984, margin: "8px auto", textAlign: "center" }}>
             <Sfx k={won ? "win" : "lose"} /><ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />
             <h2 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(58), fontWeight: 700, margin: "7px 0" }}>{won ? "GOVERNOR-ELECT!" : "DEFEATED"}</h2>
-            <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 29 }}>{won ? "INEC Returning Officer declares " + nm + " (" + party + ") duly elected — carrying " + collation.zonesWon + " of 3 senatorial zones with a " + marginPct.toFixed(1) + "% margin." : oName + " (" + (oParty?.id || "OPP") + ") wins. You carried only " + collation.zonesWon + "/3 zones. Margin against you: " + marginPct.toFixed(1) + "%."}</p>
+            <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 29 }}>{(won ? "The Returning Officer declares " + nm + " (" + party + ") duly elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments (" + collation.need + " needed). Margin: " + marginPct.toFixed(1) + "%." : oName + " (" + (oParty?.id || "OPP") + ") wins with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against you: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " The leader missed the spread at first, so a second election was held between the two of you; the result held." : "")}</p>
             {!won && (() => {
               // A loss ends with one thing to try, not just a red screen.
               const sh = (rw) => rw.yourVotes / Math.max(1, rw.yourVotes + rw.oppVotes);
@@ -2950,6 +2974,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
                 setStep(85);
               }} style={{ padding: "29px 50px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
             </div>}
+            <details className="sp-brief" style={{ textAlign: "left", margin: "0 0 22px" }}><summary style={{ fontSize: 17 }}>See the full count</summary>
             <Cd style={{ textAlign: "left", marginBottom: 29 }}>
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14, letterSpacing: 2 }}>HOW THE ZONES MOVED</div>
               {(() => { const start = buildBattlegrounds(st, 2026, party, oParty?.id).map((z, i) => ({ ...z, support: cl100(z.support + (ticketFx[i] || 0)) })); return collation.rows.map((rw, i) => {
@@ -2993,6 +3018,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 10 }}>CAMPAIGN LOG</div>
               {sCampLog.map((c2, i) => <div key={i} style={{ fontSize: TS(34), color: c2.includes("BACKFIRE") || c2.includes("GODFATHER") ? CL.red : CL.tm, padding: "5px 0" }}>{c2}</div>)}
             </Cd>
+            </details>
             <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>Campaign funds remaining: ₦{warChest.toFixed(1)}B</div>
             {won ? <Bt onClick={() => { setElection({ opp: oName, oppParty: oParty?.id || "OPP", zonesWon: collation.zonesWon, marginPct: Math.round(marginPct * 10) / 10, votes: collation.totalYou, oppVotes: collation.totalOpp }); setSCampRound(0); setStep(9); }} style={{ padding: "43px 113px" }}>PROCEED TO GOVERNMENT HOUSE →</Bt>
               : <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
@@ -3018,7 +3044,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       );
     }
 
-    const opts = (() => { const o = isOpp ? (oppEvts[Math.floor(sCampRound / 2)]?.opts || []) : (mkActs()[Math.floor(sCampRound / 2)] || []); return o.some(canTake) ? o : [...o, sitOut]; })();
+    const opts = weekPicks(mkActs()[week - 1], week > 1 ? (oppEvts[week - 2] || {}).opts : null, canTake, sitOut);
     const tall = TALL(), fz = campFz();
     return (
       <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "14px 16px 40px" : "28px 32px" }}>
@@ -3047,7 +3073,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
 
           <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(400px, 1fr))", gap: 14 }}>
             {opts.map((opt, i) => { const ok = opt === sitOut || canTake(opt); const cost = optCost(opt);
-              return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} onPick={() => handleSC(opt)} />; })}
+              return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} onPick={() => handleSC(opt)} />; })}
           </div>
           <div style={{ textAlign: "center", marginTop: 18 }}><button onClick={restartElectionSetup} style={{ background: "none", border: 0, color: CL.td, fontSize: fz.s, textDecoration: "underline", cursor: "pointer", fontFamily: F.b }}>Restart election setup</button></div>
         </div>
@@ -3281,7 +3307,14 @@ const JUDICIARY_EVENTS = [
   { id: "election_petition", nm: "Election Petition", d: "Opposition challenges your re-election in the Election Tribunal.", trigger: "reelection" },
 ];
 
-const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, onDrop, grudges = [], speakerName = "The Speaker", addL }) => {
+// The chamber, one dot per seat: members who back you, and the rest.
+const SeatStrip = ({ house }) => !house ? null : <div style={{ margin: "0 auto 22px", maxWidth: 732 }}>
+  <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }} aria-label={house.loyal + " of " + house.seats + " members back you"}>
+    {Array.from({ length: house.seats }, (_, i) => <span key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: i < house.loyal ? "#0b6b42" : "#d8cfb8" }} />)}
+  </div>
+  <div style={{ fontSize: TS(30), color: CL.tm, marginTop: 8 }}><b style={{ color: house.loyal > house.seats / 2 ? CL.grn : CL.red }}>{house.loyal} of {house.seats}</b> members back you · {Math.floor(house.seats / 2) + 1} needed</div>
+</div>;
+const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, onDrop, grudges = [], speakerName = "The Speaker", addL, house, onClear, fixLabel }) => {
   const [voted, setVoted] = useState(false);
   const [result, setResult] = useState(null);
   const [reasons, setReasons] = useState([]);
@@ -3342,7 +3375,8 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
     <div style={{ textAlign: "center" }}>
       <div style={{ fontSize: TS(98), marginBottom: 22 }}>🏛️</div>
       <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>House of Assembly</h3>
-      <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 29 }}>Your Appropriation Bill must be approved by the House (S.121).</p>
+      <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 22 }}>Your Appropriation Bill must be approved by the House (S.121).</p>
+      <SeatStrip house={house} />
       {concerns.length > 0 && (
         <div style={{ textAlign: "left", margin: "0 auto 36px", maxWidth: 732, padding: 29, background: CL.org + "08", borderRadius: 13, border: "1px solid " + CL.org + "25" }}>
           <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.org, marginBottom: 14 }}>⚠️ HOUSE CONCERNS (may cause rejection):</div>
@@ -3381,6 +3415,12 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
           </div>
         ))}
       </div>
+      {onClear && reasons.some(r2 => r2.grudge) && <div style={{ maxWidth: 768, margin: "0 auto 22px", textAlign: "left" }}>
+        <div style={{ fontSize: TS(32), fontWeight: 800, color: CL.txt, marginBottom: 10 }}>Clear the way, then call the vote again</div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {[...new Set(reasons.filter(r2 => r2.grudge && r2.fix).map(r2 => r2.fix)), "appeal"].map(fx => { const g = reasons.find(r2 => r2.fix === fx) || reasons.find(r2 => r2.grudge); return <button key={fx} className="sp-opt" onClick={() => { onClear(fx, g); setVoted(false); setResult(null); }}><b style={{ fontSize: 16 }}>{fixLabel(fx)}</b></button>; })}
+        </div>
+      </div>}
       <div style={{ display: "grid", gap: 22, maxWidth: 768, margin: "0 auto", textAlign: "left" }}>
         <Cd onClick={fixable ? () => onAmend(2, cleanDraft) : undefined} style={{ padding: 29, opacity: fixable ? 1 : .45 }}>
           <div style={{ fontWeight: 600, fontSize: TS(40), color: CL.txt, marginBottom: 7 }}>✏️ Amend and resubmit</div>
@@ -3565,10 +3605,35 @@ const StampOnce = ({ text, sub, green, sound = "gavel" }) => {
 const spStill = () => { try { return localStorage.getItem("sop_still") === "1"; } catch (e) { return false; } };
 const setSpStill = (v) => { try { localStorage.setItem("sop_still", v ? "1" : "0"); } catch (e) {} try { document.documentElement.classList.toggle("sp-still", !!v); } catch (e) {} };
 try { document.documentElement.classList.toggle("sp-still", spStill()); } catch (e) {}
+// Words the adviser uses that a player may not know: tap one for a single plain line.
+const GLOSSARY = [
+  [/\bFAAC\b/, "FAAC", "The monthly share of federal revenue (mostly oil) paid to every state. It rises and falls with oil prices."],
+  [/\bIGR\b|own revenue/i, "Own revenue", "Taxes and fees the state collects itself (IGR). The part of your money you can grow."],
+  [/\bthe House\b|House of Assembly/, "The House", "The State House of Assembly. It must pass your budget and bills, and it can impeach you."],
+  [/\bgodfather\b/i, "Godfather", "The power broker who funded your campaign. He expects contracts and appointments in return."],
+  [/\bprocurement\b/i, "Procurement", "How a contract is given out: an open tender, a selective one, or a direct award."],
+  [/\bEFCC\b/, "EFCC", "The federal anti-corruption agency. It investigates what your record shows."],
+  [/\bdebt service\b/i, "Debt service", "What the state pays each year on what it has borrowed."],
+  [/\bthe bank\b/i, "The bank", "The state's money for this year's work. Spending comes from here first; borrowing only when it is empty."],
+  [/\bAppropriation\b/, "Appropriation Bill", "The budget, as a law the House must pass (Section 121)."],
+];
+const glossed = (text, onTerm) => {
+  const parts = []; let rest = String(text || ""), k = 0;
+  while (rest) {
+    let hit = null;
+    GLOSSARY.forEach(g => { const m = rest.match(g[0]); if (m && (!hit || m.index < hit.m.index)) hit = { g, m }; });
+    if (!hit) { parts.push(rest); break; }
+    if (hit.m.index) parts.push(rest.slice(0, hit.m.index));
+    parts.push(<button key={k++} type="button" onClick={() => onTerm(hit.g)} style={{ border: 0, background: "none", padding: 0, font: "inherit", color: "#b3261e", textDecoration: "underline dotted", cursor: "pointer" }}>{hit.m[0]}</button>);
+    rest = rest.slice(hit.m.index + hit.m[0].length);
+  }
+  return parts;
+};
+const readAloud = (text) => { try { const u = new window.SpeechSynthesisUtterance(SYS.speakable(text)); u.lang = "en-NG"; window.speechSynthesis.cancel(); window.speechSynthesis.speak(u); } catch (e) {} };
 /* The Special Adviser, at the desk: one short message, one button that
    opens the exact task, the reasoning on request, and Later. */
 const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn, onSound }) => {
-  const [open, setOpen] = useState(false), [still, setStill] = useState(spStill());
+  const [open, setOpen] = useState(false), [still, setStill] = useState(spStill()), [term, setTerm] = useState(null);
   const ico = { minHeight: 36, padding: "4px 10px", fontSize: 14 };
   return <div className={"sp-card sp-adviser " + (alert ? "alert" : "calm")} role="status" aria-live="polite">
     {name ? <img className="pic" src={saPortrait(name)} alt={"Portrait of " + name} /> : <div className="pic" aria-hidden="true" style={{ display: "grid", placeItems: "center", fontSize: 30 }}>🪑</div>}
@@ -3580,7 +3645,8 @@ const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn
           <button className="sp-btn quiet" style={ico} aria-pressed={still} aria-label={still ? "Turn animations on" : "Reduce motion"} title="Reduce motion" onClick={() => { setSpStill(!still); setStill(!still); }}>{still ? "◻" : "✨"}</button>
         </div>
       </div>
-      <div className="sp-bubble">{say}</div>
+      <div className="sp-bubble">{glossed(say, setTerm)}{typeof window !== "undefined" && window.speechSynthesis && <button type="button" aria-label="Read aloud" onClick={() => readAloud(say)} style={{ border: 0, background: "none", cursor: "pointer", fontSize: 16, marginLeft: 6, verticalAlign: "middle" }}>🔈</button>}</div>
+      {term && <div role="note" style={{ font: "500 14px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", padding: "8px 2px 0" }}><b>{term[1]}:</b> {term[2]} <button type="button" onClick={() => setTerm(null)} className="sp-btn quiet" style={{ minHeight: 30, padding: "2px 8px", fontSize: 13 }}>Close</button></div>}
       {open && why && <div style={{ font: "500 14px/1.5 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", padding: "8px 2px 0" }}>{why}</div>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
         {action && <button className="sp-btn" onClick={onAction}>{action}</button>}
@@ -5751,7 +5817,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       { id: "cash", icon: "💵", nm: "Pay cash from the treasury", lender: "The State Treasury", share: 0, odds: tb * 1.5 >= A ? 1 : 0,
         terms: "No debt. Revenue for other things drops by ₦" + (A / 2).toFixed(1) + "B for two years.",
         why: tb * 1.5 >= A ? ["You have the surplus: ₦" + tb.toFixed(1) + "B a year."] : ["Your surplus is ₦" + tb.toFixed(1) + "B a year; you need about ₦" + (A / 1.5).toFixed(1) + "B to pay ₦" + A.toFixed(1) + "B in cash."] },
-      { id: "bank", icon: "🏦", nm: "Commercial bank loan", lender: "A Zenith–Access–UBA syndicate", share: .4 * 1.3, odds: pc(.95 - dsr * 1.8 - (cor > .5 ? .1 : 0)),
+      { id: "bank", icon: "🏦", nm: "Commercial bank loan", lender: "A syndicate of three commercial banks", share: .4 * 1.3, odds: pc(.95 - dsr * 1.8 - (cor > .5 ? .1 : 0)),
         terms: "Quick, but dear: about 30% more in interest, repaid from your FAAC by deduction.",
         why: [(dsr < .2 ? "✓ Your debt service is " : "✗ Debt service already takes ") + Math.round(dsr * 100) + "% of revenue (banks like under 35%).", cor > .5 ? "✗ Your corruption record makes them nervous." : null] },
       { id: "bond", icon: "📈", nm: "State bond", lender: "Investors, via the SEC and the DMO", share: .4 * 1.15, odds: s.igr < 3 ? 0 : pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) + (billsPassed.some(b => b.id === "fiscal_resp") ? .1 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0)),
@@ -5846,7 +5912,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const objections = [];
     if (!force) {
       if (s.pStab < 25) objections.push({ who: "Your own caucus", why: "party support is " + Math.round(s.pStab) + "%, so they cannot guarantee a quorum.", good: false, kind: "caucus" });
-      if ((bill.cost || 0) > 0 && s.debt > 18) objections.push({ who: "The finance committee", why: "the bill has no funding line and debt is already " + naira(s.debt) + ".", good: true, kind: "funding" });
+      if ((bill.cost || 0) > 0 && (s.cash || 0) < bill.cost && s.debt > SYS.revenueB(s) * .9) objections.push({ who: "The finance committee", why: "the bank can't pay for it and debt is already " + naira(s.debt) + ", close to a whole year's revenue.", good: true, kind: "funding" });
       if (bill.id === "fiscal_resp" && s.debt > 20) objections.push({ who: "The finance committee", why: "borrowing is already above the ceiling this bill would impose.", good: true, kind: "funding" });
       houseGrudges().filter(g => g.block).forEach(g => objections.push({ ...g, grudge: true, kind: "grudge" }));
     }
@@ -6934,9 +7000,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const gfN = cast.godfather.name;
     try {
       const overdue = M.owed("godfather").filter(d => d.dueBy && d.dueBy <= turn);
-      if (overdue.length) out.push({ who: "Members loyal to " + gfN, why: "you still owe him " + overdue[0].what + ", due by turn " + overdue[0].dueBy + ".", good: false, block: true, debtId: overdue[0].id });
+      const over = stc.appealed === turn; // you went over their heads to the voters this year
+      if (overdue.length) out.push({ who: "Members loyal to " + gfN, why: "you still owe him " + overdue[0].what + ", due by turn " + overdue[0].dueBy + ".", good: false, block: !over, debtId: overdue[0].id, fix: "settle" });
       const betray = M.did("godfather_betrayal", e => (e.t || 0) >= turn - 2);
-      if (betray) out.push({ who: cast.speaker.name + " and " + gfN + "'s members", why: "you refused " + gfN + " in turn " + (betray.t || turn) + (betray.note ? " (" + short(betray.note) + ")" : "") + ".", good: false, block: s.pStab < 50 });
+      if (betray) out.push({ who: cast.speaker.name + " and " + gfN + "'s members", why: "you refused " + gfN + " in turn " + (betray.t || turn) + (betray.note ? " (" + short(betray.note) + ")" : "") + ".", good: false, block: s.pStab < 50 && !over && stc.reconciled !== turn, fix: "elders" });
       const defy = M.did("court_defiance");
       if (defy) out.push({ who: "Opposition members", why: "you defied a court ruling (" + defy.target + ") in turn " + defy.t + ", so they will not sign off spending they cannot trust.", good: true, block: false });
       const deal = M.did("house_deal");
@@ -6955,6 +7022,37 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "house_deal", actor: "governor", target: cast.speaker.name, gravity: 2, evidence: 2, financial: cost, decision: "Negotiated " + what + " through the House", note: "Constituency projects worth " + naira(cost) + " for " + who, losers: ["public"], beneficiaries: ["members"], meta: { cast: "speaker" } }); } catch (e) {}
     return true;
   };
+  /* Clearing what blocks you in the House: pay the godfather what you owe,
+     make peace through the party elders, or go over the members' heads to
+     the voters (works only if the voters are with you). Returns true if cleared. */
+  const clearGrudge = (fix, g) => decide(() => {
+    const M = window.SOP_MEMORY, gfN = cast.godfather.name;
+    if (fix === "settle") {
+      if (!spendB(.5, "Settling with " + gfN)) return;
+      try { M && g.debtId && M.settle(g.debtId, "Honoured before a House vote"); } catch (e) {}
+      setS(p => ({ ...p, cor: cl((p.cor || 0) + .03) }));
+      try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "godfather_contract", actor: "governor", target: gfN, gravity: 2, evidence: 2, corruptionDelta: 3, decision: "Paid " + gfN + " what was owed to unblock the House", note: g.why }); } catch (e) {}
+      addL("🎩 Gave " + gfN + " what you owed him. His members will vote with you.", "political");
+      return { icon: "🎩", title: "Debt settled", text: gfN + "'s members stand down. It cost ₦0.5B and it is on the record.", tone: "neutral", rows: [{ l: "Corruption", v: "+3%", good: false }] };
+    }
+    if (fix === "elders") {
+      if (!spendB(.3, "The party elders' reconciliation")) return;
+      setStc(p => ({ ...p, reconciled: turn })); setS(p => ({ ...p, pStab: cl100(p.pStab + 2) }));
+      addL("🤝 Party elders brokered a peace with " + gfN + "'s camp for this year.", "political");
+      return { icon: "🤝", title: "Peace for this year", text: "The elders brought " + gfN + "'s camp back to the table. They will vote with the party this year.", tone: "good", rows: [{ l: "Party", v: "+2", good: true }] };
+    }
+    if (fix === "appeal") {
+      if (s.app >= 55) {
+        setStc(p => ({ ...p, appealed: turn })); setS(p => ({ ...p, pStab: cl100(p.pStab - 2) }));
+        addL("📣 You took the fight to the voters. Members facing angry constituents fell in line.", "political");
+        return { icon: "📣", title: "The voters backed you", text: "Town halls and radio in every constituency. Members who were blocking you dare not be seen to do it this year.", tone: "good", rows: [{ l: "Party", v: "−2", good: false }] };
+      }
+      setS(p => ({ ...p, app: cl100(p.app - 3) }));
+      addL("📣 You appealed to the voters over the House's head. At " + Math.round(s.app) + "% approval, they didn't come.", "political");
+      return { icon: "📣", title: "The voters didn't come", text: "At " + Math.round(s.app) + "% approval, members are not afraid of their constituents. It takes about 55%.", tone: "bad", rows: [{ l: "Approval", v: "−3", good: false }] };
+    }
+  });
+  const fixLabel = (fix) => fix === "settle" ? "🎩 Pay " + cast.godfather.name + " what you owe (₦0.5B, corruption +3%)" : fix === "elders" ? "🤝 Make peace through the party elders (₦0.3B)" : "📣 Go over their heads to the voters (needs 55% approval; you have " + Math.round(s.app) + "%)";
   const [billReject, setBillReject] = useState(null);
   useEffect(() => { setBillReject(null); }, [turn]);
 
@@ -8630,7 +8728,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <SceneArt bg="abuja-federal-office" who={curFgEvent.id === "fg_efcc" ? "efcc-investigator" : null} alt={curFgEvent.id === "fg_efcc" ? cast.efcc.name : ""} h={TALL() ? 200 : 240} />
               <Bg text="Federal Government" color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curFgEvent.title}</h3>
-              <More text={curFgEvent.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
+              <More text={curFgEvent.id === "fg_efcc" ? efccCause().trim() + " " + curFgEvent.desc : curFgEvent.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
               {curFgEvent.id === "fg_efcc" && <p style={{ color: CL.txt, fontSize: TS(34), lineHeight: 1.45, textAlign: "left", marginBottom: 22 }}>The case officer is <b>{cast.efcc.name}</b>, {cast.efcc.title}. {window.SOP_CAST && window.SOP_CAST.history("efcc").length ? "You have met before." : "Nobody in your government has met this officer yet."}</p>}
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 22 }}>
                 <Bg text={"FG Relations: " + fgRelation + "%"} color={fgRelation > 55 ? CL.grn : fgRelation > 35 ? CL.org : CL.red} />
@@ -9272,8 +9370,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const reWeak = activeReZones.reduce((a, b) => b.support < a.support ? b : a, activeReZones[0]);
             const reBase = activeReZones.reduce((a, b) => b.support > a.support ? b : a, activeReZones[0]);
             const week = Math.floor(campRound / 2) + 1;
-            const isAction = campRound % 2 === 0 && campRound < 8;
-            const isOppEvent = campRound % 2 === 1 && campRound < 8;
+            const isAction = campRound < 8;
+            const isOppEvent = false; // one screen a week: their move lands straight after yours
             const isResult = campRound >= 8;
 
             const ReZoneBoard = () => <Cd style={{ padding: 24, margin: "18px 0", background: "#fbfcf8", textAlign: "left" }}>
@@ -9333,7 +9431,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const WEEK_DAYS = 6;
             const daysLeft = isOppEvent ? WEEK_DAYS - campDays : WEEK_DAYS;
             const optCost = (opt) => opt.cost || opt.dc || 0;
-            const canTake = (opt) => optCost(opt) <= campWarChest + 1e-9 && (opt.days || 1) <= daysLeft;
+            const canTake = (opt) => optCost(opt) <= campWarChest + 1e-9;
             const zoneLabel = (t) => t === "all" || t === undefined ? "All zones" : (activeReZones.find(z => z.id === t)?.zone || "").replace(" Senatorial", "") + " zone";
             const ScoreBoard = () => <Cd style={{ padding: 22, marginBottom: 18, display: "flex", justifyContent: "space-around", gap: 14, textAlign: "center" }}>
               <div><div style={{ fontSize: TS(44), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>₦{campWarChest.toFixed(2)}B</div><div style={{ fontSize: TS(27), color: CL.td }}>money left</div></div>
@@ -9344,7 +9442,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const OptCard = ({ opt }) => {
               const ok = opt === sitOut || canTake(opt);
               const cost = optCost(opt);
-              return <CampaignMove opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > campWarChest + 1e-9 ? "Not enough money" : (opt.days || 1) > daysLeft ? "Not enough days" : ""} onPick={() => handleChoice(opt)} />;
+              return <CampaignMove opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > campWarChest + 1e-9 ? "Not enough money" : ""} onPick={() => handleChoice(opt)} />;
             };
             const board = (opp, ev) => <CampaignBoard week={week} isOpp={opp} youImg={AVATAR_IMGS[setup?.avatar] || HERO_MALE} youName={(setup?.lastNm || pName.split(" ").pop() || "You")} youParty={party}
               oppName={oppName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oppParty?.id || "OPP"} oppImg={oppArt(oppName)} zones={activeReZones} swingId={reSwing.id} money={campWarChest} days={daysLeft} maxDays={WEEK_DAYS}
@@ -9375,9 +9473,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               if (opt.sk) setSkApp(p => { const n2 = { ...p }; Object.entries(opt.sk).forEach(([k, v]) => { if (n2[k] !== undefined) n2[k] = cl100(n2[k] + v); }); return n2; });
               if (opt.corAdd) setS(p => ({ ...p, cor: cl(p.cor + opt.corAdd) }));
               if (opt.appRisk && Math.random() < (hm2 ? .65 : .55)) { setS(p => ({ ...p, app: cl100(p.app + opt.appRisk) })); setCampLog(c2 => [...c2, "⚠️ Backfire: approval " + sgnN(opt.appRisk) + "."]); }
-              setCampLog(c2 => [...c2, (isOppEvent ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + (opt.days || 1) + (opt.days === 1 ? " day" : " days") + " · " + zoneLabel(opt.target)]);
-              if (strike) setCampLog(c2 => [...c2, "🔻 " + oppName.replace(/^Hon\. /, "") + "'s " + ev.hit.l + " cost you " + (strike.worstZone ? Math.abs(strike.worstD) + " points in " + strike.worstZone : "ground") + (strike.lost > 0 ? " (" + strike.lost + " statewide)" : "") + ". Answer it or it sticks."]);
-              setCampRound(r => r + 1);
+              setCampLog(c2 => [...c2, (opt.answer ? "↩️ " : "▶️ ") + "Week " + week + ": " + moveName + " · " + (cost > 0 ? "₦" + cost.toFixed(2) + "B" : "no money") + " · " + zoneLabel(opt.target)]);
+              if (strike) setCampLog(c2 => [...c2, "🔻 " + oppName.replace(/^Hon\. /, "") + "'s " + ev.hit.l + " cost you " + (strike.worstZone ? Math.abs(strike.worstD) + " points in " + strike.worstZone : "ground") + (strike.lost > 0 ? " (" + strike.lost + " statewide)" : "") + (week < 4 ? ". You can answer it next week." : ". There's no week left to answer it.")]);
+              setCampRound(r => r + 2);
             };
 
             const borrowGF2 = () => {
@@ -9400,18 +9498,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const eDay = rng(turn * 977 + (state?.length || 5) * 131 + campScore * 7 + campOpp * 13 + campLog.length * 29);
               const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 10 : 7)), opp: cl100(z.opp - recordBoost * 0.35 + (hm2 ? 2.5 : 2) + (eDay() - 0.5) * (hm2 ? 7 : 5)) }));
               const collation = lgaElectionSummary(swayedReZones, rePartyStrength, reOppStrength, state);
-              const won = collation.totalYou > collation.totalOpp && collation.zonesWon >= 2;
+              const won = collation.won;
               const marginPct = (collation.totalYou + collation.totalOpp) > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
               const yourLast = (setup?.lastNm || pName.split(" ").pop() || "YOU").toUpperCase();
               const yourTicket = yourLast + "/" + (depGov?.nm.split(" ").pop() || "DEP").toUpperCase();
               return <Cd style={{ textAlign: "center", padding: 36 }}>
                 <Sfx k={won ? "win" : "lose"} /><ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />
                 <h3 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(53), fontWeight: 600, margin: "7px 0" }}>{won ? "RE-ELECTED!" : "DEFEATED"}</h3>
-                <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{won ? "Four more years! INEC has declared " + pName + " (" + party + ") re-elected, carrying " + collation.zonesWon + "/3 zones by " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you. You carried only " + collation.zonesWon + "/3 zones. Margin against: " + marginPct.toFixed(1) + "%."}</p>
+                <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{(won ? "Four more years! INEC declares " + pName + " (" + party + ") re-elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments. Margin: " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " A second election between the top two settled it." : "")}</p>
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
                   <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (3 - collation.zonesWon) + "/3 zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
                   <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Petition filed within the 21-day window (S.285(5)). Case number GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(marginPct * 10) / 10 }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
                 </div>}
+                <details className="sp-brief" style={{ textAlign: "left", margin: "0 0 22px" }}><summary style={{ fontSize: 17 }}>See the full count</summary>
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29 }}>
                   <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14, letterSpacing: 2 }}>HOW THE ZONES MOVED</div>
                   {(() => { const start = buildBattlegrounds(state, turn * 2027, party, oppParty?.id).map(z => ({ ...z, support: cl100(z.support + ((s.zoneMood || {})[z.id] || 0)) })); return collation.rows.map((rw, i) => {
@@ -9452,6 +9551,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <div style={{ fontSize: TS(29), fontWeight: 600, color: CL.pur, fontFamily: F.m, marginBottom: 10 }}>CAMPAIGN LOG</div>
                   {campLog.slice(-6).map((c2, i) => <div key={i} style={{ fontSize: TS(31), color: c2.includes("BACKFIRE") ? CL.red : CL.tm, padding: "5px 0", lineHeight: 1.3 }}>{c2}</div>)}
                 </Cd>
+                </details>
                 {won && (
                   <Bt onClick={() => { setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); addL("🗳️ RE-ELECTED with " + fmtVotesFull(collation.totalYou) + " votes vs " + fmtVotesFull(collation.totalOpp) + " (" + collation.zonesWon + "/3 zones)", "political"); setStc(p => ({ ...p, reMargin: Math.round(marginPct * 10) / 10, reOpp: oppName, reOppParty: oppParty?.id || "OPP" })); setTurn(5); setPhase("budget"); }} style={{ padding: "36px 86px", fontSize: TS(43) }}>BEGIN 2ND TERM</Bt>
                 )}
@@ -9495,7 +9595,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 })()}
               </div>
               <div style={moveGrid}>
-                {withFallback(weekActs).map((act, i) => <OptCard key={i} opt={act} />)}
+                {weekPicks(weekActs, week > 1 ? (oppEvs[week - 2] || {}).opts : null, canTake, sitOut).map((act, i) => <OptCard key={i} opt={act} />)}
               </div>
               {/* Broke — choose to withdraw OR run with no funds (80/20 loss) */}
               {campWarChest < 0.05 && (campGfBorrowed || godfatherRel <= 30) && <div style={{ display: "grid", gap: 22, marginTop: 22 }}>
@@ -10173,7 +10273,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
                 onNegotiate={(cost, reasons) => { if (houseDeal(cost, reasons, "The appropriation bill")) setPhase("policy"); }}
                 onDrop={() => { setS(p => ({ ...p, app: cl100(p.app - 3), pStab: cl100(p.pStab - 3) })); addL("🗑️ Appropriation bill withdrawn. The state runs on last year's figures; nothing new is funded.", "political"); try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_withdrawn", actor: "governor", gravity: 1, evidence: 2, approvalDelta: -3, note: "Withdrew the appropriation bill after the House rejected it" }); } catch (e) {} setPhase("policy"); }}
-                grudges={houseGrudges()} speakerName={cast.speaker.name}
+                grudges={houseGrudges()} speakerName={cast.speaker.name} house={scHouse()} onClear={clearGrudge} fixLabel={fixLabel}
                 addL={addL} />
             </Cd>}
             {phase === "policy" && <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
@@ -10211,6 +10311,10 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                     <div style={{ fontSize: PFS.s, color: CL.txt, lineHeight: 1.4 }}><b>{r2.who}</b> — {r2.why}</div>
                     <div style={{ fontSize: PFS.s, color: r2.good ? CL.grn : CL.red }}>{r2.good ? "Fair reason." : r2.grudge ? "Leverage, not policy." : "Political: your own side is not with you."}</div>
                   </div>)}
+                  {billReject.reasons.some(r2 => r2.grudge) && <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                    <div style={{ fontSize: PFS.s, fontWeight: 800, color: CL.txt }}>Clear the way, then send it back</div>
+                    {[...new Set(billReject.reasons.filter(r2 => r2.grudge && r2.fix).map(r2 => r2.fix)), "appeal"].map(fx => { const g = billReject.reasons.find(r2 => r2.fix === fx) || billReject.reasons.find(r2 => r2.grudge); return <button key={fx} className="sp-opt" onClick={() => { clearGrudge(fx, g); setBillReject(null); }}><b style={{ fontSize: 16 }}>{fixLabel(fx)}</b></button>; })}
+                  </div>}
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
                     {billReject.reasons.every(r2 => r2.kind === "funding") && billReject.bill.cost > 0 && <Bt onClick={() => { const b2 = { ...billReject.bill, cost: Math.round(billReject.bill.cost * 5) / 10, fx: Object.fromEntries(Object.entries(billReject.bill.fx || {}).map(([k, v]) => [k, typeof v === "number" ? Math.round(v * 60) / 100 : v])), nm: billReject.bill.nm + " (phased)" }; addL("✏️ Amended the " + billReject.bill.nm + ": phased over two years with a funding line.", "policy"); sponsorBill(b2, true); }} style={{ fontSize: PFS.s }}>✏️ Amend: phase it, half the cost</Bt>}
                     <Bt onClick={() => { const c2 = Math.round((0.2 + 0.1 * billReject.reasons.length) * 10) / 10; if (houseDeal(c2, billReject.reasons, "The " + billReject.bill.nm)) sponsorBill(billReject.bill, true); }} style={{ fontSize: PFS.s, background: CL.gold, color: "#000" }}>🤝 Negotiate with {cast.speaker.name.replace(/^Rt\. Hon\. /, "the Speaker, ")}</Bt>
