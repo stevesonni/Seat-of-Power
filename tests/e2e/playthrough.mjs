@@ -51,6 +51,7 @@ if (which === "second" || which === "all") {
   const seen = [];
   const r2 = await playUntil(g, t => { const m = t.match(/2nd Term — Year (\d) of 4/); if (m && !seen.includes(m[1])) seen.push(m[1]); return /Tenure Complete/.test(t); }, { max: 1500, prefer });
   check(r2.ok, "tenure complete at the end of Year 8 (second-term years seen: " + seen.join(",") + ")");
+  if (!r2.ok) { console.log("  last clicks: " + r2.clicks.slice(-15).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 900)); }
   const t = await g.txt();
   check(/2 terms \(8 years\)/.test(t), "end screen: two terms, eight years");
   check(/THE GOLDFIELDS AFTER EIGHT YEARS/i.test(t), "Year 8 goldfields assessment shown");
