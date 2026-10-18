@@ -800,7 +800,7 @@ const HONOURS = [
   { id: "listener", i: "👂", nm: "The listener", d: "Answered three community needs.", ok: (c) => c.met >= 3 },
   { id: "clean", i: "🧼", nm: "Clean hands", d: "Corruption under 20% after two years.", ok: (c) => c.turn >= 4 && c.cor < .2 },
   { id: "beloved", i: "❤️", nm: "People's governor", d: "Approval at 75% or more.", ok: (c) => c.app >= 75 },
-  { id: "hawk", i: "🦅", nm: "Fiscal hawk", d: "Debt under ₦3B after two years.", ok: (c) => c.turn >= 4 && c.debt < 3 },
+  { id: "hawk", i: "🦅", nm: "Fiscal hawk", d: "Debt cut to half of what you inherited after two years.", ok: (c) => c.turn >= 4 && c.debt < Math.max(3, (c.oldDebt || 6) * .5) },
   { id: "reformer", i: "🧾", nm: "Revenue reformer", d: "Adopted three revenue reforms.", ok: (c) => c.reforms >= 3 },
   { id: "lawmaker", i: "📜", nm: "Lawmaker", d: "Signed four laws.", ok: (c) => c.laws >= 4 },
   { id: "survivor", i: "🛡️", nm: "Survivor", d: "Survived impeachment.", ok: (c) => c.impSurv },
@@ -4084,7 +4084,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const ld = loadedSave; // shorthand
   const [turn, setTurn] = useState(ld?.turn || 1);
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0), app: 55, debt: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: startingStab || 65,
+  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0), app: 55, debt: SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }), cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: startingStab || 65,
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
@@ -4418,7 +4418,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // When a new year's budget opens, one card says what changed since the
   // last one, what happened, and any honour earned.
   const reportRef = React.useRef(ld?.reportAt ? { t: ld.reportAt, snap: ld.reportSnap } : null);
-  const honourCtx = () => ({ turn, app: s.app, cor: s.cor || 0, debt: s.debt || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
+  const honourCtx = () => ({ turn, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
   useEffect(() => {
     if (phase !== "budget" || gEnd) return;
     const prev = reportRef.current;
@@ -4602,7 +4602,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── Statecraft engine (salaries and FAAC, promises, cabinet balance, the
   // House, state crises, succession). Runs once a year when the
   // events are built; its decisions arrive as "sc" cards.
-  const [stc, setStc] = useState(() => ld?.stc || { lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
+  const [stc, setStc] = useState(() => ld?.stc || { oldDebt: { total: SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }), kind: null }, lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
   const [scCards, setScCards] = useState([]);
   const [revOpen, setRevOpen] = useState(false);
   const [promOpen, setPromOpen] = useState(false);
@@ -5276,29 +5276,62 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const [lastCon, setLastCon] = useState(() => ld?.lastCon || null); // the most recent consequence, shown on the desk
   // The year's money arrives when its budget is settled (passed, amended, dealt, dropped or forced).
-  // A save from before the bank existed starts with this year's work money in it.
+  // A new game starts with an empty bank and the last government's debt; a save from
+  // before the bank existed starts with this year's work money in it.
+  const [debtPick, setDebtPick] = useState(false);
+  const oldPlan = stc.oldDebt || null;
+  const firstOfNow = (P) => P && P.kind === "now" && P.payYear === turn; // paying it now: instalments start next year
+  const accounts = () => SYS.yearAccounts(s, bud, oldPlan && oldPlan.kind ? { oldDueB: firstOfNow(oldPlan) ? 0 : oldPlan.perYearB, oldLeftB: oldPlan.leftB } : {});
   useEffect(() => {
     if (gEnd) return;
-    if (s.cash == null) { const a = SYS.yearAccounts(s, bud); setS(p => ({ ...p, cash: phase === "budget" || phase === "house_vote" ? 0 : a.workB, cashYear: phase === "budget" || phase === "house_vote" ? 0 : turn })); return; }
+    if (s.cash == null) {
+      const fresh = turn === 1 && (phase === "budget" || phase === "house_vote");
+      const a = SYS.yearAccounts(s, bud), owed = fresh ? SYS.inheritedDebtB(s) : 0;
+      setS(p => ({ ...p, cash: fresh ? 0 : a.workB, cashYear: fresh ? 0 : turn, debt: (p.debt || 0) + owed }));
+      if (owed) setStc(p => ({ ...p, oldDebt: { total: owed, kind: null } }));
+      return;
+    }
     if (phase !== "policy" || s.cashYear === turn) return;
-    const a = SYS.yearAccounts(s, bud), left = s.cash || 0;
-    // Year 1: the last government left the bank empty and bills unpaid.
+    // Year 1: first decide how to deal with the debt the last government left.
+    if (oldPlan && !oldPlan.kind) { setDebtPick(true); return; }
+    const a = accounts(), left = s.cash || 0;
     const bills = turn === 1 && !stc.inherited ? Math.round(a.workB * .15 * 10) / 10 : 0;
-    const total = Math.round((left + a.workB - bills) * 100) / 100;
-    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + a.workB - bills) * 100) / 100, cashYear: turn }));
+    const payNow = oldPlan && oldPlan.payNowB && oldPlan.payYear === turn ? Math.min(oldPlan.payNowB, Math.max(0, a.workB - bills)) : 0;
+    const work = Math.max(0, Math.round((a.workB - bills - payNow) * 100) / 100), total = Math.round((left + work) * 100) / 100;
+    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + work) * 100) / 100, debt: Math.max(0, Math.round((a.debtAfter - payNow) * 100) / 100), cashYear: turn }));
     if (bills) setStc(p => ({ ...p, inherited: bills }));
-    // Where it came from: the two big sources, then the year's named stories.
+    if (oldPlan && oldPlan.kind && oldPlan.leftB > 0 && !firstOfNow(oldPlan)) setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, leftB: Math.max(0, Math.round((p.oldDebt.leftB - Math.min(p.oldDebt.leftB, p.oldDebt.perYearB)) * 100) / 100) } }));
     const news = (stc.moneyNews || []).filter(x => x.t === turn || (x.t === turn - 1 && !x.cash)).slice(-4);
-    addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries, offices and debt take " + naira(a.runB) + "; " + naira(a.workB - bills) + " goes into the bank.", "info");
+    addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries and offices take " + naira(a.runB) + ", debt repayments " + naira(a.debtB + payNow) + "; " + naira(work) + " goes into the bank.", "info");
     try { window.SOP_outcome({ icon: "🏦", title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
-      text: turn === 1 ? "The last government left the bank empty and " + naira(bills) + " of contractors' bills unpaid. After salaries and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
-      tone: "good", ok: "Got it",
+      text: turn === 1 ? "The bank was empty, contractors were owed " + naira(bills) + ", and the state owes " + naira((oldPlan || {}).total || 0) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
+      tone: total < a.inB * .2 ? "bad" : "good", ok: "Got it",
       rows: [{ l: "FAAC from Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }]
         .concat(news.map(x => ({ l: x.icon + " " + x.head, v: (x.amtB >= 0 ? "+" : "−") + naira(Math.abs(x.amtB)) + (x.cash ? "" : " a year"), good: x.amtB >= 0 })))
-        .concat([{ l: "Salaries, offices, debt", v: "−" + naira(a.runB), good: false }])
+        .concat([{ l: "Salaries and offices", v: "−" + naira(a.runB), good: false }])
+        .concat(a.debtB >= .05 ? [{ l: "Debt repayments", v: "−" + naira(a.debtB), good: false }] : [])
+        .concat(payNow >= .05 ? [{ l: "Old debt paid off now", v: "−" + naira(payNow), good: false }] : [])
         .concat(bills ? [{ l: "Bills left unpaid", v: "−" + naira(bills), good: false }] : [])
-        .concat([{ l: "In the bank", v: naira(total), good: true }]) }); } catch (e) {}
-  }, [phase, turn, s.cash == null]);
+        .concat([{ l: "In the bank", v: naira(total), good: total > 0 }, { l: "Still owed", v: naira(Math.max(0, a.debtAfter - payNow)), good: false }]) }); } catch (e) {}
+  }, [phase, turn, s.cash == null, oldPlan && oldPlan.kind]);
+  // The three ways to deal with the last government's debt, with what each leaves you.
+  const chooseOldDebt = (kind) => {
+    const base = SYS.yearAccounts({ ...s, debt: Math.max(0, (s.debt || 0) - ((oldPlan || {}).total || 0)) }, bud); // this year's money before the old debt
+    const nowB = kind === "now" ? Math.max(0, Math.round((base.workB * .85 - .5) * 10) / 10) : 0;
+    const P = SYS.oldDebtPlan(kind, (oldPlan || {}).total || 0, nowB);
+    setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, kind, leftB: P.leftB, perYearB: P.perYearB, years: P.years, payNowB: P.payNowB, payYear: turn } }));
+    setDebtPick(false);
+    addL("💳 The last government's debt: " + (kind === "now" ? "paid " + naira(P.payNowB) + " at once; the rest over 4 years." : "spread over " + P.years + " years.") , "policy");
+    scWiki("Governorship", "Inherited " + naira((oldPlan || {}).total || 0) + " of debt from the previous administration and " + (kind === "now" ? "paid " + naira(P.payNowB) + " of it at once." : "spread its repayment over " + P.years + " years."));
+  };
+  const debtChoices = () => {
+    if (!oldPlan) return [];
+    const T = oldPlan.total, base = SYS.yearAccounts({ ...s, debt: Math.max(0, (s.debt || 0) - T) }, bud);
+    const preview = (kind) => { const nowB = kind === "now" ? Math.max(0, Math.round((base.workB * .85 - .5) * 10) / 10) : 0; const P = SYS.oldDebtPlan(kind, T, nowB); const a = SYS.yearAccounts(s, bud, { oldDueB: kind === "now" ? 0 : P.perYearB, oldLeftB: P.leftB }), later = SYS.yearAccounts({ ...s, debt: Math.max(0, (s.debt || 0) - P.payNowB) }, bud, { oldDueB: P.perYearB, oldLeftB: P.leftB }); return { P, thisYear: Math.max(0, a.workB - P.payNowB - Math.round(a.workB * .15 * 10) / 10), each: later.debtB }; };
+    return [["now", "Pay as much as we can now", (x) => "Pay " + naira(x.P.payNowB) + " today. This year you keep " + (x.thisYear < .1 ? "almost nothing" : "about " + naira(x.thisYear)) + "; then about " + naira(x.each) + " a year for 4 years."],
+      ["four", "Spread it over 4 years", (x) => "About " + naira(x.each) + " a year off the top. This year you keep about " + naira(x.thisYear) + "."],
+      ["eight", "Spread it over 8 years", (x) => "About " + naira(x.each) + " a year: lighter, but more interest, and your successor pays the last of it. This year you keep about " + naira(x.thisYear) + "."]].map(([k, t, f]) => ({ k, t, d: f(preview(k)) }));
+  };
   const confirmPlan = (F0, a, overRoom) => {
     const d = F0.draft, P = F0.plan, e = SYS.estimate(d.type, d.qty);
     if (P.choice === "defer") { setPflow(null); addL("🗂️ Deferred " + d.title + ": nothing starts this year.", "info"); return; }
@@ -5648,7 +5681,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ghost = REVENUE_MEASURES.find(x => x.id === "payroll");
     if (turn === 1 && ghost && !(stc.rev || {}).payroll && ministries && ministries.length >= 4) {
       const g = Math.max(.3, Math.round((s.faac || 10) * .55 * (.03 + (s.cor || 0) * .1) * 10) / 10);
-      return { urgent: true, icon: "🪪", title: "Governor, your predecessor left the treasury empty. Purge ghost workers from the payroll now: it frees about " + naira(g) + " a year", body: "A biometric audit checks every worker on the payroll against BVN and fingerprints. Names that collect salaries but do not exist come off. The unions will protest (approval −1), and a few real workers may be wrongly removed. It uses one of this year's major actions.", actionLabel: "Purge ghost workers", action: () => adoptRevenue(ghost) };
+      return { urgent: true, icon: "🪪", title: "Governor, your predecessor left the treasury empty" + ((stc.oldDebt || {}).total ? " and " + naira(stc.oldDebt.total) + " of debt" : "") + ". Purge ghost workers from the payroll now: it frees about " + naira(g) + " a year", body: "A biometric audit checks every worker on the payroll against BVN and fingerprints. Names that collect salaries but do not exist come off. The unions will protest (approval −1), and a few real workers may be wrongly removed. It uses one of this year's major actions.", actionLabel: "Purge ghost workers", action: () => adoptRevenue(ghost) };
     }
     // Projects: the adviser says the real next step and the button opens it.
     const dueP = (projects || []).filter(p => p && p.estimateM != null).map(p => ({ p, n: nextOf(p) })).find(x => x.n.due);
@@ -5945,7 +5978,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!force) {
       if (s.pStab < 25) objections.push({ who: "Your own caucus", why: "party support is " + Math.round(s.pStab) + "%, so they cannot guarantee a quorum.", good: false, kind: "caucus" });
       if ((bill.cost || 0) > 0 && (s.cash || 0) < bill.cost && s.debt > SYS.revenueB(s) * .9) objections.push({ who: "The finance committee", why: "the bank can't pay for it and debt is already " + naira(s.debt) + ", close to a whole year's revenue.", good: true, kind: "funding" });
-      if (bill.id === "fiscal_resp" && s.debt > 20) objections.push({ who: "The finance committee", why: "borrowing is already above the ceiling this bill would impose.", good: true, kind: "funding" });
+      if (bill.id === "fiscal_resp" && s.debt > SYS.revenueB(s) * 1.2) objections.push({ who: "The finance committee", why: "borrowing is already above the ceiling this bill would impose.", good: true, kind: "funding" });
       houseGrudges().filter(g => g.block).forEach(g => objections.push({ ...g, grudge: true, kind: "grudge" }));
     }
     if (objections.length) {
@@ -6384,27 +6417,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         return newPF;
       });
 
-      // ── DEBT MANAGEMENT ──
-      // 1. Automatic debt service: 8% of debt paid each turn from budget (already deducted in tb calculation)
-      // 2. IGR surplus paydown: if IGR exceeds spending needs, excess goes to debt
-      const debtService = n.debt * .08;
-      if (n.debt > 0) {
-        const igrSurplus = Math.max(0, n.igr - 5); // anything above ₦5B baseline goes to debt
-        const paydown = debtService + igrSurplus * .15; // 15% of surplus IGR pays down debt
-        n.debt = Math.max(0, n.debt - paydown);
-        if (paydown > 0.3) addL("💳 DEBT SERVICE: ₦" + paydown.toFixed(1) + "B paid. Remaining debt: ₦" + n.debt.toFixed(1) + "B.", "info");
-      }
-      // 3. Economic growth reduces debt ratio — strong GDP makes debt more manageable
-      if (n.gdp > 20 && n.debt > 0) {
-        const gdpReduction = n.gdp * .005; // 0.5% of GDP goes to debt reduction
-        n.debt = Math.max(0, n.debt - gdpReduction);
-      }
-      // 4. Investor approvals reduce debt (jobs = taxes = revenue)
-      // Already handled by IGR boost from investors
-
+      // Debt is repaid, with interest, out of each year's money when the budget settles (SYS.yearAccounts).
       // Debt warning thresholds
-      if (n.debt > 15 && n.debt <= 20) addL("⚠️ SA: \"Your Excellency, our debt is climbing. ₦" + n.debt.toFixed(1) + "B. We should be cautious.\"", "political");
-      if (n.debt > 20) addL("🚨 DEBT CRISIS: State debt at ₦" + n.debt.toFixed(1) + "B! Debt service is consuming the budget. Credit agencies watching.", "crisis");
+      if (n.debt > (n.igr + n.faac) * 1.1 && n.debt <= (n.igr + n.faac) * 1.4) addL("⚠️ SA: \"Your Excellency, our debt is climbing. ₦" + n.debt.toFixed(1) + "B. We should be cautious.\"", "political");
+      if (n.debt > (n.igr + n.faac) * 1.4) addL("🚨 DEBT CRISIS: State debt at ₦" + n.debt.toFixed(1) + "B! Debt service is consuming the budget. Credit agencies watching.", "crisis");
 
       // Federal relations affect FAAC — hostile FG slowly cuts your allocation
       if (fgRelation < 30) { n.faac = Math.max(3, n.faac * .95); addL("🇳🇬 FG quietly reduces your FAAC. Relations: " + fgRelation + "%.", "crisis"); }
@@ -6648,7 +6664,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (s.cor > .45) hlOpts.push("WHERE IS THE MONEY? Civil society demands answers from " + state.replace("_", " "));
     if (s.cor < .15) hlOpts.push("CLEAN SHEET: " + pName + " administration sets transparency record");
     if (s.infra > .7) hlOpts.push("TRANSFORMATION: " + state.replace("_", " ") + " roads now among best in region");
-    if (s.debt > 15) hlOpts.push("RED ALERT: " + state.replace("_", " ") + " debt spirals to " + naira(s.debt));
+    if (s.debt > SYS.revenueB(s) * 1.4) hlOpts.push("RED ALERT: " + state.replace("_", " ") + " debt spirals to " + naira(s.debt));
     if (s.sec < .25) hlOpts.push("BLOOD ON THE ROADS: Security crisis worsens in " + state.replace("_", " "));
     if (s.sec > .65) hlOpts.push("SAFE STATE: " + state.replace("_", " ") + " sees lowest crime in decade");
     if (s.pStab < 25) hlOpts.push("PARTY WAR: " + party + " factions threaten governor");
@@ -7461,7 +7477,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const stakePullouts = logs.filter(l => l.tx.includes("PULLOUT") || l.tx.includes("BUSINESS PULLOUT")).length;
     const wikiStk = (angryStk.length > 0 || happyStk.length > 0 || stakeStrikes > 0) ? (happyStk.length > 0 ? "The " + happyStk.map(x => x.nm.toLowerCase()).join(", ") + " maintained strong support for the administration. " : "") + (angryStk.length > 0 ? "However, relations with the " + angryStk.map(x => x.nm.toLowerCase()).join(", ") + " were deeply strained. " : "") + (stakeStrikes > 0 ? "The tenure saw " + stakeStrikes + " worker strike(s) that paralyzed government services. " : "") + (stakeProtests > 0 ? "Youth-led protests erupted " + stakeProtests + " time(s), reflecting widespread frustration among young people. " : "") + (stakePullouts > 0 ? "Business investment contracted as investors pulled out " + stakePullouts + " time(s) due to governance concerns." : "") : "";
 
-    const wikiFiscal = "Fiscally, the state's debt " + (s.debt > 15 ? "ballooned to " + naira(s.debt) + ", raising concerns about the sustainability of the administration's spending patterns and the burden on future administrations." : s.debt > 5 ? "rose to " + naira(s.debt) + ", though within manageable limits." : "was kept under control at " + naira(s.debt) + ", reflecting fiscal discipline.") + " IGR " + (s.igr > STATES[state].igr * 1.2 ? "grew from " + naira(STATES[state].igr) + " to " + naira(s.igr) + ", a sign that economic reforms were bearing fruit." : "did not see significant growth from its initial " + naira(STATES[state].igr) + " baseline.");
+    const wikiFiscal = "Fiscally, the state's debt " + (s.debt > Math.max(15, ((stc.oldDebt || {}).total || 0) * 1.15) ? "ballooned to " + naira(s.debt) + ", raising concerns about the sustainability of the administration's spending patterns and the burden on future administrations." : s.debt > 5 ? "rose to " + naira(s.debt) + ", though within manageable limits." : "was kept under control at " + naira(s.debt) + ", reflecting fiscal discipline.") + " IGR " + (s.igr > STATES[state].igr * 1.2 ? "grew from " + naira(STATES[state].igr) + " to " + naira(s.igr) + ", a sign that economic reforms were bearing fruit." : "did not see significant growth from its initial " + naira(STATES[state].igr) + " baseline.");
 
     const wikiLegacy = ov > 70 ? "Historians and political analysts widely regard " + pName + "'s tenure as one of the most transformative in " + state.replace("_", " ") + " State's history. The combination of infrastructure development, clean governance, and strong public approval set a standard that successors would be measured against. Young politicians across Nigeria point to this administration as proof that good governance is possible." : ov > 55 ? pName + " left a generally positive legacy, with notable achievements in governance that improved the lives of many residents. While not without flaws, the administration demonstrated that competent leadership can make meaningful progress even within Nigeria's challenging federal system." : ov > 40 ? "The legacy of " + pName + "'s administration remains contested. Supporters point to specific policy achievements, while critics argue that the governor failed to fully capitalize on the state's potential. " + (s.cor > .3 ? "Corruption allegations further complicated the historical assessment." : "The governor's relatively clean record, however, stands as a positive note.") + " For young Nigerians studying governance, this tenure illustrates how even well-intentioned leadership can produce mixed results when structural challenges are not addressed." : "Political commentators largely view " + pName + "'s time in office as a cautionary tale. " + (s.cor > .4 ? "Corruption eroded public trust and diverted resources from critical needs." : "Despite relatively low corruption,") + " the administration's failure to meaningfully improve key development indicators left the state in a position not significantly better than where it started. For students of governance, this tenure demonstrates how quickly a mandate can be squandered" + (gEnd === "impeached" ? " — culminating in the humiliation of impeachment, a stain that follows a political career permanently." : gEnd === "defeated" ? " — as evidenced by the voters' decisive rejection at the polls." : ".");
 
@@ -10038,6 +10054,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={goldOpen && !!gold}>
           {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
         </OL>
+        <OL show={debtPick}>
+          {debtPick && oldPlan && <div className="sp-card sp-step" style={{ maxWidth: 720, margin: "0 auto", padding: TALL() ? 16 : 24 }}>
+            <div className="sp-kicker">What the last government left</div>
+            <div style={{ font: "700 26px/1.15 'Fraunces', Georgia, serif", color: "#17301f", margin: "4px 0 6px" }}>The state owes {naira(oldPlan.total)}</div>
+            <div style={{ font: "500 15px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginBottom: 12 }}>It is repaid out of the same yearly money as everything else, with 8% interest a year. How do we deal with it?</div>
+            <div style={{ display: "grid", gap: 8 }}>{debtChoices().map(c => <button key={c.k} className="sp-opt" onClick={() => chooseOldDebt(c.k)}><b style={{ display: "block", fontSize: 16 }}>{c.t}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{c.d}</span></button>)}</div>
+          </div>}
+        </OL>
         <OL show={!!pflow}>
           {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </OL>
@@ -10246,7 +10270,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <button onClick={() => setBudInfo(o => !o)} aria-expanded={budInfo} style={{ background: "none", border: 0, padding: "4px 0", color: CL.grn, fontSize: fs.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{budInfo ? "Hide the details" : "What's in the pot?"}</button>
                 {budInfo && <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.5, margin: "8px 0 4px", padding: tall ? "12px 14px" : "18px 22px", background: CL.bg, borderRadius: 12, display: "grid", gap: 8 }}>
                   <div>{naira(s.igr)} the state raises itself (IGR) + {naira(s.faac)} from the federal share (FAAC){s.debt > 0 ? ", minus " + naira(s.debt * .08) + " debt service" : ""}.</div>
-                  {s.debt > 0 && <div>State debt stands at {naira(s.debt)}. Its service comes off the pot before you see it; money you put into Debt reduces what you owe.{s.debt > 15 ? " Debt is dangerously high: creditors will call soon." : ""}</div>}
+                  {s.debt > 0 && <div>State debt stands at {naira(s.debt)}. Its service comes off the pot before you see it; money you put into Debt reduces what you owe.{s.debt > SYS.revenueB(s) * 1.4 ? " Debt is dangerously high: creditors will call soon." : ""}</div>}
                   <div>Under Section 121 of the 1999 Constitution you lay this bill before the House of Assembly. Members can pass it, amend it, or force you into horse-trading.</div>
                 </div>}
                 <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: tall ? 8 : 14, margin: tall ? "12px 0" : "20px 0" }}>
@@ -10835,7 +10859,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
     const B = G2.bio, st = String(G2.state || "").replace(/_/g, " ");
     if (B && B.failed > B.met) opts.push({ t: "Ads with families from " + st + " whose needs you ignored", fx: { all: -3 * k }, ans: true });
     if (B && B.arrears >= 3) opts.push({ t: "Unpaid workers from " + st + " on every TV channel", fx: { all: -3 * k }, ans: true });
-    if (B && B.debt > 15) opts.push({ t: "\u201cThey left " + st + " ₦" + B.debt + "B in debt\u201d", fx: { all: -2.5 * k }, ans: true });
+    if (B && B.debt > 25) opts.push({ t: "\u201cThey left " + st + " ₦" + B.debt + "B in debt\u201d", fx: { all: -2.5 * k }, ans: true });
     if (B && B.broken > B.kept) opts.push({ t: "A montage of your broken promises in " + st, fx: { all: -2.5 * k }, ans: true });
     opts.push({ t: G2.opp.name + " rallies " + PZN(G2.opp.zone) + " around a native son", fx: { [G2.opp.zone]: -5 * k, oppRegion: -2 * k } });
     const b = battle(G2)[0];
@@ -11096,7 +11120,7 @@ const SenateRace = ({ setup, stats, onResult }) => {
     // Senate is easier than presidency but not guaranteed
     // Base: approval * 0.4 + party stability * 0.3 + anti-corruption bonus
     const base = st.app * 0.4 + st.pStab * 0.3 + (1 - st.cor) * 20;
-    const debtPenalty = st.debt > 10 ? (st.debt - 10) * 1.5 : 0;
+    const debtPenalty = Math.max(0, (st.debt || 0) - ((st.igr || 0) + (st.faac || 0))) * 1.5;
     const luck = (Math.random() - 0.5) * 15;
     const score = base - debtPenalty + luck;
     // Need 42 to win — achievable but not automatic

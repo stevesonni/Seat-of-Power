@@ -22,6 +22,7 @@ const toPolicies = async (g) => {
   await g.click(/^Continue/); await g.wait(1800);
   await playUntil(g, t => /Done: end the year/.test(t), { max: 40, prefer: [/^Tell the communities first/] });
   await g.click(/^Decide later this year$/); await g.wait(300);
+  await g.wait(400); await g.click(/^Spread it over 4 years/); await g.wait(600); // the last government's debt (new games)
   for (let i = 0; i < 3 && await g.click(/^(Got it|Okay)$/); i++) await g.wait(300); // the year's money card
 };
 const lendUntilOffer = async (g) => {
@@ -172,8 +173,10 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   const t = await g.txt();
   check(/Blocked/.test(t) && /Fit the scope to the budget/.test(t) && /Defer indefinitely/.test(t), "9. the dossier says Blocked and offers the two real ways out");
   await g.click(/^Fit the scope to the budget$/); await g.wait(1200);
+  if (await g.click(/^Spread it over 4 years/)) { await g.wait(600); await g.click(/^Got it$/); await g.wait(400); await g.click(/^Revise the scope$/); await g.wait(400); await g.click(/^Fit the scope to the budget$/); await g.wait(1200); } // the debt choice came up first
+  let t2 = await g.txt();
+  for (let i = 0; i < 4 && !/It still does not fit/.test(t2) && await g.click(/^(On to the next.*|Okay|Got it|Understood)$/); i++) { await g.wait(500); t2 = await g.txt(); } // cards queued ahead of the result
   const p = await proj(g, "Ring Road");
-  const t2 = await g.txt();
   check((p.status === "pending_procurement" && p.estimateM < big.estimateM) || /It still does not fit/.test(t2), "9. fitting the scope either moves it to procurement or says why not (" + p.status + ", " + p.estimateM + "M)");
   check(!g.errors.length, "no page errors: " + g.errors.join(" | "));
   await g.browser.close();

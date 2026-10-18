@@ -3,6 +3,18 @@
 
 
 
+
+## Strain: the inherited debt, interest and repayments (18 Oct, latest)
+- **A new game owes the last government's debt.** It is about a year's revenue (`SYS.inheritedDebtB`; almost ₦20B for Ogun). The adviser's first line names it.
+- **Year 1 choice (`oldDebtPlan`), when the first money arrives:**
+  - pay as much as possible now (this year is almost empty, then smaller instalments over 4 years);
+  - spread it over 4 years;
+  - spread it over 8 years (lighter each year, more interest, and the successor pays the tail).
+- **All debt costs 8% interest a year** (`DEBT_RATE`). Each year's repayments come off the top, before work money: the interest, the old debt's instalment and 6% of other debt. The budget's Debt line can pay more than is due.
+- **Removed:** the old automatic paydown (8% of debt, plus a slice of own revenue and GDP, repaid for free each year).
+- **Revenue-scaled thresholds:** debt warnings and headlines, the Fiscal Responsibility bill and the "Fiscal hawk" honour (now: debt cut to half of what you inherited) scale with revenue. Lenders lend up to 2× / 1.6× / 1.3× a year's revenue (Easy / Medium / Hard).
+- **The year's money card** now lists debt repayments, any old debt paid off at once, and what is still owed.
+
 ## Where the money comes from (18 Oct, latest)
 - **Year 1 opens with an empty treasury.**
   - The bank starts at ₦0. The first year's money card says the last government left contractors' bills unpaid (15% of the year's work money).
