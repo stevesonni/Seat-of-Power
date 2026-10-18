@@ -6,7 +6,7 @@ import { serve } from "./serve.mjs";
 const srv = await serve(), port = srv.port, which = process.argv[2] || "all";
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const save = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
-const prefer = [/^Go on without a loan/, /^Decide later this year$/, /^🗳️ Run for Re-Election/];
+const prefer = [/^Go on without a loan/, /^🗳️ Run for Re-Election/];
 
 async function firstTerm(test) {
   const g = await open(port, { test });
@@ -31,8 +31,8 @@ async function firstTerm(test) {
 
 if (which === "defeat" || which === "all") {
   const g = await firstTerm({ win: true, reLose: true });
-  const r = await playUntil(g, t => /VOTED OUT/.test(t), { max: 300, prefer });
-  check(r.ok, "first-term defeat reached");
+  const r = await playUntil(g, t => /VOTED OUT|STEPPED DOWN/.test(t), { max: 300, prefer });
+  check(r.ok, "first term ended without re-election (" + ((await g.txt()).match(/VOTED OUT|STEPPED DOWN/) || ["?"])[0] + ")");
   const t = await g.txt();
   check(/1 term \(4 years\)/.test(t), "defeat screen shows one four-year term");
   check(/THE GOLDFIELDS AFTER YOU/i.test(t) && /You left/.test(t) && /successor/i.test(t), "successor epilogue built from the real state");

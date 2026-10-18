@@ -7223,7 +7223,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {st0.keyDecisions.length > 0 && <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10 }}>Decisions people remember: {st0.keyDecisions.map(k => k.what).join(" · ")}</div>}
           </Cd>; })()}
           {gold && (() => {
-            if (gEnd === "defeated" || gEnd === "nullified" || gEnd === "impeached") {
+            // Any handover before Year 8 (defeat, stepping down, removal, bankruptcy): the successor inherits it.
+            if (gEnd && gEnd !== "complete") {
               const ep = SYS.successorEpilogue(gold, goldSeed, { openCases: cases.filter(c => c.stage !== "decided" && c.stage !== "closed").length, debtB: s.debt, cor: s.cor, fgRelation });
               return <Cd style={{ textAlign: "left", margin: "29px auto 0", maxWidth: 900 }}>
                 <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 10 }}>THE GOLDFIELDS AFTER YOU: {ep.label.toUpperCase()}</div>
