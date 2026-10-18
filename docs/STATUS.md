@@ -2,6 +2,23 @@
 
 
 
+
+## Where the money comes from (18 Oct, latest)
+- **Year 1 opens with an empty treasury.**
+  - The bank starts at ₦0. The first year's money card says the last government left contractors' bills unpaid (15% of the year's work money).
+  - The adviser's first line recommends purging ghost workers. That is the biometric payroll reform; adopting it now also puts that year's saving straight into the bank.
+- **The year's money card is a receipt:**
+  - FAAC from Abuja;
+  - taxes and fees;
+  - each named story;
+  - salaries, offices and debt;
+  - unpaid bills (Year 1 only);
+  - what is in the bank.
+- **Named money stories** (`noteMoney`, kept in `stc.moneyNews`):
+  - **A commissioner who delivers** (performance above 65, corruption below 50) can bring money in through their sector (`SYS.ministryWindfall`): agric exports, a health-foundation vaccination grant (fictional Meridian Health Foundation), an education partnership grant, road tolls, reopened markets, a revenue drive, or savings returned. At most two a year, scaled to revenue.
+  - **A commissioner who misses every target** wastes part of their ministry's money (`SYS.ministryWaste`), on top of the existing fallout (work slows, approval −1, the adviser's fire-or-keep).
+  - **Deals:** the Abuja intervention fund (₦1.5B into the bank, once; it used to raise FAAC every year by mistake), the Dutch deal and approved investors (their taxes each year) are recorded too.
+
 ## Money, the House and elections (18 Oct, later)
 - **One bank (`game/systems/treasury.js`, `s.cash` in ₦B).**
   - When the year's budget is settled, the year's revenue arrives. The budget's running lines (salaries, offices, debt) come off the top; the rest goes into the bank. Unspent money stays.

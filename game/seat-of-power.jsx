@@ -1010,7 +1010,7 @@ const REVENUE_MEASURES = [
     what: "Every worker verified with BVN and fingerprints. States have found thousands of names that collect salaries but do not exist.",
     cost: "Unions protest (approval −1); a risk that real workers are wrongly removed",
     gain: (c) => "Saves about ₦" + Math.max(.3, Math.round((c.s.faac || 10) * .55 * (.03 + c.s.cor * .1) * 10) / 10) + "B every year (more where corruption is high)",
-    adopt: (c) => { const g = Math.max(.3, Math.round((c.s.faac || 10) * .55 * (.03 + c.s.cor * .1) * 10) / 10); return { fx: { app: -1, cor: -.02 }, sched: [{ k: 0, revIGR: g }], log: "ran a biometric payroll audit that removed ghost workers, saving ₦" + g + "B a year", wiki: "A biometric payroll audit removed ghost workers from the state's wage bill.", risk: { p: .3, fx: { app: -2 }, log: "The payroll audit wrongly struck off hundreds of real teachers. The unions are marching." } }; } },
+    adopt: (c) => { const g = Math.max(.3, Math.round((c.s.faac || 10) * .55 * (.03 + c.s.cor * .1) * 10) / 10); return { fx: { app: -1, cor: -.02 }, sched: [{ k: 0, revIGR: g }], cashNow: g, log: "ran a biometric payroll audit that removed ghost workers, saving ₦" + g + "B a year", wiki: "A biometric payroll audit removed ghost workers from the state's wage bill.", risk: { p: .3, fx: { app: -2 }, log: "The payroll audit wrongly struck off hundreds of real teachers. The unions are marching." } }; } },
   { id: "tsa", icon: "🏦", t: "Treasury Single Account for every ministry",
     what: "Close the hundreds of ministry and agency accounts in commercial banks and sweep idle balances into one state account.",
     cost: "Ministries and their bankers resist (party −2)",
@@ -4354,6 +4354,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (r.borrowedB >= .05) addL("🏦 " + what + ": " + (r.fromBankB >= .05 ? naira(r.fromBankB) + " from the bank, " : "") + naira(r.borrowedB) + " borrowed because the bank ran out.", "info");
     return r;
   };
+  // Where the money came from: every windfall, grant, deal or loss is a named story,
+  // shown when it happens and again on the year's money card. cash: paid into the bank now
+  // (otherwise it adds to yearly revenue, as a deal's taxes do).
+  const noteMoney = (o) => {
+    if (o.cash && o.amtB) setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) + o.amtB) * 100) / 100) }));
+    setStc(p => ({ ...p, moneyNews: [...(p.moneyNews || []), { t: turn, icon: o.icon, head: o.head, text: o.text, amtB: o.amtB || 0, cash: !!o.cash }].slice(-24) }));
+    addL(o.icon + " " + o.text, (o.amtB || 0) < 0 ? "crisis" : "success");
+  };
   const canAfford = (costB, what) => { if (SYS.payFrom(moneyRef.current, costB, lvl) !== "broke") return true; spendB(costB, what); return false; };
   // Inside a setS updater (year end): pay from n, borrowing only if allowed.
   const payIn = (n, costB, force) => SYS.pay(n, costB, { level: lvl, force });
@@ -4673,6 +4681,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     scFx(a.fx || {});
     const now = (a.sched || []).filter(x => x.k === 0), later = (a.sched || []).filter(x => x.k > 0).map(x => ({ ...x, t: turn + x.k, id: m.id }));
     if (now.length) setS(p => applyRev(p, now));
+    if (a.cashNow) noteMoney({ icon: m.icon, head: "Ghost workers purged", text: "The payroll audit removed names that drew salaries but did not exist: " + naira(a.cashNow) + " freed into the bank this year, and the same every year after.", amtB: a.cashNow, cash: true });
     setStc(p => ({ ...p, rev: { ...(p.rev || {}), [m.id]: turn }, revSched: [...(p.revSched || []), ...later], revCount: { t: turn, n: (p.revCount && p.revCount.t === turn ? p.revCount.n : 0) + 1 } }));
     addL(m.icon + " You " + a.log + ".", "policy");
     if (a.wiki) scWiki("Governorship", a.wiki);
@@ -5273,9 +5282,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (s.cash == null) { const a = SYS.yearAccounts(s, bud); setS(p => ({ ...p, cash: phase === "budget" || phase === "house_vote" ? 0 : a.workB, cashYear: phase === "budget" || phase === "house_vote" ? 0 : turn })); return; }
     if (phase !== "policy" || s.cashYear === turn) return;
     const a = SYS.yearAccounts(s, bud), left = s.cash || 0;
-    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + a.workB) * 100) / 100, cashYear: turn }));
-    addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries, offices and debt take " + naira(a.runB) + "; " + naira(a.workB) + " goes into the bank.", "info");
-    try { window.SOP_outcome({ icon: "🏦", title: "This year's money is in", text: naira(a.workB) + " is in the bank for this year's work" + (left >= .05 ? ", on top of " + naira(left) + " you saved last year" : "") + ". Everything you start is paid from here; only when it runs out do you borrow.", tone: "good", rows: [{ l: "Came in", v: naira(a.inB), good: true }, { l: "Salaries, offices, debt", v: "−" + naira(a.runB), good: false }, { l: "In the bank", v: naira(left + a.workB), good: true }], ok: "Got it" }); } catch (e) {}
+    // Year 1: the last government left the bank empty and bills unpaid.
+    const bills = turn === 1 && !stc.inherited ? Math.round(a.workB * .15 * 10) / 10 : 0;
+    const total = Math.round((left + a.workB - bills) * 100) / 100;
+    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + a.workB - bills) * 100) / 100, cashYear: turn }));
+    if (bills) setStc(p => ({ ...p, inherited: bills }));
+    // Where it came from: the two big sources, then the year's named stories.
+    const news = (stc.moneyNews || []).filter(x => x.t === turn || (x.t === turn - 1 && !x.cash)).slice(-4);
+    addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries, offices and debt take " + naira(a.runB) + "; " + naira(a.workB - bills) + " goes into the bank.", "info");
+    try { window.SOP_outcome({ icon: "🏦", title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
+      text: turn === 1 ? "The last government left the bank empty and " + naira(bills) + " of contractors' bills unpaid. After salaries and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
+      tone: "good", ok: "Got it",
+      rows: [{ l: "FAAC from Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }]
+        .concat(news.map(x => ({ l: x.icon + " " + x.head, v: (x.amtB >= 0 ? "+" : "−") + naira(Math.abs(x.amtB)) + (x.cash ? "" : " a year"), good: x.amtB >= 0 })))
+        .concat([{ l: "Salaries, offices, debt", v: "−" + naira(a.runB), good: false }])
+        .concat(bills ? [{ l: "Bills left unpaid", v: "−" + naira(bills), good: false }] : [])
+        .concat([{ l: "In the bank", v: naira(total), good: true }]) }); } catch (e) {}
   }, [phase, turn, s.cash == null]);
   const confirmPlan = (F0, a, overRoom) => {
     const d = F0.draft, P = F0.plan, e = SYS.estimate(d.type, d.qty);
@@ -5423,7 +5445,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const r = rng(turn * 977 + state.length * 31);
     let dApp = 0, dCor = 0, dParty = 0; const notes = []; const slowSectors = [];
     let incidents = 0;
-    const allegations = [];
+    const allegations = [], stories = [], revB = SYS.revenueB(s);
     const next = ministries.map(m => {
       const t = traits(m.minister);
       let perf = Math.round(Math.max(10, Math.min(95, (m.perf || 50) + (t.comp - (m.perf || 50)) * .3 + (r() - .5) * 8)));
@@ -5447,6 +5469,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       } else if (incidents < 2 && perf < 40 && r() < .5) {
         add("failure", "Missed every target this year; the ministry's work slowed.");
         dApp -= 1; if (MIN_SECTOR[m.id]) slowSectors.push(MIN_SECTOR[m.id]);
+        stories.push(SYS.ministryWaste(m, revB, r));
         notes.push(["📉 The " + m.name + " ministry under Hon. " + m.minister + " missed every target this year. Work it runs has slowed.", "crisis"]);
       } else if (incidents < 2 && loyalty < 35 && r() < .35) {
         add("disloyal", "Leaked a cabinet memo to the opposition and the godfather.");
@@ -5455,8 +5478,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         add("praise", "Delivered: the ministry hit its targets early.");
         dApp += 1; notes.push(["🏅 Hon. " + m.minister + " (" + m.name + ") delivered ahead of schedule. Keep good people.", "success"]);
       }
+      // A commissioner who delivers brings money in (at most two such stories a year).
+      if (perf > 65 && cor < 50 && stories.filter(x => x.amtB > 0).length < 2 && r() < .45) stories.push(SYS.ministryWindfall(m, revB, r));
       return { ...m, perf, cor, loyalty, record, flag };
     });
+    stories.forEach(x => noteMoney({ ...x, cash: true }));
     // Bodies you created or merged: their yearly cost (or saving), and task forces that end.
     const yearlyM = next.reduce((a, m) => a + (m.yearlyM || 0), 0);
     if (yearlyM) { if (yearlyM > 0) spendB(SYS.toB(yearlyM), "Running the bodies you created", { force: true }); else setS(p => ({ ...p, cash: (p.cash || 0) + SYS.toB(-yearlyM) })); notes.push([yearlyM > 0 ? "🏢 New government bodies cost " + SYS.fmtM(yearlyM) + " this year." : "🏢 Merged ministries saved " + SYS.fmtM(-yearlyM) + " this year.", "info"]); }
@@ -5618,6 +5644,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   const getSABrief = () => {
     if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
+    // Year 1: the treasury is empty; the fastest money is the payroll.
+    const ghost = REVENUE_MEASURES.find(x => x.id === "payroll");
+    if (turn === 1 && ghost && !(stc.rev || {}).payroll && ministries && ministries.length >= 4) {
+      const g = Math.max(.3, Math.round((s.faac || 10) * .55 * (.03 + (s.cor || 0) * .1) * 10) / 10);
+      return { urgent: true, icon: "🪪", title: "Governor, your predecessor left the treasury empty. Purge ghost workers from the payroll now: it frees about " + naira(g) + " a year", body: "A biometric audit checks every worker on the payroll against BVN and fingerprints. Names that collect salaries but do not exist come off. The unions will protest (approval −1), and a few real workers may be wrongly removed. It uses one of this year's major actions.", actionLabel: "Purge ghost workers", action: () => adoptRevenue(ghost) };
+    }
     // Projects: the adviser says the real next step and the button opens it.
     const dueP = (projects || []).filter(p => p && p.estimateM != null).map(p => ({ p, n: nextOf(p) })).find(x => x.n.due);
     if (dueP) return { urgent: true, icon: dueP.n.blocked ? "🚧" : "📝", project: dueP.p.id, title: dueP.n.say, body: dueP.n.blocked ? "This is blocked until it is dealt with. Every year it waits, the need it answers gets worse." : "Approval is not a contract: nothing is paid and no one is building until this step is done.", actionLabel: dueP.n.button, action: () => openStep(dueP.p) };
@@ -8868,6 +8900,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 8), youth: cl100((p.youth || 50) + 4) }));
                 setInvestorsApproved(p => [...p, curInvestor.id]);
                 addL("🏗️ APPROVED: " + curInvestor.nm + " — " + curInvestor.jobs.toLocaleString() + " jobs created.", "success");
+                noteMoney({ icon: "🏭", head: curInvestor.nm, text: curInvestor.nm + " is approved: " + curInvestor.jobs.toLocaleString() + " jobs, and about " + naira(curInvestor.igrBoost) + " a year in taxes from now on.", amtB: curInvestor.igrBoost });
                 const inv = curInvestor; setCurInvestor(null);
                 const efx = [
                   { icon: "👷", text: inv.jobs.toLocaleString() + " new jobs created in " + inv.sector, value: "+" + inv.jobs.toLocaleString(), good: true },
@@ -8956,8 +8989,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 // Small chance of getting a federal favour
                 const rf = Math.random();
                 if (rf < .35) {
-                  setS(p2 => ({ ...p2, faac: p2.faac + 1.5 }));
-                  addL("💰 Federal favour: President approved additional ₦1.5B intervention fund for your state.", "policy");
+                  noteMoney({ icon: "🇳🇬", head: "Federal intervention", text: "The President approved a ₦1.5B intervention fund for your state after the Abuja visit. It is in the bank.", amtB: 1.5, cash: true });
                 }
                 nextEvent();
               }} style={{ padding: 43 }}>
@@ -9029,6 +9061,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   setS(p => ({ ...p, igr: p.igr + 3 + hiddenBoost, faac: p.faac + 0.8, agr: cl(p.agr + .04), infra: cl(p.infra + .02), app: cl100(p.app + 6) })); spendB(0.3, "The trip", { force: true });
                   setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 12), youth: cl100((p.youth || 50) + 5) }));
                   addL("🇳🇱 Netherlands trip SUCCESS! Dutch investors commit €40M.", "policy");
+                  noteMoney({ icon: "🇳🇱", head: "The Dutch deal", text: "The agro-processing and solar deal you signed in The Hague adds about ₦" + (3 + hiddenBoost).toFixed(1) + "B a year in taxes from now on.", amtB: Math.round((3 + hiddenBoost) * 10) / 10 });
                   showResult({ icon: "🇳🇱🎉", title: "The Hague — DEAL SIGNED!", narrative: "The Dutch investors were impressed by your personal presence. After 3 days of negotiations, they committed €40 million to an agro-processing and solar farm project. Construction begins in 6 months.", effects: [
                     { icon: "💰", text: "IGR boost from investment", value: "+₦" + (3 + hiddenBoost).toFixed(1) + "B", good: true },
                     { icon: "💸", text: "FAAC bonus from bilateral goodwill", value: "+₦0.8B", good: true },

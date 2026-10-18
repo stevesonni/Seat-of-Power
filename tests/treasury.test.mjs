@@ -27,3 +27,12 @@ test("the year's work money is revenue less the budget's running lines", () => {
 test("a harder level lets you borrow less", () => {
   assert.ok(borrowRoomB(S, "hard") < borrowRoomB(S, "easy"));
 });
+import { ministryWindfall, ministryWaste } from "../game/systems/treasury.js";
+test("a commissioner who delivers brings in money their sector can earn, scaled to revenue", () => {
+  const r = () => .5;
+  const w = ministryWindfall({ key: "agr", minister: "Ada Okon", name: "Agriculture" }, 20, r);
+  assert.ok(w.amtB > .5 && w.amtB < 2); assert.match(w.text, /Ada Okon/); assert.match(w.text, /export/);
+  assert.match(ministryWindfall({ key: "hp", minister: "B", name: "Health" }, 20, r).text, /vaccination/);
+  const x = ministryWaste({ key: "infra", minister: "C", name: "Works" }, 20, r);
+  assert.ok(x.amtB < 0); assert.match(x.text, /missed every target/);
+});
