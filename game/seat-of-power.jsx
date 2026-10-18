@@ -3644,10 +3644,10 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
     const a = SYS.assessFunding({ needM: e.buildM, approvedM: P.approvedM, thisYearM: P.thisYearM, years: e.years });
     const room = roomM(SYS.TYPE_SECTOR[d.type]), gap = Math.max(a.shortM, P.thisYearM - room), overRoom = P.thisYearM > room;
     const choices = { increase: ["Approve the full cost", "Set the budget to " + SYS.fmtM(e.buildM) + "."], reduce: ["Cut the scope to fit", "About " + Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)) + " " + e.unit + "s instead of " + d.qty + "."], finance: ["Seek financing", "Apply to lenders for " + SYS.fmtM(gap) + ". No debt until you accept an offer."], defer: ["Defer it", "Nothing starts this year. No agenda used."], proceed: ["Go ahead anyway", "On the record: you were warned the money runs out first."] };
-    const head = a.kind === "short" ? "Funding gap: " + SYS.fmtM(a.shortM) : overRoom ? "This year's share is more than the budget line can pay" : a.kind === "phased" ? "Phased over " + e.years + (e.years === 1 ? " year" : " years") : "Fully funded";
+    const head = a.kind === "short" ? "Funding gap: " + SYS.fmtM(a.shortM) : overRoom ? "This year's share is more than the bank can pay" : a.kind === "phased" ? "Phased over " + e.years + (e.years === 1 ? " year" : " years") : "Fully funded";
     return <Dossier icon={SECTOR_ICON[SYS.TYPE_SECTOR[d.type]]} kicker="Budget" title={d.title} place={d.lga} at={0}>
-      <Situation tone={a.kind === "short" ? "bad" : overRoom ? "warn" : null} head={head} text={a.kind === "short" ? "The project cannot proceed as planned. Close the gap, cut the scope, or go ahead knowing the money runs out first." : overRoom ? "The " + SYS.BUDGET_LINE[SYS.TYPE_SECTOR[d.type]] + " budget can pay " + SYS.fmtM(room) + " this year; the rest must be borrowed or the work slows." : "Approval sets the budget. It is not a contract: nothing is paid until a contractor is chosen."} />
-      <Tiles items={[["Estimated cost", SYS.fmtM(e.buildM)], ["Approved", SYS.fmtM(P.approvedM), a.kind === "short" ? "bad" : null], ["Funding gap", SYS.fmtM(Math.max(0, a.shortM)), a.shortM ? "bad" : "good"], ["Budget line can pay", SYS.fmtM(room), overRoom ? "bad" : null]]} />
+      <Situation tone={a.kind === "short" ? "bad" : overRoom ? "warn" : null} head={head} text={a.kind === "short" ? "The project cannot proceed as planned. Close the gap, cut the scope, or go ahead knowing the money runs out first." : overRoom ? "The bank can pay " + SYS.fmtM(room) + " towards it this year. The rest must be borrowed, or the work goes slower." : "Approval sets the budget. It is not a contract: nothing is paid until a contractor is chosen."} />
+      <Tiles items={[["Estimated cost", SYS.fmtM(e.buildM)], ["Approved", SYS.fmtM(P.approvedM), a.kind === "short" ? "bad" : null], ["Funding gap", SYS.fmtM(Math.max(0, a.shortM)), a.shortM ? "bad" : "good"], ["Bank can pay", SYS.fmtM(room), overRoom ? "bad" : null]]} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>{spLab("Total budget (₦M)")}<input type="number" min={0} step={50} value={P.approvedM} onChange={x => onFlow({ ...F0, plan: { ...P, approvedM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={spField} /></div>
         <div>{spLab("This year (₦M)")}<input type="number" min={0} step={50} value={P.thisYearM} onChange={x => onFlow({ ...F0, plan: { ...P, thisYearM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={spField} /></div>
@@ -4269,11 +4269,33 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // headline numbers (plus debt and the war chest), runs the decision, then
   // shows a result card with what it said and what actually moved.
   const snapRef = React.useRef(null);
-  snapRef.current = { app: s.app, tb, pStab: s.pStab, cor: s.cor || 0, debt: s.debt, fund: personalFund, sec: s.sec, hp: s.hp, lit: s.lit, infra: s.infra, agr: s.agr, igr: s.igr };
+  snapRef.current = { app: s.app, tb, cash: s.cash || 0, pStab: s.pStab, cor: s.cor || 0, debt: s.debt, fund: personalFund, sec: s.sec, hp: s.hp, lit: s.lit, infra: s.infra, agr: s.agr, igr: s.igr };
+  /* ── THE STATE'S BANK (SYS.treasury) ──
+     Everything the governor buys is paid from the bank first. Only when the
+     bank is empty is the rest borrowed, and only while lenders will lend.
+     Past that the state is broke: the thing does not happen, and says why. */
+  const lvl = setup?.level || "medium";
+  const moneyRef = React.useRef(s); moneyRef.current = s;
+  const spendB = (costB, what, opt = {}) => {
+    const cost = Math.max(0, +costB || 0); if (!cost) return { ok: true, fromBankB: 0, borrowedB: 0 };
+    const r = SYS.pay(moneyRef.current, cost, { level: lvl, force: !!opt.force });
+    if (!r.ok) {
+      try { window.SOP_outcome({ icon: "🏦", title: "The state can't pay for this", text: what + " needs " + naira(r.short) + " more than the bank holds, and lenders won't lend the state any more. Raise revenue, cut something, or wait for next year's money.", tone: "bad", ok: "Understood" }); } catch (e) {}
+      return null;
+    }
+    moneyRef.current = r.s; // a second payment in the same tap sees this one
+    setS(p => SYS.pay(p, cost, { level: lvl, force: true }).s);
+    if (r.borrowedB >= .05) addL("🏦 " + what + ": " + (r.fromBankB >= .05 ? naira(r.fromBankB) + " from the bank, " : "") + naira(r.borrowedB) + " borrowed because the bank ran out.", "info");
+    return r;
+  };
+  const canAfford = (costB, what) => { if (SYS.payFrom(moneyRef.current, costB, lvl) !== "broke") return true; spendB(costB, what); return false; };
+  // Inside a setS updater (year end): pay from n, borrowing only if allowed.
+  const payIn = (n, costB, force) => SYS.pay(n, costB, { level: lvl, force });
+  const fromChip = (costB) => { const f = SYS.payFrom(s, costB, lvl); return f === "bank" ? { text: "From the bank", color: CL.grn } : f === "loan" ? { text: "Needs a loan", color: CL.org } : { text: "Can't afford", color: CL.red }; };
   const statRows = (a, b) => {
     const r = [], d = (k) => (b[k] || 0) - (a[k] || 0), sg = (v) => (v > 0 ? "+" : "−");
     if (Math.abs(d("app")) >= .5) r.push({ l: "Approval", v: sg(d("app")) + Math.abs(Math.round(d("app"))) + "%", good: d("app") > 0 });
-    if (Math.abs(d("tb")) >= .05) r.push({ l: "Treasury", v: sg(d("tb")) + "₦" + Math.abs(d("tb")).toFixed(1) + "B", good: d("tb") > 0 });
+    if (Math.abs(d("cash")) >= .05) r.push({ l: "In the bank", v: sg(d("cash")) + "₦" + Math.abs(d("cash")).toFixed(1) + "B", good: d("cash") > 0 });
     if (Math.abs(d("pStab")) >= .5) r.push({ l: "Party", v: sg(d("pStab")) + Math.abs(Math.round(d("pStab"))) + "%", good: d("pStab") > 0 });
     if (Math.abs(d("cor")) >= .005) r.push({ l: "Corruption", v: sg(d("cor")) + Math.abs(Math.round(d("cor") * 100)) + "%", good: d("cor") < 0 });
     if (Math.abs(d("debt")) >= .05) r.push({ l: "Debt", v: sg(d("debt")) + "₦" + Math.abs(d("debt")).toFixed(1) + "B", good: d("debt") < 0 });
@@ -4337,7 +4359,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     if (!prev || turn <= 1) return;
     const last = logs.filter(l => l.t === turn - 1 && ["success", "crisis", "scandal"].includes(l.tp)).slice(-3).map(l => l.tx.replace(/^\S+\s/, "").split(/(?<=\.)\s/)[0]);
-    const big = (r) => ["Approval", "Treasury", "Party", "Corruption", "Debt"].includes(r.l) || (r.l !== "War chest" && r.l !== "Own revenue" && parseFloat(String(r.v).replace(/[^\d.]/g, "")) >= 3);
+    const big = (r) => ["Approval", "In the bank", "Party", "Corruption", "Debt"].includes(r.l) || (r.l !== "War chest" && r.l !== "Own revenue" && parseFloat(String(r.v).replace(/[^\d.]/g, "")) >= 3);
     const rows = statRows(prev.snap, snap).filter(big).concat(fresh.map(h => ({ l: h.i + " " + h.nm, v: "", good: true })));
     let text = last.length ? last.join(" ") : "A quiet six months.";
     const first = turn === 2;
@@ -4530,7 +4552,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const n = { ...p };
     ["app", "pStab"].forEach(k => { if (fx[k]) n[k] = cl100(n[k] + fx[k]); });
     ["cor", "sec", "infra", "hp", "agr", "lit"].forEach(k => { if (fx[k]) n[k] = cl(n[k] + fx[k]); });
-    if (fx.debt) n.debt = (n.debt || 0) + fx.debt;
+    if (fx.debt > 0) { const pr = payIn(n, fx.debt, true); n.cash = pr.s.cash; n.debt = pr.s.debt; } // paid from the bank first
+    else if (fx.debt < 0) n.debt = Math.max(0, (n.debt || 0) + fx.debt);
     if (fx.igr) n.igr = (n.igr || 0) + fx.igr;
     if (dz && zone != null) { const zm = { ...(p.zoneMood || {}) }; zm[zone] = Math.max(-25, Math.min(25, (zm[zone] || 0) + dz)); n.zoneMood = zm; }
     return n;
@@ -4538,7 +4561,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fxChips = (fx = {}, dz = 0) => [
     ...(fx.app ? [{ text: "Approval " + sgnN(fx.app), color: fx.app > 0 ? CL.grn : CL.red }] : []),
     ...(dz ? [{ text: "Zone " + sgnN(dz), color: dz > 0 ? CL.grn : CL.red }] : []),
-    ...(fx.debt ? [{ text: "Debt +₦" + fx.debt.toFixed(1) + "B", color: CL.red }] : []),
+    ...(fx.debt > 0 ? [{ text: "Costs ₦" + fx.debt.toFixed(1) + "B", color: CL.txt }, fromChip(fx.debt)] : fx.debt < 0 ? [{ text: "Debt −₦" + (-fx.debt).toFixed(1) + "B", color: CL.grn }] : []),
     ...(fx.pStab ? [{ text: "Party " + sgnN(fx.pStab), color: fx.pStab > 0 ? CL.grn : CL.red }] : []),
     ...(fx.cor ? [{ text: "Corruption " + (fx.cor > 0 ? "+" : "") + Math.round(fx.cor * 100) + "%", color: fx.cor > 0 ? CL.red : CL.grn }] : []),
     ...(fx.sec ? [{ text: "Security " + (fx.sec > 0 ? "+" : "") + Math.round(fx.sec * 100), color: fx.sec > 0 ? CL.grn : CL.red }] : []),
@@ -4721,13 +4744,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const owe = f < .85 ? 3 : f < .95 ? 2 : 0;
       const opts = [];
       if (f < .95) {
-        opts.push({ label: "Borrow ₦" + short + "B and pay salaries in full", note: "Workers paid on the 25th. The debt grows.", chips: fxChips({ debt: short }), run: () => { scFx({ debt: short }); addL("🏦 Borrowed ₦" + short + "B to cover the FAAC shortfall. Salaries paid in full.", "policy"); } });
+        const bankPays = (s.cash || 0) >= short;
+        opts.push({ label: bankPays ? "Pay salaries in full from the bank (₦" + short + "B)" : "Borrow ₦" + short + "B and pay salaries in full", note: bankPays ? "Workers paid on the 25th. No new debt." : "Workers paid on the 25th. The bank can't cover it, so the debt grows.", chips: fxChips({ debt: short }), run: () => { scFx({ debt: short }); addL("🏦 Covered the ₦" + short + "B FAAC shortfall" + (bankPays ? " from the bank" : " (the bank ran short, so part was borrowed)") + ". Salaries paid in full.", "policy"); } });
         opts.push({ label: "Pay salaries, hold contractor payments", note: "Workers paid. Every site you started stops for lack of money.", chips: fxChips({ app: -1 }).concat([{ text: "Started work stalls", color: CL.red }]), run: () => { scFx({ app: -1, infra: -.01 }); stallWork(null); addL("🚧 Salaries paid, contractors not. Work stopped on every site this year.", "crisis"); } });
         opts.push({ label: "Pay what we have; owe workers " + owe + " months", note: "No new debt. The unions start counting.", chips: fxChips({ app: -1 }).concat([{ text: "Arrears +" + owe + " months", color: CL.red }]), run: () => { scFx({ app: -1 }); setStc(p => ({ ...p, arrears: p.arrears + owe, arrearsMax: Math.max(p.arrearsMax || 0, p.arrears + owe) })); addL("🧾 Paid part of the wage bill. Workers are now owed " + (A + owe) + " months.", "crisis"); } });
       }
       if (A > 0) {
         const all = Math.round(A * mw * 10) / 10;
-        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: "Borrowed money, but the strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
+        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: ((s.cash || 0) >= Math.round(A * mw * 10) / 10 ? "Paid from the bank. " : "Partly borrowed. ") + "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
         if (f >= .95) opts.push({ label: "Pay one month of arrears", note: "A gesture. The unions want it all.", chips: fxChips({ debt: mw }), run: () => { scFx({ debt: mw }); setStc(p => ({ ...p, arrears: Math.max(0, p.arrears - 1) })); addL("🧾 Paid one month of salary arrears.", "policy"); } });
         if (f >= .95) opts.push({ label: "Keep owing them", note: "The arrears stay. So does the anger.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); addL("🧾 Salary arrears left unpaid another year.", "political"); } });
       }
@@ -5071,10 +5095,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const gatherCase = (id, method) => {
     const c = cases.find(x => x.id === id); if (!c) return;
+    const M = SYS.METHODS[method];
+    if (M.costM && !canAfford(SYS.toB(M.costM), "This line of inquiry")) return;
     if (!c.methodsUsed.length && !takeAgenda("investigation", "Investigation: " + c.ministryName, "inv:" + id)) return;
-    const r = SYS.gatherEvidence(c, method, turn), M = SYS.METHODS[method];
+    if (M.costM && !spendB(SYS.toB(M.costM), "The investigation")) return;
+    const r = SYS.gatherEvidence(c, method, turn);
     setCases(cs => cs.map(x => x.id === id ? r.c : x));
-    if (M.costM) setS(p => ({ ...p, debt: p.debt + SYS.toB(M.costM) }));
     if (M.party) setS(p => ({ ...p, pStab: cl100(p.pStab + M.party) }));
     if (method === "agf" && (r.c.grade === "documented" || r.c.grade === "substantiated")) setS(p => ({ ...p, app: cl100(p.app - 1) }));
     addL("🔎 " + M.nm + " on the " + c.ministryName + " file: " + (r.found.length ? r.found.map(f => f.label.toLowerCase()).join("; ") : "nothing new") + ".", "info");
@@ -5098,14 +5124,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     announce({ icon: "⚖️", title: D.nm, text: "Hon. " + c.officer + ", " + c.ministryName + ". The file says: " + SYS.GRADE_NAME[r.c.grade].toLowerCase() + "." + (acting ? " " + acting + ", the Permanent Secretary, is acting commissioner until you appoint one." : "") + (r.c.outstandingM ? " " + SYS.fmtM(r.c.outstandingM) + " is still missing." : "") + " What really happened may still come out.", tone: "neutral" }, before);
   };
   const applyRestructureNow = (plan) => {
+    if (!canAfford(SYS.toB(plan.setupM || 0), plan.nm)) return;
     if (!takeAgenda("restructure", plan.nm, "rs:" + plan.kind + ":" + plan.a + ":" + (plan.b || plan.name || ""))) return;
     const before = { ...snapRef.current };
     const ids = { merged: plan.a + "_" + plan.b, split: "m_" + turn + "_" + hashStr(plan.name || "") % 10000, taskforce: "tf_" + turn + "_" + hashStr(plan.name || "") % 10000 };
     const lead = plan.kind === "split" || plan.kind === "taskforce" ? gN(rng(hashStr(plan.name + turn)), sd.zone, state) : plan.lead;
     const r = SYS.applyRestructure({ ...plan, lead: plan.kind === "merge" ? plan.lead : lead }, { ministries, projects: projects || [], cases, commits }, turn, ids);
+    if (!spendB(SYS.toB(r.setupM), plan.nm)) return;
     setMinistries(r.ministries.map(m => (m.id === ids.split || m.id === ids.taskforce || m.id === ids.merged) ? { ...m, yearlyM: plan.yearlyM } : m));
     setProjects(r.projects); setCases(r.cases); setCommits(r.commits);
-    setS(p => ({ ...p, debt: p.debt + SYS.toB(r.setupM), pStab: cl100(p.pStab + r.pStab) }));
+    setS(p => ({ ...p, pStab: cl100(p.pStab + r.pStab) }));
     addL("🔀 " + plan.mandate + " Set-up " + SYS.fmtM(r.setupM) + ". Moved: " + (r.moved.length ? r.moved.join("; ") : "nothing") + ".", "policy");
     scWiki("Governorship", plan.mandate);
     setSecr(f => ({ view: "dir", from: f && f.from }));
@@ -5147,7 +5175,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setAudDone(d => ({ ...d, [a.id]: turn })); setSecr(f => ({ view: "dir", from: f && f.from }));
     const cm = (action, resourcesM = 0) => setCommits(l => SYS.addCommitment(l, { id: "cm_" + a.id, who: m.minister, ministryId: m.id, action, resourcesM, reviewYear: turn + 1, year: turn }));
     const upd = (f) => setMinistries(ms => ms.map(x => x.id === m.id ? { ...f(x), met: turn } : x));
-    if (o.id === "fund") { setS(p => ({ ...p, debt: p.debt + .5 })); upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 6) })); cm("Show results from the extra ₦500M", 500); return { icon: "💰", title: "₦500M for " + m.name, text: "Hon. " + m.minister + " promised results by next year. You will see whether they kept it.", tone: "neutral" }; }
+    if (o.id === "fund") { if (!spendB(.5, "₦500M for " + m.name)) return; upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 6) })); cm("Show results from the extra ₦500M", 500); return { icon: "💰", title: "₦500M for " + m.name, text: "Hon. " + m.minister + " promised results by next year. You will see whether they kept it.", tone: "neutral" }; }
     if (o.id === "plan") { upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 2) })); cm("Present a recovery plan and start it"); return { icon: "📝", title: "A plan, not money", text: "Hon. " + m.minister + " will come back with a recovery plan.", tone: "neutral" }; }
     if (o.id === "no") { upd(x => ({ ...x, loyalty: Math.max(5, (x.loyalty == null ? 50 : x.loyalty) - 4) })); return { icon: "🚪", title: "Request declined", text: "Hon. " + m.minister + " leaves without the money.", tone: "neutral" }; }
     if (o.id === "praise") { setS(p => ({ ...p, app: cl100(p.app + 1) })); upd(x => ({ ...x, loyalty: Math.min(95, (x.loyalty == null ? 50 : x.loyalty) + 5) })); return { icon: "🏅", title: "Credit where it is due", text: "You praised Hon. " + m.minister + " in public.", tone: "good" }; }
@@ -5158,9 +5186,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── PROJECTS (SYS.projects / loans / proposals) ──
   const [pflow, setPflow] = useState(null);
   const [loans, setLoans] = useState(() => ld?.loans || []);
-  // What a sector's capital budget can pay this year, after other projects' shares.
   const sectorRoomRawM = (line) => Math.round(((bud[line] || 0) / (bs || 100)) * ((s.igr || 0) + (s.faac || 0)) * 350);
-  const roomM = (sector) => { const line = SYS.BUDGET_LINE[sector] || "infrastructure"; const used = (projects || []).filter(p => p.estimateM != null && (SYS.BUDGET_LINE[p.sector] || "infrastructure") === line && ["in_progress", "pending_procurement", "pending_finance"].includes(p.status)).reduce((a, p) => a + ((p.alloc || {})[turn] || 0), 0); return Math.max(0, sectorRoomRawM(line) - used); };
+  // What the bank can still pay for new work this year, after the shares other projects already need.
+  const roomM = () => { const used = (projects || []).filter(p => p.estimateM != null && ["in_progress", "pending_procurement", "pending_finance"].includes(p.status)).reduce((a, p) => a + Math.max(0, ((p.alloc || {})[turn] || 0) - (p.loanLeftM || 0)), 0); return Math.max(0, SYS.toM(s.cash || 0) - used); };
   const openNeedsForProj = needs.filter(n => n.status === "open").map(n => { const T = needType(n); const type = Object.keys(PROJ_NEED).find(k => PROJ_NEED[k] === n.k); return T && type ? { id: n.id, lga: n.lga, type, label: T.icon + " " + T.title(n.lga) } : null; }).filter(Boolean);
   // Where a project's next step happens (SYS.nextStep decides what it is).
   const nextOf = (p) => SYS.nextStep(p, { projects: projects || [], tried: p.triedLenders || [], lenders: SYS.LENDERS });
@@ -5172,6 +5200,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return setPflow({ step: "dossier", projId: p.id });
   };
   const [lastCon, setLastCon] = useState(() => ld?.lastCon || null); // the most recent consequence, shown on the desk
+  // The year's money arrives when its budget is settled (passed, amended, dealt, dropped or forced).
+  // A save from before the bank existed starts with this year's work money in it.
+  useEffect(() => {
+    if (gEnd) return;
+    if (s.cash == null) { const a = SYS.yearAccounts(s, bud); setS(p => ({ ...p, cash: phase === "budget" || phase === "house_vote" ? 0 : a.workB, cashYear: phase === "budget" || phase === "house_vote" ? 0 : turn })); return; }
+    if (phase !== "policy" || s.cashYear === turn) return;
+    const a = SYS.yearAccounts(s, bud), left = s.cash || 0;
+    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + a.workB) * 100) / 100, cashYear: turn }));
+    addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries, offices and debt take " + naira(a.runB) + "; " + naira(a.workB) + " goes into the bank.", "info");
+    try { window.SOP_outcome({ icon: "🏦", title: "This year's money is in", text: naira(a.workB) + " is in the bank for this year's work" + (left >= .05 ? ", on top of " + naira(left) + " you saved last year" : "") + ". Everything you start is paid from here; only when it runs out do you borrow.", tone: "good", rows: [{ l: "Came in", v: naira(a.inB), good: true }, { l: "Salaries, offices, debt", v: "−" + naira(a.runB), good: false }, { l: "In the bank", v: naira(left + a.workB), good: true }], ok: "Got it" }); } catch (e) {}
+  }, [phase, turn, s.cash == null]);
   const confirmPlan = (F0, a, overRoom) => {
     const d = F0.draft, P = F0.plan, e = SYS.estimate(d.type, d.qty);
     if (P.choice === "defer") { setPflow(null); addL("🗂️ Deferred " + d.title + ": nothing starts this year.", "info"); return; }
@@ -5234,9 +5273,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     else if (act === "suspend") { n = SYS.suspend(p, turn); text = "Work stops. " + SYS.fmtM(p.spentM) + " spent so far."; }
     else if (act === "resume") { n = { ...p, status: "in_progress", decisions: [...p.decisions, { year: turn, text: "Resumed." }] }; text = "Work resumes."; }
     else if (act === "abandon") { n = SYS.abandon(p, turn); text = SYS.fmtM(p.spentM) + " is sunk and " + SYS.fmtM(SYS.remainingM(p)) + " of work will never be done."; tone = "bad"; scWiki("Controversies", "Abandoned " + p.title + " after spending " + SYS.fmtM(p.spentM) + "."); }
-    else if (act === "equip") { if (!takeAgenda("project", "Equip " + p.title, "equip:" + p.id)) return; n = SYS.equip(p, turn); setS(q => ({ ...q, debt: q.debt + SYS.toB(p.equipM) })); text = "Equipped for " + SYS.fmtM(p.equipM) + "." + (n.staffed ? "" : " It still needs staff."); }
+    else if (act === "equip") { if (!canAfford(SYS.toB(p.equipM), "Equipping " + p.title)) return; if (!takeAgenda("project", "Equip " + p.title, "equip:" + p.id)) return; if (!spendB(SYS.toB(p.equipM), "Equipping " + p.title)) return; n = SYS.equip(p, turn); text = "Equipped for " + SYS.fmtM(p.equipM) + "." + (n.staffed ? "" : " It still needs staff."); }
     else if (act === "staff") { n = SYS.staff(p, turn); text = "Staff hired: " + SYS.fmtM(p.opsPerYearM) + " a year, every year, from now on." + (n.equipped ? "" : " It still needs equipment."); }
-    else if (act === "repair") { const c = SYS.repairCostM(p); n = SYS.repair(p, turn); setS(q => ({ ...q, debt: q.debt + SYS.toB(c) })); text = "Defects repaired for " + SYS.fmtM(c) + "."; }
+    else if (act === "repair") { const c = SYS.repairCostM(p); if (!spendB(SYS.toB(c), "Repairing " + p.title)) return; n = SYS.repair(p, turn); text = "Defects repaired for " + SYS.fmtM(c) + "."; }
     setProjects(prev => prev.map(x => x.id === id ? n : x));
     addL("🏗️ " + p.title + ": " + text, "policy");
     if (n.status === "delivered" && p.status !== "delivered") setTimeout(() => projDelivered({ ...n, effective: SYS.benefitFactor(n), cost: n.spentM / 1000 }), 300);
@@ -5247,7 +5286,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => {
     if (turn <= 1 || projTicked.current >= turn) { if (turn > projTicked.current) projTicked.current = turn; return; }
     projTicked.current = turn;
-    const year = turn - 1, room = {}, done = [], notes = [];
+    const year = turn - 1, done = [], notes = [];
+    let bankM = SYS.toM(moneyRef.current.cash || 0), paidM = 0, owedM = 0;
     let opsM = 0;
     const boost = saOffice.adviser ? (SYS.lensOf(saOffice.adviser.name).projectBoost || 0) : 0;
     const next = {};
@@ -5255,11 +5295,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (p.estimateM == null) return;
       if (p.facility && p.staffed && (p.status === "delivered" || p.status === "built")) opsM += p.opsPerYearM;
       if (p.status !== "in_progress") return;
-      const line = SYS.BUDGET_LINE[p.sector] || "infrastructure";
-      if (room[line] == null) room[line] = sectorRoomRawM(line);
       const m = minById(p.ministryId);
-      const r = SYS.tickProject(p, year, { cashM: room[line], cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost });
-      room[line] -= r.cashUsedM || 0;
+      // The bank pays this year's share; if it runs short, lenders may lend the rest; past that, work slows or stops.
+      const canM = bankM + SYS.toM(SYS.borrowRoomB({ ...moneyRef.current, debt: (moneyRef.current.debt || 0) + SYS.toB(owedM) }, lvl));
+      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost });
+      const used = r.cashUsedM || 0, fromBank = Math.min(bankM, used);
+      bankM -= fromBank; paidM += fromBank; owedM += used - fromBank;
       next[p.id] = r.p;
       r.events.forEach(ev => notes.push(["🏗️ " + p.title + ": " + ev.replace(/^Year \d+: /, ""), r.p.status === "stalled" ? "crisis" : "info"]));
       if (r.p.status === "delivered") done.push(r.p);
@@ -5267,7 +5308,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (r.p.status === "stalled") scWiki("Controversies", p.title + " stalled with " + SYS.fmtM(SYS.remainingM(r.p)) + " of work left undone.");
     });
     if (Object.keys(next).length) setProjects(prev => prev.map(p => next[p.id] || p));
-    if (opsM) { setS(q => ({ ...q, debt: q.debt + SYS.toB(opsM) })); notes.push(["🏥 Running your hospitals, schools and plants cost " + SYS.fmtM(opsM) + " this year.", "info"]); }
+    if (paidM || owedM) { spendB(SYS.toB(paidM + owedM), "Paying your contractors", { force: true }); notes.push(["🏗️ Contractors were paid " + SYS.fmtM(paidM + owedM) + " for last year's work" + (owedM ? ", " + SYS.fmtM(owedM) + " of it borrowed because the bank ran short" : ", all from the bank") + ".", "info"]); }
+    if (opsM) { spendB(SYS.toB(opsM), "Running your hospitals, schools and plants", { force: true }); notes.push(["🏥 Running your hospitals, schools and plants cost " + SYS.fmtM(opsM) + " this year.", "info"]); }
     const sv = SYS.serviceLoans(loans, turn); if (sv.paidM) { setLoans(sv.loans); notes.push(["🏦 Project loans: " + SYS.fmtM(sv.paidM) + " repaid this year (part of debt service).", "info"]); }
     notes.forEach(([t, k]) => addL(t, k));
     done.forEach((p, i) => setTimeout(() => projDelivered({ ...p, effective: SYS.benefitFactor(p), cost: p.spentM / 1000 }), 600 + i * 300));
@@ -5276,7 +5318,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Records that must survive a reload mid-year (cases, commitments, the
   // year's agenda) are saved as soon as they change, not only at year end.
   const recSaveT = React.useRef(null);
-  useEffect(() => { if (gEnd || turn < 1) return; clearTimeout(recSaveT.current); recSaveT.current = setTimeout(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, 600); }, [cases, commits, agenda, projects, loans]);
+  useEffect(() => { if (gEnd || turn < 1) return; clearTimeout(recSaveT.current); recSaveT.current = setTimeout(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, 600); }, [cases, commits, agenda, projects, loans, s.cash, s.debt]);
 
   // ── THE GOLDFIELDS (SYS.deposits): discovered in Year 1, escalating from Year 2 ──
   const [gold, setGold] = useState(() => ld?.gold || null);
@@ -5298,9 +5340,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   }, [phase, turn, needSetup]);
   const chooseGold = (optId) => decide(() => {
     const r = SYS.choose(gold, turn, optId, goldSeed); if (r.D === gold) return;
+    if (r.costM && !spendB(SYS.toB(r.costM), "The goldfields plan")) return;
     setGold(r.D); setGoldOpen(false);
     const fx = r.fx || {};
-    setS(p => ({ ...p, app: cl100(p.app + (fx.app || 0)), pStab: cl100(p.pStab + (fx.pStab || 0)), sec: cl(p.sec + (fx.sec || 0)), debt: p.debt + SYS.toB(r.costM) }));
+    setS(p => ({ ...p, app: cl100(p.app + (fx.app || 0)), pStab: cl100(p.pStab + (fx.pStab || 0)), sec: cl(p.sec + (fx.sec || 0)) }));
     addL("⛏️ Goldfields: " + r.text + (r.costM ? " (" + SYS.fmtM(r.costM) + ")" : ""), "political");
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "goldfields", actor: "governor", gravity: 2, evidence: 3, decision: r.text, note: "Year " + turn }); } catch (e) {}
     return { icon: "⛏️", title: "The goldfields", text: r.text + " The effects show by the end of the year.", tone: "neutral" };
@@ -5350,7 +5393,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     });
     // Bodies you created or merged: their yearly cost (or saving), and task forces that end.
     const yearlyM = next.reduce((a, m) => a + (m.yearlyM || 0), 0);
-    if (yearlyM) { dCor += 0; setS(p => ({ ...p, debt: Math.max(0, p.debt + SYS.toB(yearlyM)) })); notes.push([yearlyM > 0 ? "🏢 New government bodies cost " + SYS.fmtM(yearlyM) + " this year." : "🏢 Merged ministries saved " + SYS.fmtM(-yearlyM) + " this year.", "info"]); }
+    if (yearlyM) { if (yearlyM > 0) spendB(SYS.toB(yearlyM), "Running the bodies you created", { force: true }); else setS(p => ({ ...p, cash: (p.cash || 0) + SYS.toB(-yearlyM) })); notes.push([yearlyM > 0 ? "🏢 New government bodies cost " + SYS.fmtM(yearlyM) + " this year." : "🏢 Merged ministries saved " + SYS.fmtM(-yearlyM) + " this year.", "info"]); }
     const tf = SYS.expireTaskForces(next, turn);
     tf.ended.forEach(m => notes.push(["🎯 The " + m.name + " has ended; its work returns to " + ((next.find(x => x.id === m.taskForce.parent) || {}).name || "its ministry") + ".", "info"]));
     setMinistries(tf.ministries);
@@ -5466,6 +5509,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const openNewMinistry = (cat) => setNewMin({ cat, picks: candidates(Date.now() % 99991), choice: 0 });
   const createMinistry = () => decide(() => {
     const N = newMin; if (!N) return; const c = N.cat, who = N.picks[N.choice];
+    if (!canAfford(c.cost, "The Ministry of " + c.name)) return;
     if (!takeAgenda("ministry", "Ministry of " + c.name, "min:" + c.id)) return;
     const hs = scHouse(), refused = hs.loyal < hs.seats / 2 && Math.random() < .5;
     setNewMin(null);
@@ -5475,8 +5519,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     const t = traits(who.nm);
     const m = { id: c.id, name: c.name, icon: c.icon, key: c.key, unlock: c.unlock, budget: 0, staff: c.staff, perf: Math.round(40 + (t.comp - 50) * .4), cor: Math.max(8, Math.round((100 - t.hon) * .5)), minister: who.nm, permSec: gN(rng(Date.now() % 7777), sd.zone, setup?.state), loyalty: who.loyalty, zone: who.zone, hired: turn, record: [] };
+    if (!spendB(c.cost, "Setting up the Ministry of " + c.name)) return;
     setMinistries(ms => [...(ms || []), m]);
-    setS(p => ({ ...p, debt: p.debt + c.cost }));
     addL(c.icon + " Created the Ministry of " + c.name + ". Hon. " + who.nm + " is its first commissioner.", "policy");
     try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Created the Ministry of " + c.name + " and appointed Hon. " + who.nm + " as its commissioner." }, ...(w || [])]); } catch (e) {}
     return { icon: c.icon, title: "Ministry of " + c.name + " created", text: "Hon. " + who.nm + " is sworn in. " + (c.unlock.length ? "You can now start " + c.unlock.join(" and ") + " projects. " : "") + "A good commissioner will move it every year; check on them.", tone: "good" };
@@ -5500,8 +5544,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       upd(x => ({ ...x, loyalty: Math.min(95, (x.loyalty || 50) + 3), cor: Math.max(5, (x.cor || 30) - 5) }));
       return { icon: "🔍", title: "Clean books", text: "Hon. " + m.minister + " runs a clean ministry. Knowing you checked, staff are more careful.", tone: "good", rows: [{ l: "Ministry corruption", v: "−5", good: true }] };
     }
+    if (!spendB(.5, "Backing Hon. " + m.minister)) return;
     upd(x => ({ ...x, budget: (x.budget || 0) + .5, perf: Math.min(95, (x.perf || 50) + 5), loyalty: Math.min(95, (x.loyalty || 50) + 6) }));
-    setS(p => ({ ...p, debt: p.debt + .5 }));
     return { icon: "💰", title: "You backed Hon. " + m.minister, text: "An extra ₦0.5B for " + m.name + ". " + (t.hon < 45 ? "Some of it may not reach the work." : "It will go into the work."), tone: "good" };
   });
   useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase, newMinistry: () => { setNav("cab"); setNewMin({ pick: true }); }, restructure: () => setSecr({ restructure: {}, from: nav }) }; });
@@ -5612,12 +5656,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   }, [turn, phase, nav, state, party, pName, depGov, setup, s, bud, cab, logs, headline, completedProjects, godfatherRel, godfatherPower, tribunal, curCourt, saOffice.adviser, saBrief]);
   const enactP = (p) => decide(() => {
     if (pol.find(a => a.id === p.id)) return;
-    if (!takeAgenda("programme", p.nm.replace(/^⭐\s*/, ""), "pol:" + p.id)) return;
-    // The cost is paid each year the policy runs, not all at once.
+    // The cost is paid each year the policy runs, not all at once: this year's share now, from the bank.
     const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100;
+    if (!canAfford(perH, p.nm.replace(/^⭐\s*/, ""))) return;
+    if (!takeAgenda("programme", p.nm.replace(/^⭐\s*/, ""), "pol:" + p.id)) return;
+    if (!spendB(perH, p.nm.replace(/^⭐\s*/, ""))) return;
     const [forS, againstS] = policySides(p);
     setPol(pp => [...pp, { ...p, tl: p.t, perH }]);
-    setS(pr => ({ ...pr, debt: pr.debt + perH }));
     addL("📋 " + p.nm + " enacted (" + naira(perH) + " a year for " + p.t + (p.t === 1 ? " year" : " years") + "). " + forS + " welcome it; " + againstS.toLowerCase() + " object.", "policy");
     const flag = FLAGSHIP[setup?.agenda];
     const onFlag = setup?.agenda === p.s || (setup?.agenda === "housing" && p.id === "housing") || (setup?.agenda === "technology" && (p.id === "tech_hub" || p.id === "digi_gov")) || (setup?.agenda === "anticorruption" && (p.id === "anti_cor" || p.id === "digi_gov" || p.id === "land_digitise"));
@@ -5796,6 +5841,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Bill sponsorship — goes through House vote
   const sponsorBill = (bill, force) => decide(() => {
     if (billsPassed.find(b => b.id === bill.id)) return;
+    if ((bill.cost || 0) > 0 && !canAfford(bill.cost, "The " + bill.nm)) return;
     if (!takeAgenda("bill", bill.nm, "bill:" + bill.id)) return; // sending it back to the House costs nothing more
     const objections = [];
     if (!force) {
@@ -5811,8 +5857,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { icon: "🏛️", title: "The House voted it down", text: bill.nm + ": " + objections[0].who + " voted no because " + objections[0].why, tone: "bad" };
     }
     setBillReject(null);
+    if ((bill.cost || 0) > 0 && !spendB(bill.cost, "The " + bill.nm)) return;
     setBillsPassed(p => [...p, bill]);
-    setS(p => ({ ...p, debt: p.debt + (bill.cost || 0) }));
     Object.entries(bill.fx || {}).forEach(([k, v]) => {
       setS(p => { const n = { ...p }; if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "lit") n.lit = cl(n.lit + v); else if (k === "hp") n.hp = cl(n.hp + v); return n; });
     });
@@ -5868,7 +5914,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       try { window.SOPX_onDecision && window.SOPX_onDecision("court_complied", { ruling: judEvent.nm }); } catch(e){}
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_compliance", target: judEvent.nm, gravity:1, evidence:3, note:"Complied with ruling: "+judEvent.nm }); } catch(e){}
     } else if (mode === "fasttrack") {
-      setS(p => ({ ...p, debt: p.debt + 0.5 }));
+      spendB(0.5, "Fast-tracking compliance", { force: true });
       const win = Math.random() < 0.6;
       if (win) {
         addL("⚖️ FAST-TRACK WIN: Court of Appeal ruled in your favour on " + judEvent.nm + ". Case dismissed. ₦0.5B in legal fees.", "judicial");
@@ -5900,8 +5946,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   });
 
   const dChoice = (ch) => {
+    if (ch.dc > 0 && !spendB(ch.dc, String(ch.l || "This choice").replace(/^\W+\s*/, ""))) return;
     setNCris(c => c + 1);
-    setS(p => { let n = { ...p }; Object.entries(ch.fx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (n[k] !== undefined) n[k] = cl(n[k] + v); }); if (ch.dc) n.debt += ch.dc; return n; });
+    setS(p => { let n = { ...p }; Object.entries(ch.fx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (n[k] !== undefined) n[k] = cl(n[k] + v); }); if (ch.dc < 0) n.debt = Math.max(0, n.debt + ch.dc); return n; });
     setSkApp(p => { const n = { ...p }; Object.entries(ch.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
     addL("⚖️ " + curD.nm + " → " + ch.l, "dilemma");
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "dilemma_choice", actor: "governor", gravity: 1, evidence: 2, decision: curD.nm + ": " + ch.l, note: ch.rk || "", meta: { id: curD.id } }); } catch (e) {}
@@ -5910,7 +5957,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (ch.fx?.sec) effects.push({ icon: "🛡️", text: "Security " + (ch.fx.sec > 0 ? "improved" : "weakened"), value: (ch.fx.sec > 0 ? "+" : "") + Math.round(ch.fx.sec * 100) + "%", good: ch.fx.sec > 0, bad: ch.fx.sec < 0 });
     if (ch.fx?.hp) effects.push({ icon: "🏥", text: "Health " + (ch.fx.hp > 0 ? "improved" : "worsened"), value: (ch.fx.hp > 0 ? "+" : "") + Math.round(ch.fx.hp * 100) + "%", good: ch.fx.hp > 0, bad: ch.fx.hp < 0 });
     if (ch.fx?.corM) effects.push({ icon: ch.fx.corM < 0 ? "✨" : "💀", text: "Corruption " + (ch.fx.corM < 0 ? "reduced" : "increased"), value: Math.round(Math.abs(ch.fx.corM) * 100) + "%", good: ch.fx.corM < 0, bad: ch.fx.corM > 0 });
-    if (ch.dc) effects.push({ icon: "💰", text: "State debt increased", value: "+₦" + ch.dc + "B", bad: true });
+    if (ch.dc > 0) effects.push({ icon: "💰", text: "Paid from the state's money", value: "₦" + ch.dc + "B", bad: true });
     Object.entries(ch.sk || {}).forEach(([k, v]) => { effects.push({ icon: v > 0 ? "👥" : "⚠️", text: k.charAt(0).toUpperCase() + k.slice(1) + " stakeholders " + (v > 0 ? "pleased" : "angry"), value: (v > 0 ? "+" : "") + v, good: v > 0, bad: v < 0 }); });
     // NIC trigger — sacking workers triggers National Industrial Court
     if (ch.nicTrigger) {
@@ -6067,7 +6114,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       n.cor = cl(n.cor + (avgPSCor - 30) * .0005); // corrupt civil service adds to state corruption
 
       const completed = [];
+      // Programmes that run on into next year pay next year's share now, from the bank;
+      // if the bank is empty and lenders won't lend, the programme pauses for a year.
+      const paused = new Set();
+      (pol || []).forEach(p => {
+        if (!p.perH || p.tl - 1 <= 0) return;
+        const pr = payIn(n, p.perH, false);
+        if (pr.ok) { n.cash = pr.s.cash; n.debt = pr.s.debt; if (pr.borrowedB >= .05) addL("🏦 " + p.nm + ": " + naira(pr.borrowedB) + " borrowed for next year's share (the bank ran out).", "info"); }
+        else { paused.add(p.id); addL("⏸️ " + p.nm + " is paused: the bank is empty and lenders won't lend the state any more.", "crisis"); }
+      });
       setPol(pp => pp.map(p => {
+        if (paused.has(p.id)) return p;
         let newTl = p.tl - 1;
         // CORRUPTION DELAY: civil service corruption + state corruption combined
         const delayChance = (n.cor * .3 + avgPSCor / 100 * .2);
@@ -6077,7 +6134,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           addL("🚧 PROJECT DELAYED: " + p.nm + " stalled." + culprit + " (corruption: " + Math.round(n.cor * 100) + "%, PS efficiency: " + Math.round(avgPSEff) + "%)", "crisis");
           try { window.SOPX_onDecision && window.SOPX_onDecision("project_abandoned", { project: p.nm, zone: sd?.zone }); } catch(e){}
         }
-        if (p.perH && newTl < p.tl && newTl > 0) n.debt = n.debt + p.perH;
         return { ...p, tl: newTl };
       }).filter(p => { if (p.tl <= 0) { completed.push(p); return false; } return true; }));
       completed.forEach(p => {
@@ -6892,10 +6948,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return out;
   };
   const houseDeal = (cost, reasons, what) => {
-    setS(p => ({ ...p, debt: p.debt + cost, cor: cl(p.cor + .01 + .005 * (reasons || []).length) }));
+    if (!spendB(cost, "Constituency projects for the House")) return false;
+    setS(p => ({ ...p, cor: cl(p.cor + .01 + .005 * (reasons || []).length) }));
     const who = (reasons || []).map(r => r.who.replace(/^The /, "the ")).filter((v, i, a) => a.indexOf(v) === i).slice(0, 2).join(" and ") || "the members who voted no";
     addL("🤝 " + what + " passed after a deal with " + cast.speaker.name + ": " + naira(cost) + " in constituency projects for " + who + ".", "political");
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "house_deal", actor: "governor", target: cast.speaker.name, gravity: 2, evidence: 2, financial: cost, decision: "Negotiated " + what + " through the House", note: "Constituency projects worth " + naira(cost) + " for " + who, losers: ["public"], beneficiaries: ["members"], meta: { cast: "speaker" } }); } catch (e) {}
+    return true;
   };
   const [billReject, setBillReject] = useState(null);
   useEffect(() => { setBillReject(null); }, [turn]);
@@ -7495,7 +7553,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const tone = (v, good, warn) => v >= good ? "#2fa866" : v >= warn ? "#d9a21b" : "#e0574c";
   const STRIP = [
     ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40)],
-    ["Treasury", naira(tb), null],
+    ["In the bank", naira(s.cash || 0), (s.cash || 0) > .05 ? null : "#e0574c"],
     ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30)],
     ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55)],
   ];
@@ -8094,7 +8152,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const cost = Math.round((1.4 + turn * 0.15) * 10) / 10;
             const done = (window.SOP_MEMORY ? window.SOP_MEMORY.all("flagship_milestone", e => e.meta && e.meta.delivered) : []).length;
             const pick = (opt) => decide(() => {
-              setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)), debt: p.debt + (opt.debt || 0) }));
+              if (opt.debt && !spendB(opt.debt, "The flagship")) return;
+              setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)) }));
               addL(FG.i + " Flagship " + FG.nm + ": " + opt.log, opt.delivered ? "policy" : "political");
               try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda } }); } catch (e) {}
               nextEvent();
@@ -8111,7 +8170,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               brief={"You promised to " + FG.goal + ". This year's share of that promise is due. " + (done ? "So far " + done + " of " + (year - 1) + " yearly targets delivered." : year > 1 ? "Last year's target was missed." : "Nothing has been delivered yet.")}
               stakes="This is the programme the Wikipedia article will judge you on."
               aside={<AdvBubble text={"Your Excellency, the people heard you promise to " + FG.goal + ". This is the year they will count."} saName={cast.adviser.name} />}
-              options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "Debt +₦" + o.debt + "B", color: CL.red }] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
+              options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "Costs ₦" + o.debt + "B", color: CL.txt }, fromChip(o.debt)] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
               onPick={(o) => pick(o.raw)} /></>;
           })()}
         </OL>
@@ -8171,7 +8230,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               raw: ch,
               chips: [
                 ...Object.entries(ch.fx || {}).map(([k, v]) => ({ text: fxChip(k, v), color: (k === "corM" ? -v : v) > 0 ? CL.grn : CL.red })),
-                ...(ch.dc ? [{ text: "Debt +" + naira(ch.dc), color: CL.red }] : []),
+                ...(ch.dc > 0 ? [{ text: "Costs " + naira(ch.dc), color: CL.txt }, fromChip(ch.dc)] : []),
               ],
             }))}
             onPick={(o) => { if (curD.id === "strike") recordWithCast("labour", "labour_settlement", o.raw.l, curD.nm); dChoice(o.raw); }}
@@ -8375,7 +8434,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29 }}>
               <Cd onClick={() => {
                 const arrearsCost = nicPending.type === "lecturers" ? 2 : 3;
-                setS(p => ({ ...p, app: cl100(p.app - 4), debt: p.debt + arrearsCost }));
+                spendB(arrearsCost, "Paying the arrears the court ordered", { force: true }); setS(p => ({ ...p, app: cl100(p.app - 4) }));
                 setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) + 15), media: cl100((p.media || 50) + 5) }));
                 addL("⚖️ Governor complies with NIC ruling. " + (nicPending.type === "lecturers" ? "Lecturers reinstated" : "Workers reinstated") + ". Arrears paid. ₦" + arrearsCost + "B cost.", "policy");
                 showResult({ icon: "⚖️", title: "NIC Ruling — Compliance", narrative: "You reinstated the " + nicPending.type + " and paid all outstanding arrears plus court-ordered compensation. The unions are partially satisfied. The rule of law prevails — even if it cost you politically and financially.", effects: [
@@ -8391,7 +8450,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>
 
               <Cd onClick={() => {
-                setS(p => ({ ...p, app: cl100(p.app - 3), debt: p.debt + 1 }));
+                spendB(1, "The court settlement", { force: true }); setS(p => ({ ...p, app: cl100(p.app - 3) }));
                 setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) + 8) }));
                 addL("⚖️ Governor partially complies — reinstates workers but delays full arrears payment.", "political");
                 setDelayedFx(d => [...d, { turn: turn + 2, fx: { app: -3 }, desc: "⚖️ NIC issues enforcement order for unpaid arrears. Governor must pay or face contempt." }]);
@@ -8414,12 +8473,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const outcome = roll < .3 ? "no_leave" : roll < .72 ? "lost" : "won";
                 const who = nicPending.type;
                 if (outcome === "won") {
-                  setS(p => ({ ...p, app: cl100(p.app - 2), debt: p.debt + .5 }));
+                  spendB(.5, "Legal fees", { force: true }); setS(p => ({ ...p, app: cl100(p.app - 2) }));
                   setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) - 15), business: cl100((p.business || 50) + 5) }));
                   addL("⚖️ Court of Appeal sets aside the NIC order. The " + who + " stay sacked. ₦0.5B in legal fees.", "political");
                 } else {
                   const extra = outcome === "lost" ? 1 : .4;
-                  setS(p => ({ ...p, app: cl100(p.app - (outcome === "lost" ? 6 : 4)), debt: p.debt + arrearsCost + extra }));
+                  spendB(arrearsCost + extra, "Arrears, interest and costs the court ordered", { force: true }); setS(p => ({ ...p, app: cl100(p.app - (outcome === "lost" ? 6 : 4)) }));
                   setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) + 5), media: cl100((p.media || 50) - 5) }));
                   addL("⚖️ " + (outcome === "lost" ? "Court of Appeal upholds the NIC" : "Court of Appeal refuses leave to appeal") + ". The " + who + " are reinstated with arrears and interest: ₦" + (arrearsCost + extra).toFixed(1) + "B.", "political");
                 }
@@ -8480,7 +8539,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const threat = hiddenThreats[0];
                 setHiddenThreats(p => p.filter(h => h.id !== threat.id));
                 setHiddenRevealed(p => [...p, threat.id]);
-                setS(p => ({ ...p, cor: cl(p.cor + .02), app: cl100(p.app - 2), debt: p.debt + 0.3 }));
+                spendB(0.3, "Dealing with it quietly", { force: true }); setS(p => ({ ...p, cor: cl(p.cor + .02), app: cl100(p.app - 2) }));
                 addL("🔍 INVESTIGATION: " + threat.desc + " Caught early. Damage limited.", "political");
                 showResult({ icon: "🔍", title: "Investigation — " + threat.ministry + " Ministry", narrative: threat.desc + " Your investigation caught this before it became a full scandal. Some damage to your reputation, but far less than if it had exploded.", effects: [
                   { icon: "🔎", text: "Corruption uncovered and addressed", value: "+2% visible", bad: true },
@@ -8518,7 +8577,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             <div style={{ display: "grid", gap: 22 }}>
               {curShock.opts.map((opt, i) => (
-                <Cd key={i} onClick={() => {
+                <Cd key={i} onClick={() => { if (opt.dc > 0 && /borrow|loan/i.test(opt.l || "")) setS(p => ({ ...p, cash: (p.cash || 0) + opt.dc, debt: p.debt + opt.dc })); else if (opt.dc > 0 && !spendB(opt.dc, String(opt.l || "This choice").replace(/^\W+\s*/, ""))) return;
                   setS(p => {
                     const n2 = { ...p };
                     // Apply auto effects from the shock itself
@@ -8536,7 +8595,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     if (opt.fx.sec) n2.sec = cl(n2.sec + opt.fx.sec);
                     if (opt.fx.infra) n2.infra = cl(n2.infra + opt.fx.infra);
                     if (opt.fx.igr) n2.igr += opt.fx.igr;
-                    if (opt.dc) n2.debt += opt.dc;
+                    if (opt.dc < 0) n2.cash = (n2.cash || 0) - opt.dc;
                     return n2;
                   });
                   if (opt.sk) setSkApp(p => { const n2 = { ...p }; Object.entries(opt.sk).forEach(([k, v]) => { if (n2[k] !== undefined) n2[k] = cl100(n2[k] + v); }); return n2; });
@@ -8580,7 +8639,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             <div style={{ display: "grid", gap: 22 }}>
               {curFgEvent.opts.map((opt, i) => (
-                <Cd key={i} onClick={() => {
+                <Cd key={i} onClick={() => { if (opt.dc > 0 && /borrow|loan/i.test(opt.l || "")) setS(p => ({ ...p, cash: (p.cash || 0) + opt.dc, debt: p.debt + opt.dc })); else if (opt.dc > 0 && !spendB(opt.dc, String(opt.l || "This choice").replace(/^\W+\s*/, ""))) return;
                   if (curFgEvent.id === "fg_efcc") recordWithCast("efcc", "efcc_response", opt.l, curFgEvent.title);
                   setS(p => {
                     const n2 = { ...p };
@@ -8592,7 +8651,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     if (opt.fx.agr) n2.agr = cl(n2.agr + opt.fx.agr);
                     if (opt.fx.igr) n2.igr += opt.fx.igr;
                     if (opt.fx.pStab) n2.pStab = cl100(n2.pStab + opt.fx.pStab);
-                    if (opt.dc) n2.debt += opt.dc;
+                    if (opt.dc < 0) n2.cash = (n2.cash || 0) - opt.dc;
                     // Apply FAAC changes from the event itself
                     if (curFgEvent.fx.faac) n2.faac = n2.faac * (1 + curFgEvent.fx.faac);
                     if (curFgEvent.fx.sec) n2.sec = cl(n2.sec + curFgEvent.fx.sec);
@@ -8641,7 +8700,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             <div style={{ display: "grid", gap: 22 }}>
               {curMedia.opts.map((opt, i) => (
-                <Cd key={i} onClick={() => {
+                <Cd key={i} onClick={() => { if (opt.dc > 0 && /borrow|loan/i.test(opt.l || "")) setS(p => ({ ...p, cash: (p.cash || 0) + opt.dc, debt: p.debt + opt.dc })); else if (opt.dc > 0 && !spendB(opt.dc, String(opt.l || "This choice").replace(/^\W+\s*/, ""))) return;
                   setS(p => {
                     const n2 = { ...p };
                     if (opt.fx.app) n2.app = cl100(n2.app + opt.fx.app);
@@ -8650,7 +8709,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     if (opt.fx.sec) n2.sec = cl(n2.sec + opt.fx.sec);
                     if (opt.fx.igr) n2.igr += opt.fx.igr;
                     if (opt.fx.pStab) n2.pStab = cl100(n2.pStab + opt.fx.pStab);
-                    if (opt.dc) n2.debt += opt.dc;
+                    if (opt.dc < 0) n2.cash = (n2.cash || 0) - opt.dc;
                     return n2;
                   });
                   if (opt.sk) setSkApp(p => { const n2 = { ...p }; Object.entries(opt.sk).forEach(([k, v]) => { if (n2[k] !== undefined) n2[k] = cl100(n2[k] + v); }); return n2; });
@@ -8730,8 +8789,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>
 
               <Cd onClick={() => {
+                if (!spendB(curInvestor.igrBoost * 0.3, "Incentives for " + (curInvestor.nm || "the investor"))) return;
                 setS(p => {
-                  const n = { ...p, igr: p.igr + curInvestor.igrBoost * 0.6, app: cl100(p.app + curInvestor.appBoost + 2), debt: p.debt + curInvestor.igrBoost * 0.3 };
+                  const n = { ...p, igr: p.igr + curInvestor.igrBoost * 0.6, app: cl100(p.app + curInvestor.appBoost + 2) };
                   if (n.econ?.[curInvestor.sector]) n.econ[curInvestor.sector] = { ...n.econ[curInvestor.sector], out: cl(n.econ[curInvestor.sector].out + .08), };
                   n.totalJobs = (n.totalJobs || 0) + curInvestor.jobs;
                   n.invJobs = (n.invJobs || 0) + curInvestor.jobs;
@@ -8868,7 +8928,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const success = Math.random() < .55;
                 const hiddenBoost = 1.5 + Math.random() * 1.5;
                 if (success) {
-                  setS(p => ({ ...p, igr: p.igr + 3 + hiddenBoost, faac: p.faac + 0.8, agr: cl(p.agr + .04), infra: cl(p.infra + .02), app: cl100(p.app + 6), debt: p.debt + 0.3 }));
+                  setS(p => ({ ...p, igr: p.igr + 3 + hiddenBoost, faac: p.faac + 0.8, agr: cl(p.agr + .04), infra: cl(p.infra + .02), app: cl100(p.app + 6) })); spendB(0.3, "The trip", { force: true });
                   setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 12), youth: cl100((p.youth || 50) + 5) }));
                   addL("🇳🇱 Netherlands trip SUCCESS! Dutch investors commit €40M.", "policy");
                   showResult({ icon: "🇳🇱🎉", title: "The Hague — DEAL SIGNED!", narrative: "The Dutch investors were impressed by your personal presence. After 3 days of negotiations, they committed €40 million to an agro-processing and solar farm project. Construction begins in 6 months.", effects: [
@@ -8880,7 +8940,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     { icon: "💰", text: "Trip cost", value: "-₦0.3B", bad: true },
                   ], tone: "good", nextFn: () => nextEvent() });
                 } else {
-                  setS(p => ({ ...p, igr: p.igr + hiddenBoost, faac: p.faac + 0.5, app: cl100(p.app - 2), debt: p.debt + 0.3 }));
+                  setS(p => ({ ...p, igr: p.igr + hiddenBoost, faac: p.faac + 0.5, app: cl100(p.app - 2) })); spendB(0.3, "The trip", { force: true });
                   setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 3) }));
                   addL("🇳🇱 Netherlands trip: No commitment yet. 'We will be in touch.'", "political");
                   showResult({ icon: "🇳🇱😐", title: "The Hague — No Deal (Yet)", narrative: "The investors were polite but non-committal. 'We will be in touch,' they said. However, your trip wasn't wasted — bilateral connections were made and some quiet financial benefits are flowing.", effects: [
@@ -8920,8 +8980,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>
 
               <Cd onClick={() => {
+                if (!spendB(0.1, "The video conference")) return;
                 setNetherlandsVisited(true);
-                setS(p => ({ ...p, debt: p.debt + 0.1 }));
                 const dealChance = Math.random() < .25;
                 if (dealChance) {
                   setS(p => ({ ...p, igr: p.igr + 1.5, agr: cl(p.agr + .02) }));
@@ -8972,8 +9032,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => {
+                if (!spendB(0.2, "The trip to the wedding")) return;
                 setWeddingVisited(true);
-                setS(p => ({ ...p, pStab: cl100(p.pStab + 5), app: cl100(p.app - 4), debt: p.debt + 0.2 }));
+                setS(p => ({ ...p, pStab: cl100(p.pStab + 5), app: cl100(p.app - 4) }));
                 setSkApp(p => ({ ...p, party: cl100((p.party || 50) + 8), traditional: cl100((p.traditional || 50) + 5), media: cl100((p.media || 50) - 5) }));
                 addL("💒 Attended governor's daughter wedding. Networked with 12 governors. Media called it 'junketing.'", "political");
                 // Chance to secure an interstate deal
@@ -9041,8 +9102,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             <div style={{ display: "grid", gap: 29, maxWidth: 840, margin: "0 auto" }}>
               <Cd onClick={() => {
+                if (!spendB(curInvite.goCost || 0, "The trip")) return;
                 setS(p => {
-                  const n = { ...p, debt: p.debt + (curInvite.goCost || 0) };
+                  const n = { ...p };
                   if (curInvite.goFx.igr) { n.igr += curInvite.goFx.igr; n.invIGR = (n.invIGR || 0) + curInvite.goFx.igr * .5; }
                   if (curInvite.goFx.app) n.app = cl100(n.app + curInvite.goFx.app);
                   if (curInvite.goFx.lit) n.lit = cl(n.lit + curInvite.goFx.lit);
@@ -9737,8 +9799,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 {/* Sign */}
                 <Cd onClick={() => {
                   const hasBad = badClauses.length > 0;
+                  if (!spendB(pendingHouseBill.signCost || 0, "Signing the " + (pendingHouseBill.nm || "bill"))) return;
                   setS(p => {
-                    const n = { ...p, debt: p.debt + (pendingHouseBill.signCost || 0) };
+                    const n = { ...p };
                     Object.entries(pendingHouseBill.signFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "sec") n.sec = cl(n.sec + v); else if (k === "agr") n.agr = cl(n.agr + v); });
                     if (hasBad) { n.cor = cl(n.cor + .04); } // signing bad clauses increases corruption
                     return n;
@@ -10108,7 +10171,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
-                onNegotiate={(cost, reasons) => { houseDeal(cost, reasons, "The appropriation bill"); setPhase("policy"); }}
+                onNegotiate={(cost, reasons) => { if (houseDeal(cost, reasons, "The appropriation bill")) setPhase("policy"); }}
                 onDrop={() => { setS(p => ({ ...p, app: cl100(p.app - 3), pStab: cl100(p.pStab - 3) })); addL("🗑️ Appropriation bill withdrawn. The state runs on last year's figures; nothing new is funded.", "political"); try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_withdrawn", actor: "governor", gravity: 1, evidence: 2, approvalDelta: -3, note: "Withdrew the appropriation bill after the House rejected it" }); } catch (e) {} setPhase("policy"); }}
                 grudges={houseGrudges()} speakerName={cast.speaker.name}
                 addL={addL} />
@@ -10150,7 +10213,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   </div>)}
                   <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 14 }}>
                     {billReject.reasons.every(r2 => r2.kind === "funding") && billReject.bill.cost > 0 && <Bt onClick={() => { const b2 = { ...billReject.bill, cost: Math.round(billReject.bill.cost * 5) / 10, fx: Object.fromEntries(Object.entries(billReject.bill.fx || {}).map(([k, v]) => [k, typeof v === "number" ? Math.round(v * 60) / 100 : v])), nm: billReject.bill.nm + " (phased)" }; addL("✏️ Amended the " + billReject.bill.nm + ": phased over two years with a funding line.", "policy"); sponsorBill(b2, true); }} style={{ fontSize: PFS.s }}>✏️ Amend: phase it, half the cost</Bt>}
-                    <Bt onClick={() => { const c2 = Math.round((0.2 + 0.1 * billReject.reasons.length) * 10) / 10; houseDeal(c2, billReject.reasons, "The " + billReject.bill.nm); sponsorBill(billReject.bill, true); }} style={{ fontSize: PFS.s, background: CL.gold, color: "#000" }}>🤝 Negotiate with {cast.speaker.name.replace(/^Rt\. Hon\. /, "the Speaker, ")}</Bt>
+                    <Bt onClick={() => { const c2 = Math.round((0.2 + 0.1 * billReject.reasons.length) * 10) / 10; if (houseDeal(c2, billReject.reasons, "The " + billReject.bill.nm)) sponsorBill(billReject.bill, true); }} style={{ fontSize: PFS.s, background: CL.gold, color: "#000" }}>🤝 Negotiate with {cast.speaker.name.replace(/^Rt\. Hon\. /, "the Speaker, ")}</Bt>
                     <Bt v="ghost" onClick={() => { addL("🗑️ Dropped the " + billReject.bill.nm + ".", "info"); setBillReject(null); }} style={{ fontSize: PFS.s }}>🗑️ Drop it</Bt>
                   </div>
                 </Cd>}
@@ -10309,7 +10372,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   <Bt onClick={() => setMeetMin(m.id)} disabled={m.met === turn} style={{ fontSize: TS(29), padding: "7px 22px" }}>{m.met === turn ? "Met this year" : "🤝 Meet"}</Bt>
                   <Bt v="danger" onClick={() => fireMinister(m.id)} style={{ fontSize: TS(29), padding: "7px 22px" }}>{fireCase(m).justified ? "Fire: " + (m.flag ? OFFENCE[m.flag.kind].label.toLowerCase() : "weak record") : "Fire"}</Bt>
                   <Bt v="ghost" onClick={() => { const old = m.permSec; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, permSec: gen(), perf: Math.min(100, x.perf + 5) } : x)); addL("🔀 Reassigned PS " + old + " → new PS in " + m.name + ".", "political"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Reassigned the Permanent Secretary of " + m.name + ", replacing " + old + " during an administrative shake-up." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>Reassign PS</Bt>
-                  <Bt v="ghost" onClick={() => { const raise = 0.5; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, budget: (x.budget || 0) + raise, perf: Math.min(100, x.perf + 3) } : x)); setS(pr => ({ ...pr, debt: pr.debt + raise })); addL("💰 Boosted " + m.name + " budget by ₦" + raise + "B.", "policy"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Increased the budget of " + m.name + " by ₦" + raise + "B to accelerate implementation." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>+₦0.5B</Bt>
+                  <Bt v="ghost" onClick={() => { const raise = 0.5; if (!spendB(raise, "Boosting " + m.name)) return; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, budget: (x.budget || 0) + raise, perf: Math.min(100, x.perf + 3) } : x));  addL("💰 Boosted " + m.name + " budget by ₦" + raise + "B.", "policy"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Increased the budget of " + m.name + " by ₦" + raise + "B to accelerate implementation." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>+₦0.5B</Bt>
                 </div>
               </Cd>;
             })}</div>
@@ -10355,8 +10418,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               {CS_REFORMS.map(ref => {
                 const done = csReformsDone.includes(ref.id);
                 return <Cd key={ref.id} onClick={done ? undefined : () => {
+                  if (!spendB(ref.cost, ref.nm || "The reform")) return;
                   setCSReformsDone(p => [...p, ref.id]);
-                  setS(p => ({ ...p, debt: p.debt + ref.cost }));
                   // Apply reform effects
                   if (ref.id === "cs_audit") { addL("🔍 CIVIL SERVICE AUDIT: Performance of all permanent secretaries now visible. Some are shaking.", "political"); }
                   if (ref.id === "cs_retire") {

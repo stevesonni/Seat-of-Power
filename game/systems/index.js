@@ -13,3 +13,4 @@ export * from "./proposals.js";
 export * from "./ministries.js";
 export * from "./deposits.js";
 export * from "./voice.js";
+export * from "./treasury.js";

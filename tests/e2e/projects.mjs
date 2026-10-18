@@ -22,6 +22,7 @@ const toPolicies = async (g) => {
   await g.click(/^Continue/); await g.wait(1800);
   await playUntil(g, t => /Done: end the year/.test(t), { max: 40, prefer: [/^Tell the communities first/] });
   await g.click(/^Decide later this year$/); await g.wait(300);
+  for (let i = 0; i < 3 && await g.click(/^(Got it|Okay)$/); i++) await g.wait(300); // the year's money card
 };
 const lendUntilOffer = async (g) => {
   for (let i = 0; i < 4; i++) {
@@ -34,9 +35,46 @@ const lendUntilOffer = async (g) => {
 const ROAD = "500km Road Network";
 const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(600); };
 
-// ── 1–6: one new project, start to finish, then reload ──
+// ── Money: with money in the bank, a project is paid from it and nothing is borrowed ──
 {
   const g = await open(port, { save: YEAR1 });
+  await toPolicies(g);
+  const d0 = await saved(g);
+  check(d0.s && d0.s.cash > 5, "money: this year's money arrived in the bank (" + (d0.s && d0.s.cash) + "B)");
+  await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
+  await g.click(/^Next: the budget/); await g.wait(300);
+  check(!/Seek financing/.test(await g.txt()), "money: the bank can pay this year's share, so no loan is offered");
+  await g.click(/^Approve the project$/); await g.wait(2200);
+  check((await bubbles(g)).some(x => /money is in place.*review its procurement/.test(x)), "money: the adviser goes straight to procurement");
+  await g.click(/^Review road procurement$/); await g.wait(400); await g.click(/^Award contract$/); await g.wait(1500);
+  const d1 = await saved(g);
+  check((d1.s.debt || 0) === (d0.s.debt || 0), "money: nothing was borrowed (debt " + d1.s.debt + ")");
+  check(!g.errors.length, "no page errors: " + g.errors.join(" | "));
+  await g.browser.close();
+}
+// ── Money: an empty bank and no lenders: the state is broke and nothing happens ──
+{
+  const g = await open(port, { save: withSave(d => { d.s.cash = 0; d.cashSeed = 1; d.s.cashYear = 1; d.s.debt = 40; }) });
+  await toPolicies(g);
+  await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
+  await g.click(/^Next: the budget/); await g.wait(300);
+  await g.click(/^Seek financing/); await g.click(/^Approve the project$/); await g.wait(1500);
+  await g.click(/^Later$/); await g.wait(300);
+  const before = await saved(g);
+  const prog = await g.page.evaluate(() => { const c = [...document.querySelectorAll("div")].find(d => getComputedStyle(d).cursor === "pointer" && /Farm Input Subsidies|Irrigation Network/.test(d.textContent) && d.textContent.length < 400); if (c) c.click(); return !!c; });
+  await g.wait(500);
+  const t = await g.txt();
+  check(prog && /The state can't pay for this/.test(t), "money: when broke, a programme is refused with the reason");
+  await g.click(/^Understood$/); await g.wait(500);
+  const after = await saved(g);
+  check((after.pol || []).length === (before.pol || []).length && after.s.debt === before.s.debt, "money: nothing started and nothing was borrowed");
+  check(!g.errors.length, "no page errors: " + g.errors.join(" | "));
+  await g.browser.close();
+}
+
+// ── 1–6: one new project, start to finish, then reload (an empty bank, so it needs a loan) ──
+{
+  const g = await open(port, { save: withSave(d => { d.s.cash = 0.5; d.s.cashYear = 1; }) });
   await toPolicies(g);
   await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
   await g.click(/^Next: the budget/); await g.wait(300);
