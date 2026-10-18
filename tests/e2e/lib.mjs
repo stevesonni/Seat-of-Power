@@ -54,7 +54,7 @@ export async function takeOffice(g) {
    House vote, policies, end of year, continue; otherwise the first offered
    choice (a button, or a clickable choice card). Returns the click log. */
 const SKIP = /^(☰|Compound|Govern|News|Desk|Map|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Personas|Stakeholders|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|Less$|▼$|▲$|Open the council$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
-const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound)$/, /^Convene the ministries$/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^Done: end the year/, /^Continue$/];
+const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back|Decide later this year)$/, /^Convene the ministries$/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^Done: end the year/, /^Continue$/];
 export async function playUntil(g, until, { max = 400, prefer = [], log = false } = {}) {
   const clicks = [];
   for (let i = 0; i < max; i++) {
