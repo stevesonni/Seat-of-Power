@@ -4273,6 +4273,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const termTurn = turn <= 4 ? turn : turn - 4;
   // Each turn is one year of a four-year term (Years 1–4, then 5–8 if re-elected).
   const absYear = (setup?.startYear || 2027) + turn - 1;
+  // Re-election needs 40% approval (the test-only switch window.SOP_TEST.reWin waives it for the playthroughs).
+  const reViable = s.app >= 40 || !!(window.SOP_TEST && window.SOP_TEST.reWin);
   const ORD = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
   const yr = (termNum === 1 ? "1st Term" : "2nd Term") + " — Year " + termTurn + " of 4 (" + absYear + ")" + (termNum === 2 ? " · " + ORD[Math.min(8, turn)] + " year in office" : "");
   const setSkApp = (u) => _setSkApp(prev => {
@@ -9019,29 +9021,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px" }}>End of First Term</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 22 }}>Four years in office. What will you do next?</p>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 36, flexWrap: "wrap" }}>
-                <Bg text={"Approval: " + Math.round(s.app) + "%"} color={s.app >= 40 ? CL.grn : CL.red} />
+                <Bg text={"Approval: " + Math.round(s.app) + "%"} color={reViable ? CL.grn : CL.red} />
                 <Bg text={"Party: " + Math.round(s.pStab) + "%"} color={s.pStab > 50 ? CL.grn : CL.red} />
                 <Bg text={"Corruption: " + Math.round(s.cor * 100) + "%"} color={s.cor < .3 ? CL.grn : CL.red} />
               </div>
             </div>
             <div style={{ display: "grid", gap: 29, maxWidth: 876, margin: "0 auto" }}>
               {/* Automatic ticket if party stable, otherwise must pay or switch */}
-              {s.pStab >= 50 ? <Cd onClick={s.app >= 40 ? () => { setCampWarChest(personalFund); setCampGfDebt(0); setCampGfBorrowed(false); setPhase("convention2"); } : undefined} style={{ padding: 43, opacity: s.app >= 40 ? 1 : .4 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(48), color: s.app >= 40 ? CL.grn : CL.red, marginBottom: 10 }}>🗳️ Run for Re-Election ({party})</div>
+              {s.pStab >= 50 ? <Cd onClick={reViable ? () => { setCampWarChest(personalFund); setCampGfDebt(0); setCampGfBorrowed(false); setPhase("convention2"); } : undefined} style={{ padding: 43, opacity: reViable ? 1 : .4 }}>
+                <div style={{ fontWeight: 600, fontSize: TS(48), color: reViable ? CL.grn : CL.red, marginBottom: 10 }}>🗳️ Run for Re-Election ({party})</div>
                 <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>
-                  {s.app >= 40 ? "Party stability is strong (" + Math.round(s.pStab) + "%). Automatic ticket. Your personal campaign fund: ₦" + (personalFund * 1000).toFixed(0) + "M." : "Need 40%+ approval. You have " + Math.round(s.app) + "%."}
+                  {reViable ? "Party stability is strong (" + Math.round(s.pStab) + "%). Automatic ticket. Your personal campaign fund: ₦" + (personalFund * 1000).toFixed(0) + "M." : "Need 40%+ approval. You have " + Math.round(s.app) + "%."}
                 </div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   <Bg text="Automatic ticket" color={CL.grn} />
                   <Bg text={"₦" + (personalFund * 1000).toFixed(0) + "M war chest"} color={personalFund > 0.5 ? CL.gold : CL.red} />
-                  <Bg text={s.app >= 40 ? (s.app > 60 ? "STRONG CHANCE" : "COMPETITIVE") : "NOT VIABLE"} color={s.app >= 60 ? CL.grn : s.app >= 40 ? CL.org : CL.red} />
+                  <Bg text={reViable ? (s.app > 60 ? "STRONG CHANCE" : "COMPETITIVE") : "NOT VIABLE"} color={s.app >= 60 ? CL.grn : reViable ? CL.org : CL.red} />
                 </div>
               </Cd> : <Cd style={{ padding: 43 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.org, marginBottom: 10 }}>⚠️ Party Ticket Contested!</div>
                 <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>Party stability is low ({Math.round(s.pStab)}%). Your party ticket is NOT automatic. You must buy your way back in or switch parties.</div>
                 <div style={{ display: "grid", gap: 14, marginTop: 14 }}>
                   {/* Buy ticket in same party */}
-                  {s.app >= 40 && <Cd onClick={() => {
+                  {reViable && <Cd onClick={() => {
                     const ticketCost = PARTIES.find(p => p.id === party)?.ticket || 1;
                     if (godfatherRel > 30) {
                       setCampWarChest(personalFund); setCampGfDebt(ticketCost); setCampGfBorrowed(true);
@@ -9057,7 +9059,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     <div style={{ fontSize: TS(31), color: CL.td }}>{godfatherRel > 30 ? "Godfather pays but adds +6% corruption." : "Pay from your war chest. Less money for campaign."}</div>
                   </Cd>}
                   {/* Switch to cheaper party */}
-                  {s.app >= 40 && <Cd onClick={() => {
+                  {reViable && <Cd onClick={() => {
                     const cheapParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party).sort((a, b) => a.ticket - b.ticket)[0];
                     setup.party = cheapParty.id;
                     setS(p => ({ ...p, pStab: cl100(p.pStab - 15) }));

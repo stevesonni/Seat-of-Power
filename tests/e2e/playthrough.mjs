@@ -6,7 +6,7 @@ import { serve } from "./serve.mjs";
 const srv = await serve(), port = srv.port, which = process.argv[2] || "all";
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const save = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
-const prefer = [/^Go on without a loan/, /^Decide later this year$/];
+const prefer = [/^Go on without a loan/, /^Decide later this year$/, /^🗳️ Run for Re-Election/];
 
 async function firstTerm(test) {
   const g = await open(port, { test });
