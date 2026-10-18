@@ -314,7 +314,14 @@ const STATE_LGAS = {
 
 const ZONE_LABELS = ["North Senatorial", "Central Senatorial", "South Senatorial"];
 const getLGAs = (state) => STATE_LGAS[state] || [];
-const lgaCluster = (lgas, idx) => lgas.filter((_, i) => i % 3 === idx);
+// Real senatorial districts where they are entered (index 0 North, 1 Central,
+// 2 South); elsewhere the state's LGAs are dealt into three groups.
+const SENATORIAL = {
+  Edo: [["Akoko-Edo", "Etsako East", "Etsako West", "Etsako Central", "Owan East", "Owan West"],
+        ["Esan Central", "Esan North-East", "Esan South-East", "Esan West", "Igueben"],
+        ["Egor", "Ikpoba-Okha", "Oredo", "Orhionmwon", "Ovia North-East", "Ovia South-West", "Uhunmwonde"]],
+};
+const lgaCluster = (lgas, idx) => { const st = Object.keys(STATE_LGAS).find(k => STATE_LGAS[k] === lgas); if (st && SENATORIAL[st]) return SENATORIAL[st][idx].filter(l => lgas.includes(l)); return lgas.filter((_, i) => i % 3 === idx); };
 const buildBattlegrounds = (state, seed, partyId, oppPartyId) => {
   const lgas = getLGAs(state);
   const r = rng(seed + state.length * 101 + (partyId || "").length * 17);
@@ -2333,6 +2340,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   const [avatar, setAvatar] = useState(profile?.avatar || null);
   const [st, setSt] = useState(profile?.origin || null);
   const [depGov, setDepGov] = useState(null);
+  const [homeDistrict, setHomeDistrict] = useState(null); // 0–2: North, Central, South senatorial district
+  const [partyDeal, setPartyDeal] = useState(null); // how you settled with the party after passing over its candidate
   const [agenda, setAgenda] = useState(null);
   const [slogan, setSlogan] = useState(null);
   const [zf, setZf] = useState(null);
@@ -2395,18 +2404,23 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     }
   }, [sCampRound, enightPlayed.first, st]);
   const fs = useMemo(() => { const e = Object.entries(STATES); return zf ? e.filter(([, d]) => d.zone === zf) : e; }, [zf]);
-  const depCands = useMemo(() => st ? (() => { const base = genDepGov(st, 999, STATES[st]?.zone); const surs = new Set(base.map(c => c.nm.split(" ").slice(1).join(" "))); return base.concat([(() => { const r2 = rng(st.length * 88); let wn = gN(r2, STATES[st]?.zone, st); for (let i = 0; i < 12 && surs.has(wn.split(" ").slice(1).join(" ")); i++) wn = gN(r2, STATES[st]?.zone, st); return { nm: wn, co: ri(50, 85, r2), lo: ri(40, 80, r2), cr: ri(5, 30, r2), pu: ri(50, 90, r2), bg: "Wildcard", bio: genBio(r2), desc: "Unknown quantity. Could be brilliant or a disaster." }; })()]); })() : [], [st]);
-  const dc = { "Medium": CL.grn, "Hard": CL.org, "Very Hard": CL.red, "Extreme": "#8b0000" };
+  // Four running mates, one of each kind (SYS.genDeputies): no one is best at everything.
+  const depCands = useMemo(() => {
+    if (!st) return [];
+    const r = rng(st.length * 88 + (homeDistrict || 0) * 7), used = new Set(), names = [];
+    for (let i = 0; i < 4; i++) { let n = gN(r, STATES[st]?.zone, st); for (let k = 0; k < 12 && used.has(n.split(" ").slice(1).join(" ")); k++) n = gN(r, STATES[st]?.zone, st); used.add(n.split(" ").slice(1).join(" ")); names.push(n); }
+    return SYS.genDeputies({ stateId: st, playerDistrict: homeDistrict || 0, names }).map(c => ({ ...c, bio: genBio(rng(c.nm.length * 31 + st.length)) }));
+  }, [st, homeDistrict]);  const dc = { "Medium": CL.grn, "Hard": CL.org, "Very Hard": CL.red, "Extreme": "#8b0000" };
   useEffect(() => {
     if (!quick || !depCands.length) return;
-    setDepGov(depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]));
+    setDepGov(depCands.find(c => c.partyFav) || depCands[0]); setPartyDeal(null);
     setQuick(false); setQuickUsed(true);
     if (saName) setStep(7); else { setQuickNext(true); setStep(25); }
   }, [quick, depCands]);
   // Fill every step with the recommended pick and jump to the ticket. Anything can be changed with Back.
   const quickStart = () => {
     const k = st || (profile?.origin && STATES[profile.origin] && profile.origin !== "FCT" ? profile.origin : recState(zf));
-    setSt(k);
+    setSt(k); if (homeDistrict == null) setHomeDistrict(1);
     if (!avatar) setAvatar(AVATARS[0].id);
     if (!(firstNm.trim() && lastNm.trim())) setNm(gN(rng(Date.now() % 100000), STATES[k].zone, k));
     setAgenda(recAgenda(k));
@@ -2501,11 +2515,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   // STEP 2: Your candidate — every portrait, and the name on the ballot
   if (step === 2) {
     const cur = AVATARS.find(a => a.id === avatar);
-    const ready = firstNm.trim() && lastNm.trim() && avatar;
+    const ready = firstNm.trim() && lastNm.trim() && avatar && homeDistrict != null;
     return <Flow n={2} kicker="Step 2 of 7 · Your candidate" title="Who is running?" onBack={() => setStep(1)}
       sub="Pick a portrait and type the name that goes on the ballot."
       cta={() => setStep(25)} ctaDisabled={!ready} ctaLabel="Continue"
-      ctaNote={!avatar ? "Pick a portrait" : !(firstNm.trim() && lastNm.trim()) ? "Type a first and last name" : <span>On the ticket: <b style={{ color: UI.ink }}>{lastNm.trim().toUpperCase()} / DEPUTY</b></span>}>
+      ctaNote={!avatar ? "Pick a portrait" : !(firstNm.trim() && lastNm.trim()) ? "Type a first and last name" : homeDistrict == null ? "Pick your home district" : <span>On the ticket: <b style={{ color: UI.ink }}>{lastNm.trim().toUpperCase()} / DEPUTY</b></span>}>
       <div style={{ display: "grid", gridTemplateColumns: TALL() ? "repeat(3,1fr)" : "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 20 }}>
         {AVATARS.map((a, i) => {
           const on = avatar === a.id;
@@ -2518,6 +2532,10 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 12 }}>
         <Field label="First name" value={firstNm} onChange={setFirstNm} placeholder="Ciroma Chukwuma" />
         <Field label="Last name" value={lastNm} onChange={setLastNm} placeholder="Adekunle" />
+      </div>
+      <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "18px 0 6px 6px" }}>Your home district</div>
+      <div style={{ display: "grid", gap: 8 }}>
+        {SYS.DISTRICTS.map((d, i) => { const l = lgaCluster(getLGAs(st), i).slice(0, 3).join(", "); return <Tile key={d} tint={homeDistrict === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={homeDistrict === i} onClick={() => setHomeDistrict(i)} title={d} sub={l ? l + "…" : null} />; })}
       </div>
     </Flow>;
   }
@@ -2637,37 +2655,60 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     </Flow>
   );
 
-  // STEP 6: Party Convention (deputy)
+  // STEP 6: The running mate. Each candidate trades one strength for another;
+  // passing over the party's choice is settled with the party (step 65), not
+  // punished with a blanket deduction.
   if (step === 6) {
-    const partyFav = depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]);
-    const chosen = depGov || partyFav; // the party's choice is selected until you pick another
+    const partyFav = depCands.find(c => c.partyFav) || depCands[0];
+    const chosen = depGov || partyFav;
     const insist = chosen && chosen.nm !== partyFav.nm;
+    const risk = SYS.balanceRisk(homeDistrict || 0, chosen);
     const meter = (l, v, c) => <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: DS.t.meta, color: UI.sub }}><span style={{ flex: "0 0 auto", minWidth: TALL() ? 130 : 110 }}>{l}</span><span style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(255,255,255,.8)", overflow: "hidden" }}><span style={{ display: "block", width: v + "%", height: "100%", background: c }} /></span></span>;
     return <Flow n={6} kicker="Step 6 of 7 · Your running mate" title="Who will be your deputy?" onBack={() => { setDepGov(null); setStep(5); }}
-      sub="The party has a favourite. Taking them keeps the party together; insisting on your own pick costs you party support."
-      cta={() => { if (!depGov) setDepGov(partyFav); setStep(7); }} ctaDisabled={!chosen} ctaTone={insist ? "warn" : null}
-      ctaLabel={!chosen ? "Pick a running mate" : insist ? "Insist on " + chosen.nm.split(" ").pop() : "Accept " + chosen.nm.split(" ").pop() + " (+10 party unity)"}>
+      sub="Each one brings something and costs something. What you see is what is known; not everything is."
+      cta={() => { if (!depGov) setDepGov(partyFav); setPartyDeal(null); setStep(insist ? 65 : 7); }} ctaDisabled={!chosen} ctaTone={risk.same ? "warn" : null}
+      ctaNote={risk.same ? "⚠️ " + risk.text : insist ? "The party wanted " + partyFav.nm + ". Next: how you settle it with them." : null}
+      ctaLabel={!chosen ? "Pick a running mate" : insist ? "Choose " + chosen.nm.split(" ").pop() : "Accept " + chosen.nm.split(" ").pop() + ", the party's choice"}>
       <div style={{ display: "grid", gap: 12 }}>
-        {[partyFav, ...depCands.filter(c => c !== partyFav)].map((c, i) => <Tile key={c.nm} tint={chosen?.nm === c.nm ? "#fff" : UI.tints[(i + 2) % UI.tints.length]} on={chosen?.nm === c.nm} onClick={() => setDepGov(c)}>
+        {[partyFav, ...depCands.filter(c => c !== partyFav)].map((c, i) => { const same = c.district === homeDistrict;
+          return <Tile key={c.nm} tint={chosen?.nm === c.nm ? "#fff" : UI.tints[(i + 2) % UI.tints.length]} on={chosen?.nm === c.nm} onClick={() => setDepGov(c)}>
           <span style={{ display: "flex", gap: 8, alignItems: "center", paddingRight: 34, flexWrap: "wrap" }}>
             <span style={{ fontWeight: 800, fontSize: DS.t.body }}>{c.nm}</span>
-            {c === partyFav && <span style={{ background: UI.dark, color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 700 }}>Party's choice</span>}
+            {c.partyFav && <span style={{ background: UI.dark, color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 700 }}>Party's choice</span>}
+            {same && <span style={{ background: CL.org, color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 700 }}>Same district as you</span>}
           </span>
-          <span style={{ fontSize: DS.t.label, color: UI.sub }}>{c.bg}{c.bio ? " · " + c.bio : ""}</span>
+          <span style={{ fontSize: DS.t.label, color: UI.sub }}>{c.bg} · {SYS.DISTRICTS[c.district]} · network: {c.network}</span>
           {meter("Competence", c.co, CL.blu)}
-          {meter("Loyalty", c.lo, CL.pur)}
-        </Tile>)}
+          {meter("Pull with voters", c.pu, CL.grn)}
+          {meter("Loyal to you", c.lo, CL.pur)}
+          <span style={{ fontSize: DS.t.meta, color: UI.ink, lineHeight: 1.4 }}><b>Known:</b> {c.known.join("; ")}.</span>
+          {c.allegation && <span style={{ fontSize: DS.t.meta, color: CL.org, lineHeight: 1.4 }}><b>Allegation:</b> {c.allegation}.</span>}
+          {c.demand && <span style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.4 }}><b style={{ color: UI.ink }}>Will want:</b> {c.demand.text}.</span>}
+        </Tile>; })}
+      </div>
+    </Flow>;
+  }
+
+  // STEP 6.5: Settling with the party after choosing your own running mate.
+  if (step === 65) {
+    const partyFav = depCands.find(c => c.partyFav) || depCands[0];
+    return <Flow n={6} kicker="Step 6 of 7 · The party" title="The chairman wants to talk" onBack={() => setStep(6)}
+      sub={"You chose " + (depGov?.nm || "your own candidate") + " over " + partyFav.nm + ". The party will cooperate, at a price. How do you settle it?"}
+      cta={() => setStep(7)} ctaDisabled={!partyDeal} ctaLabel={partyDeal ? "Agree" : "Pick how to settle it"}>
+      <div style={{ display: "grid", gap: 12 }}>
+        {SYS.PARTY_REACTION.map((o, i) => <Tile key={o.id} tint={partyDeal === o.id ? "#fff" : UI.tints[i % UI.tints.length]} on={partyDeal === o.id} onClick={() => setPartyDeal(o.id)} title={o.label} sub={o.note + " Party support starts at " + o.pStab + "%."} />)}
       </div>
     </Flow>;
   }
 
   // STEP 7: Convention Result
   if (step === 7) {
-    const partyFav = depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]);
+    const partyFav = depCands.find(c => c.partyFav) || depCands[0];
     const accepted = depGov?.nm === partyFav.nm;
-    const startingStab = accepted ? 75 : 65 - (depGov?.lo < 40 ? 15 : depGov?.lo < 60 ? 12 : 8);
-    return <Flow n={7} kicker="Step 7 of 7 · The ticket" title={accepted ? "A unity ticket" : "The convention split"} onBack={() => setStep(6)}
-      sub={accepted ? "The party got its deputy. The machine is behind you." : "You got your deputy. Some party leaders walked out."}
+    const deal = SYS.PARTY_REACTION.find(o => o.id === partyDeal);
+    const startingStab = accepted ? SYS.PARTY_ACCEPTED.pStab : (deal ? deal.pStab : 66);
+    return <Flow n={7} kicker="Step 7 of 7 · The ticket" title={accepted ? "A unity ticket" : "Your own running mate"} onBack={() => setStep(accepted ? 6 : 65)}
+      sub={accepted ? "The party got its deputy. The machine is behind you." : "You chose your deputy and settled with the party: " + (deal ? deal.label.toLowerCase() : "no deal") + "."}
       cta={() => setStep(8)} ctaLabel="Launch the campaign">
       {(() => {
         const depFemale = FEMALE_FIRST.includes(String(depGov?.nm || "").split(" ")[0]);
@@ -2697,6 +2738,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
         {quickUsed && <div>⚡ Quick start chose <b style={{ color: UI.ink }}>{FLAGSHIP[agenda]?.nm}</b>, the <b style={{ color: UI.ink }}>{party}</b> and the party's deputy. Tap ‹ to change any of them.</div>}
         {firstRun && level !== "hard" && <div style={{ marginTop: quickUsed ? 6 : 0 }}>🤝 Your first campaign: party veterans lend you their polling-unit agents, worth about 2 points on election day.</div>}
       </div>}
+      {SYS.balanceRisk(homeDistrict || 0, depGov).same && <div style={{ marginTop: 14, background: "#fff7ed", border: "1px solid " + CL.org + "55", borderRadius: 20, padding: "12px 16px", fontSize: DS.t.label, color: UI.ink, lineHeight: 1.45 }}>⚠️ {SYS.balanceRisk(homeDistrict || 0, depGov).text}</div>}
       <div style={{ marginTop: 14 }}><AdvBubble text={ADV.conventionResult(accepted)} saName={saName} /></div>
     </Flow>;
   }
@@ -2707,7 +2749,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     const oppR2 = rng((st?.length || 5) * 77 + 99);
     const oName = "Hon. " + gN(oppR2, STATES[st]?.zone, st);
     const oParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR2() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
-    const activeZones = sCampZones || buildBattlegrounds(st, 2026, party, oParty?.id);
+    const ticketFx = SYS.campaignEffects(homeDistrict == null ? 1 : homeDistrict, depGov, partyDeal);
+    const activeZones = sCampZones || buildBattlegrounds(st, 2026, party, oParty?.id).map((z, i) => ({ ...z, support: cl100(z.support + (ticketFx[i] || 0)) }));
     const swingZone = activeZones.reduce((a, b) => b.swing > a.swing ? b : a, activeZones[0]);
     const weakZone = activeZones.reduce((a, b) => b.support < a.support ? b : a, activeZones[0]);
     const baseZone = activeZones.reduce((a, b) => b.support > a.support ? b : a, activeZones[0]);
@@ -2903,7 +2946,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
             </div>}
             <Cd style={{ textAlign: "left", marginBottom: 29 }}>
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14, letterSpacing: 2 }}>HOW THE ZONES MOVED</div>
-              {(() => { const start = buildBattlegrounds(st, 2026, party, oParty?.id); return collation.rows.map((rw, i) => {
+              {(() => { const start = buildBattlegrounds(st, 2026, party, oParty?.id).map((z, i) => ({ ...z, support: cl100(z.support + (ticketFx[i] || 0)) })); return collation.rows.map((rw, i) => {
                 const s0 = pollShare(start[i] || rw), s1 = pollShare(activeZones[i] || rw);
                 const res = rw.yourVotes + rw.oppVotes > 0 ? Math.round(1000 * rw.yourVotes / (rw.yourVotes + rw.oppVotes)) / 10 : 50;
                 const moves = (activeZones[i]?.moves || []).filter(m => m.d !== 0);
@@ -3147,9 +3190,12 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
   }
 
   if (step === 9) {
-    const partyFav = depCands.reduce((best, c) => c.lo > (best?.lo || 0) ? c : best, depCands[0]);
+    const partyFav = depCands.find(c => c.partyFav) || depCands[0];
     const accepted = depGov?.nm === partyFav.nm;
-    const startingStab = accepted ? 75 : 65 - (depGov?.lo < 40 ? 15 : depGov?.lo < 60 ? 12 : 8);
+    const deal = SYS.PARTY_REACTION.find(o => o.id === partyDeal);
+    const startingStab = accepted ? SYS.PARTY_ACCEPTED.pStab : (deal ? deal.pStab : 66);
+    // The party's price for passing over its candidate, carried into office.
+    const partyMandates = !accepted && deal && deal.mandate ? [{ ...deal.mandate, name: gN(rng(st.length * 991), STATES[st]?.zone, st) }] : [];
     if (!anchorsShown) {
       const stNm = (st || "").replace("_", " ");
       const pt = PARTIES.find(p => p.id === party);
@@ -3172,7 +3218,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
           {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -3466,12 +3512,176 @@ const SecondChance = () => {
     {err && <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.red, marginTop: 8 }}>{err}</div>}
   </Cd>;
 };
+// ─── PROJECTS (rules in SYS: projects.js, loans.js, proposals.js) ───
+// The portfolio and the path of a new project: proposal → budget plan →
+// financing (offer letters) → contractor → yearly delivery and recovery.
+const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, agendaLeft }) => {
+  const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(31), l: TS(44) };
+  const card = { background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "12px 14px" : "16px 20px", marginBottom: 12 };
+  const field = { padding: 12, fontSize: fz.m, border: "1px solid " + CL.bdr, borderRadius: 10, width: "100%", boxSizing: "border-box", background: "#fff", color: CL.txt, fontFamily: F.b };
+  const lab = (t) => <div style={{ fontSize: fz.s, fontWeight: 800, color: CL.grn, margin: "12px 0 6px" }}>{t}</div>;
+  const row = (k, v, bad) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: fz.s, padding: "3px 0" }}><span style={{ color: CL.td }}>{k}</span><b style={{ color: bad ? CL.red : CL.txt, textAlign: "right" }}>{v}</b></div>;
+  const opt = (key, title, note, on, onClick, disabled) => <button key={key} disabled={disabled} onClick={onClick} style={{ textAlign: "left", width: "100%", padding: "10px 14px", borderRadius: 14, border: "2px solid " + (on ? CL.grn : CL.bdr), background: disabled ? CL.bg : on ? CL.grn + "10" : CL.card, cursor: disabled ? "not-allowed" : "pointer", marginBottom: 8, fontFamily: F.b, color: CL.txt, opacity: disabled ? .55 : 1 }}><b style={{ display: "block", fontSize: fz.m }}>{title}</b>{note && <span style={{ fontSize: fz.s, color: CL.tm }}>{note}</span>}</button>;
+  const F0 = flow;
+
+  // ── 1. The proposal ──
+  if (F0 && F0.step === "propose") {
+    const P = F0.parsed;
+    const MIN_FOR = { health: "health", education: "educ", security: "sec" };
+    const d0 = F0.draft || {};
+    const d = d0.type && !d0.ministryId ? { ...d0, ministryId: ((ministries || []).find(m => m.id === (MIN_FOR[SYS.TYPE_SECTOR[d0.type]] || "works")) || (ministries || [])[0] || {}).id } : d0;
+    const est = d.type ? SYS.estimate(d.type, d.qty) : null;
+    return <Cd style={{ maxWidth: 900 }}>
+      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 8px", color: CL.txt }}>A new project</h3>
+      {(needs || []).length > 0 && <>{lab("Answer one of the state's needs")}{needs.slice(0, 4).map(n => opt(n.id, n.label, null, d.need === n.id, () => onFlow({ ...F0, draft: { ...SYS.parseProposal(n.type + " in " + (n.lga || ""), { lgas }).proposal, title: n.label.replace(/^\S+\s/, ""), need: n.id, ministryId: d.ministryId }, parsed: null })))}</>}
+      {lab("Or describe it in your own words")}
+      <textarea value={F0.text || ""} onChange={e => onFlow({ ...F0, text: e.target.value })} rows={2} placeholder="e.g. A 120-bed maternity hospital in Oredo" style={{ ...field, resize: "vertical" }} />
+      <div style={{ marginTop: 8 }}><Bt v="ghost" onClick={() => { const r = SYS.parseProposal(F0.text, { lgas }); onFlow({ ...F0, parsed: r, draft: r.status === "ok" ? { ...r.proposal, title: r.proposal.name, ministryId: d.ministryId } : d }); }}>Read it</Bt></div>
+      {P && P.status === "clarify" && <div style={{ ...card, marginTop: 10 }}><div style={{ fontSize: fz.m, marginBottom: 8 }}>{P.question}</div><div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name, ministryId: d.ministryId } }); }} style={{ border: "1px solid " + CL.bdr, background: CL.bg, borderRadius: 999, padding: "6px 12px", fontSize: fz.s, cursor: "pointer", fontFamily: F.b }}>{SYS.UNIT[c].nm}</button>)}</div></div>}
+      {P && P.status === "unsupported" && <div style={{ ...card, marginTop: 10, borderColor: CL.org + "66", fontSize: fz.m, color: CL.txt }}>Not something the state can build: {P.why}</div>}
+      {d.type && est && <div style={{ ...card, marginTop: 12 }}>
+        <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>How the Ministry reads it. Check before you commit.</div>
+        {lab("Name")}<input value={d.title || ""} onChange={e => onFlow({ ...F0, draft: { ...d, title: e.target.value } })} style={field} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>{lab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need } }); }} style={field}>{Object.keys(SYS.UNIT).map(k => <option key={k} value={k}>{SYS.UNIT[k].nm}</option>)}</select></div>
+          <div>{lab("Size (" + est.unit + "s)")}<input type="number" min={1} value={d.qty} onChange={e => onFlow({ ...F0, draft: { ...d, qty: Math.max(1, +e.target.value || 1) } })} style={field} /></div>
+        </div>
+        {lab("Where")}<select value={d.lga || ""} onChange={e => onFlow({ ...F0, draft: { ...d, lga: e.target.value || null } })} style={field}><option value="">Pick a local government</option>{lgas.map(l => <option key={l} value={l}>{l}</option>)}</select>
+        {lab("Supervising ministry")}<select value={d.ministryId || ""} onChange={e => onFlow({ ...F0, draft: { ...d, ministryId: e.target.value } })} style={field}>{(ministries || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
+        <div style={{ marginTop: 12 }}>
+          {row("Sector", SYS.SECTORS[SYS.TYPE_SECTOR[d.type]])}
+          {row("Estimated cost to build", SYS.fmtM(est.buildM))}
+          {est.facility && row("To equip it (once)", SYS.fmtM(est.equipM))}
+          {est.facility && row("To staff and run it", SYS.fmtM(est.opsPerYearM) + " a year")}
+          {row("Typical time", est.years + (est.years === 1 ? " year" : " years"))}
+          {row("Needs", SYS.SECTORS[SYS.TYPE_SECTOR[d.type]] + " contractor")}
+        </div>
+        {d.benefit && <div style={{ fontSize: fz.s, color: CL.tm, marginTop: 8 }}>What it should give: {d.benefit}</div>}
+        {(d.assumptions || []).map((a, i) => <div key={i} style={{ fontSize: fz.s, color: CL.org, marginTop: 4 }}>• {a}</div>)}
+      </div>}
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
+        <Bt v="ghost" onClick={() => onFlow(null)}>Cancel</Bt>
+        <Bt disabled={!d.type || !d.lga || !d.ministryId || !(d.title || "").trim()} onClick={() => { const e = SYS.estimate(d.type, d.qty); onFlow({ ...F0, step: "plan", plan: { approvedM: e.buildM, thisYearM: Math.round(e.buildM / e.years), choice: null } }); }}>Next: the budget →</Bt>
+      </div>
+    </Cd>;
+  }
+
+  // ── 2. The budget plan: phasing or shortfall ──
+  if (F0 && F0.step === "plan") {
+    const d = F0.draft, e = SYS.estimate(d.type, d.qty), P = F0.plan;
+    const a = SYS.assessFunding({ needM: e.buildM, approvedM: P.approvedM, thisYearM: P.thisYearM, years: e.years });
+    const room = roomM(SYS.TYPE_SECTOR[d.type]);
+    const overRoom = P.thisYearM > room;
+    const choices = { increase: ["Increase the budget to the full cost", "Approve " + SYS.fmtM(e.buildM) + "."], reduce: ["Reduce the scope to fit the money", "About " + Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)) + " " + e.unit + "s instead of " + d.qty + "."], finance: ["Seek financing for the gap", "Apply to lenders for " + SYS.fmtM(Math.max(a.shortM, P.thisYearM - room)) + "."], defer: ["Defer it", "Nothing starts this year. No agenda used."], proceed: ["Go ahead anyway", "On the record: you were warned the money runs out first."] };
+    return <Cd style={{ maxWidth: 900 }}>
+      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 8px", color: CL.txt }}>{d.title}: the budget</h3>
+      {row("The scope costs", SYS.fmtM(e.buildM) + " over about " + e.years + (e.years === 1 ? " year" : " years"))}
+      {row("The " + SYS.BUDGET_LINE[SYS.TYPE_SECTOR[d.type]] + " budget can pay this year", SYS.fmtM(room), room < P.thisYearM)}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div>{lab("Total budget you approve (₦M)")}<input type="number" min={0} step={50} value={P.approvedM} onChange={x => onFlow({ ...F0, plan: { ...P, approvedM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={field} /></div>
+        <div>{lab("This year's share (₦M)")}<input type="number" min={0} step={50} value={P.thisYearM} onChange={x => onFlow({ ...F0, plan: { ...P, thisYearM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={field} /></div>
+      </div>
+      <div style={{ ...card, marginTop: 12, borderColor: a.kind === "short" ? CL.red + "66" : CL.bdr }}>
+        <b style={{ fontSize: fz.m, color: a.kind === "short" ? CL.red : a.kind === "phased" ? CL.org : CL.grn }}>{a.kind === "short" ? "⚠️ Underfunded" : a.kind === "phased" ? "Phased funding" : "Fully funded"}</b>
+        <div style={{ fontSize: fz.s, color: CL.tm, marginTop: 4 }}>{a.text}{overRoom ? " This year's share is more than the budget line can pay: the rest must be borrowed or the work slows." : ""}</div>
+      </div>
+      {(a.kind === "short" || overRoom) && <div>{lab("What will you do?")}{(a.kind === "short" ? a.options : ["finance", "proceed"]).map(k => opt(k, choices[k][0], choices[k][1], P.choice === k, () => onFlow({ ...F0, plan: { ...P, choice: k } })))}</div>}
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
+        <Bt v="ghost" onClick={() => onFlow({ ...F0, step: "propose" })}>‹ Back</Bt>
+        <Bt disabled={(a.kind === "short" || overRoom) && !P.choice} onClick={() => onConfirmPlan(F0, a, overRoom)}>{P.choice === "defer" ? "Defer" : "Approve the project (uses 1 of " + agendaLeft + " major actions)"}</Bt>
+      </div>
+    </Cd>;
+  }
+
+  // ── 3. Financing: apply, then an offer letter ──
+  if (F0 && F0.step === "finance") {
+    const p = projects.find(x => x.id === F0.projId); if (!p) return null;
+    return <Cd style={{ maxWidth: 900 }}>
+      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 4px", color: CL.txt }}>Financing {p.title}</h3>
+      <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 10 }}>You need {SYS.fmtM(F0.needM)}. Applying is free and creates no debt; only an accepted offer does.</div>
+      {F0.offer ? <div style={{ ...card, borderColor: CL.grn + "66" }}>
+        <b style={{ fontSize: fz.m, color: CL.grn }}>Offer from {F0.offer.lender}</b>
+        {row("Amount", SYS.fmtM(F0.offer.principalM))}{row("Interest", Math.round(F0.offer.rate * 1000) / 10 + "% a year")}{row("Repaid over", F0.offer.years + " years")}
+        {row("About", SYS.fmtM(F0.offer.serviceM) + " a year")}{row("Total you repay", SYS.fmtM(F0.offer.repayM), true)}
+        <div style={{ fontSize: fz.s, color: CL.tm, margin: "6px 0 10px" }}>Conditions: {F0.offer.conditions}</div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}><Bt v="ghost" onClick={() => onFlow({ ...F0, offer: null, tried: [...(F0.tried || []), F0.offer.lenderId] })}>Decline the offer</Bt><Bt onClick={() => onAcceptOffer(F0)}>Accept: disburse {SYS.fmtM(F0.offer.principalM)}</Bt></div>
+      </div> : <>
+        {F0.letter && <div style={{ ...card, borderColor: CL.red + "55", fontSize: fz.s }}><b style={{ color: CL.red }}>{F0.letter.lender}: declined.</b> {F0.letter.reasons.filter(r => r[0] === "✗").map(r => r.slice(2)).join(" ") || "Their credit committee said no."}</div>}
+        {Object.entries(SYS.LENDERS).map(([k, L]) => opt(k, L.nm + " · " + L.lender, "About " + Math.round(L.rate * 100) + "% interest over " + L.years + " years" + ((F0.tried || []).includes(k) ? " · already answered" : ""), false, () => onApplyLoan(F0, k), (F0.tried || []).includes(k)))}
+      </>}
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 8 }}><Bt v="ghost" onClick={() => onFlow({ step: "contractor", projId: p.id })}>Go on without a loan →</Bt></div>
+    </Cd>;
+  }
+
+  // ── 4. The contractor ──
+  if (F0 && F0.step === "contractor") {
+    const p = projects.find(x => x.id === F0.projId); if (!p) return null;
+    const list = SYS.eligible(p.type, projects), meth = F0.method || "open";
+    const bar = (v) => <span style={{ display: "inline-block", width: 60, height: 6, borderRadius: 3, background: CL.bdr, verticalAlign: "middle", overflow: "hidden", marginLeft: 6 }}><span style={{ display: "block", height: "100%", width: Math.round(v * 100) + "%", background: v > .75 ? CL.grn : v > .55 ? CL.org : CL.red }} /></span>;
+    return <Cd style={{ maxWidth: 960 }}>
+      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: "0 0 4px", color: CL.txt }}>Who builds {p.title}?</h3>
+      <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 8 }}>Only firms that can do {SYS.SECTORS[p.sector].toLowerCase()} work are listed.</div>
+      {lab("How the contract is let")}
+      <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>{Object.entries(SYS.PROCUREMENT).map(([k, M]) => opt(k, M.nm, M.note, meth === k, () => onFlow({ ...F0, method: k })))}</div>
+      {lab("Bidders")}
+      {list.map(c => <button key={c.id} disabled={c.full} onClick={() => onAward(p.id, c.id, meth)} style={{ textAlign: "left", width: "100%", padding: "10px 14px", borderRadius: 14, border: "1px solid " + (c.nepotism ? CL.red + "66" : CL.bdr), background: c.full ? CL.bg : CL.card, cursor: c.full ? "not-allowed" : "pointer", marginBottom: 8, fontFamily: F.b, color: CL.txt, opacity: c.full ? .55 : 1 }}>
+        <b style={{ fontSize: fz.m }}>{c.name}</b> <span style={{ fontSize: fz.s, color: CL.td }}>· price {Math.round(c.price * 100)}% of estimate · {c.active}/{c.capacity} jobs{c.full ? " (full)" : ""}</span>
+        <div style={{ fontSize: fz.s, color: CL.tm, display: "flex", flexWrap: "wrap", gap: "2px 14px", marginTop: 4 }}><span>Reliability{bar(c.reliability)}</span><span>Speed{bar(c.speed)}</span><span>Quality{bar(c.quality)}</span><span>Integrity{bar(c.integrity)}</span></div>
+        <div style={{ fontSize: fz.s, color: c.nepotism ? CL.red : CL.td, marginTop: 2 }}>{c.note}{c.ties ? " Ties: " + c.ties + "." : ""} Can also do: {c.sectors.filter(x => x !== p.sector).map(x => SYS.SECTORS[x].toLowerCase()).slice(0, 3).join(", ") || "nothing else"}.</div>
+      </button>)}
+      <div style={{ textAlign: "right" }}><Bt v="ghost" onClick={() => onFlow(null)}>Later</Bt></div>
+    </Cd>;
+  }
+
+  // ── The portfolio ──
+  const mine = (projects || []).filter(p => p.estimateM != null);
+  const old = (projects || []).filter(p => p.estimateM == null);
+  const ST = { pending_finance: "Waiting for money", pending_procurement: "Waiting for a contractor", in_progress: "Under construction", stalled: "Stalled", built: "Built, not yet working", delivered: "Open and working", suspended: "Suspended", abandoned: "Abandoned" };
+  return <div>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+      <h3 style={{ fontFamily: F.d, fontSize: fz.l, margin: 0, color: CL.txt }}>🏗️ Projects</h3>
+      <Bt onClick={() => onFlow({ step: "propose", draft: {} })}>➕ New project</Bt>
+    </div>
+    {!mine.length && !old.length && <div style={{ fontSize: fz.m, color: CL.td }}>No projects yet. Start one: describe it, set its budget, find the money and a contractor.</div>}
+    {mine.map(p => { const C = SYS.contractorById(p.contractorId); const bf = SYS.benefitFactor(p);
+      return <div key={p.id} style={{ ...card, borderLeft: "4px solid " + (p.status === "stalled" || p.status === "abandoned" ? CL.red : p.status === "delivered" ? CL.grn : CL.org) }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}><b style={{ fontSize: fz.m, color: CL.txt }}>{p.title}</b><span style={{ fontSize: fz.s, fontWeight: 800, color: p.status === "delivered" ? CL.grn : p.status === "stalled" || p.status === "abandoned" ? CL.red : CL.org }}>{ST[p.status] || p.status}</span></div>
+        <div style={{ fontSize: fz.s, color: CL.td }}>{p.qty} {p.unit}s · {p.lga} · {C ? C.name : "no contractor yet"}{p.quality != null ? " · quality " + Math.round(p.quality * 100) + "%" : ""}</div>
+        <div style={{ height: 8, borderRadius: 4, background: CL.bdr, overflow: "hidden", margin: "8px 0" }}><div style={{ height: "100%", width: p.progress + "%", background: p.status === "stalled" ? CL.red : CL.grn }} /></div>
+        <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", columnGap: 20 }}>
+          {row("Scope costs", SYS.fmtM(p.estimateM))}{row("Approved", SYS.fmtM(p.approvedM), p.approvedM < p.estimateM * .95)}
+          {row("This year", SYS.fmtM((p.alloc || {})[year] || 0))}{row("Spent", SYS.fmtM(p.spentM))}
+          {row("Committed, not spent", SYS.fmtM(SYS.committedM(p)))}{row("Still needed to finish", SYS.fmtM(SYS.remainingM(p)), SYS.remainingM(p) > SYS.committedM(p))}
+          {p.loanLeftM > 0 && row("Loan money in hand", SYS.fmtM(p.loanLeftM))}
+          {p.facility && row("Working", p.equipped && p.staffed ? "Equipped and staffed" : p.equipped ? "Equipped; no staff" : "Not equipped", !(p.equipped && p.staffed))}
+          {(p.status === "delivered" || p.status === "built") && row("Benefit delivered", Math.round(bf * 100) + "% of what was promised", bf < .6)}
+        </div>
+        {(p.events || []).slice(-2).map((ev, i) => <div key={i} style={{ fontSize: fz.s, color: CL.org, marginTop: 4 }}>• {ev}</div>)}
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
+          {p.status === "pending_finance" && <Bt onClick={() => onFlow({ step: "finance", projId: p.id, needM: Math.max(0, p.approvedM - roomM(p.sector)) })}>Find the money</Bt>}
+          {p.status === "pending_procurement" && <Bt onClick={() => onFlow({ step: "contractor", projId: p.id })}>Pick a contractor</Bt>}
+          {(p.status === "stalled" || p.status === "in_progress") && SYS.remainingM(p) > SYS.committedM(p) && <Bt v="ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.remainingM(p) - SYS.committedM(p))}</Bt>}
+          {(p.status === "stalled" || p.status === "in_progress") && <Bt v="ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</Bt>}
+          {(p.status === "stalled" || p.status === "in_progress") && <Bt v="ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</Bt>}
+          {p.status === "stalled" && <Bt v="ghost" onClick={() => onAction(p.id, "abandon")}>Abandon</Bt>}
+          {p.status === "in_progress" && <Bt v="ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</Bt>}
+          {p.status === "suspended" && <Bt v="ghost" onClick={() => onAction(p.id, "resume")}>Resume</Bt>}
+          {p.facility && (p.status === "built" || p.status === "delivered") && !p.equipped && <Bt onClick={() => onAction(p.id, "equip")}>Equip it ({SYS.fmtM(p.equipM)})</Bt>}
+          {p.facility && (p.status === "built" || p.status === "delivered") && !p.staffed && <Bt onClick={() => onAction(p.id, "staff")}>Staff it ({SYS.fmtM(p.opsPerYearM)} a year)</Bt>}
+          {(p.status === "delivered" || p.status === "built") && (p.quality || 1) < .6 && <Bt v="ghost" onClick={() => onAction(p.id, "repair")}>Repair defects ({SYS.fmtM(SYS.repairCostM(p))})</Bt>}
+        </div>
+        {(p.decisions || []).length > 0 && <div style={{ fontSize: fz.s, color: CL.td, marginTop: 6 }}>Record: {p.decisions.slice(-3).map(x => "Year " + x.year + ": " + x.text).join(" · ")}</div>}
+      </div>; })}
+    {old.length > 0 && <div style={{ fontSize: fz.s, color: CL.td, marginTop: 8 }}>Older project files: {old.map(p => p.title + " (" + (p.status || "") + ")").join(", ")}.</div>}
+  </div>;
+};
+
 // ─── THE STATE SECRETARIAT ───
 // Where the governor meets the cabinet. A general visit opens the directory
 // (commissioners, requests for an audience, open cases, commitments); an
 // event opens the right meeting directly (focus.caseId). The rules live in
 // SYS (game/systems/cases.js); this only shows them and passes choices back.
-const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, onClose, onOpen, onMeet, onGather, onDecide, onAppoint, appointPicks, audiences, onAudience }) => {
+const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, onClose, onOpen, onMeet, onGather, onDecide, onAppoint, appointPicks, audiences, onAudience, onApplyRestructure }) => {
   const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(31), l: TS(44) };
   const holder = (mid) => (ministries || []).find(m => m.id === mid);
   const chip = (t, col) => <span style={{ display: "inline-block", fontSize: fz.s, fontWeight: 800, color: col, background: col + "16", border: "1px solid " + col + "44", borderRadius: 999, padding: "2px 10px", marginRight: 6 }}>{t}</span>;
@@ -3561,6 +3771,32 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
     </Cd>;
   }
 
+  // ── Restructuring the government (SYS.ministries) ──
+  if (focus && focus.restructure) {
+    const R = focus.restructure, plan = SYS.planRestructure(R.kind, { ministries, a: R.a, b: R.b, area: R.area, name: R.name, lead: R.lead });
+    const field = { padding: 10, fontSize: fz.m, border: "1px solid " + CL.bdr, borderRadius: 10, width: "100%", boxSizing: "border-box", background: "#fff", color: CL.txt, fontFamily: F.b };
+    const set = (k, v) => onOpen({ ...focus, restructure: { ...R, [k]: v } });
+    const sel = (k, label, list) => <label style={{ display: "block", marginBottom: 8 }}><span style={{ fontSize: fz.s, color: CL.td }}>{label}</span><select value={R[k] || ""} onChange={e => set(k, e.target.value)} style={field}><option value="">Choose…</option>{list.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>;
+    return <Cd style={{ maxWidth: 900 }}>
+      <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, margin: "0 0 8px" }}>Restructure the government</h3>
+      <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 8, marginBottom: 10 }}>
+        {Object.entries(SYS.RESTRUCTURE).map(([k, X]) => <button key={k} onClick={() => onOpen({ ...focus, restructure: { kind: k } })} style={{ textAlign: "left", padding: "8px 12px", borderRadius: 12, border: "2px solid " + (R.kind === k ? CL.grn : CL.bdr), background: R.kind === k ? CL.grn + "10" : CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt, fontSize: fz.s }}><b style={{ display: "block", fontSize: fz.m }}>{X.nm}</b>{X.why}</button>)}
+      </div>
+      {R.kind && sel("a", R.kind === "merge" ? "First ministry" : R.kind === "reassign" ? "Move the area out of" : "From the area of", ministries.filter(m => !m.taskForce))}
+      {(R.kind === "merge" || R.kind === "reassign") && sel("b", R.kind === "merge" ? "Second ministry" : "Into", ministries.filter(m => m.id !== R.a && !m.taskForce))}
+      {(R.kind === "split" || R.kind === "taskforce") && <label style={{ display: "block", marginBottom: 8 }}><span style={{ fontSize: fz.s, color: CL.td }}>Name</span><input value={R.name || ""} onChange={e => set("name", e.target.value)} placeholder={R.kind === "split" ? "e.g. Water Resources" : "e.g. Flood Response"} style={field} /></label>}
+      {R.kind === "merge" && R.a && R.b && <label style={{ display: "block", marginBottom: 8 }}><span style={{ fontSize: fz.s, color: CL.td }}>Who leads it</span><select value={R.lead || R.a} onChange={e => set("lead", e.target.value)} style={field}>{[R.a, R.b].map(id => { const m = ministries.find(x => x.id === id); return m && <option key={id} value={id}>Hon. {m.minister} ({m.name})</option>; })}</select></label>}
+      {R.kind && (plan.ok ? <div style={{ background: CL.bg, border: "1px solid " + CL.bdr, borderRadius: 14, padding: "10px 14px", fontSize: fz.s, color: CL.tm, lineHeight: 1.5 }}>
+        <div><b style={{ color: CL.txt }}>Mandate:</b> {plan.mandate}</div>
+        <div><b style={{ color: CL.txt }}>Set-up:</b> {SYS.fmtM(plan.setupM)} · <b style={{ color: CL.txt }}>Every year:</b> {plan.budgetSource}</div>
+        {plan.lead && <div><b style={{ color: CL.txt }}>Led by:</b> Hon. {plan.lead}</div>}
+        <div><b style={{ color: CL.txt }}>Transition:</b> {plan.transition ? "about a year of slower work while it settles" : "none"}. It will not fix the problem by itself.</div>
+        <div style={{ marginTop: 10, textAlign: "right" }}><Bt onClick={() => onApplyRestructure(plan)}>Make the change (uses 1 of {agendaLeft} major actions)</Bt></div>
+      </div> : <div style={{ fontSize: fz.s, color: CL.org }}>{plan.reason}</div>)}
+      <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={() => onOpen({ view: "dir" })}>Back</Bt></div>
+    </Cd>;
+  }
+
   // ── The directory ──
   const openCases = cases.filter(c => c.stage !== "closed" && c.stage !== "decided"); // decided files leave the list; what follows from them arrives as news
   const openCommits = (commits || []).filter(x => x.status === "open");
@@ -3595,7 +3831,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
       <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Commitments still open</div>
       {openCommits.map(x => <div key={x.id} style={{ fontSize: fz.s, color: CL.tm, marginBottom: 4 }}>• Hon. {x.who} ({(holder(x.ministryId) || {}).name || x.ministryId}): {x.action}, by Year {x.reviewYear}{x.resourcesM ? " · " + SYS.fmtM(x.resourcesM) : ""}</div>)}
     </div>}
-    <div style={{ textAlign: "right", marginTop: 14 }}><Bt onClick={onClose}>Leave the Secretariat</Bt></div>
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 14, flexWrap: "wrap" }}><Bt v="ghost" onClick={() => onOpen({ restructure: {} })}>🔀 Restructure the government</Bt><Bt onClick={onClose}>Leave the Secretariat</Bt></div>
   </Cd>;
 };
 
@@ -3619,7 +3855,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const ld = loadedSave; // shorthand
   const [turn, setTurn] = useState(ld?.turn || 1);
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0), app: 55, debt: 0, pStab: startingStab || 65,
+  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0), app: 55, debt: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: startingStab || 65,
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
@@ -3823,7 +4059,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { civic = window.SOP_CIVIC?.getCorruption ? window.SOP_CIVIC.getCorruption() : null; } catch (e) {}
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
-      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone,
+      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current,
       turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc, reportAt: reportRef.current ? reportRef.current.t : null, reportSnap: reportRef.current ? reportRef.current.snap : null,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
@@ -4120,7 +4356,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // A commissioner's zone: stored when you appoint a replacement; the first
   // cabinet is balanced across the three zones, as governors do by default.
   const minZone = (m) => m.zone != null ? m.zone : Math.max(0, (ministries || []).findIndex(x => x.id === m.id)) % 3;
-  const homeZone = zoneOfName(pName);
+  const homeZone = setup?.homeDistrict != null ? setup.homeDistrict : zoneOfName(pName); // chosen at setup (older saves: from the name)
   const cabZones = () => { const c = [0, 0, 0]; (ministries || []).forEach(m => { if (m.minister) c[minZone(m)]++; }); return c; };
   const balanceIssue = () => { const c = cabZones(); return (ministries || []).length >= 5 && Math.max(...c) - Math.min(...c) >= 3 ? c.indexOf(Math.min(...c)) : null; };
   const monthWage = () => Math.max(.3, Math.round((s.faac || 10) * .55 / 12 * 10) / 10); // FAAC is a year's allocation
@@ -4645,7 +4881,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // ── THE SECRETARIAT: cases, commitments, audiences (rules in SYS/cases.js) ──
   const [cases, setCases] = useState(() => ld?.cases || []);
-  const [commits, setCommits] = useState(() => ld?.commits || []);
+  const [commits, setCommits] = useState(() => ld?.commits || (setup?.partyPromise ? [{ id: "cm_party_promise", who: pName, ministryId: "party", action: setup.partyPromise, resourcesM: 0, reviewYear: 5, personal: true, byGovernor: true, status: "open", madeYear: 0, notes: ["Made at the convention, the price of choosing your own running mate."] }] : []));
   const [audDone, setAudDone] = useState(() => ld?.audDone || {});
   const [secr, setSecr] = useState(null); // null | { view: "dir" } | { caseId } | { audience }, plus { from: the tab to return to }
   const openSecr = (f) => setSecr(s0 => ({ ...(f || { view: "dir" }), from: (f && f.from) || (s0 && s0.from) || null }));
@@ -4696,6 +4932,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "case_decided", actor: "governor", target: c.officer, gravity: 2, evidence: c.evidence.length, decision: D.nm, note: SYS.GRADE_NAME[r.c.grade] }); } catch (e) {}
     announce({ icon: "⚖️", title: D.nm, text: "Hon. " + c.officer + ", " + c.ministryName + ". The file says: " + SYS.GRADE_NAME[r.c.grade].toLowerCase() + "." + (acting ? " " + acting + ", the Permanent Secretary, is acting commissioner until you appoint one." : "") + (r.c.outstandingM ? " " + SYS.fmtM(r.c.outstandingM) + " is still missing." : "") + " What really happened may still come out.", tone: "neutral" }, before);
   };
+  const applyRestructureNow = (plan) => {
+    if (!takeAgenda("restructure", plan.nm, "rs:" + plan.kind + ":" + plan.a + ":" + (plan.b || plan.name || ""))) return;
+    const before = { ...snapRef.current };
+    const ids = { merged: plan.a + "_" + plan.b, split: "m_" + turn + "_" + hashStr(plan.name || "") % 10000, taskforce: "tf_" + turn + "_" + hashStr(plan.name || "") % 10000 };
+    const lead = plan.kind === "split" || plan.kind === "taskforce" ? gN(rng(hashStr(plan.name + turn)), sd.zone, state) : plan.lead;
+    const r = SYS.applyRestructure({ ...plan, lead: plan.kind === "merge" ? plan.lead : lead }, { ministries, projects: projects || [], cases, commits }, turn, ids);
+    setMinistries(r.ministries.map(m => (m.id === ids.split || m.id === ids.taskforce || m.id === ids.merged) ? { ...m, yearlyM: plan.yearlyM } : m));
+    setProjects(r.projects); setCases(r.cases); setCommits(r.commits);
+    setS(p => ({ ...p, debt: p.debt + SYS.toB(r.setupM), pStab: cl100(p.pStab + r.pStab) }));
+    addL("🔀 " + plan.mandate + " Set-up " + SYS.fmtM(r.setupM) + ". Moved: " + (r.moved.length ? r.moved.join("; ") : "nothing") + ".", "policy");
+    scWiki("Governorship", plan.mandate);
+    setSecr(f => ({ view: "dir", from: f && f.from }));
+    announce({ icon: "🔀", title: plan.nm, text: plan.mandate + " " + (r.moved.length ? "Moved: " + r.moved.slice(0, 4).join("; ") + (r.moved.length > 4 ? "…" : "") + "." : "") + " It needs time to settle and will not fix the problem by itself.", tone: "neutral" }, before);
+  };
   const appointPicks = (m) => candidates(hashStr(m.id + "_" + turn)).slice(0, 3);
   const appointFor = (mid, p) => {
     const m = minById(mid); if (!m) return;
@@ -4740,10 +4990,110 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return { icon: "🎯", title: "A harder target", text: "Hon. " + m.minister + " accepts it. You will check next year.", tone: "neutral" };
   });
 
+  // ── PROJECTS (SYS.projects / loans / proposals) ──
+  const [pflow, setPflow] = useState(null);
+  const [loans, setLoans] = useState(() => ld?.loans || []);
+  // What a sector's capital budget can pay this year, after other projects' shares.
+  const sectorRoomRawM = (line) => Math.round(((bud[line] || 0) / (bs || 100)) * ((s.igr || 0) + (s.faac || 0)) * 350);
+  const roomM = (sector) => { const line = SYS.BUDGET_LINE[sector] || "infrastructure"; const used = (projects || []).filter(p => p.estimateM != null && (SYS.BUDGET_LINE[p.sector] || "infrastructure") === line && ["in_progress", "pending_procurement", "pending_finance"].includes(p.status)).reduce((a, p) => a + ((p.alloc || {})[turn] || 0), 0); return Math.max(0, sectorRoomRawM(line) - used); };
+  const openNeedsForProj = needs.filter(n => n.status === "open").map(n => { const T = needType(n); const type = Object.keys(PROJ_NEED).find(k => PROJ_NEED[k] === n.k); return T && type ? { id: n.id, lga: n.lga, type, label: T.icon + " " + T.title(n.lga) } : null; }).filter(Boolean);
+  const confirmPlan = (F0, a, overRoom) => {
+    const d = F0.draft, P = F0.plan, e = SYS.estimate(d.type, d.qty);
+    if (P.choice === "defer") { setPflow(null); addL("🗂️ Deferred " + d.title + ": nothing starts this year.", "info"); return; }
+    let approved = P.approvedM, qty = d.qty, note = null;
+    if (P.choice === "increase") approved = e.buildM;
+    if (P.choice === "reduce") { qty = Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)); note = "Scope reduced to " + qty + " " + e.unit + "s to fit " + SYS.fmtM(P.approvedM) + "."; }
+    if (P.choice === "proceed") note = "Approved " + SYS.fmtM(approved) + " for a scope costing " + SYS.fmtM(e.buildM) + ", against the warning.";
+    if (!takeAgenda("project", d.title, "prj:" + d.title)) return;
+    const id = "p_" + turn + "_" + hashStr(d.title + qty) % 100000;
+    const proj = SYS.makeProject({ id, title: d.title.trim(), type: d.type, qty, lga: d.lga, ministryId: d.ministryId, need: d.need || null, approvedM: approved, thisYearM: Math.min(approved, P.thisYearM), year: turn, decision: note, proposal: { text: d.description || null, assumptions: d.assumptions || [] } });
+    const needsLoan = P.choice === "finance" || overRoom;
+    proj.status = needsLoan ? "pending_finance" : "pending_procurement";
+    setProjects(prev => [...(prev || []), proj]);
+    addL("🏗️ Approved " + proj.title + " (" + SYS.fmtM(proj.approvedM) + "; the scope costs " + SYS.fmtM(proj.estimateM) + ")." + (note ? " " + note : ""), "policy");
+    scWiki(P.choice === "proceed" ? "Controversies" : "Governorship", "Approved " + proj.title + " in " + d.lga + " at " + SYS.fmtM(proj.approvedM) + (P.choice === "proceed" ? ", although the scope was costed at " + SYS.fmtM(proj.estimateM) : "") + ".");
+    setPflow(needsLoan ? { step: "finance", projId: id, needM: Math.max(a.shortM && P.choice !== "increase" ? a.shortM : 0, Math.min(approved, P.thisYearM) - roomM(SYS.TYPE_SECTOR[d.type])) || Math.round(approved / 2) } : { step: "contractor", projId: id });
+  };
+  const loanCtx = () => ({ debtM: SYS.toM(s.debt), revenueM: SYS.toM((s.igr || 0) + (s.faac || 0)), revenueIgrM: SYS.toM(s.igr || 0), cor: s.cor || 0, fgRelation, rateCut: saOffice.adviser && SYS.lensOf(saOffice.adviser.name).loanRateCut || 0 });
+  const applyLoan = (F0, lenderId) => {
+    const p = (projects || []).find(x => x.id === F0.projId); if (!p) return;
+    const r = SYS.assessLoan(lenderId, { projectId: p.id, amountM: Math.max(100, F0.needM || 0), year: turn }, { ...loanCtx(), eia: true });
+    addL("📨 Applied to " + SYS.LENDERS[lenderId].lender + " for " + SYS.fmtM(Math.max(100, F0.needM || 0)) + " (" + p.title + "): " + (r.ok ? "an offer came back." : "declined."), "info");
+    if (r.ok) setPflow({ ...F0, offer: r.offer, letter: null }); else setPflow({ ...F0, letter: { lender: SYS.LENDERS[lenderId].lender, reasons: r.reasons }, tried: [...(F0.tried || []), lenderId] });
+  };
+  const acceptOfferNow = (F0) => {
+    const o = F0.offer; if (!o) return;
+    if (loans.some(l => l.key === o.key)) { setPflow({ step: "contractor", projId: F0.projId }); return; }
+    setLoans(l => SYS.acceptOffer(l, o, turn));
+    setS(p => ({ ...p, debt: p.debt + SYS.toB(o.principalM) })); // the only point where this debt is created
+    setProjects(prev => prev.map(x => x.id === F0.projId ? { ...x, loanLeftM: (x.loanLeftM || 0) + o.principalM, loanKey: o.key, status: x.status === "pending_finance" ? "pending_procurement" : x.status, decisions: [...(x.decisions || []), { year: turn, text: "Borrowed " + SYS.fmtM(o.principalM) + " from " + o.lender + " at " + Math.round(o.rate * 1000) / 10 + "% over " + o.years + " years." }] } : x));
+    addL("🏦 Accepted " + o.lender + "'s offer: " + SYS.fmtM(o.principalM) + " at " + Math.round(o.rate * 1000) / 10 + "% over " + o.years + " years (about " + SYS.fmtM(o.serviceM) + " a year).", "policy");
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "loan_accepted", actor: "governor", target: o.lender, gravity: 1, evidence: 3, decision: "Borrowed " + SYS.fmtM(o.principalM), note: o.nm }); } catch (e) {}
+    setPflow({ step: "contractor", projId: F0.projId });
+  };
+  const awardProject = (id, cid, mth) => decide(() => {
+    const p = (projects || []).find(x => x.id === id), C = SYS.contractorById(cid), M = SYS.PROCUREMENT[mth] || SYS.PROCUREMENT.open; if (!p || !C) return;
+    const est = Math.round(p.estimateM * M.price);
+    setProjects(prev => prev.map(x => x.id === id ? { ...x, contractorId: cid, contractor: C.name, method: M.nm, estimateM: est, baseCost: est / 1000, status: "in_progress", startTurn: turn, decisions: [...(x.decisions || []), { year: turn, text: "Awarded to " + C.name + " by " + M.nm.toLowerCase() + (est !== p.estimateM ? " (" + SYS.fmtM(est) + ")" : "") + "." }] } : x));
+    setS(q => ({ ...q, cor: cl(q.cor + M.cor + (C.nepotism ? .04 : 0)) }));
+    if (C.nepotism) { setNepotismCount(n => (n || 0) + 1); scWiki("Controversies", "Awarded " + p.title + " to " + C.name + " (" + C.note.toLowerCase().replace(/\.$/, "") + ")."); }
+    else scWiki("Governorship", "Awarded " + p.title + " to " + C.name + " by " + M.nm.toLowerCase() + ".");
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: C.nepotism ? "nepotism_flag" : "contract_awarded", actor: "governor", target: C.name, gravity: C.nepotism ? 4 : mth === "sole" ? 3 : 1, evidence: 3, corruptionDelta: Math.round((M.cor + (C.nepotism ? .04 : 0)) * 100), note: p.title + " via " + M.nm, meta: { project: p.title } }); } catch (e) {}
+    setPflow(null);
+    return { icon: "📝", title: "Contract awarded", text: p.title + " goes to " + C.name + " (" + M.nm.toLowerCase() + "). Work starts now; how far it gets each year depends on the money released and on the contractor.", tone: C.nepotism ? "bad" : "good" };
+  });
+  const projAction = (id, act) => decide(() => {
+    const p = (projects || []).find(x => x.id === id); if (!p) return;
+    let n = p, text = "", tone = "neutral";
+    if (act === "fund") { const add = SYS.remainingM(p) - SYS.committedM(p); n = SYS.addFunding(p, add, turn); text = "Added " + SYS.fmtM(add) + ". The money still has to be released from the budget or borrowed."; }
+    else if (act === "reduce") { n = SYS.reduceScope(p, Math.max(.3, (p.approvedM - 0) / Math.max(1, p.estimateM)), turn); text = "The scope now fits the money approved. " + SYS.fmtM(p.spentM) + " already spent stays spent."; }
+    else if (act === "replace") { const alt = SYS.eligible(p.type, projects).filter(c => c.id !== p.contractorId && !c.full && !c.nepotism).sort((a, b) => b.reliability - a.reliability)[0]; if (!alt) return { icon: "🚧", title: "No one free", text: "No other qualified contractor has capacity this year.", tone: "bad" }; n = SYS.replaceContractor(p, alt.id, turn); text = alt.name + " takes over. The handover adds " + SYS.fmtM(n.estimateM - p.estimateM) + "; nothing already paid is paid again."; }
+    else if (act === "suspend") { n = SYS.suspend(p, turn); text = "Work stops. " + SYS.fmtM(p.spentM) + " spent so far."; }
+    else if (act === "resume") { n = { ...p, status: "in_progress", decisions: [...p.decisions, { year: turn, text: "Resumed." }] }; text = "Work resumes."; }
+    else if (act === "abandon") { n = SYS.abandon(p, turn); text = SYS.fmtM(p.spentM) + " is sunk and " + SYS.fmtM(SYS.remainingM(p)) + " of work will never be done."; tone = "bad"; scWiki("Controversies", "Abandoned " + p.title + " after spending " + SYS.fmtM(p.spentM) + "."); }
+    else if (act === "equip") { if (!takeAgenda("project", "Equip " + p.title, "equip:" + p.id)) return; n = SYS.equip(p, turn); setS(q => ({ ...q, debt: q.debt + SYS.toB(p.equipM) })); text = "Equipped for " + SYS.fmtM(p.equipM) + "." + (n.staffed ? "" : " It still needs staff."); }
+    else if (act === "staff") { n = SYS.staff(p, turn); text = "Staff hired: " + SYS.fmtM(p.opsPerYearM) + " a year, every year, from now on." + (n.equipped ? "" : " It still needs equipment."); }
+    else if (act === "repair") { const c = SYS.repairCostM(p); n = SYS.repair(p, turn); setS(q => ({ ...q, debt: q.debt + SYS.toB(c) })); text = "Defects repaired for " + SYS.fmtM(c) + "."; }
+    setProjects(prev => prev.map(x => x.id === id ? n : x));
+    addL("🏗️ " + p.title + ": " + text, "policy");
+    if (n.status === "delivered" && p.status !== "delivered") setTimeout(() => projDelivered({ ...n, effective: SYS.benefitFactor(n), cost: n.spentM / 1000 }), 300);
+    return { icon: "🏗️", title: p.title, text, tone };
+  });
+  // Each year: the work done, the money paid, facilities run.
+  const projTicked = React.useRef(ld?.projTicked || 1);
+  useEffect(() => {
+    if (turn <= 1 || projTicked.current >= turn) { if (turn > projTicked.current) projTicked.current = turn; return; }
+    projTicked.current = turn;
+    const year = turn - 1, room = {}, done = [], notes = [];
+    let opsM = 0;
+    const boost = saOffice.adviser ? (SYS.lensOf(saOffice.adviser.name).projectBoost || 0) : 0;
+    const next = {};
+    (projects || []).forEach(p => {
+      if (p.estimateM == null) return;
+      if (p.facility && p.staffed && (p.status === "delivered" || p.status === "built")) opsM += p.opsPerYearM;
+      if (p.status !== "in_progress") return;
+      const line = SYS.BUDGET_LINE[p.sector] || "infrastructure";
+      if (room[line] == null) room[line] = sectorRoomRawM(line);
+      const m = minById(p.ministryId);
+      const r = SYS.tickProject(p, year, { cashM: room[line], cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost });
+      room[line] -= r.cashUsedM || 0;
+      next[p.id] = r.p;
+      r.events.forEach(ev => notes.push(["🏗️ " + p.title + ": " + ev.replace(/^Year \d+: /, ""), r.p.status === "stalled" ? "crisis" : "info"]));
+      if (r.p.status === "delivered") done.push(r.p);
+      if (r.p.status === "built") notes.push(["🏥 " + p.title + " is built, but empty: it needs " + (SYS.FACILITY[p.type] || {}).what + " before it can serve anyone.", "political"]);
+      if (r.p.status === "stalled") scWiki("Controversies", p.title + " stalled with " + SYS.fmtM(SYS.remainingM(r.p)) + " of work left undone.");
+    });
+    if (Object.keys(next).length) setProjects(prev => prev.map(p => next[p.id] || p));
+    if (opsM) { setS(q => ({ ...q, debt: q.debt + SYS.toB(opsM) })); notes.push(["🏥 Running your hospitals, schools and plants cost " + SYS.fmtM(opsM) + " this year.", "info"]); }
+    const sv = SYS.serviceLoans(loans, turn); if (sv.paidM) { setLoans(sv.loans); notes.push(["🏦 Project loans: " + SYS.fmtM(sv.paidM) + " repaid this year (part of debt service).", "info"]); }
+    notes.forEach(([t, k]) => addL(t, k));
+    done.forEach((p, i) => setTimeout(() => projDelivered({ ...p, effective: SYS.benefitFactor(p), cost: p.spentM / 1000 }), 600 + i * 300));
+  }, [turn]);
+
   // Records that must survive a reload mid-year (cases, commitments, the
   // year's agenda) are saved as soon as they change, not only at year end.
   const recSaveT = React.useRef(null);
-  useEffect(() => { if (gEnd || turn < 1) return; clearTimeout(recSaveT.current); recSaveT.current = setTimeout(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, 600); }, [cases, commits, agenda]);
+  useEffect(() => { if (gEnd || turn < 1) return; clearTimeout(recSaveT.current); recSaveT.current = setTimeout(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, 600); }, [cases, commits, agenda, projects, loans]);
 
   // ── PERSONNEL: what your people did this year ──
   const staffReviewed = React.useRef(ld?.staffReviewed || 1);
@@ -4773,7 +5123,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const amtM = Math.round((0.4 + r() * 1.6) * 100) * 10;
         record = [...record, { t: turn, kind: "alleged", text: "Alleged: paid " + SYS.fmtM(amtM) + " for work that may never have been done." }].slice(-4); incidents++;
         allegations.push({ m, amtM });
-        dApp -= 1; notes.push(["📰 A newspaper alleges the " + m.name + " ministry under Hon. " + m.minister + " paid " + SYS.fmtM(amtM) + " for work that was never done. Nothing is proven yet.", "scandal"]);
+        dApp -= 1 - (saOffice.adviser ? (SYS.lensOf(saOffice.adviser.name).scandalDamp || 0) : 0); notes.push(["📰 A newspaper alleges the " + m.name + " ministry under Hon. " + m.minister + " paid " + SYS.fmtM(amtM) + " for work that was never done. Nothing is proven yet.", "scandal"]);
       } else if (incidents < 2 && perf < 40 && r() < .5) {
         add("failure", "Missed every target this year; the ministry's work slowed.");
         dApp -= 1; if (MIN_SECTOR[m.id]) slowSectors.push(MIN_SECTOR[m.id]);
@@ -4787,16 +5137,49 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       return { ...m, perf, cor, loyalty, record, flag };
     });
-    setMinistries(next);
+    // Bodies you created or merged: their yearly cost (or saving), and task forces that end.
+    const yearlyM = next.reduce((a, m) => a + (m.yearlyM || 0), 0);
+    if (yearlyM) { dCor += 0; setS(p => ({ ...p, debt: Math.max(0, p.debt + SYS.toB(yearlyM)) })); notes.push([yearlyM > 0 ? "🏢 New government bodies cost " + SYS.fmtM(yearlyM) + " this year." : "🏢 Merged ministries saved " + SYS.fmtM(-yearlyM) + " this year.", "info"]); }
+    const tf = SYS.expireTaskForces(next, turn);
+    tf.ended.forEach(m => notes.push(["🎯 The " + m.name + " has ended; its work returns to " + ((next.find(x => x.id === m.taskForce.parent) || {}).name || "its ministry") + ".", "info"]));
+    setMinistries(tf.ministries);
     // New allegations: each opens a case and offers to take you straight to the meeting.
     allegations.forEach(({ m, amtM }) => {
       const c = allege(m, amtM, "press", "Paid " + SYS.fmtM(amtM) + " for work that may never have been done");
       try { window.SOP_outcome({ icon: "📰", title: "Allegation: " + m.name, text: "The papers say the ministry paid " + SYS.fmtM(amtM) + " for work that was never done. It is a claim, not a finding. Hon. " + m.minister + " is waiting to see you.", tone: "bad", ok: "Later", action: { label: "Investigate: meet Hon. " + m.minister.split(" ").pop(), fn: () => setSecr({ caseId: c.id, from: "gov" }) } }); } catch (e) {}
     });
+    // The deputy in office (SYS.deputyYear): their demand, what surfaces, what they say.
+    {
+      const dy = SYS.deputyYear(depGov && depGov.kind ? { ...depGov, surfaced: !!stc.depSurfaced } : null, turn);
+      const dn = depGov && depGov.nm;
+      if (dy && dy.type === "demand") {
+        const D = dy.demand;
+        setTimeout(() => window.SOP_confirm("Deputy Governor " + dn + " wants " + D.text + ".\n\nIt was the understanding when you chose them. " + (D.id === "control" ? "Granting it pleases their network in the " + SYS.DISTRICTS[depGov.district] + " district; it also puts money where you cannot watch it." : D.id === "policy" ? "Granting it moves the civil service; the unions and party will feel it." : "Granting it keeps the party machine sweet; their nominees may not be your best people."), "Grant it", "Refuse").then(yes => {
+          if (D.id === "control") setS(p => ({ ...p, cor: cl(p.cor + (yes ? .01 : 0)), zoneMood: { ...(p.zoneMood || {}), [depGov.district]: ((p.zoneMood || {})[depGov.district] || 0) + (yes ? 2 : -2) } }));
+          else if (D.id === "policy") { if (yes) { setMinistries(ms => (ms || []).map(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 3) }))); setS(p => ({ ...p, pStab: cl100(p.pStab - 2) })); } else setS(p => ({ ...p, app: cl100(p.app - 1) })); }
+          else setS(p => ({ ...p, pStab: cl100(p.pStab + (yes ? 3 : -3)), cor: cl(p.cor + (yes ? .01 : 0)) }));
+          setCommits(l => SYS.addCommitment(l, { id: "cm_deputy_demand", who: pName, ministryId: "deputy", action: (yes ? "Granted the deputy " : "Refused the deputy ") + D.text, reviewYear: 99, personal: true, year: turn }).map(x => x.id === "cm_deputy_demand" ? { ...x, status: yes ? "kept" : "broken", byGovernor: true } : x));
+          addL((yes ? "🤝 You granted Deputy Governor " : "🚫 You refused Deputy Governor ") + dn + " " + D.text + ".", "political");
+        }), 1200);
+      } else if (dy && dy.type === "scandal") {
+        dApp -= 2; dCor += .01; notes.push(["📰 " + dy.text, "scandal"]); scWiki("Controversies", dy.text);
+        setStc(p => ({ ...p, depSurfaced: turn }));
+      } else if (dy && dy.type === "independent") {
+        if (depGov.kind === "technocrat") { dApp += 1; dParty -= 1; } else dParty -= 1;
+        notes.push(["🗣️ " + dy.text + (depGov.kind === "technocrat" ? " The press likes the candour; the party does not." : " Party leaders ask who speaks for the government."), "political"]);
+      }
+      // The convention promise comes due at the start of the second term.
+      const pp = commits.find(x => x.id === "cm_party_promise" && x.status === "open");
+      if (pp && turn === 5) setTimeout(() => window.SOP_confirm("The party chairman reminds you of the convention: you promised to " + pp.action.charAt(0).toLowerCase() + pp.action.slice(1) + ".\n\nKeep your word? The party will remember either way.", "Keep it", "Break it").then(yes => {
+        setCommits(l => l.map(x => x.id === pp.id ? { ...x, status: yes ? "kept" : "broken", notes: [...x.notes, "Year 5: " + (yes ? "kept." : "broken.")] } : x));
+        setS(p => ({ ...p, pStab: cl100(p.pStab + (yes ? 3 : -8)) }));
+        addL(yes ? "🤝 You kept the convention promise: " + pp.action + "." : "💔 You broke the convention promise: " + pp.action + ". The party will not forget.", "political");
+      }), 1600);
+    }
     // Last year's commitments, open files and delayed consequences.
     {
       const evAdd = {};
-      const rv = SYS.reviewCommitments(commits, turn - 1, (x) => {
+      const rv = SYS.reviewCommitments(commits.filter(x => !x.byGovernor), turn - 1, (x) => {
         if (x.caseId) { const c = cases.find(k => k.id === x.caseId); if (!c) return true; const o = SYS.commitmentOutcome(c, traits(x.who).hon); if (o.evidence) evAdd[x.caseId] = { ...o.evidence, by: "Hon. " + x.who + (o.kept ? "'s file" : ""), year: turn - 1 }; return o.kept; }
         const mm = next.find(k => k.id === x.ministryId); return SYS.seeded("commit", x.id)() < ((mm && mm.perf) || 50) / 100 + .15;
       });
@@ -4910,10 +5293,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setS(p => ({ ...p, debt: p.debt + .5 }));
     return { icon: "💰", title: "You backed Hon. " + m.minister, text: "An extra ₦0.5B for " + m.name + ". " + (t.hon < 45 ? "Some of it may not reach the work." : "It will go into the work."), tone: "good" };
   });
-  useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase, newMinistry: () => { setNav("cab"); setNewMin({ pick: true }); } }; });
+  useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase, newMinistry: () => { setNav("cab"); setNewMin({ pick: true }); }, restructure: () => setSecr({ restructure: {}, from: nav }) }; });
 
   const getSABrief = () => {
     if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
+    const waiting = (projects || []).find(p => p && p.estimateM != null && (p.status === "pending_procurement" || p.status === "pending_finance"));
+    if (waiting) return { urgent: true, icon: waiting.status === "pending_finance" ? "🏦" : "📝", title: (waiting.status === "pending_finance" ? "Find the money for " : "Pick a contractor for ") + waiting.title, body: "Approved but not started. Every year it waits, the need it answers gets worse.", actionLabel: waiting.status === "pending_finance" ? "Find the money" : "Pick a contractor", action: () => setPflow(waiting.status === "pending_finance" ? { step: "finance", projId: waiting.id, needM: Math.max(100, waiting.approvedM - roomM(waiting.sector)) } : { step: "contractor", projId: waiting.id }) };
+    const stalledP = (projects || []).find(p => p && p.estimateM != null && p.status === "stalled");
+    if (stalledP) return { urgent: true, icon: "🚧", title: stalledP.title + " has stalled", body: SYS.fmtM(SYS.remainingM(stalledP)) + " of work is left and the money has run out. Add funding, cut the scope, replace the contractor, or abandon it.", actionLabel: "Open Projects", action: () => goTab("prj") };
+    const emptyF = (projects || []).find(p => p && p.estimateM != null && p.status === "built");
+    if (emptyF) return { urgent: true, icon: "🏥", title: emptyF.title + " is built but empty", body: "A building is not a service. Equip it and staff it, or it helps no one.", actionLabel: "Open Projects", action: () => goTab("prj") };
     const awaitingContract = (projects || []).find(p => p && (p.status === "awarded_pending" || p.status === "eia_done" || p.status === "bidding") && !p.contractor);
     if (awaitingContract || pendingProc) return { urgent: true, icon: "📝", title: "Award a contractor for " + ((pendingProc?.title) || awaitingContract?.title || "a pending project"), body: "Procurement is stalled at contractor selection. Open the project, review bidders, and award — sole-source is fast but leaks treasury and lands on your Wikipedia.", actionLabel: "Open Projects", action: () => goTab("prj") };
 
@@ -9213,10 +9602,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           })()}
         </OL>
 
+        <OL show={!!pflow}>
+          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} agendaLeft={agendaLeftNow} />}
+        </OL>
         <OL show={!!secr}>
           {secr && <SecretariatView year={turn} ministries={ministries} cases={cases} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
             onClose={closeSecr} onOpen={openSecr} onMeet={meetCase} onGather={gatherCase} onDecide={decideCaseNow}
-            onAppoint={appointFor} appointPicks={appointPicks} audiences={audiences} onAudience={answerAudience} />}
+            onAppoint={appointFor} appointPicks={appointPicks} audiences={audiences} onAudience={answerAudience} onApplyRestructure={applyRestructureNow} />}
         </OL>
         <OL show={!!meetMin}>
           {meetMin && (() => {
@@ -9776,7 +10168,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "con" && <div className="sop-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 29 }}><Cd><h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>✅ CAN</h3>{CONST_CAN.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd><Cd><h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>❌ CANNOT</h3>{CONST_CANT.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd></div>}
 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
-        {nav === "prj" && <div id="sop-realism-prj" data-nav="prj"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Projects module…</div></div>}
+        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} agendaLeft={agendaLeftNow} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
         {nav === "bio" && <WikiArticle w={buildWiki(false)} onShare={(k) => shareWiki(buildWiki(false), k)} />}
@@ -10347,7 +10739,7 @@ const ADV = {
   primaries: "Now comes the party primaries. This is how candidates are selected within the party. Under the Electoral Act, you must win your party's ticket before you can face the general election. It's your first real test.",
   slogan: "Every winning campaign needs a slogan — something the people can chant, something that captures your vision in a few words. Make it memorable!",
   convention: "Welcome to the party convention. The party has their preferred deputy — but remember, you are the candidate. Your choice here sets the political tone for your entire campaign.",
-  conventionResult: (accepted) => accepted ? "Excellent choice. The party is united. That's a strong start." : "Bold move. You've made your point — but watch your back. The party elders won't forget this easily.",
+  conventionResult: (accepted) => accepted ? "Excellent choice. The party is united. That's a strong start." : "You have the running mate you wanted, and a deal with the party. Keep your side of it; they will keep count.",
   campaign: "Campaign time! Take your message to the people. Your slogan, your agenda, your deputy — everything comes together now. Win the hearts and minds of your state!",
   govHouse: (name, state, saName, flag) => "Congratulations, Your Excellency! Welcome to Government House, " + state.replace("_", " ") + " State. I'm " + saName + ", your Special Adviser, and I'm standing right beside you." + (flag ? " " + flag.nm + " starts on day one: the people heard you promise to " + flag.goal + ", and they will count." : "") + " Let's make history!",
   budget: (amount) => "Your Excellency, it's budget time. You have " + amount + " to allocate across 8 sectors. The House of Assembly will review your Appropriation Bill — make sure it's balanced.",

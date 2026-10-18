@@ -302,7 +302,7 @@
     if (!SOP.projects || !SOP.projects.length) return;
     let changed = false;
     SOP.projects.forEach(p => {
-      if (p.status !== "in_progress") return;
+      if (p.status !== "in_progress" || p.estimateM != null) return; // new-style projects are ticked by the game (SYS.tickProject)
       const rate = 15 + Math.random() * 20 - (p.nepotism ? 8 : 0) - (p.method?.includes("Emergency") ? 5 : 0);
       p.progress = Math.min(100, p.progress + Math.max(3, rate));
       // random event
@@ -395,17 +395,9 @@
       SOP_H('div',{style:{fontSize: TS(36),color:c.td,marginBottom: 29}}, "Nigerian state governors have executive powers under §5(2) to create, merge, or abolish ministries — subject to House of Assembly approval on budget lines."),
       SOP_H('div',{style:{display:"flex",gap: 22,marginBottom: 29,flexWrap:"wrap"}}, [
         SOP_H(Btn,{onClick:()=>{ if (window.SOP_PERSONNEL && window.SOP_PERSONNEL.newMinistry) window.SOP_PERSONNEL.newMinistry(); else setShowCreate(!showCreate); }, tone:"blu"}, "➕ Create Ministry"),
-        SOP_H(Btn,{onClick:()=>{
-          if (mergeSel.length !== 2) { alert("Select exactly 2 ministries to merge."); return; }
-          const [a,b] = mergeSel.map(id => SOP.ministries.find(m=>m.id===id));
-          const merged = { ...a, id:a.id+"_"+b.id, name:a.name+" & "+b.name, staff:a.staff+b.staff, budget:(a.budget||0)+(b.budget||0), perf: Math.round((a.perf+b.perf)/2)-8, cor: Math.round((a.cor+b.cor)/2)+5 };
-          const rest = SOP.ministries.filter(m => !mergeSel.includes(m.id));
-          SOP.setMinistries([...rest, merged]);
-          SOP.setS(p=>({...p, pStab: Math.max(0, p.pStab - 8), app: Math.max(0, p.app - 3)}));
-          SOP.addL(`🔀 Merged ${a.name} + ${b.name}. 14,000 civil servants restructured. -8 party stability.`, "political");
-          pushWiki(SOP, {section:"Governorship",txt:`Merged the ministries of ${a.name} and ${b.name} in a cost-cutting reform.`});
-          setMergeSel([]);
-        }, tone:"org", disabled: mergeSel.length!==2}, `🔀 Merge Selected (${mergeSel.length}/2)`),
+        // Merging, splitting and moving work now go through the Secretariat, which
+        // shows the mandate, costs and every transfer before you confirm.
+        SOP_H(Btn,{onClick:()=>{ if (window.SOP_PERSONNEL && window.SOP_PERSONNEL.restructure) window.SOP_PERSONNEL.restructure(); }, tone:"org"}, "🔀 Restructure (merge, split, move work)"),
       ]),
       showCreate && SOP_H(Card,{},[
         SOP_H('div',{style:{fontSize: TS(38),marginBottom: 22,fontWeight:600}},"Create New Ministry (₦2B setup + House approval risk)"),
@@ -464,12 +456,9 @@
                 try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"minister_fired", target: oldName, gravity:2, evidence:2, note:`Cabinet reshuffle: ${oldName} → ${replacement} at ${m.name}`, meta:{ ministry:m.name, godfather:false }}); } catch(e){}
               }
             }, tone:"org", style:{fontSize: TS(34),padding: "10px 22px"}}, m.godfatherMandate ? "🔥 Fire GF" : "🔄 Fire"),
-            SOP_H(Btn,{onClick:async ()=>{
-              if (!(await window.SOP_confirm(`Dismantle ${m.name}? Civil servants will sue. Party will revolt.`))) return;
-              SOP.setMinistries(SOP.ministries.filter(x=>x.id!==m.id));
-              SOP.setS(p=>({...p, pStab: Math.max(0,p.pStab-12), app: Math.max(0,p.app-5)}));
-              SOP.addL(`💥 Dismantled ${m.name}. NIC lawsuits filed. -12 party, -5 approval.`, "crisis");
-              pushWiki(SOP, {section:"Controversies",txt:`Abolished the ${m.name} — sparked NLC picket and NIC litigation.`});
+            SOP_H(Btn,{onClick:()=>{
+              // Abolishing a ministry must hand its projects, files and staff somewhere: do it as a merge.
+              if (window.SOP_PERSONNEL && window.SOP_PERSONNEL.restructure) window.SOP_PERSONNEL.restructure();
             }, tone:"red", style:{fontSize: TS(34),padding: "10px 22px"}}, "✕"),
           ])
         ]),

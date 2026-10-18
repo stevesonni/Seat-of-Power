@@ -76,7 +76,7 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false 
       if (cards.length) { cards[0].click(); return "card " + cards[0].textContent.trim().slice(0, 50); }
       return null;
     }, SKIP.source);
-    if (!hit) { await g.click(/^Govern$/); await g.wait(250); hit = "→ Govern"; }
+    if (!hit) { if (!(await g.click(/^Govern$/))) { await g.click(/^Desk$/); await g.wait(200); await g.click(/^Govern$/); } await g.wait(250); hit = "→ Govern"; }
     clicks.push(hit); if (log) console.log(i, hit);
     await g.wait(300);
   }
