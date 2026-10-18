@@ -35,7 +35,7 @@ It runs in the browser, phone-first, with a laptop layout. It is also packaged f
    - Each week the opponent strikes back, before you answer.
    - The screen is a scoreboard: the week strip, you against the opponent, three zone tiles, money and days as chips, and move cards with cost, target zone and strength.
    - A godfather can fund you. The loans are personal debts with favours attached.
-4. **Election night.** Results come in from the polling units. Choices about agents and irregularities affect your integrity record.
+4. **Election day.** Votes are counted across the three senatorial zones and the winner declared. (An election-night module with choices about BVAS failures and vote buying exists but is currently switched off.)
 5. **Tribunal.** A close result can be petitioned, at the Tribunal, then the Court of Appeal, then the Supreme Court. You can lose office in court.
 6. **Government House.** You arrive and see your portrait, title, votes and margin.
 7. **Governing: Year 1 to Year 4.** This is the heart of the game (see below).
