@@ -3676,6 +3676,77 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
   </div>;
 };
 
+// ─── THE GOLDFIELDS (rules in SYS/deposits.js) ───
+const GoldView = ({ D, year, onChoose, onClose }) => {
+  const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(31), l: TS(44) };
+  const b = SYS.beat(D, year), decided = D.decided[year];
+  const WC = { good: CL.grn, fair: CL.blu, poor: CL.org, dire: CL.red };
+  return <Cd style={{ maxWidth: 920 }}>
+    <div style={{ fontSize: fz.s, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: CL.td }}>The goldfields · {D.lga} · Year {year}</div>
+    <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, margin: "4px 0 6px" }}>{b ? b.title : "The goldfields"}</h3>
+    <div style={{ display: "inline-block", fontSize: fz.s, fontWeight: 800, color: D.stage === "resolved" ? CL.grn : D.stage === "entrenched" || D.stage === "escalation" ? CL.red : CL.org, border: "1px solid currentColor", borderRadius: 999, padding: "2px 10px", marginBottom: 10 }}>{SYS.GOLD_STAGE[D.stage]}</div>
+    <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(3, 1fr)", gap: 6, marginBottom: 12 }}>
+      {Object.keys(D.m).map(k => { const w = SYS.word(k, D.m[k]); return <div key={k} style={{ background: CL.bg, border: "1px solid " + CL.bdr, borderRadius: 12, padding: "6px 10px", fontSize: fz.s }}><div style={{ color: CL.td }}>{SYS.MEASURE_NAME[k]}</div><b style={{ color: WC[w] }}>{w}</b></div>; })}
+    </div>
+    {D.agreement && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 8 }}>Agreement with Northstar (Year {D.agreement.year}): {D.agreement.benefitSharing ? "shares benefits with the host communities." : "shares nothing with the communities."} An agreement is not a solution until it has held.</div>}
+    {b && !decided && <>
+      <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.45, marginBottom: 6 }}>{b.text}</div>
+      <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 2 }}><b>Known:</b> {b.known}</div>
+      <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 10 }}><b>Not known:</b> {b.unknown}</div>
+      {b.options.map(o => <button key={o.id} onClick={() => onChoose(o.id)} style={{ textAlign: "left", width: "100%", padding: "10px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, cursor: "pointer", marginBottom: 8, fontFamily: F.b, color: CL.txt }}>
+        <b style={{ display: "block", fontSize: fz.m }}>{o.label}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{o.note}{o.costM ? " Commits " + SYS.fmtM(o.costM) + " now." : ""}</span>
+      </button>)}
+    </>}
+    {decided && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 10 }}>This year's decision is made. What it changes shows at the end of the year.</div>}
+    <div style={{ fontSize: fz.s, color: CL.td, marginTop: 6 }}>{D.history.slice(-4).map((h, i) => <div key={i}>Year {h.year}: {h.text}</div>)}</div>
+    <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={onClose}>{decided || !b ? "Close" : "Decide later this year"}</Bt></div>
+  </Cd>;
+};
+
+// ─── VOICE (prototype; rules in SYS/voice.js) ───
+// Optional character speech for one scene type: the Secretariat case meeting.
+// Off until the player turns it on. Uses the device's own speech engine; no
+// account, no cost, nothing leaves the device. Text is always shown first;
+// failure, silence or skipping never blocks play; replay never repeats a
+// decision; leaving the scene stops the voice; one line at a time.
+const SOP_VOICE = (() => {
+  const ok = typeof window !== "undefined" && "speechSynthesis" in window && typeof window.SpeechSynthesisUtterance === "function";
+  let prefs = { on: false, vol: .9 };
+  try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem("sop_voice") || "{}") }; } catch (e) {}
+  const all = () => { try { return ok ? window.speechSynthesis.getVoices() : []; } catch (e) { return []; } };
+  const stop = () => { try { if (ok) window.speechSynthesis.cancel(); } catch (e) {} };
+  const speak = (text, characterId) => {
+    if (!ok || !prefs.on || window.SOP_paused || !text) return false;
+    stop();
+    try {
+      const vs = all().filter(v => /^en/i.test(v.lang || "")), p = SYS.voiceFor(characterId, vs.map(v => v.name));
+      const u = new window.SpeechSynthesisUtterance(SYS.speakable(text));
+      const v = vs.find(x => x.name === p.voice); if (v) u.voice = v;
+      u.rate = p.rate; u.pitch = p.pitch; u.volume = prefs.vol; u.onerror = () => {};
+      window.speechSynthesis.speak(u); return true;
+    } catch (e) { return false; }
+  };
+  const set = (k, v) => { prefs = { ...prefs, [k]: v }; try { localStorage.setItem("sop_voice", JSON.stringify(prefs)); } catch (e) {} if (!prefs.on) stop(); };
+  return { supported: ok, speak, stop, set, get: () => prefs };
+})();
+window.SOP_VOICE = SOP_VOICE;
+const VoiceBar = ({ text, characterId, sceneKey, fz }) => {
+  const [p, setP] = React.useState(SOP_VOICE.get());
+  // A new line (entering the scene, or the reply to a choice) is read once.
+  React.useEffect(() => { SOP_VOICE.speak(text, characterId); }, [sceneKey, text]);
+  React.useEffect(() => () => SOP_VOICE.stop(), []); // leaving the scene stops the voice
+  if (!SOP_VOICE.supported) return <div style={{ fontSize: fz.s, color: CL.td, margin: "4px 0 8px" }}>🔇 Voice is not available on this device. The text is all there is to it.</div>;
+  const b = { border: "1px solid " + CL.bdr, background: CL.card, borderRadius: 999, padding: "4px 12px", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, color: CL.txt, minHeight: 34 };
+  return <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", margin: "4px 0 10px" }}>
+    <button aria-pressed={p.on} onClick={() => { SOP_VOICE.set("on", !p.on); setP(SOP_VOICE.get()); if (!p.on) setTimeout(() => SOP_VOICE.speak(text, characterId), 50); }} style={b}>{p.on ? "🔊 Voice on" : "🔈 Voice off"}</button>
+    {p.on && <>
+      <button onClick={() => SOP_VOICE.speak(text, characterId)} style={b}>↺ Replay</button>
+      <button onClick={() => SOP_VOICE.stop()} style={b}>⏭ Skip</button>
+      <label style={{ fontSize: fz.s, color: CL.td, display: "flex", alignItems: "center", gap: 6 }}>Volume <input type="range" min={0} max={1} step={.1} value={p.vol} onChange={e => { SOP_VOICE.set("vol", +e.target.value); setP(SOP_VOICE.get()); }} /></label>
+    </>}
+  </div>;
+};
+
 // ─── THE STATE SECRETARIAT ───
 // Where the governor meets the cabinet. A general visit opens the directory
 // (commissioners, requests for an audience, open cases, commitments); an
@@ -3707,6 +3778,14 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
     return <Cd style={{ maxWidth: 900 }}>
       <div style={{ fontSize: fz.s, fontWeight: 800, letterSpacing: 1.4, textTransform: "uppercase", color: CL.td, marginBottom: 8 }}>State Secretariat · Case file · Year {year}</div>
       {head(m, c.officer !== m.minister ? "inherited the file from Hon. " + c.officer : null)}
+      {(() => {
+        const lastMt = c.meetings[c.meetings.length - 1];
+        const line = lastMt && lastMt.year === year ? lastMt.lines.map(l => l.text).join(" ") : "Your Excellency, you wanted to see me about the " + c.ministryName.toLowerCase() + " payments." + (c.meetings.length ? " We spoke about this in Year " + c.meetings[c.meetings.length - 1].year + "." : "");
+        return <>
+          <div style={{ fontSize: fz.m, color: CL.txt, fontStyle: "italic", lineHeight: 1.45, marginBottom: 2 }}>{"\u201c" + line + "\u201d"}</div>
+          <VoiceBar text={line} characterId={"commissioner:" + m.id + ":" + m.minister} sceneKey={c.id + ":" + c.meetings.length} fz={fz} />
+        </>;
+      })()}
       <div style={{ background: CL.bg, border: "1px solid " + CL.bdr, borderRadius: 14, padding: "10px 14px", marginBottom: 12 }}>
         <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 4 }}>Why you are meeting</div>
         <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.4 }}>{c.what}. {c.officer !== m.minister ? "It happened under Hon. " + c.officer + "." : ""}</div>
@@ -4059,7 +4138,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { civic = window.SOP_CIVIC?.getCorruption ? window.SOP_CIVIC.getCorruption() : null; } catch (e) {}
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
-      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current,
+      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, gold, goldShown: goldShown.current, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current,
       turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc, reportAt: reportRef.current ? reportRef.current.t : null, reportSnap: reportRef.current ? reportRef.current.snap : null,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
@@ -5095,6 +5174,34 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const recSaveT = React.useRef(null);
   useEffect(() => { if (gEnd || turn < 1) return; clearTimeout(recSaveT.current); recSaveT.current = setTimeout(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, 600); }, [cases, commits, agenda, projects, loans]);
 
+  // ── THE GOLDFIELDS (SYS.deposits): discovered in Year 1, escalating from Year 2 ──
+  const [gold, setGold] = useState(() => ld?.gold || null);
+  const [goldOpen, setGoldOpen] = useState(false);
+  const goldSeed = state + ":" + pName + ":" + (setup?.startYear || 2027);
+  const goldShown = React.useRef(ld?.goldShown || 0);
+  useEffect(() => {
+    if (gEnd || needSetup || phase !== "policy") return;
+    if (!gold) {
+      // Year 1 in a new game. A save from before this storyline discovers it now.
+      const lg = getLGAs(state), lga = lg.length ? lg[hashStr(goldSeed) % lg.length] : state.replace("_", " ");
+      const D = SYS.discover(goldSeed, turn, lga);
+      setGold(D); goldShown.current = turn; setGoldOpen(true);
+      addL("⛏️ Gold confirmed under farmland in " + lga + ". Northstar Mining holds the federal licence.", "crisis");
+      scWiki("Governorship", "Gold deposits were confirmed in " + lga + " during the first year of the administration.");
+      return;
+    }
+    if (gold && goldShown.current < turn && !gold.decided[turn] && SYS.beat(gold, turn)) { goldShown.current = turn; setGoldOpen(true); }
+  }, [phase, turn, needSetup]);
+  const chooseGold = (optId) => decide(() => {
+    const r = SYS.choose(gold, turn, optId, goldSeed); if (r.D === gold) return;
+    setGold(r.D); setGoldOpen(false);
+    const fx = r.fx || {};
+    setS(p => ({ ...p, app: cl100(p.app + (fx.app || 0)), pStab: cl100(p.pStab + (fx.pStab || 0)), sec: cl(p.sec + (fx.sec || 0)), debt: p.debt + SYS.toB(r.costM) }));
+    addL("⛏️ Goldfields: " + r.text + (r.costM ? " (" + SYS.fmtM(r.costM) + ")" : ""), "political");
+    try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "goldfields", actor: "governor", gravity: 2, evidence: 3, decision: r.text, note: "Year " + turn }); } catch (e) {}
+    return { icon: "⛏️", title: "The goldfields", text: r.text + " The effects show by the end of the year.", tone: "neutral" };
+  });
+
   // ── PERSONNEL: what your people did this year ──
   const staffReviewed = React.useRef(ld?.staffReviewed || 1);
   useEffect(() => {
@@ -5754,6 +5861,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const endTurn = () => {
     if (!SYS.canResolveYear(yearDone.current, turn)) return; // already resolved (double click, reload)
     yearDone.current = turn;
+    if (gold) {
+      if (!gold.decided[turn] && SYS.beat(gold, turn)) addL("⛏️ Goldfields: no decision this year. The pits did not wait.", "crisis");
+      const g = SYS.yearEnd(gold, turn, goldSeed, { cor: s.cor, fgRelation });
+      setGold(g.D);
+      g.events.forEach(e => { addL("⛏️ Goldfields: " + e, g.D.stage === "escalation" || g.D.stage === "entrenched" ? "crisis" : "info"); scWiki(g.D.stage === "resolved" ? "Governorship" : "Controversies", "The goldfields crisis: " + e); });
+      if (g.D.m.harm > 60) setS(p => ({ ...p, app: cl100(p.app - 2), hp: cl(p.hp - .01) }));
+    }
     setS(prev => {
       let n = { ...prev }; const bf = tb / 100;
       const sm = { education: "lit", health: "hp", infrastructure: "infra", security: "sec", agriculture: "agr" };
@@ -7106,6 +7220,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             {st0.keyDecisions.length > 0 && <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10 }}>Decisions people remember: {st0.keyDecisions.map(k => k.what).join(" · ")}</div>}
           </Cd>; })()}
+          {gold && (() => {
+            if (gEnd === "defeated" || gEnd === "nullified" || gEnd === "impeached") {
+              const ep = SYS.successorEpilogue(gold, goldSeed, { openCases: cases.filter(c => c.stage !== "decided" && c.stage !== "closed").length, debtB: s.debt, cor: s.cor, fgRelation });
+              return <Cd style={{ textAlign: "left", margin: "29px auto 0", maxWidth: 900 }}>
+                <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 10 }}>THE GOLDFIELDS AFTER YOU: {ep.label.toUpperCase()}</div>
+                <div style={{ fontSize: TS(32), color: CL.txt, lineHeight: 1.5 }}>You handed over a crisis that was {SYS.GOLD_STAGE[ep.stageAtHandover].toLowerCase()}. You left {ep.yours.join("; ")}.</div>
+                <div style={{ fontSize: TS(32), color: CL.tm, lineHeight: 1.5, marginTop: 8 }}>{ep.theirs}</div>
+              </Cd>;
+            }
+            if (gEnd === "complete") { const fa = SYS.finalAssessment(gold); return <Cd style={{ textAlign: "left", margin: "29px auto 0", maxWidth: 900 }}>
+              <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 10 }}>THE GOLDFIELDS AFTER EIGHT YEARS</div>
+              <div style={{ fontSize: TS(32), color: CL.txt, lineHeight: 1.5 }}>{fa.verdict}</div>
+              <div style={{ fontSize: TS(28), color: CL.tm, marginTop: 8 }}>{Object.entries(fa.measures).map(([k, v]) => SYS.MEASURE_NAME[k] + ": " + v).join(" · ")}</div>
+            </Cd>; }
+            return null;
+          })()}
           {!VATAR && <div style={{ marginTop: 36 }}><ShareCard img={heroImg} name={"Gov. " + pName} line1={state.replace("_", " ") + " State · " + party + " · " + termsServed} line2={"Approval " + Math.round(s.app) + "% · Score " + ov + " · #SeatOfPower"} grade={gr} /></div>}
           <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "22px 0 43px" }}>
             <Bt onClick={() => setShowWiki(true)}>📖 Wikipedia Bio</Bt>
@@ -7377,6 +7507,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
     <button onClick={() => setSecr({ view: "dir", from: nav })} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: CL.txt, border: "1px solid " + ((cases.some(c => c.stage !== "decided" && c.stage !== "closed") || audiences.length) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>🏢 Secretariat{(() => { const n = cases.filter(c => c.stage !== "decided" && c.stage !== "closed").length + audiences.length; return n ? " (" + n + ")" : ""; })()}</button>
+    {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
     <span title="Major actions left this year: programmes, projects, orders, bills, reforms, new ministries. Meetings and inspections are free." style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Agenda {agendaLeftNow}/{SYS.agendaSize(setup?.level || "medium")} left</span>
         {["Budget", "House vote", "Policies", "Review", "Events"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
@@ -9602,6 +9733,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           })()}
         </OL>
 
+        <OL show={goldOpen && !!gold}>
+          {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
+        </OL>
         <OL show={!!pflow}>
           {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} agendaLeft={agendaLeftNow} />}
         </OL>

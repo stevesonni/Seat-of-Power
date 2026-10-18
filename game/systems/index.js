@@ -11,3 +11,5 @@ export * from "./projects.js";
 export * from "./loans.js";
 export * from "./proposals.js";
 export * from "./ministries.js";
+export * from "./deposits.js";
+export * from "./voice.js";

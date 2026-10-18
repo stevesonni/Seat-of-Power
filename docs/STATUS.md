@@ -402,3 +402,31 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
 - **The arrival:** Government House shows the governor's portrait, the new title and the votes and margin that won it.
 - **End of the first half-year:** "Your first half-year" sums up what was done and sets one next goal.
 - **The one thing to do next:** the hub's next building pulses, and the first-half-year guide has **Show me**, which scrolls to the task and flashes it. Both respect reduced motion.
+
+## Master brief (living state) — what is built
+Rules live in `game/systems/` (no screen code; `window.SOP_SYS` in the game). Unit tests: `npm test`. Browser playthroughs: `npm run build:game && npm run e2e`.
+
+| Area | Where | Notes |
+|---|---|---|
+| Tagline, title group | `TitleLineup` | Figures placed by measured eye line and face size |
+| Godfather loans | `systems/money.js` | Accepted offers only, keyed, ₦M integers; favours separate; save v3 cleans ghost amounts |
+| Chosen adviser | `systems/advisers.js` | Four outlooks, each with a blind spot and a small yearly effect |
+| Years and agenda | `systems/agenda.js` | Year 1–4, 5–8; 6 major actions a year (7 Easy, 5 Hard); once-only year end |
+| Secretariat, cases, commitments | `systems/cases.js`, `SecretariatView` | Hidden truth, seeded evidence, staged decisions, acting officials |
+| Deputy | `systems/deputy.js` | Four kinds, districts (real ones for Edo), party negotiation |
+| Projects, contractors, loans, proposals | `systems/projects.js`, `loans.js`, `proposals.js`, `ProjectsView` | ₦M records; phasing vs shortfall; capability-based bidders; offer letters |
+| Restructuring | `systems/ministries.js` | Merge, split, move an area, task force, with explicit transfers |
+| Goldfields crisis | `systems/deposits.js`, `GoldView` | Year 1 discovery, Year 2 escalation, staged outcomes, successor epilogue, Year 8 verdict |
+| Voice | `systems/voice.js`, `VoiceBar`, `docs/VOICE.md` | Device speech prototype on the case meeting; YarnGPT unverified, not configured |
+
+**Balancing assumptions:**
+- An agenda of 6 major actions a year.
+- Unit costs in `UNIT`, which are simulation values, not tender prices.
+- Sector capital room = budget share × revenue × 0.35.
+- Goldfields: in 2,000 simulated games per approach, a first-term resolution happened 0 times. Excellent play resolved the crisis by Year 8 about 49% of the time, random play 0.05%, and poor play almost always left it entrenched. "One in a million" is a design target set by a seeded outside-conditions roll (`fortune`), not a measured rate.
+
+**Known limits:**
+- Older stats (`s.debt`, `s.igr`) are still decimal ₦B. They meet the new ₦M records only through `toM`/`toB`.
+- A campaign loan that an old save had already folded into state debt can't be separated out.
+- Only Edo has real senatorial districts; other states group their LGAs automatically.
+- Projects from old saves keep the old procurement model.
