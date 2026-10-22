@@ -3362,6 +3362,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
   const doVote = () => {
     const passed = hardBlockers.length === 0;
     if (!passed) {
+      try { window.SOP_stamp && window.SOP_stamp("rejected", null, "bad"); } catch (e) {}
       setReasons(hardBlockers);
       addL && addL("❌ House rejects Appropriation Bill. " + hardBlockers.slice(0, 2).map(r => r.who + " voted no: " + (r.why || r.t.split(" — ")[0])).join(" "), "political");
     } else if (concerns.length) {
@@ -3596,11 +3597,11 @@ const MilestoneMove = ({ from, at }) => {
   return <MilestoneStrip at={shown} />;
 };
 // A rubber stamp over the page, once, for a decision that has been recorded.
-const StampOnce = ({ text, sub, green, sound = "gavel" }) => {
-  const [on, setOn] = useState(true);
-  useEffect(() => { try { window.SOP_sound && window.SOP_sound(sound); } catch (e) {} const t = setTimeout(() => setOn(false), 1700); return () => clearTimeout(t); }, []);
-  return on ? <div className="sp-stamp-wrap" aria-hidden="true"><div className={"sp-stamp" + (green ? " green" : "")}>{text}{sub && <small>{sub}</small>}</div></div> : null;
+const StampOnce = ({ name, sub, sound = "gavel" }) => {
+  useEffect(() => { try { window.SOP_stamp && window.SOP_stamp(name, sub, sound); } catch (e) {} }, []);
+  return null;
 };
+const stamp = (name, sub, sound) => { try { window.SOP_stamp && window.SOP_stamp(name, sub, sound); } catch (e) {} };
 // Reduced motion: the device setting, or the player's own switch.
 const spStill = () => { try { return localStorage.getItem("sop_still") === "1"; } catch (e) { return false; } };
 const setSpStill = (v) => { try { localStorage.setItem("sop_still", v ? "1" : "0"); } catch (e) {} try { document.documentElement.classList.toggle("sp-still", !!v); } catch (e) {} };
@@ -3802,7 +3803,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
       contract: ["Contract signed", C ? C.name : "", true, "Contract signed with " + (C ? C.name : "the contractor"), "Work starts this year. How far it gets depends on the money released and on the contractor; you will see it at year end."] }[k];
     if (!S || !recorded) return <Card p={proj} big />;
     return <Dossier icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
-      <StampOnce key={F0.at} text={S[0]} sub={S[1]} green={S[2]} sound={k === "approved" ? "gavel" : "good"} />
+      <StampOnce key={F0.at} name={{ approved: "approved", funded: "funded", contract: "contract-signed" }[k]} sub={S[1]} sound={k === "approved" ? "gavel" : "good"} />
       <div style={{ margin: "14px 0 4px" }}><MilestoneMove from={F0.fromAt} at={SYS.milestoneOf(proj)} /></div>
       <Situation head={S[3]} text={S[4]} />
       <Tiles items={[["Scope costs", SYS.fmtM(proj.estimateM)], ["Approved", SYS.fmtM(proj.approvedM)], k === "funded" ? ["Loan in hand", SYS.fmtM(proj.loanLeftM), "good"] : ["Spent", SYS.fmtM(proj.spentM)], ["Stage", SYS.MILESTONES[SYS.milestoneOf(proj)][1]]]} />
@@ -4346,6 +4347,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cost = Math.max(0, +costB || 0); if (!cost) return { ok: true, fromBankB: 0, borrowedB: 0 };
     const r = SYS.pay(moneyRef.current, cost, { level: lvl, force: !!opt.force });
     if (!r.ok) {
+      stamp("broke", null, "bad");
       try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/unpaid-invoices.webp", title: "The state can't pay for this", text: what + " needs " + naira(r.short) + " more than the bank holds, and lenders won't lend the state any more. Raise revenue, cut something, or wait for next year's money.", tone: "bad", ok: "Understood" }); } catch (e) {}
       return null;
     }
@@ -4828,7 +4830,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       if (A > 0) {
         const all = Math.round(A * mw * 10) / 10;
-        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: ((s.cash || 0) >= Math.round(A * mw * 10) / 10 ? "Paid from the bank. " : "Partly borrowed. ") + "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
+        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: ((s.cash || 0) >= Math.round(A * mw * 10) / 10 ? "Paid from the bank. " : "Partly borrowed. ") + "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); stamp("paid", "Salary arrears", "good"); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
         if (f >= .95) opts.push({ label: "Pay one month of arrears", note: "A gesture. The unions want it all.", chips: fxChips({ debt: mw }), run: () => { scFx({ debt: mw }); setStc(p => ({ ...p, arrears: Math.max(0, p.arrears - 1) })); addL("🧾 Paid one month of salary arrears.", "policy"); } });
         if (f >= .95) opts.push({ label: "Keep owing them", note: "The arrears stay. So does the anger.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); addL("🧾 Salary arrears left unpaid another year.", "political"); } });
       }
@@ -5323,6 +5325,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const P = SYS.oldDebtPlan(kind, (oldPlan || {}).total || 0, nowB);
     setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, kind, leftB: P.leftB, perYearB: P.perYearB, years: P.years, payNowB: P.payNowB, payYear: turn } }));
     setDebtPick(false);
+    if (kind === "now" && P.payNowB > 0) stamp("paid", naira(P.payNowB) + " of the old debt", "good");
     addL("💳 The last government's debt: " + (kind === "now" ? "paid " + naira(P.payNowB) + " at once; the rest over 4 years." : "spread over " + P.years + " years.") , "policy");
     scWiki("Governorship", "Inherited " + naira((oldPlan || {}).total || 0) + " of debt from the previous administration and " + (kind === "now" ? "paid " + naira(P.payNowB) + " of it at once." : "spread its repayment over " + P.years + " years."));
   };
@@ -5862,6 +5865,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // A delivered project improves its sector, scaled by its size and by how
   // much of the money reached the site.
   const projDelivered = (p) => {
+    stamp("commissioned", p.title || p.nm, "good");
     const k = PROJ_STAT[p.type]; if (!k) return;
     const eff = typeof p.effective === "number" ? p.effective : .8, size = +(p.cost || p.baseCost || 1);
     const gain = k === "igr" ? Math.round(Math.min(1.5, size * .12) * eff * 10) / 10 : Math.round(Math.min(.06, .01 + size * .006) * eff * 1000) / 1000;
@@ -5987,6 +5991,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("❌ House rejects " + bill.nm + ". " + objections.slice(0, 2).map(o => o.who + " voted no: " + o.why).join(" "), "political");
       setS(p => ({ ...p, pStab: cl100(p.pStab - 3) }));
       setBillReject({ bill, reasons: objections });
+      stamp("rejected", bill.nm, "bad");
       return { icon: "🏛️", title: "The House voted it down", text: bill.nm + ": " + objections[0].who + " voted no because " + objections[0].why, tone: "bad" };
     }
     setBillReject(null);
@@ -5998,6 +6003,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setSkApp(p => { const n = { ...p }; Object.entries(bill.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
     const note = s.pStab < 40 ? " after tense caucus horse-trading" : "";
     addL("📜 BILL SIGNED: " + bill.nm + " passed by House" + note + " and signed into law.", "policy");
+    try { window.SOP_billSign && window.SOP_billSign({ title: bill.nm, lines: [bill.d].concat(Object.entries(bill.fx || {}).map(([k, v]) => fxChip(k, v))), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
     return { icon: "📜", title: "Passed and signed", text: bill.nm + " is now law" + note + ".", tone: "good" };
   });
 
@@ -9971,6 +9977,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     addL("✍️ SIGNED: " + pendingHouseBill.nm + " — but you missed suspicious clauses! Corruption increased.", "scandal");
                   } else {
                     addL("✍️ SIGNED: " + pendingHouseBill.nm + " signed into law." + (pendingHouseBill.signCost > 0 ? " Cost: " + naira(pendingHouseBill.signCost) : ""), "policy");
+                    try { window.SOP_billSign && window.SOP_billSign({ title: pendingHouseBill.nm, lines: (pendingHouseBill.clauses || []).map(c => c.t), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
                   }
                   advanceFn();
                 }} style={{ padding: 43 }}>
@@ -10337,7 +10344,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             {phase === "house_vote" && <Cd style={{ borderColor: CL.pur + "44" }}>
               <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
-              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
+              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { stamp("passed", "Year " + turn + "'s budget"); addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
                 onNegotiate={(cost, reasons) => { if (houseDeal(cost, reasons, "The appropriation bill")) setPhase("policy"); }}

@@ -42,6 +42,21 @@ state-seal (invented — use instead of the old national "crest"), title-logo, a
 - **backgrounds/finance-ministry-office** with **characters/finance-commissioner:** the top of the Money panel.
 - **Not used, on purpose:** compound-base, compound-base-night, the motorcade frames and o-motorcade (retired when the convoy was removed at the player's request; compound-full is the map).
 
+## Art pack 2: stamps (11 images, all in use; checked by tests/art-usage.test.mjs)
+One stamp layer for the whole game: `SOP_stamp(name, sub)` in `public/seat-of-power.html` (no motion when the device or the player asks for less).
+
+| Stamp | When it lands |
+|---|---|
+| stamp-approved | A project approved |
+| stamp-funded | A loan accepted |
+| stamp-contract-signed | A contract awarded |
+| stamp-passed | The budget passed by the House |
+| stamp-rejected | The budget or a bill voted down |
+| stamp-signed-into-law | Signing a bill. `SOP_billSign` shows bill-paper-blank with the bill's title and clauses, governor-signature-pen writes the governor's name, then this stamp |
+| stamp-commissioned | A project opens |
+| stamp-paid | The old debt paid at once, or all salary arrears cleared |
+| stamp-broke | "The state can't pay for this" |
+
 ## Known issues to fix later
 - Some images still show the national coat of arms (governor-female-agbada, governor-female-kaftan, deputy-male, deputy-female, speaker mace, collation-centre, governor-office, assembly-chamber, courtroom). Regenerate or edit before shipping.
 - labour-leader shirt reads "Nigeria Labour Union"; deputy-male badge says "Kaduna State".

@@ -17,3 +17,10 @@ test("every money-pack image is used by the game", () => {
   const unused = pack2.filter(f => !src.includes(path.basename(f)));
   assert.deepEqual(unused, []);
 });
+// Stamps are loaded by name (SOP_stamp("approved") → stamp-approved), so check the names.
+test("every stamp, the pen and the bill page are used", () => {
+  const files = fs.readdirSync(path.join(root, "public/art/objects")).filter(f => /^(stamp-|governor-signature-pen|bill-paper-blank)/.test(f)).map(f => f.replace(/\.webp$/, ""));
+  assert.equal(files.length, 11, "the stamps pack has 11 images");
+  const unused = files.filter(f => f.startsWith("stamp-") ? !new RegExp("(SOP_stamp|stamp|StampOnce)\\(?[^\\n]{0,40}[\"']" + f.slice(6) + "[\"']").test(src) && !src.includes('"' + f.slice(6) + '"') : !src.includes(f));
+  assert.deepEqual(unused, []);
+});
