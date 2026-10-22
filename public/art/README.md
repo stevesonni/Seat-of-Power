@@ -29,6 +29,19 @@ Older art (anchors, av-agbada/babariga/isiagu/female, hero-*, sa-adebayo/halima,
 ## brand/
 state-seal (invented — use instead of the old national "crest"), title-logo, app-icon (browser and home-screen icon)
 
+## Art pack 2: money (26 images, all in use; checked by tests/art-usage.test.mjs)
+- **scenes/** (new folder, 1280px wide), each on a result card with its picture:
+  - money stories from commissioners (`SYS.ministryWindfall` / `ministryWaste`): money-agric-exports, money-vaccination-grant, money-education-grant, money-road-tolls, money-markets-reopened, money-revenue-drive, money-savings-returned, money-wasted;
+  - deals: money-deal-signed-abroad (the Dutch deal), money-federal-intervention (the Abuja fund), money-investor-factory (an approved investor);
+  - Year 1: inherited-debt (the debt choice), ghost-workers-purge (the payroll audit's result).
+- **objects/:**
+  - treasury-chest (each year's money card) and treasury-chest-empty (Year 1, or nothing left);
+  - unpaid-invoices ("The state can't pay for this");
+  - faac-envelope, igr-receipt-stack and debt-ledger-book (the three sources in the Desk's Money panel);
+  - coins-burst behind the chest, and coin-1…4 (one coin turning) rising when money arrives. These are off with reduced motion.
+- **backgrounds/finance-ministry-office** with **characters/finance-commissioner:** the top of the Money panel.
+- **Not used, on purpose:** compound-base, compound-base-night, the motorcade frames and o-motorcade (retired when the convoy was removed at the player's request; compound-full is the map).
+
 ## Known issues to fix later
 - Some images still show the national coat of arms (governor-female-agbada, governor-female-kaftan, deputy-male, deputy-female, speaker mace, collation-centre, governor-office, assembly-chamber, courtroom). Regenerate or edit before shipping.
 - labour-leader shirt reads "Nigeria Labour Union"; deputy-male badge says "Kaduna State".

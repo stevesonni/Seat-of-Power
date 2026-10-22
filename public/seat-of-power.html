@@ -143,6 +143,11 @@
        tappable gives a small press. Off for people who ask for less motion. */
     @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes sopSlideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes sopCoin { 0% { transform: translateY(0) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-78vh) rotate(25deg); opacity: 0; } }
+    @keyframes sopBurst { 0% { transform: scale(.3) rotate(-20deg); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: .9; } }
+    .sop-burst { animation: sopBurst .6s cubic-bezier(.2,1.3,.4,1) both; }
+    @media (prefers-reduced-motion: reduce) { .sop-burst { animation: none; } }
+    .sp-still .sop-burst { animation: none; }
     .sop-fade-in { animation: sopFadeIn .22s ease-out; }
     .sop-slide-up, .sop-step { animation: sopSlideUp .3s cubic-bezier(.2,.8,.2,1); }
     #sop-stage button, #sop-stage .ds-card { -webkit-tap-highlight-color: transparent; }
@@ -336,14 +341,23 @@
         back.style.cssText = 'position:fixed;inset:0;z-index:9950;background:rgba(6,14,10,.6);display:flex;align-items:center;justify-content:center;padding:18px;animation:sopFadeIn .18s ease-out';
         var card = document.createElement('div');
         card.setAttribute('role', 'alertdialog'); card.setAttribute('aria-modal', 'true');
-        card.style.cssText = 'background:#14232b;color:#e9eef0;border-radius:28px;max-width:520px;width:100%;padding:26px 24px 22px;box-shadow:0 28px 70px rgba(0,0,0,.45);font:500 22px/1.45 "Plus Jakarta Sans",sans-serif;text-align:center;animation:sopSlideUp .25s cubic-bezier(.2,.8,.2,1)';
+        card.style.cssText = 'background:#14232b;color:#e9eef0;border-radius:28px;max-width:520px;width:100%;max-height:92vh;overflow:auto;padding:26px 24px 22px;box-shadow:0 28px 70px rgba(0,0,0,.45);font:500 22px/1.45 "Plus Jakarta Sans",sans-serif;text-align:center;animation:sopSlideUp .25s cubic-bezier(.2,.8,.2,1)';
         var ic = document.createElement('div');
         ic.textContent = o.icon || '📣';
         ic.style.cssText = 'width:92px;height:92px;margin:0 auto 14px;border-radius:50%;background:#1d313b;display:flex;align-items:center;justify-content:center;font-size:46px';
         var h = document.createElement('div');
         h.textContent = o.title || 'Done';
         h.style.cssText = 'font:800 32px/1.2 "Plus Jakarta Sans",sans-serif;color:#fff;margin-bottom:10px';
-        card.appendChild(ic); card.appendChild(h);
+        // A picture for the result: a scene fills the top of the card; an object replaces the icon.
+        if (o.img) {
+          var wide = /\/(scenes|backgrounds)\//.test(o.img), pic = document.createElement('img');
+          pic.src = o.img; pic.alt = '';
+          pic.style.cssText = wide ? 'display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;margin:-6px 0 14px' : 'display:block;width:150px;height:150px;object-fit:contain;margin:0 auto 10px;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35))';
+          if (o.coins && !wide) { var wrap = document.createElement('div'); wrap.style.cssText = 'position:relative;width:150px;height:150px;margin:0 auto 10px'; var burst = document.createElement('img'); burst.src = './art/objects/coins-burst.webp'; burst.alt = ''; burst.className = 'sop-burst'; burst.style.cssText = 'position:absolute;inset:-40px;width:230px;height:230px;object-fit:contain;opacity:.9'; pic.style.margin = '0'; pic.style.position = 'relative'; wrap.appendChild(burst); wrap.appendChild(pic); card.appendChild(wrap); }
+          else card.appendChild(pic);
+        } else card.appendChild(ic);
+        card.appendChild(h);
+        if (o.coins) coinRain(back);
         if (o.text) { var t = document.createElement('div'); t.textContent = o.text; t.style.cssText = 'color:#b9c6cc;margin-bottom:14px'; card.appendChild(t); }
         if (o.rows && o.rows.length) {
           var g = document.createElement('div');
@@ -376,6 +390,19 @@
         setTimeout(function () { b.focus(); }, 30);
       }
       window.SOP_outcome = function (o) { queue.push(o || {}); next(); };
+      // Money arriving: a few spinning coins (coin-1…4 are the turn of one coin) rise past the card.
+      // None when the device or the player asks for less motion.
+      function coinRain(back) {
+        try { if (matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('sp-still')) return; } catch (e) {}
+        var frames = ['./art/objects/coin-1.webp', './art/objects/coin-2.webp', './art/objects/coin-3.webp', './art/objects/coin-4.webp'];
+        for (var i = 0; i < 9; i++) (function (i) {
+          var c = document.createElement('img'), f = i % 4;
+          c.src = frames[f]; c.alt = '';
+          c.style.cssText = 'position:fixed;z-index:9951;width:' + (34 + (i * 7) % 22) + 'px;left:' + (12 + (i * 37) % 76) + '%;bottom:-60px;pointer-events:none;animation:sopCoin ' + (1.3 + (i % 3) * .25) + 's ' + (i * .09) + 's cubic-bezier(.2,.7,.3,1) forwards';
+          var t = setInterval(function () { f = (f + 1) % 4; c.src = frames[f]; }, 90);
+          back.appendChild(c); setTimeout(function () { clearInterval(t); c.remove(); }, 2600);
+        })(i);
+      }
     })();
     window.alert = function (msg) { try { window.SOP_toast(String(msg), 'warn'); } catch (e) {} };
 

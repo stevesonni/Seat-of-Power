@@ -4346,7 +4346,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cost = Math.max(0, +costB || 0); if (!cost) return { ok: true, fromBankB: 0, borrowedB: 0 };
     const r = SYS.pay(moneyRef.current, cost, { level: lvl, force: !!opt.force });
     if (!r.ok) {
-      try { window.SOP_outcome({ icon: "🏦", title: "The state can't pay for this", text: what + " needs " + naira(r.short) + " more than the bank holds, and lenders won't lend the state any more. Raise revenue, cut something, or wait for next year's money.", tone: "bad", ok: "Understood" }); } catch (e) {}
+      try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/unpaid-invoices.webp", title: "The state can't pay for this", text: what + " needs " + naira(r.short) + " more than the bank holds, and lenders won't lend the state any more. Raise revenue, cut something, or wait for next year's money.", tone: "bad", ok: "Understood" }); } catch (e) {}
       return null;
     }
     moneyRef.current = r.s; // a second payment in the same tap sees this one
@@ -4361,6 +4361,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (o.cash && o.amtB) setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) + o.amtB) * 100) / 100) }));
     setStc(p => ({ ...p, moneyNews: [...(p.moneyNews || []), { t: turn, icon: o.icon, head: o.head, text: o.text, amtB: o.amtB || 0, cash: !!o.cash }].slice(-24) }));
     addL(o.icon + " " + o.text, (o.amtB || 0) < 0 ? "crisis" : "success");
+    if (o.img) try { window.SOP_outcome({ icon: o.icon, img: "./art/scenes/" + o.img + ".webp", title: o.head, text: o.text, tone: (o.amtB || 0) < 0 ? "bad" : "good", coins: o.cash && o.amtB > 0, ok: "Got it",
+      rows: o.amtB ? [{ l: o.amtB < 0 ? "Lost" : o.cash ? "Into the bank" : "Taxes a year", v: (o.amtB < 0 ? "−" : "+") + SYS.fmtM(SYS.toM(Math.abs(o.amtB))), good: o.amtB > 0 }] : [] }); } catch (e) {}
   };
   const canAfford = (costB, what) => { if (SYS.payFrom(moneyRef.current, costB, lvl) !== "broke") return true; spendB(costB, what); return false; };
   // Inside a setS updater (year end): pay from n, borrowing only if allowed.
@@ -4689,7 +4691,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (hit) { scFx(a.risk.fx); addL("⚠️ " + a.risk.log, "crisis"); }
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "revenue_reform", actor: "governor", gravity: 1, evidence: 3, decision: m.t, note: a.log }); } catch (e) {}
     let gain = ""; try { gain = m.gain(c); } catch (e) {}
-    return { icon: m.icon, title: "Adopted: " + m.t, text: (gain ? "Expect: " + gain + "." : "") + (hit ? " But: " + a.risk.log : ""), tone: hit ? "bad" : "good" };
+    return { icon: m.icon, img: m.id === "payroll" ? "./art/scenes/ghost-workers-purge.webp" : undefined, coins: !!a.cashNow && !hit, title: "Adopted: " + m.t, text: (gain ? "Expect: " + gain + "." : "") + (hit ? " But: " + a.risk.log : ""), tone: hit ? "bad" : "good" };
   });
 
   // Debt: ask Abuja for relief, push repayments to the next administration,
@@ -5303,7 +5305,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (oldPlan && oldPlan.kind && oldPlan.leftB > 0 && !firstOfNow(oldPlan)) setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, leftB: Math.max(0, Math.round((p.oldDebt.leftB - Math.min(p.oldDebt.leftB, p.oldDebt.perYearB)) * 100) / 100) } }));
     const news = (stc.moneyNews || []).filter(x => x.t === turn || (x.t === turn - 1 && !x.cash)).slice(-4);
     addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries and offices take " + naira(a.runB) + ", debt repayments " + naira(a.debtB + payNow) + "; " + naira(work) + " goes into the bank.", "info");
-    try { window.SOP_outcome({ icon: "🏦", title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
+    try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/" + (turn === 1 || total < .5 ? "treasury-chest-empty" : "treasury-chest") + ".webp", coins: turn > 1 && total >= .5, title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
       text: turn === 1 ? "The bank was empty, contractors were owed " + naira(bills) + ", and the state owes " + naira((oldPlan || {}).total || 0) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
       tone: total < a.inB * .2 ? "bad" : "good", ok: "Got it",
       rows: [{ l: "FAAC from Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }]
@@ -7989,9 +7991,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <span style={{ color: CL.td, fontSize: fz.s }}>{revOpen ? "▲" : "▼"}</span>
             </button>
             {revOpen && <div style={{ padding: TALL() ? "0 14px 14px" : "0 20px 18px", display: "grid", gap: 10 }}>
+              <SceneArt bg="finance-ministry-office" who="finance-commissioner" alt="The Commissioner for Finance" h={TALL() ? 170 : 230} />
+              {(() => { const a = accounts(), src = (img, l, v, note) => <div key={l} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", border: "1px solid " + CL.bdr, borderRadius: 14, padding: "8px 12px" }}>
+                <img src={"./art/objects/" + img + ".webp"} alt="" style={{ width: TALL() ? 44 : 56, height: TALL() ? 44 : 56, objectFit: "contain" }} />
+                <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, color: CL.txt }}>{l}: {v}</b><span style={{ display: "block", fontSize: fz.s, color: CL.td }}>{note}</span></span></div>;
+                return <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(3, 1fr)", gap: 8 }}>
+                  {src("faac-envelope", "FAAC from Abuja", naira(s.faac || 0), "The federal share, every year. It rises and falls with oil.")}
+                  {src("igr-receipt-stack", "Taxes and fees", naira(s.igr || 0), "What the state collects itself. Reforms below grow it.")}
+                  {src("debt-ledger-book", "Debt repayments", naira(a.debtB), "Due this year, with 8% interest. Still owed: " + naira(s.debt || 0) + ".")}
+                </div>; })()}
               <div style={{ fontSize: fz.s, color: CL.td }}>Up to two reforms a year: the civil service cannot absorb more. {left > 0 ? left + " left this year." : "None left this year."}</div>
               {(() => {
-                const svc = (s.debt || 0) * .08, inc = (s.igr || 0) + (s.faac || 0), share = inc > 0 ? Math.round(svc / inc * 100) : 0;
+                const svc = accounts().debtB, inc = (s.igr || 0) + (s.faac || 0), share = inc > 0 ? Math.round(svc / inc * 100) : 0;
                 const row = (k, label, note, can, why, fn) => <div key={k} style={{ border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "10px 12px" : "14px 16px" }}>
                   <div style={{ display: "flex", gap: 10, alignItems: "baseline", justifyContent: "space-between" }}>
                     <b style={{ fontSize: fz.m, color: CL.txt, display: "flex", gap: 8, alignItems: "center" }}>{k === "notes" ? <img src="./art/objects/promissory-note.webp" alt="" style={{ width: TALL() ? 34 : 44, height: TALL() ? 34 : 44, objectFit: "contain", flexShrink: 0 }} /> : null}<span>{label}</span></b>
@@ -8273,7 +8284,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "event_result" && !!eventResult}>
           {eventResult && <Cd style={{ borderColor: eventResult.tone === "good" ? CL.grn + "44" : eventResult.tone === "bad" ? CL.red + "44" : CL.bdr }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ fontSize: TS(113), marginBottom: 14 }}>{eventResult.icon}</div>
+              {eventResult.img ? <img src={eventResult.img} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, marginBottom: 14 }} /> : <div style={{ fontSize: TS(113), marginBottom: 14 }}>{eventResult.icon}</div>}
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(62), fontWeight: 600 }}>{eventResult.title}</h3>
             </div>
             {eventResult.narrative && <More text={eventResult.narrative} style={{ fontSize: TS(38), color: CL.tm, lineHeight: 1.5, marginBottom: 29, textAlign: "center", fontStyle: "italic" }} />}
@@ -8928,7 +8939,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 if (inv.appRisk < -2) efx.push({ icon: "😤", text: "Community displaced — some residents angry", value: inv.appRisk + " approval", bad: true });
                 if (corHit) efx.push({ icon: "💀", text: "Land allocation scandal! Kickbacks detected.", value: "+3% corruption", bad: true });
                 efx.push({ icon: "🤝", text: "Business stakeholders pleased", value: "+8", good: true });
-                showResult({ icon: "🏗️", title: inv.nm + " — APPROVED", narrative: inv.co + " has begun construction. Workers are being hired. " + inv.landCost + " of state land has been allocated. " + (corHit ? "However, reports of irregular payments in the land allocation process are already emerging. EFCC may take notice." : "The project is expected to be operational within 18 months. Revenue will start flowing to the state treasury."), effects: efx, tone: "good", nextFn: () => nextEvent() });
+                showResult({ icon: "🏗️", img: "./art/scenes/money-investor-factory.webp", title: inv.nm + " — APPROVED", narrative: inv.co + " has begun construction. Workers are being hired. " + inv.landCost + " of state land has been allocated. " + (corHit ? "However, reports of irregular payments in the land allocation process are already emerging. EFCC may take notice." : "The project is expected to be operational within 18 months. Revenue will start flowing to the state treasury."), effects: efx, tone: "good", nextFn: () => nextEvent() });
               }} style={{ padding: 36 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.grn, marginBottom: 10 }}>✅ Approve — Allocate Land</div>
                 <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 10 }}>Grant them the land and approve the project. Jobs and revenue start flowing. Some community displacement.</div>
@@ -9005,7 +9016,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 // Small chance of getting a federal favour
                 const rf = Math.random();
                 if (rf < .35) {
-                  noteMoney({ icon: "🇳🇬", head: "Federal intervention", text: "The President approved a ₦1.5B intervention fund for your state after the Abuja visit. It is in the bank.", amtB: 1.5, cash: true });
+                  noteMoney({ img: "money-federal-intervention", icon: "🇳🇬", head: "Federal intervention", text: "The President approved a ₦1.5B intervention fund for your state after the Abuja visit. It is in the bank.", amtB: 1.5, cash: true });
                 }
                 nextEvent();
               }} style={{ padding: 43 }}>
@@ -9078,7 +9089,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 12), youth: cl100((p.youth || 50) + 5) }));
                   addL("🇳🇱 Netherlands trip SUCCESS! Dutch investors commit €40M.", "policy");
                   noteMoney({ icon: "🇳🇱", head: "The Dutch deal", text: "The agro-processing and solar deal you signed in The Hague adds about ₦" + (3 + hiddenBoost).toFixed(1) + "B a year in taxes from now on.", amtB: Math.round((3 + hiddenBoost) * 10) / 10 });
-                  showResult({ icon: "🇳🇱🎉", title: "The Hague — DEAL SIGNED!", narrative: "The Dutch investors were impressed by your personal presence. After 3 days of negotiations, they committed €40 million to an agro-processing and solar farm project. Construction begins in 6 months.", effects: [
+                  showResult({ icon: "🇳🇱🎉", img: "./art/scenes/money-deal-signed-abroad.webp", title: "The Hague — DEAL SIGNED!", narrative: "The Dutch investors were impressed by your personal presence. After 3 days of negotiations, they committed €40 million to an agro-processing and solar farm project. Construction begins in 6 months.", effects: [
                     { icon: "💰", text: "IGR boost from investment", value: "+₦" + (3 + hiddenBoost).toFixed(1) + "B", good: true },
                     { icon: "💸", text: "FAAC bonus from bilateral goodwill", value: "+₦0.8B", good: true },
                     { icon: "🌾", text: "Agriculture sector boosted", value: "+4%", good: true },
@@ -10056,6 +10067,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
         <OL show={debtPick}>
           {debtPick && oldPlan && <div className="sp-card sp-step" style={{ maxWidth: 720, margin: "0 auto", padding: TALL() ? 16 : 24 }}>
+            <img src="./art/scenes/inherited-debt.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
             <div className="sp-kicker">What the last government left</div>
             <div style={{ font: "700 26px/1.15 'Fraunces', Georgia, serif", color: "#17301f", margin: "4px 0 6px" }}>The state owes {naira(oldPlan.total)}</div>
             <div style={{ font: "500 15px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginBottom: 12 }}>It is repaid out of the same yearly money as everything else, with 8% interest a year. How do we deal with it?</div>
