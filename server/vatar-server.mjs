@@ -31,6 +31,12 @@ const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEE
 const boardFile = (w) => path.join(DATA, "boards", "w" + w + ".json");
 let boardLock = Promise.resolve();
 const readBoard = (w) => { try { return JSON.parse(fs.readFileSync(boardFile(w), "utf8")); } catch (e) { return { entries: {} }; } };
+// The Hall of Governors (all time): each player's best finished career.
+const HALL = path.join(DATA, "hall.json");
+let hallLock = Promise.resolve();
+const readHall = () => { try { return JSON.parse(fs.readFileSync(HALL, "utf8")); } catch (e) { return { entries: {} }; } };
+// The name on the boards: the player's Lagos Life username, as Vatar reports it.
+const userOf = (b, session) => { const c = seen.get(session); return cleanName((c && c.username) || b.username); };
 const cleanName = (t) => String(t || "").replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, 40) || "A governor";
 
 fs.mkdirSync(path.join(DATA, "players"), { recursive: true });
@@ -71,7 +77,7 @@ const who = async (session) => {
   if (c && c.exp > Date.now()) return c.playerId;
   const v = await vatar("/session/verify", { session });
   if (v.http !== 200 || !/^[pt]_[A-Za-z0-9_-]{1,80}$/.test(v.playerId || "")) return null;
-  seen.set(session, { playerId: v.playerId, exp: Math.min(v.exp || 0, Date.now() + 14 * 60e3) });
+  seen.set(session, { playerId: v.playerId, username: v.username || v.displayName || v.name || null, exp: Math.min(v.exp || 0, Date.now() + 14 * 60e3) });
   if (seen.size > 5000) for (const [k, x] of seen) if (x.exp < Date.now()) seen.delete(k);
   return v.playerId;
 };
@@ -107,7 +113,7 @@ const api = {
   "/api/challenge/score": async (b, id) => {
     const w = +b.week, n = Math.round(+b.score);
     if (!(w === weekNow() || w === weekNow() - 1) || !Number.isFinite(n) || n < 0 || n > 100000) return { _code: 400, error: "bad_request" };
-    const run = boardLock.then(() => { const B = readBoard(w), old = B.entries[id]; if (!old || n > old.score) { B.entries[id] = { name: cleanName(b.name), title: cleanName(b.title), score: n, at: Date.now() }; fs.mkdirSync(path.dirname(boardFile(w)), { recursive: true }); const f = boardFile(w), tmp = f + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(B)); fs.renameSync(tmp, f); } return { ok: true, best: Math.max(n, old ? old.score : 0) }; });
+    const run = boardLock.then(() => { const B = readBoard(w), old = B.entries[id]; if (!old || n > old.score) { B.entries[id] = { name: userOf(b, b.session), title: cleanName(b.title), score: n, at: Date.now() }; fs.mkdirSync(path.dirname(boardFile(w)), { recursive: true }); const f = boardFile(w), tmp = f + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(B)); fs.renameSync(tmp, f); } return { ok: true, best: Math.max(n, old ? old.score : 0) }; });
     boardLock = run.catch(() => {}); return run;
   },
   // The week's top 20 (names are the players' in-game politicians), and where you stand.
@@ -116,8 +122,24 @@ const api = {
     const me = all.findIndex(([k]) => k === id);
     return { week: w, top: all.slice(0, 20).map(([k, e], i) => ({ rank: i + 1, name: e.name, title: e.title, score: e.score, me: k === id })), you: me >= 0 ? { rank: me + 1, score: all[me][1].score } : null, players: all.length };
   },
+  // A finished career for the all-time Hall: the player's best is kept.
+  "/api/hall/submit": async (b, id) => {
+    const n = Math.round(+b.score); if (!Number.isFinite(n) || n < 0 || n > 100000) return { _code: 400, error: "bad_request" };
+    const run = hallLock.then(() => { const H = readHall(), old = H.entries[id];
+      if (!old || n > old.score) { H.entries[id] = { name: userOf(b, b.session), title: cleanName(b.title), state: cleanName(b.state), grade: String(b.grade || "").slice(0, 2), score: n, at: Date.now() }; const tmp = HALL + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(H)); fs.renameSync(tmp, HALL); }
+      return { ok: true, best: Math.max(n, old ? old.score : 0) }; });
+    hallLock = run.catch(() => {}); return run;
+  },
+  "/api/hall/board": async (b, id) => {
+    const all = Object.entries(readHall().entries).sort((x, y) => y[1].score - x[1].score), me = all.findIndex(([k]) => k === id);
+    return { top: all.slice(0, 50).map(([k, e], i) => ({ rank: i + 1, name: e.name, title: e.title, state: e.state, grade: e.grade, score: e.score, me: k === id })), you: me >= 0 ? { rank: me + 1, score: all[me][1].score } : null, players: all.length };
+  },
   // The player's right to have their data removed (Developer Agreement §8).
-  "/api/delete": async (b, id) => { try { fs.unlinkSync(file(id)); } catch (e) {} return { ok: true }; },
+  "/api/delete": async (b, id) => {
+    try { fs.unlinkSync(file(id)); } catch (e) {}
+    await (hallLock = hallLock.then(() => { const H = readHall(); if (H.entries[id]) { delete H.entries[id]; fs.writeFileSync(HALL, JSON.stringify(H)); } }).catch(() => {}));
+    return { ok: true };
+  },
   // A purchase counts only when Vatar's server says it is paid and it is this player's.
   "/claim": async (b, id) => {
     const pid = String(b.purchaseId || ""); if (!/^[A-Za-z0-9_-]{1,80}$/.test(pid)) return { _code: 400, error: "bad_request" };

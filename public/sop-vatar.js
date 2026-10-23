@@ -76,7 +76,12 @@
   };
   // The weekly challenge: attempts and the board live on our server, against the player's id.
   window.SOP_chStart = function () { return ready.then(function (on) { if (!on) return { ok: true, offline: true }; return call("/api/challenge/start").then(function (r) { if (r.ents) setEnts(r.ents); return r; }); }); };
-  window.SOP_chScore = function (week, score, name, title) { return ready.then(function (on) { if (on) return call("/api/challenge/score", { week: week, score: score, name: name, title: title }); }).catch(function () {}); };
+  // Boards show the player's Lagos Life username (the server prefers the name Vatar verified).
+  function uname() { var p = window.SOP_PLAYER || {}; return p.username || p.displayName || p.name || p.handle || ""; }
+  window.SOP_USERNAME = uname;
+  window.SOP_chScore = function (week, score, name, title) { return ready.then(function (on) { if (on) return call("/api/challenge/score", { week: week, score: score, username: uname(), title: title }); }).catch(function () {}); };
+  window.SOP_hallSubmit = function (c) { return ready.then(function (on) { if (on) return call("/api/hall/submit", Object.assign({ username: uname() }, c)); }).catch(function () {}); };
+  window.SOP_hallBoard = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/board"); }); };
   window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {
     return call("/api/use", { product: productId }).then(function (r) { if (r.ok) setEnts(r.ents); return !!r.ok; });

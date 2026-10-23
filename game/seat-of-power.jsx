@@ -2151,6 +2151,10 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
   const packLocked = (id) => paidHere && !(ents[id] > 0);
   const scenariosLocked = SCENARIO_PACKS.every(k => packLocked(k.id));
   const ch = challengeOf(weekNow());
+  // A gold dot on the menu until you open this week's challenge.
+  const [chNew, setChNew] = useState(() => { try { return localStorage.getItem("sop_ch_seen") !== String(weekNow()); } catch (e) { return false; } });
+  const seeCh = () => { try { localStorage.setItem("sop_ch_seen", String(weekNow())); } catch (e) {} setChNew(false); };
+  const [soundOn, setSoundOn] = useState(() => { try { return window.SOP_soundOn ? window.SOP_soundOn() : true; } catch (e) { return true; } });
   useEffect(() => {
     setTimeout(() => setOp(1), 100);
     (async () => {
@@ -2174,29 +2178,38 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
   return (
     <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
+        <button onClick={() => setSheet("menu")} aria-label="Menu" style={{ position: "relative", width: 48, height: 48, borderRadius: 16, border: 0, background: UI.dark, color: "#fff", fontSize: 22, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.2)" }}>☰{chNew && <span aria-label="New challenge" style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "#e9b949", border: "2px solid #fff" }} />}</button>
         <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: profile ? "4px 16px 4px 4px" : "10px 18px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", maxWidth: "60%" }}>
           {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 2 : undefined }} /> : <span aria-hidden="true">👤</span>}
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
         </button>
-        <button onClick={onHelp} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "10px 20px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer" }}>How to play</button>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: tall ? "0 20px" : "0 40px" }}>
         <img src={TITLE_LOGO} alt="The Seat of Power" style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
         <div style={{ marginTop: tall ? 8 : 12, fontSize: DS.t.label, letterSpacing: 2, textTransform: "uppercase", color: UI.sub, fontWeight: 700, textAlign: "center" }}>Campaign · Govern · Survive</div>
-        <div style={{ marginTop: 6, fontFamily: F.d, fontSize: TS(30), color: UI.ink, textAlign: "center", maxWidth: 560, lineHeight: 1.3 }}>Win a governorship in Nigeria, then lead with every promise you made.</div>
       </div>
       <TitleLineup ids={lineup} tall={tall} />
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
         <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
-        <PillBtn tone="plain" onClick={() => onChallenge(profile)} style={{ width: "100%", maxWidth: 460 }}>🏆 This week's challenge<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{stateLabel(ch.state)} · the same start and the same luck for everyone · week {ch.week}</span></PillBtn>
-        <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 460 }}>
-          <PillBtn tone="plain" onClick={() => setSheet("scenarios")} style={{ flex: 1 }}>📜 Scenarios{scenariosLocked ? " · from ₦1,000" : ""}</PillBtn>
-          {paidHere && <PillBtn tone="plain" onClick={onBoard} style={{ flex: 1 }}>📊 This week's board</PillBtn>}
-        </div>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
+      {sheet === "menu" && <EntranceSheet title="Menu" onClose={() => setSheet(null)}>
+        <div style={{ display: "grid", gap: 10 }}>
+          {[["👤", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
+            ["🏆", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
+            ["📜", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
+            ["🏛️", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
+            ["❓", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
+            [soundOn ? "🔊" : "🔇", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
+          ].map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
+            <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 24 }}>{ic}</span>
+            <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{sub}</span></span>
+            {dot ? <span style={{ background: "#e9b949", color: UI.ink, borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 800 }}>NEW</span> : <span style={{ color: UI.dim }}>›</span>}
+          </button>)}
+        </div>
+      </EntranceSheet>}
       {sheet === "scenarios" && <EntranceSheet title="Scenarios" onClose={() => setSheet(null)}>
         <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Start a governorship in the middle of a crisis. Harder than a normal start; your titles and honours count the same.</div>
         {SCENARIO_PACKS.map(k => <div key={k.id} style={{ marginBottom: 14 }}>
@@ -2227,7 +2240,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
           {ALL_TITLES.map(t => <span key={t} title={got.has(t) ? "Earned" : "Not yet earned"} style={{ padding: "6px 12px", borderRadius: 999, fontSize: DS.t.meta, fontWeight: 800, background: got.has(t) ? UI.green + "18" : "#efe9dc", color: got.has(t) ? UI.green : UI.dim, border: "1px solid " + (got.has(t) ? UI.green + "55" : UI.line) }}>{got.has(t) ? "🏅 " + t : "🔒 " + t}</span>)}
           <span style={{ width: "100%", fontSize: DS.t.meta, color: UI.sub }}>{got.size} of {ALL_TITLES.length} earned. Every ending has one, good or bad.</span>
         </div>; })()}
-        <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🏅 Hall of Governors</b>
+        <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🗂️ Your careers</b>
         {(profile.games || []).length ? <div style={{ display: "grid", gap: 8 }}>
           {(profile.games || []).slice().reverse().map((g, i) => <div key={i} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center" }}>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{g.title}</b>
@@ -2235,7 +2248,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
             <b style={{ fontFamily: F.d, fontSize: TS(36), color: g.grade === "A" || g.grade === "B" ? UI.green : g.grade === "C" ? "#b7791f" : "#c0392b" }}>{g.grade}</b>
           </div>)}
         </div> : <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>No finished careers yet. Every governorship you complete, win or lose, is recorded here with its title and grade.</div>}
-        <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 12, lineHeight: 1.5 }}>Saved on this device. Accounts are on the way: sign in to keep your career across devices and join a public Hall of Governors.</div>
+        <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 12, lineHeight: 1.5 }}>{VATAR ? "Your best career goes to the public Hall of Governors under your Lagos Life username." : "Saved on this device. Play in Lagos Life to join the public Hall of Governors."}</div>
       </EntranceSheet>}
     </div>
   );
@@ -3235,6 +3248,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       const cost = mode === "self" ? 0.2 : mode === "sans" ? 1.2 : mode === "wig" ? 3.5 : 5;
       if (warChest < cost && mode !== "self") {
         setPreTrib(t => ({ ...t, log: [...t.log, "❌ War chest too thin (₦" + warChest.toFixed(2) + "B) — cannot brief this team."] }));
+        try { window.SOP_outcome && window.SOP_outcome({ icon: "💼", title: "Not enough money for this team", text: "You have ₦" + warChest.toFixed(2) + "B; they want ₦" + cost + "B. Argue in person, or borrow from the godfather.", tone: "bad" }); } catch (e) {}
         return;
       }
       setWarChest(w => Math.max(0, w - cost));
@@ -3244,8 +3258,17 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       const chance = Math.min(0.9, Math.max(0.05, gd.base + modeBonus + evAdj + lvlBonus));
       const roll = Math.random();
       const won = roll < chance;
-      const logLine = (won ? "✅ " : "❌ ") + lvl.nm + " · " + gd.nm.split(" ")[0] + " ground · " + (mode === "self" ? "self-representation" : mode === "sans" ? "Senior Advocate" : mode === "wig" ? "SAN-led team" : "settled panel") + " · rolled " + Math.round(roll * 100) + " vs " + Math.round(chance * 100) + "% needed.";
+      const logLine = (won ? "✅ " : "❌ ") + lvl.nm + " · " + gd.nm.split(" ")[0] + " ground · " + (mode === "self" ? "self-representation" : mode === "sans" ? "Senior Advocate" : mode === "wig" ? "SAN-led team" : "settled panel") + " · your odds were " + Math.round(chance * 100) + "%.";
       const nextLog = [...preTrib.log, logLine];
+      // Every ruling is announced, not just logged.
+      const court = lvl.nm, nextCourt = LVLS[preTrib.level + 1] ? LVLS[preTrib.level + 1].nm : null, opp = preTrib.oppName;
+      const final = won ? (preTrib.level >= 2 || (preTrib.level === 0 && chance > 0.7 && roll < 0.25)) : preTrib.level >= 2;
+      try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {}
+      try { window.SOP_outcome && window.SOP_outcome(won
+        ? (final ? { icon: "⚖️", img: "./art/backgrounds/" + (preTrib.level >= 2 ? "supreme-court-abuja" : "courtroom") + ".webp", title: "Petition upheld: you are Governor", text: "The " + court + " nullified " + opp + "'s return. You will be sworn in.", tone: "good" }
+          : { icon: "⚖️", img: "./art/backgrounds/courtroom.webp", title: "You won at the " + court, text: opp + " has appealed. Next stop: the " + nextCourt + ".", tone: "good" })
+        : (final ? { icon: "⚖️", img: "./art/backgrounds/supreme-court-abuja.webp", title: "Supreme Court: petition dismissed", text: "This is final. " + opp + " stays Governor.", tone: "bad" }
+          : { icon: "⚖️", img: "./art/backgrounds/courtroom.webp", title: "You lost at the " + court, text: "You have appealed. Next stop: the " + nextCourt + ".", tone: "bad" })); } catch (e) {}
       if (won) {
         if (preTrib.level >= 2 || (preTrib.level === 0 && chance > 0.7 && roll < 0.25)) {
           // Reinstated
@@ -4453,8 +4476,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // A Second Chance buys the extra years, not the glory: no second-term points.
       const careerScore = Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 && !stc.secondChance ? 200 : 0);
       try { window.SOP_vatarScore && window.SOP_vatarScore(careerScore); } catch (e) {}
-      const p = await loadProfile(); if (!p) return;
       const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
+      // The all-time Hall of Governors (Lagos Life): the best career per player.
+      if (!stc.secondChance) try { window.SOP_hallSubmit && window.SOP_hallSubmit({ score: careerScore, grade, state: String(state).replace(/_/g, " "), title: ({ complete: "Two terms", defeated: "Voted out", stepped_down: "Stepped down", pres_bid: "Ran for president", impeached: "Impeached", bankrupt: "State bankrupt", nullified: "Removed by the courts" }[gEnd] || "Governor") }); } catch (e) {}
+      const p = await loadProfile(); if (!p) return;
       const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
       const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
       const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now(), honours: (stc.honours || []).slice(), secondChance: !!stc.secondChance, mode: setup?.mode || null, score: careerScore };
@@ -11740,7 +11765,13 @@ function App() {
     setStartProfile(p || null); setStartMode({ kind: "challenge", week: ch.week, state: ch.state }); setLevel("medium"); setScr("setup");
   };
   const beginScenario = (p, id) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode({ kind: "scenario", id }); setScr("setup"); };
-  const openBoard = async () => { try { const b = await window.SOP_chBoard(weekNow()); setBoard(b || { top: [], players: 0 }); } catch (e) { setBoard({ top: [], players: 0, error: true }); } };
+  // The Hall of Governors: this week's challenge board and the all-time board, both by Lagos Life username.
+  const openBoard = async (tab = "week") => {
+    setBoard({ tab, loading: true, top: [], players: 0 });
+    const get = tab === "all" ? window.SOP_hallBoard : window.SOP_chBoard && (() => window.SOP_chBoard(weekNow()));
+    if (!get) { setBoard({ tab, top: [], players: 0, offline: true }); return; }
+    try { const b = await get(); setBoard({ tab, ...(b || { top: [], players: 0, offline: !b }) }); } catch (e) { setBoard({ tab, top: [], players: 0, error: true }); }
+  };
   useEffect(() => { loadProfile().then(p => { if (p) { window.SOP_FRAME = p.frame || null; setProfile(p); } }); }, [scr]);
 
   const loadGame = async () => {
@@ -11841,12 +11872,17 @@ function App() {
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
       {scr === "title" && <TitleScreen onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
-      {scr === "title" && board && <EntranceSheet title={"This week's board · week " + (board.week != null ? board.week : weekNow())} onClose={() => setBoard(null)}>
-        {board.error ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>The board couldn't be loaded. Try again in a moment.</div>
-          : !board.top.length ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>No finished governorships yet this week. Be the first: play this week's challenge.</div>
+      {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+          {[["week", "This week · " + stateLabel(challengeOf(weekNow()).state)], ["all", "All time"]].map(([k, l]) => <button key={k} onClick={() => openBoard(k)} aria-pressed={board.tab === k} style={{ borderRadius: 999, padding: "10px 12px", minHeight: 44, fontWeight: 800, fontSize: DS.t.label, fontFamily: F.b, cursor: "pointer", border: "1px solid " + (board.tab === k ? UI.dark : UI.line), background: board.tab === k ? UI.dark : "#fff", color: board.tab === k ? "#fff" : UI.ink }}>{l}</button>)}
+        </div>
+        {board.loading ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>Loading…</div>
+          : board.offline ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>The Hall of Governors is public in Lagos Life. Play there and your best career appears here under your username.</div>
+          : board.error ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>The board couldn't be loaded. Try again in a moment.</div>
+          : !board.top.length ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>{board.tab === "all" ? "No finished governorships yet. Be the first in the Hall." : "No finished governorships yet this week. Be the first: play this week's challenge."}</div>
           : <div style={{ display: "grid", gap: 6 }}>{board.top.map(e => <div key={e.rank} style={{ display: "grid", gridTemplateColumns: "34px 1fr auto", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 14, background: e.me ? UI.green + "18" : "#fff", border: "1px solid " + UI.line }}>
               <b style={{ fontFamily: F.d, fontSize: TS(26) }}>{e.rank}</b>
-              <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{e.name}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{e.title}</span></span>
+              <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{e.rank <= 3 ? ["🥇", "🥈", "🥉"][e.rank - 1] + " " : ""}{e.name}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{[e.title, e.state, e.grade && "Grade " + e.grade].filter(Boolean).join(" · ")}</span></span>
               <b style={{ fontFamily: F.m }}>{e.score}</b></div>)}</div>}
         {board.you && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 10 }}>You: #{board.you.rank} of {board.players}, best score {board.you.score}.</div>}
       </EntranceSheet>}
