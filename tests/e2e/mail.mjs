@@ -11,7 +11,7 @@ const srv = await serve(), port = srv.port;
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const okay = async (g) => { for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(300); };
-const firstLetter = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("#sop-task button")].find(x => x.offsetParent && /Urgent|Open$/.test(x.textContent.trim())); if (!b) return false; b.click(); return b.textContent.trim().slice(0, 60); });
+const firstLetter = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("#sop-task button")].find(x => x.offsetParent && /(❗|›)$/.test(x.textContent.trim())); if (!b) return false; b.click(); return b.textContent.trim().slice(0, 60); });
 
 const g = await open(port, { save: YEAR1 });
 await g.click(/^Continue/); await g.wait(1800);
@@ -25,16 +25,19 @@ check(r.ok, "reached the end of Year 1");
 await g.wait(400); await g.click(/^Spread it over 4 years/); await g.wait(500); await okay(g);
 check(/✉ \d/.test(await g.txt()), "the goldfields matter waits as a letter on the Desk tab");
 await g.click(/^Done: end the year/); await g.wait(1500); await okay(g);
-await g.click(/^CONTINUE$/); await g.wait(1200);
+await g.click(/^CONTINUE$/); await g.wait(1400);
+const presented = /Your Excellency, .*needs you/.test(await g.txt());
+await okay(g); // the adviser announces urgent mail in person
 t = await g.txt();
 check(/Your mail/.test(t) && /letters? waiting/.test(t), "the year's matters arrive as letters (" + ((t.match(/(\d+) letters? waiting/) || [])[1]) + ")");
 check(!/The tray is clear/.test(t), "the year cannot move on while letters wait");
+check(presented, "the adviser steps in to announce the urgent letter");
 let handed = 0;
 for (let i = 0; i < 8; i++) {
   const hit = await firstLetter(g); if (!hit) break;
   await g.wait(400);
   const tt = await g.txt();
-  if (i === 0) check(/Handle it personally/.test(tt) && /(Hand it to|Insist:)/.test(tt) && /(safe|risky|needs you)/.test(tt), "a letter offers both choices and the Chief of Staff's warning");
+  if (i === 0) check(/Handle it personally/.test(tt) && /(Hand it to|Insist:)/.test(tt) && /(I can handle this|I can try|needs you)/.test(tt), "a letter offers both choices and the Chief of Staff's warning");
   if (!(await g.click(/^🗝️/))) break;
   handed++; await g.wait(700); await okay(g);
 }

@@ -43,6 +43,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await toPolicies(g);
   const d0 = await saved(g);
   check(d0.s && d0.s.cash > 5, "money: this year's money arrived in the bank (" + (d0.s && d0.s.cash) + "B)");
+  await g.click(/^Show all \d+ programmes$/); await g.wait(300); // the list shows two at a time
   await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
   await g.click(/^Next: the budget/); await g.wait(300);
   check(!/Seek financing/.test(await g.txt()), "money: the bank can pay this year's share, so no loan is offered");
@@ -58,6 +59,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
 {
   const g = await open(port, { save: withSave(d => { d.s.cash = 0; d.cashSeed = 1; d.s.cashYear = 1; d.s.debt = 40; }) });
   await toPolicies(g);
+  await g.click(/^Show all \d+ programmes$/); await g.wait(300); // the list shows two at a time
   await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
   await g.click(/^Next: the budget/); await g.wait(300);
   await g.click(/^Seek financing/); await g.click(/^Approve the project$/); await g.wait(1500);
@@ -78,6 +80,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
 {
   const g = await open(port, { save: withSave(d => { d.s.cash = 0.5; d.s.cashYear = 1; }) });
   await toPolicies(g);
+  await g.click(/^Show all \d+ programmes$/); await g.wait(300); // the list shows two at a time
   await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
   await g.click(/^Next: the budget/); await g.wait(300);
   await g.click(/^Seek financing/);
@@ -111,7 +114,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await g.wait(800);
   b = await bubbles(g);
   check(b.some(x => /under construction.*Nothing is due until year end/.test(x)), "5. the adviser says nothing is due until year end");
-  await g.click(/^Back to the desk$/); await g.wait(300); await g.click(/^Govern$/); await g.wait(400);
+  await g.click(/^Back to the desk$/); await g.wait(300); await g.click(/^(Govern|Today)$/); await g.wait(400);
   const con = await g.page.evaluate(() => [...document.querySelectorAll(".sp-con")].map(x => x.textContent).join(" "));
   check(/contract signed with/.test(con), "5. the desk shows what changed: " + con.slice(0, 90));
   b = await bubbles(g);

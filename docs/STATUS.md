@@ -502,6 +502,48 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
   - Stadiums and esports arenas cannot start without a Sports ministry.
   - A finished tourist site earns nothing until a Tourism ministry exists. It earns once that ministry is created.
 
+## The overhaul: home, brevity, bills, letters, front pages, anchors, three tabs
+- **Home screen:** the logo, the cast, New game and Continue. A ☰ menu holds:
+  - your politician;
+  - this week's challenge, with a NEW dot until opened;
+  - scenarios;
+  - the Hall of Governors (this week and all time, by Lagos Life username);
+  - how to play;
+  - sound.
+- **First-election petition:**
+  - Every ruling pops up with the court (tribunal, appeal, Supreme Court).
+  - A legal team you cannot afford says so instead of failing silently.
+- **Brevity:** `tests/e2e/words.mjs` counts the words on decision screens over two years, same seed.
+  - Before: 3,574 words on 49 screens (73 a screen).
+  - After: about 1,850 words on about 50 screens (35 a screen, −52%). The total is −48%, because the new letters and front pages add screens.
+  - Each card shows one sentence; the rest sits behind "🤵 Ask your SA".
+  - Option notes give way to chips. Pop-up results keep two short sentences, or one when they show numbers, and at most four rows.
+- **Bills:** a short card with 2–3 clauses.
+  - Tap ⚑ to flag a clause, then Sign or Veto.
+  - Sign: the pen writes the governor's name across the page.
+  - Veto: a red VETO stamp lands on the page, then the House reacts with the Speaker's face.
+  - Flagging the hidden clause before vetoing wins the press.
+  - "Ask your SA" holds the constitution and what each choice costs.
+- **The adviser in person:** urgent mail brings her on screen, full-size and posed, with a speech bubble.
+- **Letters:** five lines. A seal, "Dear Governor,", one sentence from the matter itself, and "Sincerely," with the sender's face and name.
+- **Front pages with your name:**
+  - **Trips:** the governor in person ("Gov. X Shines in Boston"), or the envoy who went ("Commissioner Y Represents Ogun…").
+  - **Visits:** Aso Rock, the Netherlands MOU, the society wedding.
+  - **Bills:** a bill signed into law.
+  - **Projects:** a project opening.
+  - **Flagship:** the yearly target delivered or missed.
+- **News anchors:** a two-line segment for:
+  - re-election;
+  - an investor deal;
+  - surviving impeachment;
+  - every ending (voted out, impeached, nullified, bankrupt, two terms complete).
+- **Three tabs:**
+  - **Desk:** Compound · Today · News.
+  - **State:** Money · Projects · Contracts.
+  - **People:** Cast · Cabinet (with the civil service) · Ministries · Council · Public (personas and stakeholders).
+  - **The ☰ menu:** Wiki, Constitution, Standing, Save, Help, Text size, Sound, Fullscreen and Second Chance.
+- **No real organisations:** the trip invitations no longer name real institutions or companies (Harvard, MIT, General Electric, the World Bank, the African Development Bank, KOICA, the UN, the Abu Dhabi fund). Fictional ones replace them.
+
 ## Master brief (living state) — what is built
 Rules live in `game/systems/` (no screen code; `window.SOP_SYS` in the game). Unit tests: `npm test`. Browser playthroughs: `npm run build:game && npm run e2e`.
 

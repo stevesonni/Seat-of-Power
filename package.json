@@ -14,7 +14,8 @@
     "test": "node --test tests/*.test.mjs",
     "e2e": "node tests/e2e/playthrough.mjs all",
     "e2e:projects": "node tests/e2e/projects.mjs",
-    "e2e:mail": "node tests/e2e/mail.mjs"
+    "e2e:mail": "node tests/e2e/mail.mjs",
+    "e2e:words": "node tests/e2e/words.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

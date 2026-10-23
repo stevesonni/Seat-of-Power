@@ -476,7 +476,7 @@ const FG_EVENTS = [
       { l: "🤝 Negotiate Terms", d: "Offer land but resist matching funds. 'It's a federal road.'", fx: { infra: .03, app: 4 }, fgRel: -5, dc: 1, log: "Highway negotiations ongoing. Partial funding agreed." },
       { l: "❌ Decline", d: "You can't afford ₦3B. The highway goes to another state.", fx: { app: -4 }, fgRel: -10, sk: { business: -10 }, log: "Governor declines federal highway. Business community furious." },
     ]},
-  { id: "fg_loan_block", type: "punish", title: "🏦 Federal Government Blocks Your Loan", desc: "You applied for a ₦5B infrastructure loan from the World Bank. The DMO (Debt Management Office) — controlled by the Federal Government — has rejected your application. 'Debt sustainability concerns.'", fx: {},
+  { id: "fg_loan_block", type: "punish", title: "🏦 Federal Government Blocks Your Loan", desc: "You applied for a ₦5B infrastructure loan from the Global Development Fund. The DMO (Debt Management Office) — controlled by the Federal Government — has rejected your application. 'Debt sustainability concerns.'", fx: {},
     opts: [
       { l: "🤝 Visit the President", d: "Request a meeting at Aso Rock. Make your case personally.", fx: { pStab: 3 }, fgRel: 15, log: "Governor visits Aso Rock. Loan application 'under review.'" },
       { l: "📢 Go Public", d: "Hold a press conference showing your debt-to-revenue ratio is healthy.", fx: { app: 4 }, fgRel: -15, sk: { media: 8, business: 5 }, log: "Governor publicly challenges loan block. DMO embarrassed." },
@@ -1035,7 +1035,7 @@ const REVENUE_MEASURES = [
     gain: (c) => c.stc.rev && c.stc.rev.land ? "+₦1.2B a year (your land registry makes it accurate)" : "+₦0.5B a year (+₦1.2B if you build the land registry first)",
     adopt: (c) => { const g = c.stc.rev && c.stc.rev.land ? 1.2 : .5; return { fx: { app: -2 }, sched: [{ k: 1, revIGR: g }], log: "introduced a Land Use Charge on high-value property (₦" + g + "B a year from next year)" }; } },
   { id: "refunds", icon: "📑", t: "Claim federal road refunds and fiscal-transparency grants",
-    what: "Bill Abuja for federal roads the state repaired, and qualify for World Bank grants that reward published budgets and audited accounts.",
+    what: "Bill Abuja for federal roads the state repaired, and qualify for Global Development Fund grants that reward published budgets and audited accounts.",
     cost: "Your books must be clean: corruption under 45%",
     req: (c) => c.s.cor >= .45 ? "Grants need clean books: corruption must be under 45% (now " + Math.round(c.s.cor * 100) + "%)." : null,
     gain: () => "One-off ₦2B next year, used to pay down debt (approval +1)",
@@ -1577,18 +1577,18 @@ const INVESTORS = [
 const ALL_DILEMMAS = [...DILEMMAS, ...DILEMMAS_EXTRA];
 const INTL_INVITES = [
   { id: "us_pres", icon: "🇺🇸", from: "The White House, Washington D.C.", who: "The President of the United States", what: "A bilateral meeting on trade, security cooperation, and diaspora investment in your state. The US Embassy has flagged your governance reforms.", goFx: { igr: 2, app: 4, infra: .02 }, goSk: { business: 10, media: 8, youth: 6 }, goCost: 0.5, goLog: "Met the US President at the White House. Trade agreements and diaspora investment pipeline opened.", delFx: { app: 1 }, delSk: { business: 3 }, delLog: "Sent delegation to Washington. Polite but no breakthroughs.", decFx: { app: -2 }, decSk: { media: -5 }, decLog: "Declined White House invitation. International observers puzzled." },
-  { id: "harvard", icon: "🎓", from: "Harvard Kennedy School, Boston", who: "The Dean of Harvard Kennedy School", what: "An invitation to deliver a guest lecture on 'Subnational Governance in Africa' and meet the African Leadership Initiative cohort. Your reforms have caught academic attention.", goFx: { lit: .02, app: 5 }, goSk: { media: 10, youth: 12 }, goCost: 0.3, goLog: "Lectured at Harvard Kennedy School. Standing ovation. International profile boosted.", delFx: { app: 0 }, delSk: { youth: 2 }, delLog: "Commissioner represented you at Harvard. Decent but forgettable.", decFx: {}, decSk: {}, decLog: "Declined Harvard invitation. No consequence — but a missed opportunity." },
-  { id: "mit", icon: "🔬", from: "MIT Media Lab, Cambridge", who: "MIT's Director of Digital Governance", what: "An invitation to explore smart city technology partnerships. MIT wants to pilot digital governance tools in an African state — yours is on the shortlist.", goFx: { lit: .03, infra: .02, app: 3 }, goSk: { youth: 10, business: 6 }, goCost: 0.4, goLog: "Visited MIT Media Lab. Smart city pilot confirmed for your state. Tech transfer underway.", delFx: { app: 0, lit: .01 }, delSk: { youth: 3 }, delLog: "Sent tech team to MIT. Some connections made.", decFx: { app: -1 }, decSk: { youth: -4 }, decLog: "Declined MIT tech partnership. Youth groups disappointed." },
+  { id: "harvard", icon: "🎓", from: "Halden School of Government, Boston", who: "The Dean of the Halden School of Government", what: "An invitation to deliver a guest lecture on 'Subnational Governance in Africa' and meet the African Leadership Initiative cohort. Your reforms have caught academic attention.", goFx: { lit: .02, app: 5 }, goSk: { media: 10, youth: 12 }, goCost: 0.3, goLog: "Lectured at the Halden School of Government. Standing ovation. International profile boosted.", delFx: { app: 0 }, delSk: { youth: 2 }, delLog: "Commissioner represented you at Halden. Decent but forgettable.", decFx: {}, decSk: {}, decLog: "Declined Halden invitation. No consequence — but a missed opportunity." },
+  { id: "mit", icon: "🔬", from: "The Civic Technology Lab, Cambridge", who: "The lab's Director of Digital Governance", what: "An invitation to explore smart city technology partnerships. The Civic Technology Lab wants to pilot digital governance tools in an African state — yours is on the shortlist.", goFx: { lit: .03, infra: .02, app: 3 }, goSk: { youth: 10, business: 6 }, goCost: 0.4, goLog: "Visited the Civic Technology Lab. Smart city pilot confirmed for your state. Tech transfer underway.", delFx: { app: 0, lit: .01 }, delSk: { youth: 3 }, delLog: "Sent tech team to the Civic Technology Lab. Some connections made.", decFx: { app: -1 }, decSk: { youth: -4 }, decLog: "Declined the Civic Technology Lab tech partnership. Youth groups disappointed." },
   { id: "sweden_pm", icon: "🇸🇪", from: "Rosenbad, Stockholm", who: "The Prime Minister of Sweden", what: "Sweden wants to discuss development aid, renewable energy partnerships, and good governance benchmarking. SIDA has earmarked funds for pilot states.", goFx: { igr: 1.5, hp: .02, app: 3 }, goSk: { business: 8, media: 5 }, goCost: 0.3, goLog: "Met Swedish PM. SIDA development partnership signed. ₦1.5B in aid pipeline.", delFx: { app: 0 }, delSk: { business: 2 }, delLog: "Delegation met Swedish officials. Cordial but non-committal.", decFx: { app: -1 }, decSk: { media: -3 }, decLog: "Declined Swedish PM invitation. Development partners took note." },
   { id: "uk_trade", icon: "🇬🇧", from: "10 Downing Street, London", who: "The UK Secretary of State for Business and Trade", what: "Post-Brexit, the UK is looking for direct trade partnerships with Nigerian states. Your state's agricultural exports caught their attention.", goFx: { igr: 2, agr: .03, app: 4 }, goSk: { business: 12, traditional: 4 }, goCost: 0.4, goLog: "Met UK trade officials at Downing Street. Agricultural export deal signed. ₦2B boost.", delFx: { app: 1, agr: .01 }, delSk: { business: 4 }, delLog: "Trade delegation went to London. Minor agreements reached.", decFx: { app: -1 }, decSk: { business: -6 }, decLog: "Declined UK trade invitation. Business community frustrated." },
   { id: "china_infra", icon: "🇨🇳", from: "Beijing, China", who: "China's Minister of Commerce", what: "China is offering infrastructure loans and construction partnerships — roads, bridges, housing. The terms are generous but the politics are complicated.", goFx: { infra: .05, app: 3 }, goSk: { business: 8, media: -5, youth: -3 }, goCost: 0.2, goLog: "Signed infrastructure deal with China. Roads and bridges coming — but critics call it 'debt trap diplomacy.'", delFx: { infra: .02 }, delSk: { business: 3 }, delLog: "Delegation explored China options. Framework agreement signed.", decFx: { app: 1 }, decSk: { media: 5, youth: 3 }, decLog: "Declined Chinese infrastructure loan. Media praised independence from 'debt trap.'" },
-  { id: "un_sdg", icon: "🇺🇳", from: "United Nations, New York", who: "The UN Under-Secretary-General", what: "An invitation to speak at the UN General Assembly side event on SDG implementation at subnational level. Your state has been identified as a model.", goFx: { app: 6, hp: .01 }, goSk: { media: 12, youth: 8, religious: 4 }, goCost: 0.4, goLog: "Spoke at the United Nations. International recognition. 'A model governor' — UN press release.", delFx: { app: 1 }, delSk: { media: 3 }, delLog: "Deputy spoke at UN side event. Decent representation.", decFx: { app: -2 }, decSk: { media: -4, youth: -5 }, decLog: "Declined UN invitation. 'Too busy governing' — but the world noticed your absence." },
-  { id: "uae_invest", icon: "🇦🇪", from: "Abu Dhabi, UAE", who: "Abu Dhabi Investment Authority", what: "UAE sovereign wealth fund exploring real estate and agro-industrial investment in Nigerian states. They want to meet the governor personally before committing.", goFx: { igr: 3, infra: .03, app: 4 }, goSk: { business: 15 }, goCost: 0.5, goLog: "Met Abu Dhabi investors. Massive real estate and agro-industrial investment secured. ₦3B IGR boost.", delFx: { app: 0 }, delSk: { business: 3 }, delLog: "Sent team to Abu Dhabi. Investors wanted the governor. 'We deal with principals, not agents.'", decFx: { app: -1 }, decSk: { business: -8 }, decLog: "Declined Abu Dhabi meeting. ₦3B investment went to a rival state." },
-  { id: "ge_power", icon: "⚡", from: "General Electric, Boston, USA", who: "General Electric's head of Africa power projects", what: "GE wants to install gas turbines for an independent power plant in your state, fix part of the transmission network and train 300 local engineers. They want the governor at the table before they commit capital.", goFx: { igr: 1.5, infra: .04, app: 4 }, goSk: { business: 12, youth: 6 }, goCost: 0.5, goLog: "Met General Electric in Boston. A 250MW independent power plant and an engineering academy agreed.", delFx: { infra: .02, app: 1 }, delSk: { business: 4 }, delLog: "The delegation met General Electric. A feasibility study is agreed; the turbines wait for the governor's own signature.", decFx: { app: -1 }, decSk: { business: -5 }, decLog: "Declined General Electric. The power plant goes to a neighbouring state." },
-  { id: "world_bank", icon: "🏦", from: "The World Bank, Washington D.C.", who: "The World Bank's Country Director for Nigeria", what: "Low-interest financing to rebuild primary schools and health centres, on one condition: the state publishes its budget and every procurement contract online.", goFx: { lit: .03, hp: .02, app: 3 }, goSk: { media: 8, youth: 6 }, goCost: 0.3, goLog: "Signed a World Bank programme for schools and clinics, tied to publishing the budget and contracts online.", delFx: { lit: .01, app: 1 }, delSk: { media: 3 }, delLog: "The delegation opened talks with the World Bank. The money waits for a commitment only the governor can make.", decFx: { app: -1 }, decSk: { media: -4 }, decLog: "Declined the World Bank programme. Civil society asks what the state is hiding." },
-  { id: "afdb", icon: "🌍", from: "African Development Bank, Abidjan", who: "The President of the African Development Bank", what: "The AfDB is choosing states for Special Agro-Industrial Processing Zones: roads, power and processing plants beside the farms, so crops are sold processed instead of raw.", goFx: { agr: .04, igr: 1, app: 3 }, goSk: { business: 8, traditional: 4 }, goCost: 0.4, goLog: "Won an AfDB agro-industrial processing zone in Abidjan. Farmers will sell processed goods, not raw crops.", delFx: { agr: .015, app: 1 }, delSk: { business: 3 }, delLog: "The delegation pitched to the AfDB. The state is on the shortlist, not the final list.", decFx: { app: -1 }, decSk: { traditional: -3 }, decLog: "Declined the AfDB. Farmers' associations are disappointed." },
-  { id: "diaspora_houston", icon: "🤝", from: "Nigerian diaspora convention, Houston, USA", who: "The Nigerians in Diaspora Organisation, Americas", what: "Doctors, engineers and investors from your state want to fund a diaspora bond and send specialists home on rotation. They want to hear the governor's plan in person.", goFx: { hp: .02, igr: 1, app: 4 }, goSk: { youth: 8, media: 6 }, goCost: 0.4, goLog: "Spoke to the diaspora in Houston. A diaspora bond and a rotation of specialist doctors agreed.", delFx: { hp: .01, app: 1 }, delSk: { youth: 3 }, delLog: "The delegation met the diaspora. Pledges were made; cheques wait for the governor.", decFx: { app: -1 }, decSk: { youth: -4 }, decLog: "Skipped the diaspora convention. 'He only remembers us at election time,' one organiser posts." },
-  { id: "korea_skills", icon: "🇰🇷", from: "Korea International Cooperation Agency, Seoul", who: "KOICA's Director for West Africa", what: "Korea will build and equip a technical college and a smart-farming training centre, with Korean instructors for three years, if the state provides land and staff.", goFx: { lit: .02, agr: .02, app: 3 }, goSk: { youth: 10 }, goCost: 0.4, goLog: "Signed with KOICA in Seoul. A technical college and a smart-farming centre are coming.", delFx: { lit: .01, app: 1 }, delSk: { youth: 3 }, delLog: "The delegation met KOICA. The college is likely; the farming centre is not.", decFx: { app: -1 }, decSk: { youth: -3 }, decLog: "Declined KOICA's offer." },
+  { id: "un_sdg", icon: "🇺🇳", from: "The Global Goals Summit, New York", who: "A global development envoy", what: "An invitation to speak at the Global Goals Summit side event on SDG implementation at subnational level. Your state has been identified as a model.", goFx: { app: 6, hp: .01 }, goSk: { media: 12, youth: 8, religious: 4 }, goCost: 0.4, goLog: "Spoke at the Global Goals Summit. International recognition. 'A model governor' — summit press release.", delFx: { app: 1 }, delSk: { media: 3 }, delLog: "Deputy spoke at the summit side event. Decent representation.", decFx: { app: -2 }, decSk: { media: -4, youth: -5 }, decLog: "Declined the summit invitation. 'Too busy governing' — but the world noticed your absence." },
+  { id: "uae_invest", icon: "🇦🇪", from: "Abu Dhabi, UAE", who: "A Gulf sovereign wealth fund", what: "UAE sovereign wealth fund exploring real estate and agro-industrial investment in Nigerian states. They want to meet the governor personally before committing.", goFx: { igr: 3, infra: .03, app: 4 }, goSk: { business: 15 }, goCost: 0.5, goLog: "Met Abu Dhabi investors. Massive real estate and agro-industrial investment secured. ₦3B IGR boost.", delFx: { app: 0 }, delSk: { business: 3 }, delLog: "Sent team to Abu Dhabi. Investors wanted the governor. 'We deal with principals, not agents.'", decFx: { app: -1 }, decSk: { business: -8 }, decLog: "Declined Abu Dhabi meeting. ₦3B investment went to a rival state." },
+  { id: "ge_power", icon: "⚡", from: "Meridian Power, Boston, USA", who: "Meridian Power's head of Africa power projects", what: "Meridian wants to install gas turbines for an independent power plant in your state, fix part of the transmission network and train 300 local engineers. They want the governor at the table before they commit capital.", goFx: { igr: 1.5, infra: .04, app: 4 }, goSk: { business: 12, youth: 6 }, goCost: 0.5, goLog: "Met Meridian Power in Boston. A 250MW independent power plant and an engineering academy agreed.", delFx: { infra: .02, app: 1 }, delSk: { business: 4 }, delLog: "The delegation met Meridian Power. A feasibility study is agreed; the turbines wait for the governor's own signature.", decFx: { app: -1 }, decSk: { business: -5 }, decLog: "Declined Meridian Power. The power plant goes to a neighbouring state." },
+  { id: "world_bank", icon: "🏦", from: "The Global Development Fund, Washington D.C.", who: "The Global Development Fund's director for Nigeria", what: "Low-interest financing to rebuild primary schools and health centres, on one condition: the state publishes its budget and every procurement contract online.", goFx: { lit: .03, hp: .02, app: 3 }, goSk: { media: 8, youth: 6 }, goCost: 0.3, goLog: "Signed a Global Development Fund programme for schools and clinics, tied to publishing the budget and contracts online.", delFx: { lit: .01, app: 1 }, delSk: { media: 3 }, delLog: "The delegation opened talks with the Global Development Fund. The money waits for a commitment only the governor can make.", decFx: { app: -1 }, decSk: { media: -4 }, decLog: "Declined the Global Development Fund programme. Civil society asks what the state is hiding." },
+  { id: "afdb", icon: "🌍", from: "Pan-African Development Fund, Abidjan", who: "The President of the Pan-African Development Fund", what: "The Pan-African Fund is choosing states for Special Agro-Industrial Processing Zones: roads, power and processing plants beside the farms, so crops are sold processed instead of raw.", goFx: { agr: .04, igr: 1, app: 3 }, goSk: { business: 8, traditional: 4 }, goCost: 0.4, goLog: "Won an the Pan-African Fund agro-industrial processing zone in Abidjan. Farmers will sell processed goods, not raw crops.", delFx: { agr: .015, app: 1 }, delSk: { business: 3 }, delLog: "The delegation pitched to the Pan-African Fund. The state is on the shortlist, not the final list.", decFx: { app: -1 }, decSk: { traditional: -3 }, decLog: "Declined the Pan-African Fund. Farmers' associations are disappointed." },
+  { id: "diaspora_houston", icon: "🤝", from: "Nigerian diaspora convention, Houston, USA", who: "The Nigerian diaspora association, Americas", what: "Doctors, engineers and investors from your state want to fund a diaspora bond and send specialists home on rotation. They want to hear the governor's plan in person.", goFx: { hp: .02, igr: 1, app: 4 }, goSk: { youth: 8, media: 6 }, goCost: 0.4, goLog: "Spoke to the diaspora in Houston. A diaspora bond and a rotation of specialist doctors agreed.", delFx: { hp: .01, app: 1 }, delSk: { youth: 3 }, delLog: "The delegation met the diaspora. Pledges were made; cheques wait for the governor.", decFx: { app: -1 }, decSk: { youth: -4 }, decLog: "Skipped the diaspora convention. 'He only remembers us at election time,' one organiser posts." },
+  { id: "korea_skills", icon: "🇰🇷", from: "Korean Skills Partnership, Seoul", who: "The partnership's Director for West Africa", what: "Korea will build and equip a technical college and a smart-farming training centre, with Korean instructors for three years, if the state provides land and staff.", goFx: { lit: .02, agr: .02, app: 3 }, goSk: { youth: 10 }, goCost: 0.4, goLog: "Signed with the Korean Skills Partnership in Seoul. A technical college and a smart-farming centre are coming.", delFx: { lit: .01, app: 1 }, delSk: { youth: 3 }, delLog: "The delegation met the Korean Skills Partnership. The college is likely; the farming centre is not.", decFx: { app: -1 }, decSk: { youth: -3 }, decLog: "Declined The partnership's offer." },
 ];
 
 // ─── UI ───
@@ -1844,17 +1844,20 @@ const Bt = ({ children, onClick, v = "primary", disabled, style: st }) => {
    way: what happened → what's at stake → the options, each with its
    visible price and its visible risk. */
 // Long texts show their first sentence; "More" opens the rest.
-const More = ({ text, max = 150, style, className, as = "p" }) => {
+// Brevity: the first sentence, cut at a word if still long. The rest is one tap away.
+const briefly = (text, max = 110) => {
+  const t = String(text || "").trim(); if (!t) return t;
+  const m = t.match(/^[\s\S]{8,}?[.!?](?=[\u201d"]?\s|$)[\u201d"]?/);
+  const first = m ? m[0] : t;
+  return first.length > max ? first.slice(0, max).replace(/\s+\S*$/, "").replace(/[,;:\s]+$/, "") + "…" : first;
+};
+const More = ({ text, max = 75, style, className, as = "p" }) => {
   const [open, setOpen] = React.useState(false);
   const t = String(text || "");
-  let head = null;
-  if (t.length > max + 40) {
-    const m = t.match(new RegExp("^([\\s\\S]{30," + max + "}?[.!?][\u201d\"]?)\\s"));
-    head = m ? m[1] : t.slice(0, max).replace(/\s+\S*$/, "") + "…";
-  }
+  const b = briefly(t, max), head = b.length < t.length - 3 ? b : null;
   return React.createElement(as, { style, className }, open || !head ? t : head,
     head ? React.createElement("button", { type: "button", onClick: (e) => { e.stopPropagation(); setOpen(o => !o); },
-      style: { background: "none", border: 0, color: CL.grn, fontWeight: 800, cursor: "pointer", padding: "0 0 0 8px", font: "inherit", fontStyle: "normal", whiteSpace: "nowrap" } }, open ? "Less" : "More ▾") : null);
+      style: { background: "none", border: 0, color: CL.grn, fontWeight: 800, cursor: "pointer", padding: "0 0 0 8px", font: "inherit", fontStyle: "normal", whiteSpace: "nowrap" } }, open ? "Less" : "🤵 Ask your SA") : null);
 };
 const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick }) =>
   React.createElement("div", { className: "ds-card ds-stack", style: { borderColor: kickerColor + "66" } },
@@ -1863,7 +1866,7 @@ const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, asid
       kicker ? React.createElement(Bg, { text: kicker, color: kickerColor }) : null,
       React.createElement("h3", { className: "ds-title", style: { margin: "14px 0" } }, title),
       brief ? React.createElement(More, { className: "ds-body", text: brief }) : null,
-      stakes ? React.createElement("p", { className: "ds-meta", style: { marginTop: 14, color: kickerColor } }, stakes) : null
+      null
     ),
     React.createElement("div", { style: { display: "grid", gap: DS.s[3] } },
       (options || []).map((o, i) => React.createElement("button", {
@@ -1871,11 +1874,11 @@ const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, asid
         style: o.disabled ? { opacity: .4, cursor: "not-allowed" } : null
       },
         React.createElement("div", { className: "ds-option-label" }, o.label),
-        o.note ? React.createElement("div", { className: "ds-option-note" }, o.note) : null,
+        o.note && !(o.chips && o.chips.length) ? React.createElement("div", { className: "ds-option-note" }, briefly(o.note, 40)) : null,
         (o.chips && o.chips.length) ? React.createElement("div", { className: "ds-chiprow" },
-          o.chips.map((c, j) => React.createElement("span", { key: j, className: "ds-chip", style: { color: c.color || CL.tm, background: (c.color || CL.tm) + "12" } }, c.text))
+          o.chips.slice(0, 3).map((c, j) => React.createElement("span", { key: j, className: "ds-chip", style: { color: c.color || CL.tm, background: (c.color || CL.tm) + "12" } }, c.text))
         ) : null,
-        o.risk ? React.createElement("div", { className: "ds-option-note", style: { color: CL.org } }, "⚠️ " + o.risk) : null
+        o.risk ? React.createElement("div", { className: "ds-option-note", style: { color: CL.org } }, "⚠️ " + briefly(o.risk, 60)) : null
       ))
     )
   );
@@ -1916,7 +1919,7 @@ const AdvBubble = ({ text, saName }) => {
       React.createElement("img", { src: saPortrait(saName), alt: String(saName || "Special Adviser"), style: { width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" } })),
     React.createElement("div", { style: { flex: 1, minWidth: 0 } },
       React.createElement("div", { style: { fontSize: DS.t.meta, fontWeight: 700, color: UI.green, marginBottom: 4 } }, saName ? "Your adviser, " + saName : "Your adviser"),
-      React.createElement("div", { style: { fontSize: DS.t.body, color: UI.ink, lineHeight: 1.5, fontFamily: F.b } }, text)
+      React.createElement("div", { style: { fontSize: DS.t.body, color: UI.ink, lineHeight: 1.5, fontFamily: F.b } }, briefly(text, 90))
     )
   );
 };
@@ -3528,7 +3531,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
     <div style={{ textAlign: "center" }}>
       <SceneArt bg="assembly-chamber-wide" who={hardBlockers.length ? "speaker-worried" : "speaker"} alt={speakerName} h={TALL() ? 170 : 230} />
       <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>House of Assembly</h3>
-      <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 22 }}>Your Appropriation Bill must be approved by the House (S.121).</p>
+      <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 22 }}>Members vote on your budget.</p>
       <SeatStrip house={house} />
       {concerns.length > 0 && (
         <div style={{ textAlign: "left", margin: "0 auto 36px", maxWidth: 732, padding: 29, background: CL.org + "08", borderRadius: 13, border: "1px solid " + CL.org + "25" }}>
@@ -3991,19 +3994,17 @@ const GoldView = ({ D, year, onChoose, onClose }) => {
     <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, margin: "4px 0 6px" }}>{b ? b.title : "The goldfields"}</h3>
     <div style={{ display: "inline-block", fontSize: fz.s, fontWeight: 800, color: D.stage === "resolved" ? CL.grn : D.stage === "entrenched" || D.stage === "escalation" ? CL.red : CL.org, border: "1px solid currentColor", borderRadius: 999, padding: "2px 10px", marginBottom: 10 }}>{SYS.GOLD_STAGE[D.stage]}</div>
     <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(3, 1fr)", gap: 6, marginBottom: 12 }}>
-      {Object.keys(D.m).map(k => { const w = SYS.word(k, D.m[k]); return <div key={k} style={{ background: CL.bg, border: "1px solid " + CL.bdr, borderRadius: 12, padding: "6px 10px", fontSize: fz.s }}><div style={{ color: CL.td }}>{SYS.MEASURE_NAME[k]}</div><b style={{ color: WC[w] }}>{w}</b></div>; })}
+      {Object.keys(D.m).map(k => [k, SYS.GOOD_HIGH[k] ? 100 - D.m[k] : D.m[k]]).sort((x, y) => y[1] - x[1]).slice(0, 1).map(([k]) => { const w = SYS.word(k, D.m[k]); return <div key={k} style={{ background: CL.bg, border: "1px solid " + CL.bdr, borderRadius: 12, padding: "6px 10px", fontSize: fz.s }}><div style={{ color: CL.td }}>{SYS.MEASURE_NAME[k]}</div><b style={{ color: WC[w] }}>{w}</b></div>; })}
     </div>
     {D.agreement && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 8 }}>Agreement with Northstar (Year {D.agreement.year}): {D.agreement.benefitSharing ? "shares benefits with the host communities." : "shares nothing with the communities."} An agreement is not a solution until it has held.</div>}
     {b && !decided && <>
-      <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.45, marginBottom: 6 }}>{b.text}</div>
-      <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 2 }}><b>Known:</b> {b.known}</div>
-      <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 10 }}><b>Not known:</b> {b.unknown}</div>
+      <More text={b.text + " Known: " + b.known + " Not known: " + b.unknown} max={110} style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.45, margin: "0 0 10px" }} />
       {b.options.map(o => <button key={o.id} onClick={() => onChoose(o.id)} style={{ textAlign: "left", width: "100%", padding: "10px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, cursor: "pointer", marginBottom: 8, fontFamily: F.b, color: CL.txt }}>
-        <b style={{ display: "block", fontSize: fz.m }}>{o.label}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{o.note}{o.costM ? " Commits " + SYS.fmtM(o.costM) + " now." : ""}</span>
+        <b style={{ display: "block", fontSize: fz.m }}>{o.label}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{o.costM ? SYS.fmtM(o.costM) : "Free"}</span>
       </button>)}
     </>}
     {decided && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 10 }}>This year's decision is made. What it changes shows at the end of the year.</div>}
-    <div style={{ fontSize: fz.s, color: CL.td, marginTop: 6 }}>{D.history.slice(-4).map((h, i) => <div key={i}>Year {h.year}: {h.text}</div>)}</div>
+    {(decided || !b) && <div style={{ fontSize: fz.s, color: CL.td, marginTop: 6 }}>{D.history.slice(-3).map((h, i) => <div key={i}>Year {h.year}: {briefly(h.text, 80)}</div>)}</div>}
     <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={onClose}>{decided || !b ? "Close" : "Decide later this year"}</Bt></div>
   </Cd>;
 };
@@ -5498,9 +5499,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!oldPlan) return [];
     const T = oldPlan.total, base = SYS.yearAccounts({ ...s, debt: Math.max(0, (s.debt || 0) - T) }, bud);
     const preview = (kind) => { const nowB = kind === "now" ? Math.max(0, Math.round((base.workB * .85 - .5) * 10) / 10) : 0; const P = SYS.oldDebtPlan(kind, T, nowB); const a = SYS.yearAccounts(s, bud, { oldDueB: kind === "now" ? 0 : P.perYearB, oldLeftB: P.leftB }), later = SYS.yearAccounts({ ...s, debt: Math.max(0, (s.debt || 0) - P.payNowB) }, bud, { oldDueB: P.perYearB, oldLeftB: P.leftB }); return { P, thisYear: Math.max(0, a.workB - P.payNowB - Math.round(a.workB * .15 * 10) / 10), each: later.debtB }; };
-    return [["now", "Pay as much as we can now", (x) => "Pay " + naira(x.P.payNowB) + " today. This year you keep " + (x.thisYear < .1 ? "almost nothing" : "about " + naira(x.thisYear)) + "; then about " + naira(x.each) + " a year for 4 years."],
-      ["four", "Spread it over 4 years", (x) => "About " + naira(x.each) + " a year off the top. This year you keep about " + naira(x.thisYear) + "."],
-      ["eight", "Spread it over 8 years", (x) => "About " + naira(x.each) + " a year: lighter, but more interest, and your successor pays the last of it. This year you keep about " + naira(x.thisYear) + "."]].map(([k, t, f]) => ({ k, t, d: f(preview(k)) }));
+    return [["now", "Pay as much as we can now", (x) => "Pay " + naira(x.P.payNowB) + " now; keep " + (x.thisYear < .1 ? "almost nothing" : naira(x.thisYear)) + " this year."],
+      ["four", "Spread it over 4 years", (x) => naira(x.each) + " a year; keep " + naira(x.thisYear) + " this year."],
+      ["eight", "Spread it over 8 years", (x) => naira(x.each) + " a year, more interest; keep " + naira(x.thisYear) + " this year."]].map(([k, t, f]) => ({ k, t, d: f(preview(k)) }));
   };
   const confirmPlan = (F0, a, overRoom) => {
     const d = F0.draft, P = F0.plan, e = SYS.estimate(d.type, d.qty);
@@ -6042,7 +6043,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return;
     }
     setS(x => ({ ...x, [k]: k === "igr" ? (x.igr || 0) + gain : cl(x[k] + gain) }));
-    announce({ icon: "🎉", img: "./art/backgrounds/project-ribbon-cutting.webp", title: p.title + " is open", text: "Built by " + (p.contractor || "the contractor") + (p.leakage > .2 ? ", but a lot of the money went missing on the way." : "."), tone: "good", rows: [{ l: STAT_NAME[k], v: k === "igr" ? "+₦" + gain + "B" : "+" + Math.round(gain * 100) + "%", good: true }, { l: "Approval", v: "+" + Math.round(6 * eff) + "%", good: true }] });
+    paper(govShort + " Opens " + p.title, p.leakage > .2 ? "Money went missing on the way" : "Built by " + (p.contractor || "the contractor"), !(p.leakage > .2), "./art/backgrounds/project-ribbon-cutting.webp");
   };
   // ── FINANCING A PROJECT ──
   // Every capital project needs money from somewhere. Each source has its own
@@ -6066,7 +6067,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       { id: "bond", icon: "📈", nm: "State bond", lender: "Investors, via the SEC and the DMO", share: .4 * 1.15, odds: s.igr < 3 ? 0 : pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) + (billsPassed.some(b => b.id === "fiscal_resp") ? .1 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0)),
         terms: "Cheaper than banks (about 15% interest). Needs a credit rating and the House's approval.",
         why: s.igr < 3 ? ["Your own revenue (₦" + s.igr.toFixed(1) + "B) is too small to rate a bond; investors want ₦3B+."] : [cor > .4 ? "✗ Rating agencies mark you down for corruption." : "✓ Your rating is acceptable.", hs.loyal < hs.seats / 2 ? "✗ The House is hostile and may refuse the borrowing resolution." : "✓ The House will approve the borrowing.", billsPassed.some(b => b.id === "fiscal_resp") ? "✓ Your Fiscal Responsibility Law reassures investors." : null] },
-      { id: "dfi", icon: "🌍", nm: "AfDB / World Bank loan", lender: "The African Development Bank and World Bank", share: .4 * 1.05, odds: !multi ? 0 : pc(.85 - Math.max(0, cor - .3) * 2 - (fgRelation < 45 ? .35 : 0) - (proj.needsEIA && !proj.eiaDone ? .4 : 0)),
+      { id: "dfi", icon: "🌍", nm: "the Pan-African Fund / Global Development Fund loan", lender: "The Pan-African Development Fund and Global Development Fund", share: .4 * 1.05, odds: !multi ? 0 : pc(.85 - Math.max(0, cor - .3) * 2 - (fgRelation < 45 ? .35 : 0) - (proj.needsEIA && !proj.eiaDone ? .4 : 0)),
         terms: "The cheapest money there is (about 5%), but slow: Abuja must guarantee it and the banks check safeguards.",
         why: !multi ? ["Development banks don't fund " + t + " projects."] : [fgRelation < 45 ? "✗ Abuja won't sign the federal guarantee: relations are " + Math.round(fgRelation) + "%." : "✓ Abuja will guarantee it.", cor > .35 ? "✗ Their integrity checks flag your corruption (" + Math.round(cor * 100) + "%)." : "✓ Your books pass their checks.", proj.needsEIA && !proj.eiaDone ? "✗ No Environmental Impact Assessment: they won't lend without one." : null] },
       { id: "fed", icon: "🇳🇬", nm: "Federal intervention fund", lender: fund ? fund.charAt(0).toUpperCase() + fund.slice(1) : "Federal funds", share: .2, odds: !fund ? 0 : pc(.25 + (fgRelation - 50) / 100),
@@ -7285,6 +7286,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   });
   const fixLabel = (fix) => fix === "settle" ? "🎩 Pay " + cast.godfather.name + " what you owe (₦0.5B, corruption +3%)" : fix === "elders" ? "🤝 Make peace through the party elders (₦0.3B)" : "📣 Go over their heads to the voters (needs 55% approval; you have " + Math.round(s.app) + "%)";
   const [billReject, setBillReject] = useState(null);
+  const [billFlags, setBillFlags] = useState([]); // clauses you flagged on the bill in front of you
+  const [billAsk, setBillAsk] = useState(false);
+  useEffect(() => { setBillFlags([]); setBillAsk(false); }, [pendingHouseBill]);
   useEffect(() => { setBillReject(null); }, [turn]);
 
   // Move offered cards onto a queue of core phase names, de-duplicating.
@@ -7636,7 +7640,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : pj ? ["The site engineer, " + pj.title, "./art/characters/contractor.webp", pj.title + " has stalled", SYS.fmtM(SYS.remainingM(pj)) + " of work is left and the contractor has left the site."]
       : null;
     const [from, img, title, line] = v || [sa, saPortrait(sa), "A letter", ""];
-    return { from, img, title, line: String(line || "").slice(0, 120) };
+    const FGl = FLAGSHIP[setup?.agenda], gb = k === "gold" && gold ? SYS.beat(gold, turn) : null;
+    const src = { godfather: godfatherDemand && godfatherDemand.d, house_bill: pendingHouseBill && pendingHouseBill.d, investor: curInvestor && curInvestor.desc, federal: curFgEvent && curFgEvent.desc,
+      shock: curShock && curShock.desc, judiciary: curCourt && curCourt.desc, media: curMedia && curMedia.desc, dilemma: curD && (curD.d || curD.desc), intl_invite: curInvite && curInvite.what,
+      flagship: FGl ? "You promised to " + FGl.goal + ". This year's share is due." : null, gold: gb && gb.text }[k] || (sc && sc.brief) || line;
+    const two = (t) => { const m = String(t || "").match(/[\s\S]+?(?:[.!?]+["\u201d]?(?=\s|$)|$)/g) || [""]; const x = (m[0] || "").trim(); return x.length > 150 ? x.slice(0, 148).replace(/\s+\S*$/, "") + "…" : x; };
+    return { from, img, title, line: String(line || "").slice(0, 120), body: two(src) };
   };
   // The year's matters arrive together after the year closes.
   const postYearMail = (q) => {
@@ -7648,6 +7657,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setMail(m => [...m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:")), ...letters]);
     setPhase("mail"); setNav("gov"); setLetterOpen(null);
     if (letters.length) pingMail(letters.length, letters[0].key);
+    const urgent = letters.filter(l => l.stakes >= 3);
+    if (urgent.length) setTimeout(() => { try { const t0 = letterView(urgent[0]).title.replace(/^Your agenda: /, "your promise, "); present("Your Excellency, " + t0 + (/[.!?]$/.test(t0) ? "" : ".") + " This one needs you." + (letters.length > 1 ? " " + letters.length + " letters are on your desk." : "")); } catch (e) {} }, 600);
   };
   // Each year event needs its data in place before it opens.
   const prepEvent = (next) => {
@@ -7737,6 +7748,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (gold.decided[turn] && mailRef.current.some(l => l.key === "gold")) setMail(m => m.filter(l => l.key !== "gold"));
   }, [phase, turn, gold]);
 
+  // ── Big moments: a front page with your name, the news anchors, the adviser in person ──
+  const govShort = "Gov. " + String(pName || "").split(" ").pop();
+  const paper = (headline, sub, good = true, img) => { try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
+  const [anchorNews, setAnchorNews] = useState(null);
+  const anchors = (m, f) => setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]);
+  const anchorEl = anchorNews ? <AnchorDesk lines={anchorNews} onDone={() => setAnchorNews(null)} /> : null;
+  const present = (text, mood = "urgent") => { try { const nm = cast.adviser.name; window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(nm, mood) || saPortrait(nm), name: nm + " · Special Adviser", text, urgent: mood === "urgent" } }); } catch (e) {} };
+  // The anchors cover the moments people talk about.
+  const anchored = React.useRef({});
+  useEffect(() => {
+    const top = logs[0] && logs[0].tx; if (!top || anchored.current[top]) return;
+    if (/^🗳️ RE-ELECTED/.test(top)) { anchored.current[top] = 1; anchors("Breaking: " + stName + " has re-elected " + govShort + ". Four more years!", "A clear mandate. Now the hard part: the second term."); }
+  }, [logs]);
+  useEffect(() => {
+    if (!gEnd || anchored.current["end:" + gEnd]) return; anchored.current["end:" + gEnd] = 1;
+    const L = { defeated: ["Voters in " + stName + " have spoken: " + govShort + " is out.", "A one-term governor. The handover starts tomorrow."],
+      impeached: ["Shock in " + stName + ": the House has impeached " + govShort + ".", "The deputy is being sworn in as we speak."],
+      nullified: ["The Supreme Court has nullified " + govShort + "'s election.", "A stunning end. " + stName + " gets a new governor."],
+      bankrupt: [stName + " cannot pay its bills.", govShort + " leaves a bankrupt state behind."],
+      complete: ["Eight years end today for " + govShort + ".", "History will judge the record. We'll start tonight."] }[gEnd];
+    if (L) anchors(L[0], L[1]);
+  }, [gEnd]);
+  useEffect(() => { if (impSurv && !anchored.current.imp) { anchored.current.imp = 1; anchors(govShort + " survives the impeachment vote!", "The House blinked. The governor walks out stronger."); } }, [impSurv]);
   // ── The mailbox on screen ──
   const Seal = ({ kind, size = 44 }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
   const mailboxView = (inline) => {
@@ -7747,15 +7781,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (open) {
       const v = letterView(open), risk = SYS.cosRisk(c, open.kind, open.stakes), riskC = risk === "safe" ? CL.grn : risk === "risky" ? CL.org : CL.red;
       return <Cd style={{ padding: TALL() ? "16px 14px" : "26px 30px", background: "#fffaf0", borderColor: (SYS.SEALS[open.kind] || {}).c + "66" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
-          <img src={v.img} alt="" style={{ width: TALL() ? 54 : 72, height: TALL() ? 54 : 72, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.gold + "22" }} />
-          <div style={{ minWidth: 0 }}><div style={{ fontSize: fz.s, color: CL.td }}>From {v.from}</div><b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt, lineHeight: 1.15, display: "block" }}>{v.title}</b></div>
-          <Seal kind={open.kind} size={TALL() ? 48 : 64} />
+        <div style={{ position: "relative", background: "#fffdf8", border: "1px solid #e6dcc6", borderRadius: 14, padding: TALL() ? "14px 14px 12px" : "20px 24px 16px", marginBottom: 12, fontFamily: "Georgia, serif", color: "#2b2620", boxShadow: "0 6px 16px rgba(60,40,10,.08)" }}>
+          <div style={{ position: "absolute", top: -14, right: 14 }}><Seal kind={open.kind} size={TALL() ? 44 : 58} /></div>
+          <div style={{ fontFamily: F.b, fontSize: fz.s, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: (SYS.SEALS[open.kind] || {}).c || CL.td, marginBottom: 4 }}>{(SYS.SEALS[open.kind] || {}).nm}</div>
+          <b style={{ display: "block", fontSize: fz.l, lineHeight: 1.15, marginBottom: 8, paddingRight: 50 }}>{v.title}</b>
+          <div style={{ fontSize: fz.m, lineHeight: 1.5 }}>Dear Governor,</div>
+          <div style={{ fontSize: fz.m, lineHeight: 1.5, margin: "4px 0 8px" }}>{v.body || v.line}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fz.m }}>
+            <img src={v.img} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.gold + "22" }} />
+            <span style={{ lineHeight: 1.3 }}>Sincerely,<br /><i>{v.from}</i></span>
+          </div>
         </div>
-        {v.line && <div style={{ fontSize: fz.m, color: CL.tm, margin: "12px 0", lineHeight: 1.4 }}>{v.line}</div>}
         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 14, padding: "8px 12px", marginBottom: 12 }}>
           <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
-          <span style={{ fontSize: fz.s, color: CL.txt }}><b>{c.name}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}” <b style={{ color: riskC, whiteSpace: "nowrap" }}>· {risk}</b></span>
+          <span style={{ fontSize: fz.s, color: CL.txt }}><span aria-label={risk} style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: riskC, marginRight: 6 }} /><b>{first}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}”</span>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 10 }}>
           <Bt onClick={() => handleLetter(open)}>✍️ Handle it personally</Bt>
@@ -7769,19 +7808,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
         <span style={{ fontSize: TALL() ? 34 : 46 }} aria-hidden="true">📬</span>
         <div style={{ flex: 1, minWidth: 0 }}><b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt }}>Your mail</b>
-          <div style={{ fontSize: fz.s, color: CL.td }}>{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") + " waiting. Open each one: handle it yourself, or hand it to your Chief of Staff." : "Nothing waiting."}</div></div>
+          <div style={{ fontSize: fz.s, color: CL.td }}>{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") + " waiting" : "Nothing waiting"}</div></div>
       </div>
       <div style={{ display: "grid", gap: 8 }}>
         {mail.map(l => { const v = letterView(l); return <button key={l.id} onClick={() => setLetterOpen(l.id)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "8px 10px" : "10px 14px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
           <Seal kind={l.kind} size={TALL() ? 38 : 48} />
-          <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.title}</b><span style={{ fontSize: fz.s, color: CL.td }}>{v.from}</span></span>
-          <span style={{ fontSize: fz.s, color: l.stakes >= 3 ? CL.red : CL.td, fontWeight: 800 }}>{l.stakes >= 3 ? "Urgent" : "Open"}</span>
+          <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.title}</b></span>
+          <span aria-label={l.stakes >= 3 ? "Urgent" : "Open"} style={{ fontSize: fz.s, color: l.stakes >= 3 ? CL.red : CL.td, fontWeight: 800 }}>{l.stakes >= 3 ? "❗" : "›"}</span>
         </button>; })}
       </div>
       {inline && phase === "mail" && !yearStuff.length && !budgetWaiting && <Bt onClick={finishMail} style={{ width: "100%", marginTop: 14 }}>The tray is clear: on to {absYear + 1} →</Bt>}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: fz.s, color: CL.td }}>
         <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
-        <span style={{ flex: 1, minWidth: 0 }}>Chief of Staff: <b style={{ color: CL.txt }}>{c.name}</b> · {c.tag}</span>
+        <span style={{ flex: 1, minWidth: 0 }}>🗝️ <b style={{ color: CL.txt }}>{first}</b></span>
         <button onClick={fireCos} style={{ background: "none", border: 0, color: CL.red, fontWeight: 700, fontSize: fz.s, cursor: "pointer", fontFamily: F.b }}>{cosNow ? "Fire" : "Appoint"}</button>
       </div>
       {!inline && <Bt v="ghost" onClick={() => setMailOpen(false)} style={{ width: "100%", marginTop: 14 }}>Close</Bt>}
@@ -7910,6 +7949,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     return (
       <div style={{ minHeight: "100%", background: CL.bg, padding: "58px 43px" }}>
+        {anchorEl}
         <Flag />
         <div style={{ maxWidth: 1272, margin: "58px auto", textAlign: "center" }}>
           <Sfx k={gEnd === "impeached" || gEnd === "defeated" || gEnd === "bankrupt" || gEnd === "nullified" ? "lose" : "win"} />
@@ -8093,13 +8133,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // Four screens. Each keeps the existing pages (nav keys) as sub-tabs, so
   // anything that opens a page by key still works.
+  // Three tabs. Each keeps its pages as chips, so anything that opens a page
+  // by key still works. Wiki, Constitution, Standing, Help and Sound live in the ☰ menu.
   const SCREENS = [
-    { id: "desk", i: "🗂️", img: "tab-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Govern" }, { k: "log", l: "News" }] },
-    { id: "map", i: "🗺️", img: "tab-map", l: "Map", subs: [{ k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Procurement" }] },
-    { id: "people", i: "👥", img: "tab-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "cs", l: "Civil Service" }, { k: "coun", l: "Trad. Council" }, { k: "ppl", l: "Personas" }, { k: "stk", l: "Stakeholders" }] },
-    { id: "wiki", i: "📖", img: "tab-wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] },
+    { id: "desk", i: "🗂️", img: "tab-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }, { k: "log", l: "News" }] },
+    { id: "map", i: "🗺️", img: "tab-map", l: "State", subs: [{ k: "econ", l: "Money" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
+    { id: "people", i: "👥", img: "tab-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: "Council" }, { k: "ppl", l: "Public" }] },
   ];
-  const curScreen = SCREENS.find(sc => sc.subs.some(t => t.k === nav)) || SCREENS[0];
+  const WIKI_SCREEN = { id: "wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] };
+  const menuItems = () => [
+    ["📖 Your Wiki page", () => setNav("bio")],
+    ["⚖️ The Constitution", () => setNav("con")],
+    ["📊 Standing", () => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }],
+    ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
+    ["❓ Help", () => onHelp()],
+    ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
+    [(soundOn ? "🔊 Sound: on" : "🔇 Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
+    ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
+  ].concat(VATAR && window.SOP_canBuy && window.SOP_canBuy() ? [["🔁 Second Chance" + ((window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + " ready)" : ""), buySecondChance]] : []).filter(([l]) => !(VATAR && /Fullscreen/.test(l)));
+  const curScreen = SCREENS.find(sc => sc.subs.some(t => t.k === nav)) || (WIKI_SCREEN.subs.some(t => t.k === nav) ? WIKI_SCREEN : SCREENS[0]);
   navMemory.current[curScreen.id] = nav;
   const subBtn = (on, color) => ({ padding: "10px 26px", borderRadius: 21, border: "1px solid " + (on ? color : CL.bdr), background: on ? color + "12" : "transparent", color: on ? color : CL.td, fontSize: TS(31), fontFamily: F.b, cursor: "pointer", whiteSpace: "nowrap", flex: "0 0 auto" });
 
@@ -8140,6 +8192,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setSkApp(p => { const n = { ...p }; Object.entries(inv.delSk || {}).forEach(([key, v]) => { if (n[key] !== undefined) n[key] = cl100(n[key] + (kind === "adviser" ? Math.round(v / 2) : v)); }); return n; });
     const envoy = kind === "deputy" ? "Deputy Governor " + cast.deputy.name : kind === "commissioner" ? "Hon. " + m.minister + " (" + m.name + ")" : cast.adviser.name + ", your Special Adviser";
     addL("📤 " + envoy + " went in your place. " + inv.delLog, "political");
+    paper((kind === "deputy" ? "Deputy " + cast.deputy.name.split(" ").pop() : kind === "commissioner" ? "Commissioner " + m.minister.split(" ").pop() : "Adviser " + cast.adviser.name.split(" ").pop()) + " Represents " + stName + " in " + inv.from.split(",").pop().trim(), briefly(inv.delLog, 70), true);
     const effects = [{ icon: "📤", text: envoy + " went in your place", value: kind === "commissioner" ? "Technical deal" : kind === "deputy" ? "Ceremonial" : "Quiet follow-up" }];
     if (delFx.app) effects.push({ icon: "📈", text: "Approval", value: "+" + Math.round(delFx.app * k * 10) / 10 + "%", good: true });
     if (tech) effects.push({ icon: "🛠️", text: "Knew the file: part of the in-person deal agreed", value: "40%", good: true });
@@ -8236,6 +8289,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   return (
     <div style={{ minHeight: "100%", background: CL.bg }}>
+      {anchorEl}
       <Flag />
       <div style={{ padding: TALL() ? "20px 20px 190px" : 36, maxWidth: 1488, margin: "0 auto" }}>
         {/* Phone: one slim row pinned to the top. Name and turn on the left,
@@ -8247,19 +8301,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {statusStrip(true)}
           </div>
                     {menuOpen && <div style={{ padding: "4px 16px 14px", borderTop: "1px solid rgba(255,255,255,.12)", display: "grid", gap: 8 }}>
-            {[
-              ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
-              ["📖 Help", () => onHelp()],
-              ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
-              [(soundOn ? "🔊 Sound: on" : "🔇 Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
-              ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
-            ].concat(VATAR && window.SOP_canBuy && window.SOP_canBuy() ? [["🔁 Second Chance" + ((window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + " ready)" : ""), buySecondChance]] : []).filter(([l]) => !(VATAR && /Fullscreen/.test(l))).map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
+            {menuItems().map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
             <div style={{ fontSize: TS(20), opacity: .7, padding: "2px 4px" }}>The game also saves itself every turn.</div>
           </div>}
         </div>}
         {TALL() && curScreen.subs.length > 1 && <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "0 -20px 16px", padding: "0 20px 2px" }}>
           {curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + (nav === t.k ? CL.grn : CL.bdr), background: nav === t.k ? CL.grn : CL.card, color: nav === t.k ? "#fff" : CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>{t.l}</button>)}
-          {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + CL.bdr, background: CL.card, color: CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>Standing</button>}
         </div>}
         {!TALL() && <div style={{ display: "flex", alignItems: "center", gap: 29, marginBottom: 22 }}>
           <div style={{ flexShrink: 0 }}>
@@ -8269,7 +8316,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {statusStrip(false)}
         </div>}
         {!flagUsed && s.app < 50 && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
-        {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
+        {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
           {SCREENS.map(sc => {
             const on = sc.id === curScreen.id;
             return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
@@ -8279,7 +8326,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </button>;
           })}
         </div> : <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "56px repeat(3,1fr)", gap: 10, position: "relative" }}>
+            <button onClick={() => setMenuOpen(o => !o)} aria-label="Menu" aria-expanded={menuOpen} style={{ borderRadius: 16, border: "2px solid " + CL.bdr, background: menuOpen ? CL.grn : CL.card, color: menuOpen ? "#fff" : CL.txt, fontSize: TS(36), cursor: "pointer" }}>☰</button>
+            {menuOpen && <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 40, marginTop: 8, width: 320, background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: 10, display: "grid", gap: 6, boxShadow: "0 16px 40px rgba(0,0,0,.18)" }}>
+              {menuItems().map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 12, border: "1px solid " + CL.bdr, background: "#fff", color: CL.txt, fontFamily: F.b, fontWeight: 700, fontSize: TS(26), cursor: "pointer" }}>{l}</button>)}
+            </div>}
             {SCREENS.map(sc => {
               const on = sc.id === curScreen.id;
               return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
@@ -8291,11 +8342,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
           <div style={{ display: "flex", gap: 7, flexWrap: TALL() ? "nowrap" : "wrap", overflowX: TALL() ? "auto" : "visible", marginTop: 12, paddingBottom: 2 }}>
             {curScreen.subs.length > 1 && curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={subBtn(nav === t.k, CL.grn)}>{t.l}</button>)}
-            {curScreen.id === "people" && <button onClick={() => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }} style={subBtn(false, CL.gold)}>Standing</button>}
-            {curScreen.id === "wiki" && <button onClick={onHelp} style={subBtn(false, CL.grn)}>Help</button>}
-            <button onClick={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} aria-pressed={soundOn} style={{ ...subBtn(false, CL.grn), marginLeft: "auto" }}>{soundOn ? "🔊 Sound on" : "🔇 Sound off"}</button>
-            {VATAR && window.SOP_canBuy && window.SOP_canBuy() && <button onClick={buySecondChance} style={subBtn(false, CL.gold)}>🔁 Second Chance{(window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + ")" : ""}</button>}
-            <button onClick={saveGame} style={subBtn(true, CL.teal)}>💾 Save</button>
           </div>
         </div>}
         {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); else setMailOpen(true); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
@@ -8538,7 +8584,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.teal, fontFamily: F.m, marginBottom: 10 }}>✅ COMPLETED ({completedProjects.length})</div>
                 {completedProjects.map((cp, i) => <div key={i} style={{ padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>
                   <div style={{ fontSize: TS(31), color: CL.grn, fontWeight: 600 }}>{cp.nm}</div>
-                  <div style={{ fontSize: TS(29), color: CL.td }}>{cp.desc}</div>
+                  <div style={{ fontSize: TS(29), color: CL.td }}>{briefly(cp.desc, 120)}</div>
                   <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
                     <span style={{ fontSize: TS(29), color: CL.gold }}>{naira(cp.cost)}</span>
                     {cp.jobs > 0 && <span style={{ fontSize: TS(29), color: CL.blu }}>+{cp.jobs.toLocaleString()} jobs</span>}
@@ -8706,7 +8752,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {eventResult.narrative && <More text={eventResult.narrative} style={{ fontSize: TS(38), color: CL.tm, lineHeight: 1.5, marginBottom: 29, textAlign: "center", fontStyle: "italic" }} />}
             {eventResult.effects && eventResult.effects.length > 0 && <div style={{ marginBottom: 36 }}>
               <div style={{ fontSize: TS(29), fontFamily: F.m, color: CL.td, marginBottom: 14, letterSpacing: 2 }}>CONSEQUENCES</div>
-              {eventResult.effects.map((e, i) => (
+              {eventResult.effects.slice(0, 4).map((e, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 22, padding: "14px 0", borderBottom: "1px solid " + CL.bdr + "40" }}>
                   <span style={{ fontSize: TS(48), width: 72, textAlign: "center" }}>{e.icon}</span>
                   <span style={{ flex: 1, fontSize: TS(36), color: CL.tm }}>{e.text}</span>
@@ -8730,7 +8776,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               addL(FG.i + " Flagship " + FG.nm + ": " + opt.log, opt.delivered ? "policy" : "political");
               try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda } }); } catch (e) {}
               nextEvent();
-              return { icon: FG.i, title: FG.nm + ": " + (opt.delivered ? "this year's target met" : "target missed"), text: "You " + opt.label.toLowerCase() + ". " + opt.note, tone: opt.delivered ? "good" : "bad" };
+              paper(opt.delivered ? govShort + " Delivers on " + FG.nm : govShort + " Misses " + FG.nm + " Target", opt.delivered ? (opt.cor ? "Finished on time, but the work is thin" : "This year's promise kept") : "The people noticed", opt.delivered, FLAGSHIP_ART[setup.agenda] ? "./art/backgrounds/" + FLAGSHIP_ART[setup.agenda][0] + ".webp" : undefined);
+              return null;
             });
             const opts = [
               { label: "Fund it in full", note: "₦" + cost + "B from borrowing. Done properly.", delivered: true, app: 4, debt: cost, log: "year " + year + " target met in full: " + FG.goal + "." },
@@ -8741,9 +8788,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             return <><SceneArt bg={fa[0]} who={fa[1]} h={TALL() ? 200 : 240} /><DecisionCard kicker={"Flagship · Year " + year} kickerColor={CL.grn}
               title={FG.i + " " + FG.nm}
               brief={"You promised to " + FG.goal + ". This year's share of that promise is due. " + (done ? "So far " + done + " of " + (year - 1) + " yearly targets delivered." : year > 1 ? "Last year's target was missed." : "Nothing has been delivered yet.")}
-              stakes="This is the programme the Wikipedia article will judge you on."
-              aside={<AdvBubble text={"Your Excellency, the people heard you promise to " + FG.goal + ". This is the year they will count."} saName={cast.adviser.name} />}
-              options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "Costs ₦" + o.debt + "B", color: CL.txt }, fromChip(o.debt)] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
+              options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "₦" + o.debt + "B", color: CL.txt }] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
               onPick={(o) => pick(o.raw)} /></>;
           })()}
         </OL>
@@ -8830,7 +8875,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />
             <Bg text="Judicial Review" color={CL.pur} />
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{judEvent.nm}</h3>
-            <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{judEvent.d}</p>
+            <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{briefly(judEvent.d, 120)}</p>
             {judEvent.target && <p style={{ color: CL.org, fontSize: TS(36), marginBottom: 14 }}>Affected policy: {judEvent.target}</p>}
             {judEvent.cause && <p style={{ color: CL.txt, fontSize: TS(34), marginBottom: 29 }}><b>Why this case:</b> {judEvent.cause}</p>}
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
@@ -8922,17 +8967,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>
               <Bg text={gf.title} color={CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{gf.nm}</h3>
-              <div style={{ fontSize: TS(34), color: CL.tm, fontStyle: "italic", marginBottom: 22, maxWidth: 768, margin: "0 auto 22px" }}>{gf.desc}</div>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 22, flexWrap: "wrap" }}>
-                <Bg text={"Power: " + godfatherPower} color={godfatherPower > 50 ? CL.red : CL.org} />
-                <Bg text={"Relationship: " + godfatherRel} color={godfatherRel > 50 ? CL.grn : CL.red} />
-                <Bg text={"Aggression: " + gf.aggression} color={gf.aggression > 60 ? CL.red : CL.org} />
+                <Bg text={"🤝 " + godfatherRel} color={godfatherRel > 50 ? CL.grn : CL.red} />
               </div>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22, textAlign: "left", maxWidth: 804, margin: "0 auto 36px" }}>
-                {gf.nm.split(" ").pop()} sits across from you in Government House. He doesn't ask — he tells. "{godfatherDemand.d}"
+                “{briefly(godfatherDemand.d, 120)}”
               </p>
-              {(() => { const M = window.SOP_MEMORY; if (!M) return null; let why = null; try { const owed = M.owed("godfather"); const refused = M.did("godfather_betrayal"); const took = M.did("godfather_contract"); why = owed.length ? "He says you still owe him " + owed[0].what + (owed[0].dueBy ? ", due by turn " + owed[0].dueBy : "") + "." : refused ? "He has not forgotten that you refused him in turn " + refused.t + "." : took ? "You gave him what he wanted in turn " + took.t + ". He has come back for more." : "He funded the party machine that put you on the ballot."; } catch (e) {} return why ? <p style={{ color: CL.txt, fontSize: TS(34), maxWidth: 804, margin: "0 auto 22px", textAlign: "left" }}><b>Why he is here:</b> {why}</p> : null; })()}
-              <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 36 }}>In Nigerian politics, godfathers wield enormous backroom power. They fund campaigns, control party structures, and expect returns. Defying them has consequences — {gf.aggression > 70 ? "and " + gf.nm.split(" ").pop() + " is VERY aggressive when crossed." : gf.aggression > 50 ? "and " + gf.nm.split(" ").pop() + " will push back." : "though " + gf.nm.split(" ").pop() + " may be manageable."}</p>
+              
             </div>
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => {
@@ -8954,7 +8995,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 ].filter(Boolean), tone: "neutral", nextFn: () => { setGodfatherDemand(null); nextEvent(); } });
               }} style={{ padding: 43, borderColor: CL.org + "33" }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.org, marginBottom: 10 }}>🤝 Give {gf.nm.split(" ").pop()} What He Wants</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>The easy path. He stays happy. Party stays stable. But corruption rises.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {godfatherDemand.acceptFx.corM && <Bg text={"+" + Math.round(godfatherDemand.acceptFx.corM * 100) + "% corruption"} color={CL.red} />}
                   {godfatherDemand.acceptFx.pStab && <Bg text={"+" + godfatherDemand.acceptFx.pStab + " party"} color={CL.grn} />}
@@ -9001,7 +9041,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Sfx k="gavel" /><ObjArt name="court-summons" alt="Court summons" size={TALL() ? 120 : 170} />
               <div style={{ background: CL.pur, color: "#fff", display: "inline-block", padding: "10px 43px", borderRadius: 8, fontSize: TS(34), fontWeight: 700, letterSpacing: 5, marginBottom: 22 }}>NATIONAL INDUSTRIAL COURT</div>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(58), fontWeight: 600, margin: "22px 0" }}>NIC Ruling — Reinstatement Ordered</h3>
-              <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{nicPending.desc}</p>
+              <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }}>{briefly(nicPending.desc, 120)}</p>
               <div style={{ background: CL.pur + "08", borderRadius: 8, padding: "19px 29px", marginBottom: 29, fontSize: TS(34), color: CL.pur }}>📖 S.254C(1): The National Industrial Court shall have exclusive jurisdiction over labour disputes. Its orders are enforceable as High Court orders. Contempt of NIC is a criminal offence under S.72 of the Sheriffs and Civil Process Act.</div>
             </div>
             <div style={{ display: "grid", gap: 29 }}>
@@ -9145,7 +9185,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(65), fontWeight: 700 }}>{curShock.title}</h3>
               <More text={curShock.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
               {curShock.autoFx && Object.keys(curShock.autoFx).length > 0 && <div style={{ background: CL.red + "10", border: "1px solid " + CL.red + "25", borderRadius: 8, padding: "14px 29px", marginBottom: 29, fontSize: TS(34), color: CL.red }}>
-                ⚠️ Immediate impact: {Object.entries(curShock.autoFx).map(([k, v]) => k + " " + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v)).join(", ")}
+                ⚠️ {Object.entries(curShock.autoFx).map(([k, v]) => k + " " + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v)).join(", ")}
               </div>}
             </div>
             <div style={{ display: "grid", gap: 22 }}>
@@ -9184,7 +9224,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   showResult({ icon: shk.icon, title: shk.title + " — Response", narrative: opt.log + " The effects will ripple through your state for months to come.", effects: efx, tone: (opt.fx.app || 0) >= 0 ? "neutral" : "bad", nextFn: () => nextEvent() });
                 }} style={{ padding: 29 }}>
                   <div style={{ fontWeight: 600, fontSize: TS(38), color: CL.txt, marginBottom: 7 }}>{opt.l}</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.3 }}>{opt.d}</div>
+                  
                   <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
                     {opt.fx.app && <Bg text={(opt.fx.app > 0 ? "+" : "") + opt.fx.app + " approval"} color={opt.fx.app > 0 ? CL.grn : CL.red} />}
                     {opt.dc && <Bg text={"₦" + opt.dc + "B debt"} color={CL.red} />}
@@ -9245,7 +9285,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   showResult({ icon: "🇳🇬", title: fg.title + " — Result", narrative: opt.log + (opt.fgRel < -10 ? " The President's office has taken note. Expect consequences." : opt.fgRel > 10 ? " Your loyalty has been noted in Aso Rock. This may pay dividends." : ""), effects: efx, tone: opt.fgRel >= 0 ? "good" : "bad", nextFn: () => nextEvent() });
                 }} style={{ padding: 29 }}>
                   <div style={{ fontWeight: 600, fontSize: TS(38), color: CL.txt, marginBottom: 7 }}>{opt.l}</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.3 }}>{opt.d}</div>
+                  
                   <div style={{ display: "flex", gap: 7, marginTop: 10, flexWrap: "wrap" }}>
                     {opt.fgRel > 0 && <Bg text={"+" + opt.fgRel + " FG relations"} color={CL.grn} />}
                     {opt.fgRel < 0 && <Bg text={opt.fgRel + " FG relations"} color={CL.red} />}
@@ -9297,7 +9337,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   showResult({ icon: typeLabel, title: mTitle + " — Result", narrative: opt.d, effects: mefx, tone: (opt.fx.app || 0) >= 0 ? "good" : "bad", nextFn: () => nextEvent() });
                 }} style={{ padding: 29 }}>
                   <div style={{ fontWeight: 600, fontSize: TS(38), color: CL.txt, marginBottom: 7 }}>{opt.l}</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 10, lineHeight: 1.3 }}>{opt.d}</div>
+                  
                   <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                     {opt.fx.app && <Bg text={(opt.fx.app > 0 ? "+" : "") + opt.fx.app + " approval"} color={opt.fx.app > 0 ? CL.grn : CL.red} />}
                     {opt.fx.cor && <Bg text={(opt.fx.cor > 0 ? "+" : "") + Math.round(opt.fx.cor * 100) + "% corruption"} color={opt.fx.cor > 0 ? CL.red : CL.grn} />}
@@ -9343,6 +9383,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 8), youth: cl100((p.youth || 50) + 4) }));
                 setInvestorsApproved(p => [...p, curInvestor.id]);
                 addL("🏗️ APPROVED: " + curInvestor.nm + " — " + curInvestor.jobs.toLocaleString() + " jobs created.", "success");
+                anchors("Big news: " + govShort + " has landed the " + curInvestor.nm + ".", curInvestor.jobs.toLocaleString() + " jobs promised. We'll be watching the land deal.");
                 noteMoney({ icon: "🏭", head: curInvestor.nm, text: curInvestor.nm + " is approved: " + curInvestor.jobs.toLocaleString() + " jobs, and about " + naira(curInvestor.igrBoost) + " a year in taxes from now on.", amtB: curInvestor.igrBoost });
                 const inv = curInvestor; setCurInvestor(null);
                 const efx = [
@@ -9375,6 +9416,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 12), youth: cl100((p.youth || 50) + 6) }));
                 setInvestorsApproved(p => [...p, curInvestor.id]);
                 addL("🎁 INCENTIVIZED: " + curInvestor.nm + " — tax holidays granted.", "success");
+                anchors(govShort + " woos " + curInvestor.co + " with tax holidays.", "The " + curInvestor.nm + " is coming. The taxes, not yet.");
                 const inv = curInvestor; setCurInvestor(null);
                 showResult({ icon: "🎁", title: inv.nm + " — APPROVED WITH INCENTIVES", narrative: "The state has offered " + inv.co + " a generous package: 10-year tax holiday, subsidized land, and free power connection. This costs the state ₦" + (inv.igrBoost * 0.3).toFixed(1) + "B in incentives — but the " + inv.jobs.toLocaleString() + " jobs and sector boost justify it. Business community is very impressed.", effects: [
                   { icon: "👷", text: inv.jobs.toLocaleString() + " jobs created", value: "+" + inv.jobs.toLocaleString(), good: true },
@@ -9429,6 +9471,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setS(p => ({ ...p, pStab: cl100(p.pStab + 8), app: cl100(p.app - 3) }));
                 setSkApp(p => ({ ...p, party: cl100((p.party || 50) + 10) }));
                 addL("✈️ Visited Aso Rock. President received you warmly. Party stability rose. But citizens noticed your absence.", "political");
+                paper(govShort + " Meets the President at Aso Rock", "Party loyalty noted at the Villa", true, "./art/backgrounds/abuja-federal-office.webp");
                 // Small chance of getting a federal favour
                 const rf = Math.random();
                 if (rf < .35) {
@@ -9504,6 +9547,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   setS(p => ({ ...p, igr: p.igr + 3 + hiddenBoost, faac: p.faac + 0.8, agr: cl(p.agr + .04), infra: cl(p.infra + .02), app: cl100(p.app + 6) })); spendB(0.3, "The trip", { force: true });
                   setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 12), youth: cl100((p.youth || 50) + 5) }));
                   addL("🇳🇱 Netherlands trip SUCCESS! Dutch investors commit €40M.", "policy");
+                  paper(govShort + " Shines in the Netherlands, Signs €40M MOU", "Agro-processing and solar deal for " + stName, true);
                   noteMoney({ icon: "🇳🇱", head: "The Dutch deal", text: "The agro-processing and solar deal you signed in The Hague adds about ₦" + (3 + hiddenBoost).toFixed(1) + "B a year in taxes from now on.", amtB: Math.round((3 + hiddenBoost) * 10) / 10 });
                   showResult({ icon: "🇳🇱🎉", img: "./art/scenes/money-deal-signed-abroad.webp", title: "The Hague — DEAL SIGNED!", narrative: "The Dutch investors were impressed by your personal presence. After 3 days of negotiations, they committed €40 million to an agro-processing and solar farm project. Construction begins in 6 months.", effects: [
                     { icon: "💰", text: "IGR boost from investment", value: "+₦" + (3 + hiddenBoost).toFixed(1) + "B", good: true },
@@ -9611,6 +9655,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setS(p => ({ ...p, pStab: cl100(p.pStab + 5), app: cl100(p.app - 4) }));
                 setSkApp(p => ({ ...p, party: cl100((p.party || 50) + 8), traditional: cl100((p.traditional || 50) + 5), media: cl100((p.media || 50) - 5) }));
                 addL("💒 Attended governor's daughter wedding. Networked with 12 governors. Media called it 'junketing.'", "political");
+                paper(govShort + " Dances at Lagos Society Wedding", "Critics call it junketing", false);
                 // Chance to secure an interstate deal
                 if (Math.random() < .3) {
                   setS(p2 => ({ ...p2, infra: cl(p2.infra + .02) }));
@@ -9690,6 +9735,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 });
                 setSkApp(p => { const n = { ...p }; Object.entries(curInvite.goSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
                 addL("🌍 " + curInvite.goLog, "policy");
+                paper(govShort + " Shines in " + curInvite.from.split(",").pop().trim(), briefly(curInvite.goLog, 70), true);
                 const goEffects = [];
                 if (curInvite.goFx.igr) goEffects.push({ icon: "💰", text: "IGR boosted", value: "+₦" + curInvite.goFx.igr + "B", good: true });
                 if (curInvite.goFx.app) goEffects.push({ icon: "📈", text: "Approval rises", value: "+" + curInvite.goFx.app + "%", good: true });
@@ -10168,18 +10214,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={cosPickOpen && !gEnd}>
           {cosPickOpen && <Cd style={{ borderColor: CL.gold + "77" }}>
             <div style={{ textAlign: "center", marginBottom: 14 }}>
-              <Bg text="GOVERNMENT HOUSE · CHIEF OF STAFF" color={CL.gold} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "12px 0 4px", fontSize: TALL() ? TS(34) : TS(56), fontWeight: 600 }}>{cosOffice.history && cosOffice.history.length ? "Appoint a new Chief of Staff" : "Pick your Chief of Staff"}</h3>
-              <div style={{ fontSize: TALL() ? TS(19) : TS(30), color: CL.tm }}>Every letter that reaches you can go to them instead. Who you pick decides what is safe to hand over.</div>
+
             </div>
             <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(4,1fr)", gap: 10 }}>
               {cosLeft.map(c => <button key={c.id} onClick={() => appointCos(c)} style={{ display: "grid", gap: 4, justifyItems: "center", textAlign: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 16, padding: "10px 8px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
                 <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: TALL() ? 64 : 90, height: TALL() ? 76 : 108, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.gold + "18" }} />
                 <b style={{ fontSize: TALL() ? TS(19) : TS(28), lineHeight: 1.15 }}>{c.name}</b>
                 <span style={{ fontSize: TALL() ? TS(16) : TS(24), color: CL.gold, fontWeight: 800 }}>{c.tag}</span>
-                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.td, lineHeight: 1.3 }}>{c.file}</span>
-                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.grn }}>Good with: {c.good.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
-                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.red }}>Weak on: {c.bad.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
+                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.grn }}>👍 {c.good.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
+                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.red }}>👎 {c.bad.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
               </button>)}
             </div>
             {!cosLeft.length && <div style={{ fontSize: TS(30), color: CL.red, textAlign: "center", padding: 20 }}>Nobody else will take the job. Your deputy chief of staff acts.</div>}
@@ -10370,99 +10414,69 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const hasClauses = pendingHouseBill.clauses && pendingHouseBill.clauses.length > 0;
             const badClauses = hasClauses ? pendingHouseBill.clauses.filter(c => !c.ok) : [];
             const advanceFn = () => { setPendingHouseBill(null); nextEvent(); };
-            return <Cd style={{ borderColor: CL.pur + "33" }}>
-              <div style={{ textAlign: "center", marginBottom: 29 }}>
-                <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
-                <Bg text="Bill from House of Assembly" color={CL.pur} />
-                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{pendingHouseBill.nm}</h3>
-                <More text={pendingHouseBill.d} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22 }} />
-                {touchesFlagship(pendingHouseBill.nm + " " + pendingHouseBill.d) && <p style={{ color: CL.grn, fontSize: TS(34), marginBottom: 22 }}>This touches your flagship, {FLAGSHIP[setup.agenda].nm}. Vetoing it will be read as walking back your own promise.</p>}
+            const B = pendingHouseBill, flagged = billFlags;
+            const short = (t) => String(t || "").replace(/^Section\s*(\d+):\s*/, "§$1 ");
+            const fxChips = (fx) => Object.entries(fx || {}).map(([k, v]) => ({ k, t: ({ app: "Approval", corM: "Corruption", sec: "Security", agr: "Farming" }[k] || k) + " " + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v), good: k === "corM" ? v < 0 : v > 0 }));
+            const caughtBad = badClauses.length > 0 && badClauses.every(c => flagged.includes(B.clauses.indexOf(c)));
+            // The House reacts once the pen or the stamp has finished.
+            const later = (o) => setTimeout(() => announce(o), 2600);
+            const doSign = () => {
+              const hasBad = badClauses.length > 0;
+              if (!spendB(B.signCost || 0, "Signing the " + (B.nm || "bill"))) return;
+              setS(p => {
+                const n = { ...p };
+                Object.entries(B.signFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "sec") n.sec = cl(n.sec + v); else if (k === "agr") n.agr = cl(n.agr + v); });
+                if (hasBad) n.cor = cl(n.cor + .04); // a bad clause signed into law
+                return n;
+              });
+              setSkApp(p => { const n = { ...p }; Object.entries(B.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
+              addL(hasBad ? "✍️ Signed the " + B.nm + ", hidden clause and all. Corruption rises." : "✍️ Signed the " + B.nm + " into law." + (B.signCost > 0 ? " Cost: " + naira(B.signCost) : ""), hasBad ? "scandal" : "policy");
+              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, lines: (B.clauses || []).map(c => short(c.t)), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
+              if (!hasBad) setTimeout(() => paper(govShort + " Signs " + B.nm.replace(/ Bill$/, "") + " Into Law", "A win for " + stName, true, "./art/backgrounds/assembly-chamber-wide.webp"), 2600);
+              if (hasBad) later({ icon: "🕵️", img: "./art/characters/speaker-pleased.webp", title: "The House got what it wanted", text: "You signed " + short(badClauses[0].t).split(":")[0] + " without reading it. Corruption +4%.", tone: "bad" });
+              setBillFlags([]); advanceFn();
+            };
+            const doVeto = () => {
+              setSkApp(p => { const n = { ...p }; Object.entries(B.vetoSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
+              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, lines: (B.clauses || []).map(c => short(c.t)), by: "Governor of " + stName + " State", veto: true }); } catch (e) {}
+              if (caughtBad) {
+                // You read it, flagged the trick and sent it back: the press notices.
+                setS(p => ({ ...p, app: cl100(p.app + 5), cor: cl(p.cor - .03) }));
+                setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 10), party: cl100((p.party || 50) - 8), youth: cl100((p.youth || 50) + 6) }));
+                addL("🔍 Vetoed the " + B.nm + " and named the trick: " + badClauses.map(c => short(c.t).split(":")[0]).join(", ") + ". The press praised it.", "policy");
+                later({ icon: "🔍", img: "./art/characters/speaker-angry.webp", title: "Caught: veto upheld by the public", text: "You named the hidden clause. The Speaker is furious; the press loves it.", tone: "good", rows: [{ l: "Approval", v: "+5", good: true }, { l: "Corruption", v: "−3%", good: true }] });
+              } else {
+                setS(p => { const n = { ...p, pStab: cl100(p.pStab - 5) }; Object.entries(B.vetoFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); }); return n; });
+                addL("⛔ Vetoed the " + B.nm + ". The House is unhappy.", "political");
+                later({ icon: "⛔", img: "./art/characters/speaker-angry.webp", title: "The House is unhappy", text: badClauses.length ? "You vetoed it but never said what was wrong. Members call it spite." : "Members wanted this bill. They will remember.", tone: "bad", rows: [{ l: "Party", v: "−5", good: false }, ...fxChips(B.vetoFx).map(c => ({ l: c.t, v: "", good: c.good }))] });
+              }
+              setBillFlags([]); advanceFn();
+            };
+            return <Cd style={{ borderColor: CL.pur + "33", padding: TALL() ? "16px 14px" : "26px 30px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+                <img src="./art/characters/speaker.webp" alt="" style={{ width: TALL() ? 48 : 64, height: TALL() ? 56 : 76, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: CL.pur + "14" }} />
+                <div style={{ minWidth: 0 }}><Bg text="A bill from the House" color={CL.pur} />
+                  <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "6px 0 0", fontSize: TALL() ? TS(30) : TS(48), fontWeight: 700, lineHeight: 1.15 }}>{B.nm}</h3></div>
               </div>
-
-              {hasClauses && <div style={{ textAlign: "left", margin: "0 auto 36px", maxWidth: 840 }}>
-                <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14 }}>📄 BILL CLAUSES — READ CAREFULLY:</div>
-                {pendingHouseBill.clauses.map((c, i) => (
-                  <div key={i} style={{ padding: "19px 29px", marginBottom: 10, borderRadius: 8, background: c.ok ? CL.grn + "06" : CL.red + "06", border: "1px solid " + (c.ok ? CL.grn + "20" : CL.red + "20") }}>
-                    <div style={{ fontSize: TS(34), color: CL.txt, lineHeight: 1.4 }}>{c.t}</div>
-                    {!c.ok && <div style={{ fontSize: TS(29), color: CL.red, marginTop: 7, fontStyle: "italic", display: "none" }}>⚠️ {c.flag}</div>}
-                  </div>
-                ))}
-                {badClauses.length > 0 && <div style={{ fontSize: TS(29), color: CL.td, marginTop: 14, fontStyle: "italic" }}>💡 Tip: Not every clause in a bill is what it seems. A careful governor reads every line.</div>}
+              {hasClauses && <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
+                {B.clauses.map((c, i) => { const on = flagged.includes(i); return <button key={i} onClick={() => setBillFlags(f => on ? f.filter(x => x !== i) : [...f, i])} aria-pressed={on} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", textAlign: "left", padding: TALL() ? "8px 12px" : "12px 16px", borderRadius: 12, border: "1.5px solid " + (on ? CL.red : CL.bdr), background: on ? CL.red + "0d" : "#fff", cursor: "pointer", fontFamily: F.b, color: CL.txt, fontSize: TALL() ? TS(19) : TS(28), lineHeight: 1.35 }}>
+                  <span>{short(c.t)}</span><span style={{ fontSize: TALL() ? 18 : 24 }} aria-label={on ? "Flagged" : "Flag this clause"}>{on ? "🚩" : "⚑"}</span>
+                </button>; })}
+                <div style={{ fontSize: TALL() ? TS(16) : TS(24), color: CL.td }}>Tap ⚑ to flag a clause.</div>
               </div>}
-
-              <div style={{ background: CL.blu + "08", border: "1px solid " + CL.blu + "20", borderRadius: 13, padding: "22px 36px", marginBottom: 36, textAlign: "left", maxWidth: 840, margin: "0 auto 36px" }}>
-                <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.blu, marginBottom: 7 }}>📖 CIVIC NOTE:</div>
-                <div style={{ fontSize: TS(34), color: CL.tm, lineHeight: 1.4 }}>{pendingHouseBill.civic}</div>
+              {billAsk && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "start", background: CL.blu + "08", border: "1px solid " + CL.blu + "22", borderRadius: 14, padding: "10px 12px", marginBottom: 10 }}>
+                <img src={saPortrait(cast.adviser.name)} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
+                <div style={{ fontSize: TALL() ? TS(18) : TS(27), color: CL.tm, lineHeight: 1.45 }}>
+                  {touchesFlagship(B.nm + " " + B.d) && <div style={{ color: CL.grn, fontWeight: 700 }}>It touches your flagship: a veto looks like walking back your promise.</div>}
+                  <div>{B.civic}</div>
+                  <div style={{ marginTop: 4 }}>Sign: {fxChips(B.signFx).map(c => c.t).join(", ") || "no big change"}{B.signCost > 0 ? ", costs " + naira(B.signCost) : ""}. Veto: party −5{fxChips(B.vetoFx).length ? ", " + fxChips(B.vetoFx).map(c => c.t).join(", ") : ""}. Read every clause.</div>
+                </div>
+              </div>}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <Bt onClick={doSign} style={{ background: CL.grn }}>✍️ Sign</Bt>
+                <Bt onClick={doVeto} style={{ background: CL.red }}>⛔ Veto{flagged.length ? " · " + flagged.length + " 🚩" : ""}</Bt>
               </div>
-
-              <div style={{ display: "grid", gap: 29, maxWidth: 840, margin: "0 auto" }}>
-                {/* Sign */}
-                <Cd onClick={() => {
-                  const hasBad = badClauses.length > 0;
-                  if (!spendB(pendingHouseBill.signCost || 0, "Signing the " + (pendingHouseBill.nm || "bill"))) return;
-                  setS(p => {
-                    const n = { ...p };
-                    Object.entries(pendingHouseBill.signFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "sec") n.sec = cl(n.sec + v); else if (k === "agr") n.agr = cl(n.agr + v); });
-                    if (hasBad) { n.cor = cl(n.cor + .04); } // signing bad clauses increases corruption
-                    return n;
-                  });
-                  setSkApp(p => { const n = { ...p }; Object.entries(pendingHouseBill.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-                  if (hasBad) {
-                    addL("✍️ SIGNED: " + pendingHouseBill.nm + " — but you missed suspicious clauses! Corruption increased.", "scandal");
-                  } else {
-                    addL("✍️ SIGNED: " + pendingHouseBill.nm + " signed into law." + (pendingHouseBill.signCost > 0 ? " Cost: " + naira(pendingHouseBill.signCost) : ""), "policy");
-                    try { window.SOP_billSign && window.SOP_billSign({ title: pendingHouseBill.nm, lines: (pendingHouseBill.clauses || []).map(c => c.t), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
-                  }
-                  advanceFn();
-                }} style={{ padding: 43 }}>
-                  <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.grn, marginBottom: 10 }}>✍️ Sign Into Law</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>Give your assent. The bill becomes law in {state.replace("_", " ")} State.</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    {Object.entries(pendingHouseBill.signFx || {}).map(([k, v]) => <Bg key={k} text={k + ":" + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v)} color={v > 0 ? CL.grn : CL.red} />)}
-                    {pendingHouseBill.signCost > 0 && <Bg text={"Cost: " + naira(pendingHouseBill.signCost)} color={CL.red} />}
-                  </div>
-                </Cd>
-
-                {/* Flag & Veto — only if bad clauses exist */}
-                {badClauses.length > 0 && <Cd onClick={() => {
-                  setS(p => ({ ...p, app: cl100(p.app + 5), cor: cl(p.cor - .03) }));
-                  setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 10), party: cl100((p.party || 50) - 8), youth: cl100((p.youth || 50) + 6) }));
-                  addL("🔍 FLAGGED & VETOED: " + pendingHouseBill.nm + "! Governor identified " + badClauses.length + " suspicious clause(s): " + badClauses.map(c => "\"" + c.t.substring(0, 50) + "...\"").join("; ") + ". Media praised the vigilance.", "policy");
-                  advanceFn();
-                }} style={{ padding: 43, borderColor: CL.org + "44" }}>
-                  <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.org, marginBottom: 10 }}>🔍 Flag Suspicious Clauses & Veto</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>You've spotted something wrong. Send the bill back with a public explanation of the problematic clauses.</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <Bg text="+5 approval" color={CL.grn} />
-                    <Bg text="-3% corruption" color={CL.grn} />
-                    <Bg text="+10 media" color={CL.grn} />
-                    <Bg text="-8 party execs" color={CL.red} />
-                  </div>
-                  <div style={{ marginTop: 22, background: CL.org + "08", borderRadius: 8, padding: "14px 29px" }}>
-                    <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.org, marginBottom: 7 }}>FLAGGED CLAUSES:</div>
-                    {badClauses.map((c, i) => <div key={i} style={{ fontSize: TS(31), color: CL.red, lineHeight: 1.4, marginBottom: 7 }}>⚠️ {c.t} — <span style={{ fontStyle: "italic" }}>{c.flag}</span></div>)}
-                  </div>
-                </Cd>}
-
-                {/* Plain Veto */}
-                <Cd onClick={() => {
-                  setS(p => {
-                    const n = { ...p, pStab: cl100(p.pStab - 5) };
-                    Object.entries(pendingHouseBill.vetoFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); });
-                    return n;
-                  });
-                  setSkApp(p => { const n = { ...p }; Object.entries(pendingHouseBill.vetoSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-                  addL("🚫 VETOED: " + pendingHouseBill.nm + ". House unhappy. (-5 party stability)", "political");
-                  advanceFn();
-                }} style={{ padding: 43, borderColor: CL.red + "33" }}>
-                  <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.red, marginBottom: 10 }}>🚫 Veto (No Reason Given)</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>Withhold assent without explanation. The bill dies — House resents you.</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <Bg text="-5 party stability" color={CL.red} />
-                    {Object.entries(pendingHouseBill.vetoFx || {}).map(([k, v]) => <Bg key={k} text={k + ":" + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v)} color={v > 0 ? CL.grn : CL.red} />)}
-                  </div>
-                </Cd>
-              </div>
+              <button onClick={() => setBillAsk(a => !a)} style={{ display: "block", margin: "10px auto 0", background: "none", border: 0, color: CL.blu, fontWeight: 800, fontSize: TALL() ? TS(19) : TS(28), cursor: "pointer", fontFamily: F.b }}>{billAsk ? "Hide" : "🤵 Ask your SA"}</button>
             </Cd>;
           })()}
         </OL>
@@ -10511,7 +10525,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <img src="./art/scenes/inherited-debt.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
             <div className="sp-kicker">What the last government left</div>
             <div style={{ font: "700 26px/1.15 'Fraunces', Georgia, serif", color: "#17301f", margin: "4px 0 6px" }}>The state owes {naira(oldPlan.total)}</div>
-            <div style={{ font: "500 15px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginBottom: 12 }}>It is repaid out of the same yearly money as everything else, with 8% interest a year. How do we deal with it?</div>
+            <div style={{ font: "500 15px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginBottom: 12 }}>8% interest a year. How do we pay?</div>
             <div style={{ display: "grid", gap: 8 }}>{debtChoices().map(c => <button key={c.k} className="sp-opt" onClick={() => chooseOldDebt(c.k)}><b style={{ display: "block", fontSize: 16 }}>{c.t}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{c.d}</span></button>)}</div>
           </div>}
         </OL>
@@ -10644,19 +10658,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>
               </div>;
               return <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
-                <div style={{ fontSize: fs.s, color: CL.td }}>Before you govern</div>
                 <div style={{ fontFamily: F.d, fontSize: fs.l, fontWeight: 700, color: CL.txt, margin: "4px 0 6px", lineHeight: 1.15 }}>Set up your government</div>
-                <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.45, marginBottom: 8 }}>The House will not take a budget from a governor with no cabinet, and nothing moves in the villages without the palaces. Both come first.</div>
-                {row(!!(ministries && ministries.length), 1, "Convene the Executive Council", "Commissioners for Finance, Works, Health, Education, Security and the rest. They run every programme and project you start.",
+                
+                {row(!!(ministries && ministries.length), 1, "Convene the Executive Council", "They run your programmes.",
                   () => { try { window.SOP_REALISM.initMinistries(); } catch (e) { goTab("min"); } }, "Convene the ministries", () => goTab("min"), "Choose them yourself")}
-                {row(!!council, 2, "Convene the Traditional Rulers Council", "Rural turnout, land disputes and security intelligence run through the palaces. Consult them before your first budget.",
+                {row(!!council, 2, "Convene the Traditional Rulers Council", "The palaces deliver the villages.",
                   () => { try { window.SOP_REALISM.conveneCouncil(); } catch (e) { goTab("coun"); } }, "Convene the council", () => goTab("coun"), "Open the council")}
               </Cd>;
             })()}
             {phase === "budget" && !needSetup && (() => {
               const SEC_META = {
                 salaries:       { grp: "Obligations",         min: 15, max: 22, funds: "Civil servant wages, pensions, LGA subventions, teachers, doctors, police stipend top-ups.", low: "Salary arrears → NLC/ASUU strike, party revolt, approval crash.", high: "Bloated payroll consumes capex — nothing left to build." },
-                debt:           { grp: "Obligations",         min: 5,  max: 12, funds: "Repayment of state bonds, contractor arrears, World Bank / AfDB loans, unpaid contractor certificates.", low: "Debt compounds — credit downgrade, contractors down tools.", high: "Overpaying debt starves services this quarter." },
+                debt:           { grp: "Obligations",         min: 5,  max: 12, funds: "Repayment of state bonds, contractor arrears, Global Development Fund / Pan-African Fund loans, unpaid contractor certificates.", low: "Debt compounds — credit downgrade, contractors down tools.", high: "Overpaying debt starves services this quarter." },
                 administration: { grp: "Obligations",         min: 5,  max: 10, funds: "Government House, Deputy Gov office, protocol, official vehicles, foreign trips, utilities, secretariat maintenance.", low: "Basic government machinery grinds to a halt.", high: "Optics disaster — media brands you a spendthrift, corruption index rises." },
                 health:         { grp: "Human Development",   min: 12, max: 18, funds: "Doctor & nurse salaries, drug procurement, primary health centres, immunisation cold chain, teaching hospital subsidies.", low: "Drug stockouts, infant mortality, strike by NARD/NMA.", high: "Diminishing returns — the extra money starts paying for retreats." },
                 education:      { grp: "Human Development",   min: 12, max: 18, funds: "Teacher salaries, SUBEB, WAEC subsidy, school feeding, tertiary subventions, scholarships, classroom construction.", low: "Out-of-school children rise, WAEC pass rate collapses.", high: "Marginal gains — building schools without teachers." },
@@ -10691,21 +10704,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   const v = bud[sec.k] || 0;
                   if (v < m.min) bad.push(t[0]); else if (v > m.max) bad.push(t[2]); else good.push(t[1]);
                 });
-                return [...good.slice(0, Math.max(1, 3 - bad.length)), ...bad].slice(0, 4);
+                return [...good.slice(0, Math.max(1, 1 - bad.length)), ...bad].slice(0, 1);
               };
-              const SaysBox = ({ fs }) => bs !== 100 ? null : <div style={{ background: CL.grn + "0c", border: "1px solid " + CL.grn + "33", borderRadius: 12, padding: "12px 14px", margin: "10px 0" }}>
-                <div style={{ fontSize: fs, color: CL.td, fontWeight: 700, marginBottom: 4 }}>If the House passes this</div>
-                {budgetSays().map((l, i) => <div key={i} style={{ fontSize: fs, color: CL.txt, lineHeight: 1.4 }}>{l}</div>)}
-              </div>;
               // One decision first: pick a stance. The eight sectors are one
               // tap away under "Fine-tune"; the explanations sit behind "What's in the pot?".
               const tall = TALL();
               const fs = { s: tall ? TS(20) : TS(30), m: tall ? TS(24) : TS(36), l: tall ? TS(32) : TS(56) };
               const STANCES = [
-                ["recommended", "Balanced", "Every sector in its healthy range."],
-                ["populist", "Populist", "Wages and roads first; debt waits."],
-                ["reformer", "Reformer", "Pay down debt, cut the overheads."],
-                ["godfather", "Godfather's budget", "Big contracts and a fat Government House."],
+                ["recommended", "Balanced", "Every sector healthy"],
+                ["populist", "Populist", "Wages and roads first"],
+                ["reformer", "Reformer", "Pay down debt"],
+                ["godfather", "Godfather's budget", "Big contracts"],
               ];
               const same = (a, b) => BSECTORS.every(sec => (a[sec.k] || 0) === (b[sec.k] || 0));
               const warnCount = (v) => BSECTORS.filter(sec => { const m = SEC_META[sec.k], x = v[sec.k] || 0; return m && (x < m.min || x > m.max); }).length;
@@ -10713,7 +10722,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 {grpOrder.map(g => <span key={g} style={{ width: BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (v[sec.k] || 0), 0) + "%", background: grpColor[g] }} />)}
               </div>;
               const GRP_SHORT = { "Human Development": "People", "Growth Engines": "Growth", "Obligations": "Running costs" };
-              const cards = (STANCES.some(([k]) => same(bud, presets[k])) ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "The split on your desk now." : "Not balanced: " + bs + "% given out.", bud]])
+              const cards = (STANCES.some(([k]) => same(bud, presets[k])) ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "On your desk" : "Not balanced: " + bs + "%", bud]])
                 .concat(STANCES.map(([k, l, d]) => [k, l, d, presets[k]]));
               const step = (k, d) => setBud(p => ({ ...p, [k]: Math.max(0, Math.min(40, (p[k] || 0) + d)) }));
               const stepBtn = { width: tall ? 48 : 64, height: tall ? 48 : 64, minHeight: tall ? 48 : 64, borderRadius: 12, border: "1px solid " + CL.bdr, background: CL.bg, color: CL.txt, fontSize: fs.m, fontWeight: 800, cursor: "pointer", flexShrink: 0 };
@@ -10734,15 +10743,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                       border: "1.5px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn + "0d" : CL.card, boxShadow: on ? "inset 0 0 0 1px " + CL.grn : "none" }}>
                       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
                         <b style={{ fontSize: fs.m }}>{on ? "✓ " : ""}{l}</b>
-                        <span style={{ fontSize: fs.s, color: w ? CL.org : CL.grn, fontWeight: 700, whiteSpace: "nowrap" }}>{w ? w + (w > 1 ? " warnings" : " warning") : "No warnings"}</span>
+                        <span style={{ fontSize: fs.s, color: w ? CL.org : CL.grn, fontWeight: 700, whiteSpace: "nowrap" }}>{w ? "⚠️ " + w : "✓"}</span>
                       </span>
                       {grpBar(v)}
-                      <span style={{ fontSize: fs.s, color: CL.td }}>{d}</span>
                     </button>;
                   })}
-                </div>
-                <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: fs.s, color: CL.tm, marginBottom: 8 }}>
-                  {grpOrder.map(g => <span key={g}><span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: grpColor[g], marginRight: 6 }} />{GRP_SHORT[g]} {BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (bud[sec.k] || 0), 0)}%</span>)}
                 </div>
                 <button onClick={() => setBudTune(o => !o)} aria-expanded={budTune} style={{ background: "none", border: 0, padding: "8px 0", color: CL.grn, fontSize: fs.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{budTune ? "Hide the eight sectors" : "Fine-tune the eight sectors"}</button>
                 {budTune && <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1fr 1fr", columnGap: 48, margin: "4px 0 8px" }}>
@@ -10770,7 +10775,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 {activeNeeds.filter(n => n.status !== "open" && (bud[needType(n).sector] || 0) < BUDGET_MIN[needType(n).sector]).map(n => <div key={n.id} style={{ fontSize: fs.s, color: CL.red, background: CL.red + "0c", borderRadius: 12, padding: "8px 12px", margin: "6px 0", lineHeight: 1.4 }}>
                   ⚠️ {SECTOR_NAME[needType(n).sector]} is below {BUDGET_MIN[needType(n).sector]}%: the contractors working on "{needType(n).title(n.lga)}" will not be paid, and the work will stop.
                 </div>)}
-                <SaysBox fs={fs.s} />
                 <Bt onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} style={{ width: "100%", marginTop: 6, opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
                   {bs === 100 ? "Submit to the House of Assembly →" : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
                 </Bt>
@@ -10787,29 +10791,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 addL={addL} />
             </Cd>}
             {phase === "policy" && <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
-              <AdvBubble text={(() => { const st0 = story(); return st0.flagship ? "Your Excellency, you campaigned on \u201c" + (st0.slogan || "") + "\u201d and promised " + st0.flagship.nm + ". " + (st0.flagship.targets ? st0.flagship.met + " of " + st0.flagship.targets + " yearly targets met so far. " : "") + "Pick policies that serve it; each one is paid every year it runs." : ADV.policy; })()} saName={cast.adviser.name} />
+              <AdvBubble text={(() => { const st0 = story(); return st0.flagship ? "Pick what serves " + st0.flagship.nm + "." : "Pick what the state needs most."; })()} saName={cast.adviser.name} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, margin: "4px 0 12px" }}>
-                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: 0, fontSize: PFS.l, fontWeight: 700 }}>What will you do this year?</h3>
               </div>
               <div role="tablist" style={{ display: "flex", gap: 6, background: CL.bg, borderRadius: 999, padding: 4, marginBottom: 16 }}>
                 {[["pol", "Programmes"], ["bill", "Bills"], ["eo", "Executive orders"]].map(([k, l]) => <button key={k} role="tab" aria-selected={polTab === k} onClick={() => setPolTab(k)} style={{ flex: 1, border: 0, borderRadius: 999, padding: TALL() ? "10px 6px" : "12px 10px", minHeight: 44, background: polTab === k ? "#12301f" : "transparent", color: polTab === k ? "#fff" : CL.tm, fontWeight: 800, fontSize: PFS.s, cursor: "pointer", fontFamily: F.b }}>{l}</button>)}
               </div>
               {polTab === "pol" && <div>
-              <p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 18px" }}>Each one is paid every year it runs, from borrowing. People remember who it helped.</p>
+              
               {pol.length > 0 && <Fold title={"In force (" + pol.length + ")"} summary={pol.slice(0, 3).map(x => x.nm.replace(/^⭐\s*/, "")).join(", ") + (pol.length > 3 ? "…" : "")}>
                 {pol.map(x => <div key={x.id} style={{ fontSize: PFS.s, color: CL.tm, padding: "6px 0", borderBottom: "1px solid " + CL.bdr + "66" }}><b style={{ color: CL.txt }}>{x.nm.replace(/^⭐\s*/, "")}</b> · {x.pending ? "in procurement" : x.tl > 0 ? x.tl + (x.tl === 1 ? " year" : " years") + " to go" : "delivered"}{x.perH ? " · " + naira(x.perH) + " a year" : ""}</div>)}
               </Fold>}
               {(() => { const avail = POLICIES.filter(p => !pol.find(a => a.id === p.id)); const answers = (p) => activeNeeds.filter(n => n.status === "open" && (needType(n)?.fix || []).includes(p.id));
 const rankOf = (p) => answers(p).length ? 0 : touchesFlagship(p.nm + " " + p.d) ? 1 : 2;
-const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown = polAll ? ranked : ranked.slice(0, 5); return <><div style={{ display: "grid", gap: 12 }}>{shown.map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22, borderColor: answers(p).length ? CL.grn + "88" : undefined }}>
+const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown = polAll ? ranked : ranked.slice(0, 2); return <><div style={{ display: "grid", gap: 12 }}>{shown.map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22, borderColor: answers(p).length ? CL.grn + "88" : undefined }}>
                 {answers(p).map(n => <div key={n.id} style={{ display: "inline-block", marginBottom: 6, padding: "3px 10px", borderRadius: 999, background: CL.grn + "16", color: CL.grn, fontSize: PFS.s, fontWeight: 700 }}>{needType(n).icon} Answers: {needType(n).title(n.lga)}</div>)}
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)}/year</span></div>
-                <div style={{ fontSize: PFS.s, color: CL.tm, margin: "4px 0" }}>{p.d}</div>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0" }}>{Object.entries(p.fx || {}).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}{p.jobsAdd ? <Bg text={p.jobsAdd.toLocaleString() + " jobs"} color={CL.blu} /> : null}</div>
-                <div style={{ fontSize: PFS.s, color: CL.td }}>{p.t === 1 ? "One year" : p.t + " years (" + naira(p.c) + " in all)"}{isCapital(p) ? " · you find the money and a contractor" : ""}{p.cr > .09 ? " · money can leak" : ""}</div>
-                <div style={{ fontSize: PFS.s, marginTop: 4 }}><span style={{ color: CL.grn }}>For: {forS}</span> · <span style={{ color: CL.red }}>Against: {againstS}</span></div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)} × {p.t}y</span></div>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0" }}>{Object.entries(p.fx || {}).slice(0, 2).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}{p.jobsAdd ? <Bg text={p.jobsAdd.toLocaleString() + " jobs"} color={CL.blu} /> : null}</div>
+                {p.cr > .09 && <div style={{ fontSize: PFS.s, color: CL.org }}>Money can leak</div>}
               </Cd>; })}</div>
-                {ranked.length > 5 && <button onClick={() => setPolAll(o => !o)} style={{ background: "none", border: 0, padding: "12px 0 0", color: CL.grn, fontSize: PFS.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{polAll ? "Show fewer" : "Show all " + ranked.length + " programmes"}</button>}
+                {ranked.length > 2 && <button onClick={() => setPolAll(o => !o)} style={{ background: "none", border: 0, padding: "12px 0 0", color: CL.grn, fontSize: PFS.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{polAll ? "Show fewer" : "Show all " + ranked.length + " programmes"}</button>}
               </>; })()}
 
               </div>}
@@ -10867,9 +10868,9 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               {headline && <FrontPage paper={state.replace("_", " ") + " Daily Tribune"} headline={headline} w={TALL() ? 260 : 340} />}
               {/* Show this turn's key events so players SEE the cabinet/stakeholder/persona feedback */}
               <div style={{ textAlign: "left", margin: "29px 0", maxWidth: 732, marginLeft: "auto", marginRight: "auto" }}>
-                {logs.filter(l => l.t === turn).slice(0, 5).map((e, i) => {
+                {logs.filter(l => l.t === turn).slice(0, 2).map((e, i) => {
                   const tc = { policy: CL.grn, crisis: CL.red, political: CL.org, success: CL.teal, scandal: CL.red, info: CL.td };
-                  return <div key={i} style={{ fontSize: TS(34), color: tc[e.tp] || CL.tm, padding: "10px 0", borderBottom: "1px solid " + CL.bdr + "60", lineHeight: 1.4 }}>{e.tx}</div>;
+                  return <div key={i} style={{ fontSize: TS(34), color: tc[e.tp] || CL.tm, padding: "10px 0", borderBottom: "1px solid " + CL.bdr + "60", lineHeight: 1.4 }}>{briefly(e.tx, 90)}</div>;
                 })}
               </div>
               <Spark data={appH} color={s.app > 50 ? CL.grn : CL.red} w={130} h={24} />
@@ -10952,7 +10953,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
 
         {nav === "ppl" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{PERSONAS.map(p => { const v = pApp[p.id] || 50; return <Cd key={p.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{p.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{p.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /><div style={{ fontSize: TS(29), color: CL.td }}>{p.d}</div></Cd>; })}</div>}
 
-        {nav === "stk" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{STAKEHOLDERS.map(x => { const v = skApp[x.id] || 50; return <Cd key={x.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{x.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{x.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /></Cd>; })}</div>}
+        {(nav === "stk" || nav === "ppl") && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{STAKEHOLDERS.map(x => { const v = skApp[x.id] || 50; return <Cd key={x.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{x.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{x.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /></Cd>; })}</div>}
 
         {nav === "cab" && <div>
           {ministries && ministries.length > 0 && <div style={{ marginBottom: 50 }}>
@@ -10996,7 +10997,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
           </div>}
         </div>}
 
-        {nav === "cs" && <div>
+        {(nav === "cs" || nav === "cab") && <div>
           <Cd style={{ marginBottom: 29 }}>
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 14px", fontSize: TS(50), fontWeight: 600 }}>🏛️ Civil Service — Permanent Secretaries</h3>
             <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.4, marginBottom: 22 }}>These career bureaucrats run your ministries day-to-day. Commissioners set direction — permanent secretaries implement. Their efficiency determines whether your policies actually reach the people. Their corruption determines how much money disappears along the way.</div>

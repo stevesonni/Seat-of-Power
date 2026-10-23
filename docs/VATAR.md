@@ -51,6 +51,9 @@ Each product sells more play, never a better result, so titles, honours and the 
 - `/api/challenge/start`: counts attempts and uses a `challenge_retry` after the first.
 - `/api/challenge/score`: keeps the player's best for the current or previous week.
 - `/api/challenge/board`.
+- `/api/hall/submit` and `/api/hall/board`: the all-time Hall of Governors, the best finished career per player (a Second Chance career is not submitted).
+
+**Names on the boards:** both boards show the player's **Lagos Life username**. The server prefers the name Vatar returns from `/session/verify` (`username`, `displayName` or `name`). Otherwise it uses the name the SDK gave the game (`window.SOP_PLAYER`). `/api/delete` also removes the player from the Hall.
 
 ## Inside the frame
 - Hidden: fullscreen, the share card, copy buttons, and X / WhatsApp links.

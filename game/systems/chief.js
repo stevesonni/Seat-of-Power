@@ -77,7 +77,7 @@ export const cosOdds = (cos, kind, stakes) => {
 export const cosHint = (cos, kind, stakes) => {
   if (!cos) return "There is no Chief of Staff to hand this to.";
   const p = cosOdds(cos, kind, stakes);
-  return p >= .75 ? "I can handle this, Your Excellency." : p >= .5 ? "I can try, but you would do it better." : "This one needs you, Your Excellency. I would rather you took it.";
+  return p >= .75 ? "I can handle this." : p >= .5 ? "I can try." : "This one needs you.";
 };
 export const cosRisk = (cos, kind, stakes) => { const p = cosOdds(cos, kind, stakes); return p >= .75 ? "safe" : p >= .5 ? "risky" : "needs you"; };
 

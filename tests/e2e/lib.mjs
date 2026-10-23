@@ -63,8 +63,8 @@ export async function takeOffice(g) {
    `until(text)` is true. Clicks, in order: confirmations, setup, budget,
    House vote, policies, end of year, continue; otherwise the first offered
    choice (a button, or a clickable choice card). Returns the click log. */
-const SKIP = /^(☰|Compound|Govern|News|Desk|Map|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Personas|Stakeholders|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|Less$|▼$|▲$|Open the council$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
-const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound)$/, /^✍️ Handle it personally$/, /^.{6,}(Open|Urgent)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/];
+const SKIP = /^(☰|Compound|Govern|Today|News|Desk|Map|State|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Council|Personas|Public|Stakeholders|Money|Contracts|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|🤵 Ask your SA$|Hide$|Less$|▼$|▲$|Open the council$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
+const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound)$/, /^✍️ Handle it personally$/, /^.{6,}(›|❗)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/, /^✍️ Sign$/];
 export async function playUntil(g, until, { max = 400, prefer = [], log = false } = {}) {
   const clicks = [];
   for (let i = 0; i < max; i++) {
@@ -86,7 +86,7 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false 
       if (cards.length) { cards[0].click(); return "card " + cards[0].textContent.trim().slice(0, 50); }
       return null;
     }, SKIP.source);
-    if (!hit) { if (!(await g.click(/^Govern$/))) { await g.click(/^Desk$/); await g.wait(200); await g.click(/^Govern$/); } await g.wait(250); hit = "→ Govern"; }
+    if (!hit) { if (!(await g.click(/^(Govern|Today)$/))) { await g.click(/^Desk$/); await g.wait(200); await g.click(/^(Govern|Today)$/); } await g.wait(250); hit = "→ Govern"; }
     clicks.push(hit); if (log) console.log(i, hit);
     await g.wait(300);
   }
