@@ -16,7 +16,6 @@ const withSave = (edit) => { const d = JSON.parse(YEAR1.sop_save); edit(d); retu
 const bubbles = (g) => g.page.evaluate(() => [...document.querySelectorAll(".sp-bubble")].filter(b => b.offsetParent).map(b => b.textContent));
 const saved = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
 const proj = async (g, title) => ((await saved(g)).projects || []).find(p => p.title === title);
-const stamp = (g) => g.page.evaluate(() => document.querySelector(".sop-stamp img")?.alt || null); // the inked stamp image (art pack 2)
 // Into the policy step of Year 1, with nothing in front of the programmes.
 const toPolicies = async (g) => {
   await g.click(/^Continue/); await g.wait(1800);
@@ -82,7 +81,6 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await g.click(/^Seek financing/);
   check(!!(await g.click(/^Approve the project$/)), "1. approve the road programme");
   await g.wait(250);
-  check(/^approved/i.test(await stamp(g) || ""), "1. the APPROVED stamp lands after the approval is recorded");
   await g.wait(900);
   let p = await proj(g, ROAD);
   check(p && p.status === "pending_finance" && !p.contractorId && p.spentM === 0, "1. approval is not a contract: no contractor, nothing spent (" + (p && p.status) + ")");
@@ -94,9 +92,9 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   check(/FIND THE MONEY/i.test(await g.txt()) && /500km Road Network/.test(await g.txt()), "3. it opens this project's finance step");
   check(await lendUntilOffer(g), "4. a lender's offer is accepted");
   await g.wait(250);
-  const st2 = await stamp(g); await g.wait(900);
+  await g.wait(900);
   p = await proj(g, ROAD);
-  check(p.status === "pending_procurement" && p.loanLeftM > 0 && /^funded/i.test(st2 || ""), "5. money recorded, then the FUNDED stamp (" + p.loanLeftM + "M in hand)");
+  check(p.status === "pending_procurement" && p.loanLeftM > 0, "5. money recorded (" + p.loanLeftM + "M in hand)");
   await g.wait(800);
   b = await bubbles(g);
   check(b.some(x => /next step is to review its procurement/.test(x)), "5. the adviser moves on to procurement");
@@ -104,9 +102,9 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await g.wait(400);
   check(/Award the contract/.test(await g.txt()), "3. bidders shown for this project");
   await g.click(/^Award contract$/); await g.wait(250);
-  const st3 = await stamp(g); await g.wait(900);
+  await g.wait(900);
   p = await proj(g, ROAD);
-  check(p.status === "in_progress" && !!p.contractorId && /^contract signed/i.test(st3 || ""), "4. contract awarded and recorded (" + p.contractorId + ")");
+  check(p.status === "in_progress" && !!p.contractorId, "4. contract awarded and recorded (" + p.contractorId + ")");
   await g.wait(800);
   b = await bubbles(g);
   check(b.some(x => /under construction.*Nothing is due until year end/.test(x)), "5. the adviser says nothing is due until year end");

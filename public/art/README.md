@@ -42,20 +42,9 @@ state-seal (invented — use instead of the old national "crest"), title-logo, a
 - **backgrounds/finance-ministry-office** with **characters/finance-commissioner:** the top of the Money panel.
 - **Not used, on purpose:** compound-base, compound-base-night, the motorcade frames and o-motorcade (retired when the convoy was removed at the player's request; compound-full is the map).
 
-## Art pack 2: stamps (11 images, all in use; checked by tests/art-usage.test.mjs)
-One stamp layer for the whole game: `SOP_stamp(name, sub)` in `public/seat-of-power.html` (no motion when the device or the player asks for less).
-
-| Stamp | When it lands |
-|---|---|
-| stamp-approved | A project approved |
-| stamp-funded | A loan accepted |
-| stamp-contract-signed | A contract awarded |
-| stamp-passed | The budget passed by the House |
-| stamp-rejected | The budget or a bill voted down |
-| stamp-signed-into-law | Signing a bill. `SOP_billSign` shows bill-paper-blank with the bill's title and clauses, governor-signature-pen writes the governor's name, then this stamp |
-| stamp-commissioned | A project opens |
-| stamp-paid | The old debt paid at once, or all salary arrears cleared |
-| stamp-broke | "The state can't pay for this" |
+## Art pack 2: stamps (removed)
+- **Removed at the player's request:** the nine stamp images and the stamp layer (`SOP_stamp`).
+- **Kept:** bill-paper-blank and governor-signature-pen. Signing a bill (`SOP_billSign`) shows the page with the bill's title and clauses, and the pen writes the governor's name.
 
 ## Art pack 2: elections and projects (12 images, all in use; checked by tests/art-usage.test.mjs)
 - **Project sites** (`siteArt(p)`): project-site-cleared (waiting for money or a contractor, and the contract-signed dossier), project-site-halfway (under construction from 35%, or built), project-site-stalled (stalled, suspended, abandoned), project-ribbon-cutting (open, and the "is open" card). The full picture shows in the single dossier; portfolio cards show a thumbnail.

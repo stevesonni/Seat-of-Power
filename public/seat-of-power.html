@@ -143,8 +143,6 @@
        tappable gives a small press. Off for people who ask for less motion. */
     @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes sopSlideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
-    @keyframes sopStampIn { 0% { transform: scale(2.6) rotate(-6deg); opacity: 0; } 60% { transform: scale(.94); opacity: 1; } 80% { transform: scale(1.04); } 100% { transform: scale(1); } }
-    @keyframes sopStampOut { 0%, 72% { opacity: 1; } 100% { opacity: 0; } }
     @keyframes sopSign { to { width: 56%; } }
     @keyframes sopPen { 0% { transform: translate(0,0) rotate(0); } 100% { transform: translate(120%, -4%) rotate(4deg); } }
     @keyframes sopCoin { 0% { transform: translateY(0) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-78vh) rotate(25deg); opacity: 0; } }
@@ -394,25 +392,9 @@
         setTimeout(function () { b.focus(); }, 30);
       }
       window.SOP_outcome = function (o) { queue.push(o || {}); next(); };
-      /* A rubber stamp over everything, for a decision the game has recorded.
-         SOP_stamp(name, sub): name is the file in art/objects (stamp-<name>).
-         Motion is skipped when the device or the player asks for less. */
       function still() { try { return matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('sp-still'); } catch (e) { return false; } }
-      window.SOP_stamp = function (name, sub, sound) {
-        try {
-          var w = document.createElement('div'); w.className = 'sop-stamp'; w.setAttribute('aria-hidden', 'true');
-          w.style.cssText = 'position:fixed;inset:0;z-index:9990;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;background:radial-gradient(circle,rgba(18,48,31,.22),rgba(18,48,31,0) 62%);' + (still() ? '' : 'animation:sopStampOut 1.9s ease-in forwards');
-          var im = document.createElement('img'); im.src = './art/objects/stamp-' + name + '.webp'; im.alt = name.replace(/-/g, ' ');
-          im.style.cssText = 'width:min(78vw,380px);height:auto;filter:drop-shadow(0 14px 30px rgba(0,0,0,.28));' + (still() ? '' : 'animation:sopStampIn .55s cubic-bezier(.2,1.4,.4,1) both');
-          w.appendChild(im);
-          if (sub) { var t = document.createElement('div'); t.textContent = sub; t.style.cssText = 'margin-top:-6px;padding:6px 14px;border-radius:999px;background:rgba(255,250,240,.94);color:#17301f;font:800 16px "Plus Jakarta Sans",sans-serif'; w.appendChild(t); }
-          document.body.appendChild(w);
-          try { window.SOP_sound && window.SOP_sound(sound || 'gavel'); } catch (e) {}
-          setTimeout(function () { w.remove(); }, 1950);
-        } catch (e) {}
-      };
       /* Signing a bill: the page with its title and clauses, the pen across the line,
-         then SIGNED INTO LAW. SOP_billSign({ title, lines, by }). */
+         the governor's signature. SOP_billSign({ title, lines, sign, by }). */
       window.SOP_billSign = function (b) {
         try {
           var back = document.createElement('div'); back.className = 'sop-billsign'; back.setAttribute('aria-hidden', 'true');
@@ -427,7 +409,7 @@
           var pen = document.createElement('img'); pen.src = './art/objects/governor-signature-pen.webp'; pen.alt = '';
           pen.style.cssText = 'position:absolute;width:42%;bottom:6%;left:18%;' + (still() ? 'display:none' : 'animation:sopPen .9s .35s ease-in-out forwards');
           page.appendChild(h); page.appendChild(body); page.appendChild(sig); page.appendChild(by); page.appendChild(pen); back.appendChild(page); document.body.appendChild(back);
-          setTimeout(function () { window.SOP_stamp('signed-into-law', null, 'gavel'); }, still() ? 200 : 1400);
+          setTimeout(function () { try { window.SOP_sound && window.SOP_sound('gavel'); } catch (e) {} }, still() ? 200 : 1300);
           setTimeout(function () { back.remove(); }, still() ? 1600 : 3200);
         } catch (e) {}
       };

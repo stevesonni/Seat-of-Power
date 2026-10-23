@@ -3364,7 +3364,6 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
   const doVote = () => {
     const passed = hardBlockers.length === 0;
     if (!passed) {
-      try { window.SOP_stamp && window.SOP_stamp("rejected", null, "bad"); } catch (e) {}
       setReasons(hardBlockers);
       addL && addL("❌ House rejects Appropriation Bill. " + hardBlockers.slice(0, 2).map(r => r.who + " voted no: " + (r.why || r.t.split(" — ")[0])).join(" "), "political");
     } else if (concerns.length) {
@@ -3603,12 +3602,6 @@ const MilestoneMove = ({ from, at }) => {
   useEffect(() => { if (shown === at) return; const t = setTimeout(() => setShown(at), 650); return () => clearTimeout(t); }, [at]);
   return <MilestoneStrip at={shown} />;
 };
-// A rubber stamp over the page, once, for a decision that has been recorded.
-const StampOnce = ({ name, sub, sound = "gavel" }) => {
-  useEffect(() => { try { window.SOP_stamp && window.SOP_stamp(name, sub, sound); } catch (e) {} }, []);
-  return null;
-};
-const stamp = (name, sub, sound) => { try { window.SOP_stamp && window.SOP_stamp(name, sub, sound); } catch (e) {} };
 // Reduced motion: the device setting, or the player's own switch.
 const spStill = () => { try { return localStorage.getItem("sop_still") === "1"; } catch (e) { return false; } };
 const setSpStill = (v) => { try { localStorage.setItem("sop_still", v ? "1" : "0"); } catch (e) {} try { document.documentElement.classList.toggle("sp-still", !!v); } catch (e) {} };
@@ -3800,7 +3793,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
       {big && <Actions><button className="sp-btn quiet" onClick={() => onFlow(null)}>Close</button></Actions>}
     </Dossier>; };
   if (F0 && F0.step === "dossier" && proj) return <Card p={proj} big />;
-  // ── 5. Recorded: the stamp, the milestone moving, the adviser's next step ──
+  // ── 5. Recorded: the milestone moving, the adviser's next step ──
   // Shown only once the decision is in the project's own record.
   if (F0 && F0.step === "done" && proj) {
     const n = nextOf(proj), C = SYS.contractorById(proj.contractorId), k = F0.kind;
@@ -3810,7 +3803,6 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
       contract: ["Contract signed", C ? C.name : "", true, "Contract signed with " + (C ? C.name : "the contractor"), "Work starts this year. How far it gets depends on the money released and on the contractor; you will see it at year end."] }[k];
     if (!S || !recorded) return <Card p={proj} big />;
     return <Dossier pic={k === "contract" ? "project-site-cleared" : null} pin={pinOf(proj)} icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
-      <StampOnce key={F0.at} name={{ approved: "approved", funded: "funded", contract: "contract-signed" }[k]} sub={S[1]} sound={k === "approved" ? "gavel" : "good"} />
       <div style={{ margin: "14px 0 4px" }}><MilestoneMove from={F0.fromAt} at={SYS.milestoneOf(proj)} /></div>
       <Situation head={S[3]} text={S[4]} />
       <Tiles items={[["Scope costs", SYS.fmtM(proj.estimateM)], ["Approved", SYS.fmtM(proj.approvedM)], k === "funded" ? ["Loan in hand", SYS.fmtM(proj.loanLeftM), "good"] : ["Spent", SYS.fmtM(proj.spentM)], ["Stage", SYS.MILESTONES[SYS.milestoneOf(proj)][1]]]} />
@@ -4354,7 +4346,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cost = Math.max(0, +costB || 0); if (!cost) return { ok: true, fromBankB: 0, borrowedB: 0 };
     const r = SYS.pay(moneyRef.current, cost, { level: lvl, force: !!opt.force });
     if (!r.ok) {
-      stamp("broke", null, "bad");
       try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/unpaid-invoices.webp", title: "The state can't pay for this", text: what + " needs " + naira(r.short) + " more than the bank holds, and lenders won't lend the state any more. Raise revenue, cut something, or wait for next year's money.", tone: "bad", ok: "Understood" }); } catch (e) {}
       return null;
     }
@@ -4837,7 +4828,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       if (A > 0) {
         const all = Math.round(A * mw * 10) / 10;
-        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: ((s.cash || 0) >= Math.round(A * mw * 10) / 10 ? "Paid from the bank. " : "Partly borrowed. ") + "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); stamp("paid", "Salary arrears", "good"); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
+        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: ((s.cash || 0) >= Math.round(A * mw * 10) / 10 ? "Paid from the bank. " : "Partly borrowed. ") + "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
         if (f >= .95) opts.push({ label: "Pay one month of arrears", note: "A gesture. The unions want it all.", chips: fxChips({ debt: mw }), run: () => { scFx({ debt: mw }); setStc(p => ({ ...p, arrears: Math.max(0, p.arrears - 1) })); addL("🧾 Paid one month of salary arrears.", "policy"); } });
         if (f >= .95) opts.push({ label: "Keep owing them", note: "The arrears stay. So does the anger.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); addL("🧾 Salary arrears left unpaid another year.", "political"); } });
       }
@@ -5332,7 +5323,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const P = SYS.oldDebtPlan(kind, (oldPlan || {}).total || 0, nowB);
     setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, kind, leftB: P.leftB, perYearB: P.perYearB, years: P.years, payNowB: P.payNowB, payYear: turn } }));
     setDebtPick(false);
-    if (kind === "now" && P.payNowB > 0) stamp("paid", naira(P.payNowB) + " of the old debt", "good");
     addL("💳 The last government's debt: " + (kind === "now" ? "paid " + naira(P.payNowB) + " at once; the rest over 4 years." : "spread over " + P.years + " years.") , "policy");
     scWiki("Governorship", "Inherited " + naira((oldPlan || {}).total || 0) + " of debt from the previous administration and " + (kind === "now" ? "paid " + naira(P.payNowB) + " of it at once." : "spread its repayment over " + P.years + " years."));
   };
@@ -5872,7 +5862,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // A delivered project improves its sector, scaled by its size and by how
   // much of the money reached the site.
   const projDelivered = (p) => {
-    stamp("commissioned", p.title || p.nm, "good");
     const k = PROJ_STAT[p.type]; if (!k) return;
     const eff = typeof p.effective === "number" ? p.effective : .8, size = +(p.cost || p.baseCost || 1);
     const gain = k === "igr" ? Math.round(Math.min(1.5, size * .12) * eff * 10) / 10 : Math.round(Math.min(.06, .01 + size * .006) * eff * 1000) / 1000;
@@ -5998,7 +5987,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("❌ House rejects " + bill.nm + ". " + objections.slice(0, 2).map(o => o.who + " voted no: " + o.why).join(" "), "political");
       setS(p => ({ ...p, pStab: cl100(p.pStab - 3) }));
       setBillReject({ bill, reasons: objections });
-      stamp("rejected", bill.nm, "bad");
       return { icon: "🏛️", title: "The House voted it down", text: bill.nm + ": " + objections[0].who + " voted no because " + objections[0].why, tone: "bad" };
     }
     setBillReject(null);
@@ -10353,7 +10341,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             {phase === "house_vote" && <Cd style={{ borderColor: CL.pur + "44" }}>
               <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
-              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { stamp("passed", "Year " + turn + "'s budget"); addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
+              <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
                 onNegotiate={(cost, reasons) => { if (houseDeal(cost, reasons, "The appropriation bill")) setPhase("policy"); }}
@@ -11353,7 +11341,7 @@ function App() {
            never fires; stack the two-column pages here instead. */
         #sop-stage.sop-tall .sop-gov-grid, #sop-stage.sop-tall .sop-2col { grid-template-columns: 1fr !important; }
 
-        /* ── sp-: the governing slice's design system (adviser, dossier, stamp) ── */
+        /* ── sp-: the governing slice's design system (adviser, dossier) ── */
         .sp-card { background: #fffdf8; border: 1px solid #e7dcc4; border-radius: 22px; box-shadow: 0 1px 0 #fff inset, 0 12px 30px rgba(18,48,31,.10); }
         .sp-btn { appearance: none; border: 0; border-radius: 999px; min-height: 48px; padding: 11px 22px; font: 800 17px/1.15 'Plus Jakarta Sans', sans-serif; letter-spacing: .1px; background: #12301f; color: #fff; cursor: pointer; box-shadow: 0 6px 16px rgba(18,48,31,.24); transition: transform .12s ease, box-shadow .12s ease, background .15s ease; }
         .sp-btn:hover { background: #0b6b42; transform: translateY(-1px); box-shadow: 0 9px 20px rgba(11,107,66,.28); }
@@ -11396,18 +11384,13 @@ function App() {
         .sp-bubble { position: relative; background: #fff; border: 1px solid #e7dcc4; border-radius: 18px; padding: 10px 14px; font: 600 17px/1.4 'Plus Jakarta Sans', sans-serif; color: #17301f; }
         .sp-bubble::before { content: ""; position: absolute; left: -8px; top: 18px; width: 14px; height: 14px; background: #fff; border-left: 1px solid #e7dcc4; border-bottom: 1px solid #e7dcc4; transform: rotate(45deg); }
         .sp-con { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-radius: 14px; background: #eef7f0; border-left: 4px solid #0b6b42; font: 600 15px/1.35 'Plus Jakarta Sans', sans-serif; color: #17301f; animation: sopFadeIn .5s ease-out; }
-        .sp-stamp-wrap { position: fixed; inset: 0; z-index: 9800; display: flex; align-items: center; justify-content: center; pointer-events: none; background: radial-gradient(circle, rgba(18,48,31,.18), rgba(18,48,31,0) 60%); animation: spFadeOut 1.6s ease-in forwards; }
-        .sp-stamp { border: 6px double #b3261e; color: #b3261e; border-radius: 14px; padding: 10px 26px; font: 900 44px/1 'Fraunces', Georgia, serif; letter-spacing: 4px; text-transform: uppercase; background: rgba(255,250,240,.92); transform: rotate(-9deg); animation: spStamp .55s cubic-bezier(.2,1.4,.4,1) both; text-align: center; box-shadow: 0 14px 40px rgba(0,0,0,.18); }
-        .sp-stamp.green { border-color: #0b6b42; color: #0b6b42; }
-        .sp-stamp small { display: block; font: 800 14px/1.3 'Plus Jakarta Sans', sans-serif; letter-spacing: 1px; margin-top: 6px; text-transform: none; }
-        @keyframes spStamp { 0% { transform: rotate(-9deg) scale(2.6); opacity: 0; } 60% { transform: rotate(-9deg) scale(.94); opacity: 1; } 80% { transform: rotate(-9deg) scale(1.03); } 100% { transform: rotate(-9deg) scale(1); } }
         @keyframes spFadeOut { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
         @keyframes spAdvIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         @keyframes spRing { 0%, 100% { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #e9b949; } 50% { box-shadow: 0 0 0 3px #fff, 0 0 0 10px rgba(233,185,73,.35); } }
         .sp-step { animation: spAdvIn .35s cubic-bezier(.2,.8,.2,1) both; }
         #sop-stage.sop-tall .sp-adviser { gap: 10px; padding: 12px; } #sop-stage.sop-tall .sp-adviser .pic { width: 54px; height: 64px; border-radius: 14px; } #sop-stage.sop-tall .sp-bubble { font-size: 16px; }
-        .sp-still .sp-adviser, .sp-still .sp-adviser .pic, .sp-still .sp-stamp, .sp-still .sp-stamp-wrap, .sp-still .sp-con, .sp-still .sp-step, .sp-still .sp-btn, .sp-still .sp-opt, .sp-still .sp-ms .s::before, .sp-still .sp-ms .s::after { animation: none !important; transition: none !important; }
-        @media (prefers-reduced-motion: reduce) { .sp-adviser, .sp-adviser .pic, .sp-stamp, .sp-stamp-wrap, .sp-con, .sp-step, .sp-btn, .sp-opt, .sp-ms .s::before, .sp-ms .s::after { animation: none !important; transition: none !important; } }
+        .sp-still .sp-adviser, .sp-still .sp-adviser .pic, .sp-still .sp-con, .sp-still .sp-step, .sp-still .sp-btn, .sp-still .sp-opt, .sp-still .sp-ms .s::before, .sp-still .sp-ms .s::after { animation: none !important; transition: none !important; }
+        @media (prefers-reduced-motion: reduce) { .sp-adviser, .sp-adviser .pic, .sp-con, .sp-step, .sp-btn, .sp-opt, .sp-ms .s::before, .sp-ms .s::after { animation: none !important; transition: none !important; } }
         .sop-fade-in { animation: sopFadeIn .4s ease-out; }
         .sop-slide-up { animation: sopSlideUp .35s ease-out; }
         @keyframes sopFadeIn { from { opacity: 0; } to { opacity: 1; } }
