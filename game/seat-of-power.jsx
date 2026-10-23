@@ -772,7 +772,7 @@ const NEED_TYPES = [
     win: (l) => "Displaced families in " + l + " have keys to new homes." },
 ];
 // Project types that cannot start without their own commissioner.
-const NEEDS_MINISTRY = { stadium: "sports", esports: "sports" };
+const NEEDS_MINISTRY = { stadium: "sports", esports: "sports", water: "water", dam: "water", power: "power", housing: "housing" };
 const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
 // What kind of need each project type answers, and what it improves when done.
 const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security" };
@@ -1632,6 +1632,8 @@ const Fold = ({ title, summary, children, open: startOpen = false }) => {
 // A scene banner: a background from public/art with a cast member in front.
 // Only cast members get portraits (see CAST_ART); other scenes get the
 // background alone.
+// An icon from the icon pack (public/art/icons), sized to sit in a line of text.
+const Ico = ({ n, s = 22, style }) => React.createElement("img", { src: "./art/icons/" + n + ".webp", alt: "", "aria-hidden": "true", style: { width: s, height: s, objectFit: "contain", verticalAlign: "middle", flexShrink: 0, ...(style || {}) } });
 const SceneArt = ({ bg, scene, who, obj, alt, h = 230 }) => React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
     background: "#1d2a22 url(./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp) center/cover" } },
@@ -1857,7 +1859,7 @@ const More = ({ text, max = 75, style, className, as = "p" }) => {
   const b = briefly(t, max), head = b.length < t.length - 3 ? b : null;
   return React.createElement(as, { style, className }, open || !head ? t : head,
     head ? React.createElement("button", { type: "button", onClick: (e) => { e.stopPropagation(); setOpen(o => !o); },
-      style: { background: "none", border: 0, color: CL.grn, fontWeight: 800, cursor: "pointer", padding: "0 0 0 8px", font: "inherit", fontStyle: "normal", whiteSpace: "nowrap" } }, open ? "Less" : "🤵 Ask your SA") : null);
+      style: { background: "none", border: 0, color: CL.grn, fontWeight: 800, cursor: "pointer", padding: "0 0 0 8px", font: "inherit", fontStyle: "normal", whiteSpace: "nowrap" } }, open ? "Less" : [React.createElement(Ico, { key: "i", n: "icon-ask-sa", s: 20, style: { marginRight: 4 } }), "Ask your SA"]) : null);
 };
 const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick }) =>
   React.createElement("div", { className: "ds-card ds-stack", style: { borderColor: kickerColor + "66" } },
@@ -2181,7 +2183,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
   return (
     <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
-        <button onClick={() => setSheet("menu")} aria-label="Menu" style={{ position: "relative", width: 48, height: 48, borderRadius: 16, border: 0, background: UI.dark, color: "#fff", fontSize: 22, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.2)" }}>☰{chNew && <span aria-label="New challenge" style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "#e9b949", border: "2px solid #fff" }} />}</button>
+        <button onClick={() => setSheet("menu")} aria-label="Menu" style={{ position: "relative", width: 48, height: 48, borderRadius: 16, border: 0, background: UI.dark, color: "#fff", fontSize: 22, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.2)", display: "grid", placeItems: "center" }}><Ico n="icon-menu" s={30} />{chNew && <span aria-label="New challenge" style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "#e9b949", border: "2px solid #fff" }} />}</button>
         <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: profile ? "4px 16px 4px 4px" : "10px 18px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", maxWidth: "60%" }}>
           {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 2 : undefined }} /> : <span aria-hidden="true">👤</span>}
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
@@ -2200,16 +2202,16 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
       </div>
       {sheet === "menu" && <EntranceSheet title="Menu" onClose={() => setSheet(null)}>
         <div style={{ display: "grid", gap: 10 }}>
-          {[["👤", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
-            ["🏆", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
-            ["📜", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
-            ["🏛️", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
-            ["❓", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
-            [soundOn ? "🔊" : "🔇", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
+          {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
+            ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
+            ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
+            ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
+            ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
+            ["icon-sound", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
           ].map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
-            <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 24 }}>{ic}</span>
+            <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 24, opacity: ic === "icon-sound" && !soundOn ? .45 : 1 }}><Ico n={ic} s={38} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{sub}</span></span>
-            {dot ? <span style={{ background: "#e9b949", color: UI.ink, borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 800 }}>NEW</span> : <span style={{ color: UI.dim }}>›</span>}
+            {dot ? <span style={{ display: "flex", alignItems: "center", gap: 4, background: "#e9b949", color: UI.ink, borderRadius: 999, padding: "3px 10px 3px 4px", fontSize: DS.t.meta, fontWeight: 800 }}><Ico n="icon-new" s={20} />NEW</span> : <span style={{ color: UI.dim }}>›</span>}
           </button>)}
         </div>
       </EntranceSheet>}
@@ -2234,7 +2236,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
             return <button key={fr.nm} disabled={locked} onClick={() => { const p = { ...profile, frame: fr.id }; window.SOP_FRAME = fr.id; setProfile(p); saveProfile(p); }} aria-pressed={on} title={fr.nm}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: "2px solid " + (on ? UI.dark : "transparent"), background: "transparent", borderRadius: 16, padding: 4, cursor: locked ? "default" : "pointer", opacity: locked ? .55 : 1, color: UI.ink, fontFamily: F.b }}>
               <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(fr.id), borderWidth: fr.id ? 3 : undefined }} />
-              <span style={{ fontSize: DS.t.meta, fontWeight: 700 }}>{locked ? "🔒 " : ""}{fr.nm}</span>
+              <span style={{ fontSize: DS.t.meta, fontWeight: 700 }}>{locked ? <Ico n="icon-locked" s={14} style={{ marginRight: 3 }} /> : null}{fr.nm}</span>
             </button>; })}
           {packLocked("portrait_frames") && <PillBtn onClick={() => window.SOP_buy("portrait_frames").catch(() => {})}>Unlock all 4 frames · ₦100</PillBtn>}
         </div>
@@ -2367,14 +2369,14 @@ const FRAMES = [
 ];
 const frameStyle = (id) => (FRAMES.find(f => f.id === (id === undefined ? (window.SOP_FRAME || null) : id)) || {}).st || {};
 const ATTIRE = [
-  { id: "x_pink_power", pack: "attire_glam", label: "Pink Power", desc: "All pink, pink hair", female: true, ready: false },
-  { id: "x_pink_agbada", pack: "attire_glam", label: "Pink Agbada", desc: "Pink agbada and cap", ready: false },
-  { id: "x_owambe_queen", pack: "attire_glam", label: "Owambe Queen", desc: "Gold aso-oke, towering gele", female: true, ready: false },
-  { id: "x_owambe_king", pack: "attire_glam", label: "Owambe King", desc: "Gold aso-oke agbada and fila", ready: false },
-  { id: "x_big_boy", pack: "attire_bigboy", label: "Big Boy", desc: "White agbada, gold chains, shades", ready: false },
-  { id: "x_odogwu", pack: "attire_bigboy", label: "Odogwu", desc: "Sharp suit, gold chain, gold watch, shades", ready: false },
-  { id: "x_big_girl", pack: "attire_bigboy", label: "Big Girl", desc: "Power suit, oversized shades, gold jewellery", female: true, ready: false },
-  { id: "x_lagos_baddie", pack: "attire_bigboy", label: "Lagos Baddie", desc: "Bold gown, shades, gold chains", female: true, ready: false },
+  { id: "x_pink_power", pack: "attire_glam", label: "Pink Power", desc: "All pink, pink hair", female: true, ready: true },
+  { id: "x_pink_agbada", pack: "attire_glam", label: "Pink Agbada", desc: "Pink agbada and cap", ready: true },
+  { id: "x_owambe_queen", pack: "attire_glam", label: "Owambe Queen", desc: "Gold aso-oke, towering gele", female: true, ready: true },
+  { id: "x_owambe_king", pack: "attire_glam", label: "Owambe King", desc: "Gold aso-oke agbada and fila", ready: true },
+  { id: "x_big_boy", pack: "attire_bigboy", label: "Big Boy", desc: "White agbada, gold chains, shades", ready: true },
+  { id: "x_odogwu", pack: "attire_bigboy", label: "Odogwu", desc: "Sharp suit, gold chain, gold watch, shades", ready: true },
+  { id: "x_big_girl", pack: "attire_bigboy", label: "Big Girl", desc: "Power suit, oversized shades, gold jewellery", female: true, ready: true },
+  { id: "x_lagos_baddie", pack: "attire_bigboy", label: "Lagos Baddie", desc: "Bold gown, shades, gold chains", female: true, ready: true },
 ];
 ATTIRE.filter(a => a.ready).forEach(a => { AVATAR_IMGS[a.id] = "./art/characters/governor-" + a.id.slice(2).replace(/_/g, "-") + ".webp"; });
 const ATTIRE_PACKS = [{ id: "attire_glam", nm: "Glam Pack", price: "₦300" }, { id: "attire_bigboy", nm: "Big Boy Pack", price: "₦300" }];
@@ -2386,7 +2388,7 @@ const pickLook = (a, set) => {
   const k = ATTIRE_PACKS.find(x => x.id === a.pack);
   window.SOP_confirm("The " + k.nm + " unlocks this look and the others in it for " + k.price + ".", "Unlock · " + k.price, "Not now").then(ok => ok && window.SOP_buy(k.id).then(() => set(a.id)).catch(() => {}));
 };
-const LookLock = ({ a }) => ownsLook(a) ? null : <span style={{ position: "absolute", left: 6, right: 6, bottom: 6, borderRadius: 12, background: "rgba(10,24,16,.78)", color: "#fff", fontSize: 12, fontWeight: 800, padding: "4px 6px", textAlign: "center" }}>🔒 {(ATTIRE_PACKS.find(x => x.id === a.pack) || {}).price}</span>;
+const LookLock = ({ a }) => ownsLook(a) ? null : <span style={{ position: "absolute", left: 6, right: 6, bottom: 6, borderRadius: 12, background: "rgba(10,24,16,.78)", color: "#fff", fontSize: 12, fontWeight: 800, padding: "4px 6px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}><Ico n="icon-locked" s={16} />{(ATTIRE_PACKS.find(x => x.id === a.pack) || {}).price}</span>;
 const AVATARS = [
   { id: "agbada", label: "Agbada", desc: "Yoruba formal attire" },
   { id: "female", label: "Gele & iro", desc: "Yoruba formal attire" },
@@ -3268,10 +3270,10 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       const final = won ? (preTrib.level >= 2 || (preTrib.level === 0 && chance > 0.7 && roll < 0.25)) : preTrib.level >= 2;
       try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {}
       try { window.SOP_outcome && window.SOP_outcome(won
-        ? (final ? { icon: "⚖️", img: "./art/backgrounds/" + (preTrib.level >= 2 ? "supreme-court-abuja" : "courtroom") + ".webp", title: "Petition upheld: you are Governor", text: "The " + court + " nullified " + opp + "'s return. You will be sworn in.", tone: "good" }
-          : { icon: "⚖️", img: "./art/backgrounds/courtroom.webp", title: "You won at the " + court, text: opp + " has appealed. Next stop: the " + nextCourt + ".", tone: "good" })
+        ? (final ? { icon: "⚖️", img: "./art/scenes/news-victory-rally.webp", title: "Petition upheld: you are Governor", text: "The " + court + " nullified " + opp + "'s return. You will be sworn in.", tone: "good" }
+          : { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You won at the " + court, text: opp + " has appealed. Next stop: the " + nextCourt + ".", tone: "good" })
         : (final ? { icon: "⚖️", img: "./art/backgrounds/supreme-court-abuja.webp", title: "Supreme Court: petition dismissed", text: "This is final. " + opp + " stays Governor.", tone: "bad" }
-          : { icon: "⚖️", img: "./art/backgrounds/courtroom.webp", title: "You lost at the " + court, text: "You have appealed. Next stop: the " + nextCourt + ".", tone: "bad" })); } catch (e) {}
+          : { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You lost at the " + court, text: "You have appealed. Next stop: the " + nextCourt + ".", tone: "bad" })); } catch (e) {}
       if (won) {
         if (preTrib.level >= 2 || (preTrib.level === 0 && chance > 0.7 && roll < 0.25)) {
           // Reinstated
@@ -4520,7 +4522,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // (otherwise it adds to yearly revenue, as a deal's taxes do).
   const noteMoney = (o) => {
     if (o.cash && o.amtB) setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) + o.amtB) * 100) / 100) }));
-    setStc(p => ({ ...p, moneyNews: [...(p.moneyNews || []), { t: turn, icon: o.icon, head: o.head, text: o.text, amtB: o.amtB || 0, cash: !!o.cash }].slice(-24) }));
+    setStc(p => ({ ...p, moneyNews: [...(p.moneyNews || []), { t: turn, icon: o.icon, head: o.head, text: o.text, amtB: o.amtB || 0, cash: !!o.cash, who: o.who || null }].slice(-24) }));
     addL(o.icon + " " + o.text, (o.amtB || 0) < 0 ? "crisis" : "success");
     if (o.img) try { window.SOP_outcome({ icon: o.icon, img: "./art/scenes/" + o.img + ".webp", title: o.head, text: o.text, tone: (o.amtB || 0) < 0 ? "bad" : "good", coins: o.cash && o.amtB > 0, ok: "Got it",
       rows: o.amtB ? [{ l: o.amtB < 0 ? "Lost" : o.cash ? "Into the bank" : "Taxes a year", v: (o.amtB < 0 ? "−" : "+") + SYS.fmtM(SYS.toM(Math.abs(o.amtB))), good: o.amtB > 0 }] : [] }); } catch (e) {}
@@ -5053,26 +5055,66 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       asked.lg_election = turn;
       const lean = [0, 1, 2].map(z => ((s.zoneMood || {})[z] || 0) + (s.app - 50) / 4 + (r() * 8 - 4));
       const oppZ = [0, 1, 2].filter(z => lean[z] < -1);
+      // Every council votes; the projection is what a free vote would give you.
+      const districts = [0, 1, 2].map(z => lgaCluster(getLGAs(state), z)), vote = SYS.councilVote(districts, lean, r), N = vote.all.length;
+      const names = (l, k = 4) => l.slice(0, k).map(x => x.lga).join(", ") + (l.length > k ? " and " + (l.length - k) + " more" : "");
+      const oppZof = (l) => [...new Set(l.map(x => x.zone))];
+      const result = (won, lostL, how) => ({ icon: "🗳️", title: "You won " + won + " of " + N + " councils", text: lostL.length ? "Opposition chairmen now run " + names(lostL) + ". " + how : how, tone: lostL.length > N / 2 ? "bad" : "good" });
       cards.push({ key: "lg_election", kicker: "Council elections", color: CL.blu, art: ["polling-unit", "electoral-commissioner"],
-        title: "The State Electoral Commission is ready to hold council polls",
-        brief: "Your SIEC chairman is your appointee, and in most states the ruling party wins every council. " + (oppZ.length ? "A free vote would probably cost you councils in " + zoneList(oppZ) + "." : "A free vote looks safe for you right now."),
-        stakes: "Whoever runs the councils runs the ward structures at the next election.",
+        title: "Council polls: " + N + " local governments",
+        brief: "A free vote would give you about " + vote.won.length + " of " + N + " councils" + (vote.close.length ? "; " + vote.close.length + " more are close." : ".") + " Your SIEC chairman is your appointee. Opposition chairmen can block your work in their councils.",
         options: [
-          { label: "Free and fair: let the chips fall", note: oppZ.length ? "Honest, and the opposition takes councils in " + zoneList(oppZ) + "." : "Honest, and you probably win anyway.", chips: fxChips({ app: 3, pStab: -2 * oppZ.length }), run: () => {
-            scFx({ app: 3, pStab: -2 * oppZ.length }); oppZ.forEach(z => scFx({}, z, -3));
-            setStc(p => ({ ...p, lg: { mode: "free", oppZones: oppZ } }));
-            addL("🗳️ Free council elections" + (oppZ.length ? ": the opposition won councils in " + zoneList(oppZ) + "." : ": your party won most councils on merit."), "policy");
-            scWiki("Governorship", "Conducted local government elections widely judged free and fair" + (oppZ.length ? "; the opposition won councils in " + zoneList(oppZ) + "." : "."));
+          { label: "Free and fair: let the chips fall", chips: fxChips({ app: 3, pStab: -Math.round(vote.lost.length / 3) }), run: () => {
+            scFx({ app: 3, pStab: -Math.round(vote.lost.length / 3) }); oppZof(vote.lost).forEach(z => scFx({}, z, -2));
+            setStc(p => ({ ...p, lg: { mode: "free", oppZones: oppZof(vote.lost), oppLGAs: vote.lost.map(x => x.lga), turn } }));
+            addL("🗳️ Free council elections: you won " + vote.won.length + " of " + N + "." + (vote.lost.length ? " The opposition holds " + names(vote.lost, 6) + "." : ""), "policy");
+            scWiki("Governorship", "Conducted free local government elections; the ruling party won " + vote.won.length + " of " + N + " councils.");
+            return result(vote.won.length, vote.lost, "Observers praised the vote. Expect those chairmen to be a thorn.");
           } },
-          { label: "Make sure we win every council", note: "The commission declares a clean sweep. Observers walk out.", chips: fxChips({ app: -3, cor: .03, pStab: 4 }), run: () => {
-            scFx({ app: -3, cor: .03, pStab: 4 }); setStc(p => ({ ...p, lg: { mode: "rigged", oppZones: [] } }));
-            addL("🗳️ The ruling party 'won' every council. Observers called it a coronation.", "crisis");
+        ].concat(vote.close.length ? [{ label: "Intervene where it is close (" + vote.close.length + " councils)", chips: fxChips({ app: -1, cor: .02, pStab: 2 }), run: () => {
+            const lost = vote.lost.filter(x => !vote.close.includes(x));
+            scFx({ app: -1, cor: .02, pStab: 2 }); oppZof(lost).forEach(z => scFx({}, z, -2));
+            setStc(p => ({ ...p, lg: { mode: "nudged", oppZones: oppZof(lost), oppLGAs: lost.map(x => x.lga), turn } }));
+            setDelayedFx(d => [...d, { turn: turn + 1, fx: { app: -2, pStab: -1 }, desc: "The tribunal is hearing petitions over the council results in " + names(vote.close, 3) + "; the papers call it rigging." }]);
+            addL("🗳️ The commission 'reviewed' the close councils. You won " + (vote.won.length + vote.close.length) + " of " + N + ".", "political");
+            return result(vote.won.length + vote.close.length, lost, "The close ones went your way. The losers are heading to the tribunal.");
+          } }] : [])
+        .concat([
+          { label: "Make sure we win every council", chips: fxChips({ app: -3, cor: .03, pStab: 4 }), run: () => {
+            scFx({ app: -3, cor: .03, pStab: 4 }); setStc(p => ({ ...p, lg: { mode: "rigged", oppZones: [], oppLGAs: [], turn } }));
+            setDelayedFx(d => [...d, { turn: turn + 1, fx: { app: -3 }, desc: "Protests in " + names(vote.lost, 3) + " over last year's council 'sweep' still have not died down." }]);
+            addL("🗳️ The ruling party 'won' all " + N + " councils. Observers called it a coronation.", "crisis");
             scWiki("Controversies", "The ruling party won every council in local elections that observers described as a sham.");
+            return { icon: "🗳️", title: "A clean sweep: " + N + " of " + N, text: "Observers walked out. Where you really lost (" + names(vote.lost, 3) + "), people are angry.", tone: "bad" };
           } },
-          { label: "Postpone them: appoint caretaker committees", note: "Loyalists run every council. Courts have called this illegal.", chips: fxChips({ app: -2, pStab: 3 }), run: () => {
-            scFx({ app: -2, pStab: 3 }); setStc(p => ({ ...p, lg: { mode: "caretaker", oppZones: [] } }));
+          { label: "Postpone them: appoint caretaker committees", chips: fxChips({ app: -2, pStab: 3 }), run: () => {
+            scFx({ app: -2, pStab: 3 }); setStc(p => ({ ...p, lg: { mode: "caretaker", oppZones: [], oppLGAs: [], turn } }));
             addL("🗳️ Council elections postponed. Caretaker committees of loyalists now run the councils.", "political");
             scWiki("Controversies", "Ran the local governments through unelected caretaker committees.");
+          } },
+        ]) });
+    } else if (next.lg && (next.lg.oppLGAs || []).length && turn > (next.lg.turn || 0) && !asked["lg_thorn_" + turn] && r() < .7) {
+      asked["lg_thorn_" + turn] = turn;
+      const lga = next.lg.oppLGAs[Math.floor(r() * next.lg.oppLGAs.length)];
+      const need = activeNeeds.find(n => n.lga === lga);
+      cards.push({ key: "lg_thorn_" + turn, kicker: "Council chairman · " + lga, color: CL.org, art: ["shuttered-market", "lg-chairman"],
+        title: "The opposition chairman of " + lga + " is blocking you",
+        brief: need ? "He will not release land or staff for " + needType(need).title(lga).toLowerCase() + ", and he tells traders not to pay state levies." : "He tells traders not to pay state levies and calls your officials thieves on local radio.",
+        options: [
+          { label: "Bring him into the tent", chips: fxChips({ pStab: 1 }).concat([{ text: "₦0.4B", color: CL.txt }]), run: () => {
+            if (!spendB(.4, "Joint projects with " + lga + " council")) return;
+            scFx({ pStab: 1 }); addL("🤝 Joint projects with the opposition chairman of " + lga + ": he cooperates this year.", "political");
+            return { icon: "🤝", title: lga + " is working with you", text: "Joint projects bought peace for a year. His party calls him a traitor.", tone: "good" };
+          } },
+          { label: "Go over his head", chips: fxChips({ app: -2, sec: -.01 }), run: () => {
+            scFx({ app: -2 }); addL("🏛️ State officials took over the work in " + lga + "; the chairman's supporters protested.", "political");
+            return { icon: "🏛️", title: "You went around him", text: "The work moves, but " + lga + " sees a governor bullying its elected chairman.", tone: "neutral" };
+          } },
+          { label: "Leave him be", chips: [{ text: "Work in " + lga + " stalls", color: CL.red }], run: () => {
+            setNeeds(ns => ns.map(n => n.lga === lga && n.status === "started" ? { ...n, status: "stalled", stall: (n.stall || 0) + 1 } : n));
+            setS(p => ({ ...p, igr: Math.max(0, (p.igr || 0) - .2) }));
+            addL("🚧 Work in " + lga + " stalled: the opposition council will not cooperate. Levies there dropped.", "crisis");
+            return { icon: "🚧", title: lga + " goes its own way", text: "Your work there stalls and levies fall. Own revenue −₦0.2B.", tone: "bad" };
           } },
         ] });
     } else if (turn >= 3 && next.lg && !asked.lg_autonomy && (r() < .5 || turn >= 5)) {
@@ -5478,7 +5520,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       text: turn === 1 ? "The bank was empty, contractors were owed " + naira(bills) + ", and the state owes " + naira((oldPlan || {}).total || 0) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
       tone: total < a.inB * .2 ? "bad" : "good", ok: "Got it",
       rows: [{ l: "FAAC from Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }]
-        .concat(news.map(x => ({ l: x.icon + " " + x.head, v: (x.amtB >= 0 ? "+" : "−") + naira(Math.abs(x.amtB)) + (x.cash ? "" : " a year"), good: x.amtB >= 0 })))
+        .concat(news.map(x => ({ l: x.icon + " " + x.head + (x.who ? " · Hon. " + x.who : ""), v: (x.amtB >= 0 ? "+" : "−") + naira(Math.abs(x.amtB)) + (x.cash ? "" : " a year"), good: x.amtB >= 0 })))
         .concat([{ l: "Salaries and offices", v: "−" + naira(a.runB), good: false }])
         .concat(a.debtB >= .05 ? [{ l: "Debt repayments", v: "−" + naira(a.debtB), good: false }] : [])
         .concat(payNow >= .05 ? [{ l: "Old debt paid off now", v: "−" + naira(payNow), good: false }] : [])
@@ -5735,6 +5777,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       });
       if (rv.due.length) setCommits(prev => prev.map(x => rv.list.find(y => y.id === x.id) || x));
       rv.due.forEach(x => notes.push([(x.status === "kept" ? "✅ Hon. " + x.who + " kept their word: " : "❌ Hon. " + x.who + " did not deliver: ") + x.action.charAt(0).toLowerCase() + x.action.slice(1) + ".", x.status === "kept" ? "success" : "political"]));
+      // Money you gave a commissioner: what it actually bought, and where.
+      rv.due.filter(x => x.resourcesM && x.ministryId).forEach((x, i) => {
+        const mm = next.find(k => k.id === x.ministryId); if (!mm) return;
+        const lg = getLGAs(state), where = lg.length ? lg[hashStr(x.id) % lg.length] : stName, ok = x.status === "kept";
+        const line = SYS.ministryResult(mm, ok, x.resourcesM, where, SYS.seeded("result", x.id));
+        notes.push([(ok ? "📦 " : "🕳️ ") + line, ok ? "success" : "political"]);
+        setTimeout(() => { try { window.SOP_outcome({ icon: ok ? "📦" : "🕳️", img: commissionerArt(mm.minister, ok ? 80 : 30), title: ok ? "What the ₦" + x.resourcesM + "M bought" : "The ₦" + x.resourcesM + "M is gone", text: line, tone: ok ? "good" : "bad", ok: "Got it" }); } catch (e) {} }, 900 + i * 300);
+      });
       let cs = cases.map(c => evAdd[c.id] && !c.evidence.some(e => e.id === evAdd[c.id].id) ? { ...c, evidence: [...c.evidence, evAdd[c.id]] } : c).map(c => evAdd[c.id] ? { ...c, grade: SYS.gradeOf(c) } : c);
       const lt = SYS.dueLater(cs, turn); cs = lt.cases;
       lt.events.forEach(e => { dApp += (e.fx && e.fx.app) || 0; dCor += (e.fx && e.fx.cor) || 0; notes.push(["📰 " + e.text, "scandal"]); scWiki("Controversies", e.text); });
@@ -6032,6 +6082,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // A delivered project improves its sector, scaled by its size and by how
   // much of the money reached the site.
   const projDelivered = (p) => {
+    // Money approved but not spent comes back to the treasury, by letter from Finance.
+    const leftM = Math.round((p.approvedM || 0) - (p.spentM || 0));
+    if (leftM >= 20 && !p.refunded) {
+      setProjects(prev => (prev || []).map(x => x.id === p.id ? { ...x, refunded: leftM } : x));
+      setS(x => ({ ...x, cash: Math.round(((x.cash || 0) + SYS.toB(leftM)) * 100) / 100 }));
+      const fin = (ministries || []).find(m => m.id === "fin"), finName = fin ? "Hon. " + fin.minister + ", Commissioner for Finance" : "The Commissioner for Finance";
+      postMail([letterOf("ministry_tip", { id: "refund_" + p.id, key: "refund_" + p.id, live: true, kind: "budget", stakes: 1, tip: [finName, fin ? commissionerArt(fin.minister, 75) : "./art/characters/finance-commissioner.webp", p.title + " is complete: " + SYS.fmtM(leftM) + " recovered", p.title + " came in under its approved budget. I have recovered the unspent " + SYS.fmtM(leftM) + " to the treasury."] })]);
+      addL("💰 " + p.title + " finished under budget: " + SYS.fmtM(leftM) + " recovered to the treasury by " + finName.replace(", Commissioner for Finance", "") + ".", "success");
+    }
     const k = PROJ_STAT[p.type]; if (!k) return;
     const eff = typeof p.effective === "number" ? p.effective : .8, size = +(p.cost || p.baseCost || 1);
     const gain = k === "igr" ? Math.round(Math.min(1.5, size * .12) * eff * 10) / 10 : Math.round(Math.min(.06, .01 + size * .006) * eff * 1000) / 1000;
@@ -7606,7 +7665,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setMail(m => [...m, ...add]);
     pingMail(add.length, add[0].key);
   };
-  const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: key + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
+  const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: ((extra && extra.key) || key) + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
   const budgetMin = () => (ministries || []).find(m => m.id === "budget");
   // Who wrote it, what it is about, in one line. Read when shown, so it sees the latest state.
   const letterView = (l) => {
@@ -7651,10 +7710,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const postYearMail = (q) => {
     const stall = (projects || []).filter(p => p.status === "stalled").slice(0, 2).map(p => "stall:" + p.id);
     const letters = [...q, ...stall].map(k => letterOf(k, { live: k.startsWith("stall:") }));
+    // The year's cabinet report: what each ministry actually did, by name.
+    const lgx = getLGAs(state), rep = (ministries || []).filter(m => m.key || ["health", "educ", "agric", "works", "sec"].includes(m.id)).slice(0, 7)
+      .map(m => SYS.ministryYear(m, lgx.length ? lgx[hashStr(m.id + turn) % lgx.length] : stName, SYS.seeded("cabinet", m.id, turn)));
+    if (rep.length) letters.push(letterOf("cabinet_report", { live: true, kind: "briefing", stakes: 1, lines: rep, tip: ["The Secretary to the State Government", "./art/characters/permanent-secretary.webp", "Cabinet report for " + absYear, "What each ministry did this year."] }));
     if (!letters.length) { setMail(m => m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:"))); mailOn.current = false; advance(); return; }
     mailOn.current = true;
     setEventQueue([]);
-    setMail(m => [...m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:")), ...letters]);
+    setMail(m => [...m.filter(l => l.live && l.key !== "gold" && l.key !== "cabinet_report" && !l.key.startsWith("stall:")), ...letters]);
     setPhase("mail"); setNav("gov"); setLetterOpen(null);
     if (letters.length) pingMail(letters.length, letters[0].key);
     const urgent = letters.filter(l => l.stakes >= 3);
@@ -7666,16 +7729,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (next.startsWith("sc#")) setScCards(cs => { const c = scPending.current.find(x => "sc#" + x.key === next); return c ? [c, ...cs.filter(x => x.key !== c.key)] : cs; });
   };
   const takeLetter = (l) => setMail(m => m.filter(x => x.id !== l.id));
+  const isNote = (l) => !!(l.tip && !l.cat);
   const handleLetter = (l) => {
     takeLetter(l); setLetterOpen(null); setMailOpen(false);
+    if (isNote(l)) return; // a report or a notice: read and filed
     if (l.key === "budget") {
       mailOn.current = false; setPhase("budget"); setNav("gov");
-      if (!budgetMin()) { setS(p => ({ ...p, cor: cl(p.cor + .005) })); addL("📊 No Commissioner for Budget & Planning checked the ministries' bids; padded lines went into the draft. Create the ministry under People → Ministries.", "political"); }
+      if (!budgetMin()) { const padB = Math.max(.2, Math.round(SYS.revenueB(s) * .025 * 10) / 10); setS(p => ({ ...p, cor: cl(p.cor + .005), cash: Math.max(0, Math.round(((p.cash || 0) - padB) * 100) / 100) })); addL("📊 No Commissioner for Budget & Planning checked the ministries' bids: " + naira(padB) + " of padding went into the budget. Create the ministry under People → Ministries.", "political"); }
       return;
     }
     if (l.key === "gold") { setGoldOpen(true); return; }
     if (l.key.startsWith("stall:")) { const p = (projects || []).find(x => x.id === l.key.slice(6)); goTab("prj"); if (p) setTimeout(() => openStep(p), 50); return; }
-    if (l.key === "ministry_tip") { const cat = MINISTRY_CATALOGUE.find(c => c.id === l.cat); if (cat && !(ministries || []).some(m => m.id === cat.id)) openNewMinistry(cat); else goTab("min"); return; }
+    if (l.cat) { const cat = MINISTRY_CATALOGUE.find(c => c.id === l.cat); if (cat && !(ministries || []).some(m => m.id === cat.id)) openNewMinistry(cat); else goTab("min"); return; }
     prepEvent(l.key); deskGo(l.key);
   };
   // What a year event leaves behind when nobody opens its card.
@@ -7688,6 +7753,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   // Hand a letter to the Chief of Staff. You can insist even when they warn you.
   const delegateLetter = (l) => decide(() => {
+    if (isNote(l)) { takeLetter(l); setLetterOpen(null); return null; }
     const c = cosNow || COS_ACTING, v = letterView(l);
     takeLetter(l); setLetterOpen(null);
     // The budget: they resubmit last year's shares to the House.
@@ -7719,7 +7785,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       bumpCos();
       return { icon: "🏗️", title: r.ok ? p.title + " is finished" : p.title + " is still stalled", text: (r.ok ? "Your Chief of Staff paid what it took. It cost more than it should, and the finish is not the best." : "The contractor took the money and did not come back.") + (r.crooked ? " Part of the payment went to a friend of " + c.name.split(" ").slice(-1)[0] + "." : ""), tone: r.ok ? "good" : "bad", rows: [{ l: "Cost", v: SYS.fmtM(r.costM), good: false }] };
     }
-    if (l.key === "ministry_tip") return null;
+    if (l.cat) return null;
     // Any other year event: the card is never opened; the outcome is theirs.
     const r = SYS.delegate(c, l.kind, l.stakes, v.title.replace(/^Your agenda: /, "your agenda, "));
     forgetEvent(l.key);
@@ -7741,6 +7807,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setS(p => { const n = { ...p }; due.forEach(d => Object.entries(d.fx || {}).forEach(([k, v]) => { if (k === "app" || k === "pStab") n[k] = cl100((n[k] || 0) + v); else if (k === "igr") n.igr = (n.igr || 0) + v; else if (typeof n[k] === "number") n[k] = cl(n[k] + v); })); return n; });
     due.forEach(d => addL((d.fx && d.fx.app < 0 ? "⚠️ " : "📈 ") + d.desc, d.fx && d.fx.app < 0 ? "political" : "success"));
   }, [turn]);
+  // A need no ministry owns: the adviser writes, once, and says which ministry to create.
+  const NEED_OWNER = { water: "water", power: "power", housing: "housing" };
+  const ownerAsked = React.useRef({});
+  useEffect(() => {
+    if (needSetup || gEnd) return;
+    activeNeeds.forEach(n => {
+      const id = NEED_OWNER[n.k]; if (!id || (ministries || []).some(m => m.id === id) || ownerAsked.current[id]) return;
+      const cat = MINISTRY_CATALOGUE.find(c => c.id === id); if (!cat) return;
+      ownerAsked.current[id] = 1;
+      const nt = needType(n), sa = cast.adviser.name;
+      postMail([letterOf("ministry_tip", { key: "ministry_tip_" + id, live: true, cat: id, kind: "projects", stakes: 2, tip: [sa, saPortrait(sa), "Nobody owns " + nt.title(n.lga).toLowerCase().replace(/^./, c => c.toUpperCase()), "We have no Commissioner for " + cat.name + ", so nobody can plan or run the fix. Create the Ministry of " + cat.name + " (" + naira(cat.cost) + " a year) and the work can start."] })]);
+    });
+  }, [needs, ministries, turn]);
   // Goldfields and stalled projects are letters too, whenever they land.
   useEffect(() => {
     if (gEnd || needSetup || phase !== "policy" || !gold) return;
@@ -7772,10 +7851,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   }, [gEnd]);
   useEffect(() => { if (impSurv && !anchored.current.imp) { anchored.current.imp = 1; anchors(govShort + " survives the impeachment vote!", "The House blinked. The governor walks out stronger."); } }, [impSurv]);
   // ── The mailbox on screen ──
-  const Seal = ({ kind, size = 44 }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
+  const SEAL_ART = { agenda: "seal-agenda", budget: "seal-budget", gold: "seal-gold", crisis: "seal-crisis", godfather: "seal-godfather", party: "seal-party", house: "seal-house", courts: "seal-courts", federal: "seal-abuja", community: "seal-community", press: "seal-press", travel: "seal-invitation", investment: "seal-investor", projects: "seal-projects", intel: "seal-intel", briefing: "seal-briefing" };
+  const Seal = ({ kind, size = 44 }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; if (SEAL_ART[kind]) return <Ico n={SEAL_ART[kind]} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />; return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
   const mailboxView = (inline) => {
     const fz = TALL() ? { s: TS(19), m: TS(23), l: TS(30) } : { s: TS(28), m: TS(34), l: TS(48) };
-    const c = cosNow || COS_ACTING, first = c.name.split(" ").slice(-2, -1)[0] || c.name;
+    const c0 = cosNow || COS_ACTING, c = { ...c0, img: (SYS.cosById(c0.id) || c0).img }, first = c.name.split(" ").slice(-2, -1)[0] || c.name;
     const open = mail.find(l => l.id === letterOpen);
     const yearStuff = mail.filter(l => !l.live), budgetWaiting = mail.some(l => l.key === "budget");
     if (open) {
@@ -7786,29 +7866,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <div style={{ fontFamily: F.b, fontSize: fz.s, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: (SYS.SEALS[open.kind] || {}).c || CL.td, marginBottom: 4 }}>{(SYS.SEALS[open.kind] || {}).nm}</div>
           <b style={{ display: "block", fontSize: fz.l, lineHeight: 1.15, marginBottom: 8, paddingRight: 50 }}>{v.title}</b>
           <div style={{ fontSize: fz.m, lineHeight: 1.5 }}>Dear Governor,</div>
-          <div style={{ fontSize: fz.m, lineHeight: 1.5, margin: "4px 0 8px" }}>{v.body || v.line}</div>
+          {open.lines ? <div style={{ fontSize: fz.s, lineHeight: 1.45, margin: "4px 0 8px", display: "grid", gap: 6 }}>{open.lines.map((x, i) => <div key={i}>{x.ok ? "✅ " : "❌ "}{x.line}</div>)}</div>
+            : <div style={{ fontSize: fz.m, lineHeight: 1.5, margin: "4px 0 8px" }}>{v.body || v.line}</div>}
           <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fz.m }}>
             <img src={v.img} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.gold + "22" }} />
             <span style={{ lineHeight: 1.3 }}>Sincerely,<br /><i>{v.from}</i></span>
           </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 14, padding: "8px 12px", marginBottom: 12 }}>
+        {!isNote(open) && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 14, padding: "8px 12px", marginBottom: 12 }}>
           <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
           <span style={{ fontSize: fz.s, color: CL.txt }}><span aria-label={risk} style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: riskC, marginRight: 6 }} /><b>{first}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}”</span>
-        </div>
+        </div>}
+        {isNote(open) ? <Bt onClick={() => handleLetter(open)} style={{ width: "100%" }}><Ico n="icon-ok" s={24} style={{ marginRight: 6 }} />Noted</Bt> :
         <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 10 }}>
           <Bt onClick={() => handleLetter(open)}>✍️ Handle it personally</Bt>
-          <Bt v="ghost" onClick={() => delegateLetter(open)}>🗝️ {risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first}</Bt>
-        </div>
+          <Bt v="ghost" onClick={() => delegateLetter(open)}><Ico n="icon-delegate" s={24} style={{ marginRight: 6 }} />{risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first}</Bt>
+        </div>}
         {open.key === "budget" && !budgetMin() && <button onClick={() => { setLetterOpen(null); setMailOpen(false); goTab("min"); }} style={{ display: "block", background: "none", border: 0, padding: 0, color: CL.grn, fontWeight: 800, fontSize: fz.s, textDecoration: "underline", cursor: "pointer", fontFamily: F.b, marginTop: 10 }}>Create a Ministry of Budget & Economic Planning first</button>}
         <button onClick={() => setLetterOpen(null)} style={{ background: "none", border: 0, color: CL.td, fontSize: fz.s, marginTop: 10, cursor: "pointer", fontFamily: F.b }}>← Back to the mail</button>
       </Cd>;
     }
     return <Cd style={{ padding: TALL() ? "16px 14px" : "26px 30px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-        <span style={{ fontSize: TALL() ? 34 : 46 }} aria-hidden="true">📬</span>
+        <img src={"./art/objects/" + (mail.length ? "letter-sealed" : "letter-open") + ".webp"} alt="" style={{ width: TALL() ? 48 : 64, height: TALL() ? 48 : 64, objectFit: "contain" }} />
         <div style={{ flex: 1, minWidth: 0 }}><b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt }}>Your mail</b>
-          <div style={{ fontSize: fz.s, color: CL.td }}>{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") + " waiting" : "Nothing waiting"}</div></div>
+          <div style={{ fontSize: fz.s, color: CL.td, display: "flex", alignItems: "center", gap: 6 }}>{mail.some(l => l.stakes >= 3) && <Ico n="icon-urgent" s={20} />}{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") + " waiting" : "Nothing waiting"}</div></div>
       </div>
       <div style={{ display: "grid", gap: 8 }}>
         {mail.map(l => { const v = letterView(l); return <button key={l.id} onClick={() => setLetterOpen(l.id)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "8px 10px" : "10px 14px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
@@ -8136,9 +8218,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Three tabs. Each keeps its pages as chips, so anything that opens a page
   // by key still works. Wiki, Constitution, Standing, Help and Sound live in the ☰ menu.
   const SCREENS = [
-    { id: "desk", i: "🗂️", img: "tab-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }, { k: "log", l: "News" }] },
-    { id: "map", i: "🗺️", img: "tab-map", l: "State", subs: [{ k: "econ", l: "Money" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
-    { id: "people", i: "👥", img: "tab-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: "Council" }, { k: "ppl", l: "Public" }] },
+    { id: "desk", i: "🗂️", img: "icon-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }, { k: "log", l: "News" }] },
+    { id: "map", i: "🗺️", img: "icon-state", l: "State", subs: [{ k: "econ", l: "Money" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
+    { id: "people", i: "👥", img: "icon-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: "Council" }, { k: "ppl", l: "Public" }] },
   ];
   const WIKI_SCREEN = { id: "wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] };
   const menuItems = () => [
@@ -8146,9 +8228,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["⚖️ The Constitution", () => setNav("con")],
     ["📊 Standing", () => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
-    ["❓ Help", () => onHelp()],
+    ["Help", () => onHelp(), "icon-help"],
     ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
-    [(soundOn ? "🔊 Sound: on" : "🔇 Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
+    [(soundOn ? "Sound: on" : "Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }, "icon-sound"],
     ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
   ].concat(VATAR && window.SOP_canBuy && window.SOP_canBuy() ? [["🔁 Second Chance" + ((window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + " ready)" : ""), buySecondChance]] : []).filter(([l]) => !(VATAR && /Fullscreen/.test(l)));
   const curScreen = SCREENS.find(sc => sc.subs.some(t => t.k === nav)) || (WIKI_SCREEN.subs.some(t => t.k === nav) ? WIKI_SCREEN : SCREENS[0]);
@@ -8158,14 +8240,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The four numbers that matter, always in view. Tapping opens the State sheet.
   const tone = (v, good, warn) => v >= good ? "#2fa866" : v >= warn ? "#d9a21b" : "#e0574c";
   const STRIP = [
-    ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40)],
-    ["In the bank", naira(s.cash || 0), (s.cash || 0) > .05 ? null : "#e0574c"],
-    ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30)],
-    ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55)],
+    ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40), "icon-approval"],
+    ["In the bank", naira(s.cash || 0), (s.cash || 0) > .05 ? null : "#e0574c", "icon-bank"],
+    ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30), "icon-party"],
+    ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55), "icon-corruption"],
   ];
   const statusStrip = (dark) => <button onClick={() => { setSosOpen(true); setMenuOpen(false); }} aria-label="Open the State sheet" style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, background: dark ? "transparent" : CL.card, border: dark ? 0 : "1px solid " + CL.bdr, borderRadius: 16, padding: dark ? 0 : "12px 10px", cursor: "pointer", color: dark ? "#f3f7ef" : CL.txt, fontFamily: F.b }}>
-    {STRIP.map(([l, v, c]) => <span key={l} style={{ display: "grid", justifyItems: "center", gap: 2, minWidth: 0 }}>
-      <b style={{ fontFamily: F.m, fontSize: TALL() ? TS(24) : TS(40), lineHeight: 1.1, whiteSpace: "nowrap" }}>{c && <span style={{ display: "inline-block", width: TALL() ? 8 : 12, height: TALL() ? 8 : 12, borderRadius: "50%", background: c, marginRight: 5, verticalAlign: TALL() ? 2 : 4 }} />}{v}</b>
+    {STRIP.map(([l, v, c, ic]) => <span key={l} style={{ display: "grid", justifyItems: "center", gap: 2, minWidth: 0 }}>
+      <b style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: F.m, fontSize: TALL() ? TS(24) : TS(40), lineHeight: 1.1, whiteSpace: "nowrap", position: "relative" }}><Ico n={ic} s={TALL() ? 20 : 30} />{c && <span style={{ position: "absolute", left: TALL() ? 14 : 22, top: 0, width: TALL() ? 8 : 10, height: TALL() ? 8 : 10, borderRadius: "50%", background: c, boxShadow: "0 0 0 2px #fff" }} />}{v}</b>
       <span style={{ fontSize: TALL() ? TS(16) : TS(24), opacity: .75, whiteSpace: "nowrap" }}>{l}</span>
     </span>)}
   </button>;
@@ -8192,7 +8274,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setSkApp(p => { const n = { ...p }; Object.entries(inv.delSk || {}).forEach(([key, v]) => { if (n[key] !== undefined) n[key] = cl100(n[key] + (kind === "adviser" ? Math.round(v / 2) : v)); }); return n; });
     const envoy = kind === "deputy" ? "Deputy Governor " + cast.deputy.name : kind === "commissioner" ? "Hon. " + m.minister + " (" + m.name + ")" : cast.adviser.name + ", your Special Adviser";
     addL("📤 " + envoy + " went in your place. " + inv.delLog, "political");
-    paper((kind === "deputy" ? "Deputy " + cast.deputy.name.split(" ").pop() : kind === "commissioner" ? "Commissioner " + m.minister.split(" ").pop() : "Adviser " + cast.adviser.name.split(" ").pop()) + " Represents " + stName + " in " + inv.from.split(",").pop().trim(), briefly(inv.delLog, 70), true);
+    paper((kind === "deputy" ? "Deputy " + cast.deputy.name.split(" ").pop() : kind === "commissioner" ? "Commissioner " + m.minister.split(" ").pop() : "Adviser " + cast.adviser.name.split(" ").pop()) + " Represents " + stName + " in " + inv.from.split(",").pop().trim(), briefly(inv.delLog, 70), true, "./art/scenes/news-governor-abroad.webp");
     const effects = [{ icon: "📤", text: envoy + " went in your place", value: kind === "commissioner" ? "Technical deal" : kind === "deputy" ? "Ceremonial" : "Quiet follow-up" }];
     if (delFx.app) effects.push({ icon: "📈", text: "Approval", value: "+" + Math.round(delFx.app * k * 10) / 10 + "%", good: true });
     if (tech) effects.push({ icon: "🛠️", text: "Knew the file: part of the in-person deal agreed", value: "40%", good: true });
@@ -8297,11 +8379,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             The ☰ menu holds Save, Help, text size and fullscreen. */}
         {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
-            <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}>☰</button>
+            <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}><Ico n="icon-menu" s={32} /></button>
             {statusStrip(true)}
           </div>
                     {menuOpen && <div style={{ padding: "4px 16px 14px", borderTop: "1px solid rgba(255,255,255,.12)", display: "grid", gap: 8 }}>
-            {menuItems().map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer" }}>{l}</button>)}
+            {menuItems().map(([l, fn, ic]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "14px 16px", minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.18)", background: "rgba(255,255,255,.06)", color: "#f3f7ef", fontFamily: F.b, fontWeight: 700, fontSize: TS(20), cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>{ic && <Ico n={ic} s={26} />}{l}</button>)}
             <div style={{ fontSize: TS(20), opacity: .7, padding: "2px 4px" }}>The game also saves itself every turn.</div>
           </div>}
         </div>}
@@ -8321,22 +8403,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const on = sc.id === curScreen.id;
             return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
               style={{ position: "relative", border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
-              <img src={"./art/objects/" + sc.img + ".webp"} alt="" style={{ width: TS(48), height: TS(48), objectFit: "contain" }} />{sc.l}
-              {sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e0574c", color: "#fff", fontSize: 13, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 5px" }}>✉ {mail.length}</span>}
+              <img src={"./art/icons/" + sc.img + ".webp"} alt="" style={{ width: TS(48), height: TS(48), objectFit: "contain" }} />{sc.l}
+              {sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e0574c", color: "#fff", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 2, padding: "0 5px" }}><Ico n="icon-mail" s={14} />{mail.length}</span>}
             </button>;
           })}
         </div> : <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
           <div style={{ display: "grid", gridTemplateColumns: "56px repeat(3,1fr)", gap: 10, position: "relative" }}>
-            <button onClick={() => setMenuOpen(o => !o)} aria-label="Menu" aria-expanded={menuOpen} style={{ borderRadius: 16, border: "2px solid " + CL.bdr, background: menuOpen ? CL.grn : CL.card, color: menuOpen ? "#fff" : CL.txt, fontSize: TS(36), cursor: "pointer" }}>☰</button>
+            <button onClick={() => setMenuOpen(o => !o)} aria-label="Menu" aria-expanded={menuOpen} style={{ borderRadius: 16, border: "2px solid " + CL.bdr, background: menuOpen ? CL.grn : CL.card, color: menuOpen ? "#fff" : CL.txt, fontSize: TS(36), cursor: "pointer" }}><Ico n="icon-menu" s={34} /></button>
             {menuOpen && <div style={{ position: "absolute", top: "100%", left: 0, zIndex: 40, marginTop: 8, width: 320, background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: 10, display: "grid", gap: 6, boxShadow: "0 16px 40px rgba(0,0,0,.18)" }}>
-              {menuItems().map(([l, fn]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 12, border: "1px solid " + CL.bdr, background: "#fff", color: CL.txt, fontFamily: F.b, fontWeight: 700, fontSize: TS(26), cursor: "pointer" }}>{l}</button>)}
+              {menuItems().map(([l, fn, ic]) => <button key={l} onClick={() => { fn(); setMenuOpen(false); }} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 12, border: "1px solid " + CL.bdr, background: "#fff", color: CL.txt, fontFamily: F.b, fontWeight: 700, fontSize: TS(26), cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>{ic && <Ico n={ic} s={28} />}{l}</button>)}
             </div>}
             {SCREENS.map(sc => {
               const on = sc.id === curScreen.id;
               return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
                 style={{ position: "relative", padding: "14px 6px", borderRadius: 16, border: "2px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn : CL.card, color: on ? "#fff" : CL.txt, fontFamily: F.c, fontWeight: 800, fontSize: TS(30), letterSpacing: .5, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, boxShadow: on ? "0 3px 0 rgba(0,0,0,.18)" : "none" }}>
-                <img src={"./art/objects/" + sc.img + ".webp"} alt="" style={{ width: TS(58), height: TS(58), objectFit: "contain" }} />{sc.l}
-                {sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 6, right: 10, minWidth: 30, height: 30, borderRadius: 15, background: "#e0574c", color: "#fff", fontSize: 16, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 7px" }}>✉ {mail.length}</span>}
+                <img src={"./art/icons/" + sc.img + ".webp"} alt="" style={{ width: TS(58), height: TS(58), objectFit: "contain" }} />{sc.l}
+                {sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 6, right: 10, minWidth: 30, height: 30, borderRadius: 15, background: "#e0574c", color: "#fff", fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", gap: 3, padding: "0 7px" }}><Ico n="icon-mail" s={18} />{mail.length}</span>}
               </button>;
             })}
           </div>
@@ -8345,7 +8427,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
         </div>}
         {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); else setMailOpen(true); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
-        {curScreen.id === "desk" && mail.length > 0 && phase !== "mail" && <button onClick={() => setMailOpen(true)} aria-label={"Mail: " + mail.length} style={{ position: "fixed", right: 16, bottom: TALL() ? 104 : 24, zIndex: 65, background: CL.gold, color: "#1a2e05", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), boxShadow: "0 8px 20px rgba(0,0,0,.25)", cursor: "pointer", fontFamily: F.b }}>📬 {mail.length}</button>}
+        {curScreen.id === "desk" && mail.length > 0 && phase !== "mail" && <button onClick={() => setMailOpen(true)} aria-label={"Mail: " + mail.length} style={{ position: "fixed", right: 16, bottom: TALL() ? 104 : 24, zIndex: 65, display: "flex", alignItems: "center", gap: 6, background: CL.gold, color: "#1a2e05", border: 0, borderRadius: 999, padding: "6px 16px 6px 8px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), boxShadow: "0 8px 20px rgba(0,0,0,.25)", cursor: "pointer", fontFamily: F.b }}><img src="./art/objects/mailbox-tray.webp" alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />📬 {mail.length}</button>}
         {nav === "hub" && <div style={{ maxWidth: TALL() ? 900 : 1440, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
           <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} />
           {TALL() && <div style={{ fontSize: TS(18), color: CL.td, textAlign: "center", marginTop: 10 }}>Turn your phone sideways for the full compound.</div>}
@@ -8770,24 +8852,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const year = turn;
             const cost = Math.round((1.4 + turn * 0.15) * 10) / 10;
             const done = (window.SOP_MEMORY ? window.SOP_MEMORY.all("flagship_milestone", e => e.meta && e.meta.delivered) : []).length;
+            // This year's share, in plain terms: which road, how many guards, where.
+            const deliv = SYS.flagshipDeliverable(setup.agenda, ((year - 1) % 4) + 1, [0, 1, 2].map(z => lgaCluster(getLGAs(state), z)), rng(year * 131 + state.length * 7));
             const pick = (opt) => decide(() => {
               if (opt.debt && !spendB(opt.debt, "The flagship")) return;
               setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)) }));
               addL(FG.i + " Flagship " + FG.nm + ": " + opt.log, opt.delivered ? "policy" : "political");
               try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda } }); } catch (e) {}
               nextEvent();
-              paper(opt.delivered ? govShort + " Delivers on " + FG.nm : govShort + " Misses " + FG.nm + " Target", opt.delivered ? (opt.cor ? "Finished on time, but the work is thin" : "This year's promise kept") : "The people noticed", opt.delivered, FLAGSHIP_ART[setup.agenda] ? "./art/backgrounds/" + FLAGSHIP_ART[setup.agenda][0] + ".webp" : undefined);
+              paper(opt.delivered ? govShort + " Delivers: " + deliv.split(",")[0].replace(/^the /, "The ").replace(/^(\w)/, c => c.toUpperCase()) : govShort + " Misses " + FG.nm + " Target", opt.delivered ? (opt.cor ? "Finished on time, but the work is thin" : FG.nm + ", year " + year) : "Due this year: " + deliv.split(",")[0], opt.delivered, !opt.delivered ? "./art/scenes/news-protest.webp" : FLAGSHIP_ART[setup.agenda] ? "./art/backgrounds/" + FLAGSHIP_ART[setup.agenda][0] + ".webp" : undefined);
               return null;
             });
             const opts = [
-              { label: "Fund it in full", note: "₦" + cost + "B from borrowing. Done properly.", delivered: true, app: 4, debt: cost, log: "year " + year + " target met in full: " + FG.goal + "." },
-              { label: "Cut corners to finish on time", note: "Half the money, a favoured contractor. It opens, but the work is thin.", delivered: true, app: 2, debt: Math.round(cost * 5) / 10, cor: .04, log: "year " + year + " target met on paper; the work is thin." },
-              { label: "Push it to next year", note: "No new money. The people notice.", delivered: false, app: -3, log: "year " + year + " target missed and pushed back." },
+              { label: "Fund it in full", note: "₦" + cost + "B. Done properly.", delivered: true, app: 4, debt: cost, log: "year " + year + ": " + deliv + ", done properly." },
+              { label: "Cut corners to finish on time", note: "Half the money, a favoured contractor. It opens, but the work is thin.", delivered: true, app: 2, debt: Math.round(cost * 5) / 10, cor: .04, log: "year " + year + ": " + deliv + ", on paper. Half the money, a favoured contractor; the work is thin." },
+              { label: "Push it to next year", note: "No new money. The people notice.", delivered: false, app: -3, log: "year " + year + ": " + deliv + " was due and was not done." },
             ];
             const fa = FLAGSHIP_ART[setup.agenda] || ["road-construction-site", null];
             return <><SceneArt bg={fa[0]} who={fa[1]} h={TALL() ? 200 : 240} /><DecisionCard kicker={"Flagship · Year " + year} kickerColor={CL.grn}
               title={FG.i + " " + FG.nm}
-              brief={"You promised to " + FG.goal + ". This year's share of that promise is due. " + (done ? "So far " + done + " of " + (year - 1) + " yearly targets delivered." : year > 1 ? "Last year's target was missed." : "Nothing has been delivered yet.")}
+              brief={"This year: " + deliv + ". " + (done ? "So far " + done + " of " + (year - 1) + " yearly targets delivered." : year > 1 ? "Last year's target was missed." : "You promised to " + FG.goal + ".")}
               options={opts.map(o => ({ label: o.label, note: o.note, raw: o, chips: [{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }].concat(o.debt ? [{ text: "₦" + o.debt + "B", color: CL.txt }] : []).concat(o.cor ? [{ text: "Corruption +4%", color: CL.red }] : []) }))}
               onPick={(o) => pick(o.raw)} /></>;
           })()}
@@ -9547,7 +9631,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   setS(p => ({ ...p, igr: p.igr + 3 + hiddenBoost, faac: p.faac + 0.8, agr: cl(p.agr + .04), infra: cl(p.infra + .02), app: cl100(p.app + 6) })); spendB(0.3, "The trip", { force: true });
                   setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 12), youth: cl100((p.youth || 50) + 5) }));
                   addL("🇳🇱 Netherlands trip SUCCESS! Dutch investors commit €40M.", "policy");
-                  paper(govShort + " Shines in the Netherlands, Signs €40M MOU", "Agro-processing and solar deal for " + stName, true);
+                  paper(govShort + " Shines in the Netherlands, Signs €40M MOU", "Agro-processing and solar deal for " + stName, true, "./art/scenes/news-investor-deal.webp");
                   noteMoney({ icon: "🇳🇱", head: "The Dutch deal", text: "The agro-processing and solar deal you signed in The Hague adds about ₦" + (3 + hiddenBoost).toFixed(1) + "B a year in taxes from now on.", amtB: Math.round((3 + hiddenBoost) * 10) / 10 });
                   showResult({ icon: "🇳🇱🎉", img: "./art/scenes/money-deal-signed-abroad.webp", title: "The Hague — DEAL SIGNED!", narrative: "The Dutch investors were impressed by your personal presence. After 3 days of negotiations, they committed €40 million to an agro-processing and solar farm project. Construction begins in 6 months.", effects: [
                     { icon: "💰", text: "IGR boost from investment", value: "+₦" + (3 + hiddenBoost).toFixed(1) + "B", good: true },
@@ -9735,7 +9819,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 });
                 setSkApp(p => { const n = { ...p }; Object.entries(curInvite.goSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
                 addL("🌍 " + curInvite.goLog, "policy");
-                paper(govShort + " Shines in " + curInvite.from.split(",").pop().trim(), briefly(curInvite.goLog, 70), true);
+                paper(govShort + " Shines in " + curInvite.from.split(",").pop().trim(), briefly(curInvite.goLog, 70), true, "./art/scenes/news-governor-abroad.webp");
                 const goEffects = [];
                 if (curInvite.goFx.igr) goEffects.push({ icon: "💰", text: "IGR boosted", value: "+₦" + curInvite.goFx.igr + "B", good: true });
                 if (curInvite.goFx.app) goEffects.push({ icon: "📈", text: "Approval rises", value: "+" + curInvite.goFx.app + "%", good: true });
@@ -9749,7 +9833,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setCurInvite(null);
                 showResult({ icon: invRef.icon, title: "International Visit — " + invRef.from.split(",")[0], narrative: invRef.goLog + " Your personal presence opened doors that a delegation never could. International media covered your visit, boosting your state's global profile.", effects: goEffects, tone: "good", nextFn: () => nextEvent() });
               }} style={{ padding: 43 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.grn, marginBottom: 10 }}>✈️ Go in Person</div>
+                <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.grn, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}><Ico n="icon-travel" s={44} />Go in Person</div>
                 <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>Represent your state at the highest level. Personal presence opens doors that delegations cannot.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {curInvite.goCost > 0 && <Bg text={"₦" + curInvite.goCost + "B cost"} color={CL.red} />}
@@ -9759,7 +9843,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>
 
               <div>
-                <div style={{ fontWeight: 600, fontSize: TALL() ? TS(28) : TS(44), color: CL.blu, marginBottom: 4 }}>📤 Send someone in your place</div>
+                <div style={{ fontWeight: 600, fontSize: TALL() ? TS(28) : TS(44), color: CL.blu, marginBottom: 4, display: "flex", alignItems: "center", gap: 10 }}><Ico n="icon-send-envoy" s={40} />Send someone in your place</div>
                 <div style={{ fontSize: TALL() ? TS(20) : TS(31), color: CL.td, marginBottom: 12 }}>You stay home and govern. Who goes changes what comes back.</div>
                 <div style={{ display: "grid", gap: 12 }}>
                   {[
@@ -10432,7 +10516,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               setSkApp(p => { const n = { ...p }; Object.entries(B.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
               addL(hasBad ? "✍️ Signed the " + B.nm + ", hidden clause and all. Corruption rises." : "✍️ Signed the " + B.nm + " into law." + (B.signCost > 0 ? " Cost: " + naira(B.signCost) : ""), hasBad ? "scandal" : "policy");
               try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, lines: (B.clauses || []).map(c => short(c.t)), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
-              if (!hasBad) setTimeout(() => paper(govShort + " Signs " + B.nm.replace(/ Bill$/, "") + " Into Law", "A win for " + stName, true, "./art/backgrounds/assembly-chamber-wide.webp"), 2600);
+              if (!hasBad) setTimeout(() => paper(govShort + " Signs " + B.nm.replace(/ Bill$/, "") + " Into Law", "A win for " + stName, true, "./art/scenes/news-signing-ceremony.webp"), 2600);
               if (hasBad) later({ icon: "🕵️", img: "./art/characters/speaker-pleased.webp", title: "The House got what it wanted", text: "You signed " + short(badClauses[0].t).split(":")[0] + " without reading it. Corruption +4%.", tone: "bad" });
               setBillFlags([]); advanceFn();
             };
@@ -10460,9 +10544,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>
               {hasClauses && <div style={{ display: "grid", gap: 6, marginBottom: 10 }}>
                 {B.clauses.map((c, i) => { const on = flagged.includes(i); return <button key={i} onClick={() => setBillFlags(f => on ? f.filter(x => x !== i) : [...f, i])} aria-pressed={on} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center", textAlign: "left", padding: TALL() ? "8px 12px" : "12px 16px", borderRadius: 12, border: "1.5px solid " + (on ? CL.red : CL.bdr), background: on ? CL.red + "0d" : "#fff", cursor: "pointer", fontFamily: F.b, color: CL.txt, fontSize: TALL() ? TS(19) : TS(28), lineHeight: 1.35 }}>
-                  <span>{short(c.t)}</span><span style={{ fontSize: TALL() ? 18 : 24 }} aria-label={on ? "Flagged" : "Flag this clause"}>{on ? "🚩" : "⚑"}</span>
+                  <span>{short(c.t)}</span><span aria-label={on ? "Flagged" : "Flag this clause"}><Ico n="icon-flag-clause" s={TALL() ? 24 : 30} style={{ opacity: on ? 1 : .3, filter: on ? "none" : "grayscale(1)" }} /></span>
                 </button>; })}
-                <div style={{ fontSize: TALL() ? TS(16) : TS(24), color: CL.td }}>Tap ⚑ to flag a clause.</div>
+                <div style={{ fontSize: TALL() ? TS(16) : TS(24), color: CL.td }}>Tap <Ico n="icon-flag-clause" s={16} /> to flag a clause.</div>
               </div>}
               {billAsk && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "start", background: CL.blu + "08", border: "1px solid " + CL.blu + "22", borderRadius: 14, padding: "10px 12px", marginBottom: 10 }}>
                 <img src={saPortrait(cast.adviser.name)} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
@@ -10473,10 +10557,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>
               </div>}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <Bt onClick={doSign} style={{ background: CL.grn }}>✍️ Sign</Bt>
-                <Bt onClick={doVeto} style={{ background: CL.red }}>⛔ Veto{flagged.length ? " · " + flagged.length + " 🚩" : ""}</Bt>
+                <Bt onClick={doSign} style={{ background: CL.grn }}><Ico n="icon-sign" s={26} style={{ marginRight: 6 }} />Sign</Bt>
+                <Bt onClick={doVeto} style={{ background: CL.red }}><Ico n="icon-veto" s={26} style={{ marginRight: 6 }} />Veto{flagged.length ? " · " + flagged.length : ""}</Bt>
               </div>
-              <button onClick={() => setBillAsk(a => !a)} style={{ display: "block", margin: "10px auto 0", background: "none", border: 0, color: CL.blu, fontWeight: 800, fontSize: TALL() ? TS(19) : TS(28), cursor: "pointer", fontFamily: F.b }}>{billAsk ? "Hide" : "🤵 Ask your SA"}</button>
+              <button onClick={() => setBillAsk(a => !a)} style={{ display: "block", margin: "10px auto 0", background: "none", border: 0, color: CL.blu, fontWeight: 800, fontSize: TALL() ? TS(19) : TS(28), cursor: "pointer", fontFamily: F.b }}>{billAsk ? "Hide" : <><Ico n="icon-ask-sa" s={24} style={{ marginRight: 6 }} />Ask your SA</>}</button>
             </Cd>;
           })()}
         </OL>
@@ -10523,7 +10607,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={debtPick}>
           {debtPick && oldPlan && <div className="sp-card sp-step" style={{ maxWidth: 720, margin: "0 auto", padding: TALL() ? 16 : 24 }}>
             <img src="./art/scenes/inherited-debt.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
-            <div className="sp-kicker">What the last government left</div>
+            <div className="sp-kicker" style={{ display: "flex", alignItems: "center", gap: 6 }}><Ico n="icon-debt" s={22} />What the last government left</div>
             <div style={{ font: "700 26px/1.15 'Fraunces', Georgia, serif", color: "#17301f", margin: "4px 0 6px" }}>The state owes {naira(oldPlan.total)}</div>
             <div style={{ font: "500 15px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginBottom: 12 }}>8% interest a year. How do we pay?</div>
             <div style={{ display: "grid", gap: 8 }}>{debtChoices().map(c => <button key={c.k} className="sp-opt" onClick={() => chooseOldDebt(c.k)}><b style={{ display: "block", fontSize: 16 }}>{c.t}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{c.d}</span></button>)}</div>
@@ -10743,7 +10827,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                       border: "1.5px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn + "0d" : CL.card, boxShadow: on ? "inset 0 0 0 1px " + CL.grn : "none" }}>
                       <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
                         <b style={{ fontSize: fs.m }}>{on ? "✓ " : ""}{l}</b>
-                        <span style={{ fontSize: fs.s, color: w ? CL.org : CL.grn, fontWeight: 700, whiteSpace: "nowrap" }}>{w ? "⚠️ " + w : "✓"}</span>
+                        <span style={{ fontSize: fs.s, color: w ? CL.org : CL.grn, fontWeight: 700, whiteSpace: "nowrap" }}>{w ? <><Ico n="icon-warning" s={20} /> {w}</> : <Ico n="icon-ok" s={20} />}</span>
                       </span>
                       {grpBar(v)}
                     </button>;

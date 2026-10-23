@@ -35,7 +35,7 @@ Each product sells more play, never a better result, so titles, honours and the 
 | `portrait_frames` | one-off | ₦100 | Official Portrait Frames | Four frames for the player's portrait (Gold Big Man, Pink Glam, Owambe, Green & White). Shown on the title, the arrival, the end screen and the wiki. |
 | `presidential_run` | one-off | ₦1,500 | Road to Aso Rock | The presidential run after a governorship. |
 
-**Create later, once the art is in** (see `docs/ART-ATTIRE.md`): each look shows up in the pickers only when its picture exists.
+**Attire packs (the art is in, create these now):** the looks show in the pickers, locked until bought.
 
 | productId | Kind | Price | Name to show | What the player gets |
 |---|---|---|---|---|

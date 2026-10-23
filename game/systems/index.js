@@ -15,3 +15,4 @@ export * from "./deposits.js";
 export * from "./voice.js";
 export * from "./treasury.js";
 export * from "./chief.js";
+export * from "./results.js";

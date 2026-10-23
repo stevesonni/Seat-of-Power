@@ -8,16 +8,16 @@
 // fight for you; greed: how likely a deal in your name goes to a friend.
 // good/bad: the kinds of letter they are better or worse at.
 export const COS_ROSTER = [
-  { id: "fixer", name: "Chief Ebenezer Adeyinka-Cole", tag: "The Fixer", img: "commissioner-male-agbada", comp: 52, loyalty: 92, greed: 45,
+  { id: "fixer", name: "Chief Ebenezer Adeyinka-Cole", tag: "The Fixer", img: "chief-of-staff-fixer", comp: 52, loyalty: 92, greed: 45,
     good: ["party", "house", "godfather"], bad: ["budget", "courts"],
     file: "Ran your campaign. Knows every ward chairman by name, and every one of them owes him." },
-  { id: "matriarch", name: "Hajiya Zainab Bello-Musa", tag: "The Party Matriarch", img: "commissioner-female-kaftan", comp: 58, loyalty: 80, greed: 28,
+  { id: "matriarch", name: "Hajiya Zainab Bello-Musa", tag: "The Party Matriarch", img: "chief-of-staff-matriarch", comp: 58, loyalty: 80, greed: 28,
     good: ["party", "house", "community"], bad: ["projects", "budget"],
     file: "Thirty years in the party. Women leaders and traditional rulers take her calls." },
-  { id: "technocrat", name: "Dr. Tunde Okafor-Ilesanmi", tag: "The Technocrat", img: "commissioner-technocrat", comp: 82, loyalty: 50, greed: 8,
+  { id: "technocrat", name: "Dr. Tunde Okafor-Ilesanmi", tag: "The Technocrat", img: "chief-of-staff-technocrat", comp: 82, loyalty: 50, greed: 8,
     good: ["budget", "crisis", "federal", "projects", "gold"], bad: ["party", "godfather"],
     file: "A development-bank economist. Brilliant with numbers; the party thinks he looks down on them." },
-  { id: "veteran", name: "Mrs. Ngozi Adebanjo-Eze", tag: "The Civil Service Veteran", img: "commissioner-female-suit", comp: 72, loyalty: 62, greed: 14,
+  { id: "veteran", name: "Mrs. Ngozi Adebanjo-Eze", tag: "The Civil Service Veteran", img: "chief-of-staff-veteran", comp: 72, loyalty: 62, greed: 14,
     good: ["projects", "budget", "courts", "agenda"], bad: ["press"],
     file: "A former Head of Service. Knows where every file in the Secretariat is buried." },
 ];

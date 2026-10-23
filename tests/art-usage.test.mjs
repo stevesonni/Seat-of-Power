@@ -53,3 +53,14 @@ test("every adviser pose, House picture, campaign scene and mood is used", () =>
   assert.deepEqual(pack.filter(f => !src.includes(path.basename(f))), []);
   ["deputy-angry", "deputy-pleased", "deputy-worried"].forEach(f => assert.ok(!fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f + ": the old set with the wrong face is gone"));
 });
+// The icon pack, the Chief of Staff, the mailbox, the newspaper photos and the attire looks.
+test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is used", () => {
+  const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
+  const all = src + chief;
+  const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
+  assert.equal(icons.length, 44, "44 icons");
+  assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"')), [], "every icon is used by name");
+  ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
+  ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
+  ["news-court-steps", "news-governor-abroad", "news-investor-deal", "news-protest", "news-signing-ceremony", "news-victory-rally"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/scenes", f + ".webp")), f));
+});

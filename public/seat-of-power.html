@@ -410,12 +410,12 @@
         } else card.appendChild(ic);
         card.appendChild(h);
         if (o.coins) coinRain(back);
-        // Brevity: two short sentences at most.
-        if (o.text) { var t = document.createElement('div'); var sn = String(o.text).match(/[\s\S]+?(?:[.!?]+["\u201d]?(?=\s|$)|$)/g) || [String(o.text)], tx = sn.slice(0, o.rows && o.rows.length ? 1 : 2).join('').trim(); if (tx.length > 170) tx = (sn[0].trim().length <= 170 ? sn[0].trim() : tx.slice(0, 168).replace(/\s+\S*$/, '') + '…'); t.textContent = tx; t.style.cssText = 'color:#b9c6cc;margin-bottom:14px'; card.appendChild(t); }
+        // Two sentences at most: enough to say who did what.
+        if (o.text) { var t = document.createElement('div'); var sn = String(o.text).match(/[\s\S]+?(?:[.!?]+["\u201d]?(?=\s|$)|$)/g) || [String(o.text)], tx = sn.slice(0, 2).join('').trim(); if (tx.length > 240) tx = (sn[0].trim().length <= 240 ? sn[0].trim() : tx.slice(0, 238).replace(/\s+\S*$/, '') + '…'); t.textContent = tx; t.style.cssText = 'color:#b9c6cc;margin-bottom:14px'; card.appendChild(t); }
         if (o.rows && o.rows.length) {
           var g = document.createElement('div');
           g.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 16px';
-          o.rows.slice(0, 4).forEach(function (r) {
+          o.rows.slice(0, 9).forEach(function (r) {
             var c = document.createElement('span');
             c.textContent = r.l + ' ' + r.v;
             var col = r.good === true ? '#2fbf71' : r.good === false ? '#ff7a6b' : '#c9d3d7';
