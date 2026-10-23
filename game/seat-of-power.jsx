@@ -4315,7 +4315,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => {
     if (!gEnd) return;
     (async () => {
-      const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - s.debt * 4 - s.cor * 40);
+      const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
       const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2;
       // The career score for the Vatar leaderboard: the grade's points, plus honours and a second term.
       try { window.SOP_vatarScore && window.SOP_vatarScore(Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 ? 200 : 0)); } catch (e) {}
@@ -7384,7 +7384,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   if (gEnd) {
     const di = ((s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100).toFixed(1);
-    const fi = Math.max(0, 100 - s.debt * 4 - s.cor * 40).toFixed(1);
+    const fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40).toFixed(1);
     const ov = (parseFloat(di) * .3 + s.app * .3 + parseFloat(fi) * .2 + (100 - s.cor * 100) * .2).toFixed(1);
     const gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     const gc = { A: CL.grn, B: "#84cc16", C: CL.org, D: CL.red, F: "#8b0000" }[gr];
@@ -9406,7 +9406,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>
               {(() => {
                 const di2 = ((s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100);
-                const fi2 = Math.max(0, 100 - s.debt * 4 - s.cor * 40);
+                const fi2 = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
                 const ov2 = (di2 * .3 + s.app * .3 + fi2 * .2 + (100 - s.cor * 100) * .2);
                 const canPres = ov2 > 55 && s.app > 48 && s.pStab > 45;
                 return <Cd onClick={canPres ? () => { addL("🇳🇬 Governor resigns to run for PRESIDENT!", "political"); setGEnd("pres_bid"); } : undefined} style={{ padding: 43, opacity: canPres ? 1 : .35 }}>
