@@ -25,7 +25,13 @@ const PORT = +process.env.PORT || 8080;
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
-const PRODUCTS = { second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff" };
+const PRODUCTS = { second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", challenge_retry: "consumable" };
+// The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
+const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
+const boardFile = (w) => path.join(DATA, "boards", "w" + w + ".json");
+let boardLock = Promise.resolve();
+const readBoard = (w) => { try { return JSON.parse(fs.readFileSync(boardFile(w), "utf8")); } catch (e) { return { entries: {} }; } };
+const cleanName = (t) => String(t || "").replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, 40) || "A governor";
 
 fs.mkdirSync(path.join(DATA, "players"), { recursive: true });
 
@@ -90,6 +96,26 @@ const api = {
     const k = String(b.product || ""); if (PRODUCTS[k] !== "consumable" || !(p.ents[k] > 0)) return { ok: false };
     p.ents[k] -= 1; writeP(id, p); return { ok: true, ents: p.ents };
   }),
+  // Weekly challenge: the first attempt each week is free; another uses one challenge_retry.
+  "/api/challenge/start": async (b, id) => withP(id, (p) => {
+    const w = weekNow(); p.ch = p.ch || {}; const used = p.ch[w] || 0;
+    if (used >= 1) { if (!(p.ents.challenge_retry > 0)) return { ok: false, need: "challenge_retry", week: w, attempts: used }; p.ents.challenge_retry -= 1; }
+    p.ch = Object.fromEntries(Object.entries({ ...p.ch, [w]: used + 1 }).filter(([k]) => +k >= w - 3));
+    writeP(id, p); return { ok: true, week: w, attempts: used + 1, ents: p.ents };
+  }),
+  // A finished challenge career: the player's best score this week is kept.
+  "/api/challenge/score": async (b, id) => {
+    const w = +b.week, n = Math.round(+b.score);
+    if (!(w === weekNow() || w === weekNow() - 1) || !Number.isFinite(n) || n < 0 || n > 100000) return { _code: 400, error: "bad_request" };
+    const run = boardLock.then(() => { const B = readBoard(w), old = B.entries[id]; if (!old || n > old.score) { B.entries[id] = { name: cleanName(b.name), title: cleanName(b.title), score: n, at: Date.now() }; fs.mkdirSync(path.dirname(boardFile(w)), { recursive: true }); const f = boardFile(w), tmp = f + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(B)); fs.renameSync(tmp, f); } return { ok: true, best: Math.max(n, old ? old.score : 0) }; });
+    boardLock = run.catch(() => {}); return run;
+  },
+  // The week's top 20 (names are the players' in-game politicians), and where you stand.
+  "/api/challenge/board": async (b, id) => {
+    const w = Number.isInteger(+b.week) ? +b.week : weekNow(), all = Object.entries(readBoard(w).entries).sort((x, y) => y[1].score - x[1].score);
+    const me = all.findIndex(([k]) => k === id);
+    return { week: w, top: all.slice(0, 20).map(([k, e], i) => ({ rank: i + 1, name: e.name, title: e.title, score: e.score, me: k === id })), you: me >= 0 ? { rank: me + 1, score: all[me][1].score } : null, players: all.length };
+  },
   // The player's right to have their data removed (Developer Agreement §8).
   "/api/delete": async (b, id) => { try { fs.unlinkSync(file(id)); } catch (e) {} return { ok: true }; },
   // A purchase counts only when Vatar's server says it is paid and it is this player's.

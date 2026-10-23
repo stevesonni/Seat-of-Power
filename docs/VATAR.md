@@ -23,11 +23,24 @@ The game is served by `server/vatar-server.mjs` on Railway (project **seat-of-po
 Never commit the secrets or paste them into chat.
 
 ## Products (create them in the Vatar dashboard)
-| productId | Kind | Price | Status |
-|---|---|---|---|
-| `second_chance` | consumable | ₦500 | built: reruns a lost re-election once per game |
-| `presidential_run` | one-off | ₦1,500 | built: Road to Aso Rock, offered when a governor's time ends and they choose Run for President |
-| `scenario_pack` | one-off | ₦1,000 | **not built yet** — don't list until it is |
+Each product sells more play, never a better result, so titles, honours and the boards keep their value. The `productId` must be typed exactly as below.
+
+| productId | Kind | Price | Name to show | What the player gets |
+|---|---|---|---|---|
+| `challenge_retry` | consumable | ₦100 | Extra Challenge Attempt | One more run at this week's challenge (the first each week is free). The best score of the week counts. |
+| `second_chance` | consumable | ₦500 | Second Chance | Rerun a lost re-election, once per game. The career is marked in the Hall, earns no second-term points or "Second term" honour, and it can't be used in a challenge run. |
+| `scenario_pack` | one-off | ₦1,000 | Crisis Scenarios | Four starts: The Oil Crash, The Cholera Year, The Flood Year, The Broke State. |
+| `presidential_run` | one-off | ₦1,500 | Road to Aso Rock | The presidential run after a governorship. |
+
+**Free, to bring players back:** the weekly challenge.
+- **What it is:** a new state every Monday at 00:00 UTC, the same seeded luck for everyone, on Medium, set up by Quick start.
+- **The board:** the week's board (top 20 and your rank) is kept by our server in `/data/boards/w<week>.json`.
+- **Scoring:** a challenge's career score is the same as the leaderboard score.
+
+**Server routes** (all checked against the player's Vatar session):
+- `/api/challenge/start`: counts attempts and uses a `challenge_retry` after the first.
+- `/api/challenge/score`: keeps the player's best for the current or previous week.
+- `/api/challenge/board`.
 
 ## Inside the frame
 - Hidden: fullscreen, the share card, copy buttons, and X / WhatsApp links.

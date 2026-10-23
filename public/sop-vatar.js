@@ -8,7 +8,8 @@
    - Pause: no sound while Vatar pauses the game.
    - SOP_vatarScore(n): the career score for the leaderboard.
    - SOP_buy(productId) / SOP_useCredit(productId): purchases, checked by our
-     server with Vatar's API before anything is granted. */
+     server with Vatar's API before anything is granted.
+   - SOP_chStart / SOP_chScore / SOP_chBoard: the weekly challenge. */
 (function () {
   if (!window.SOP_VATAR) return;
   // Fullscreen is not granted inside the frame: hide its button.
@@ -73,6 +74,10 @@
       return window.Vatar.purchase(productId).then(claim);
     });
   };
+  // The weekly challenge: attempts and the board live on our server, against the player's id.
+  window.SOP_chStart = function () { return ready.then(function (on) { if (!on) return { ok: true, offline: true }; return call("/api/challenge/start").then(function (r) { if (r.ents) setEnts(r.ents); return r; }); }); };
+  window.SOP_chScore = function (week, score, name, title) { return ready.then(function (on) { if (on) return call("/api/challenge/score", { week: week, score: score, name: name, title: title }); }).catch(function () {}); };
+  window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {
     return call("/api/use", { product: productId }).then(function (r) { if (r.ok) setEnts(r.ents); return !!r.ok; });
   };

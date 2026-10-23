@@ -805,7 +805,7 @@ const HONOURS = [
   { id: "lawmaker", i: "📜", nm: "Lawmaker", d: "Signed four laws.", ok: (c) => c.laws >= 4 },
   { id: "survivor", i: "🛡️", nm: "Survivor", d: "Survived impeachment.", ok: (c) => c.impSurv },
   { id: "vindicated", i: "⚖️", nm: "Vindicated", d: "Beat an election petition.", ok: (c) => c.petitionWon },
-  { id: "second", i: "🗳️", nm: "Second term", d: "Won re-election.", ok: (c) => c.turn >= 5 },
+  { id: "second", i: "🗳️", nm: "Second term", d: "Won re-election (without a Second Chance).", ok: (c) => c.turn >= 5 && !c.secondChance },
   { id: "unifier", i: "🤝", nm: "Unifier", d: "A cabinet balanced across all three zones.", ok: (c) => c.balanced && c.ministries >= 8 },
   { id: "aso_rock", i: "🇳🇬", nm: "President", d: "Won the presidency.", ok: () => false }, // awarded by the presidential run
 ];
@@ -2087,14 +2087,37 @@ const TitleLineup = ({ ids, tall }) => {
   </div>;
 };
 
-const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile }) => {
+/* ── Ways to play beyond a standard game (and what they cost in Lagos Life) ──
+   Weekly challenge: free once a week; another attempt is the challenge_retry product (₦100).
+   Everyone that week gets the same state and the same luck (a seeded random stream).
+   Crisis scenarios: the scenario_pack product (₦1,000), free outside Lagos Life.
+   Neither can buy a result: they sell more play, never a better score. */
+const WEEK0 = Date.UTC(2026, 0, 5); // a Monday; weeks turn at 00:00 UTC, as on the server
+const weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
+const CH_STATES = Object.keys(STATES).filter(k => ["Medium", "Hard"].includes(STATES[k].diff)).sort();
+const challengeOf = (w) => ({ week: w, state: CH_STATES[((w % CH_STATES.length) + CH_STATES.length) % CH_STATES.length], seed: w * 7919 + 13 });
+const nativeRandom = Math.random;
+const seedRandom = (seed) => { if (seed == null) { Math.random = nativeRandom; return; } let x = (Math.abs(seed) % 2147483646) + 1; Math.random = () => (x = (x * 16807) % 2147483647) / 2147483647; };
+const SCENARIOS = [
+  { id: "oil_crash", icon: "🛢️", nm: "The Oil Crash", d: "Oil fell before you took office. FAAC comes in at 60%, and the debt you inherit is half as big again.", start: { faacMul: .6, debtMul: 1.5 } },
+  { id: "cholera", icon: "🦠", nm: "The Cholera Year", d: "An outbreak is spreading through the wards as you take the oath. Health is far below where it should be, and people are frightened.", start: { hp: -.15, app: -6 } },
+  { id: "flood", icon: "🌊", nm: "The Flood Year", d: "The rivers broke their banks in the rainy season. Roads and farms are washed out across the state.", start: { infra: -.12, agr: -.1, app: -4 } },
+  { id: "broke", icon: "💸", nm: "The Broke State", d: "The last government stopped paying salaries three months ago and borrowed to the limit. The unions are already counting.", start: { debtMul: 1.6, arrears: 3, cor: .08 } },
+];
+const scenarioStart = (setup) => { const m = setup && setup.mode; return m && m.kind === "scenario" ? (SCENARIOS.find(x => x.id === m.id) || {}).start || {} : {}; };
+const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScenario, onBoard, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
   const [hasSave, setHasSave] = useState(false);
   const [hasPres, setHasPres] = useState(false);
   useEffect(() => { (async () => { try { const r = await window.storage.get(PRES_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setHasPres(true); } } catch (e) {} })(); }, []);
   const [saveName, setSaveName] = useState("");
-  const [sheet, setSheet] = useState(null); // "profile" | "me"
+  const [sheet, setSheet] = useState(null); // "profile" | "me" | "scenarios"
+  const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
+  useEffect(() => { const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f); return () => window.removeEventListener("sop-ents", f); }, []);
+  const paidHere = VATAR && window.SOP_canBuy && window.SOP_canBuy();
+  const scenariosLocked = paidHere && !(ents.scenario_pack > 0);
+  const ch = challengeOf(weekNow());
   useEffect(() => {
     setTimeout(() => setOp(1), 100);
     (async () => {
@@ -2132,10 +2155,20 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile
       <TitleLineup ids={lineup} tall={tall} />
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
         <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
+        <PillBtn tone="plain" onClick={() => onChallenge(profile)} style={{ width: "100%", maxWidth: 460 }}>🏆 This week's challenge<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{stateLabel(ch.state)} · the same start and the same luck for everyone · week {ch.week}</span></PillBtn>
+        <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 460 }}>
+          <PillBtn tone="plain" onClick={() => setSheet("scenarios")} style={{ flex: 1 }}>📜 Crisis scenarios{scenariosLocked ? " · ₦1,000" : ""}</PillBtn>
+          {paidHere && <PillBtn tone="plain" onClick={onBoard} style={{ flex: 1 }}>📊 This week's board</PillBtn>}
+        </div>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
+      {sheet === "scenarios" && <EntranceSheet title="Crisis scenarios" onClose={() => setSheet(null)}>
+        <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Start a governorship in the middle of a crisis. Harder than a normal start; your titles and honours count the same.</div>
+        <div style={{ display: "grid", gap: 8 }}>{SCENARIOS.map(sc => <button key={sc.id} className="sp-opt" disabled={scenariosLocked} onClick={() => { setSheet(null); onScenario(profile, sc.id); }}><b style={{ display: "block", fontSize: 16 }}>{sc.icon} {sc.nm}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{sc.d}</span></button>)}</div>
+        {scenariosLocked && <PillBtn onClick={() => window.SOP_buy("scenario_pack").catch(() => {})} style={{ width: "100%", marginTop: 12 }}>Unlock all four · ₦1,000</PillBtn>}
+      </EntranceSheet>}
       {sheet === "profile" && <ProfileForm initial={profile} onCancel={() => setSheet(null)} onSave={(p) => { setProfile(p); saveProfile(p); setSheet(null); }} />}
       {sheet === "me" && profile && <EntranceSheet title={"Hon. " + profile.first + " " + profile.last} onClose={() => setSheet(null)}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
@@ -2152,7 +2185,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, profile, setProfile
         {(profile.games || []).length ? <div style={{ display: "grid", gap: 8 }}>
           {(profile.games || []).slice().reverse().map((g, i) => <div key={i} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", display: "grid", gridTemplateColumns: "1fr auto", gap: 12, alignItems: "center" }}>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{g.title}</b>
-              <span style={{ fontSize: DS.t.meta, color: UI.sub }}>{stateLabel(g.state)} · {g.party} · {g.ending}</span>{(g.honours || []).length ? <span style={{ display: "block", fontSize: DS.t.meta }}>{g.honours.map(id => (HONOURS.find(h => h.id === id) || {}).i).join(" ")}</span> : null}</span>
+              <span style={{ fontSize: DS.t.meta, color: UI.sub }}>{stateLabel(g.state)} · {g.party} · {g.ending}{g.secondChance ? " · 🔁 Second Chance" : ""}{g.mode && g.mode.kind === "challenge" ? " · 🏆 week " + g.mode.week : g.mode && g.mode.kind === "scenario" ? " · 📜 " + ((SCENARIOS.find(x => x.id === g.mode.id) || {}).nm || "scenario") : ""}</span>{(g.honours || []).length ? <span style={{ display: "block", fontSize: DS.t.meta }}>{g.honours.map(id => (HONOURS.find(h => h.id === id) || {}).i).join(" ")}</span> : null}</span>
             <b style={{ fontFamily: F.d, fontSize: TS(36), color: g.grade === "A" || g.grade === "B" ? UI.green : g.grade === "C" ? "#b7791f" : "#c0392b" }}>{g.grade}</b>
           </div>)}
         </div> : <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>No finished careers yet. Every governorship you complete, win or lose, is recorded here with its title and grade.</div>}
@@ -2355,7 +2388,7 @@ const recAgenda = (k) => (STATES[k]?.sec || 1) < .45 ? "security" : "infrastruct
 const recSlogan = (k) => "Building " + String(k || "").replace("_", " ") + " Together";
 const PLAYED_KEY = "sop_played"; // set once a first governorship begins
 
-const SetupScreen = ({ onDone, level, setLevel, profile }) => {
+const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   useMode("public");
   const [firstNm, setFirstNm] = useState(profile?.first || "");
   const [lastNm, setLastNm] = useState(profile?.last || "");
@@ -2459,6 +2492,9 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
     setSlogan(recSlogan(k));
     setQuick(true);
   };
+  // The weekly challenge: everyone gets this week's state on Medium, set up by Quick start.
+  const chDone = React.useRef(false);
+  useEffect(() => { if (!mode || mode.kind !== "challenge" || chDone.current) return; if (st !== mode.state) { setSt(mode.state); return; } chDone.current = true; setLevel && setLevel("medium"); quickStart(); }, [st, mode]);
   // The Special Adviser is the player's choice (step 25), never a default.
   const [saName, setSaName] = useState(null);
   const [quickNext, setQuickNext] = useState(false); // Quick start: after choosing the adviser, go straight to the ticket
@@ -3538,6 +3574,7 @@ const SecondChance = () => {
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   if (!cp || !(window.SOP_canBuy && window.SOP_canBuy())) return null;
+  try { const d0 = JSON.parse(cp); if (d0.setup && d0.setup.mode && d0.setup.mode.kind === "challenge") return null; } catch (e) {} // the board stays fair
   const have = (ents.second_chance || 0) > 0;
   const go = async () => {
     setBusy(true); setErr(null);
@@ -4084,7 +4121,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const ld = loadedSave; // shorthand
   const [turn, setTurn] = useState(ld?.turn || 1);
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: sd.hp, infra: sd.infra, sec: sd.sec, agr: sd.agr, igr: sd.igr, faac: sd.faac, cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0), app: 55, debt: SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }), cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: startingStab || 65,
+  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: sd.sec, agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: sd.igr, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: startingStab || 65,
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
@@ -4318,12 +4355,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
       const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2;
       // The career score for the Vatar leaderboard: the grade's points, plus honours and a second term.
-      try { window.SOP_vatarScore && window.SOP_vatarScore(Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 ? 200 : 0)); } catch (e) {}
+      // A Second Chance buys the extra years, not the glory: no second-term points.
+      const careerScore = Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 && !stc.secondChance ? 200 : 0);
+      try { window.SOP_vatarScore && window.SOP_vatarScore(careerScore); } catch (e) {}
       const p = await loadProfile(); if (!p) return;
       const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
       const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
       const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
-      const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now(), honours: (stc.honours || []).slice() };
+      const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now(), honours: (stc.honours || []).slice(), secondChance: !!stc.secondChance, mode: setup?.mode || null, score: careerScore };
+      if (setup?.mode?.kind === "challenge") try { window.SOP_chScore && window.SOP_chScore(setup.mode.week, careerScore, pName, title); } catch (e) {}
       const games = p.games || [], last = games[games.length - 1];
       if (last && last.name === rec.name && last.state === rec.state && last.ending === rec.ending && last.turn === rec.turn) return;
       await saveProfile({ ...p, games: [...games, rec].slice(-30) });
@@ -4420,7 +4460,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // When a new year's budget opens, one card says what changed since the
   // last one, what happened, and any honour earned.
   const reportRef = React.useRef(ld?.reportAt ? { t: ld.reportAt, snap: ld.reportSnap } : null);
-  const honourCtx = () => ({ turn, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
+  const honourCtx = () => ({ turn, secondChance: !!stc.secondChance, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
   useEffect(() => {
     if (phase !== "budget" || gEnd) return;
     const prev = reportRef.current;
@@ -4604,7 +4644,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── Statecraft engine (salaries and FAAC, promises, cabinet balance, the
   // House, state crises, succession). Runs once a year when the
   // events are built; its decisions arrive as "sc" cards.
-  const [stc, setStc] = useState(() => ld?.stc || { oldDebt: { total: SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }), kind: null }, lastTurn: 0, arrears: 0, arrearsMax: 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
+  const [stc, setStc] = useState(() => ld?.stc || { oldDebt: { total: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, kind: null }, lastTurn: 0, arrears: scenarioStart(setup).arrears || 0, arrearsMax: scenarioStart(setup).arrears || 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
   const [scCards, setScCards] = useState([]);
   const [revOpen, setRevOpen] = useState(false);
   const [promOpen, setPromOpen] = useState(false);
@@ -5277,6 +5317,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return setPflow({ step: "dossier", projId: p.id });
   };
   const [lastCon, setLastCon] = useState(() => ld?.lastCon || null); // the most recent consequence, shown on the desk
+  // A scenario or the weekly challenge says what kind of game this is, once, at the start.
+  useEffect(() => {
+    const m = setup && setup.mode; if (!m || stc.modeShown || turn !== 1) return;
+    setStc(p => ({ ...p, modeShown: true }));
+    const sc = m.kind === "scenario" ? SCENARIOS.find(x => x.id === m.id) : null;
+    try { window.SOP_outcome(sc ? { icon: sc.icon, title: sc.nm, text: sc.d + " Your titles and honours count the same as in any game.", tone: "bad", ok: "Take office" } : { icon: "🏆", title: "Week " + m.week + "'s challenge", text: "Everyone this week governs " + stName + " from the same start, with the same luck. Your career score goes on this week's board when your governorship ends.", tone: "good", ok: "Take office" }); } catch (e) {}
+  }, [turn]);
   // The year's money arrives when its budget is settled (passed, amended, dealt, dropped or forced).
   // A new game starts with an empty bank and the last government's debt; a save from
   // before the bank existed starts with this year's work money in it.
@@ -11309,6 +11356,26 @@ function App() {
   // The politician profile on this device, used by the entrance and setup.
   const [profile, setProfile] = useState(null);
   const [startProfile, setStartProfile] = useState(null);
+  const [startMode, setStartMode] = useState(null); // { kind: "challenge", week, state } | { kind: "scenario", id }
+  const [board, setBoard] = useState(null);
+  const beginChallenge = async (p) => {
+    const ch = challengeOf(weekNow());
+    try {
+      let r = window.SOP_chStart ? await window.SOP_chStart() : { ok: true };
+      if (!r.ok && r.need === "challenge_retry") {
+        const yes = await window.SOP_confirm("You have played this week's challenge. Another attempt costs ₦100. Your best score this week is the one that counts.", "Play again · ₦100", "Not now");
+        if (!yes) return;
+        await window.SOP_buy("challenge_retry");
+        r = await window.SOP_chStart();
+        if (!r.ok) return;
+      }
+    } catch (e) { if (e && e.code === "cancelled") return; }
+    seedRandom(ch.seed);
+    try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {}
+    setStartProfile(p || null); setStartMode({ kind: "challenge", week: ch.week, state: ch.state }); setLevel("medium"); setScr("setup");
+  };
+  const beginScenario = (p, id) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode({ kind: "scenario", id }); setScr("setup"); };
+  const openBoard = async () => { try { const b = await window.SOP_chBoard(weekNow()); setBoard(b || { top: [], players: 0 }); } catch (e) { setBoard({ top: [], players: 0, error: true }); } };
   useEffect(() => { loadProfile().then(p => { if (p) setProfile(p); }); }, [scr]);
 
   const loadGame = async () => {
@@ -11405,8 +11472,17 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
-      {scr === "setup" && <SetupScreen profile={startProfile} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level }); setLoadedSave(null); setScr("gov"); }} />}
+      {scr === "title" && <TitleScreen onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
+      {scr === "title" && board && <EntranceSheet title={"This week's board · week " + (board.week != null ? board.week : weekNow())} onClose={() => setBoard(null)}>
+        {board.error ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>The board couldn't be loaded. Try again in a moment.</div>
+          : !board.top.length ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>No finished governorships yet this week. Be the first: play this week's challenge.</div>
+          : <div style={{ display: "grid", gap: 6 }}>{board.top.map(e => <div key={e.rank} style={{ display: "grid", gridTemplateColumns: "34px 1fr auto", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 14, background: e.me ? UI.green + "18" : "#fff", border: "1px solid " + UI.line }}>
+              <b style={{ fontFamily: F.d, fontSize: TS(26) }}>{e.rank}</b>
+              <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{e.name}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{e.title}</span></span>
+              <b style={{ fontFamily: F.m }}>{e.score}</b></div>)}</div>}
+        {board.you && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 10 }}>You: #{board.you.rank} of {board.players}, best score {board.you.score}.</div>}
+      </EntranceSheet>}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} />}
       {scr === "senate" && <SenateRace setup={setup} stats={finalStats} onResult={won => setScr(won ? "end_sen_w" : "end_sen_l")} />}
