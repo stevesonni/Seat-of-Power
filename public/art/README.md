@@ -57,3 +57,24 @@ state-seal (invented — use instead of the old national "crest"), title-logo, a
 - Some images still show the national coat of arms (governor-female-agbada, governor-female-kaftan, deputy-male, deputy-female, speaker mace, collation-centre, governor-office, assembly-chamber, courtroom). Regenerate or edit before shipping.
 - labour-leader shirt reads "Nigeria Labour Union"; deputy-male badge says "Kaduna State".
 - Not yet made: LGA SVG map (Lagos).
+
+## Art pack 2: adviser, House, campaign and moods (83 pictures)
+- **The adviser's full figure** (`adviser-*-full-{neutral,pleased,worried,urgent}`):
+  - Stands beside the speech bubble on the Desk.
+  - The pose follows the news: urgent for alerts, worried for debts and failures, pleased for good news.
+- **The House:**
+  - The vote screen shows `assembly-chamber-wide` with the Speaker: plain before the vote, `speaker-worried` when it is blocked, `speaker-pleased` when it passes, `speaker-angry` when it is rejected.
+  - The seat tally sits on `vote-tally-board`.
+  - Each objection carries a lawmaker's face: `lawmaker-godfather-loyalist`, `lawmaker-opposition-leader`, `lawmaker-majority-leader` or `lawmaker-backbencher`.
+  - The three ways to clear the House show `back-room-settlement`, `party-elders-meeting` and `town-hall-appeal`.
+  - A deal with the Speaker shows `constituency-project-sign`.
+- **The campaign:**
+  - Every move card has its `camp-*` scene.
+  - Each opponent attack shows its `attack-*` scene.
+- **Moods:**
+  - **The deputy** wears the region's dress and shows their loyalty (pleased, worried, angry).
+  - **Commissioners** look pleased above 65% performance and worried below 40%.
+  - **The party chairman** reacts in the party card.
+  - **The godfather** reacts to your relationship when he makes a demand.
+  - **"The street"** shows market women, youth or workers, cheering or angry.
+- **Removed:** the old `deputy-angry`, `deputy-pleased` and `deputy-worried` (the wrong face).

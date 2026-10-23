@@ -1189,10 +1189,17 @@ const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu"
 // in a suit.
 const NORTH_ZONES = ["NW", "NE", "NC"];
 // A south-western man wears a suit, and his face shows his loyalty to you.
-const deputyArt = (female, zone, lo) => "./art/characters/" + (female
-  ? (NORTH_ZONES.includes(zone) ? "deputy-northern-female-hijab" : "deputy-female")
-  : zone === "SW" ? (lo == null || lo >= 60 ? "deputy-pleased" : lo >= 40 ? "deputy-worried" : "deputy-angry")
-  : zone === "NC" ? "deputy-male-suit" : NORTH_ZONES.includes(zone) ? "deputy-male" : zone === "SE" || zone === "SS" ? "deputy-southern-male-isiagu" : "deputy-male") + ".webp";
+const DEPUTY_MOODS = [
+  "deputy-female-pleased", "deputy-female-worried", "deputy-female-angry", "deputy-northern-female-hijab-pleased", "deputy-northern-female-hijab-worried", "deputy-northern-female-hijab-angry",
+  "deputy-male-pleased", "deputy-male-worried", "deputy-male-angry", "deputy-male-suit-pleased", "deputy-male-suit-worried", "deputy-male-suit-angry",
+  "deputy-southern-male-isiagu-pleased", "deputy-southern-male-isiagu-worried", "deputy-southern-male-isiagu-angry",
+];
+const deputyArt = (female, zone, lo) => {
+  const base = female ? (NORTH_ZONES.includes(zone) ? "deputy-northern-female-hijab" : "deputy-female")
+    : zone === "SW" || zone === "NC" ? "deputy-male-suit" : NORTH_ZONES.includes(zone) ? "deputy-male" : zone === "SE" || zone === "SS" ? "deputy-southern-male-isiagu" : "deputy-male";
+  const mood = lo == null ? null : DEPUTY_MOODS.find(x => x === base + "-" + (lo >= 60 ? "pleased" : lo >= 40 ? "worried" : "angry"));
+  return "./art/characters/" + (mood || base) + ".webp";
+};
 // The opponent's portrait: the female candidate when the name is a woman's.
 const oppArt = (nm) => FEMALE_FIRST.includes(String(nm || "").replace(/^Hon\.\s*/, "").split(" ")[0]) ? "opposition-candidate-female" : "rival";
 const castArt = (c, zone, lo) => {
@@ -1625,9 +1632,9 @@ const Fold = ({ title, summary, children, open: startOpen = false }) => {
 // A scene banner: a background from public/art with a cast member in front.
 // Only cast members get portraits (see CAST_ART); other scenes get the
 // background alone.
-const SceneArt = ({ bg, who, obj, alt, h = 230 }) => React.createElement("div", {
+const SceneArt = ({ bg, scene, who, obj, alt, h = 230 }) => React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
-    background: "#1d2a22 url(./art/backgrounds/" + bg + ".webp) center/cover" } },
+    background: "#1d2a22 url(./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp) center/cover" } },
   who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
     : obj ? React.createElement("img", { src: "./art/objects/" + obj + ".webp", alt: alt || "", style: { height: Math.round(h * .68), width: "auto", objectFit: "contain", marginBottom: Math.round(h * .12), filter: "drop-shadow(0 10px 18px rgba(0,0,0,.35))" } }) : null);
 
@@ -1675,7 +1682,7 @@ const CampaignBoard = ({ week, isOpp, youImg, youName, youParty, oppName, oppPar
       ? <div className="sop-fade-in" style={{ fontSize: fz.m, fontWeight: 700, color: "#fff", background: CL.red, borderRadius: 14, padding: tall ? "10px 14px" : "12px 18px", marginBottom: 12 }}>{lastLog.replace(/^🔻\s*/, "")}</div>
       : <div style={{ fontSize: fz.s, color: CL.tm, background: CL.card, borderRadius: 12, padding: "8px 12px", marginBottom: 12, border: "1px solid " + CL.bdr }}>{lastLog}</div>)}
     {isOpp ? <div style={{ marginBottom: 12 }}>
-      <SceneArt bg="rally" who={oppImg} alt={oppName} h={tall ? 160 : 200} />
+      {artFor(ATTACK_ART, ev?.t) ? <SceneArt scene={artFor(ATTACK_ART, ev?.t)} alt={(ev?.t || "").replace(/^[^A-Za-z]+/, "")} h={tall ? 160 : 200} /> : <SceneArt bg="rally" who={oppImg} alt={oppName} h={tall ? 160 : 200} />}
       <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, lineHeight: 1.15 }}>{(ev?.t || "The opponent moves").replace(/^[^A-Za-z]+/, "")}</div>
       <div style={{ fontSize: fz.m, color: CL.tm, marginTop: 6 }}>{ev?.d}</div>
     </div> : <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.m, color: CL.txt, margin: "2px 0 8px" }}>Pick one move this week</div>}
@@ -1690,6 +1697,12 @@ const weekPicks = (moves, answers, canTake, sitOut) => {
   const out = ans ? [{ ...ans, answer: true }, ...mv.slice(0, 2)] : mv.slice(0, 3);
   return out.length ? out : [sitOut];
 };
+// A picture for each campaign move and each of the opponent's attacks.
+const CAMP_ART = [[/Rally Tour/, "camp-rally-tour"], [/Debate/, "camp-debate"], [/Manifesto/, "camp-manifesto-drop"], [/Door-to-Door/, "camp-door-to-door"], [/LGA Chair/, "camp-lga-chairs"], [/Radio/, "camp-radio"],
+  [/Youth Town Hall/, "camp-youth-town-hall"], [/Opposition Research|Attack Back/, "camp-opposition-research"], [/Market & Motor-Park|Influencer/, "camp-market-walk"], [/Mega Rally|Bigger One/, "camp-mega-rally"],
+  [/GOTV/, "camp-gotv"], [/Polling Unit/, "camp-polling-agents"], [/Receipts/, "camp-answer-receipts"], [/Press Conference/, "camp-answer-press"]];
+const ATTACK_ART = [[/Credentials/, "attack-credentials"], [/Rally Outdraws/, "attack-rally"], [/Smear/, "attack-smear"], [/Endorsement/, "attack-endorsement"]];
+const artFor = (table, text) => { const hit = table.find(([rx]) => rx.test(text || "")); return hit ? hit[1] : null; };
 const CampaignMove = ({ opt, ok, why, boosted, onPick }) => {
   const tall = TALL(), fz = campFz();
   const cost = opt.cost || opt.dc || 0;
@@ -1699,7 +1712,7 @@ const CampaignMove = ({ opt, ok, why, boosted, onPick }) => {
   const line = opt.risk || opt.d;
   const zoneTxt = opt.zoneLabel;
   return <Cd onClick={ok ? onPick : undefined} style={{ padding: tall ? "12px 14px" : "16px 18px", opacity: ok ? 1 : .45, display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", textAlign: "left" }}>
-    <div style={{ fontSize: tall ? 30 : 40, lineHeight: 1 }}>{icon}</div>
+    {artFor(CAMP_ART, opt.l) ? <img src={"./art/scenes/" + artFor(CAMP_ART, opt.l) + ".webp"} alt="" loading="lazy" style={{ width: tall ? 76 : 120, height: tall ? 50 : 76, objectFit: "cover", borderRadius: 12, flexShrink: 0 }} /> : <div style={{ fontSize: tall ? 30 : 40, lineHeight: 1 }}>{icon}</div>}
     <div style={{ minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
         <b style={{ fontSize: fz.m, color: CL.txt }}>{name}</b>
@@ -1789,10 +1802,13 @@ const SHOCK_ART = {
 };
 // Commissioners: a portrait per name, women and men drawn from their own sets.
 const COMM_F = ["commissioner-female-suit", "commissioner-female-kaftan", "commissioner-technocrat"], COMM_M = ["commissioner-male-suit", "commissioner-male-agbada"];
-const commissionerArt = (name) => {
+const COMM_MOODS = ["commissioner-female-suit-pleased", "commissioner-female-suit-worried", "commissioner-female-kaftan-pleased", "commissioner-female-kaftan-worried", "commissioner-technocrat-pleased", "commissioner-technocrat-worried",
+  "commissioner-male-suit-pleased", "commissioner-male-suit-worried", "commissioner-male-agbada-pleased", "commissioner-male-agbada-worried"];
+const commissionerArt = (name, perf) => {
   const nm = String(name || ""), set = FEMALE_FIRST.includes(nm.split(" ")[0]) ? COMM_F : COMM_M;
   let h = 0; for (const ch of nm) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
-  return "./art/characters/" + set[h % set.length] + ".webp";
+  const base = set[h % set.length], mood = perf == null ? null : COMM_MOODS.find(x => x === base + (perf >= 65 ? "-pleased" : perf < 40 ? "-worried" : ""));
+  return "./art/characters/" + (mood || base) + ".webp";
 };
 
 const Bg = ({ text, color = CL.grn }) => React.createElement("span", { className: "ds-chip", style: { background: color + "15", color, borderColor: color + "40" } }, text);
@@ -2306,6 +2322,15 @@ const AnchorDesk = ({ lines, onDone }) => {
 };
 
 const SA_PORTRAIT = "./art/characters/special-adviser.webp";
+// The four advisers with a full figure, in four poses each.
+const ADVISER_POSES = [
+  "adviser-southwest-female-full-neutral", "adviser-southwest-female-full-pleased", "adviser-southwest-female-full-worried", "adviser-southwest-female-full-urgent",
+  "adviser-north-female-full-neutral", "adviser-north-female-full-pleased", "adviser-north-female-full-worried", "adviser-north-female-full-urgent",
+  "adviser-north-male-full-neutral", "adviser-north-male-full-pleased", "adviser-north-male-full-worried", "adviser-north-male-full-urgent",
+  "adviser-southeast-male-full-neutral", "adviser-southeast-male-full-pleased", "adviser-southeast-male-full-worried", "adviser-southeast-male-full-urgent",
+];
+const saPose = (name, mood) => { const r = (typeof SA_ROSTER !== "undefined") ? SA_ROSTER.find(a => a.name === name) : null; const f = r && ADVISER_POSES.find(x => x === r.pic + "-full-" + mood); return f ? "./art/characters/" + f + ".webp" : null; };
+const saMood = (say, alert) => alert ? "urgent" : /stall|block|collaps|owe|arrears|crisis|fail|reject|broke|empty|debt|missed|danger|angry/i.test(say || "") ? "worried" : /done|deliver|open|passed|ready|well|good news|award|won|paid/i.test(say || "") ? "pleased" : "neutral";
 // Each adviser has their own face (SA_ROSTER.pic); unknown names fall back by first name.
 const saPortrait = (name) => {
   const r = (typeof SA_ROSTER !== "undefined") ? SA_ROSTER.find(a => a.name === name) : null;
@@ -3410,11 +3435,14 @@ const JUDICIARY_EVENTS = [
 ];
 
 // The chamber, one dot per seat: members who back you, and the rest.
-const SeatStrip = ({ house }) => !house ? null : <div style={{ margin: "0 auto 22px", maxWidth: 732 }}>
+// Who is speaking for a House objection.
+const LAWMAKER_ART = (who) => /loyal to|godfather|'s members/i.test(who || "") ? "lawmaker-godfather-loyalist" : /opposition/i.test(who || "") ? "lawmaker-opposition-leader" : /caucus|party|Party stability/i.test(who || "") ? "lawmaker-majority-leader" : "lawmaker-backbencher";
+const LawFace = ({ who }) => <img src={"./art/characters/" + LAWMAKER_ART(who) + ".webp"} alt="" loading="lazy" style={{ width: 34, height: 40, objectFit: "cover", objectPosition: "top", borderRadius: 8, background: CL.grn + "14", verticalAlign: "middle", marginRight: 8, flexShrink: 0 }} />;
+const SeatStrip = ({ house }) => !house ? null : <div style={{ margin: "0 auto 22px", maxWidth: 732, padding: "18px 22px", borderRadius: 16, background: "#6b4a2b url(./art/objects/vote-tally-board.webp) center/100% 100% no-repeat" }}>
   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }} aria-label={house.loyal + " of " + house.seats + " members back you"}>
     {Array.from({ length: house.seats }, (_, i) => <span key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: i < house.loyal ? "#0b6b42" : "#d8cfb8" }} />)}
   </div>
-  <div style={{ fontSize: TS(30), color: CL.tm, marginTop: 8 }}><b style={{ color: house.loyal > house.seats / 2 ? CL.grn : CL.red }}>{house.loyal} of {house.seats}</b> members back you · {Math.floor(house.seats / 2) + 1} needed</div>
+  <div style={{ fontSize: TS(30), color: "#fff8e6", marginTop: 8, textShadow: "0 1px 2px rgba(0,0,0,.6)" }}><b style={{ color: house.loyal > house.seats / 2 ? "#9be7b4" : "#ffb4a9" }}>{house.loyal} of {house.seats}</b> members back you · {Math.floor(house.seats / 2) + 1} needed</div>
 </div>;
 const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, onDrop, grudges = [], speakerName = "The Speaker", addL, house, onClear, fixLabel }) => {
   const [voted, setVoted] = useState(false);
@@ -3475,7 +3503,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
 
   if (!voted) return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: TS(98), marginBottom: 22 }}>🏛️</div>
+      <SceneArt bg="assembly-chamber-wide" who={hardBlockers.length ? "speaker-worried" : "speaker"} alt={speakerName} h={TALL() ? 170 : 230} />
       <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>House of Assembly</h3>
       <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 22 }}>Your Appropriation Bill must be approved by the House (S.121).</p>
       <SeatStrip house={house} />
@@ -3483,7 +3511,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
         <div style={{ textAlign: "left", margin: "0 auto 36px", maxWidth: 732, padding: 29, background: CL.org + "08", borderRadius: 13, border: "1px solid " + CL.org + "25" }}>
           <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.org, marginBottom: 14 }}>⚠️ HOUSE CONCERNS (may cause rejection):</div>
           {concerns.map((c, i) => (
-            <div key={i} style={{ fontSize: TS(34), color: c.severity === "high" ? CL.red : c.severity === "medium" ? CL.org : CL.tm, padding: "7px 0" }}>• {c.grudge ? c.t : c.who + ": " + c.t}</div>
+            <div key={i} style={{ display: "flex", alignItems: "center", fontSize: TS(34), color: c.severity === "high" ? CL.red : c.severity === "medium" ? CL.org : CL.tm, padding: "7px 0" }}><LawFace who={c.who} /><span>{c.grudge ? c.t : c.who + ": " + c.t}</span></div>
           ))}
         </div>
       )}
@@ -3497,7 +3525,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
 
   if (result === "pass") return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: TS(98), marginBottom: 22 }}>✅</div>
+      <SceneArt bg="assembly-chamber-wide" who="speaker-pleased" alt={speakerName} h={TALL() ? 170 : 230} />
       <h3 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>APPROPRIATION BILL PASSED</h3>
       <p style={{ color: CL.tm, fontSize: TS(36), marginBottom: 43 }}>The House of Assembly has approved your budget.</p>
       <Bt onClick={onPass}>PROCEED TO POLICIES →</Bt>
@@ -3506,13 +3534,13 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
 
   return (
     <div style={{ textAlign: "center" }}>
-      <div style={{ fontSize: TS(98), marginBottom: 22 }}>❌</div>
+      <SceneArt bg="assembly-chamber-wide" who="speaker-angry" alt={speakerName} h={TALL() ? 170 : 230} />
       <h3 style={{ fontFamily: F.d, color: CL.red, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>BILL REJECTED</h3>
       <div style={{ textAlign: "left", margin: "22px auto 36px", maxWidth: 732, padding: 29, background: CL.red + "08", borderRadius: 13, border: "1px solid " + CL.red + "25" }}>
         <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.red, marginBottom: 14 }}>WHO VOTED AGAINST IT, AND WHY</div>
         {reasons.map((r2, i) => (
           <div key={i} style={{ padding: "10px 0", borderTop: i ? "1px solid " + CL.red + "20" : "none" }}>
-            <div style={{ fontSize: TS(34), color: CL.txt, lineHeight: 1.4 }}><b>{r2.who}</b> — {r2.why || r2.t}</div>
+            <div style={{ display: "flex", alignItems: "center", fontSize: TS(34), color: CL.txt, lineHeight: 1.4 }}><LawFace who={r2.who} /><span><b>{r2.who}</b> — {r2.why || r2.t}</span></div>
             <div style={{ fontSize: TS(30), color: r2.good ? CL.grn : CL.red, marginTop: 4 }}>{r2.good ? "Fair reason: the bill has a real problem." : r2.grudge ? "Leverage, not policy: this is about what you did, not what the bill says." : "Political: your own side is not with you."}</div>
           </div>
         ))}
@@ -3738,7 +3766,7 @@ const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn
   const [open, setOpen] = useState(false), [still, setStill] = useState(spStill()), [term, setTerm] = useState(null);
   const ico = { minHeight: 36, padding: "4px 10px", fontSize: 14 };
   return <div className={"sp-card sp-adviser " + (alert ? "alert" : "calm")} role="status" aria-live="polite">
-    {name ? <img className="pic" src={saPortrait(name)} alt={"Portrait of " + name} /> : <div className="pic" aria-hidden="true" style={{ display: "grid", placeItems: "center", fontSize: 30 }}>🪑</div>}
+    {name ? (saPose(name, saMood(say, alert)) ? <img className="pic full" src={saPose(name, saMood(say, alert))} alt={name} /> : <img className="pic" src={saPortrait(name)} alt={"Portrait of " + name} />) : <div className="pic" aria-hidden="true" style={{ display: "grid", placeItems: "center", fontSize: 30 }}>🪑</div>}
     <div style={{ minWidth: 0 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <div style={{ minWidth: 0 }}><b style={{ font: "800 16px 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{name || "The adviser's desk"}</b><div className="sp-kicker" style={{ marginTop: 3 }}>Special Adviser · by your desk</div></div>
@@ -4012,7 +4040,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
   const chip = (t, col) => <span style={{ display: "inline-block", fontSize: fz.s, fontWeight: 800, color: col, background: col + "16", border: "1px solid " + col + "44", borderRadius: 999, padding: "2px 10px", marginRight: 6 }}>{t}</span>;
   const GCOL = { rumour: CL.td, credible: CL.org, documented: CL.org, substantiated: CL.red, unsupported: CL.grn };
   const head = (m, sub) => <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 12 }}>
-    <img src={commissionerArt(m.minister)} alt="" style={{ width: TALL() ? 64 : 84, height: TALL() ? 76 : 100, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: CL.grn + "14", flexShrink: 0 }} />
+    <img src={commissionerArt(m.minister, m.perf)} alt="" style={{ width: TALL() ? 64 : 84, height: TALL() ? 76 : 100, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: CL.grn + "14", flexShrink: 0 }} />
     <div style={{ minWidth: 0 }}>
       <b style={{ fontSize: fz.l, fontFamily: F.d, color: CL.txt, display: "block", lineHeight: 1.15 }}>{m.acting ? "" : "Hon. "}{m.minister}</b>
       <div style={{ fontSize: fz.s, color: CL.td }}>{m.icon} {m.acting ? "Acting Commissioner (Permanent Secretary), " : "Commissioner for "}{m.name}{sub ? " · " + sub : ""}</div>
@@ -4141,7 +4169,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
     {(audiences || []).length > 0 && <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Asking to see you</div>
       {audiences.map(a => { const m = holder(a.ministryId); return m && <button key={a.id} onClick={() => onOpen({ audience: a.id })} style={{ display: "flex", width: "100%", gap: 10, alignItems: "center", textAlign: "left", padding: "8px 12px", borderRadius: 14, border: "1px solid " + CL.org + "55", background: CL.org + "0d", cursor: "pointer", marginBottom: 6, fontFamily: F.b, color: CL.txt }}>
-        <img src={commissionerArt(m.minister)} alt="" style={{ width: 40, height: 48, objectFit: "cover", objectPosition: "top", borderRadius: 10 }} />
+        <img src={commissionerArt(m.minister, m.perf)} alt="" style={{ width: 40, height: 48, objectFit: "cover", objectPosition: "top", borderRadius: 10 }} />
         <span style={{ fontSize: fz.s }}><b>{m.acting ? "" : "Hon. "}{m.minister}</b> ({m.name}): {a.reason}</span></button>; })}
     </div>}
     {openCases.length > 0 && <div style={{ marginBottom: 12 }}>
@@ -4153,7 +4181,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
     <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 8 }}>
       {(ministries || []).map(m => { const mc = openCases.filter(c => c.ministryId === m.id).length, mk = openCommits.filter(x => x.ministryId === m.id).length;
         return <div key={m.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 10px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card }}>
-          <img src={commissionerArt(m.minister)} alt="" style={{ width: 44, height: 52, objectFit: "cover", objectPosition: "top", borderRadius: 10, flexShrink: 0 }} />
+          <img src={commissionerArt(m.minister, m.perf)} alt="" style={{ width: 44, height: 52, objectFit: "cover", objectPosition: "top", borderRadius: 10, flexShrink: 0 }} />
           <div style={{ minWidth: 0, flex: 1, fontSize: fz.s, color: CL.tm }}>
             <b style={{ color: CL.txt }}>{m.acting ? "Acting: " : "Hon. "}{m.minister}</b><div>{m.icon} {m.name}{mc ? " · " + mc + " open file" + (mc > 1 ? "s" : "") : ""}{mk ? " · " + mk + " commitment" + (mk > 1 ? "s" : "") : ""}</div>
             {m.acting && <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>{(appointPicks(m) || []).map(p => <button key={p.nm} onClick={() => onAppoint(m.id, p)} style={{ border: "1px solid " + CL.grn + "66", background: CL.grn + "12", color: CL.grn, borderRadius: 999, padding: "4px 10px", fontSize: fz.s, cursor: "pointer", fontFamily: F.b }}>Appoint {p.nm} ({p.bg.toLowerCase()})</button>)}</div>}
@@ -7196,6 +7224,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setS(p => ({ ...p, cor: cl(p.cor + .01 + .005 * (reasons || []).length) }));
     const who = (reasons || []).map(r => r.who.replace(/^The /, "the ")).filter((v, i, a) => a.indexOf(v) === i).slice(0, 2).join(" and ") || "the members who voted no";
     addL("🤝 " + what + " passed after a deal with " + cast.speaker.name + ": " + naira(cost) + " in constituency projects for " + who + ".", "political");
+    announce({ icon: "🤝", img: "./art/objects/constituency-project-sign.webp", title: what + " passed, at a price", text: naira(cost) + " in constituency projects for " + who + ". The signboards go up in their wards; it is on the record.", tone: "neutral", rows: [{ l: "Cost", v: naira(cost), good: false }] });
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "house_deal", actor: "governor", target: cast.speaker.name, gravity: 2, evidence: 2, financial: cost, decision: "Negotiated " + what + " through the House", note: "Constituency projects worth " + naira(cost) + " for " + who, losers: ["public"], beneficiaries: ["members"], meta: { cast: "speaker" } }); } catch (e) {}
     return true;
   };
@@ -7210,19 +7239,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setS(p => ({ ...p, cor: cl((p.cor || 0) + .03) }));
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "godfather_contract", actor: "governor", target: gfN, gravity: 2, evidence: 2, corruptionDelta: 3, decision: "Paid " + gfN + " what was owed to unblock the House", note: g.why }); } catch (e) {}
       addL("🎩 Gave " + gfN + " what you owed him. His members will vote with you.", "political");
-      return { icon: "🎩", title: "Debt settled", text: gfN + "'s members stand down. It cost ₦0.5B and it is on the record.", tone: "neutral", rows: [{ l: "Corruption", v: "+3%", good: false }] };
+      return { icon: "🎩", img: "./art/scenes/back-room-settlement.webp", title: "Debt settled", text: gfN + "'s members stand down. It cost ₦0.5B and it is on the record.", tone: "neutral", rows: [{ l: "Corruption", v: "+3%", good: false }] };
     }
     if (fix === "elders") {
       if (!spendB(.3, "The party elders' reconciliation")) return;
       setStc(p => ({ ...p, reconciled: turn })); setS(p => ({ ...p, pStab: cl100(p.pStab + 2) }));
       addL("🤝 Party elders brokered a peace with " + gfN + "'s camp for this year.", "political");
-      return { icon: "🤝", title: "Peace for this year", text: "The elders brought " + gfN + "'s camp back to the table. They will vote with the party this year.", tone: "good", rows: [{ l: "Party", v: "+2", good: true }] };
+      return { icon: "🤝", img: "./art/scenes/party-elders-meeting.webp", title: "Peace for this year", text: "The elders brought " + gfN + "'s camp back to the table. They will vote with the party this year.", tone: "good", rows: [{ l: "Party", v: "+2", good: true }] };
     }
     if (fix === "appeal") {
       if (s.app >= 55) {
         setStc(p => ({ ...p, appealed: turn })); setS(p => ({ ...p, pStab: cl100(p.pStab - 2) }));
         addL("📣 You took the fight to the voters. Members facing angry constituents fell in line.", "political");
-        return { icon: "📣", title: "The voters backed you", text: "Town halls and radio in every constituency. Members who were blocking you dare not be seen to do it this year.", tone: "good", rows: [{ l: "Party", v: "−2", good: false }] };
+        return { icon: "📣", img: "./art/scenes/town-hall-appeal.webp", title: "The voters backed you", text: "Town halls and radio in every constituency. Members who were blocking you dare not be seen to do it this year.", tone: "good", rows: [{ l: "Party", v: "−2", good: false }] };
       }
       setS(p => ({ ...p, app: cl100(p.app - 3) }));
       addL("📣 You appealed to the voters over the House's head. At " + Math.round(s.app) + "% approval, they didn't come.", "political");
@@ -8304,6 +8333,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>The street</b>
               <span style={{ fontSize: fz.s, color: CL.blu, fontWeight: 800 }}>Trending: {sv.tag}</span>
             </div>
+            {(() => { const grp = stc.arrears > 0 ? "workers" : s.cor > .45 ? "youth" : ["market-women", "youth", "workers"][turn % 3];
+              const angry = stc.arrears > 0 || s.app < 50 || s.cor > .5;
+              const pic = { "market-women": ["market-women-group-cheering", "market-women-group-angry"], youth: ["youth-group-cheering", "youth-group-angry"], workers: ["workers-group-cheering", "workers-group-angry"] }[grp][angry ? 1 : 0];
+              return <div style={{ height: TALL() ? 76 : 110, borderRadius: 14, marginBottom: 6, background: (angry ? CL.red : CL.grn) + "12 url(./art/characters/" + pic + ".webp) center bottom/contain no-repeat" }} role="img" aria-label={angry ? "An angry crowd" : "A cheering crowd"} />; })()}
             {sv.lines.slice(0, 1).map((l, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
               <img src={"./art/characters/" + voiceArt(l.w) + ".webp"} alt="" loading="lazy" style={{ width: TALL() ? 40 : 52, height: TALL() ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "14" }} />
               <span><span style={{ color: CL.txt }}>“{l.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {l.w}</span></span>
@@ -8860,7 +8893,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <AdvBubble text={ADV.godfather} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
               <div style={{ margin: "0 auto 22px", maxWidth: 520, borderRadius: 22, overflow: "hidden", background: "#13161c url(./art/backgrounds/veranda-night.webp) center/cover", display: "flex", justifyContent: "center", alignItems: "flex-end", height: 300 }}>
-                <img src="./art/characters/godfather.webp" alt={gf.nm} style={{ height: 290, width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
+                <img src={"./art/characters/" + (godfatherRel >= 60 ? "godfather-pleased" : godfatherRel < 35 ? "godfather-angry" : gf.aggression > 60 ? "godfather-worried" : "godfather") + ".webp"} alt={gf.nm} style={{ height: 290, width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
               </div>
               <Bg text={gf.title} color={CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{gf.nm}</h3>
@@ -9699,7 +9732,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.grn + "44" }}>
             <AdvBubble text={ADV.reelection} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="party-convention-hall" who={s.pStab >= 65 ? "godfather-pleased" : s.pStab < 40 ? "godfather-angry" : s.pStab < 50 ? "godfather-worried" : "party-chairman"} alt="The party chairman" h={TALL() ? 200 : 240} />
+              <SceneArt bg="party-convention-hall" who={s.pStab >= 65 ? "party-chairman-pleased" : s.pStab < 40 ? "party-chairman-angry" : "party-chairman"} alt="The party chairman" h={TALL() ? 200 : 240} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px" }}>End of First Term</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 22 }}>Four years in office. What will you do next?</p>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 36, flexWrap: "wrap" }}>
@@ -10472,7 +10505,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const opts = [["push", "📋", "Demand results", "Deadlines and a warning. Performance up, loyalty down."], ["audit", "🔍", "Audit their books", "Find out if they are stealing. If they are, you can fire them for it."], ["back", "💰", "Back them with ₦0.5B more", "More money for the ministry; they will remember it."]];
             return <Cd style={{ maxWidth: 820 }}>
               <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 12 }}>
-                <img src={commissionerArt(m.minister)} alt="" style={{ width: 72, height: 86, objectFit: "cover", objectPosition: "top", borderRadius: 12 }} />
+                <img src={commissionerArt(m.minister, m.perf)} alt="" style={{ width: 72, height: 86, objectFit: "cover", objectPosition: "top", borderRadius: 12 }} />
                 <div><b style={{ fontSize: fz.l, fontFamily: F.d, color: CL.txt }}>Hon. {m.minister}</b><div style={{ fontSize: fz.s, color: CL.td }}>{m.icon} {m.name} · performance {m.perf}% · loyalty {m.loyalty == null ? 50 : m.loyalty}%</div></div>
               </div>
               {(m.record || []).slice(-1).map((e, i) => <div key={i} style={{ fontSize: fz.s, color: e.kind === "praise" ? CL.grn : CL.red, marginBottom: 10 }}>Last: {e.text}</div>)}
@@ -10720,7 +10753,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             })()}
 
             {phase === "house_vote" && <Cd style={{ borderColor: CL.pur + "44" }}>
-              <SceneArt bg="assembly-chamber" who="speaker" alt={cast.speaker.name} h={TALL() ? 200 : 240} />
               <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
@@ -10915,7 +10947,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               return <Cd key={m.id} style={{ borderLeft: "3px solid " + (m.cor > 55 ? CL.red : m.perf > 60 ? CL.grn : CL.org) }}>
                 <div style={{ fontSize: TS(29), color: CL.td, fontFamily: F.m }}>{m.icon} {m.name.toUpperCase()}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 7 }}>
-                  <img src={commissionerArt(m.minister)} alt={m.minister} loading="lazy" style={{ width: 64, height: 76, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.grn + "14", flexShrink: 0 }} />
+                  <img src={commissionerArt(m.minister, m.perf)} alt={m.minister} loading="lazy" style={{ width: 64, height: 76, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.grn + "14", flexShrink: 0 }} />
                   <div style={{ minWidth: 0 }}><div style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>Hon. {m.minister}</div>
                     <div style={{ fontSize: TALL() ? TS(19) : TS(27), color: CL.td }}>From {zoneName(minZone(m))} zone</div></div>
                 </div>
@@ -11613,21 +11645,21 @@ const ADV = {
 };
 
 const SA_ROSTER = [
-  { name: "Dr. Halima Sanusi",        title: "SA, Policy & Coordination",         zone: "NW", avatar: "🧕🏽",  file: "World Bank alumna · Cabinet Office veteran", pic: "special-adviser" },
+  { name: "Dr. Halima Sanusi",        title: "SA, Policy & Coordination",         zone: "NW", avatar: "🧕🏽",  file: "Development-bank alumna · Cabinet Office veteran", pic: "special-adviser" },
   { name: "Barr. Chinedu Eze",         title: "SA, Legal & Legislative Affairs",   zone: "SE", avatar: "🧑🏾‍⚖️", file: "Constitutional lawyer · former House counsel", pic: "commissioner-male-suit" },
   { name: "Mallam Ibrahim Yusuf",      title: "SA, Security & Intergov Affairs",   zone: "NW", avatar: "👳🏾‍♂️", file: "Retired DIG · DSS liaison network", pic: "permanent-secretary" },
-  { name: "Ms. Ngozi Okafor",          title: "SA, Delivery & Reform",             zone: "SE", avatar: "👩🏾‍💼", file: "McKinsey partner · procurement reform", pic: "commissioner-technocrat" },
+  { name: "Ms. Ngozi Okafor",          title: "SA, Delivery & Reform",             zone: "SE", avatar: "👩🏾‍💼", file: "Management consultant · procurement reform", pic: "commissioner-technocrat" },
   { name: "Prof. Bola Adekunle",       title: "SA, Economic Planning",             zone: "SW", avatar: "👩🏾‍🏫", file: "Public finance professor · debt desk", pic: "adviser-southwest-female" },
   { name: "Alh. Abdullahi Bawa",     title: "SA, Sub-national Diplomacy",        zone: "NW", avatar: "🧔🏾",   file: "Ex-NGF secretariat · Abuja fixer", pic: "commissioner-male-agbada" },
   { name: "Dr. Ebele Nwosu",           title: "SA, Health & Social Welfare",       zone: "SE", avatar: "👩🏾‍⚕️", file: "Ex-NPHCDA · UCH consultant", pic: "doctor" },
   { name: "Engr. Tosin Ogundipe",      title: "SA, Works & Infrastructure",        zone: "SW", avatar: "👷🏾‍♂️", file: "COREN engineer · ex-FERMA", pic: "deputy-male-suit" },
   { name: "Comrade Preye Dougibo",     title: "SA, Community Relations",           zone: "SS", avatar: "🧑🏾",   file: "Ijaw youth council · former DESOPADEC", pic: "young-voter-student" },
-  { name: "Dr. Terkuma Gbenda",        title: "SA, Agriculture & Food Security",   zone: "NC", avatar: "👨🏾‍🌾", file: "Tiv middle-belt agronomist · IITA alum", pic: "adviser-north-male" },
-  { name: "Hajiya Fatima Modu",        title: "SA, Humanitarian & IDP Affairs",    zone: "NE", avatar: "🧕🏾",   file: "UNHCR field officer · Borno-born", pic: "adviser-north-female" },
+  { name: "Dr. Terkuma Gbenda",        title: "SA, Agriculture & Food Security",   zone: "NC", avatar: "👨🏾‍🌾", file: "Tiv middle-belt agronomist · crop research veteran", pic: "adviser-north-male" },
+  { name: "Hajiya Fatima Modu",        title: "SA, Humanitarian & IDP Affairs",    zone: "NE", avatar: "🧕🏾",   file: "Refugee-agency field officer · Borno-born", pic: "adviser-north-female" },
   { name: "Mrs. Ekaette Akpan",        title: "SA, Diaspora & Investment",         zone: "SS", avatar: "👩🏾‍💼", file: "Ex-NIPC · Akwa Ibom origin", pic: "commissioner-female-suit" },
   { name: "Otunba Ademola Bakare",     title: "SA, Political Affairs",             zone: "SW", avatar: "🎩",   file: "Party elder · four-time convention veteran", pic: "party-chairman" },
   { name: "Amb. Bello Gimba",          title: "SA, Special Duties",                zone: "NC", avatar: "🧑🏾‍💼", file: "Retired diplomat · Nasarawa native", pic: "commissioner-male-suit" },
-  { name: "Dr. Uche Onwuka",           title: "SA, Digital Economy",               zone: "SE", avatar: "👨🏾‍💻", file: "Ex-NITDA · Anambra tech entrepreneur", pic: "adviser-southeast-male" },
+  { name: "Dr. Uche Onwuka",           title: "SA, Digital Economy",               zone: "SE", avatar: "👨🏾‍💻", file: "Former federal IT regulator · Anambra tech entrepreneur", pic: "adviser-southeast-male" },
   { name: "Mai Musa Kachalla",         title: "SA, Traditional Institutions",      zone: "NE", avatar: "🧑🏾‍🏫", file: "Palace-trained · Kanuri elder", pic: "commissioner-male-agbada" },
   { name: "Ms. Kemi Ajayi",           title: "SA, Media & Public Communication",  zone: "SW", avatar: "🎙️",  file: "Former newspaper editor · campaign spokesman", pic: "reporter" },
 ];
@@ -11780,6 +11812,8 @@ function App() {
         .sp-adviser { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; padding: 14px 16px; animation: spAdvIn .45s cubic-bezier(.2,.8,.2,1) both; }
         .sp-adviser .pic { width: 74px; height: 88px; border-radius: 18px; object-fit: cover; object-position: top; background: linear-gradient(180deg, #e8f3ea, #cfe6d6); box-shadow: 0 0 0 3px #fff, 0 0 0 5px #e9b949; }
         .sp-adviser.calm .pic { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #cfe6d6; }
+        .sp-adviser .pic.full, .sp-adviser.calm .pic.full { width: 72px; height: 132px; object-fit: contain; object-position: bottom; background: none; box-shadow: none; border-radius: 0; align-self: end; }
+        @media (min-width: 900px) { .sp-adviser .pic.full { width: 96px; height: 172px; } }
         .sp-adviser.alert .pic { animation: spRing 1.8s ease-in-out 2; }
         .sp-bubble { position: relative; background: #fff; border: 1px solid #e7dcc4; border-radius: 18px; padding: 10px 14px; font: 600 17px/1.4 'Plus Jakarta Sans', sans-serif; color: #17301f; }
         .sp-bubble::before { content: ""; position: absolute; left: -8px; top: 18px; width: 14px; height: 14px; background: #fff; border-left: 1px solid #e7dcc4; border-bottom: 1px solid #e7dcc4; transform: rotate(45deg); }

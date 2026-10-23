@@ -45,3 +45,11 @@ test("every ready attire look has its picture, and every pack is a server produc
   });
   ["portrait_frames", "scenario_security", "scenario_election"].forEach(p => assert.ok(server.includes(p + ": \"oneoff\""), p));
 });
+// Art pack 2: the adviser's full figure, the House, the campaign and the reaction moods.
+test("every adviser pose, House picture, campaign scene and mood is used", () => {
+  const files = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.relative(path.join(root, "public/art"), f).replace(/\.webp$/, ""));
+  const pack = files.filter(f => /^characters\/(adviser-.*-full-|speaker-|lawmaker-|party-chairman-|godfather-(pleased|worried|angry)$|deputy-.*-(pleased|worried|angry)$|commissioner-.*-(pleased|worried)$|(market-women|youth|workers)-group-)|^scenes\/(camp-|attack-|party-elders-meeting|town-hall-appeal|back-room-settlement)|^backgrounds\/assembly-chamber-wide|^objects\/(vote-tally-board|constituency-project-sign)/.test(f));
+  assert.equal(pack.length, 83, "83 pictures in the four packs (" + pack.length + ")");
+  assert.deepEqual(pack.filter(f => !src.includes(path.basename(f))), []);
+  ["deputy-angry", "deputy-pleased", "deputy-worried"].forEach(f => assert.ok(!fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f + ": the old set with the wrong face is gone"));
+});
