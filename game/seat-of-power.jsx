@@ -2945,7 +2945,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
       return (
         <div style={{ minHeight: "100%", background: won ? "#f0fff0" : CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
             <div style={{ maxWidth: 984, margin: "8px auto", textAlign: "center" }}>
-            <Sfx k={won ? "win" : "lose"} /><ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />
+            <Sfx k={won ? "win" : "lose"} />{won ? <img src={"./art/scenes/" + (collation.runoff ? "second-election" : "declaration") + ".webp"} alt={collation.runoff ? "A second election" : "The Returning Officer declares the result"} style={{ display: "block", width: "100%", maxWidth: 520, aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, margin: "0 auto 12px" }} /> : <ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />}
             <h2 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(58), fontWeight: 700, margin: "7px 0" }}>{won ? "GOVERNOR-ELECT!" : "DEFEATED"}</h2>
             <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 29 }}>{(won ? "The Returning Officer declares " + nm + " (" + party + ") duly elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments (" + collation.need + " needed). Margin: " + marginPct.toFixed(1) + "%." : oName + " (" + (oParty?.id || "OPP") + ") wins with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against you: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " The leader missed the spread at first, so a second election was held between the two of you; the result held." : "")}</p>
             {!won && (() => {
@@ -2990,6 +2990,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile }) => {
             </Cd>
             <SceneArt bg="collation-centre" h={TALL() ? 180 : 240} />
             <Cd style={{ textAlign: "left", marginBottom: 36, background: "#fffef7", borderColor: CL.gold + "55" }}>
+              <img src="./art/backgrounds/collation-board-lga.webp" alt="The collation board" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />
+              <ObjArt name="result-sheet-blank" alt="" size={TALL() ? 70 : 90} />
               <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.grn, fontFamily: F.m, marginBottom: 22, textAlign: "center", letterSpacing: 2 }}>INEC · FORM EC8D · FINAL COLLATED RESULT</div>
               <div style={{ fontSize: TS(34), color: CL.txt, textAlign: "center", marginBottom: 29, borderBottom: "1px solid " + CL.bdr, paddingBottom: 22 }}><b>Governorship Election — {st.replace("_", " ")} State</b><br/>Registered Voters: <b>{fmtVotesFull(collation.registeredTotal)}</b> · Total Cast: <b>{fmtVotesFull(collation.totalYou + collation.totalOpp)}</b></div>
               {collation.rows.map(rw => <div key={rw.id} style={{ padding: "22px 0", borderBottom: "1px solid " + CL.bdr + "66" }}>
@@ -3569,14 +3571,19 @@ const MilestoneStrip = ({ at }) => <div className="sp-ms" role="list" aria-label
   {SYS.MILESTONES.map(([k, l], i) => <div key={k} role="listitem" className={"s" + (i < at ? " done" : i === at ? " now" : "")} aria-current={i === at ? "step" : undefined}><span>{l}</span></div>)}
 </div>;
 const Tiles = ({ items }) => <div className="sp-tiles">{items.filter(Boolean).map(([l, v, tone]) => <div key={l} className={"sp-tile" + (tone ? " " + tone : "")}><div className="l">{l}</div><div className="v">{v}</div></div>)}</div>;
-const Dossier = ({ icon, kicker, title, place, at, children, wide }) => <div className="sp-card sp-step" style={{ maxWidth: wide ? 980 : 900, margin: "0 auto", padding: TALL() ? "16px 16px 18px" : "22px 26px 24px" }}>
+// What a project's site looks like at each stage, and its stage pin (art pack 2).
+const siteArt = (p) => p.status === "delivered" ? "project-ribbon-cutting" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "project-site-stalled" : (p.status === "in_progress" && (p.progress || 0) >= 35) || p.status === "built" ? "project-site-halfway" : "project-site-cleared";
+const pinOf = (p) => p.status === "delivered" ? "green" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "red" : p.status === "in_progress" || p.status === "built" ? "gold" : "grey";
+const Dossier = ({ icon, kicker, title, place, at, children, wide, pic, thumb, pin }) => <div className="sp-card sp-step" style={{ maxWidth: wide ? 980 : 900, margin: "0 auto", padding: TALL() ? "16px 16px 18px" : "22px 26px 24px" }}>
+  {pic && <img src={"./art/backgrounds/" + pic + ".webp"} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 14 }} />}
   <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
     <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: 16, background: "linear-gradient(180deg,#fff7e2,#f1e2b8)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, boxShadow: "inset 0 0 0 1px #e7d6a8" }}>{icon}</div>
     <div style={{ minWidth: 0 }}>
-      {kicker && <div className="sp-kicker">{kicker}</div>}
+      {kicker && <div className="sp-kicker" style={{ display: "flex", alignItems: "center", gap: 6 }}>{pin && <img src={"./art/objects/map-pin-project-" + pin + ".webp"} alt="" style={{ height: 18, width: "auto" }} />}{kicker}</div>}
       <div style={{ font: "700 " + (TALL() ? 24 : 30) + "px/1.15 'Fraunces', Georgia, serif", color: "#17301f", marginTop: 3 }}>{title}</div>
       {place && <div style={{ font: "600 14px 'Plus Jakarta Sans', sans-serif", color: "#7a6c4c", marginTop: 2 }}>{place}</div>}
     </div>
+    {thumb && <img src={"./art/backgrounds/" + thumb + ".webp"} alt="" style={{ marginLeft: "auto", width: TALL() ? 84 : 120, aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, flexShrink: 0 }} />}
   </div>
   {at != null && <div style={{ margin: "14px 0 4px" }}><MilestoneStrip at={at} /></div>}
   {children}
@@ -3770,7 +3777,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
 
   // ── The project dossier (from the adviser or the portfolio) ──
   const Card = ({ p, big }) => { const n = nextOf(p), C = SYS.contractorById(p.contractorId), bf = SYS.benefitFactor(p);
-    return <Dossier icon={SECTOR_ICON[p.sector] || "🏗️"} kicker={{ pending_finance: "Waiting for money", pending_procurement: "Waiting for a contractor", in_progress: "Under construction", stalled: "Stalled", built: "Built, not working", delivered: "Open", suspended: "Suspended", abandoned: "Abandoned" }[p.status] || p.status} title={p.title} place={where(p) + (C ? " · " + C.name : "")} at={SYS.milestoneOf(p)}>
+    return <Dossier pic={big ? siteArt(p) : null} thumb={big ? null : siteArt(p)} pin={pinOf(p)} icon={SECTOR_ICON[p.sector] || "🏗️"} kicker={{ pending_finance: "Waiting for money", pending_procurement: "Waiting for a contractor", in_progress: "Under construction", stalled: "Stalled", built: "Built, not working", delivered: "Open", suspended: "Suspended", abandoned: "Abandoned" }[p.status] || p.status} title={p.title} place={where(p) + (C ? " · " + C.name : "")} at={SYS.milestoneOf(p)}>
       <Situation tone={n.blocked ? "bad" : n.due ? "warn" : null} head={n.due ? (n.blocked ? "Blocked" : "Next: " + n.button.toLowerCase()) : p.status === "delivered" ? "Open and working" : "Nothing due yet"} text={n.say + (n.when ? " Next check: " + n.when + "." : "")} />
       <Tiles items={[["Scope costs", SYS.fmtM(p.estimateM)], ["Approved", SYS.fmtM(p.approvedM), p.approvedM < p.estimateM * .95 ? "bad" : null], ["Spent", SYS.fmtM(p.spentM)], p.status === "delivered" || p.status === "built" ? ["Benefit", Math.round(bf * 100) + "%", bf < .6 ? "bad" : "good"] : ["Built", p.progress + "%"]]} />
       {n.due && (n.id === "blocked_finance"
@@ -3802,7 +3809,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
       funded: ["Funded", SYS.fmtM(F0.amountM || 0) + " received", true, SYS.fmtM(F0.amountM || 0) + " received from " + (F0.lender || "the lender"), "The money is held for this project. No contractor has been paid; the debt is on the state's books."],
       contract: ["Contract signed", C ? C.name : "", true, "Contract signed with " + (C ? C.name : "the contractor"), "Work starts this year. How far it gets depends on the money released and on the contractor; you will see it at year end."] }[k];
     if (!S || !recorded) return <Card p={proj} big />;
-    return <Dossier icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
+    return <Dossier pic={k === "contract" ? "project-site-cleared" : null} pin={pinOf(proj)} icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
       <StampOnce key={F0.at} name={{ approved: "approved", funded: "funded", contract: "contract-signed" }[k]} sub={S[1]} sound={k === "approved" ? "gavel" : "good"} />
       <div style={{ margin: "14px 0 4px" }}><MilestoneMove from={F0.fromAt} at={SYS.milestoneOf(proj)} /></div>
       <Situation head={S[3]} text={S[4]} />
@@ -5870,7 +5877,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const eff = typeof p.effective === "number" ? p.effective : .8, size = +(p.cost || p.baseCost || 1);
     const gain = k === "igr" ? Math.round(Math.min(1.5, size * .12) * eff * 10) / 10 : Math.round(Math.min(.06, .01 + size * .006) * eff * 1000) / 1000;
     setS(x => ({ ...x, [k]: k === "igr" ? (x.igr || 0) + gain : cl(x[k] + gain) }));
-    announce({ icon: "🎉", title: p.title + " is open", text: "Built by " + (p.contractor || "the contractor") + (p.leakage > .2 ? ", but a lot of the money went missing on the way." : "."), tone: "good", rows: [{ l: STAT_NAME[k], v: k === "igr" ? "+₦" + gain + "B" : "+" + Math.round(gain * 100) + "%", good: true }, { l: "Approval", v: "+" + Math.round(6 * eff) + "%", good: true }] });
+    announce({ icon: "🎉", img: "./art/backgrounds/project-ribbon-cutting.webp", title: p.title + " is open", text: "Built by " + (p.contractor || "the contractor") + (p.leakage > .2 ? ", but a lot of the money went missing on the way." : "."), tone: "good", rows: [{ l: STAT_NAME[k], v: k === "igr" ? "+₦" + gain + "B" : "+" + Math.round(gain * 100) + "%", good: true }, { l: "Approval", v: "+" + Math.round(6 * eff) + "%", good: true }] });
   };
   // ── FINANCING A PROJECT ──
   // Every capital project needs money from somewhere. Each source has its own
@@ -9569,7 +9576,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const yourLast = (setup?.lastNm || pName.split(" ").pop() || "YOU").toUpperCase();
               const yourTicket = yourLast + "/" + (depGov?.nm.split(" ").pop() || "DEP").toUpperCase();
               return <Cd style={{ textAlign: "center", padding: 36 }}>
-                <Sfx k={won ? "win" : "lose"} /><ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />
+                <Sfx k={won ? "win" : "lose"} />{won ? <img src={"./art/scenes/" + (collation.runoff ? "second-election" : "declaration") + ".webp"} alt={collation.runoff ? "A second election" : "The Returning Officer declares the result"} style={{ display: "block", width: "100%", maxWidth: 520, aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, margin: "0 auto 12px" }} /> : <ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />}
                 <h3 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(53), fontWeight: 600, margin: "7px 0" }}>{won ? "RE-ELECTED!" : "DEFEATED"}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{(won ? "Four more years! INEC declares " + pName + " (" + party + ") re-elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments. Margin: " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " A second election between the top two settled it." : "")}</p>
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
@@ -9593,6 +9600,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </Cd>
                 <SceneArt bg="collation-centre" h={TALL() ? 180 : 240} />
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29, background: "#fffef7", borderColor: CL.gold + "55" }}>
+                  <img src="./art/backgrounds/collation-board-lga.webp" alt="The collation board" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 14, marginBottom: 14 }} />
+                  <ObjArt name="result-sheet-blank" alt="" size={TALL() ? 70 : 90} />
                   <div style={{ fontSize: TS(29), fontWeight: 600, color: CL.grn, fontFamily: F.m, marginBottom: 14, textAlign: "center", letterSpacing: 2 }}>INEC · FORM EC8D · FINAL RESULT</div>
                   <div style={{ fontSize: TS(31), color: CL.txt, textAlign: "center", marginBottom: 22, borderBottom: "1px solid " + CL.bdr, paddingBottom: 14 }}><b>{state.replace("_", " ")} State</b> · Registered: {fmtVotesFull(collation.registeredTotal)} · Cast: {fmtVotesFull(collation.totalYou + collation.totalOpp)}</div>
                   {collation.rows.map(rw => <div key={rw.id} style={{ padding: "14px 0", borderBottom: "1px solid " + CL.bdr + "66" }}>

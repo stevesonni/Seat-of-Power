@@ -57,6 +57,13 @@ One stamp layer for the whole game: `SOP_stamp(name, sub)` in `public/seat-of-po
 | stamp-paid | The old debt paid at once, or all salary arrears cleared |
 | stamp-broke | "The state can't pay for this" |
 
+## Art pack 2: elections and projects (12 images, all in use; checked by tests/art-usage.test.mjs)
+- **Project sites** (`siteArt(p)`): project-site-cleared (waiting for money or a contractor, and the contract-signed dossier), project-site-halfway (under construction from 35%, or built), project-site-stalled (stalled, suspended, abandoned), project-ribbon-cutting (open, and the "is open" card). The full picture shows in the single dossier; portfolio cards show a thumbnail.
+- **map-pin-project-grey / gold / green / red** (`pinOf(p)`): the stage marker beside each project's status (planned, building, open, stalled).
+- **Elections:**
+  - scenes/declaration heads a win (first election and re-election), and scenes/second-election when the leader missed the 25% spread (the ballot paper stays on a loss);
+  - backgrounds/collation-board-lga and objects/result-sheet-blank head "See the full count".
+
 ## Known issues to fix later
 - Some images still show the national coat of arms (governor-female-agbada, governor-female-kaftan, deputy-male, deputy-female, speaker mace, collation-centre, governor-office, assembly-chamber, courtroom). Regenerate or edit before shipping.
 - labour-leader shirt reads "Nigeria Labour Union"; deputy-male badge says "Kaduna State".
