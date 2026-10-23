@@ -771,17 +771,20 @@ const NEED_TYPES = [
     abandon: (l) => "The housing estate in " + l + " is a field of unfinished walls.",
     win: (l) => "Displaced families in " + l + " have keys to new homes." },
 ];
+// Project types that cannot start without their own commissioner.
+const NEEDS_MINISTRY = { stadium: "sports", esports: "sports" };
 const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
 // What kind of need each project type answers, and what it improves when done.
 const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security" };
-const PROJ_STAT = { stadium: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
+const PROJ_STAT = { stadium: "igr", esports: "igr", tourist: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
 const STAT_NAME = { infra: "Infrastructure", hp: "Health", lit: "Education", agr: "Agriculture", sec: "Security", igr: "Own revenue" };
 // Ministries a governor can add when the state needs them. key: the number a
 // good commissioner moves each year; unlock: project types it adds.
 const MINISTRY_CATALOGUE = [
-  { id: "sports", name: "Sports & Youth Development", icon: "🏟️", key: "app", cost: 1.2, staff: 220, unlock: ["stadium"], why: "Football academies, a state team and a stadium. Young voters notice." },
+  { id: "budget", name: "Budget & Economic Planning", icon: "📊", key: "igr", cost: .8, staff: 140, unlock: [], why: "Prepares the yearly budget and checks every ministry's bid. Without one, Finance drafts it alone and padding creeps in." },
+  { id: "sports", name: "Sports & Youth Development", icon: "🏟️", key: "app", cost: 1.2, staff: 220, unlock: ["stadium", "esports"], why: "Football academies, a state team, a stadium and esports. Young voters notice." },
   { id: "commerce", name: "Commerce, Industry & Investment", icon: "🏭", key: "igr", cost: 1.5, staff: 260, unlock: ["industrial"], why: "Courts investors and runs the industrial parks. Good commissioners raise your own revenue." },
-  { id: "tourism", name: "Tourism, Arts & Culture", icon: "🎭", key: "igr", cost: 1, staff: 180, unlock: [], why: "Festivals, heritage sites and hotels: small but steady revenue." },
+  { id: "tourism", name: "Tourism, Arts & Culture", icon: "🎭", key: "igr", cost: 1, staff: 180, unlock: ["tourist"], why: "Festivals, heritage sites and hotels: small but steady revenue." },
   { id: "env", name: "Environment & Climate Change", icon: "🌳", key: "hp", cost: 1, staff: 300, unlock: ["landfill"], why: "Waste, erosion and flood control. Cleaner towns mean fewer outbreaks." },
   { id: "water", name: "Water Resources", icon: "🚰", key: "hp", cost: 1.2, staff: 340, unlock: ["water", "dam"], why: "Boreholes, treatment plants and dams." },
   { id: "housing", name: "Housing & Urban Development", icon: "🏘️", key: "infra", cost: 1.3, staff: 260, unlock: ["housing"], why: "Estates, urban renewal and building control." },
@@ -3663,7 +3666,7 @@ const SecondChance = () => {
 // the decision (cards with real figures and only the actions the simulation
 // supports), and an optional full briefing. Milestones and the next step
 // come from SYS.milestoneOf / SYS.nextStep, so what you see is what is true.
-const SECTOR_ICON = { roads: "🛣️", health: "🏥", education: "🏫", water: "🚰", energy: "⚡", markets: "🏬", security: "🛡️", waste: "♻️", industry: "🏭", sports: "🏟️" };
+const SECTOR_ICON = { roads: "🛣️", health: "🏥", education: "🏫", water: "🚰", energy: "⚡", markets: "🏬", security: "🛡️", waste: "♻️", industry: "🏭", sports: "🏟️", tourism: "🏝️" };
 const MilestoneStrip = ({ at }) => <div className="sp-ms" role="list" aria-label="Project stages">
   {SYS.MILESTONES.map(([k, l], i) => <div key={k} role="listitem" className={"s" + (i < at ? " done" : i === at ? " now" : "")} aria-current={i === at ? "step" : undefined}><span>{l}</span></div>)}
 </div>;
@@ -3758,7 +3761,7 @@ const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn
 // What changed because of the last decision.
 const Consequence = ({ text, icon = "✅" }) => text ? <div className="sp-con" role="status"><span aria-hidden="true" style={{ fontSize: 20 }}>{icon}</span><span><b>What changed:</b> {text}</span></div> : null;
 
-const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound }) => {
+const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound, onNeedMinistry }) => {
   const F0 = flow;
   const proj = F0 && F0.projId ? projects.find(x => x.id === F0.projId) : null;
   const where = (p) => [p.lga, (ministries || []).find(m => m.id === p.ministryId)?.name].filter(Boolean).join(" · ");
@@ -3768,7 +3771,8 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
     const P = F0.parsed, MIN_FOR = { health: "health", education: "educ", security: "sec" }, d0 = F0.draft || {};
     const d = d0.type && !d0.ministryId ? { ...d0, ministryId: ((ministries || []).find(m => m.id === (MIN_FOR[SYS.TYPE_SECTOR[d0.type]] || "works")) || (ministries || [])[0] || {}).id } : d0;
     const est = d.type ? SYS.estimate(d.type, d.qty) : null;
-    const ready = d.type && d.lga && d.ministryId && (d.title || "").trim();
+    const gate = d.type && NEEDS_MINISTRY[d.type] && !(ministries || []).some(m => m.id === NEEDS_MINISTRY[d.type]) ? MINISTRY_CATALOGUE.find(c => c.id === NEEDS_MINISTRY[d.type]) : null;
+    const ready = d.type && d.lga && d.ministryId && (d.title || "").trim() && !gate;
     return <Dossier icon={d.type ? SECTOR_ICON[SYS.TYPE_SECTOR[d.type]] : "🏗️"} kicker="New project" title={d.title || "What will you build?"} place={d.lga ? d.lga : null} at={0}>
       <Situation head={d.type ? "Check the proposal, then set its budget." : "Describe it, or answer one of the state's needs."} text={d.need ? "This answers: " + ((needs || []).find(n => n.id === d.need) || {}).label?.replace(/^\S+\s/, "") + "." : null} />
       {!d.type && <>
@@ -3780,6 +3784,8 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
         {P && P.status === "clarify" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} className="sp-btn ghost" style={{ minHeight: 40, padding: "6px 14px", fontSize: 15 }} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name } }); }}>{SYS.UNIT[c].nm}</button>)}</div>}
         {P && P.status === "unsupported" && <Situation tone="bad" head="Not something the state can build" text={P.why} />}
       </>}
+      {gate && <Situation tone="warn" head={(adviser || "Your adviser") + ": “Your Excellency, who will run it? We have no Commissioner for " + gate.name + ".”"} text={"A " + SYS.UNIT[d.type].nm.toLowerCase() + " needs its own ministry to plan it and run it after the ribbon. Create the Ministry of " + gate.name + " (" + naira(gate.cost) + " a year) and this project can start."} />}
+      {gate && onNeedMinistry && <Actions><button className="sp-btn" onClick={() => onNeedMinistry(gate)}>{gate.icon} Create the Ministry of {gate.name}</button></Actions>}
       {d.type && est && <>
         <Tiles items={[["Cost to build", SYS.fmtM(est.buildM)], est.facility && ["To equip", SYS.fmtM(est.equipM)], est.facility && ["To run", SYS.fmtM(est.opsPerYearM) + "/yr"], ["Takes about", est.years + (est.years === 1 ? " year" : " years")]]} />
         <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: "0 12px" }}>
@@ -4393,7 +4399,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
       houseBillsSeen, investorsSeen, investorsApproved, godfatherSeen, mediaSeen,
       ministries, projects, procLog, council, wikiEvents, nepotismCount, saMemory, saOffice, gEnd, setup,
-      cast,
+      cast, cosOffice, mail: (mail || []).filter(l => l.live),
     };
   };
   const saveGame = async () => {
@@ -5563,12 +5569,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // Year 1 in a new game. A save from before this storyline discovers it now.
       const lg = getLGAs(state), lga = lg.length ? lg[hashStr(goldSeed) % lg.length] : state.replace("_", " ");
       const D = SYS.discover(goldSeed, turn, lga);
-      setGold(D); goldShown.current = turn; setGoldOpen(true);
+      setGold(D); goldShown.current = turn;
       addL("⛏️ Gold confirmed under farmland in " + lga + ". Northstar Mining holds the federal licence.", "crisis");
       scWiki("Governorship", "Gold deposits were confirmed in " + lga + " during the first year of the administration.");
       return;
     }
-    if (gold && goldShown.current < turn && !gold.decided[turn] && SYS.beat(gold, turn)) { goldShown.current = turn; setGoldOpen(true); }
+    if (gold && goldShown.current < turn && !gold.decided[turn] && SYS.beat(gold, turn)) goldShown.current = turn; // it arrives as a letter
   }, [phase, turn, needSetup]);
   const chooseGold = (optId) => decide(() => {
     const r = SYS.choose(gold, turn, optId, goldSeed); if (r.D === gold) return;
@@ -5757,6 +5763,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const m = { id: c.id, name: c.name, icon: c.icon, key: c.key, unlock: c.unlock, budget: 0, staff: c.staff, perf: Math.round(40 + (t.comp - 50) * .4), cor: Math.max(8, Math.round((100 - t.hon) * .5)), minister: who.nm, permSec: gN(rng(Date.now() % 7777), sd.zone, setup?.state), loyalty: who.loyalty, zone: who.zone, hired: turn, record: [] };
     if (!spendB(c.cost, "Setting up the Ministry of " + c.name)) return;
     setMinistries(ms => [...(ms || []), m]);
+    if (c.id === "tourism" && stc.idleTourist) { const g = stc.idleTourist; setS(x => ({ ...x, igr: (x.igr || 0) + g })); setStc(x => ({ ...x, idleTourist: 0 })); setMail(ml => ml.filter(l => l.key !== "ministry_tip")); addL("🏝️ The new Tourism ministry takes over your tourist sites: own revenue +" + naira(g) + " a year.", "success"); }
     addL(c.icon + " Created the Ministry of " + c.name + ". Hon. " + who.nm + " is its first commissioner.", "policy");
     try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Created the Ministry of " + c.name + " and appointed Hon. " + who.nm + " as its commissioner." }, ...(w || [])]); } catch (e) {}
     return { icon: c.icon, title: "Ministry of " + c.name + " created", text: "Hon. " + who.nm + " is sworn in. " + (c.unlock.length ? "You can now start " + c.unlock.join(" and ") + " projects. " : "") + "A good commissioner will move it every year; check on them.", tone: "good" };
@@ -5974,6 +5981,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const k = PROJ_STAT[p.type]; if (!k) return;
     const eff = typeof p.effective === "number" ? p.effective : .8, size = +(p.cost || p.baseCost || 1);
     const gain = k === "igr" ? Math.round(Math.min(1.5, size * .12) * eff * 10) / 10 : Math.round(Math.min(.06, .01 + size * .006) * eff * 1000) / 1000;
+    // A tourist site earns nothing until someone manages the tourists.
+    if (p.type === "tourist" && !(ministries || []).some(m => m.id === "tourism")) {
+      setStc(x => ({ ...x, idleTourist: Math.round(((x.idleTourist || 0) + gain) * 10) / 10 }));
+      postMail([letterOf("ministry_tip", { live: true, cat: "tourism", tip: [cast.adviser.name, saPortrait(cast.adviser.name), "Tourists at " + p.title + ", and nobody to receive them", "No Commissioner for Tourism means no hotels licensed, no guides, no levy collected. It earns nothing until you create the ministry."] })]);
+      addL("🏝️ " + p.title + " is open, but with no Ministry of Tourism nobody manages the visitors. It earns nothing yet.", "political");
+      return;
+    }
     setS(x => ({ ...x, [k]: k === "igr" ? (x.igr || 0) + gain : cl(x[k] + gain) }));
     announce({ icon: "🎉", img: "./art/backgrounds/project-ribbon-cutting.webp", title: p.title + " is open", text: "Built by " + (p.contractor || "the contractor") + (p.leakage > .2 ? ", but a lot of the money went missing on the way." : "."), tone: "good", rows: [{ l: STAT_NAME[k], v: k === "igr" ? "+₦" + gain + "B" : "+" + Math.round(gain * 100) + "%", good: true }, { l: "Approval", v: "+" + Math.round(6 * eff) + "%", good: true }] });
   };
@@ -6237,7 +6251,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (advancedFrom.current >= turn) return; // the year has already moved on
     advancedFrom.current = turn;
     setTurn(t => t + 1);
-    setPhase("budget");
+    // The new year's budget arrives as a letter.
+    mailOn.current = true;
+    setMail(m => [...m.filter(l => l.key !== "budget"), letterOf("budget", { live: true })]);
+    setPhase("mail"); setNav("gov"); setLetterOpen(null); pingMail(1, "budget");
   };
   const handleImp = (surv) => {
     // Fight chance scales with approval — high approval = almost guaranteed survival
@@ -7418,19 +7435,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     deskMerge(q);
     capQueue(q);
 
-    // Set queue and fire first event
-    setEventQueue(q.slice(1));
-    if (q.length > 0) deskGo(q[0]);
-    else advance();
+    // The year's matters arrive as letters on the Desk.
+    postYearMail(q);
   };
 
   // Called after each event is handled — fires next in queue or advances
   const nextEvent = () => {
+    if (mailOn.current) { setPhase("mail"); return; }
     if (eventQueue.length === 0) { advance(); return; }
     const next = eventQueue[0];
     setEventQueue(q => q.slice(1));
-
-    // Set up data for the next event if needed
+    prepNext(next);
+    deskGo(next);
+  };
+  // Set up data for an event if it is missing.
+  const prepNext = (next) => {
     if (next === "intl_invite" && !curInvite) {
       const rE = rng(turn * 111 + state.length * 53 + Date.now() % 5000);
       const unseen = INTL_INVITES.filter(inv => !intlInvites.includes(inv.id));
@@ -7471,7 +7490,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const rE = rng(turn * 999 + Date.now() % 3000);
       setCurD(pick(ALL_DILEMMAS.filter(d => !DILEMMA_REPLACED.includes(d.id)), rE));
     }
-    deskGo(next);
   };
 
   // A desk card finishes asynchronously (its own DOM), so it calls the
@@ -7491,6 +7509,230 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { card.open(done); } catch (e) { console.error("[Desk] card failed to open", card.key, e); done(); }
   }, [phase, deskActive]);
 
+  // ── THE CHIEF OF STAFF AND THE GOVERNOR'S MAILBOX (SYS chief.js) ──
+  // Every file that reaches the governor lands as a letter on the Desk. Open it
+  // and handle it yourself, or hand it to your Chief of Staff, who may do it
+  // well, badly or crookedly. The year does not move on until the tray is clear.
+  const [cosOffice, setCosOffice] = useState(() => ld?.cosOffice || { cos: null, history: [] });
+  const [cosPickOpen, setCosPickOpen] = useState(() => !(ld?.cosOffice && ld.cosOffice.cos));
+  const [mail, setMail] = useState(() => (ld?.mail || []).filter(l => l.live));
+  const [mailOpen, setMailOpen] = useState(false);
+  const [mailPing, setMailPing] = useState(null);
+  const [letterOpen, setLetterOpen] = useState(null);
+  const mailOn = React.useRef(ld?.phase === "mail");
+  const cosNow = cosOffice.cos;
+  const mailRef = React.useRef(mail); mailRef.current = mail;
+  const COS_ACTING = { id: "acting", name: "The Deputy Chief of Staff", tag: "Acting", img: "permanent-secretary", comp: 40, loyalty: 50, greed: 20, good: [], bad: [], file: "Keeping the seat warm until you appoint someone." };
+  const appointCos = (c) => {
+    setCosOffice(o => ({ ...o, cos: { ...c, handled: 0, hired: turn } }));
+    setCosPickOpen(false);
+    addL("🗝️ " + c.name + " (" + c.tag + ") is your Chief of Staff.", "political");
+    try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Appointed " + c.name + " as Chief of Staff." }, ...(w || [])]); } catch (e) {}
+  };
+  const fireCos = async () => {
+    const c = cosOffice.cos; if (!c) { setCosPickOpen(true); return; }
+    if (!(await window.SOP_confirm("Fire " + c.name + " as Chief of Staff?\n\nWhat happens: " + (c.loyalty >= 75 ? "They know where the bodies are buried. Party stability −4 and a hostile interview." : "A quiet exit. Party stability −1.") + " You pick a replacement now.", "Fire"))) return;
+    setS(p => ({ ...p, pStab: cl100(p.pStab - (c.loyalty >= 75 ? 4 : 1)) }));
+    if (c.loyalty >= 75) addL("🎙️ " + c.name + " gives a radio interview about 'the people around the Governor'.", "political");
+    setCosOffice(o => ({ cos: null, history: [{ id: c.id, name: c.name, fired: turn }, ...(o.history || [])] }));
+    setCosPickOpen(true);
+    addL("🔥 " + c.name + " is out as Chief of Staff.", "political");
+  };
+  const cosLeft = SYS.COS_ROSTER.filter(c => !(cosOffice.history || []).some(h => h.id === c.id));
+
+  // Mail lands: the Desk tab counts it, and a note pops up.
+  const pingMail = (n, from) => { setMailPing({ n, from, t: Date.now() }); try { window.SOP_sound && window.SOP_sound("notify"); } catch (e) {} setTimeout(() => setMailPing(p => p && Date.now() - p.t > 3500 ? null : p), 3800); };
+  const postMail = (letters) => {
+    const add = letters.filter(l => !mailRef.current.some(m => m.key === l.key));
+    if (!add.length) return;
+    setMail(m => [...m, ...add]);
+    pingMail(add.length, add[0].key);
+  };
+  const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: key + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
+  const budgetMin = () => (ministries || []).find(m => m.id === "budget");
+  // Who wrote it, what it is about, in one line. Read when shown, so it sees the latest state.
+  const letterView = (l) => {
+    const sa = cast.adviser.name, k = l.key;
+    const sc = k.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === k) : null;
+    const dc = k.startsWith("desk:") ? deskCards.current[k] : null;
+    const pj = k.startsWith("stall:") ? (projects || []).find(p => p.id === k.slice(6)) : null;
+    const bm = budgetMin();
+    const V = {
+      flagship: () => FLAGSHIP[setup?.agenda] ? [sa, saPortrait(sa), "Your agenda: " + FLAGSHIP[setup.agenda].nm, "This year's share of your promise is due."] : null,
+      budget: () => bm ? ["Hon. " + bm.minister + ", Budget & Economic Planning", "./art/characters/finance-commissioner.webp", "The " + absYear + " budget is ready for you", "Every ministry's share, for you to set and send to the House."]
+        : ["The Commissioner for Finance", "./art/characters/finance-commissioner.webp", "The " + absYear + " budget, drafted by Finance alone", "There is no Commissioner for Budget & Planning, so nobody checked the ministries' bids. Expect padding."],
+      gold: () => { const b = gold && SYS.beat(gold, turn); return b ? ["The Chairman, " + (gold.lga || "the host") + " Local Government", "./art/characters/lg-chairman.webp", "Goldfields: " + b.title, b.known || "The communities want an answer this year."] : null; },
+      godfather: () => [cast.godfather.name, "./art/characters/godfather.webp", "A private note from " + cast.godfather.name, (godfatherDemand && (godfatherDemand.title || godfatherDemand.nm)) || "He wants something."],
+      house_bill: () => ["The Speaker, State House of Assembly", "./art/characters/speaker.webp", "A bill for your signature", (pendingHouseBill && (pendingHouseBill.nm || pendingHouseBill.title)) || "Members have passed a bill."],
+      investor: () => ["An investor's office", "./art/characters/investor-nigerian.webp", (curInvestor && curInvestor.nm) || "An investor wants a meeting", (curInvestor && curInvestor.co) || "They want land and a deal."],
+      federal: () => ["The Presidency, Abuja", "./art/characters/permanent-secretary.webp", (curFgEvent && curFgEvent.title) || "A federal matter", "Abuja is waiting for your reply."],
+      shock: () => ["The Commissioner of Police", "./art/characters/police-commissioner.webp", (curShock && curShock.title) || "Something has happened", "It needs an answer today."],
+      judiciary: () => ["The High Court Registry", "./art/characters/judge.webp", (curCourt && (curCourt.title || curCourt.nm)) || "A case against the state", "The court wants the state's response."],
+      nic_ruling: () => ["The National Industrial Court", "./art/characters/judge.webp", "The court has ruled on the sacking", "Comply, appeal or defy."],
+      media: () => ["The newsroom", "./art/characters/reporter.webp", (curMedia && (curMedia.title || curMedia.nm)) || "The press wants a word", "They will run it with or without you."],
+      dilemma: () => ["A community delegation", "./art/characters/traditional-ruler-oba-obi.webp", (curD && curD.nm) || "A local dispute", "They have travelled to Government House to see you."],
+      hidden_threat: () => [sa, saPortrait(sa), "Intelligence: something is brewing", "For your eyes only."],
+      intl_invite: () => [(curInvite && curInvite.from) || "A foreign government", "./art/characters/permanent-secretary.webp", "An invitation abroad", "Go yourself, or send someone."],
+      abuja: () => ["The Presidency, Abuja", "./art/characters/permanent-secretary.webp", "You are summoned to Abuja", "The President wants to see the governors."],
+      netherlands: () => ["Protocol, Government House", "./art/characters/permanent-secretary.webp", "A trade mission to the Netherlands", "Ports, flowers and farm technology."],
+      wedding: () => ["Protocol, Government House", "./art/characters/permanent-secretary.webp", "A society wedding in Lagos", "Everyone who matters will be there."],
+    }[k];
+    const v = V ? V() : l.tip ? l.tip : sc ? [sc.from || sa, sc.img ? sc.img : saPortrait(sa), sc.title || "A matter of state", (sc.text || sc.desc || "").split(". ")[0]]
+      : dc ? [dc.source || sa, saPortrait(sa), dc.title || "A briefing", dc.topic ? "On " + dc.topic + "." : ""]
+      : pj ? ["The site engineer, " + pj.title, "./art/characters/contractor.webp", pj.title + " has stalled", SYS.fmtM(SYS.remainingM(pj)) + " of work is left and the contractor has left the site."]
+      : null;
+    const [from, img, title, line] = v || [sa, saPortrait(sa), "A letter", ""];
+    return { from, img, title, line: String(line || "").slice(0, 120) };
+  };
+  // The year's matters arrive together after the year closes.
+  const postYearMail = (q) => {
+    const stall = (projects || []).filter(p => p.status === "stalled").slice(0, 2).map(p => "stall:" + p.id);
+    const letters = [...q, ...stall].map(k => letterOf(k, { live: k.startsWith("stall:") }));
+    if (!letters.length) { setMail(m => m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:"))); mailOn.current = false; advance(); return; }
+    mailOn.current = true;
+    setEventQueue([]);
+    setMail(m => [...m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:")), ...letters]);
+    setPhase("mail"); setNav("gov"); setLetterOpen(null);
+    if (letters.length) pingMail(letters.length, letters[0].key);
+  };
+  // Each year event needs its data in place before it opens.
+  const prepEvent = (next) => {
+    prepNext(next);
+    if (next.startsWith("sc#")) setScCards(cs => { const c = scPending.current.find(x => "sc#" + x.key === next); return c ? [c, ...cs.filter(x => x.key !== c.key)] : cs; });
+  };
+  const takeLetter = (l) => setMail(m => m.filter(x => x.id !== l.id));
+  const handleLetter = (l) => {
+    takeLetter(l); setLetterOpen(null); setMailOpen(false);
+    if (l.key === "budget") {
+      mailOn.current = false; setPhase("budget"); setNav("gov");
+      if (!budgetMin()) { setS(p => ({ ...p, cor: cl(p.cor + .005) })); addL("📊 No Commissioner for Budget & Planning checked the ministries' bids; padded lines went into the draft. Create the ministry under People → Ministries.", "political"); }
+      return;
+    }
+    if (l.key === "gold") { setGoldOpen(true); return; }
+    if (l.key.startsWith("stall:")) { const p = (projects || []).find(x => x.id === l.key.slice(6)); goTab("prj"); if (p) setTimeout(() => openStep(p), 50); return; }
+    if (l.key === "ministry_tip") { const cat = MINISTRY_CATALOGUE.find(c => c.id === l.cat); if (cat && !(ministries || []).some(m => m.id === cat.id)) openNewMinistry(cat); else goTab("min"); return; }
+    prepEvent(l.key); deskGo(l.key);
+  };
+  // What a year event leaves behind when nobody opens its card.
+  const forgetEvent = (k) => {
+    if (k === "dilemma") setCurD(null); if (k === "media") setCurMedia(null); if (k === "investor") setCurInvestor(null); if (k === "shock") setCurShock(null);
+    if (k === "federal") setCurFgEvent(null); if (k === "godfather") setGodfatherDemand(null); if (k === "house_bill") setPendingHouseBill(null);
+    if (k === "judiciary") { setCurCourt(null); setCourtStage(0); } if (k === "nic_ruling") setNicPending(null); if (k === "intl_invite") setCurInvite(null);
+    if (k === "abuja") setAbujaVisited(true); if (k === "netherlands") setNetherlandsVisited(true); if (k === "wedding") setWeddingVisited(true);
+    if (k.startsWith("sc#")) setScCards(cs => cs.filter(c => "sc#" + c.key !== k));
+  };
+  // Hand a letter to the Chief of Staff. You can insist even when they warn you.
+  const delegateLetter = (l) => decide(() => {
+    const c = cosNow || COS_ACTING, v = letterView(l);
+    takeLetter(l); setLetterOpen(null);
+    // The budget: they resubmit last year's shares to the House.
+    if (l.key === "budget") {
+      const r = SYS.delegate(c, "budget", budgetMin() ? 2 : 3, "the budget");
+      setS(p => ({ ...p, app: cl100(p.app + r.fx.app), pStab: cl100(p.pStab + r.fx.pStab), cor: cl(p.cor + r.fx.cor + (budgetMin() ? 0 : .01)) }));
+      addL("🗝️ " + (r.ok ? c.name + " sent last year's budget shares back to the House, and it passed." : c.name + " sent last year's figures to the House. Members sat on it; nothing new is funded until it moves."), r.ok ? "policy" : "political");
+      if (r.later) setDelayedFx(d => [...d, { turn: turn + 1, ...r.later }]);
+      bumpCos(); mailOn.current = false; setPhase("policy");
+      return { icon: "🗝️", title: r.ok ? "The budget passed" : "The House sat on it", text: r.text + " The shares are last year's: nothing new for your priorities.", tone: r.ok ? "neutral" : "bad", rows: cosRows(r) };
+    }
+    // Goldfields: a careful Chief of Staff pays for the proper option; a greedy one takes the cheapest.
+    if (l.key === "gold") {
+      const b = gold && SYS.beat(gold, turn); if (!b) return null;
+      const opt = c.greed < 20 ? b.options[0] : b.options.slice().sort((a, x) => (a.costM || 0) - (x.costM || 0))[0];
+      addL("🗝️ " + c.name + " decided the goldfields matter: " + opt.label.toLowerCase() + ".", "political");
+      bumpCos(); setTimeout(() => chooseGold(opt.id), 0);
+      return null;
+    }
+    // A stubborn project: they chase the contractor to the finish, at a price.
+    if (l.key.startsWith("stall:")) {
+      const p = (projects || []).find(x => x.id === l.key.slice(6)); if (!p) return null;
+      const r = SYS.cosFinishProject(c, p, turn);
+      if (!spendB(SYS.toB(r.costM), c.name + " finishing " + p.title, { force: true })) return null;
+      setProjects(prev => prev.map(x => x.id === p.id ? r.p : x));
+      if (r.crooked) setS(x => ({ ...x, cor: cl(x.cor + .01) }));
+      if (r.p.status === "delivered") setTimeout(() => projDelivered({ ...r.p, effective: SYS.benefitFactor(r.p), cost: r.p.spentM / 1000 }), 300);
+      addL("🗝️ " + p.title + ": " + (r.ok ? c.name + " got the contractor back and pushed it to the finish for " + SYS.fmtM(r.costM) + "." : c.name + " spent " + SYS.fmtM(r.costM) + " trying to restart it. It is still stalled."), r.ok ? "policy" : "crisis");
+      bumpCos();
+      return { icon: "🏗️", title: r.ok ? p.title + " is finished" : p.title + " is still stalled", text: (r.ok ? "Your Chief of Staff paid what it took. It cost more than it should, and the finish is not the best." : "The contractor took the money and did not come back.") + (r.crooked ? " Part of the payment went to a friend of " + c.name.split(" ").slice(-1)[0] + "." : ""), tone: r.ok ? "good" : "bad", rows: [{ l: "Cost", v: SYS.fmtM(r.costM), good: false }] };
+    }
+    if (l.key === "ministry_tip") return null;
+    // Any other year event: the card is never opened; the outcome is theirs.
+    const r = SYS.delegate(c, l.kind, l.stakes, v.title.replace(/^Your agenda: /, "your agenda, "));
+    forgetEvent(l.key);
+    setS(p => ({ ...p, app: cl100(p.app + r.fx.app), pStab: cl100(p.pStab + r.fx.pStab), cor: cl(p.cor + r.fx.cor) }));
+    if (l.key === "flagship") { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: c.name, gravity: 1, evidence: 2, decision: "Left to the Chief of Staff", note: r.text, meta: { delivered: false } }); } catch (e) {} }
+    if (r.later) setDelayedFx(d => [...d, { turn: turn + 1, ...r.later }]);
+    addL("🗝️ " + r.text, r.ok ? "info" : "political");
+    bumpCos();
+    return { icon: "🗝️", title: r.ok ? "Handled by your Chief of Staff" : "Your Chief of Staff got it wrong", text: r.text + (r.later ? " It will come back next year." : ""), tone: r.ok ? "neutral" : "bad", rows: cosRows(r) };
+  });
+  const bumpCos = () => setCosOffice(o => o.cos ? { ...o, cos: { ...o.cos, handled: (o.cos.handled || 0) + 1 } } : o);
+  const cosRows = (r) => [r.fx.app && { l: "Approval", v: (r.fx.app > 0 ? "+" : "") + r.fx.app, good: r.fx.app > 0 }, r.fx.pStab && { l: "Party", v: (r.fx.pStab > 0 ? "+" : "") + r.fx.pStab, good: r.fx.pStab > 0 }, r.fx.cor && { l: "Corruption", v: "+" + Math.round(r.fx.cor * 100) + "%", good: false }].filter(Boolean);
+  // The tray is clear: the year moves on.
+  const finishMail = () => { mailOn.current = false; setLetterOpen(null); advance(); };
+  // Effects promised for a later year (programme payoffs, delegation fallout) land when that year starts.
+  useEffect(() => {
+    const due = (delayedFx || []).filter(d => d.turn <= turn); if (!due.length) return;
+    setDelayedFx(d => d.filter(x => x.turn > turn));
+    setS(p => { const n = { ...p }; due.forEach(d => Object.entries(d.fx || {}).forEach(([k, v]) => { if (k === "app" || k === "pStab") n[k] = cl100((n[k] || 0) + v); else if (k === "igr") n.igr = (n.igr || 0) + v; else if (typeof n[k] === "number") n[k] = cl(n[k] + v); })); return n; });
+    due.forEach(d => addL((d.fx && d.fx.app < 0 ? "⚠️ " : "📈 ") + d.desc, d.fx && d.fx.app < 0 ? "political" : "success"));
+  }, [turn]);
+  // Goldfields and stalled projects are letters too, whenever they land.
+  useEffect(() => {
+    if (gEnd || needSetup || phase !== "policy" || !gold) return;
+    if (!gold.decided[turn] && SYS.beat(gold, turn) && !mailRef.current.some(l => l.key === "gold")) postMail([letterOf("gold", { live: true })]);
+    if (gold.decided[turn] && mailRef.current.some(l => l.key === "gold")) setMail(m => m.filter(l => l.key !== "gold"));
+  }, [phase, turn, gold]);
+
+  // ── The mailbox on screen ──
+  const Seal = ({ kind, size = 44 }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
+  const mailboxView = (inline) => {
+    const fz = TALL() ? { s: TS(19), m: TS(23), l: TS(30) } : { s: TS(28), m: TS(34), l: TS(48) };
+    const c = cosNow || COS_ACTING, first = c.name.split(" ").slice(-2, -1)[0] || c.name;
+    const open = mail.find(l => l.id === letterOpen);
+    const yearStuff = mail.filter(l => !l.live), budgetWaiting = mail.some(l => l.key === "budget");
+    if (open) {
+      const v = letterView(open), risk = SYS.cosRisk(c, open.kind, open.stakes), riskC = risk === "safe" ? CL.grn : risk === "risky" ? CL.org : CL.red;
+      return <Cd style={{ padding: TALL() ? "16px 14px" : "26px 30px", background: "#fffaf0", borderColor: (SYS.SEALS[open.kind] || {}).c + "66" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+          <img src={v.img} alt="" style={{ width: TALL() ? 54 : 72, height: TALL() ? 54 : 72, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.gold + "22" }} />
+          <div style={{ minWidth: 0 }}><div style={{ fontSize: fz.s, color: CL.td }}>From {v.from}</div><b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt, lineHeight: 1.15, display: "block" }}>{v.title}</b></div>
+          <Seal kind={open.kind} size={TALL() ? 48 : 64} />
+        </div>
+        {v.line && <div style={{ fontSize: fz.m, color: CL.tm, margin: "12px 0", lineHeight: 1.4 }}>{v.line}</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 14, padding: "8px 12px", marginBottom: 12 }}>
+          <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
+          <span style={{ fontSize: fz.s, color: CL.txt }}><b>{c.name}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}” <b style={{ color: riskC, whiteSpace: "nowrap" }}>· {risk}</b></span>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 10 }}>
+          <Bt onClick={() => handleLetter(open)}>✍️ Handle it personally</Bt>
+          <Bt v="ghost" onClick={() => delegateLetter(open)}>🗝️ {risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first}</Bt>
+        </div>
+        {open.key === "budget" && !budgetMin() && <button onClick={() => { setLetterOpen(null); setMailOpen(false); goTab("min"); }} style={{ display: "block", background: "none", border: 0, padding: 0, color: CL.grn, fontWeight: 800, fontSize: fz.s, textDecoration: "underline", cursor: "pointer", fontFamily: F.b, marginTop: 10 }}>Create a Ministry of Budget & Economic Planning first</button>}
+        <button onClick={() => setLetterOpen(null)} style={{ background: "none", border: 0, color: CL.td, fontSize: fz.s, marginTop: 10, cursor: "pointer", fontFamily: F.b }}>← Back to the mail</button>
+      </Cd>;
+    }
+    return <Cd style={{ padding: TALL() ? "16px 14px" : "26px 30px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+        <span style={{ fontSize: TALL() ? 34 : 46 }} aria-hidden="true">📬</span>
+        <div style={{ flex: 1, minWidth: 0 }}><b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt }}>Your mail</b>
+          <div style={{ fontSize: fz.s, color: CL.td }}>{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") + " waiting. Open each one: handle it yourself, or hand it to your Chief of Staff." : "Nothing waiting."}</div></div>
+      </div>
+      <div style={{ display: "grid", gap: 8 }}>
+        {mail.map(l => { const v = letterView(l); return <button key={l.id} onClick={() => setLetterOpen(l.id)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "8px 10px" : "10px 14px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+          <Seal kind={l.kind} size={TALL() ? 38 : 48} />
+          <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.title}</b><span style={{ fontSize: fz.s, color: CL.td }}>{v.from}</span></span>
+          <span style={{ fontSize: fz.s, color: l.stakes >= 3 ? CL.red : CL.td, fontWeight: 800 }}>{l.stakes >= 3 ? "Urgent" : "Open"}</span>
+        </button>; })}
+      </div>
+      {inline && phase === "mail" && !yearStuff.length && !budgetWaiting && <Bt onClick={finishMail} style={{ width: "100%", marginTop: 14 }}>The tray is clear: on to {absYear + 1} →</Bt>}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: fz.s, color: CL.td }}>
+        <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
+        <span style={{ flex: 1, minWidth: 0 }}>Chief of Staff: <b style={{ color: CL.txt }}>{c.name}</b> · {c.tag}</span>
+        <button onClick={fireCos} style={{ background: "none", border: 0, color: CL.red, fontWeight: 700, fontSize: fz.s, cursor: "pointer", fontFamily: F.b }}>{cosNow ? "Fire" : "Appoint"}</button>
+      </div>
+      {!inline && <Bt v="ghost" onClick={() => setMailOpen(false)} style={{ width: "100%", marginTop: 14 }}>Close</Bt>}
+    </Cd>;
+  };
   if (gEnd) {
     const di = ((s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100).toFixed(1);
     const fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40).toFixed(1);
@@ -7856,13 +8098,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const PFS = { s: TALL() ? TS(20) : TS(30), m: TALL() ? TS(24) : TS(36), l: TALL() ? TS(30) : TS(52) };
   // The year as a short checklist, in the order the game runs it.
   const STEP_OF = { budget: 0, house_vote: 1, policy: 2, end_turn: 3 };
-  const stepNow = STEP_OF[phase] !== undefined ? STEP_OF[phase] : 4;
+  const stepNow = phase === "mail" ? (mail.some(l => l.key === "budget") ? 0 : 4) : STEP_OF[phase] !== undefined ? STEP_OF[phase] : 4;
 
   // ── The compound: what each building shows and does ──
   const hubBadges = () => {
     const b = {}, H = scHouse(), inc = (s.igr || 0) + (s.faac || 0);
     const urgent = activeNeeds.filter(n => n.status === "stalled" || (n.status === "open" && n.due <= turn)).length;
     if (needSetup) b.gh = { text: "Set up your government", tone: "warn" };
+    else if (phase === "mail") b.gh = { text: mail.length + " letters", tone: "warn" };
     else if (phase === "budget") b.gh = { text: "Budget awaiting", tone: "warn" };
     else if (phase === "policy") b.gh = { text: "Sign programmes", tone: "warn" };
     else if (urgent) b.gh = { text: urgent + (urgent === 1 ? " urgent need" : " urgent needs"), tone: "bad" };
@@ -7901,6 +8144,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return o;
   };
   const hubNext = () => needSetup ? { id: "gh", label: "Set up your government" }
+    : phase === "mail" ? { id: "gh", label: mail.length ? "Open your mail (" + mail.length + ")" : "On to next year" }
     : phase === "budget" ? { id: "gh", label: "Pass this year's budget" }
     : phase === "house_vote" ? { id: "assembly", label: "Take the budget to the House" }
     : phase === "policy" ? { id: "gh", label: "Sign programmes and orders" }
@@ -7932,7 +8176,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     <button onClick={() => setSecr({ view: "dir", from: nav })} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: CL.txt, border: "1px solid " + ((cases.some(c => c.stage !== "decided" && c.stage !== "closed") || audiences.length) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>🏢 Secretariat{(() => { const n = cases.filter(c => c.stage !== "decided" && c.stage !== "closed").length + audiences.length; return n ? " (" + n + ")" : ""; })()}</button>
     {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
     <span title="Major actions left this year: programmes, projects, orders, bills, reforms, new ministries. Meetings and inspections are free." style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Agenda {agendaLeftNow}/{SYS.agendaSize(setup?.level || "medium")} left</span>
-        {["Budget", "House vote", "Policies", "Review", "Events"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
+        {["Budget", "House vote", "Policies", "Review", "Mail"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
   </div>;
 
@@ -7975,8 +8219,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {SCREENS.map(sc => {
             const on = sc.id === curScreen.id;
             return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
-              style={{ border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
+              style={{ position: "relative", border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
               <img src={"./art/objects/" + sc.img + ".webp"} alt="" style={{ width: TS(48), height: TS(48), objectFit: "contain" }} />{sc.l}
+              {sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e0574c", color: "#fff", fontSize: 13, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 5px" }}>✉ {mail.length}</span>}
             </button>;
           })}
         </div> : <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
@@ -7984,8 +8229,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {SCREENS.map(sc => {
               const on = sc.id === curScreen.id;
               return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
-                style={{ padding: "14px 6px", borderRadius: 16, border: "2px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn : CL.card, color: on ? "#fff" : CL.txt, fontFamily: F.c, fontWeight: 800, fontSize: TS(30), letterSpacing: .5, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, boxShadow: on ? "0 3px 0 rgba(0,0,0,.18)" : "none" }}>
+                style={{ position: "relative", padding: "14px 6px", borderRadius: 16, border: "2px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn : CL.card, color: on ? "#fff" : CL.txt, fontFamily: F.c, fontWeight: 800, fontSize: TS(30), letterSpacing: .5, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, boxShadow: on ? "0 3px 0 rgba(0,0,0,.18)" : "none" }}>
                 <img src={"./art/objects/" + sc.img + ".webp"} alt="" style={{ width: TS(58), height: TS(58), objectFit: "contain" }} />{sc.l}
+                {sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 6, right: 10, minWidth: 30, height: 30, borderRadius: 15, background: "#e0574c", color: "#fff", fontSize: 16, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 7px" }}>✉ {mail.length}</span>}
               </button>;
             })}
           </div>
@@ -7998,6 +8244,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <button onClick={saveGame} style={subBtn(true, CL.teal)}>💾 Save</button>
           </div>
         </div>}
+        {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); else setMailOpen(true); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
+        {curScreen.id === "desk" && mail.length > 0 && phase !== "mail" && <button onClick={() => setMailOpen(true)} aria-label={"Mail: " + mail.length} style={{ position: "fixed", right: 16, bottom: TALL() ? 104 : 24, zIndex: 65, background: CL.gold, color: "#1a2e05", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), boxShadow: "0 8px 20px rgba(0,0,0,.25)", cursor: "pointer", fontFamily: F.b }}>📬 {mail.length}</button>}
         {nav === "hub" && <div style={{ maxWidth: TALL() ? 900 : 1440, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
           <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} />
           {TALL() && <div style={{ fontSize: TS(18), color: CL.td, textAlign: "center", marginTop: 10 }}>Turn your phone sideways for the full compound.</div>}
@@ -9858,6 +10106,28 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </Cd>
         </OL>
 
+        <OL show={mailOpen && phase !== "mail"}>{mailOpen && phase !== "mail" && mailboxView(false)}</OL>
+        <OL show={cosPickOpen && !gEnd}>
+          {cosPickOpen && <Cd style={{ borderColor: CL.gold + "77" }}>
+            <div style={{ textAlign: "center", marginBottom: 14 }}>
+              <Bg text="GOVERNMENT HOUSE · CHIEF OF STAFF" color={CL.gold} />
+              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "12px 0 4px", fontSize: TALL() ? TS(34) : TS(56), fontWeight: 600 }}>{cosOffice.history && cosOffice.history.length ? "Appoint a new Chief of Staff" : "Pick your Chief of Staff"}</h3>
+              <div style={{ fontSize: TALL() ? TS(19) : TS(30), color: CL.tm }}>Every letter that reaches you can go to them instead. Who you pick decides what is safe to hand over.</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(4,1fr)", gap: 10 }}>
+              {cosLeft.map(c => <button key={c.id} onClick={() => appointCos(c)} style={{ display: "grid", gap: 4, justifyItems: "center", textAlign: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 16, padding: "10px 8px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+                <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: TALL() ? 64 : 90, height: TALL() ? 76 : 108, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.gold + "18" }} />
+                <b style={{ fontSize: TALL() ? TS(19) : TS(28), lineHeight: 1.15 }}>{c.name}</b>
+                <span style={{ fontSize: TALL() ? TS(16) : TS(24), color: CL.gold, fontWeight: 800 }}>{c.tag}</span>
+                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.td, lineHeight: 1.3 }}>{c.file}</span>
+                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.grn }}>Good with: {c.good.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
+                <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.red }}>Weak on: {c.bad.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
+              </button>)}
+            </div>
+            {!cosLeft.length && <div style={{ fontSize: TS(30), color: CL.red, textAlign: "center", padding: 20 }}>Nobody else will take the job. Your deputy chief of staff acts.</div>}
+            {(!cosLeft.length || cosNow) && <Bt v="ghost" onClick={() => setCosPickOpen(false)} style={{ width: "100%", marginTop: 12 }}>Close</Bt>}
+          </Cd>}
+        </OL>
         <OL show={saPickerOpen}>
           <Cd style={{ borderColor: CL.gold + "77" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
@@ -10188,7 +10458,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>}
         </OL>
         <OL show={!!pflow}>
-          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
+          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </OL>
         <OL show={!!secr}>
           {secr && <SecretariatView year={turn} ministries={ministries} cases={cases} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
@@ -10301,6 +10571,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "gov" && <div className="sop-gov-grid" style={{ maxWidth: TALL() ? 900 : 1320, margin: "0 auto" }}>
           <div key={phase} id="sop-task" className="sop-step" style={{ scrollMarginTop: TALL() ? 100 : 20 }}>
 
+            {phase === "mail" && mailboxView(true)}
             {phase === "budget" && needSetup && (() => {
               const fs = TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };
               const row = (done, n, title, desc, act, actLabel, manual, manualLabel) => <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 14, padding: TALL() ? "14px 0" : "20px 0", borderTop: "1px solid " + CL.bdr }}>
@@ -10757,7 +11028,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "con" && <div className="sop-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 29 }}><Cd><h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>✅ CAN</h3>{CONST_CAN.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd><Cd><h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>❌ CANNOT</h3>{CONST_CANT.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd></div>}
 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
-        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
+        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
         {nav === "bio" && <WikiArticle w={buildWiki(false)} onShare={(k) => shareWiki(buildWiki(false), k)} />}

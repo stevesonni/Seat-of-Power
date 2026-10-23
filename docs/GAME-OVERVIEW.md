@@ -49,14 +49,19 @@ It runs in the browser, phone-first, with a laptop layout. It is also packaged f
 ## A year in office
 Each year is a chapter. The year has steps, shown as a checklist on the Desk:
 1. **Set up your government** (first year): convene the Executive Council (ministries and commissioners) and the Traditional Rulers Council. The House won't take a budget from a governor with no cabinet.
-2. **Budget.** Split the money across eight sectors.
+2. **Budget.** From Year 2 it arrives as a letter from the Commissioner for Budget & Economic Planning. With no such commissioner, Finance drafts it alone: padded lines creep in, and the letter says so. Split the money across eight sectors.
    - You can start from stance cards: the Budget Office draft, Balanced, Populist, Reformer, or the Godfather's budget.
    - The budget must add up to 100%. It warns you when a split would leave work unpaid.
    - Revenue comes from two sources: the state's own revenue (IGR) and the monthly federal allocation (FAAC).
 3. **House vote.** The House of Assembly votes on the budget. Members' loyalty drifts with your party standing, approval, unpaid salaries and corruption.
 4. **Policies.** Choose from three tabs: programmes (paid every year they run), bills, and executive orders. Unconstitutional orders are shown under "Beyond your powers".
 5. **Projects:** see "Projects" below.
-6. **Events.** Up to about four decisions a year, ranked by urgency, so the year never floods. Whatever doesn't fit is handled by your chief of staff and logged.
+6. **Mail.** The year's matters arrive as sealed letters in the Governor's mailbox on the Desk. The Desk tab shows a count (✉ 3), and a note pops up when mail lands.
+   - **Seals:** each kind of letter has its own: your agenda, the budget, the goldfields, crises, the House, the courts, Abuja, the godfather, communities, the press, invitations, investors, stalled projects and intelligence.
+   - **Your choice:** open a letter and handle it personally (the full decision card), or hand it to your Chief of Staff. They warn you first ("safe", "risky", "needs you"), and you can insist anyway.
+   - **Consequences:** a botched serious letter costs approval and party now and comes back next year. A greedy Chief of Staff may put a friend in the deal.
+   - **Stalled projects:** handed over, the Chief of Staff chases the contractor to the finish, at a premium and a slightly worse finish.
+   - **The tray:** the year moves on only when it is clear. About four matters a year still reach the tray; smaller ones are handled quietly and logged.
 7. **End the year.** Work progresses, money is paid, needs are judged, and a year review appears.
 
 **The agenda limit.** You get six major actions a year on Medium (seven on Easy, five on Hard). Major actions are starting a programme or project, signing an order, sponsoring a bill, adopting a revenue reform, creating or restructuring a ministry, and opening an investigation. Meetings, inspections and answering events are free. You can answer what matters, but not everything.
@@ -95,6 +100,14 @@ A seven-stage milestone strip shows where each project is: proposed, budget appr
 - **Ministries:** create new ones from a catalogue of 11, or restructure: merge, split, move a policy area, or set up a two-year task force. Every change moves projects, open files and staff explicitly, and a new body is slow in its first year.
 - **Secretariat cases:** an allegation becomes a case that moves through stages: meeting the official, gathering evidence, findings, decision. What actually happened is hidden. Evidence is imperfect, so a decision made on thin evidence can come back to haunt you.
 - **The godfather:** a living character who can rise to a federal post, fall out with you, defect to the opposition with House members, or die and leave his network to be inherited.
+- **The Chief of Staff:** picked on arrival at Government House, after the Special Adviser. There are four fictional candidates, each better at some letters and worse at others:
+  - **The Fixer:** the party and the House, but greedy.
+  - **The Party Matriarch:** the party, the House and communities.
+  - **The Technocrat:** budgets, crises, Abuja, projects and the goldfields, but the party distrusts him.
+  - **The Civil Service Veteran:** projects, budgets, courts and your agenda.
+
+  They improve with practice. You can fire them; a loyal one does not go quietly.
+- **Ministries you have to create:** a stadium or an esports arena cannot start without a Commissioner for Sports; your adviser says so and offers to create the ministry. A finished tourist attraction earns nothing until there is a Commissioner for Tourism to receive the visitors.
 - **The deputy:** can only be removed by the House (Section 188).
 - **Rivals, factions and institutions:** these engines run behind the scenes:
   - five named rivals with ambitions;

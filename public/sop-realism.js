@@ -136,7 +136,7 @@
     { id:"educ", name:"Education", icon:"🎓", budget:0, staff:14200, perf:55, cor:28, key:"lit" },
     { id:"agric", name:"Agriculture & Rural Dev", icon:"🌾", budget:0, staff:420, perf:50, cor:32, key:"agr" },
     { id:"sec", name:"Security & Home Affairs", icon:"🛡️", budget:0, staff:180, perf:55, cor:38, key:"sec" },
-    { id:"fin", name:"Finance & Economic Planning", icon:"💰", budget:0, staff:340, perf:60, cor:40, key:null },
+    { id:"fin", name:"Finance", icon:"💰", budget:0, staff:340, perf:60, cor:40, key:null },
     { id:"just", name:"Justice", icon:"⚖️", budget:0, staff:210, perf:55, cor:25, key:null },
     { id:"info", name:"Information & Strategy", icon:"📡", budget:0, staff:150, perf:50, cor:30, key:null },
     { id:"lg", name:"Local Government & Chieftaincy", icon:"🏘️", budget:0, staff:280, perf:45, cor:45, key:null },

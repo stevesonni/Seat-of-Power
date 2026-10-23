@@ -23,9 +23,9 @@ import { fmtM } from "./money.js";
 
 export const SECTORS = {
   roads: "Roads and transport", health: "Health facilities", education: "Schools and colleges", water: "Water and sanitation",
-  energy: "Power", markets: "Markets and housing", security: "Security equipment", waste: "Waste", industry: "Industrial estates", sports: "Sports",
+  energy: "Power", markets: "Markets and housing", security: "Security equipment", waste: "Waste", industry: "Industrial estates", sports: "Sports", tourism: "Tourism and culture",
 };
-export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports" };
+export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports", esports: "sports", tourist: "tourism" };
 
 // Simulation unit costs (₦M) and typical duration. Assumptions for play, not
 // real tender prices.
@@ -37,6 +37,7 @@ export const UNIT = {
   housing: { unit: "home", per: 18, def: 200, years: 2, nm: "Housing estate" }, vehicles: { unit: "patrol vehicle", per: 45, def: 40, years: 1, nm: "Patrol fleet" },
   cctv: { unit: "camera", per: 3, def: 400, years: 1, nm: "CCTV network" }, landfill: { unit: "site", per: 2500, def: 1, years: 2, nm: "Landfill" },
   industrial: { unit: "hectare", per: 60, def: 50, years: 2, nm: "Industrial park" }, stadium: { unit: "seat", per: .4, def: 10000, years: 3, nm: "Stadium" },
+  esports: { unit: "gaming seat", per: 2.5, def: 800, years: 1, nm: "Esports arena" }, tourist: { unit: "site", per: 1800, def: 1, years: 2, nm: "Tourist attraction" },
 };
 // Facilities that must be equipped and staffed to work.
 export const FACILITY = {
@@ -60,12 +61,12 @@ export const CONTRACTORS = [
   { id: "greatwall", name: "Great Wall Road & Rail (Nig.) Ltd", sectors: ["roads", "energy"], capacity: 4, price: .92, reliability: .75, speed: .95, quality: .65, integrity: .65, ties: "federal", note: "Fast and cheap; quality varies; comes with loan strings." },
   { id: "riverside", name: "Riverside Construction Co.", sectors: ["roads", "water", "markets"], capacity: 2, price: 1, reliability: .85, speed: .7, quality: .8, integrity: .85, ties: null, note: "Old, reliable, Nigerian-owned. Small." },
   { id: "medibuild", name: "Medibuild Health Facilities Ltd", sectors: ["health"], capacity: 2, price: 1.05, reliability: .85, speed: .7, quality: .88, integrity: .85, ties: null, note: "Hospital specialist: theatres, oxygen plants, wards built to standard." },
-  { id: "cranfield", name: "Cranfield Builders", sectors: ["education", "markets", "health", "sports"], capacity: 3, price: .98, reliability: .75, speed: .8, quality: .72, integrity: .75, ties: null, note: "Good on schools and urban work; stretched on big jobs." },
+  { id: "cranfield", name: "Cranfield Builders", sectors: ["education", "markets", "health", "sports", "tourism"], capacity: 3, price: .98, reliability: .75, speed: .8, quality: .72, integrity: .75, ties: null, note: "Good on schools and urban work; stretched on big jobs." },
   { id: "aquaplus", name: "AquaPlus Water Engineering", sectors: ["water", "waste"], capacity: 3, price: 1, reliability: .8, speed: .75, quality: .8, integrity: .8, ties: null, note: "Boreholes, treatment plants, landfills." },
   { id: "sunline", name: "Sunline Power Systems", sectors: ["energy"], capacity: 2, price: 1.1, reliability: .85, speed: .7, quality: .86, integrity: .85, ties: null, note: "Solar and grid work, development-bank approved." },
   { id: "danbala", name: "Danbala & Partners", sectors: ["roads", "education", "water", "markets"], capacity: 3, price: 1.03, reliability: .7, speed: .75, quality: .7, integrity: .7, ties: "local", note: "Decent execution; well connected in the local governments." },
   { id: "sentry", name: "Sentry Security Systems", sectors: ["security"], capacity: 3, price: 1, reliability: .85, speed: .9, quality: .8, integrity: .8, ties: null, note: "Vehicles, cameras and control rooms." },
-  { id: "bastion", name: "Bastion Construction", sectors: ["roads", "education", "health", "markets", "sports", "water"], capacity: 5, price: 1.12, reliability: .55, speed: .6, quality: .55, integrity: .4, ties: "party", note: "The party's favourite contractor. Will take any job." },
+  { id: "bastion", name: "Bastion Construction", sectors: ["roads", "education", "health", "markets", "sports", "water", "tourism"], capacity: 5, price: 1.12, reliability: .55, speed: .6, quality: .55, integrity: .4, ties: "party", note: "The party's favourite contractor. Will take any job." },
   { id: "rainbow", name: "Rainbow Ventures Ltd", sectors: Object.keys(SECTORS), capacity: 9, price: 1.4, reliability: .35, speed: .5, quality: .4, integrity: .1, ties: "family", nepotism: true, note: "Owned by your spouse's cousin." },
   { id: "muhammad", name: "Alhaji Muhammad & Sons Ltd", sectors: Object.keys(SECTORS), capacity: 9, price: 1.3, reliability: .45, speed: .55, quality: .45, integrity: .15, ties: "godfather", nepotism: true, note: "The godfather's front company." },
 ];

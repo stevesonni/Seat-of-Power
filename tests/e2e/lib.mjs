@@ -21,7 +21,17 @@ export async function open(port, { test = {}, seed = 7, phone = true, save } = {
   const errors = []; page.on("pageerror", e => errors.push(e.message));
   await page.goto(`http://localhost:${port}/seat-of-power.html`); await page.waitForTimeout(1500);
   const txt = () => page.evaluate(() => document.body.innerText);
-  const click = (re) => page.evaluate((src) => { const rx = new RegExp(src); const b = [...document.querySelectorAll("button")].find(x => rx.test(x.textContent.trim()) && !x.disabled && x.offsetParent); if (!b) return false; b.scrollIntoView(); b.click(); return b.textContent.trim().slice(0, 60); }, re.source);
+  // Clicks only a button a player could reach: not one hidden behind an open sheet.
+  const click = (re) => page.evaluate((src) => {
+    const rx = new RegExp(src);
+    for (const b of [...document.querySelectorAll("button")].filter(x => rx.test(x.textContent.trim()) && !x.disabled && x.offsetParent)) {
+      b.scrollIntoView({ block: "center" });
+      const r = b.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (el && !b.contains(el) && !el.contains(b)) continue;
+      b.click(); return b.textContent.trim().slice(0, 60);
+    }
+    return false;
+  }, re.source);
   const buttons = () => page.evaluate(() => [...document.querySelectorAll("button")].filter(b => b.offsetParent && !b.disabled).map(b => b.textContent.trim().replace(/\s+/g, " ").slice(0, 60)));
   const wait = (ms = 350) => page.waitForTimeout(ms);
   return { browser, page, errors, txt, click, buttons, wait };
@@ -54,7 +64,7 @@ export async function takeOffice(g) {
    House vote, policies, end of year, continue; otherwise the first offered
    choice (a button, or a clickable choice card). Returns the click log. */
 const SKIP = /^(☰|Compound|Govern|News|Desk|Map|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Personas|Stakeholders|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|Less$|▼$|▲$|Open the council$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
-const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^Done: end the year/, /^Continue$/];
+const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound)$/, /^✍️ Handle it personally$/, /^.{6,}(Open|Urgent)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/];
 export async function playUntil(g, until, { max = 400, prefer = [], log = false } = {}) {
   const clicks = [];
   for (let i = 0; i < max; i++) {

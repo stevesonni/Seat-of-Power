@@ -33,6 +33,8 @@ const lendUntilOffer = async (g) => {
   return !!(await g.click(/^Accept and receive/));
 };
 const ROAD = "500km Road Network";
+// Close any outcome card on top, as a player would, before the next click.
+const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|On to the next.*)$/); i++) await g.wait(350); };
 const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(600); };
 
 // ── Money: with money in the bank, a project is paid from it and nothing is borrowed ──
@@ -98,6 +100,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await g.wait(800);
   b = await bubbles(g);
   check(b.some(x => /next step is to review its procurement/.test(x)), "5. the adviser moves on to procurement");
+  await clear(g);
   check(!!(await g.click(/^Review road procurement$/)), "2. 'Review road procurement' opens procurement");
   await g.wait(400);
   check(/Award the contract/.test(await g.txt()), "3. bidders shown for this project");
@@ -147,6 +150,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   let p = await proj(g, ROAD);
   check(p && p.migrated && p.estimateM === 8100 && p.status === "pending_procurement", "8. the old stuck project is repaired on load (" + (p && p.status) + ")");
   await playUntil(g, t => /Review road procurement/.test(t), { max: 40, prefer: [/^Tell the communities first/, /^Decide later this year$/] });
+  await clear(g);
   check(!!(await g.click(/^Review road procurement$/)), "8. the adviser offers 'Review road procurement' for the old project");
   await g.wait(400);
   check(/Award the contract/.test(await g.txt()), "8. it opens procurement with bidders, not an empty list");
@@ -166,6 +170,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await playUntil(g, t => /every lender has turned down/i.test(t), { max: 40, prefer: [/^Tell the communities first/, /^Decide later this year$/] });
   const b = await bubbles(g);
   check(b.some(x => /every lender has turned down Ring Road/.test(x)), "9. the adviser explains the blocker: " + (b.find(x => /lender/.test(x)) || b[0]));
+  await clear(g);
   check(!!(await g.click(/^Revise the scope$/)), "9. its button opens the project");
   await g.wait(400);
   const t = await g.txt();

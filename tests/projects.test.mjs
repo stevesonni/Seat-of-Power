@@ -133,3 +133,12 @@ test("when every lender says no, fitting the scope leads to procurement, never b
   assert.equal(nextStep(r.p, { tried: all, lenders: LENDERS, projects: [] }).id, "contractor");
   const no = fitScope(p, 1, 1); assert.equal(no.ok, false); assert.match(no.why, /Defer it/);
 });
+// Projects that need their own commissioner: esports and tourist sites read from plain words.
+import { parseProposal as parseP2 } from "../game/systems/proposals.js";
+import { TYPE_SECTOR as TS2, UNIT as U2 } from "../game/systems/projects.js";
+test("an esports arena and a tourist attraction are projects the state can build", () => {
+  assert.equal(parseP2("an esports arena in Ikeja", { lgas: ["Ikeja"] }).proposal.type, "esports");
+  assert.equal(parseP2("a beach resort", {}).proposal.type, "tourist");
+  assert.equal(parseP2("a 20,000 seat stadium", {}).proposal.type, "stadium");
+  ["esports", "tourist"].forEach(k => { assert.ok(U2[k]); assert.ok(TS2[k]); });
+});

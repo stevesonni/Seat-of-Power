@@ -8,6 +8,8 @@
 import { UNIT, FACILITY, SECTORS, TYPE_SECTOR, estimate } from "./projects.js";
 
 const TYPE_WORDS = [
+  ["esports", /\b(e-?sports?|gaming (arena|cent(re|er)|hub))\b/i],
+  ["tourist", /\b(tourists?|tourism|resorts?|heritage sites?|museums?|beach(es)?|attractions?)\b/i],
   ["hospital", /\b(hospital|clinic|health ?cent(re|er)s?|phc|maternity|medical cent(re|er)|wards?|beds?)\b/i],
   ["school", /\b(schools?|classrooms?|college|secondary|primary school|laborator(y|ies)|hostels?)\b/i],
   ["bridge", /\b(bridges?|flyovers?|overpass)\b/i],
@@ -50,6 +52,8 @@ const BENEFIT = {
   landfill: () => "Refuse collected and buried properly; fewer floods from blocked drains.",
   industrial: (q) => q + " hectares serviced for factories; jobs if investors come.",
   stadium: (q) => q.toLocaleString() + " seats; events bring visitors and some revenue.",
+  esports: (q) => q.toLocaleString() + " gaming seats; tournaments draw young people and sponsors.",
+  tourist: () => "A site that brings visitors, hotels and spending, if someone manages the tourists.",
 };
 
 export const parseProposal = (text, { lgas = [] } = {}) => {

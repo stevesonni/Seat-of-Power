@@ -483,6 +483,25 @@ The files are in `public/art/{characters,backgrounds,objects}`, and every one is
 - **End of the first half-year:** "Your first half-year" sums up what was done and sets one next goal.
 - **The one thing to do next:** the hub's next building pulses, and the first-half-year guide has **Show me**, which scrolls to the task and flashes it. Both respect reduced motion.
 
+## The Governor's mailbox and the Chief of Staff
+- **Rules:** `game/systems/chief.js`, tested in `tests/chief.test.mjs`.
+- **Browser test:** `tests/e2e/mail.mjs` (`npm run e2e:mail`).
+- **The Chief of Staff:** picked on arrival from four fictional candidates; each is better at some kinds of letter and worse at others. They can be fired; the loyal ones cost party stability on the way out.
+- **Letters:**
+  - The year's matters arrive as letters after the year closes, and the tray must be clear before the next year.
+  - The next budget is a letter, from Budget & Economic Planning (a new ministry in the catalogue) or, without one, from Finance with padding.
+  - The goldfields beat is a letter, not a pop-up. So are stalled projects and the tourism notice.
+  - The Desk tab shows the count; a note pops up when mail lands.
+- **Handing a letter over:** the Chief of Staff warns first (safe, risky, needs you), and you can insist anyway.
+  - The outcome depends on their competence, their fit for that kind of letter, the stakes and their experience.
+  - A botched serious letter returns as fallout next year.
+  - Greed can add corruption.
+  - A stalled project handed over is finished at a premium, or half the money is lost.
+- **Delayed effects fixed:** delayed effects (programme payoffs and fallout) were stored but never applied. They now land at the start of the year they are due.
+- **New project types:** an esports arena and a tourist attraction.
+  - Stadiums and esports arenas cannot start without a Sports ministry.
+  - A finished tourist site earns nothing until a Tourism ministry exists. It earns once that ministry is created.
+
 ## Master brief (living state) — what is built
 Rules live in `game/systems/` (no screen code; `window.SOP_SYS` in the game). Unit tests: `npm test`. Browser playthroughs: `npm run build:game && npm run e2e`.
 
