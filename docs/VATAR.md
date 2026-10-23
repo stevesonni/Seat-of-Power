@@ -30,7 +30,17 @@ Each product sells more play, never a better result, so titles, honours and the 
 | `challenge_retry` | consumable | ₦100 | Extra Challenge Attempt | One more run at this week's challenge (the first each week is free). The best score of the week counts. |
 | `second_chance` | consumable | ₦500 | Second Chance | Rerun a lost re-election, once per game. The career is marked in the Hall, earns no second-term points or "Second term" honour, and it can't be used in a challenge run. |
 | `scenario_pack` | one-off | ₦1,000 | Crisis Scenarios | Four starts: The Oil Crash, The Cholera Year, The Flood Year, The Broke State. |
+| `scenario_security` | one-off | ₦1,000 | Security Pack | Three starts: The Bandit Corridor, The School Abduction, The Sit-at-Home. |
+| `scenario_election` | one-off | ₦1,000 | Election Pack | Three starts: The Narrow Win (tribunal petition), The Hostile House, The Godfather's Candidate. |
+| `portrait_frames` | one-off | ₦100 | Official Portrait Frames | Four frames for the player's portrait (Gold Big Man, Pink Glam, Owambe, Green & White). Shown on the title, the arrival, the end screen and the wiki. |
 | `presidential_run` | one-off | ₦1,500 | Road to Aso Rock | The presidential run after a governorship. |
+
+**Create later, once the art is in** (see `docs/ART-ATTIRE.md`): each look shows up in the pickers only when its picture exists.
+
+| productId | Kind | Price | Name to show | What the player gets |
+|---|---|---|---|---|
+| `attire_glam` | one-off | ₦300 | Glam Pack | Pink Power, Pink Agbada, Owambe Queen, Owambe King. |
+| `attire_bigboy` | one-off | ₦300 | Big Boy Pack | Big Boy, Odogwu, Big Girl, Lagos Baddie. |
 
 **Free, to bring players back:** the weekly challenge.
 - **What it is:** a new state every Monday at 00:00 UTC, the same seeded luck for everyone, on Medium, set up by Quick start.

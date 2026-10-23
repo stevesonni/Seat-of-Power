@@ -2024,10 +2024,11 @@ const ProfileForm = ({ initial, onSave, onCancel }) => {
   return <EntranceSheet title={initial ? "Edit your politician" : "Create your politician"} onClose={onCancel}>
     <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 12 }}>This is you in every campaign you run. You can change it any time.</div>
     <div style={{ display: "grid", gridTemplateColumns: tall ? "repeat(3,1fr)" : "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
-      {AVATARS.map((a, i) => {
+      {pickLooks().map((a, i) => {
         const on = avatar === a.id;
-        return <button key={a.id} onClick={() => setAvatar(a.id)} aria-label={a.label} aria-pressed={on} style={{ position: "relative", padding: 0, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 20, background: UI.tints[i % UI.tints.length], aspectRatio: "3 / 4", overflow: "hidden", cursor: "pointer" }}>
+        return <button key={a.id} onClick={() => pickLook(a, setAvatar)} aria-label={a.label} aria-pressed={on} style={{ position: "relative", padding: 0, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 20, background: UI.tints[i % UI.tints.length], aspectRatio: "3 / 4", overflow: "hidden", cursor: "pointer" }}>
           <img src={AVATAR_IMGS[a.id]} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+          <LookLock a={a} />
           {on && <span style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: 13, background: UI.dark, color: "#fff", display: "grid", placeItems: "center", fontSize: 14, fontWeight: 700 }}>✓</span>}
         </button>;
       })}
@@ -2098,12 +2099,24 @@ const CH_STATES = Object.keys(STATES).filter(k => ["Medium", "Hard"].includes(ST
 const challengeOf = (w) => ({ week: w, state: CH_STATES[((w % CH_STATES.length) + CH_STATES.length) % CH_STATES.length], seed: w * 7919 + 13 });
 const nativeRandom = Math.random;
 const seedRandom = (seed) => { if (seed == null) { Math.random = nativeRandom; return; } let x = (Math.abs(seed) % 2147483646) + 1; Math.random = () => (x = (x * 16807) % 2147483647) / 2147483647; };
+// Each scenario belongs to a pack: one Lagos Life product per pack (₦1,000 each).
+const SCENARIO_PACKS = [
+  { id: "scenario_pack", nm: "Crisis Scenarios", price: "₦1,000" },
+  { id: "scenario_security", nm: "Security Pack", price: "₦1,000" },
+  { id: "scenario_election", nm: "Election Pack", price: "₦1,000" },
+];
 const SCENARIOS = [
   { id: "oil_crash", icon: "🛢️", nm: "The Oil Crash", d: "Oil fell before you took office. FAAC comes in at 60%, and the debt you inherit is half as big again.", start: { faacMul: .6, debtMul: 1.5 } },
   { id: "cholera", icon: "🦠", nm: "The Cholera Year", d: "An outbreak is spreading through the wards as you take the oath. Health is far below where it should be, and people are frightened.", start: { hp: -.15, app: -6 } },
   { id: "flood", icon: "🌊", nm: "The Flood Year", d: "The rivers broke their banks in the rainy season. Roads and farms are washed out across the state.", start: { infra: -.12, agr: -.1, app: -4 } },
   { id: "broke", icon: "💸", nm: "The Broke State", d: "The last government stopped paying salaries three months ago and borrowed to the limit. The unions are already counting.", start: { debtMul: 1.6, arrears: 3, cor: .08 } },
-];
+  { pack: "scenario_security", id: "bandit_corridor", icon: "🏜️", nm: "The Bandit Corridor", d: "Gunmen control the highways between your main towns. Farmers have fled their fields and travellers pay to pass.", start: { sec: -.2, agr: -.08, app: -5 } },
+  { pack: "scenario_security", id: "school_abduction", icon: "🏫", nm: "The School Abduction", d: "Two weeks before your swearing-in, pupils were taken from a boarding school. Every parent in the state is watching what you do first.", start: { sec: -.12, lit: -.06, app: -8, pStab: -6 } },
+  { pack: "scenario_security", id: "sit_at_home", icon: "🚫", nm: "Sit-at-Home Mondays", d: "Every Monday the markets close and the streets empty. Traders lose a day a week, and so does your revenue.", start: { igrMul: .75, sec: -.05, app: -3 } },
+  { pack: "scenario_election", id: "narrow_win", icon: "⚖️", nm: "The Narrow Win", d: "You won by less than one percent. Your opponent's lawyers filed before the confetti was swept up.", start: { margin: .8 } },
+  { pack: "scenario_election", id: "hostile_house", icon: "🏛️", nm: "The Hostile House", d: "You won the governorship, but your party lost the House of Assembly. Only about a third of the members are with you.", start: { houseLoyal: .34, pStab: -5 } },
+  { pack: "scenario_election", id: "godfather_candidate", icon: "🎩", nm: "The Godfather's Candidate", d: "He chose you, paid for everything, and the party did as he said. He expects contracts in your first month.", start: { cor: .12, pStab: 6, app: -4 } },
+].map(x => ({ pack: "scenario_pack", ...x }));
 const scenarioStart = (setup) => { const m = setup && setup.mode; return m && m.kind === "scenario" ? (SCENARIOS.find(x => x.id === m.id) || {}).start || {} : {}; };
 const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScenario, onBoard, profile, setProfile }) => {
   useMode("public");
@@ -2116,7 +2129,8 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
   const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
   useEffect(() => { const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f); return () => window.removeEventListener("sop-ents", f); }, []);
   const paidHere = VATAR && window.SOP_canBuy && window.SOP_canBuy();
-  const scenariosLocked = paidHere && !(ents.scenario_pack > 0);
+  const packLocked = (id) => paidHere && !(ents[id] > 0);
+  const scenariosLocked = SCENARIO_PACKS.every(k => packLocked(k.id));
   const ch = challengeOf(weekNow());
   useEffect(() => {
     setTimeout(() => setOp(1), 100);
@@ -2142,7 +2156,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
     <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
         <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: profile ? "4px 16px 4px 4px" : "10px 18px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", maxWidth: "60%" }}>
-          {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0] }} /> : <span aria-hidden="true">👤</span>}
+          {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 2 : undefined }} /> : <span aria-hidden="true">👤</span>}
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
         </button>
         <button onClick={onHelp} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "10px 20px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer" }}>How to play</button>
@@ -2157,24 +2171,37 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
         <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         <PillBtn tone="plain" onClick={() => onChallenge(profile)} style={{ width: "100%", maxWidth: 460 }}>🏆 This week's challenge<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{stateLabel(ch.state)} · the same start and the same luck for everyone · week {ch.week}</span></PillBtn>
         <div style={{ display: "flex", gap: 10, width: "100%", maxWidth: 460 }}>
-          <PillBtn tone="plain" onClick={() => setSheet("scenarios")} style={{ flex: 1 }}>📜 Crisis scenarios{scenariosLocked ? " · ₦1,000" : ""}</PillBtn>
+          <PillBtn tone="plain" onClick={() => setSheet("scenarios")} style={{ flex: 1 }}>📜 Scenarios{scenariosLocked ? " · from ₦1,000" : ""}</PillBtn>
           {paidHere && <PillBtn tone="plain" onClick={onBoard} style={{ flex: 1 }}>📊 This week's board</PillBtn>}
         </div>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
-      {sheet === "scenarios" && <EntranceSheet title="Crisis scenarios" onClose={() => setSheet(null)}>
+      {sheet === "scenarios" && <EntranceSheet title="Scenarios" onClose={() => setSheet(null)}>
         <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Start a governorship in the middle of a crisis. Harder than a normal start; your titles and honours count the same.</div>
-        <div style={{ display: "grid", gap: 8 }}>{SCENARIOS.map(sc => <button key={sc.id} className="sp-opt" disabled={scenariosLocked} onClick={() => { setSheet(null); onScenario(profile, sc.id); }}><b style={{ display: "block", fontSize: 16 }}>{sc.icon} {sc.nm}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{sc.d}</span></button>)}</div>
-        {scenariosLocked && <PillBtn onClick={() => window.SOP_buy("scenario_pack").catch(() => {})} style={{ width: "100%", marginTop: 12 }}>Unlock all four · ₦1,000</PillBtn>}
+        {SCENARIO_PACKS.map(k => <div key={k.id} style={{ marginBottom: 14 }}>
+          <b style={{ display: "block", fontFamily: F.d, fontSize: TS(26), margin: "4px 0 6px" }}>{k.nm}{packLocked(k.id) ? " · " + k.price : ""}</b>
+          <div style={{ display: "grid", gap: 8 }}>{SCENARIOS.filter(x => x.pack === k.id).map(sc => <button key={sc.id} className="sp-opt" disabled={packLocked(k.id)} onClick={() => { setSheet(null); onScenario(profile, sc.id); }}><b style={{ display: "block", fontSize: 16 }}>{sc.icon} {sc.nm}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{sc.d}</span></button>)}</div>
+          {packLocked(k.id) && <PillBtn onClick={() => window.SOP_buy(k.id).catch(() => {})} style={{ width: "100%", marginTop: 8 }}>Unlock the {k.nm} · {k.price}</PillBtn>}
+        </div>)}
       </EntranceSheet>}
       {sheet === "profile" && <ProfileForm initial={profile} onCancel={() => setSheet(null)} onSave={(p) => { setProfile(p); saveProfile(p); setSheet(null); }} />}
       {sheet === "me" && profile && <EntranceSheet title={"Hon. " + profile.first + " " + profile.last} onClose={() => setSheet(null)}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
-          <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0] }} />
+          <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 3 : undefined }} />
           <div style={{ flex: 1, fontSize: DS.t.label, color: UI.sub }}>{[profile.origin ? stateLabel(profile.origin) + " origin" : null, profile.leaning ? profile.leaning + " leaning" : null].filter(Boolean).join(" · ") || "No home state or party yet"}<div>New games start with your name, portrait{profile.origin ? ", state" : ""}{profile.leaning ? " and party" : ""} filled in.</div></div>
           <button onClick={() => setSheet("profile")} style={{ border: "1px solid " + UI.line, background: "#fff", borderRadius: 999, padding: "10px 16px", minHeight: 44, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", color: UI.ink, fontFamily: F.b }}>Edit</button>
+        </div>
+        <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🖼️ Portrait frame</b>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
+          {FRAMES.map(fr => { const on = (profile.frame || null) === fr.id; const locked = fr.id && packLocked("portrait_frames");
+            return <button key={fr.nm} disabled={locked} onClick={() => { const p = { ...profile, frame: fr.id }; window.SOP_FRAME = fr.id; setProfile(p); saveProfile(p); }} aria-pressed={on} title={fr.nm}
+              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: "2px solid " + (on ? UI.dark : "transparent"), background: "transparent", borderRadius: 16, padding: 4, cursor: locked ? "default" : "pointer", opacity: locked ? .55 : 1, color: UI.ink, fontFamily: F.b }}>
+              <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(fr.id), borderWidth: fr.id ? 3 : undefined }} />
+              <span style={{ fontSize: DS.t.meta, fontWeight: 700 }}>{locked ? "🔒 " : ""}{fr.nm}</span>
+            </button>; })}
+          {packLocked("portrait_frames") && <PillBtn onClick={() => window.SOP_buy("portrait_frames").catch(() => {})}>Unlock all 4 frames · ₦100</PillBtn>}
         </div>
         <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🏅 Titles</b>
         {(() => { const got = new Set((profile.games || []).map(g => g.title)); return <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }} aria-label={got.size + " of " + ALL_TITLES.length + " titles earned"}>
@@ -2211,7 +2238,7 @@ const AVATAR_IMGS = {
   f_kaftan: "./art/characters/governor-female-kaftan.webp",
   f_suit: "./art/characters/governor-female-suit.webp",
 };
-const isFemaleAvatar = (id) => id === "female" || /^f_/.test(String(id || ""));
+const isFemaleAvatar = (id) => id === "female" || /^f_/.test(String(id || "")) || !!(typeof ATTIRE !== "undefined" && (ATTIRE.find(a => a.id === id) || {}).female);
 const TITLE_DUO = "/__l5e/assets-v1/cb3369c8-37de-4d02-8d08-5b71848e1c21/title-duo.png";
 const CREST = "./art/brand/state-seal.webp";
 const TITLE_LOGO = "./art/brand/title-logo.webp";
@@ -2283,6 +2310,39 @@ const saPortrait = (name) => {
   const first = String(name || "").replace(/^(Dr|Barr|Mallam|Ms|Mrs|Prof|Alh|Engr|Comrade|Hajiya|Otunba|Amb|Mai)\.?\s+/, "").split(" ")[0];
   return FEMALE_FIRST.includes(first) ? SA_PORTRAIT : "./art/characters/commissioner-male-suit.webp";
 };
+/* ── Looks for vanity (Lagos Life products) ──
+   Official portrait frames (portrait_frames, ₦100): drawn in CSS, live now.
+   Attire packs (attire_glam, attire_bigboy, ₦300 each): new outfits. Each look appears
+   in the pickers only once its picture is in public/art/characters (ready: true). */
+const FRAMES = [
+  { id: null, nm: "No frame" },
+  { id: "gold", nm: "Gold Big Man", st: { border: "5px solid #e9b949", boxShadow: "0 0 0 3px #7a5b12, 0 0 22px rgba(233,185,73,.85)", background: "radial-gradient(circle, #fff3c4, #e9b949)" } },
+  { id: "pink", nm: "Pink Glam", st: { border: "5px solid #ff5fb2", boxShadow: "0 0 0 3px #fff, 0 0 24px rgba(255,95,178,.85)", background: "linear-gradient(180deg, #ffe0f0, #ff9bd0)" } },
+  { id: "owambe", nm: "Owambe", st: { border: "5px double #8e44ad", boxShadow: "0 0 0 3px #e9b949, 0 0 20px rgba(142,68,173,.6)", background: "linear-gradient(180deg, #f3e6ff, #f0d37a)" } },
+  { id: "naija", nm: "Green & White", st: { border: "5px solid #0b6b42", boxShadow: "0 0 0 4px #fff, 0 0 0 7px #0b6b42", background: "linear-gradient(90deg, #0b6b42 33%, #fff 33% 66%, #0b6b42 66%)" } },
+];
+const frameStyle = (id) => (FRAMES.find(f => f.id === (id === undefined ? (window.SOP_FRAME || null) : id)) || {}).st || {};
+const ATTIRE = [
+  { id: "x_pink_power", pack: "attire_glam", label: "Pink Power", desc: "All pink, pink hair", female: true, ready: false },
+  { id: "x_pink_agbada", pack: "attire_glam", label: "Pink Agbada", desc: "Pink agbada and cap", ready: false },
+  { id: "x_owambe_queen", pack: "attire_glam", label: "Owambe Queen", desc: "Gold aso-oke, towering gele", female: true, ready: false },
+  { id: "x_owambe_king", pack: "attire_glam", label: "Owambe King", desc: "Gold aso-oke agbada and fila", ready: false },
+  { id: "x_big_boy", pack: "attire_bigboy", label: "Big Boy", desc: "White agbada, gold chains, shades", ready: false },
+  { id: "x_odogwu", pack: "attire_bigboy", label: "Odogwu", desc: "Sharp suit, gold chain, gold watch, shades", ready: false },
+  { id: "x_big_girl", pack: "attire_bigboy", label: "Big Girl", desc: "Power suit, oversized shades, gold jewellery", female: true, ready: false },
+  { id: "x_lagos_baddie", pack: "attire_bigboy", label: "Lagos Baddie", desc: "Bold gown, shades, gold chains", female: true, ready: false },
+];
+ATTIRE.filter(a => a.ready).forEach(a => { AVATAR_IMGS[a.id] = "./art/characters/governor-" + a.id.slice(2).replace(/_/g, "-") + ".webp"; });
+const ATTIRE_PACKS = [{ id: "attire_glam", nm: "Glam Pack", price: "₦300" }, { id: "attire_bigboy", nm: "Big Boy Pack", price: "₦300" }];
+const ownsLook = (a, ents) => !a.pack || !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ((ents || window.SOP_ENTS || {})[a.pack] > 0);
+const pickLooks = () => [...AVATARS, ...ATTIRE.filter(a => a.ready)];
+/* A locked look opens the purchase for its pack instead of being picked. */
+const pickLook = (a, set) => {
+  if (ownsLook(a)) return set(a.id);
+  const k = ATTIRE_PACKS.find(x => x.id === a.pack);
+  window.SOP_confirm("The " + k.nm + " unlocks this look and the others in it for " + k.price + ".", "Unlock · " + k.price, "Not now").then(ok => ok && window.SOP_buy(k.id).then(() => set(a.id)).catch(() => {}));
+};
+const LookLock = ({ a }) => ownsLook(a) ? null : <span style={{ position: "absolute", left: 6, right: 6, bottom: 6, borderRadius: 12, background: "rgba(10,24,16,.78)", color: "#fff", fontSize: 12, fontWeight: 800, padding: "4px 6px", textAlign: "center" }}>🔒 {(ATTIRE_PACKS.find(x => x.id === a.pack) || {}).price}</span>;
 const AVATARS = [
   { id: "agbada", label: "Agbada", desc: "Yoruba formal attire" },
   { id: "female", label: "Gele & iro", desc: "Yoruba formal attire" },
@@ -2587,10 +2647,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       cta={() => setStep(25)} ctaDisabled={!ready} ctaLabel="Continue"
       ctaNote={!avatar ? "Pick a portrait" : !(firstNm.trim() && lastNm.trim()) ? "Type a first and last name" : homeDistrict == null ? "Pick your home district" : <span>On the ticket: <b style={{ color: UI.ink }}>{lastNm.trim().toUpperCase()} / DEPUTY</b></span>}>
       <div style={{ display: "grid", gridTemplateColumns: TALL() ? "repeat(3,1fr)" : "repeat(auto-fill,minmax(150px,1fr))", gap: 10, marginBottom: 20 }}>
-        {AVATARS.map((a, i) => {
+        {pickLooks().map((a, i) => {
           const on = avatar === a.id;
-          return <button key={a.id} onClick={() => setAvatar(a.id)} aria-label={a.label} style={{ position: "relative", padding: 0, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 24, background: UI.tints[i % UI.tints.length], overflow: "hidden", cursor: "pointer", aspectRatio: "3 / 4", boxShadow: on ? "0 10px 22px rgba(18,48,31,.16)" : "none" }}>
+          return <button key={a.id} onClick={() => pickLook(a, setAvatar)} aria-label={a.label} style={{ position: "relative", padding: 0, border: "2px solid " + (on ? UI.dark : "transparent"), borderRadius: 24, background: UI.tints[i % UI.tints.length], overflow: "hidden", cursor: "pointer", aspectRatio: "3 / 4", boxShadow: on ? "0 10px 22px rgba(18,48,31,.16)" : "none" }}>
             <img src={AVATAR_IMGS[a.id]} alt="" style={{ position: "absolute", left: 0, right: 0, bottom: 0, margin: "0 auto", width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />
+            <LookLock a={a} />
             {on && <span style={{ position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, background: UI.dark, color: "#fff", display: "grid", placeItems: "center", fontSize: 15, fontWeight: 700 }}>✓</span>}
           </button>;
         })}
@@ -3282,7 +3343,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         <div style={{ maxWidth: 912, margin: "120px auto", textAlign: "center" }}>
           <SceneArt bg="government-house" h={TALL() ? 220 : 300} />
           {/* The arrival: your portrait, your new title, the mandate you won. */}
-          <img src={AVATAR_IMGS[avatar]} alt={nm} className="sop-pop" style={{ width: TALL() ? 110 : 150, height: TALL() ? 140 : 190, objectFit: "cover", objectPosition: "top", borderRadius: 24, border: "5px solid #fff", boxShadow: "0 12px 30px rgba(18,48,31,.28)", margin: TALL() ? "-70px auto 10px" : "-90px auto 14px", display: "block", position: "relative", background: UI.tints[3] }} />
+          <img src={AVATAR_IMGS[avatar]} alt={nm} className="sop-pop" style={{ width: TALL() ? 110 : 150, height: TALL() ? 140 : 190, objectFit: "cover", objectPosition: "top", borderRadius: 24, border: "5px solid #fff", boxShadow: "0 12px 30px rgba(18,48,31,.28)", margin: TALL() ? "-70px auto 10px" : "-90px auto 14px", display: "block", position: "relative", background: UI.tints[3], ...frameStyle() }} />
           <div style={{ fontSize: TS(TALL() ? 26 : 32), letterSpacing: 2, textTransform: "uppercase", color: CL.td, fontWeight: 800 }}>Executive Governor of {(st || "").replace("_", " ")} State</div>
           <h2 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(94), fontWeight: 700, margin: "4px 0 10px" }}>Welcome to Government House</h2>
           {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
@@ -3494,7 +3555,7 @@ const WikiArticle = ({ w, onShare }) => {
   const box = <table style={{ float: tall ? "none" : "right", width: tall ? "100%" : 420, margin: tall ? "0 0 22px" : "0 0 22px 29px", border: "1px solid #a2a9b1", background: "#f8f9fa", borderCollapse: "collapse", fontSize: TS(29), fontFamily: "sans-serif", color: "#202122" }}>
     <tbody>
       <tr><th colSpan={2} style={{ fontSize: TS(36), padding: "10px 8px", textAlign: "center", fontFamily: WIKI_SERIF, fontWeight: 400 }}>{w.title}</th></tr>
-      {w.portrait && <tr><td colSpan={2} style={{ textAlign: "center", padding: 8 }}><img src={w.portrait} alt={w.title} style={{ maxWidth: "70%", maxHeight: 300, objectFit: "contain", background: "#eaecf0" }} /><div style={{ fontSize: TS(25), color: "#54595d" }}>{w.title} in {w.startYear}</div></td></tr>}
+      {w.portrait && <tr><td colSpan={2} style={{ textAlign: "center", padding: 8 }}><img src={w.portrait} alt={w.title} style={{ ...frameStyle(), maxWidth: "70%", maxHeight: 300, objectFit: "contain", background: "#eaecf0" }} /><div style={{ fontSize: TS(25), color: "#54595d" }}>{w.title} in {w.startYear}</div></td></tr>}
       <tr><th colSpan={2} style={{ background: "#cee0f2", padding: "6px 8px", textAlign: "center" }}>{w.office}</th></tr>
       <tr><td colSpan={2} style={{ textAlign: "center", padding: "6px 8px", fontWeight: 700 }}>{w.inOffice}</td></tr>
       {w.rows.map(([k, v]) => <tr key={k}><th style={{ textAlign: "left", verticalAlign: "top", padding: "5px 8px", width: "38%" }}>{k}</th><td style={{ padding: "5px 8px" }}>{v}</td></tr>)}
@@ -4121,7 +4182,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const ld = loadedSave; // shorthand
   const [turn, setTurn] = useState(ld?.turn || 1);
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: sd.lit, hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: sd.sec, agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: sd.igr, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: startingStab || 65,
+  const [s, setS] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
@@ -4644,7 +4705,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── Statecraft engine (salaries and FAAC, promises, cabinet balance, the
   // House, state crises, succession). Runs once a year when the
   // events are built; its decisions arrive as "sc" cards.
-  const [stc, setStc] = useState(() => ld?.stc || { oldDebt: { total: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, kind: null }, lastTurn: 0, arrears: scenarioStart(setup).arrears || 0, arrearsMax: scenarioStart(setup).arrears || 0, ultimatum: false, strike: false, house: null, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
+  const [stc, setStc] = useState(() => ld?.stc || { oldDebt: { total: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, kind: null }, lastTurn: 0, arrears: scenarioStart(setup).arrears || 0, arrearsMax: scenarioStart(setup).arrears || 0, house: scenarioStart(setup).houseLoyal ? { seats: houseSeats(sd.pop || 5), loyal: Math.round(houseSeats(sd.pop || 5) * scenarioStart(setup).houseLoyal) } : null, ultimatum: false, strike: false, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
   const [scCards, setScCards] = useState([]);
   const [revOpen, setRevOpen] = useState(false);
   const [promOpen, setPromOpen] = useState(false);
@@ -5051,7 +5112,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       next.petition = { term, stage: 0, margin, opp, oppParty, start: turn, lostBelow: false };
       notes.push(["⚖️ " + opp + " (" + oppParty + ") has filed a petition against your " + (term === 1 ? "election" : "re-election") + ", citing your " + margin + "% margin.", "crisis"]);
     };
-    if (turn === 1 && !next.pet1 && setup?.election && setup.election.marginPct < 5) { next.pet1 = true; startPet(1, setup.election.marginPct, String(setup.election.opp || "The opposition candidate").replace(/^Hon\. /, ""), setup.election.oppParty || "OPP"); }
+    const m1 = scenarioStart(setup).margin != null ? scenarioStart(setup).margin : setup?.election?.marginPct;
+    if (turn === 1 && !next.pet1 && setup?.election && m1 < 5) { next.pet1 = true; startPet(1, m1, String(setup.election.opp || "The opposition candidate").replace(/^Hon\. /, ""), setup.election.oppParty || "OPP"); }
     if (turn === 5 && !next.pet2 && next.reMargin != null && next.reMargin < 5) { next.pet2 = true; startPet(2, next.reMargin, next.reOpp || "The opposition candidate", next.reOppParty || "OPP"); }
     const P0 = next.petition;
     if (P0 && P0.stage < 3 && turn >= P0.start + P0.stage) {
@@ -7555,7 +7617,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <Flag />
         <div style={{ maxWidth: 1272, margin: "58px auto", textAlign: "center" }}>
           <Sfx k={gEnd === "impeached" || gEnd === "defeated" || gEnd === "bankrupt" || gEnd === "nullified" ? "lose" : "win"} />
-          <img src={heroImg} alt={pName} style={{ height: TALL() ? 220 : 280, width: "auto", objectFit: "contain", display: "block", margin: "0 auto 18px" }} />
+          <img src={heroImg} alt={pName} style={{ height: TALL() ? 220 : 280, width: "auto", objectFit: "contain", display: "block", margin: "0 auto 18px", borderRadius: 24, ...frameStyle() }} />
           <h2 style={{ fontFamily: F.d, color: gEnd === "complete" ? CL.txt : gEnd === "pres_bid" ? CL.gold : gEnd === "stepped_down" ? CL.blu : CL.red, fontSize: TS(94), fontWeight: 700, margin: "0 0 14px" }}>
             {gEnd === "impeached" ? "IMPEACHED" : gEnd === "nullified" ? "ELECTION NULLIFIED" : gEnd === "bankrupt" ? "STATE BANKRUPT" : gEnd === "defeated" ? "VOTED OUT" : gEnd === "stepped_down" ? "STEPPED DOWN" : gEnd === "pres_bid" ? "PRESIDENTIAL BID" : "Tenure Complete"}
           </h2>
@@ -11376,7 +11438,7 @@ function App() {
   };
   const beginScenario = (p, id) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode({ kind: "scenario", id }); setScr("setup"); };
   const openBoard = async () => { try { const b = await window.SOP_chBoard(weekNow()); setBoard(b || { top: [], players: 0 }); } catch (e) { setBoard({ top: [], players: 0, error: true }); } };
-  useEffect(() => { loadProfile().then(p => { if (p) setProfile(p); }); }, [scr]);
+  useEffect(() => { loadProfile().then(p => { if (p) { window.SOP_FRAME = p.frame || null; setProfile(p); } }); }, [scr]);
 
   const loadGame = async () => {
     try {

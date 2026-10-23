@@ -32,3 +32,16 @@ test("every election and project image is used", () => {
     assert.ok(src.includes("map-pin-project-") && src.includes('"' + c + '"'), c + " pin is used");
   });
 });
+// Vanity looks: a look marked ready has its picture; one without a picture stays out of the pickers.
+test("every ready attire look has its picture, and every pack is a server product", () => {
+  const jsx = fs.readFileSync(path.join(root, "game/seat-of-power.jsx"), "utf8");
+  const server = fs.readFileSync(path.join(root, "server/vatar-server.mjs"), "utf8");
+  const looks = [...jsx.matchAll(/\{ id: "x_([a-z_]+)", pack: "(attire_[a-z]+)"[^}]*ready: (true|false)/g)];
+  assert.equal(looks.length, 8, "eight looks");
+  looks.forEach(([, id, pack, ready]) => {
+    const file = path.join(root, "public/art/characters/governor-" + id.replace(/_/g, "-") + ".webp");
+    if (ready === "true") assert.ok(fs.existsSync(file), id + " is ready but has no picture");
+    assert.ok(server.includes(pack + ": \"oneoff\""), pack + " is a product");
+  });
+  ["portrait_frames", "scenario_security", "scenario_election"].forEach(p => assert.ok(server.includes(p + ": \"oneoff\""), p));
+});
