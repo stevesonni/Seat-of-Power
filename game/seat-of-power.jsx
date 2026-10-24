@@ -615,12 +615,51 @@ const BSECTORS = [
 
 // ── ELECTION TRIBUNAL: grounds a losing candidate can plead ──
 const TRIBUNAL_GROUNDS = [
-  { id: "overvoting", nm: "Over-voting in 214 polling units", desc: "Number of votes cast exceeded accredited voters in 3 LGAs — clear violation of S.51 Electoral Act 2022. If proven, INEC must cancel and rerun.", baseChance: .55, req: "You need collated Form EC8As from those units + BVAS backend data. INEC will resist." },
-  { id: "bvas", nm: "BVAS/IReV upload failure", desc: "Result sheets were not uploaded to IReV portal in real time as required by INEC guidelines. Casts doubt on chain of custody.", baseChance: .45, req: "Requires expert forensic analysis of BVAS machines. Very technical, judges may defer." },
-  { id: "qualification", nm: "Opponent's non-qualification (S.177)", desc: "Discrepancies in opponent's affidavit (INEC Form EC9) — sworn age, WAEC certificate authenticity, or citizenship. If proven, opponent is disqualified ab initio.", baseChance: .40, req: "Need certified true copies from WAEC/JAMB/Immigration. Perjury is a serious ground." },
-  { id: "violence", nm: "Violence & disruption in strongholds", desc: "Documented ballot snatching, PU-agent intimidation, and arson in wards where you polled 80%+. Election was not free and fair (S.134(1)(b)).", baseChance: .38, req: "Requires eyewitnesses, police reports, and video evidence. Judges want more than social-media clips." },
-  { id: "noncompliance", nm: "Substantial non-compliance with Electoral Act", desc: "INEC officials abandoned units, results were written in hotels, Presiding Officers signed under duress. Substantial non-compliance affects the outcome.", baseChance: .35, req: "Broad ground — judges want to see the non-compliance changed the arithmetic outcome, not merely occurred." },
+  { id: "overvoting", nm: "Over-voting in 214 units", desc: "More votes than accredited voters in 3 LGAs (S.51, Electoral Act 2022).", baseChance: .55, req: "Form EC8As and BVAS data" },
+  { id: "bvas", nm: "BVAS/IReV upload failure", desc: "Results were not uploaded to IReV in real time.", baseChance: .45, req: "Forensic analysis of BVAS machines" },
+  { id: "qualification", nm: "Opponent not qualified (S.177)", desc: "False age, certificate or citizenship on the INEC form.", baseChance: .40, req: "Certified WAEC, JAMB and immigration records" },
+  { id: "violence", nm: "Violence in your strongholds", desc: "Ballot snatching and intimidation where you polled 80%.", baseChance: .38, req: "Witnesses, police reports and video" },
+  { id: "noncompliance", nm: "Substantial non-compliance", desc: "Abandoned units; results written in hotels.", baseChance: .35, req: "Proof it changed the result" },
 ];
+
+// ── The court screen, shared by both election petitions ──
+// A stage tracker, a few facts, short ground cards, then the legal team.
+const COURT_STAGES = ["Tribunal", "Appeal", "Supreme Court"];
+const CourtScreen = ({ level, court, tag, facts, ground, grounds, onGround, modes, onMode, fund, extra, onWithdraw, log }) => {
+  const tall = TALL(), fz = tall ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(38) } : { s: TS(27), m: TS(33), l: TS(44), xl: TS(60) };
+  const row = { textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", width: "100%", padding: tall ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + CL.bdr, background: "#fff", color: CL.txt, cursor: "pointer", fontFamily: F.b };
+  return <div style={{ maxWidth: 760, margin: "0 auto" }}>
+    {ground ? <CareerHero bg={level >= 2 ? "supreme-court-abuja" : "courtroom"} who="senior-advocate" />
+      : <img src="./art/objects/petition-file.webp" alt="The petition file" style={{ display: "block", width: tall ? 150 : 200, height: "auto", margin: "6px auto 0", filter: "drop-shadow(0 12px 18px rgba(0,0,0,.18))" }} />}
+    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 6, margin: "8px 0 6px" }}>{COURT_STAGES.map((n, i) => <React.Fragment key={n}>
+      {i > 0 && <span style={{ width: tall ? 18 : 30, height: 2, background: i <= level ? CL.gold : CL.bdr }} />}
+      <span style={{ padding: "4px 10px", borderRadius: 999, fontSize: fz.s, fontWeight: 800, background: i === level ? CL.gold : i < level ? CL.gold + "22" : "#fff", color: i === level ? "#000" : i < level ? CL.gold : CL.td, border: "1px solid " + (i <= level ? CL.gold : CL.bdr) }}>{n}</span>
+    </React.Fragment>)}</div>
+    <div style={{ textAlign: "center" }}>
+      <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.xl, margin: "4px 0 2px", fontWeight: 700 }}>{court}</h2>
+      <div style={{ fontSize: fz.s, color: CL.td }}>{tag}</div>
+      <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: 6, margin: "10px 0 12px" }}>{facts.filter(Boolean).map(([k, v, bad]) => <span key={k} style={{ fontSize: fz.s, background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "4px 12px", color: CL.tm }}>{k} <b style={{ color: bad ? CL.red : CL.txt }}>{v}</b></span>)}</div>
+    </div>
+    {!ground ? <>
+      <div style={{ fontSize: fz.s, color: CL.td, textAlign: "center", marginBottom: 8 }}>Pick one ground. You can't change it at this court.</div>
+      <div style={{ display: "grid", gap: 8 }}>{grounds.map(g => <button key={g.id} onClick={() => onGround(g.id)} style={row}>
+        <span style={{ fontSize: fz.l }}>⚖️</span>
+        <span><b style={{ display: "block", fontSize: fz.m }}>{g.nm}</b><span style={{ display: "block", fontSize: fz.s, color: CL.tm }}>{g.desc}</span><span style={{ display: "block", fontSize: fz.s, color: CL.org, marginTop: 2 }}>Needs: {g.req}</span></span>
+        <span style={{ fontWeight: 800, fontSize: fz.s, color: g.base > .45 ? CL.grn : g.base > .35 ? CL.org : CL.red, whiteSpace: "nowrap" }}>{Math.round(g.base * 100)}%</span>
+      </button>)}</div>
+    </> : <>
+      <div style={{ background: CL.gold + "12", border: "1px solid " + CL.gold + "44", borderRadius: 14, padding: "10px 14px", marginBottom: 10, fontSize: fz.s, color: CL.tm }}><b style={{ color: CL.txt }}>{ground.nm}.</b> {ground.desc}</div>
+      <div style={{ fontSize: fz.s, color: CL.td, textAlign: "center", marginBottom: 8 }}>Who argues it?</div>
+      <div style={{ display: "grid", gap: 8 }}>{modes.filter(Boolean).map(m => <button key={m.id} onClick={() => onMode(m.id)} style={{ ...row, borderColor: m.tone === "bad" ? "#efc2bc" : CL.bdr, opacity: fund != null && m.cost > fund + 1e-9 ? .45 : 1 }}>
+        <span style={{ fontSize: fz.l }}>{m.ic}</span>
+        <span><b style={{ display: "block", fontSize: fz.m }}>{m.l}</b>{m.d && <span style={{ fontSize: fz.s, color: m.tone === "bad" ? CL.red : CL.tm }}>{m.d}</span>}</span>
+        <span style={{ textAlign: "right", whiteSpace: "nowrap", fontSize: fz.s }}><b style={{ display: "block", color: CL.org }}>₦{m.cost}B</b><span style={{ color: m.odds >= 0 ? CL.grn : CL.red, fontWeight: 800 }}>{m.odds >= 0 ? "+" : "−"}{Math.abs(m.odds)}% odds</span></span>
+      </button>)}{extra}</div>
+    </>}
+    <div style={{ textAlign: "center", marginTop: 10 }}><Bt v="ghost" onClick={onWithdraw}>🏳️ Withdraw and accept the result</Bt></div>
+    {log && log.length > 0 && <div style={{ marginTop: 12, fontSize: fz.s, color: CL.td, lineHeight: 1.5 }}>{log.slice(-3).map((l, i) => <div key={i} style={{ color: l.includes("✅") ? CL.grn : l.includes("❌") ? CL.red : CL.td }}>{l}</div>)}</div>}
+  </div>;
+};
 
 // Zone fallback name pools
 const ZNAMES = {
@@ -3448,7 +3487,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       return (
         <div style={{ minHeight: "100%", background: won ? "#f0fff0" : CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
             <div style={{ maxWidth: 984, margin: "8px auto", textAlign: "center" }}>
-            <Sfx k={won ? "win" : "lose"} />{won ? <img src={"./art/scenes/" + (collation.runoff ? "second-election" : "declaration") + ".webp"} alt={collation.runoff ? "A second election" : "The Returning Officer declares the result"} style={{ display: "block", width: "100%", maxWidth: 520, aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, margin: "0 auto 12px" }} /> : <ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />}
+            <Sfx k={won ? "cheer" : "lose"} />{won ? <img src={"./art/scenes/" + (collation.runoff ? "second-election" : "declaration") + ".webp"} alt={collation.runoff ? "A second election" : "The Returning Officer declares the result"} style={{ display: "block", width: "100%", maxWidth: 520, aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, margin: "0 auto 12px" }} /> : <ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />}
             <h2 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(58), fontWeight: 700, margin: "7px 0" }}>{won ? "GOVERNOR-ELECT!" : "DEFEATED"}</h2>
             <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.4, marginBottom: 29 }}>{(won ? "The Returning Officer declares " + nm + " (" + party + ") duly elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments (" + collation.need + " needed). Margin: " + marginPct.toFixed(1) + "%." : oName + " (" + (oParty?.id || "OPP") + ") wins with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against you: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " The leader missed the spread at first, so a second election was held between the two of you; the result held." : "")}</p>
             {!won && (() => {
@@ -3471,8 +3510,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
                   oppName: oName, oppPartyId: oParty?.id || "OPP",
                   margin: marginPts, zonesWon,
                   evidence: Math.min(85, evBase),
-                  log: ["Petition filed at the " + st.replace("_", " ") + " Governorship Election Tribunal within the 21-day window (S.285(5)). Case: GET/" + Math.floor(Math.random() * 900 + 100) + "/" + new Date().getFullYear() + ".",
-                        "Evidence dossier assembled from campaign records — strength assessed at " + Math.min(85, evBase) + "%."]
+                  log: ["Filed within 21 days (S.285(5)). Case GET/" + Math.floor(Math.random() * 900 + 100) + "/" + new Date().getFullYear() + "."]
                 });
                 setStep(85);
               }} style={{ padding: "29px 50px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
@@ -3526,24 +3564,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
             </details>
             <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 22 }}>Campaign funds remaining: ₦{warChest.toFixed(1)}B</div>
             {won ? <Bt onClick={() => { setElection({ opp: oName, oppParty: oParty?.id || "OPP", zonesWon: collation.zonesWon, marginPct: Math.round(marginPct * 10) / 10, votes: collation.totalYou, oppVotes: collation.totalOpp }); setSCampRound(0); setStep(9); }} style={{ padding: "43px 113px" }}>PROCEED TO GOVERNMENT HOUSE →</Bt>
-              : <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
-                  <Bt onClick={() => { setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }} style={{ padding: "43px 86px" }}>😔 Try Again</Bt>
-                  <Bt onClick={() => {
-                    const zonesWon = collation.zonesWon;
-                    const marginPts = Math.round(marginPct * 10) / 10;
-                    // Evidence strength derived from real campaign context: closer margin + zones carried = better case
-                    const evBase = Math.max(15, 65 - Math.round(marginPct * 1.6) + zonesWon * 8 + (sCampLog.some(l => l.includes("Polling Unit")) ? 6 : 0));
-                    setPreTrib({
-                      level: 0, spent: 0, groundId: null,
-                      oppName: oName, oppPartyId: oParty?.id || "OPP",
-                      margin: marginPts, zonesWon,
-                      evidence: Math.min(85, evBase),
-                      log: ["Petition filed at the " + st.replace("_", " ") + " Governorship Election Tribunal within the 21-day window (S.285(5)). Case: GET/" + Math.floor(Math.random() * 900 + 100) + "/" + new Date().getFullYear() + ".",
-                            "Evidence dossier assembled from campaign records — strength assessed at " + Math.min(85, evBase) + "%."]
-                    });
-                    setStep(85);
-                  }} style={{ padding: "43px 86px", background: CL.gold, color: "#000" }}>⚖️ Go to Election Tribunal</Bt>
-                </div>}
+              : null}
           </div>
         </div>
       );
@@ -3596,15 +3617,15 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
     };
     const addGfMandate = (mandate) => setGfMandates(prev => prev.some(m => m.type === mandate.type && m.ministryId === mandate.ministryId) ? prev : [...prev, mandate]);
     const LVLS = [
-      { nm: "Governorship Election Tribunal", tag: "S.285(1)(b) · 180 days to judgment", winBonus: 0, appealCost: 0.6 },
-      { nm: "Court of Appeal", tag: "S.246(3) · 60 days for appeal ruling", winBonus: 8, appealCost: 1.2 },
-      { nm: "Supreme Court", tag: "S.233 · FINAL — no further appeal", winBonus: 15, appealCost: 0 },
+      { nm: "Governorship Election Tribunal", tag: "Up to 180 days to judgment", winBonus: 0, appealCost: 0.6 },
+      { nm: "Court of Appeal", tag: "60 days to rule", winBonus: 8, appealCost: 1.2 },
+      { nm: "Supreme Court", tag: "Final: no further appeal", winBonus: 15, appealCost: 0 },
     ];
     const GROUNDS = [
-      { id: "over_voting", nm: "Over-voting / non-compliance with Electoral Act", desc: "Votes cast exceeded accredited voters in " + (3 - preTrib.zonesWon) + " zones. Independent National Electoral Commission BVAS records disputed.", base: 0.42, req: "Polling unit result sheets (Form EC8A) + BVAS accreditation printouts." },
-      { id: "corrupt", nm: "Corrupt practices by respondent", desc: preTrib.oppName + " allegedly distributed cash and inducements at collation centres, contrary to S.121 of the Electoral Act 2022.", base: 0.36, req: "Sworn affidavits from at least 12 polling agents + video/audio evidence." },
-      { id: "qual", nm: "Non-qualification of respondent", desc: "Documentary evidence suggests " + preTrib.oppName + " may not have met the constitutional qualification threshold (S.177).", base: 0.30, req: "Certified true copy of certificates + INEC Form EC9." },
-      { id: "return", nm: "Return not by majority of lawful votes", desc: "The declared winner did not secure a majority of lawful votes cast — cancelled units affect the outcome.", base: 0.48, req: "Reconciliation of Form EC8B/EC8C across all senatorial zones." },
+      { id: "over_voting", nm: "Over-voting", desc: "More votes than accredited voters in " + (3 - preTrib.zonesWon) + " zone" + (3 - preTrib.zonesWon === 1 ? "" : "s") + ".", base: 0.42, req: "EC8A sheets and BVAS printouts" },
+      { id: "corrupt", nm: "Vote buying by " + preTrib.oppName.split(" ").pop(), desc: "Cash at collation centres (S.121, Electoral Act 2022).", base: 0.36, req: "Affidavits from 12 agents, and video" },
+      { id: "qual", nm: "Opponent not qualified (S.177)", desc: "Doubts over " + preTrib.oppName.split(" ").pop() + "'s certificates.", base: 0.30, req: "Certified certificates and Form EC9" },
+      { id: "return", nm: "Not a majority of lawful votes", desc: "Cancelled units change the result.", base: 0.48, req: "Reconciled EC8B and EC8C forms" },
     ];
     const lvl = LVLS[preTrib.level];
     const gd = GROUNDS.find(g => g.id === preTrib.groundId);
@@ -3612,7 +3633,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
     const runHearing = (mode) => {
       const cost = mode === "self" ? 0.2 : mode === "sans" ? 1.2 : mode === "wig" ? 3.5 : 5;
       if (warChest < cost && mode !== "self") {
-        setPreTrib(t => ({ ...t, log: [...t.log, "❌ War chest too thin (₦" + warChest.toFixed(2) + "B) — cannot brief this team."] }));
+        setPreTrib(t => ({ ...t, log: [...t.log, "❌ Not enough money for that team."] }));
         try { window.SOP_outcome && window.SOP_outcome({ icon: "💼", title: "Not enough money for this team", text: "You have ₦" + warChest.toFixed(2) + "B; they want ₦" + cost + "B. Argue in person, or borrow from the godfather.", tone: "bad" }); } catch (e) {}
         return;
       }
@@ -3623,7 +3644,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       const chance = Math.min(0.9, Math.max(0.05, gd.base + modeBonus + evAdj + lvlBonus));
       const roll = Math.random();
       const won = roll < chance;
-      const logLine = (won ? "✅ " : "❌ ") + lvl.nm + " · " + gd.nm.split(" ")[0] + " ground · " + (mode === "self" ? "self-representation" : mode === "sans" ? "Senior Advocate" : mode === "wig" ? "SAN-led team" : "settled panel") + " · your odds were " + Math.round(chance * 100) + "%.";
+      const logLine = (won ? "✅ " : "❌ ") + lvl.nm + " · " + (mode === "self" ? "in person" : mode === "sans" ? "a SAN" : mode === "wig" ? "a SAN team" : "a 'settled' panel") + " · odds " + Math.round(chance * 100) + "%";
       const nextLog = [...preTrib.log, logLine];
       // Every ruling is announced, not just logged.
       const court = lvl.nm, nextCourt = LVLS[preTrib.level + 1] ? LVLS[preTrib.level + 1].nm : null, opp = preTrib.oppName;
@@ -3637,101 +3658,50 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       if (won) {
         if (preTrib.level >= 2 || (preTrib.level === 0 && chance > 0.7 && roll < 0.25)) {
           // Reinstated
-          setPreTrib(t => ({ ...t, log: [...nextLog, "🏛️ Judgment: petition upheld. Return of " + preTrib.oppName + " NULLIFIED. You are declared winner of the election.", "You will be sworn in as Governor."], reinstated: true, spent: t.spent + cost }));
+          setTimeout(() => { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} }, 900);
+          setPreTrib(t => ({ ...t, log: [...nextLog, "🏛️ Petition upheld: you are declared winner."], reinstated: true, spent: t.spent + cost }));
         } else {
-          setPreTrib(t => ({ ...t, level: t.level + 1, groundId: null, log: [...nextLog, "You won this round. Respondent files appeal — case escalates to " + LVLS[t.level + 1].nm + "."], spent: t.spent + cost }));
+          setPreTrib(t => ({ ...t, level: t.level + 1, groundId: null, log: [...nextLog, "They appealed: on to the " + LVLS[t.level + 1].nm + "."], spent: t.spent + cost }));
         }
       } else {
         if (preTrib.level >= 2) {
-          setPreTrib(t => ({ ...t, log: [...nextLog, "⚖️ Supreme Court dismisses. Under S.285(7) this is FINAL. " + preTrib.oppName + " confirmed as Governor."], dismissed: true, spent: t.spent + cost }));
+          setPreTrib(t => ({ ...t, log: [...nextLog, "⚖️ Dismissed by the Supreme Court. Final."], dismissed: true, spent: t.spent + cost }));
         } else {
-          setPreTrib(t => ({ ...t, level: t.level + 1, groundId: null, log: [...nextLog, "You lost this round. Filed appeal within 21 days — case escalates to " + LVLS[t.level + 1].nm + "."], spent: t.spent + cost }));
+          setPreTrib(t => ({ ...t, level: t.level + 1, groundId: null, log: [...nextLog, "You appealed: on to the " + LVLS[t.level + 1].nm + "."], spent: t.spent + cost }));
         }
       }
     };
 
+    const quit = () => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); };
+    const owesEdu = gfMandates.some(m => m.type === "commissioner" && m.ministryId === "educ");
+    const borrow = () => {
+      const amt = 2, k = "petition" + gfLoans.filter(l => /^petition/.test(l.key)).length;
+      if (owesEdu) {
+        setWarChest(w => w + amt); takeGfLoan(k, amt, "Legal fees for the election petition");
+        setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather lent ₦" + amt + "B. He'll want contracts."] }));
+        return;
+      }
+      const mandate = makeGfEducationMandate();
+      addGfMandate(mandate); setWarChest(w => w + amt);
+      takeGfLoan(k, amt, "Legal fees for the election petition; Education Commissioner condition");
+      setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather lent ₦" + amt + "B. Price: " + mandate.name + " as Education Commissioner."] }));
+    };
+    const endCard = (good) => <Cd style={{ maxWidth: 760, margin: "0 auto", borderColor: good ? CL.grn : CL.red, background: good ? "#f0fff0" : "#fff5f5", textAlign: "center", padding: TALL() ? 22 : 40 }}>
+      <img src={good ? "./art/scenes/news-victory-rally.webp" : "./art/backgrounds/supreme-court-abuja.webp"} alt="" style={{ width: "100%", borderRadius: 14, display: "block" }} />
+      <h3 style={{ color: good ? CL.grn : CL.red, fontFamily: F.d, fontSize: TS(TALL() ? 40 : 60), margin: "14px 0 6px" }}>{good ? "Petition upheld" : "Petition dismissed"}</h3>
+      <p style={{ color: CL.tm, fontSize: TS(TALL() ? 24 : 34), lineHeight: 1.45, margin: "0 0 14px" }}>{good ? preTrib.oppName + "'s return is nullified. You are Governor of " + st.replace("_", " ") + "." : "Final. You spent ₦" + preTrib.spent.toFixed(1) + "B and lost."}</p>
+      {good ? <Bt onClick={() => { setPreTrib(null); setStep(9); }}>🏛️ To Government House →</Bt> : <Bt onClick={quit}>Try again</Bt>}
+    </Cd>;
     return (
-      <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 18px 40px" : "36px 32px" }}>
-        <div style={{ maxWidth: 1164, margin: "8px auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 36 }}>
-            <SceneArt bg={preTrib.level >= 2 ? "supreme-court-abuja" : "courtroom"} who={preTrib.groundId ? "senior-advocate" : null} obj={preTrib.groundId ? null : "petition-file"} h={TALL() ? 200 : 260} />
-            <Bg text={"STAGE " + (preTrib.level + 1) + "/3 · " + lvl.nm} color={CL.gold} />
-            <h2 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0 7px", fontSize: TS(72), fontWeight: 700 }}>Election Petition</h2>
-            <div style={{ fontSize: TS(34), color: CL.td, fontFamily: F.m }}>{lvl.tag}</div>
-            <div style={{ fontSize: TS(36), color: CL.tm, marginTop: 14 }}>Losing margin: <b>{preTrib.margin}%</b> · Zones carried: <b>{preTrib.zonesWon}/3</b> · Evidence strength: <b style={{ color: preTrib.evidence > 55 ? CL.grn : preTrib.evidence > 35 ? CL.org : CL.red }}>{preTrib.evidence}%</b> · War chest: <b>₦{warChest.toFixed(2)}B</b> · Legal spend: ₦{preTrib.spent.toFixed(1)}B</div>
-          </div>
-
-          {preTrib.reinstated && (
-            <Cd style={{ borderColor: CL.grn, background: "#f0fff0", textAlign: "center", padding: 58 }}>
-              <div style={{ fontSize: TS(120) }}>🏛️</div>
-              <h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(79), margin: "22px 0" }}>PETITION UPHELD</h3>
-              <p style={{ color: CL.txt, fontSize: TS(38), lineHeight: 1.5 }}>The {lvl.nm} has ruled in your favour. The return of {preTrib.oppName} ({preTrib.oppPartyId}) is NULLIFIED and you are declared duly elected Governor of {st.replace("_", " ")} State. INEC will issue your Certificate of Return within 7 days.</p>
-              <Bt onClick={() => { setPreTrib(null); setStep(9); }} style={{ padding: "43px 106px", marginTop: 36 }}>🏛️ PROCEED TO GOVERNMENT HOUSE →</Bt>
-            </Cd>
-          )}
-
-          {preTrib.dismissed && (
-            <Cd style={{ borderColor: CL.red, background: "#fff5f5", textAlign: "center", padding: 58 }}>
-              <div style={{ fontSize: TS(120) }}>😔</div>
-              <h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(79), margin: "22px 0" }}>PETITION DISMISSED</h3>
-              <p style={{ color: CL.txt, fontSize: TS(38), lineHeight: 1.5 }}>The Supreme Court has dismissed your petition. You spent ₦{preTrib.spent.toFixed(1)}B on legal fees and walk away with nothing but a legacy of a fight taken to the highest court in the land.</p>
-              <Bt onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }} style={{ padding: "43px 106px", marginTop: 36 }}>😔 Try Again</Bt>
-            </Cd>
-          )}
-
-          {!preTrib.reinstated && !preTrib.dismissed && !preTrib.groundId && (
-            <Cd style={{ borderColor: CL.gold + "77" }}>
-              <div style={{ fontSize: TS(36), color: CL.tm, marginBottom: 22 }}>Your legal team recommends one ground of petition. Pick carefully — you cannot change it at this level.</div>
-              <div style={{ display: "grid", gap: 19 }}>
-                {GROUNDS.map(g => <Cd key={g.id} onClick={() => setPreTrib(t => ({ ...t, groundId: g.id }))} style={{ padding: 29, cursor: "pointer" }}>
-                  <div style={{ fontWeight: 700, fontSize: TS(38), color: CL.txt }}>{g.nm}</div>
-                  <div style={{ fontSize: TS(34), color: CL.td, margin: "10px 0", lineHeight: 1.4 }}>{g.desc}</div>
-                  <div style={{ fontSize: TS(34), color: CL.org, lineHeight: 1.4 }}><b>Evidence burden:</b> {g.req}</div>
-                  <Bg text={"Base success: " + Math.round(g.base * 100) + "%"} color={g.base > .45 ? CL.grn : g.base > .35 ? CL.org : CL.red} />
-                </Cd>)}
-              </div>
-              <div style={{ textAlign: "center", marginTop: 36 }}>
-                <Bt v="ghost" onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }} style={{ fontSize: TS(34) }}>🏳️ Withdraw and try new campaign</Bt>
-              </div>
-            </Cd>
-          )}
-
-          {!preTrib.reinstated && !preTrib.dismissed && preTrib.groundId && (
-            <Cd style={{ borderColor: CL.gold + "77" }}>
-              <div style={{ background: CL.gold + "12", border: "1px solid " + CL.gold + "44", borderRadius: 8, padding: "22px 29px", marginBottom: 29, fontSize: TS(36), color: CL.tm }}>
-                <b>Pleading:</b> {gd.nm}<br/><i style={{ fontSize: TS(34), color: CL.td }}>{gd.desc}</i>
-              </div>
-              <div style={{ fontSize: TS(36), color: CL.tm, marginBottom: 22 }}>How do you fight this?</div>
-              <div style={{ display: "grid", gap: 19 }}>
-                <Bt onClick={() => runHearing("self")}>👨🏾‍💼 Argue in person · ₦0.2B · weaker odds (-10%)</Bt>
-                <Bt onClick={() => runHearing("sans")} style={{ background: CL.pur }}>📚 Brief a Senior Advocate · ₦1.2B · +10% odds</Bt>
-                <Bt onClick={() => runHearing("wig")} style={{ background: CL.grn }}>🎓 SAN-led team of 5 wigs · ₦3.5B · +22% odds</Bt>
-                {warChest >= 5 && <Bt onClick={() => runHearing("bribe")} style={{ background: CL.red }}>💼 "Settle" the panel · ₦5B · +35% odds · risky corruption</Bt>}
-                {warChest < 3.5 && gfDebt < 6 && <Bt onClick={() => {
-                  const amt = 2;
-                  const k = "petition" + gfLoans.filter(l => /^petition/.test(l.key)).length;
-                  if (gfMandates.some(m => m.type === "commissioner" && m.ministryId === "educ")) {
-                    setWarChest(w => w + amt); takeGfLoan(k, amt, "Legal fees for the election petition");
-                    setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather wired another ₦" + amt + "B. Debt now ₦" + (gfDebt + amt).toFixed(1) + "B. He will want contracts for this one."] }));
-                    return;
-                  }
-                  const mandate = makeGfEducationMandate();
-                  addGfMandate(mandate);
-                  setWarChest(w => w + amt);
-                  takeGfLoan(k, amt, "Legal fees for the election petition; Education Commissioner condition");
-                  setPreTrib(t => ({ ...t, log: [...t.log, "🎩 Godfather wired ₦" + amt + "B for the petition. Debt now ₦" + (gfDebt + amt).toFixed(1) + "B. Condition accepted: " + mandate.name + " must be Commissioner for Education once ministries are convened."] }));
-                }} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2B from Godfather{gfMandates.some(m => m.type === "commissioner" && m.ministryId === "educ") ? " · he'll want contracts" : " · Education Commissioner condition"}</Bt>}
-                {warChest < 3.5 && gfDebt >= 6 && <div style={{ fontSize: TS(31), color: CL.red, textAlign: "center" }}>🎩 The godfather won't lend more: you already owe him ₦{gfDebt.toFixed(1)}B.</div>}
-                <Bt v="ghost" onClick={() => { setPreTrib(null); setSCampRound(0); setSCampScore(0); setSCampOpp(0); setSCampLog([]); setSCampZones(null); setEnightPlayed({}); setEnightSummary(null); setWarChest(0.8); setGfDebt(0); setFavours(0); setGfMandates([]); setStep(8); }}>🏳️ Withdraw petition — accept defeat</Bt>
-              </div>
-            </Cd>
-          )}
-
-          <Cd style={{ marginTop: 36, background: "#f9f5ee" }}>
-            <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.td, fontFamily: F.m, letterSpacing: 2, marginBottom: 10 }}>CASE LOG</div>
-            {preTrib.log.map((l, i) => <div key={i} style={{ fontSize: TS(34), color: l.includes("✅") || l.includes("upheld") ? CL.grn : l.includes("❌") || l.includes("dismiss") ? CL.red : CL.tm, padding: "7px 0" }}>{l}</div>)}
-          </Cd>
-        </div>
+      <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "12px 16px 40px" : "28px 32px" }}>
+        {preTrib.reinstated ? endCard(true) : preTrib.dismissed ? endCard(false) : <CourtScreen level={preTrib.level} court={lvl.nm} tag={lvl.tag}
+          facts={[["Lost by", preTrib.margin + "%"], ["Zones", preTrib.zonesWon + "/3"], ["Evidence", preTrib.evidence + "%", preTrib.evidence <= 35], ["War chest", "₦" + warChest.toFixed(2) + "B", warChest < 1.2]]}
+          ground={gd} grounds={GROUNDS} onGround={id => setPreTrib(t => ({ ...t, groundId: id }))}
+          modes={[{ id: "self", ic: "👨🏾‍💼", l: "Argue it yourself", cost: 0.2, odds: -10 }, { id: "sans", ic: "📚", l: "A Senior Advocate", cost: 1.2, odds: 10 }, { id: "wig", ic: "🎓", l: "A SAN-led team", cost: 3.5, odds: 22 }, warChest >= 5 && { id: "bribe", ic: "💼", l: "\u201cSettle\u201d the panel", d: "Corruption. It can surface later.", cost: 5, odds: 35, tone: "bad" }]}
+          onMode={runHearing} fund={warChest}
+          extra={warChest < 3.5 && (gfDebt < 6 ? <Bt onClick={borrow} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2B · {owesEdu ? "he wants contracts" : "he picks a commissioner"}</Bt>
+            : <div style={{ fontSize: TS(24), color: CL.red, textAlign: "center" }}>🎩 No more loans: you owe ₦{gfDebt.toFixed(1)}B.</div>)}
+          onWithdraw={quit} log={preTrib.log} />}
       </div>
     );
   }
@@ -10752,7 +10722,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const yourLast = (setup?.lastNm || pName.split(" ").pop() || "YOU").toUpperCase();
               const yourTicket = yourLast + "/" + (depGov?.nm.split(" ").pop() || "DEP").toUpperCase();
               return <Cd style={{ textAlign: "center", padding: 36 }}>
-                <Sfx k={won ? "win" : "lose"} />{won ? <img src={"./art/scenes/" + (collation.runoff ? "second-election" : "declaration") + ".webp"} alt={collation.runoff ? "A second election" : "The Returning Officer declares the result"} style={{ display: "block", width: "100%", maxWidth: 520, aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, margin: "0 auto 12px" }} /> : <ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />}
+                <Sfx k={won ? "cheer" : "lose"} />{won ? <img src={"./art/scenes/" + (collation.runoff ? "second-election" : "declaration") + ".webp"} alt={collation.runoff ? "A second election" : "The Returning Officer declares the result"} style={{ display: "block", width: "100%", maxWidth: 520, aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, margin: "0 auto 12px" }} /> : <ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />}
                 <h3 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(53), fontWeight: 600, margin: "7px 0" }}>{won ? "RE-ELECTED!" : "DEFEATED"}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{(won ? "Four more years! INEC declares " + pName + " (" + party + ") re-elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments. Margin: " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " A second election between the top two settled it." : "")}</p>
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
@@ -11007,9 +10977,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
           {tribunal && (() => {
             const LEVELS = [
-              { nm: "Governorship Election Tribunal", tag: "S.285(1) · 180 days to determine", multiplier: 1.0 },
-              { nm: "Court of Appeal", tag: "S.285(7) · 60 days to hear appeal", multiplier: 0.88 },
-              { nm: "Supreme Court", tag: "S.233(2)(e)(iv) · final constitutional arbiter", multiplier: 0.72 },
+              { nm: "Governorship Election Tribunal", tag: "Up to 180 days to judgment", multiplier: 1.0 },
+              { nm: "Court of Appeal", tag: "60 days to rule", multiplier: 0.88 },
+              { nm: "Supreme Court", tag: "Final: no further appeal", multiplier: 0.72 },
             ];
             const lvl = LEVELS[tribunal.level];
             const gd = tribunal.groundId ? TRIBUNAL_GROUNDS.find(g => g.id === tribunal.groundId) : null;
@@ -11018,7 +10988,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const oppP = PARTIES.find(p => p.id === tribunal.oppPartyId);
             const rulingPartyDisadvantage = oppP?.strength >= 1.1 ? -0.08 : 0; // NRA/PFP-backed opponents harder to unseat
 
-            const decideGround = (id) => setTribunal(t => ({ ...t, groundId: id, log: [...t.log, "Pleaded ground: " + TRIBUNAL_GROUNDS.find(g => g.id === id).nm] }));
+            const decideGround = (id) => setTribunal(t => ({ ...t, groundId: id, log: [...t.log, "Ground: " + TRIBUNAL_GROUNDS.find(g => g.id === id).nm] }));
 
             const runHearing = (mode) => {
               const g = TRIBUNAL_GROUNDS.find(x => x.id === tribunal.groundId);
@@ -11028,10 +10998,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               if (mode === "wig") { cost = 3.5; chance += 0.22; }
               if (mode === "bribe") { cost = 5.0; chance += 0.35; corDelta = 0.15; }
               if (mode === "self") { cost = 0.2; chance -= 0.05; }
-              if (cost > personalFund + 1e-9) { setTribunal(t => ({ ...t, log: [...t.log, "❌ Not enough money (₦" + personalFund.toFixed(2) + "B) to brief this team. Borrow, or argue it more cheaply."] })); announce({ icon: "💸", title: "Not enough money", text: "This team costs ₦" + cost.toFixed(1) + "B; your war chest has ₦" + personalFund.toFixed(2) + "B. Borrow, or argue it more cheaply.", tone: "bad" }); return; }
+              if (cost > personalFund + 1e-9) { setTribunal(t => ({ ...t, log: [...t.log, "❌ Not enough money for that team."] })); announce({ icon: "💸", title: "Not enough money", text: "This team costs ₦" + cost.toFixed(1) + "B; you have ₦" + personalFund.toFixed(2) + "B.", tone: "bad" }); return; }
               chance = Math.max(0.03, Math.min(0.95, chance));
               const won = Math.random() < chance;
-              const newLog = [...tribunal.log, "── " + lvl.nm + " ──", "Mode: " + ({ self: "argued in person", top_sans: "briefed a Senior Advocate", wig: "assembled SAN-led legal team", bribe: "'settled' the panel" })[mode], "Odds calculated: " + Math.round(chance * 100) + "%", won ? "✅ RULED IN YOUR FAVOUR" : "❌ Petition dismissed at this level"];
+              const newLog = [...tribunal.log, (won ? "✅ " : "❌ ") + lvl.nm + " · " + ({ self: "in person", top_sans: "a SAN", wig: "a SAN team", bribe: "a 'settled' panel" })[mode] + " · odds " + Math.round(chance * 100) + "%"];
               setPersonalFund(f => Math.max(0, f - cost));
               if (corDelta) setS(p => ({ ...p, cor: cl(p.cor + corDelta, 0, 1) }));
                if (won) {
@@ -11039,24 +11009,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                    // Supreme Court reinstatement — show a proper result screen before jumping to 2nd term
                    addL("⚖️ SUPREME COURT REINSTATES YOU as Governor — election of " + tribunal.oppName + " nullified on ground of " + g.nm + ".", "success");
                    setS(p => ({ ...p, app: cl100(p.app + 12), pStab: cl100(p.pStab + 20) }));
+                   setTimeout(() => { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} }, 900);
                    const spendTotal = (tribunal.spent + cost).toFixed(1);
                    showResult({
                      icon: "⚖️🏛️👑",
-                     title: "SUPREME COURT — REINSTATED AS GOVERNOR",
-                     narrative: "In a landmark ruling, the Supreme Court of Nigeria has UPHELD your petition on the ground of " + g.nm + " and NULLIFIED the return of " + tribunal.oppName + " (" + tribunal.oppPartyId + "). Per Section 285 of the 1999 Constitution, the court has ordered INEC to issue you a fresh Certificate of Return. You will be sworn in for your second term within 14 days. Total legal spend across all three tiers: ₦" + spendTotal + "B. Your party is jubilant; the opposition is in shock. Wikipedia has been updated: 'Reinstated by the Supreme Court of Nigeria after election tribunal victory.'",
+                     title: "Reinstated by the Supreme Court",
+                     narrative: tribunal.oppName + "'s return is nullified. You serve a second term.",
                      effects: [
-                       { icon: "👑", text: "Sworn in for 2nd term", value: "REINSTATED", bad: false },
-                       { icon: "📈", text: "Approval sympathy bump", value: "+12%", bad: false },
-                       { icon: "🏛️", text: "Party rallies behind you", value: "+20 pStab", bad: false },
-                       { icon: "💸", text: "Total legal spend", value: "₦" + spendTotal + "B", bad: true },
-                       { icon: "📚", text: "Constitutional precedent set", value: "S." + (g.section || "285"), bad: false },
+                       { icon: "📈", text: "Approval", value: "+12%", bad: false },
+                       { icon: "🏛️", text: "Party", value: "+20", bad: false },
+                       { icon: "💸", text: "Legal spend", value: "₦" + spendTotal + "B", bad: true },
                      ],
                      tone: "good",
                      nextFn: () => { setTribunal(null); setTurn(5); setPhase("budget"); }
                    });
                  } else {
-                   setTribunal(t => ({ ...t, level: t.level + 1, log: [...newLog, "Opposition appeals — case escalates."], spent: t.spent + cost, groundId: null }));
-                   announce({ icon: "⚖️", title: "The " + (tribunal.level === 0 ? "Tribunal" : "Court of Appeal") + " ruled for you", text: "Your petition on " + g.nm.toLowerCase() + " succeeded (odds were " + Math.round(chance * 100) + "%). " + tribunal.oppName + " has appealed to the " + LEVELS[tribunal.level + 1].nm + ".", tone: "good", rows: [{ l: "Spent", v: "₦" + cost.toFixed(1) + "B", good: false }] });
+                   setTribunal(t => ({ ...t, level: t.level + 1, log: [...newLog, "They appealed: on to the " + LEVELS[t.level + 1].nm + "."], spent: t.spent + cost, groundId: null }));
+                   announce({ icon: "⚖️", title: "You won at the " + (tribunal.level === 0 ? "Tribunal" : "Court of Appeal"), text: tribunal.oppName + " has appealed to the " + LEVELS[tribunal.level + 1].nm + ".", tone: "good", rows: [{ l: "Odds were", v: Math.round(chance * 100) + "%" }, { l: "Spent", v: "₦" + cost.toFixed(1) + "B", good: false }] });
                  }
                } else {
                  if (tribunal.level >= 2) {
@@ -11064,73 +11033,38 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                    const spendTotal = (tribunal.spent + cost).toFixed(1);
                    showResult({
                      icon: "⚖️❌",
-                     title: "SUPREME COURT — Petition Finally Dismissed",
-                     narrative: "The Supreme Court has dismissed your petition. Under Section 285(7), this ruling is FINAL. " + tribunal.oppName + " (" + tribunal.oppPartyId + ") is confirmed as Governor. You spent ₦" + spendTotal + "B across three courts and walk away with nothing but a legacy of a fight taken to the highest court in the land.",
+                     title: "Supreme Court: petition dismissed",
+                     narrative: "Final. " + tribunal.oppName + " is Governor.",
                      effects: [
-                       { icon: "❌", text: "Petition dismissed", value: "FINAL", bad: true },
-                       { icon: "💸", text: "Total legal spend", value: "₦" + spendTotal + "B", bad: true },
-                       { icon: "🏛️", text: "Governor confirmed", value: tribunal.oppName.split(" ").pop().toUpperCase(), bad: true },
+                       { icon: "💸", text: "Legal spend", value: "₦" + spendTotal + "B", bad: true },
                      ],
                      tone: "bad",
                      nextFn: () => { setTribunal(null); setGEnd("defeated"); }
                    });
                  } else {
-                   setTribunal(t => ({ ...t, level: t.level + 1, log: [...newLog, "You lodged an appeal within 21 days."], spent: t.spent + cost, groundId: null }));
-                   announce({ icon: "⚖️", title: "The " + (tribunal.level === 0 ? "Tribunal" : "Court of Appeal") + " dismissed your petition", text: "Your case on " + g.nm.toLowerCase() + " failed (odds were " + Math.round(chance * 100) + "%). You have appealed to the " + LEVELS[tribunal.level + 1].nm + ". You can still withdraw.", tone: "bad", rows: [{ l: "Spent", v: "₦" + cost.toFixed(1) + "B", good: false }] });
+                   setTribunal(t => ({ ...t, level: t.level + 1, log: [...newLog, "You appealed: on to the " + LEVELS[t.level + 1].nm + "."], spent: t.spent + cost, groundId: null }));
+                   announce({ icon: "⚖️", title: "You lost at the " + (tribunal.level === 0 ? "Tribunal" : "Court of Appeal"), text: "You have appealed to the " + LEVELS[tribunal.level + 1].nm + ". You can still withdraw.", tone: "bad", rows: [{ l: "Odds were", v: Math.round(chance * 100) + "%" }, { l: "Spent", v: "₦" + cost.toFixed(1) + "B", good: false }] });
                  }
                }
             };
 
-            return <Cd style={{ borderColor: CL.gold + "77", maxWidth: 1164, margin: "0 auto" }}>
-              <div style={{ textAlign: "center", marginBottom: 29 }}>
-                <SceneArt bg={tribunal.level >= 2 ? "supreme-court-abuja" : "courtroom"} who={tribunal.groundId ? "senior-advocate" : null} obj={tribunal.groundId ? null : "petition-file"} h={TALL() ? 200 : 260} />
-                <Bg text={"STAGE " + (tribunal.level + 1) + "/3"} color={CL.gold} />
-                <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0 7px", fontSize: TS(65), fontWeight: 700 }}>{lvl.nm}</h3>
-                <div style={{ fontSize: TS(34), color: CL.td, fontFamily: F.m }}>{lvl.tag}</div>
-                <div style={{ fontSize: TS(34), color: CL.tm, marginTop: 14 }}>Losing margin: <b>{tribunal.margin}%</b> · War chest: <b>₦{personalFund.toFixed(2)}B</b> · Legal spend so far: ₦{tribunal.spent.toFixed(1)}B</div>
-              </div>
-
-              {!tribunal.groundId && <div>
-                <div style={{ fontSize: TS(36), color: CL.tm, marginBottom: 22 }}>Your legal team recommends one ground of petition. Pick carefully — you cannot change it once filed at this level.</div>
-                <div style={{ display: "grid", gap: 19 }}>
-                  {TRIBUNAL_GROUNDS.map(g => <Cd key={g.id} onClick={() => decideGround(g.id)} style={{ padding: 29, cursor: "pointer" }}>
-                    <div style={{ fontWeight: 700, fontSize: TS(38), color: CL.txt }}>{g.nm}</div>
-                    <div style={{ fontSize: TS(34), color: CL.td, margin: "10px 0", lineHeight: 1.4 }}>{g.desc}</div>
-                    <div style={{ fontSize: TS(34), color: CL.org, lineHeight: 1.4 }}><b>Evidence burden:</b> {g.req}</div>
-                    <Bg text={"Base success: " + Math.round(g.baseChance * 100) + "%"} color={g.baseChance > .5 ? CL.grn : g.baseChance > .4 ? CL.org : CL.red} />
-                  </Cd>)}
-                </div>
-              </div>}
-
-              {tribunal.groundId && <div>
-                <div style={{ background: CL.gold + "12", border: "1px solid " + CL.gold + "44", borderRadius: 8, padding: "22px 29px", marginBottom: 29, fontSize: TS(36), color: CL.tm }}>
-                  <b>Pleading:</b> {gd.nm}<br /><i style={{ fontSize: TS(34), color: CL.td }}>{gd.desc}</i>
-                </div>
-                <div style={{ fontSize: TS(36), color: CL.tm, marginBottom: 22 }}>How do you fight this?</div>
-                <div style={{ display: "grid", gap: 19 }}>
-                  <Bt onClick={() => runHearing("self")}>👨🏾‍💼 Argue in person · ₦0.2B · weakens odds</Bt>
-                  <Bt onClick={() => runHearing("top_sans")} style={{ background: CL.pur }}>📚 Brief a Senior Advocate · ₦1.2B · +10% odds</Bt>
-                  <Bt onClick={() => runHearing("wig")} style={{ background: CL.grn }}>🎓 Assemble a SAN-led team (5 wigs) · ₦3.5B · +22% odds</Bt>
-                  {setup?.level !== "easy" && personalFund >= 5 && <Bt onClick={() => runHearing("bribe")} style={{ background: CL.red }}>💼 "Settle" the panel · ₦5B · +35% odds · +15% corruption (may leak)</Bt>}
-                  {personalFund < 3.5 && godfatherRel > 20 && campGfDebt < 6 && stc.gf !== "dead" && stc.gf !== "opposition" && <Bt onClick={() => {
-                    const amt = 2.5;
-                    setPersonalFund(f => f + amt);
-                    setCampGfDebt(d => d + amt);
-                    setGodfatherRel(r => Math.min(100, r + 5));
-                    setS(p => ({ ...p, cor: cl(p.cor + 0.05, 0, 1) }));
-                    setTribunal(t => ({ ...t, log: [...t.log, "🎩 Godfather wired ₦" + amt + "B for legal bills. Debt now ₦" + (campGfDebt + amt).toFixed(1) + "B. +5% corruption. He expects a Commissioner slot AND a contract when you're sworn in."] }));
-                    addL("🎩 Borrowed ₦" + amt + "B from the Godfather to fund your tribunal case. Total debt: ₦" + (campGfDebt + amt).toFixed(1) + "B.", "political");
-                  }} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2.5B from Godfather · +5% corruption · owes contract & slot</Bt>}
-                  {personalFund < 3.5 && (godfatherRel <= 20 || campGfDebt >= 6 || stc.gf === "dead" || stc.gf === "opposition") && <div style={{ fontSize: TS(31), color: CL.red, textAlign: "center", padding: "10px 0" }}>🎩 Godfather won't lend more — {stc.gf === "dead" ? "he is dead" : stc.gf === "opposition" ? "he is with the opposition now" : godfatherRel <= 20 ? "relationship burned" : "debt cap reached"}</div>}
-                  <Bt onClick={() => { addL("😔 Withdrew the petition. " + tribunal.oppName + " is Governor.", "political"); setTribunal(null); setGEnd("defeated"); }} style={{ background: "#555" }}>🏳️ Withdraw petition · accept the result</Bt>
-                </div>
-              </div>}
-
-              <div style={{ marginTop: 36, background: "#f9f5ee", border: "1px solid " + CL.bdr, borderRadius: 8, padding: "22px 29px", maxHeight: 300, overflowY: "auto" }}>
-                <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.td, fontFamily: F.m, letterSpacing: 2, marginBottom: 10 }}>CASE LOG</div>
-                {tribunal.log.map((l, i) => <div key={i} style={{ fontSize: TS(34), color: l.includes("✅") ? CL.grn : l.includes("❌") ? CL.red : CL.tm, padding: "7px 0" }}>{l}</div>)}
-              </div>
-            </Cd>;
+            const canBorrow = godfatherRel > 20 && campGfDebt < 6 && stc.gf !== "dead" && stc.gf !== "opposition";
+            const borrow = () => {
+              const amt = 2.5;
+              setPersonalFund(f => f + amt); setCampGfDebt(d => d + amt);
+              setGodfatherRel(r => Math.min(100, r + 5)); setS(p => ({ ...p, cor: cl(p.cor + 0.05, 0, 1) }));
+              setTribunal(t => ({ ...t, log: [...t.log, "🎩 Godfather lent ₦" + amt + "B. He wants a commissioner and a contract."] }));
+              addL("🎩 Borrowed ₦" + amt + "B from the Godfather for the tribunal. Debt: ₦" + (campGfDebt + amt).toFixed(1) + "B.", "political");
+            };
+            return <CourtScreen level={tribunal.level} court={lvl.nm} tag={lvl.tag}
+              facts={[["Lost by", tribunal.margin + "%"], ["War chest", "₦" + personalFund.toFixed(2) + "B", personalFund < 1.2], tribunal.spent > 0 && ["Spent", "₦" + tribunal.spent.toFixed(1) + "B"]]}
+              ground={gd} grounds={TRIBUNAL_GROUNDS.map(g => ({ ...g, base: g.baseChance }))} onGround={decideGround}
+              modes={[{ id: "self", ic: "👨🏾‍💼", l: "Argue it yourself", cost: 0.2, odds: -5 }, { id: "top_sans", ic: "📚", l: "A Senior Advocate", cost: 1.2, odds: 10 }, { id: "wig", ic: "🎓", l: "A SAN-led team", cost: 3.5, odds: 22 }, setup?.level !== "easy" && personalFund >= 5 && { id: "bribe", ic: "💼", l: "\u201cSettle\u201d the panel", d: "+15% corruption. It may leak.", cost: 5, odds: 35, tone: "bad" }]}
+              onMode={runHearing} fund={personalFund}
+              extra={personalFund < 3.5 && (canBorrow ? <Bt onClick={borrow} style={{ background: CL.gold, color: "#000" }}>🎩 Borrow ₦2.5B · +5% corruption</Bt>
+                : <div style={{ fontSize: TS(24), color: CL.red, textAlign: "center" }}>🎩 No loan: {stc.gf === "dead" ? "he is dead" : stc.gf === "opposition" ? "he backs the opposition" : godfatherRel <= 20 ? "you burned that bridge" : "you owe too much"}.</div>)}
+              onWithdraw={() => { addL("😔 Withdrew the petition. " + tribunal.oppName + " is Governor.", "political"); setTribunal(null); setGEnd("defeated"); }}
+              log={tribunal.log} />;
           })()}
         </OL>
 
@@ -11145,8 +11079,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const short = (t) => String(t || "").replace(/^Section\s*(\d+):\s*/, "§$1 ");
             const fxChips = (fx) => Object.entries(fx || {}).map(([k, v]) => ({ k, t: ({ app: "Approval", corM: "Corruption", sec: "Security", agr: "Farming" }[k] || k) + " " + (v > 0 ? "+" : "") + (Math.abs(v) < 1 ? Math.round(v * 100) + "%" : v), good: k === "corM" ? v < 0 : v > 0 }));
             const caughtBad = badClauses.length > 0 && badClauses.every(c => flagged.includes(B.clauses.indexOf(c)));
-            // The House reacts once the pen or the stamp has finished.
-            const later = (o) => setTimeout(() => announce(o), 2600);
+            // The outcome is a front page: what the papers made of it.
+            const billNm = B.nm.replace(/ Bill$/, "");
             const doSign = () => {
               track("bill_" + (B.id || "bill"), "signed");
               const hasBad = badClauses.length > 0;
@@ -11159,25 +11093,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               });
               setSkApp(p => { const n = { ...p }; Object.entries(B.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
               addL(hasBad ? "✍️ Signed the " + B.nm + ", hidden clause and all. Corruption rises." : "✍️ Signed the " + B.nm + " into law." + (B.signCost > 0 ? " Cost: " + naira(B.signCost) : ""), hasBad ? "scandal" : "policy");
-              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, state: stName, lines: (B.clauses || []).map(c => short(c.t)), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
-              if (!hasBad) setTimeout(() => paper(govShort + " Signs " + B.nm.replace(/ Bill$/, "") + " Into Law", "A win for " + stName, true, "./art/scenes/news-signing-ceremony.webp"), 2600);
-              if (hasBad) later({ icon: "🕵️", img: "./art/characters/speaker-pleased.webp", title: "The House got what it wanted", text: "You signed " + short(badClauses[0].t).split(":")[0] + " without reading it. Corruption +4%.", tone: "bad" });
+              if (!hasBad) paper(govShort + " Signs " + billNm + " Into Law", "A win for " + stName, true, "./art/scenes/news-signing-ceremony.webp");
+              if (hasBad) paper("House Slips " + short(badClauses[0].t).split(":")[0] + " Past " + govShort, billNm + " signed unread · Corruption +4%", false, "./art/characters/speaker-pleased.webp");
               setBillFlags([]); advanceFn();
             };
             const doVeto = () => {
               track("bill_" + (B.id || "bill"), "vetoed");
               setSkApp(p => { const n = { ...p }; Object.entries(B.vetoSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, state: stName, lines: (B.clauses || []).map(c => short(c.t)), by: "Governor of " + stName + " State", veto: true }); } catch (e) {}
               if (caughtBad) {
                 // You read it, flagged the trick and sent it back: the press notices.
                 setS(p => ({ ...p, app: cl100(p.app + 5), cor: cl(p.cor - .03) }));
                 setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 10), party: cl100((p.party || 50) - 8), youth: cl100((p.youth || 50) + 6) }));
                 addL("🔍 Vetoed the " + B.nm + " and named the trick: " + badClauses.map(c => short(c.t).split(":")[0]).join(", ") + ". The press praised it.", "policy");
-                later({ icon: "🔍", img: "./art/characters/speaker-angry.webp", title: "Caught: veto upheld by the public", text: "You named the hidden clause. The Speaker is furious; the press loves it.", tone: "good", rows: [{ l: "Approval", v: "+5", good: true }, { l: "Corruption", v: "−3%", good: true }] });
+                paper(govShort + " Vetoes " + billNm + ", Exposes Hidden Clause", "Speaker furious · Approval +5 · Corruption −3%", true, "./art/characters/speaker-angry.webp");
               } else {
                 setS(p => { const n = { ...p, pStab: cl100(p.pStab - 5) }; Object.entries(B.vetoFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); }); return n; });
                 addL("⛔ Vetoed the " + B.nm + ". The House is unhappy.", "political");
-                later({ icon: "⛔", img: "./art/characters/speaker-angry.webp", title: "The House is unhappy", text: badClauses.length ? "You vetoed it but never said what was wrong. Members call it spite." : "Members wanted this bill. They will remember.", tone: "bad", rows: [{ l: "Party", v: "−5", good: false }, ...fxChips(B.vetoFx).map(c => ({ l: c.t, v: "", good: c.good }))] });
+                paper(govShort + " Vetoes " + billNm, (badClauses.length ? "No reason given; members cry spite" : "Members wanted it") + " · Party −5", false, "./art/characters/speaker-angry.webp");
               }
               setBillFlags([]); advanceFn();
             };
@@ -12371,7 +12303,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
   // The end.
   const won = G.step === "sworn";
   return <Frame bg={won ? "supreme-court-abuja" : "veranda-night"} who={won ? null : null}>
-    <Sfx k={won ? "win" : "lose"} />
+    <Sfx k={won ? "cheer" : "lose"} />
     <H kick={won ? "29 May" : "After the election"} title={won ? "President of the Federal Republic" : "The presidency eluded you"} sub={won ? (G.bio ? "From Government House in " + String(G.state).replace(/_/g, " ") + " to Aso Rock: " : "") + G.name + " is sworn in at Eagle Square, with " + (G.mate ? G.mate.name : "the vice-president") + " beside them." : G.conceded ? "You conceded. Your supporters wept; the country noticed." : G.opp.name + " is sworn in."} />
     <Cd>
       {G.bio && <div style={{ fontSize: fz.s, color: CL.txt, fontWeight: 800, marginBottom: 6 }}>{presTitle(G)}{G.bio.title ? " · \u201c" + G.bio.title + "\u201d" : ""}</div>}
@@ -12711,6 +12643,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   const endT = { lost_race: ["Defeated", "The " + districtName(G) + " chose " + G.oppName + "."], recalled: ["Recalled", "Your district took its seat back before your term ended."], no_ticket: ["Denied the ticket", "Your party chose another candidate. Four years in the Senate end here."], defeated: ["Voted out", "The district wanted someone new."], reelected: ["Re-elected", "Four more years in the red chamber."] }[G.ending] || ["The end", ""];
   const restart = () => { try { window.storage.set(SEN_KEY, ""); } catch (e) {} setG(null); };
   return wrap(<Frame {...(G.ending === "reelected" ? { scene: "senate-vote" } : { bg: "veranda-night" })}>
+    {G.ending === "reelected" && <Sfx k="cheer" />}
     <H kick="The Senator" title={endT[0]} sub={endT[1]} />
     {G.ending !== "lost_race" && <Cd style={{ textAlign: "center" }}>
       {G.ending === "reelected" && <img src="./art/badges/badge-senator.webp" alt="Senator badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 4px" }} />}
@@ -12994,6 +12927,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const endT = { dissolved: ["Dissolved", "A caretaker committee runs " + lgaNm(G) + " now."], impeached: ["Impeached", "The councillors chose a new chairman."], no_ticket: ["Denied the ticket", "The governor's candidate runs in your place."], defeated: ["Voted out", "The wards wanted someone new."], reelected: ["Re-elected", "Three more years at the council secretariat."] }[G.ending] || ["The end", ""];
   const restart = () => { try { window.storage.set(LGA_KEY, ""); } catch (e) {} setG(null); };
   return wrap(<Frame {...(G.ending === "reelected" ? { scene: "chairman-flag-off" } : { bg: "village-square", who: "village-head" })}>
+    {G.ending === "reelected" && <Sfx k="cheer" />}
     <H kick="LGA Chairman" title={endT[0]} sub={endT[1]} />
     <Cd>
       {G.ending === "reelected" && <img src="./art/badges/badge-chairman.webp" alt="Chairman badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 8px" }} />}
@@ -13160,6 +13094,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const endT = { promoted: ["Promoted", "The President names you Minister of Foreign Affairs."], completed: ["Posting complete", "You hand over to your successor and fly home."], recalled: ["Recalled", "Abuja brought you home early."], expelled: ["Expelled", "Declared persona non grata by " + P(G).nm + "."] }[G.ending] || ["The end", ""];
   const restart = () => { try { window.storage.set(AMB_KEY, ""); } catch (e) {} setG(null); setPost(null); };
   return wrap(<Frame {...(G.ending === "promoted" ? { bg: "foreign-ministry-meeting" } : G.ending === "completed" ? { bg: "embassy-exterior" } : { bg: "evacuation-airport" })}>
+    {G.ending === "promoted" && <Sfx k="cheer" />}
     <H kick="Ambassador" title={endT[0]} sub={endT[1]} />
     <Cd style={{ textAlign: "center" }}>
       {(G.ending === "promoted" || G.ending === "completed") && <img src="./art/badges/badge-ambassador.webp" alt="Ambassador badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 4px" }} />}

@@ -306,11 +306,11 @@
        Formerly part of sop-v2.js. Appended to body, which the stage script
        below redirects into the scaled stage, so sizes are artboard px. */
     /* Sound: effects are recorded files in ./audio/sfx/<kind>.mp3, listed in
-       SFX as they arrive (gavel, notify). window.SOP_sound(kind)
+       SFX as they arrive (gavel, notify, cheer: kept for big wins only). window.SOP_sound(kind)
        plays one; SOP_soundOn() reads or sets the switch for effects and music
        (remembered on this device). */
     (function () {
-      var on = true, SFX = { gavel: 1, notify: 1 }, cache = {};
+      var on = true, SFX = { gavel: 1, notify: 1, cheer: 1 }, cache = {};
       try { on = localStorage.getItem('sop_sound') !== 'off'; } catch (e) {}
       window.SOP_sound = function (kind) {
         if (!on || !SFX[kind]) return;
