@@ -59,9 +59,11 @@ The presidency now has a war storyline across the term: unrest in the Republic o
 - `chief-of-army-staff-full-neutral`, `-full-pleased`, `-full-worried`, `-full-urgent`: the **same** Chief of Army Staff as `chief-of-army-staff`, full length, in four moods. He presents every Bakunda moment (like the adviser's full-length poses).
 - `general-voko`, `general-voko-angry`, `general-voko-pleased`: Bakunda's junta leader, in a maroon-and-sand uniform with dark glasses.
 - `ostrava-leader`, `ostrava-leader-angry`: Ostrava's head of state, slate-grey suit.
+- `presidential-pilot`, `presidential-pilot-pleased`: the President's pilot, a Nigerian Air Force Group Captain in a flight jacket with wings, **saluting**, full length. He welcomes the President at the Air Fleet before every trip ("Good day, Your Excellency. The jet is fuelled…").
 - `us-president`, `us-president-pleased`: a **fictional** President of the United States who resembles no real president, in a dark suit.
 
 ## Scenes (`scenes/`), 1280×720, no text
+- `air-fleet-hangar`: inside the Presidential Air Fleet's hangar: the green-and-white jet with its steps down, a red carpet to the steps, ground crew, warm floodlights. The backdrop for the pilot's welcome.
 - `oval-office`: **the President of Nigeria and the fictional US President seated in an oval office** (the curved walls, two sofas, a heavy desk by the windows), shaking hands for photographers. No real presidential seal: a plain carpet. This goes on the newspaper front page.
 - `bakunda-coup`: tanks and soldiers in a capital's central square at dawn, a radio mast, a burning car.
 - `refugees-border`: families with bundles crossing a dusty border post into Nigeria, Nigerian officials receiving them.

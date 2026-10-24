@@ -4692,6 +4692,8 @@ const HallBoard = ({ tab: tab0 = "today", note }) => {
   </div>;
 };
 
+// The presidential pilot (Lovable Pack 16 brings his own portrait).
+const PILOT_ART = "soldier";
 /* The inauguration at Eagle Square: the oath before the Chief Justice, three
    commitments the term will be judged by, and the inaugural address. */
 const INAUGURAL = {
@@ -5514,6 +5516,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { window.SOP_outcome({ icon: "📺", img: "./art/scenes/national-broadcast.webp", title: "“" + T.line + "”", text: "The address is carried live on every network. Your three commitments will be judged at the end of the term.", tone: "good",
       rows: commits.map(k => ({ l: "🎯 " + SYS.PRES_COMMITS[k].l, v: "promised", good: true })), learn: SYS.PRES_LEARN.oath }); } catch (e) {}
   };
+  /* A trip abroad: the adviser speaks first, then the pilot welcomes you at
+     the Presidential Air Fleet, then the flight. */
+  const pilotName = "Group Captain " + gN(rng(state.length * 313 + pName.length * 7), "NC", NATION);
+  const presTrip = (dest, purpose) => {
+    const sa = cast.adviser.name;
+    try {
+      window.SOP_outcome({ present: { img: saPose(sa, "neutral") || saPortrait(sa), name: sa + " · Special Adviser", text: "Your Excellency, " + purpose + " needs you there in person. Take the letter to the Air Fleet if you want to go. Flying takes time, and your mailbox will keep filling while you are away.", ok: "Continue" } });
+      window.SOP_outcome({ present: { img: "./art/characters/" + PILOT_ART + ".webp", name: pilotName + " · Presidential Air Fleet", text: "Good day, Your Excellency. You are scheduled to fly to " + dest + ". The jet is fuelled and ready for take-off. Remember that flying takes time, so take care of things before we leave. Shall we go now?", ok: "✈️ Fly now" } });
+      window.SOP_outcome({ flight: { dir: "out", right: dest, left: "Abuja" } });
+    } catch (e) {}
+  };
   const presCardFor = (it) => {
     const P = stc.pres || presInitNow(), c = SYS.presCard(P, it), [bg, who, obj, scene] = SYS.presArt(P, it, c), npc = c.who && (P.npcs || {})[c.who];
     const kicker = it.k === "crisis" ? SYS.PRES_CRISES[it.id].nm : it.k === "world" ? "The world stage" : it.k === "coup" ? "The barracks" : it.k === "callback" ? "It comes back" : npc ? SYS.PRES_NPCS[c.who].role + " · " + npc.name : "The nation";
@@ -5524,7 +5537,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (f.costB < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - f.costB) * 100) / 100, debt: Math.round(((p.debt || 0) - f.costB) * 10) / 10 }));
         const after = SYS.presAfter(before, it, o, f.sev, turn);
         setStc(p => { const np = SYS.presAfter(p.pres || before, it, o, f.sev, turn); if (it.k === "coup" && !f.bad) np.coupSurvived = true; return { ...p, pres: np }; });
-        if (c.flight && o.id === "go" || c.flight && o.id === "invest") try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: c.flight, left: "Abuja" } }); } catch (e) {}
+        if (c.flight && (o.id === "go" || o.id === "invest")) presTrip(c.flight, c.t.replace(/\u2060/g, "").replace(/^A |^The /, "the ").replace(/^./, x => x.toLowerCase()));
         addL((it.k === "crisis" ? "🚨 " : it.k === "world" ? "🌍 " : "🦅 ") + c.t + ": " + o.l.toLowerCase() + "." + (f.bad ? " It went wrong in public." : ""), f.bad ? "crisis" : "policy");
         if (it.k !== "callback") scWiki(f.bad ? "Controversies" : "Presidency", c.t.replace(/\.$/, "") + ": " + o.l.replace(/^./, x => x.toLowerCase()) + (f.bad ? ", which went wrong in public." : "."));
         track("pres_" + (c.id || it.id), o.id);
@@ -5545,7 +5558,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         scFx({ app, sec: (o.fx && o.fx.sec || 0) - (c.spill ? .02 : 0), cor: o.fx && o.fx.cor, debt: cost > 0 ? cost : 0 });
         const B0 = stc.bakunda, B1 = SYS.bakundaAfter(B0, o);
         setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, bakunda: SYS.bakundaAfter(p.bakunda || B0, o) }; });
-        if (o.flight) try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: c.id === "bk2" ? "Bakunda" : c.id === "bk5" ? "Washington" : c.id === "bk4" && (B0 || {}).summits ? "Geneva" : "Abuja", left: "Aso Rock" } }); } catch (e) {}
+        if (o.flight) { const dest = c.id === "bk5" ? "Washington" : c.id === "bk4" && (B0 || {}).summits ? "Geneva" : "Abuja";
+          if (c.id === "bk2") { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Bakunda", left: "Abuja" } }); } catch (e) {} } // the airlift: the jets go, not you
+          else presTrip(dest, c.id === "bk5" ? "the White House meeting on Bakunda" : "the summit on Bakunda"); }
         const pp = o.paper || c.paper; if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined), 200);
         // On Bakunda it is the Chief of Army Staff who comes to you, not the adviser.
         const army = ((stc.pres || {}).npcs || {}).army, chief = "Gen. " + ((army && army.name) || "the Chief") + " · Chief of Army Staff";
@@ -9383,7 +9398,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (id === "police") return { title: "Police HQ", img: "b11-police-hq", rows: [row("Security", Math.round(s.sec * 100) + "%", s.sec < .4), ...logs.filter(l => !/CABINET|📋|🌟/.test(l.tx) && /bandit|kidnap|attack|cult|clash|insurgent|abduct|gunmen|vigilante|curfew|troops|militant/i.test(l.tx)).slice(0, 3).map((l, i) => row(i ? "" : "Latest", l.tx.replace(/^\S+\s/, "").slice(0, 70) + (l.tx.length > 72 ? "…" : "")))], note: "Security funding, vigilantes and your choices in crises move this number." };
     if (id === "inec") return { title: "Electoral Commission", img: "b09-electoral-commission", rows: [row("Next governorship election", turn <= 4 ? "After year 4 (in " + (5 - turn) + ")" : turn <= MT ? "Your successor's, after year " + MT : "—", turn === 4 || turn === MT), row("Council elections", stc.lg ? { free: "Held freely", rigged: "Rigged sweep", caretaker: "Caretaker committees" }[stc.lg.mode] : "Not yet held", stc.lg && stc.lg.mode !== "free"), row("LG autonomy", stc.lg && stc.lg.autonomy ? { comply: "Complied", evade: "Evaded", court: "In court", delayed: "Delayed by court" }[stc.lg.autonomy] : "Not yet enforced")], note: "Winning by under 5% invites an election petition." };
     if (id === "airport") { const P = stc.pres || {}, trips = SYS.PRES_WORLD.filter(c => (P.seen || []).includes(c.id));
-      return { title: "Presidential Air Fleet", img: null, rows: [row("The presidential jet", "Fuelled, crew on standby"), row("State visits and summits", trips.length ? trips.map(c => c.t.replace(/\u2060/g, "")).join(" · ") : "None yet"), row("Next on the world stage", turn % 2 === 1 ? "This year" : "Next year"), row("Crisis at home", P.crisis && !P.over ? SYS.PRES_CRISES[P.crisis].nm.replace(/\u2060/g, "") + " (" + P.sev + "/100): every trip abroad is watched" : "Calm enough to travel", P.crisis && !P.over && P.sev >= 70)] }; }
+      return { title: "Presidential Air Fleet", img: null, rows: [row("The presidential jet", "Fuelled, crew on standby"), row("Your pilot", pilotName), row("State visits and summits", trips.length ? trips.map(c => c.t.replace(/\u2060/g, "")).join(" · ") : "None yet"), row("Next on the world stage", turn % 2 === 1 ? "This year" : "Next year"), row("Crisis at home", P.crisis && !P.over ? SYS.PRES_CRISES[P.crisis].nm.replace(/\u2060/g, "") + " (" + P.sev + "/100): every trip abroad is watched" : "Calm enough to travel", P.crisis && !P.over && P.sev >= 70)] }; }
     if (id === "market") { const sv = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: balanceIssue() != null ? zoneName(balanceIssue()) : null, turn }); return { title: "Central Market", img: "b12-market", rows: [row("Trending", sv.tag), ...sv.lines.map((l, i) => row(l.w, "\u201c" + l.t + "\u201d"))], note: "What the street says about you this year." }; }
     return null;
   };
