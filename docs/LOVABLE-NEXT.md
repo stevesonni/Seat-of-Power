@@ -167,6 +167,9 @@ Same rules as above. Mood variants keep the **same person and outfit**; only the
 For the flight that plays whenever you travel. The game writes the place names itself, so **no text, letters or logos on anything**. Style: polished **3D render** (soft studio lighting, gentle shadows, slightly toy-like, like a mobile game). Transparent background (PNG or WebP) for every item.
 
 - `objects/airliner-side`: a twin-engine passenger jet seen **exactly side-on, facing right**, 2048×700. White body, **green tail and a green-and-gold stripe** along the side. An invented airline: **no name, no flag, no real airline's colours or logo** (not Air Peace, Arik, Nigeria Air or any other). Wheels up, as in flight.
-- `objects/signpost-post` (it stands in the bottom-left corner of the screen): a **green metal road-sign post** standing on a small tuft of grass and red earth, 600×1600, with the post running up the middle and nothing attached.
-- `objects/sign-arrow-right`: one **blank green road-sign board shaped as an arrow pointing right**, with a white border and slight 3D thickness, 1600×500. **Blank inside**: the game prints "ABUJA", "ENUGU" and so on. (The left-pointing board is this one mirrored.)
+- `objects/signpost`: one 3D **road signpost**, 1200×1400, standing in the bottom-left corner of the screen. A **silver metal pole** with a soft shadow at its foot. Two long, **blank, dark-green boards** with a thin white border and slight 3D thickness, both crossing the pole at the middle:
+  - the **top board points left** (the player's home state goes on it);
+  - the **lower board points right** (the destination goes on it).
+
+  Seen slightly from the left, like a real street sign on a corner. **Nothing written on the boards**: the game prints "ABUJA", "ENUGU" and so on. Keep each board's front face large and even, so a word fits across it.
 - `objects/cloud-1` … `objects/cloud-4`: four fluffy **3D clouds** of different shapes, white with soft blue-grey undersides, about 1200×600 each.

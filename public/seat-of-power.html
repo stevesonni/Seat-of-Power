@@ -167,19 +167,19 @@
     .sop-flight.home .fl-plane svg text { transform: scaleX(-1); transform-box: fill-box; transform-origin: center; }
     /* The road sign: a green post, the destination board pointing right, home pointing left. */
     .sop-flight .fl-sign { position: absolute; left: 3%; bottom: 0; width: 40%; max-width: 420px; min-width: 280px; height: 42%; z-index: 2; pointer-events: none; }
-    .sop-flight .fl-post { position: absolute; left: 50%; bottom: 0; width: 7%; height: 100%; transform: translateX(-50%); border-radius: 6px 6px 0 0; background: linear-gradient(90deg, #0a5a33, #12864e 45%, #0b6b3d 70%, #064527); box-shadow: 6px 0 14px rgba(0,0,0,.25); }
-    .sop-flight .fl-post::after { content: ""; position: absolute; left: -90%; right: -90%; bottom: -6px; height: 22px; border-radius: 50%; background: radial-gradient(ellipse at center, #3f8a3a 0 55%, transparent 70%); }
-    .sop-flight .fl-board { position: absolute; height: 24%; min-height: 54px; display: flex; align-items: center; color: #fff; font: 900 30px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;
-      background: linear-gradient(180deg, #17a35e, #0b7a43 60%, #075c32); filter: drop-shadow(5px 8px 0 rgba(0,40,20,.35)) drop-shadow(0 12px 16px rgba(0,0,0,.25)); }
+    .sop-flight .fl-post { position: absolute; left: 50%; bottom: 0; width: 6%; height: 92%; transform: translateX(-50%); border-radius: 4px 4px 0 0; background: linear-gradient(90deg, #8e969c, #e9edf0 38%, #c3c9ce 62%, #7d858b); box-shadow: 6px 0 14px rgba(0,0,0,.22); }
+    .sop-flight .fl-post::after { content: ""; position: absolute; left: -110%; right: -110%; bottom: -6px; height: 22px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(40,60,50,.35) 0 50%, transparent 72%); }
+    .sop-flight .fl-board { position: absolute; height: 23%; min-height: 54px; display: flex; align-items: center; color: #fff; font: 900 30px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;
+      background: linear-gradient(180deg, #3f8a52, #2c6e3e 55%, #1f5530); filter: drop-shadow(5px 8px 0 rgba(0,40,20,.35)) drop-shadow(0 12px 16px rgba(0,0,0,.25)); }
     .sop-flight .fl-board span { position: relative; z-index: 1; display: block; width: 100%; max-height: 82%; overflow: hidden; white-space: normal; line-height: 1.05; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
-    .sop-flight .fl-board.l span { text-align: right; }
+    .sop-flight .fl-board span { text-align: center; }
     .sop-flight .fl-board::before { content: ""; position: absolute; inset: 5px; border: 3px solid rgba(255,255,255,.9); clip-path: inherit; }
-    .sop-flight .fl-board.r { left: 50%; top: 6%; width: 54%; padding: 0 18% 0 6%; clip-path: polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%); justify-content: flex-start; }
-    .sop-flight .fl-board.l { right: 50%; top: 36%; width: 54%; padding: 0 6% 0 18%; clip-path: polygon(18% 0, 100% 0, 100% 100%, 18% 100%, 0 50%); justify-content: flex-end; }
+    .sop-flight .fl-board.r { left: 14%; top: 37%; width: 86%; padding: 0 16% 0 8%; clip-path: polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%); justify-content: center; }
+    .sop-flight .fl-board.l { right: 14%; top: 8%; width: 86%; padding: 0 8% 0 16%; clip-path: polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%); justify-content: center; }
     .sop-flight .fl-board::before { inset: 4px; border: 0; background: none; box-shadow: inset 0 0 0 3px rgba(255,255,255,.92); }
-    .sop-flight .fl-board.r::before { clip-path: polygon(0 0, 82% 0, 100% 50%, 82% 100%, 0 100%); }
-    .sop-flight .fl-board.l::before { clip-path: polygon(18% 0, 100% 0, 100% 100%, 18% 100%, 0 50%); }
-    .sop-flight .fl-board.r { transform-origin: 0 50%; } .sop-flight .fl-board.l { transform-origin: 100% 50%; }
+    .sop-flight .fl-board.r::before { clip-path: polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%); }
+    .sop-flight .fl-board.l::before { clip-path: polygon(12% 0, 100% 0, 100% 100%, 12% 100%, 0 50%); }
+    .sop-flight .fl-board.r { transform: perspective(700px) rotateY(-16deg); } .sop-flight .fl-board.l { transform: perspective(700px) rotateY(-16deg); }
     .sop-flight.home .fl-board.l, .sop-flight:not(.home) .fl-board.r { animation: flBoard 1.6s .3s ease-in-out infinite alternate; }
     @keyframes flBoard { from { filter: drop-shadow(5px 8px 0 rgba(0,40,20,.35)) brightness(1); } to { filter: drop-shadow(5px 8px 0 rgba(0,40,20,.35)) brightness(1.18); } }
     .sop-flight .fl-skip { position: absolute; right: 4%; bottom: 3%; text-align: right; color: rgba(255,255,255,.8); font: 700 16px "Plus Jakarta Sans", sans-serif; }
