@@ -35,3 +35,16 @@ The governor's Desk is a painted map of the state capital's compound (`compound-
 - `badge-commander`: a gold eagle over crossed swords (survive a coup attempt).
 - `badge-unifier`: six linked rings in green and gold (win all six zones).
 - `badge-crisis-ended`: a broken chain in gold (end the national crisis).
+
+---
+
+# Pack 15: the Villa compound, with its airport
+
+> **Delivered: Pack 14** (all 34 pictures are in the game). The Villa compound map works, with each building clickable. Two gaps remain, and this pack fills them.
+
+## 1. The compound with an airport (`compound/`)
+- `compound-villa-airport`: **1500×850**, the same Villa and Three Arms Zone as `compound-villa` (keep every building where it is: the Villa with its red carpet at the left-centre, the rotunda, the banquet pavilion, the National Assembly dome and the Supreme Court at the top, the press room at the top left, the gate and guard posts at the bottom left), but in place of the helipad at the **bottom right** paint the **Presidential Air Fleet**: a short runway or apron, a hangar, and a green-and-white presidential jet with its steps down. Keep the open ground in front of each building clear (buttons go there).
+
+## 2. Villa building icons (`compound/villa/`)
+The list under the map shows a small picture of each place. These are for the President's, in the same chunky painted style as the governor's building icons (transparent background, about **600×460**):
+- `v-villa` (the office block with the red carpet), `v-fec` (the rotunda), `v-assembly` (the National Assembly dome), `v-supreme-court`, `v-press-room`, `v-banquet-hall`, `v-guards-brigade` (the gate and guard posts), `v-air-fleet` (a hangar with the jet), `v-finance` (the federal Ministry of Finance), `v-party-hq` (a national party headquarters), `v-efcc` (a federal anti-graft agency building, no real logo), `v-inec` (a national electoral commission building, no real logo).

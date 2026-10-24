@@ -1192,11 +1192,20 @@ const VILLA_BUILDINGS = [
   { id: "palace", img: "palace", name: "Banquet Hall", box: [1130, 312, 1486, 492] },
   { id: "police", img: "b11-police-hq", name: "Guards Brigade", box: [155, 600, 560, 790] },
   { id: "projects", img: "o-scaffold", name: "Helipad · project sites", overlay: true, box: [1185, 552, 1492, 680] },
-  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance" },
-  { id: "party", img: "b07-party-secretariat", name: "Party Headquarters" },
-  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office" },
-  { id: "inec", img: "b09-electoral-commission", name: "INEC" },
+  { id: "airport", name: "Presidential Air Fleet", pic: "scenes/presidential-jet" },
+  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance", pic: "backgrounds/finance-ministry-office" },
+  { id: "party", img: "b07-party-secretariat", name: "Party Headquarters", pic: "backgrounds/party-convention-hall" },
+  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office", pic: "characters/efcc-investigator" },
+  { id: "inec", img: "b09-electoral-commission", name: "INEC", pic: "backgrounds/polling-unit" },
 ];
+/* A Villa building's picture: cut from the Villa painting itself (so the list
+   matches the map), or its own scene for places off the map. */
+const VillaThumb = ({ b, w, h }) => {
+  if (!b) return null;
+  if (!b.box) return <span style={{ display: "block", width: w, height: h, borderRadius: 8, flexShrink: 0, background: "#1d2a22 url(./art/" + b.pic + ".webp) center/cover" }} />;
+  const [x0, y0, x1, y1] = b.box, bw = x1 - x0, bh = y1 - y0, k = Math.max(w / bw, h / bh);
+  return <span style={{ display: "block", width: w, height: h, borderRadius: 8, flexShrink: 0, backgroundImage: "url(./art/compound/compound-villa.webp)", backgroundSize: Math.round(1500 * k) + "px " + Math.round(850 * k) + "px", backgroundPosition: Math.round(-(x0 * k) + (w - bw * k) / 2) + "px " + Math.round(-(y0 * k) + (h - bh * k) / 2) + "px" }} />;
+};
 const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list, villa }) => {
   const HUB_BUILDINGS = villa ? VILLA_BUILDINGS : HUB_BUILDINGS_STATE, ON_MAP = HUB_BUILDINGS.filter(b => b.box);
   const wrapRef = React.useRef(null);
@@ -1234,7 +1243,7 @@ const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list, vi
     </div>
     {(list || villa) && <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 12 }}>
       {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <button key={b.id} onClick={() => go(b)} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8, alignItems: "center", background: CL.card, border: "1.5px solid " + (badge ? (badge.tone === "bad" ? CL.red : CL.gold) + "88" : CL.bdr), borderRadius: 14, padding: "8px 10px", cursor: "pointer", textAlign: "left", fontFamily: F.b, color: CL.txt }}>
-        <img src={b.id === "palace" ? "./art/compound/buildings/" + palace + ".webp" : b.overlay ? "./art/compound/overlays/" + b.img + ".webp" : "./art/compound/buildings/" + b.img + ".webp"} alt="" style={{ width: 52, height: 40, objectFit: "contain" }} />
+        {villa ? <VillaThumb b={b} w={52} h={40} /> : <img src={b.id === "palace" ? "./art/compound/buildings/" + palace + ".webp" : b.overlay ? "./art/compound/overlays/" + b.img + ".webp" : "./art/compound/buildings/" + b.img + ".webp"} alt="" style={{ width: 52, height: 40, objectFit: "contain" }} />}
         <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: TS(19), lineHeight: 1.2 }}>{b.name}</b>{badge ? <span style={{ fontSize: TS(17), color: badge.tone === "bad" ? CL.red : CL.org, fontWeight: 700 }}>{badge.text}</span> : <span style={{ fontSize: TS(17), color: CL.td }}>All quiet</span>}</span>
       </button>; })}
     </div>}
@@ -9349,6 +9358,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (id === "party") return { title: "Party Secretariat", img: "b07-party-secretariat", rows: [row("Party stability", Math.round(s.pStab) + "%", s.pStab < 45), row("Your godfather", stc.gf === "dead" ? "Dead" : stc.gf === "opposition" ? "With the opposition" : stc.gf === "enemy" ? "Hostile" : "Relationship " + godfatherRel + "%", stc.gf === "enemy" || stc.gf === "opposition" || godfatherRel < 30), row("Successor", stc.successor ? stc.successor.name : turn >= MT - 1 ? "Not chosen yet" : "Chosen in your last year", turn >= MT - 1 && !stc.successor)], note: "The party decides your ticket, your House majority and, at the end, who comes after you." };
     if (id === "police") return { title: "Police HQ", img: "b11-police-hq", rows: [row("Security", Math.round(s.sec * 100) + "%", s.sec < .4), ...logs.filter(l => !/CABINET|📋|🌟/.test(l.tx) && /bandit|kidnap|attack|cult|clash|insurgent|abduct|gunmen|vigilante|curfew|troops|militant/i.test(l.tx)).slice(0, 3).map((l, i) => row(i ? "" : "Latest", l.tx.replace(/^\S+\s/, "").slice(0, 70) + (l.tx.length > 72 ? "…" : "")))], note: "Security funding, vigilantes and your choices in crises move this number." };
     if (id === "inec") return { title: "Electoral Commission", img: "b09-electoral-commission", rows: [row("Next governorship election", turn <= 4 ? "After year 4 (in " + (5 - turn) + ")" : turn <= MT ? "Your successor's, after year " + MT : "—", turn === 4 || turn === MT), row("Council elections", stc.lg ? { free: "Held freely", rigged: "Rigged sweep", caretaker: "Caretaker committees" }[stc.lg.mode] : "Not yet held", stc.lg && stc.lg.mode !== "free"), row("LG autonomy", stc.lg && stc.lg.autonomy ? { comply: "Complied", evade: "Evaded", court: "In court", delayed: "Delayed by court" }[stc.lg.autonomy] : "Not yet enforced")], note: "Winning by under 5% invites an election petition." };
+    if (id === "airport") { const P = stc.pres || {}, trips = SYS.PRES_WORLD.filter(c => (P.seen || []).includes(c.id));
+      return { title: "Presidential Air Fleet", img: null, rows: [row("The presidential jet", "Fuelled, crew on standby"), row("State visits and summits", trips.length ? trips.map(c => c.t.replace(/\u2060/g, "")).join(" · ") : "None yet"), row("Next on the world stage", turn % 2 === 1 ? "This year" : "Next year"), row("Crisis at home", P.crisis && !P.over ? SYS.PRES_CRISES[P.crisis].nm.replace(/\u2060/g, "") + " (" + P.sev + "/100): every trip abroad is watched" : "Calm enough to travel", P.crisis && !P.over && P.sev >= 70)] }; }
     if (id === "market") { const sv = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: balanceIssue() != null ? zoneName(balanceIssue()) : null, turn }); return { title: "Central Market", img: "b12-market", rows: [row("Trending", sv.tag), ...sv.lines.map((l, i) => row(l.w, "\u201c" + l.t + "\u201d"))], note: "What the street says about you this year." }; }
     return null;
   };
@@ -9480,7 +9491,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={!!hubSheet}>
           {hubSheet && (() => { const v = hubSheetView(hubSheet); if (!v) return null; return <Cd>
             <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
-              <img src={"./art/compound/buildings/" + v.img + ".webp"} alt="" style={{ width: TALL() ? 90 : 130, height: "auto" }} />
+              {NAT ? <VillaThumb b={VILLA_BUILDINGS.find(b => b.id === hubSheet)} w={TALL() ? 110 : 160} h={TALL() ? 70 : 100} /> : <img src={"./art/compound/buildings/" + v.img + ".webp"} alt="" style={{ width: TALL() ? 90 : 130, height: "auto" }} />}
               <h3 style={{ fontFamily: F.d, fontSize: TALL() ? TS(30) : TS(44), margin: 0, color: CL.txt }}>{NAT ? ((VILLA_BUILDINGS.find(b => b.id === hubSheet) || {}).name || v.title) : v.title}</h3>
             </div>
             {v.rows}
