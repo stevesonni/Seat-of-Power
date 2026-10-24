@@ -37,8 +37,19 @@ export async function open(port, { test = {}, seed = 7, phone = true, save } = {
   return { browser, page, errors, txt, click, buttons, wait };
 }
 // Title → Quick start → adviser → ticket → campaign → result.
+// New game with no politician yet: create one first (portrait, name, state, district).
+export async function createPolitician(g, state = "Ogun") {
+  if (!/First, create your politician|Create your politician/.test(await g.txt())) return false;
+  await g.page.evaluate(() => { const b = [...document.querySelectorAll("button[aria-pressed]")].find(x => x.querySelector("img")); b && b.click(); });
+  const ins = await g.page.$$("input"); if (ins[0]) await ins[0].fill("Wale"); if (ins[1]) await ins[1].fill("Adegoke");
+  await g.page.selectOption("select", state); await g.wait(200);
+  await g.click(/^Central/); await g.wait(200);
+  await g.click(/^Create my politician$/); await g.wait(800);
+  return true;
+}
 export async function campaign(g, { adviser = /Prof\. Bola Adekunle/ } = {}) {
   await g.click(/^New game$/); await g.wait(600);
+  await createPolitician(g);
   await g.click(/Quick start/); await g.wait(900);
   await g.page.evaluate((src) => { const rx = new RegExp(src); const t = [...document.querySelectorAll("button")].find(b => rx.test(b.textContent)); t && t.click(); }, adviser.source); await g.wait(300);
   await g.click(/^Appoint/); await g.wait(400); await g.click(/See the ticket/); await g.wait(500);

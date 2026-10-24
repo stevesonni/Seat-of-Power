@@ -860,6 +860,8 @@ const HONOURS = [
 // ─── PERSONNEL ───
 // Every commissioner (and the adviser) has a hidden competence and honesty,
 // fixed by name. Each year they act on it, and what they do is on record.
+// Anonymous choice tallies for the makers (see server /api/track): what players pick, never who.
+const track = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
 const hashStr = (t) => { let h = 7; for (const ch of String(t || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
 const traits = (name) => { const h = hashStr(name); return { comp: 32 + (h % 58), hon: 28 + ((h >>> 7) % 66) }; };
 const MIN_SECTOR = { works: "infrastructure", health: "health", educ: "education", agric: "agriculture", sec: "security" };
@@ -2083,16 +2085,19 @@ const EntranceSheet = ({ title, onClose, children }) => <div role="dialog" aria-
   </div>
 </div>;
 
-const ProfileForm = ({ initial, onSave, onCancel }) => {
+const ProfileForm = ({ initial, onSave, onCancel, first: firstTime }) => {
   const [first, setFirst] = useState(initial?.first || "");
   const [last, setLast] = useState(initial?.last || "");
   const [avatar, setAvatar] = useState(initial?.avatar || null);
   const [origin, setOrigin] = useState(initial?.origin || "");
   const [leaning, setLeaning] = useState(initial?.leaning || null);
-  const ready = first.trim() && last.trim() && avatar;
+  const [district, setDistrict] = useState(initial?.district != null ? initial.district : null);
+  const [lga, setLga] = useState(initial?.lga || null);
+  const ready = first.trim() && last.trim() && avatar && origin && district != null;
   const tall = TALL();
   return <EntranceSheet title={initial ? "Edit your politician" : "Create your politician"} onClose={onCancel}>
-    <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 12 }}>This is you in every campaign you run. You can change it any time.</div>
+    {firstTime ? <div style={{ background: "linear-gradient(135deg,#1f7a4d,#0f3d26)", color: "#fff", borderRadius: 18, padding: "12px 16px", marginBottom: 12 }}><b style={{ display: "block", fontSize: DS.t.body }}>First, create your politician</b><span style={{ fontSize: DS.t.meta, opacity: .9 }}>You run every campaign as them: your face on the billboards, your name on the ballot, your home town behind you.</span></div>
+      : <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 12 }}>This is you in every campaign you run. You can change it any time.</div>}
     <div style={{ display: "grid", gridTemplateColumns: tall ? "repeat(3,1fr)" : "repeat(5,1fr)", gap: 8, marginBottom: 14 }}>
       {pickLooks().map((a, i) => {
         const on = avatar === a.id;
@@ -2109,20 +2114,30 @@ const ProfileForm = ({ initial, onSave, onCancel }) => {
     </div>
     <label style={{ display: "block", marginBottom: 12 }}>
       <span style={{ display: "block", fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>State of origin</span>
-      <select value={origin} onChange={e => setOrigin(e.target.value)} style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontFamily: F.b, fontWeight: 600, fontSize: DS.t.body }}>
-        <option value="">Choose later</option>
-        {Object.keys(STATES).sort().map(k => <option key={k} value={k}>{stateLabel(k)}</option>)}
+      <select value={origin} onChange={e => { setOrigin(e.target.value); setDistrict(null); setLga(null); }} style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontFamily: F.b, fontWeight: 600, fontSize: DS.t.body }}>
+        <option value="">Choose your state</option>
+        {Object.keys(STATES).filter(k => k !== "FCT").sort().map(k => <option key={k} value={k}>{stateLabel(k)}</option>)}
       </select>
     </label>
+    {origin && <>
+      <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>Home senatorial district</div>
+      <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+        {SYS.DISTRICTS.map((d, i) => { const l = lgaCluster(getLGAs(origin), i).slice(0, 3).join(", "); return <Tile key={d} tint={district === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={district === i} onClick={() => { setDistrict(i); setLga(null); }} title={d} sub={l ? l + "…" : null} />; })}
+      </div>
+      {district != null && (() => { const ls = lgaCluster(getLGAs(origin), district); return ls.length ? <>
+        <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>Home local government</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>{ls.map(l => { const on = (lga || ls[0]) === l; return <button key={l} onClick={() => setLga(l)} aria-pressed={on} style={{ padding: "8px 14px", minHeight: 44, borderRadius: 999, border: "1.5px solid " + (on ? UI.dark : UI.line), background: on ? UI.dark : "#fff", color: on ? "#fff" : UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.meta, cursor: "pointer" }}>{l}</button>; })}</div>
+      </> : null; })()}
+    </>}
     <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>Party leaning</div>
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
       {[null, ...MAIN_PARTY_IDS].map(id => { const on = leaning === id; const pa = id ? PARTIES.find(p => p.id === id) : null;
         return <button key={id || "none"} onClick={() => setLeaning(id)} aria-pressed={on} style={{ padding: "10px 16px", minHeight: 44, borderRadius: 999, border: "1px solid " + (on ? UI.dark : UI.line), background: on ? UI.dark : "#fff", color: on ? "#fff" : UI.ink, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", fontFamily: F.b }}>{id ? (pa?.i || "") + " " + id : "Undecided"}</button>; })}
     </div>
-    <PillBtn disabled={!ready} onClick={() => onSave({ ...(initial || {}), first: first.trim(), last: last.trim(), avatar, origin: origin || null, leaning, created: initial?.created || Date.now(), games: initial?.games || [] })} style={{ width: "100%", opacity: ready ? 1 : .5 }}>
+    <PillBtn disabled={!ready} onClick={() => onSave({ ...(initial || {}), first: first.trim(), last: last.trim(), avatar, origin: origin || null, district, lga: lga || (origin && district != null ? lgaCluster(getLGAs(origin), district)[0] || null : null), leaning, created: initial?.created || Date.now(), games: initial?.games || [] })} style={{ width: "100%", opacity: ready ? 1 : .5 }}>
       {initial ? "Save changes" : "Create my politician"}
     </PillBtn>
-    <div style={{ fontSize: DS.t.meta, color: UI.dim, textAlign: "center", marginTop: 10 }}>{!ready ? "Pick a portrait and type a first and last name. " : ""}Saved on this device only. No email or phone number needed.</div>
+    <div style={{ fontSize: DS.t.meta, color: UI.dim, textAlign: "center", marginTop: 10 }}>{!ready ? "Pick a portrait, type your name, and say where you are from. " : ""}Saved with your Lagos Life account. No email or phone number needed.</div>
   </EntranceSheet>;
 };
 
@@ -2209,7 +2224,7 @@ const useStreak = () => {
   }, [d && d.days.length, st.use]);
   return { d, ...st, today, freezes: fz };
 };
-const Flame = ({ n, lit, size = 22 }) => <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 900, color: lit ? "#e8590c" : "#9aa29c" }}><span className={lit ? "sop-flame" : ""} style={{ fontSize: size, filter: lit ? "none" : "grayscale(1)", display: "inline-block" }}>🔥</span>{n}</span>;
+const Flame = ({ n, lit, size = 22 }) => <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 900, color: lit ? "#e8590c" : "#9aa29c" }}><img src="./art/icons/icon-streak.webp" alt="" className={lit ? "sop-flame" : ""} style={{ width: size + 4, height: size + 4, objectFit: "contain", filter: lit ? "none" : "grayscale(1) opacity(.6)", display: "inline-block" }} />{n}</span>;
 
 const DailyScreen = ({ onClose }) => {
   const tall = TALL(), n = SYS.dayNo(), D = SYS.dailyFor(n);
@@ -2256,7 +2271,7 @@ const DailyScreen = ({ onClose }) => {
             <div style={{ textAlign: "center", fontSize: tall ? TS(18) : TS(26), color: CL.tm }}>{total ? <><b style={{ color: CL.txt }}>{pct(pick)}%</b> of {total.toLocaleString()} governors chose like you.</> : "Other governors' choices appear as they play."}</div>
             {streak > 0 && <div className="sop-pop" style={{ textAlign: "center", fontSize: tall ? TS(24) : TS(36), fontWeight: 900, color: "#e8590c" }}><Flame n={streak} lit size={tall ? 30 : 42} /> day{streak === 1 ? "" : "s"} in a row</div>}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <PillBtn onClick={() => { try { window.open("https://wa.me/?text=" + encodeURIComponent(share), "_blank"); } catch (e) {} }}>Share on WhatsApp</PillBtn>
+              <PillBtn onClick={() => { try { window.open("https://wa.me/?text=" + encodeURIComponent(share), "_blank"); } catch (e) {} }}><span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><img src="./art/icons/icon-share.webp" alt="" style={{ width: 26, height: 26 }} />Share on WhatsApp</span></PillBtn>
               <PillBtn tone="plain" onClick={() => { try { navigator.clipboard?.writeText(share); window.SOP_toast && window.SOP_toast("Copied: paste it in your status", "ok"); } catch (e) {} }}>Copy result</PillBtn>
             </div>
             <PillBtn tone="plain" onClick={onClose}>Done · a new one tomorrow</PillBtn>
@@ -2269,17 +2284,17 @@ const DailyScreen = ({ onClose }) => {
 
 const StreakSheet = ({ st, onClose }) => {
   const paid = VATAR && window.SOP_canBuy && window.SOP_canBuy();
-  const buy = () => window.SOP_buy("streak_freeze").then(() => { try { window.SOP_toast && window.SOP_toast("🧊 Streak Freeze ready", "ok"); } catch (e) {} }).catch(() => {});
+  const buy = () => window.SOP_buy("streak_freeze").then(() => { try { window.SOP_toast && window.SOP_toast("Streak Freeze ready", "ok"); } catch (e) {} }).catch(() => {});
   const week = [6, 5, 4, 3, 2, 1, 0].map(k => st.today - k), has = new Set((st.d && st.d.days) || []);
   return <EntranceSheet title="Your streak" onClose={onClose}>
     <div style={{ textAlign: "center", padding: "6px 0 10px" }}>
-      <div className={st.streak ? "sop-flame" : ""} style={{ fontSize: 72, lineHeight: 1, filter: st.streak ? "none" : "grayscale(1)" }}>🔥</div>
+      <img src="./art/icons/icon-streak.webp" alt="" className={st.streak ? "sop-flame" : ""} style={{ width: 96, height: 96, objectFit: "contain", filter: st.streak ? "none" : "grayscale(1) opacity(.6)" }} />
       <div style={{ fontFamily: F.d, fontWeight: 900, fontSize: DS.t.title, color: UI.ink }}>{st.streak} day{st.streak === 1 ? "" : "s"}</div>
       <div style={{ fontSize: DS.t.meta, color: UI.sub }}>Best: {st.best} · {st.playedToday ? "done for today" : st.streak ? "play today to keep it" : "play today to start one"}</div>
       <div style={{ display: "flex", justifyContent: "center", gap: 8, margin: "14px 0" }}>{week.map(dn => <span key={dn} style={{ width: 34, height: 34, borderRadius: 17, display: "grid", placeItems: "center", background: has.has(dn) ? "#e8590c" : UI.tints[1], color: has.has(dn) ? "#fff" : UI.sub, fontWeight: 800, fontSize: 14, outline: dn === st.today ? "2px solid " + UI.ink : "none" }}>{has.has(dn) ? "✓" : ""}</span>)}</div>
       <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Play the Daily Decision, or govern a year, once a day to keep your streak.</div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#eaf4fb", border: "1px solid #b9dcf2", borderRadius: 16, padding: "12px 14px", textAlign: "left" }}>
-        <span style={{ fontSize: 34 }}>🧊</span>
+        <img src="./art/icons/icon-streak-freeze.webp" alt="" style={{ width: 48, height: 48, objectFit: "contain" }} />
         <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body, color: UI.ink }}>Streak Freeze · you have {st.freezes}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>Saves your streak on a day you miss, automatically.</span></span>
         {paid && <PillBtn onClick={buy} style={{ minWidth: 0, padding: "0 16px" }}>₦100</PillBtn>}
       </div>
@@ -2288,6 +2303,7 @@ const StreakSheet = ({ st, onClose }) => {
 };
 
 // Your career: the map of states you have governed, and the badges earned.
+const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
 const CareerSheet = ({ onClose }) => {
   const [list, setList] = useState(null), [sel, setSel] = useState(null);
@@ -2308,11 +2324,12 @@ const CareerSheet = ({ onClose }) => {
       <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap", marginTop: 4, fontSize: 12, color: UI.sub, fontWeight: 700 }}>{Object.entries(GRADE_COL).map(([g, c]) => <span key={g} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><span style={{ width: 12, height: 12, borderRadius: 3, background: c }} />{g}</span>)}</div>
     </div>
     <div style={{ minHeight: 24, textAlign: "center", fontSize: DS.t.meta, color: UI.sub, marginBottom: 10 }}>{sel ? stateLabel(sel) + ": " + (m[sel] ? "best grade " + m[sel].grade + " · " + (SYS.ENDING_NAME[m[sel].ending] || "") + (m[sel].times > 1 ? " · governed " + m[sel].times + " times" : "") : "not governed yet. Start a new game here.") : "Tap a state. Colour shows your best grade."}</div>
-    <b style={{ display: "block", fontSize: DS.t.body, color: UI.ink, marginBottom: 8 }}>Badges · {got} of {badges.length}</b>
+    <b style={{ display: "block", fontSize: DS.t.body, color: UI.ink, marginBottom: 2 }}>Badges · {got} of {badges.length}</b>
+    <div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 8 }}>Each badge is an honour: carry one into every new campaign for a head start.</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(" + (tall ? 140 : 180) + "px,1fr))", gap: 8 }}>
       {badges.map(b => <div key={b.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8, alignItems: "center", padding: "8px 10px", borderRadius: 14, background: b.got ? "#fff7df" : "#f3f1ec", border: "1px solid " + (b.got ? "#e9cf8a" : UI.line), opacity: b.got ? 1 : .7 }}>
-        <span style={{ fontSize: 26, filter: b.got ? "none" : "grayscale(1)" }}>{b.got ? b.icon : "🔒"}</span>
-        <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.meta, color: UI.ink }}>{b.name}</b><span style={{ fontSize: 12, color: UI.sub, lineHeight: 1.3 }}>{b.how}</span></span>
+        <img src={"./art/badges/" + BADGE_ART[b.id] + ".webp"} alt="" style={{ width: tall ? 40 : 48, height: tall ? 40 : 48, objectFit: "contain", filter: b.got ? "drop-shadow(0 3px 4px rgba(0,0,0,.2))" : "grayscale(1) opacity(.45)" }} />
+        <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.meta, color: UI.ink }}>{b.name}</b><span style={{ fontSize: 12, color: UI.sub, lineHeight: 1.3 }}>{b.how}</span>{SYS.BADGE_PERKS[b.id] && <span style={{ display: "block", fontSize: 12, fontWeight: 800, color: b.got ? "#0b6b42" : UI.dim, marginTop: 2 }}>{b.got ? "🎁 " : "🔒 "}{SYS.BADGE_PERKS[b.id].text}</span>}</span>
       </div>)}
     </div>
   </EntranceSheet>;
@@ -2326,6 +2343,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
   useEffect(() => { (async () => { try { const r = await window.storage.get(PRES_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setHasPres(true); } } catch (e) {} })(); }, []);
   const [saveName, setSaveName] = useState("");
   const [sheet, setSheet] = useState(null); // "profile" | "me" | "scenarios"
+  const [startAfter, setStartAfter] = useState(false); // New game with no politician yet: create one, then start
   const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
   useEffect(() => { const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f); return () => window.removeEventListener("sop-ents", f); }, []);
   const paidHere = VATAR && window.SOP_canBuy && window.SOP_canBuy();
@@ -2374,11 +2392,11 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
       <TitleLineup ids={lineup} tall={tall} />
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
         <button onClick={() => setSheet("daily")} className={dailyDone ? "" : "sop-glow"} style={{ width: "100%", maxWidth: 460, display: "flex", alignItems: "center", gap: 12, textAlign: "left", border: 0, borderRadius: 22, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: "#fff", background: dailyDone ? "linear-gradient(135deg,#3d4a42,#25302a)" : "linear-gradient(135deg,#1f7a4d,#0f3d26)", boxShadow: "0 6px 0 " + (dailyDone ? "#1a211d" : "#0a2a1a") + ", 0 10px 24px rgba(15,61,38,.3)" }}>
-          <span style={{ width: 50, height: 50, borderRadius: 14, background: "rgba(255,255,255,.12)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0 }}>{dailyDone ? "✅" : "📅"}</span>
+          <span style={{ width: 50, height: 50, borderRadius: 14, background: "rgba(255,255,255,.12)", display: "grid", placeItems: "center", flexShrink: 0 }}><img src={"./art/icons/" + (dailyDone ? "icon-ok" : "icon-daily") + ".webp"} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} /></span>
           <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{dailyDone ? "Today's decision: done" : "Today's decision #" + st.today}</b><span style={{ fontSize: DS.t.meta, opacity: .85 }}>{dailyDone ? "See how other governors chose · new one tomorrow" : "60 seconds · " + (st.streak ? "keep your " + st.streak + "-day streak" : "start a streak")}</span></span>
           <Flame n={st.streak} lit={st.streak > 0} />
         </button>
-        <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
+        <PillBtn onClick={() => { if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
@@ -2411,7 +2429,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
           {packLocked(k.id) && <PillBtn onClick={() => window.SOP_buy(k.id).catch(() => {})} style={{ width: "100%", marginTop: 8 }}>Unlock the {k.nm} · {k.price}</PillBtn>}
         </div>)}
       </EntranceSheet>}
-      {sheet === "profile" && <ProfileForm initial={profile} onCancel={() => setSheet(null)} onSave={(p) => { setProfile(p); saveProfile(p); setSheet(null); }} />}
+      {sheet === "profile" && <ProfileForm initial={profile} first={startAfter && !profile} onCancel={() => { setSheet(null); setStartAfter(false); }} onSave={(p) => { setProfile(p); saveProfile(p); setSheet(null); if (startAfter) { setStartAfter(false); onStart(p); } }} />}
       {sheet === "me" && profile && <EntranceSheet title={"Hon. " + profile.first + " " + profile.last} onClose={() => setSheet(null)}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
           <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 3 : undefined }} />
@@ -2723,6 +2741,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   const [depGov, setDepGov] = useState(null);
   const [homeDistrict, setHomeDistrict] = useState(null); // 0–2: North, Central, South senatorial district
   const [homeLga, setHomeLga] = useState(null); // the local government you come from, inside that district
+  // Badges earned in earlier careers: carry one honour into this campaign.
+  const [earned, setEarned] = useState([]), [legacy, setLegacy] = useState(null);
+  useEffect(() => { (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; const b = SYS.careerBadges(L, (k) => STATES[k] && STATES[k].zone).filter(x => x.got && SYS.BADGE_PERKS[x.id]); setEarned(b); if (b.length) setLegacy(b[b.length - 1].id); } catch (e) {} })(); }, []);
+  // Your politician says where they are from: running at home, that is your home district and LGA.
+  useEffect(() => { if (!profile || !st) return; if (profile.origin === st && profile.district != null) { setHomeDistrict(profile.district); setHomeLga(profile.lga || null); } else if (homeDistrict == null) setHomeDistrict(1); }, [st]);
   const [partyDeal, setPartyDeal] = useState(null); // how you settled with the party after passing over its candidate
   const [agenda, setAgenda] = useState(null);
   const [slogan, setSlogan] = useState(null);
@@ -2855,7 +2878,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
     const d = st ? STATES[st] : null;
     const rec = recState(zf);
     return <Flow n={1} kicker="Step 1 of 7 · Your state" title="Where will you run?" wide
-      cta={() => setStep(2)} ctaDisabled={!st} ctaLabel={st ? "Run in " + st.replace("_", " ") : "Tap a state on the map"}>
+      cta={() => setStep(profile && profile.avatar && profile.first ? 25 : 2)} ctaDisabled={!st} ctaLabel={st ? "Run in " + st.replace("_", " ") : "Tap a state on the map"}>
       <Tile tint={UI.tints[4]} icon="⚡" onClick={quickStart} badge={firstRun ? "Best for a first game" : null} style={{ marginBottom: 14, border: "2px solid #0b7a4b" }}
         title={"Quick start" + (st ? " in " + st.replace("_", " ") : "")} sub="We pick a good first campaign: name, promise, party, slogan and deputy. You see the ticket and can change anything." />
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -2936,7 +2959,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   if (step === 25) {
     const picks = SYS.SA_SHORTLIST.map(n => SA_ROSTER.find(a => a.name === n)).filter(Boolean);
     const cur = picks.find(a => a.name === saName);
-    return <Flow n={2} kicker="Your team" title="Choose your Special Adviser" onBack={() => setStep(quickNext ? 1 : 2)}
+    return <Flow n={2} kicker="Your team" title="Choose your Special Adviser" onBack={() => setStep(quickNext || (profile && profile.avatar && profile.first) ? 1 : 2)}
       sub="They advise across the whole government. What they notice first, and what they miss, depends on who you pick."
       cta={() => setStep(26)} ctaDisabled={!cur} ctaLabel={cur ? "Appoint " + cur.name : "Pick an adviser"} ctaNote={cur ? SYS.lensOf(cur.name).note : null}>
       <div style={{ display: "grid", gap: 12 }}>
@@ -3112,16 +3135,10 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         // The ticket as a campaign billboard over a state-capital street.
         const P = PARTIES.find(p => p.id === party) || { nm: party, c: "#1a6d2e" }, pc = P.c || "#1a6d2e", tall = TALL();
         const fig = (src, who) => <img src={src} alt={who} style={{ height: "100%", width: "auto", maxWidth: "34%", objectFit: "contain", objectPosition: "bottom", display: "block", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.35))" }} />;
-        return <div style={{ position: "relative", borderRadius: 24, overflow: "hidden", aspectRatio: tall ? "4 / 4.4" : "16 / 10", background: "linear-gradient(180deg,#d9d2c3 0%,#e8dcc4 38%,#cdbb98 62%,#b9a27c 100%)" }}>
-          {/* the street below, hazy */}
-          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "url(./art/backgrounds/busy-market-street.webp) center 70% / cover", filter: "saturate(.85) sepia(.15) contrast(.95)", opacity: .95 }} />
-          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(232,220,196,.0) 0%, rgba(232,220,196,.0) 50%, rgba(232,220,196,.35) 58%, rgba(0,0,0,0) 75%)" }} />
-          {/* the pole and the walkway */}
-          <div style={{ position: "absolute", left: "48%", width: "4%", top: "56%", bottom: 0, background: "linear-gradient(90deg,#6f7377,#c9cdd1 45%,#7c8085)", boxShadow: "0 0 6px rgba(0,0,0,.25)" }} />
-          <div style={{ position: "absolute", left: "6%", right: "6%", top: "53%", height: "4%", background: "repeating-linear-gradient(90deg,#4d5257 0 3px,transparent 3px 14px), linear-gradient(180deg,#8b9096,#5c6166)", borderTop: "2px solid #a9adb2" }} />
-          <div style={{ position: "absolute", left: "8%", right: "8%", top: "57%", height: "6%", background: "repeating-linear-gradient(60deg, transparent 0 18px, #6b7075 18px 21px), repeating-linear-gradient(-60deg, transparent 0 18px, #6b7075 18px 21px)", opacity: .8 }} />
+        return <div style={{ position: "relative", borderRadius: 24, overflow: "hidden", aspectRatio: "16 / 10", background: "#d8c9ad url(./art/scenes/billboard-street.webp) center / 100% 100% no-repeat", boxShadow: "0 14px 30px rgba(0,0,0,.18)" }}>
           {/* the board */}
-          <div style={{ position: "absolute", left: "5%", right: "5%", top: "5%", height: "48%", background: "#f4f1ea", padding: tall ? 5 : 8, boxShadow: "0 18px 30px rgba(0,0,0,.35)" }}>
+          {/* printed on the board's blank face (x 10.4%–89.8%, y 6.4%–51%) */}
+          <div style={{ position: "absolute", left: "10.6%", right: "10.4%", top: "6.8%", height: "43.8%" }}>
             <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", background: "linear-gradient(115deg, " + pc + " 0%, " + pc + " 58%, #ffffff 58.2%, #ffffff 100%)" }}>
               <div style={{ position: "absolute", left: tall ? 10 : 16, top: tall ? 8 : 12, bottom: tall ? 8 : 12, width: "50%", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div>
@@ -3146,6 +3163,10 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         <Tile tint={UI.tints[4]} title={startingStab + "%"} sub="Party support at the start" />
         <Tile tint={UI.tints[0]} title={"₦" + warChest.toFixed(1) + "B"} sub="Left for the campaign" />
       </div>
+      {earned.length > 0 && <div style={{ marginTop: 14, background: "#fff7df", border: "1px solid #e9cf8a", borderRadius: 20, padding: "12px 14px" }}>
+        <b style={{ display: "block", fontSize: DS.t.label, color: UI.ink }}>🎖️ Your record goes before you: carry one honour</b>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>{earned.map(b => { const on = legacy === b.id; return <button key={b.id} onClick={() => setLegacy(on ? null : b.id)} aria-pressed={on} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px 6px 6px", minHeight: 44, borderRadius: 999, border: "1.5px solid " + (on ? UI.dark : UI.line), background: on ? UI.dark : "#fff", color: on ? "#fff" : UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.meta, cursor: "pointer" }}><img src={"./art/badges/" + BADGE_ART[b.id] + ".webp"} alt="" style={{ width: 30, height: 30 }} />{SYS.BADGE_PERKS[b.id].text}</button>; })}</div>
+      </div>}
       {(quickUsed || firstRun) && <div style={{ marginTop: 14, background: "#fff", border: "1px solid " + UI.line, borderRadius: 20, padding: "12px 16px", fontSize: DS.t.label, color: UI.sub, lineHeight: 1.45 }}>
         {quickUsed && <div>⚡ Quick start chose <b style={{ color: UI.ink }}>{FLAGSHIP[agenda]?.nm}</b>, the <b style={{ color: UI.ink }}>{party}</b> and the party's deputy. Tap ‹ to change any of them.</div>}
         {firstRun && level !== "hard" && <div style={{ marginTop: quickUsed ? 6 : 0 }}>🤝 Your first campaign: party veterans lend you their polling-unit agents, worth about 2 points on election day.</div>}
@@ -3644,7 +3665,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
           {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, homeLga: homeLga || (lgaCluster(getLGAs(st), homeDistrict == null ? 1 : homeDistrict)[0] || null), partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} track("state", st); track("party", party); track("agenda", agenda); track("adviser", saName); track("level", level); track("deputy", accepted ? "party's pick (unity)" : "own pick"); track("runs_at_home", profile && profile.origin === st ? "yes" : "no"); track("quick_start", quickUsed ? "used" : "not used"); if (legacy) track("honour_carried", legacy); onDone({ legacy, nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, homeLga: homeLga || (lgaCluster(getLGAs(st), homeDistrict == null ? 1 : homeDistrict)[0] || null), partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -5082,6 +5103,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const applyRev = (p, list) => { const n = { ...p }; list.forEach(x => { if (x.revIGR) n.revIGR = (n.revIGR || 0) + x.revIGR; if (x.taxEff) n.taxEff = (n.taxEff || 1) + x.taxEff; if (x.debt) n.debt = Math.max(0, (n.debt || 0) + x.debt); }); return n; };
   const revThisTurn = () => (stc.revCount && stc.revCount.t === turn ? stc.revCount.n : 0);
   const adoptRevenue = (m) => decide(() => {
+    track("reform", m.t);
     const c = { s, stc, turn };
     if ((stc.rev || {})[m.id] != null || revThisTurn() >= 2 || (m.req && m.req(c))) return;
     if (!takeAgenda("reform", m.nm, "rev:" + m.id)) return;
@@ -5543,7 +5565,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             scFx(o.fx, zone, o.dz);
             setCouncil(c0 => c0 ? { ...c0, rulers: c0.rulers.map(x => x.id === ru.id ? { ...x, rel: Math.max(0, Math.min(100, x.rel + o.rel)) } : x) } : c0);
             if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, fx: { app: o.later.app }, desc: o.later.desc }]);
-            addL("👑 " + ru.name + ": you " + o.log + ".", o.res[2] === "bad" ? "political" : "policy");
+            addL("👑 " + ru.name + ": you " + o.log + ".", o.res[2] === "bad" ? "political" : "policy"); track("ruler_" + M.kind, o.label);
             return { icon: "👑", title: o.res[0], text: o.res[1], tone: o.res[2], rows: [{ l: who, v: (o.rel > 0 ? "+" : "") + o.rel, good: o.rel > 0 }].concat(o.dz ? [{ l: ["North", "Central", "South"][zone] + " zone", v: (o.dz > 0 ? "+" : "") + o.dz, good: o.dz > 0 }] : []) };
           } })) });
       }
@@ -6145,7 +6167,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const t = traits(who.nm);
     const m = { id: c.id, name: c.name, icon: c.icon, key: c.key, unlock: c.unlock, budget: 0, staff: c.staff, perf: Math.round(40 + (t.comp - 50) * .4), cor: Math.max(8, Math.round((100 - t.hon) * .5)), minister: who.nm, permSec: gN(rng(Date.now() % 7777), sd.zone, setup?.state), loyalty: who.loyalty, zone: who.zone, hired: turn, record: [] };
     if (!spendB(c.cost, "Setting up the Ministry of " + c.name)) return;
-    setMinistries(ms => [...(ms || []), m]);
+    setMinistries(ms => [...(ms || []), m]); track("ministry_created", c.name);
     if (c.id === "tourism" && stc.idleTourist) { const g = stc.idleTourist; setS(x => ({ ...x, igr: (x.igr || 0) + g })); setStc(x => ({ ...x, idleTourist: 0 })); setMail(ml => ml.filter(l => l.key !== "ministry_tip")); addL("🏝️ The new Tourism ministry takes over your tourist sites: own revenue +" + naira(g) + " a year.", "success"); }
     addL(c.icon + " Created the Ministry of " + c.name + ". Hon. " + who.nm + " is its first commissioner.", "policy");
     try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Created the Ministry of " + c.name + " and appointed Hon. " + who.nm + " as its commissioner." }, ...(w || [])]); } catch (e) {}
@@ -6599,7 +6621,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setNCris(c => c + 1);
     setS(p => { let n = { ...p }; Object.entries(ch.fx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (n[k] !== undefined) n[k] = cl(n[k] + v); }); if (ch.dc < 0) n.debt = Math.max(0, n.debt + ch.dc); return n; });
     setSkApp(p => { const n = { ...p }; Object.entries(ch.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-    addL("⚖️ " + curD.nm + " → " + ch.l, "dilemma");
+    addL("⚖️ " + curD.nm + " → " + ch.l, "dilemma"); track("dilemma_" + curD.id, ch.l);
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "dilemma_choice", actor: "governor", gravity: 1, evidence: 2, decision: curD.nm + ": " + ch.l, note: ch.rk || "", meta: { id: curD.id } }); } catch (e) {}
     const effects = [];
     if (ch.fx?.app) effects.push({ icon: ch.fx.app > 0 ? "📈" : "📉", text: "Approval " + (ch.fx.app > 0 ? "rises" : "drops"), value: (ch.fx.app > 0 ? "+" : "") + ch.fx.app + "%", good: ch.fx.app > 0, bad: ch.fx.app < 0 });
@@ -7368,7 +7390,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const N = gfNephew; if (!N) return null;
     spendB(cat.cost, "The Ministry of " + cat.name + " (for the godfather's nephew)", { force: true });
     const m = { id: cat.id, name: cat.name, icon: cat.icon, key: cat.key, unlock: cat.unlock, budget: 0, staff: cat.staff, perf: 25, cor: 65, minister: N.nm, permSec: gN(rng(turn * 31 + 7), sd.zone, setup?.state), loyalty: 30, zone: homeZone, hired: turn, record: [], sinkhole: true, godfatherMandate: true };
-    setMinistries(ms => [...(ms || []), m]);
+    setMinistries(ms => [...(ms || []), m]); track("nephew_ministry", cat.name);
     setGfNephew(null);
     addL("🎩 Created the Ministry of " + cat.name + " for Hon. " + N.nm + ", " + N.gf + "'s nephew.", "scandal");
     try { setWikiEvents(w => [{ turn, section: "Controversies", txt: "Created the Ministry of " + cat.name + " to give the godfather's nephew, Hon. " + N.nm + ", a cabinet seat." }, ...(w || [])]); } catch (e) {}
@@ -7958,6 +7980,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const mailRef = React.useRef(mail); mailRef.current = mail;
   const COS_ACTING = { id: "acting", name: "The Deputy Chief of Staff", tag: "Acting", img: "permanent-secretary", comp: 40, loyalty: 50, greed: 20, good: [], bad: [], file: "Keeping the seat warm until you appoint someone." };
   const appointCos = (c) => {
+    track("chief_of_staff", c.tag || c.name);
     setCosOffice(o => ({ ...o, cos: { ...c, handled: 0, hired: turn } }));
     setCosPickOpen(false);
     addL("🗝️ " + c.name + " (" + c.tag + ") is your Chief of Staff.", "political");
@@ -8031,7 +8054,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setStc(p => ({ ...p, gfRoadPull: null }));
       setS(p => ({ ...p, app: cl100(p.app - 3), igr: Math.max(0, (p.igr || 0) - pull.igr), invIGR: Math.max(0, (p.invIGR || 0) - pull.igr), invJobs: Math.max(0, (p.invJobs || 0) - pull.jobs), totalJobs: Math.max(0, (p.totalJobs || 0) - pull.jobs) }));
       addL("🏭 " + pull.nm + " pulled its investment after the no-bid road contract" + (pull.jobs ? ": " + pull.jobs.toLocaleString() + " jobs gone" : "") + ". Approval −3.", "crisis");
-      setTimeout(() => postMail([letterOf("investor_pull", { key: "investor_pull_" + turn, live: true, kind: "investment", stakes: 1, lines: [{ ok: false, line: "We watched a ₦3B road go to a politician's company with no bidding." }, { ok: false, line: "We cannot explain that risk to our board. We are pulling out" + (pull.jobs ? " and " + pull.jobs.toLocaleString() + " jobs go with us" : "") + "." }, { ok: false, line: "Revenue −₦" + pull.igr + "B a year; approval −3." }], tip: ["The Managing Director, " + pull.nm, "./art/characters/investor-nigerian.webp", pull.nm + " is pulling out", "We cannot invest where contracts are handed out."] })]), 300);
+      setTimeout(() => postMail([letterOf("investor_pull", { key: "investor_pull_" + turn, live: true, kind: "investment", stakes: 1, lines: [{ ok: false, line: "We watched a ₦3B road go to a politician's company with no bidding." }, { ok: false, line: "We cannot explain that risk to our board. We are pulling out" + (pull.jobs ? " and " + pull.jobs.toLocaleString() + " jobs go with us" : "") + "." }, { ok: false, line: "Revenue −₦" + pull.igr + "B a year; approval −3." }], tip: ["The Managing Director, " + pull.nm, "./art/characters/investor-foreign.webp", pull.nm + " is pulling out", "We cannot invest where contracts are handed out."] })]), 300);
     }
     awayRef.current = false; // a new year: the governor is home
     const stall = (projects || []).filter(p => p.status === "stalled").slice(0, 2).map(p => "stall:" + p.id);
@@ -8057,6 +8080,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const takeLetter = (l) => setMail(m => m.filter(x => x.id !== l.id));
   const isNote = (l) => !!(l.tip && !l.cat);
   const handleLetter = (l) => {
+    if (!isNote(l) && !l.cat && !l.secr) track("letters", "handled personally");
     if (l.secr) { setLetterOpen(null); setMailOpen(false); openSecr({ ...l.secr, from: nav }); return; }
     takeLetter(l); setLetterOpen(null); setMailOpen(false);
     if (isNote(l)) return; // a report or a notice: read and filed
@@ -8082,6 +8106,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Hand a letter to the Chief of Staff. You can insist even when they warn you.
   const delegateLetter = (l) => decide(() => {
     if (isNote(l)) { takeLetter(l); setLetterOpen(null); return null; }
+    if (!silentRef.current) track("letters", "handed to the Chief of Staff");
     const c = cosNow || COS_ACTING, v = letterView(l);
     takeLetter(l); setLetterOpen(null);
     // The budget: they resubmit last year's shares to the House.
@@ -8374,7 +8399,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
     const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
-    setStc(p => ({ ...p, careerSaved: true }));
+    setStc(p => ({ ...p, careerSaved: true })); track("ending", SYS.ENDING_NAME[gEnd] || gEnd); track("grade", gr); track("ending_state", state);
     (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
   // The Secretariat writes: each commissioner asking to see you, and each open
@@ -8392,6 +8417,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return add.length || keep.length !== ml.length ? [...keep, ...add] : ml;
     });
   }, [secrSig]);
+  // The honour carried in from an earlier career, applied once at the start.
+  useEffect(() => {
+    const P = setup?.legacy && SYS.BADGE_PERKS[setup.legacy]; if (!P || stc.legacyDone || needSetup) return;
+    const f = P.fx; setStc(p => ({ ...p, legacyDone: true, house: f.house && p.house ? { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + f.house) } : p.house }));
+    setS(p => { const n = { ...p, app: cl100(p.app + (f.app || 0)), pStab: cl100(p.pStab + (f.pStab || 0)), cor: cl(p.cor + (f.cor || 0)), cash: Math.round(((p.cash || 0) + (f.cashB || 0)) * 100) / 100 }; if (f.zones) { const zm = { ...(p.zoneMood || {}) }; [0, 1, 2].forEach(z => { zm[z] = (zm[z] || 0) + f.zones; }); n.zoneMood = zm; } return n; });
+    if (f.fg) setFgRelation(r => Math.min(100, r + f.fg));
+    addL("🎖️ Your record goes before you. " + P.text + ".", "success");
+  }, [needSetup]);
   const nextSaid = React.useRef({});
   // Twice a career the adviser asks for the player's feedback: after the second
   // year, and at the end. Not if they sent some in the last week.
@@ -8759,6 +8792,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const envoyMinistry = (inv) => { const rx = inv && ENVOY_SECTOR[inv.id]; const ms = ministries || []; return (rx && ms.find(m => rx.test(m.name))) || ms[0] || null; };
   const sendEnvoy = (kind) => {
     const inv = curInvite; if (!inv) return;
+    track("trip", "sent the " + kind);
     const m = kind === "commissioner" ? envoyMinistry(inv) : null;
     if (kind === "commissioner" && !m) return;
     // Some hosts only deal with the Governor: an envoy comes back with photos, not a deal.
@@ -9333,7 +9367,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "sc" && scCards.length > 0}>
           {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
-            onPick={(o) => { decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
+            onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
 
         <OL show={phase === "succession_race" && !!stc.race}>
@@ -9522,7 +9556,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   return n;
                 });
                 setGodfatherRel(r2 => Math.min(100, r2 + 15));
-                recordGfDemand(godfatherDemand, true, gf.nm);
+                recordGfDemand(godfatherDemand, true, gf.nm); track(godfatherDemand.id, "gave in");
                 const roadFx = godfatherDemand.id === "gf_contract" ? gfRoadGrab(gf.nm) : [];
                 const nephew = godfatherDemand.id === "gf_appointment";
                 addL("🎩 " + gf.nm + ": " + godfatherDemand.acceptLog + " He's satisfied — for now.", "political");
@@ -9553,7 +9587,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 });
                 setGodfatherRel(r2 => Math.max(0, r2 - 20));
                 setGodfatherPower(p => Math.max(0, p - 10));
-                recordGfDemand(godfatherDemand, false, gf.nm);
+                recordGfDemand(godfatherDemand, false, gf.nm); track(godfatherDemand.id, "refused");
                 const retaliation = gf.aggression > 70 ? " He's making phone calls. Expect House of Assembly trouble." : gf.aggression > 50 ? " He's unhappy but calculating his next move." : " He retreats — for now.";
                 addL("🎩 " + gf.nm + ": " + godfatherDemand.rejectLog + retaliation, "political");
                 showResult({ icon: "✊", title: "You Defied " + gf.nm, narrative: "\"You think you can govern without me?\" " + gf.nm.split(" ").pop() + " stands. " + (gf.aggression > 70 ? "His eyes are cold. 'I made you, Governor. I can unmake you.' He storms out. Your phone will ring all night — he's already working the Assembly members." : gf.aggression > 50 ? "He's quiet. That's worse than shouting. He leaves without shaking your hand." : "He shrugs. 'We'll see.' He's not happy but he's not at war — yet."), effects: [
@@ -10266,7 +10300,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29, maxWidth: 840, margin: "0 auto" }}>
               <Cd onClick={() => {
                 if (!spendB(curInvite.goCost || 0, "The trip")) return;
-                goAway(6);
+                goAway(6); track("trip", "went in person");
                 setS(p => {
                   const n = { ...p };
                   if (curInvite.goFx.igr) { n.igr += curInvite.goFx.igr; n.invIGR = (n.invIGR || 0) + curInvite.goFx.igr * .5; }
@@ -10325,7 +10359,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   return n;
                 });
                 setSkApp(p => { const n = { ...p }; Object.entries(curInvite.decSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-                addL("❌ " + curInvite.decLog, "political");
+                addL("❌ " + curInvite.decLog, "political"); track("trip", "declined");
                 const decEffects = [{ icon: "❌", text: "Invitation declined", bad: true }];
                 if (curInvite.decFx.app) decEffects.push({ icon: "📉", text: "Approval", value: curInvite.decFx.app + "%", bad: true });
                 Object.entries(curInvite.decSk || {}).forEach(([k, v]) => { decEffects.push({ icon: "⚠️", text: k + " stakeholders", value: v, bad: v < 0 }); });
@@ -10348,7 +10382,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.grn + "44" }}>
             <AdvBubble text={ADV.reelection} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="party-convention-hall" who={s.pStab >= 65 ? "party-chairman-pleased" : s.pStab < 40 ? "party-chairman-angry" : "party-chairman"} alt="The party chairman" h={TALL() ? 200 : 240} />
+              {/* The re-election billboard: your face on the frame, over the rally street. */}
+              {(() => { const P0 = PARTIES.find(x => x.id === setup?.party) || { nm: setup?.party || "", c: "#1a6d2e" }, pc0 = P0.c || "#1a6d2e", tall = TALL(); return <div style={{ position: "relative", borderRadius: 22, overflow: "hidden", aspectRatio: "16 / 10", background: "url(./art/backgrounds/rally.webp) center 75% / cover", marginBottom: 14 }}>
+                <div style={{ position: "absolute", left: "11.5%", right: "11.5%", top: "7.1%", height: "39.2%", overflow: "hidden", background: "linear-gradient(115deg, " + pc0 + " 0%, " + pc0 + " 60%, #fff 60.2%)" }}>
+                  <div style={{ position: "absolute", left: tall ? 8 : 14, top: tall ? 6 : 10, bottom: tall ? 6 : 10, width: "58%", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", textAlign: "left" }}>
+                    <div style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? 12 : 15, letterSpacing: 1, textTransform: "uppercase", opacity: .9 }}>{P0.nm} · {stName} {(setup?.startYear || 2027) + 4}</div>
+                    <div style={{ fontFamily: F.d, fontWeight: 900, fontSize: tall ? 26 : 40, lineHeight: 1 }}>4 MORE YEARS</div>
+                    <div style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? 14 : 18 }}>{"Gov. " + pName}</div>
+                  </div>
+                  <img src={AVATAR_IMGS[setup?.avatar] || HERO_MALE} alt="" style={{ position: "absolute", right: "3%", bottom: 0, height: "100%", width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
+                </div>
+                <img src="./art/objects/billboard-frame.webp" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
+                <img src={"./art/characters/" + (s.pStab >= 65 ? "party-chairman-pleased" : s.pStab < 40 ? "party-chairman-angry" : "party-chairman") + ".webp"} alt="The party chairman" style={{ position: "absolute", left: 10, bottom: 0, height: "42%", width: "auto", filter: "drop-shadow(0 6px 10px rgba(0,0,0,.35))" }} />
+              </div>; })()}
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px" }}>End of First Term</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 22 }}>Four years in office. What will you do next?</p>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 36, flexWrap: "wrap" }}>
@@ -10966,6 +11012,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             // The House reacts once the pen or the stamp has finished.
             const later = (o) => setTimeout(() => announce(o), 2600);
             const doSign = () => {
+              track("bill_" + (B.id || "bill"), "signed");
               const hasBad = badClauses.length > 0;
               if (!spendB(B.signCost || 0, "Signing the " + (B.nm || "bill"))) return;
               setS(p => {
@@ -10982,6 +11029,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               setBillFlags([]); advanceFn();
             };
             const doVeto = () => {
+              track("bill_" + (B.id || "bill"), "vetoed");
               setSkApp(p => { const n = { ...p }; Object.entries(B.vetoSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
               try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, state: stName, lines: (B.clauses || []).map(c => short(c.t)), by: "Governor of " + stName + " State", veto: true }); } catch (e) {}
               if (caughtBad) {
@@ -11429,8 +11477,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               <Sfx k="turn" />
               {headline && <FrontPage paper={state.replace("_", " ") + " Daily Tribune"} headline={headline} w={TALL() ? 260 : 340} />}
               {stc.teaser && stc.teaser.turn === turn && turn < MT && <div className="sop-step" style={{ position: "relative", margin: "22px auto 6px", maxWidth: 560, textAlign: "left", background: "linear-gradient(180deg,#fbf4e1,#efe0b8)", border: "1px solid #d9c48e", borderRadius: 18, padding: TALL() ? "14px 14px 14px 76px" : "18px 22px 18px 104px", boxShadow: "0 12px 26px rgba(60,40,10,.18)", color: "#2b2117" }}>
-                <img src="./art/objects/letter-sealed.webp" alt="" style={{ position: "absolute", left: TALL() ? 8 : 14, top: "50%", transform: "translateY(-50%) rotate(-8deg)", width: TALL() ? 60 : 80, height: "auto" }} />
-                <div style={{ fontFamily: F.b, fontSize: TALL() ? TS(14) : TS(20), fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: "#a3271c" }}>Sealed until {absYear + 1}</div>
+                <img src="./art/objects/letter-sealed-large.webp" alt="" className="sop-pop" style={{ position: "absolute", left: TALL() ? 2 : 6, top: "50%", transform: "translateY(-50%) rotate(-8deg)", width: TALL() ? 70 : 96, height: "auto" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: F.b, fontSize: TALL() ? TS(14) : TS(20), fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: "#a3271c" }}><img src="./art/objects/wax-seal-red.webp" alt="" style={{ width: TALL() ? 18 : 24, height: TALL() ? 18 : 24 }} />Sealed until {absYear + 1}</div>
                 <div style={{ fontFamily: "Georgia, serif", fontSize: TALL() ? TS(16) : TS(24), color: "#5b4a33", marginTop: 2 }}>From: {stc.teaser.from}</div>
                 <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: TALL() ? TS(19) : TS(29), lineHeight: 1.4, marginTop: 4 }}>“{stc.teaser.line}”</div>
               </div>}

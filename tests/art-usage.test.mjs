@@ -17,10 +17,16 @@ test("every money-pack image is used by the game", () => {
   const unused = pack2.filter(f => !src.includes(path.basename(f)));
   assert.deepEqual(unused, []);
 });
-// The stamps were taken out at the player's request; the bill page and the pen stay.
-test("the bill page and the pen are used, and no stamp is shipped", () => {
-  ["governor-signature-pen", "bill-paper-blank"].forEach(f => assert.ok(src.includes(f), f + " is used"));
-  assert.deepEqual(fs.readdirSync(path.join(root, "public/art/objects")).filter(f => f.startsWith("stamp-")), []);
+// Bills: the document, the pen, and the two stamps that land on it.
+test("the bill art is used: document, pen, VETOED and ASSENTED stamps", () => {
+  ["governor-signature-pen", "bill-paper-blank", "bill-document", "stamp-vetoed", "stamp-assented"].forEach(f => assert.ok(src.includes(f), f + " is used"));
+});
+// The October packs: badges, daily icons, the sealed letter, the investor, the billboard.
+test("every October image is used", () => {
+  const dirs = { badges: "public/art/badges" };
+  const files = fs.readdirSync(path.join(root, dirs.badges)).map(f => f.replace(/\.webp$/, ""))
+    .concat(["icon-daily", "icon-streak", "icon-streak-freeze", "icon-share", "letter-sealed-large", "wax-seal-red", "investor-foreign", "billboard-street", "billboard-frame"]);
+  assert.deepEqual(files.filter(f => !src.includes(f)), []);
 });
 // Elections and projects pack: site pictures by stage, pins by colour, the count and the declaration.
 test("every election and project image is used", () => {
@@ -58,8 +64,8 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 44, "44 icons");
-  assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"')), [], "every icon is used by name");
+  assert.equal(icons.length, 48, "48 icons");
+  assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
   ["news-court-steps", "news-governor-abroad", "news-investor-deal", "news-protest", "news-signing-ceremony", "news-victory-rally"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/scenes", f + ".webp")), f));

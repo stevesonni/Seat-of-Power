@@ -30,6 +30,11 @@ Players send "What do you not like?" and "What do you want to see better?" with 
 - Read it at `https://<your Railway domain>/feedback?key=<FEEDBACK_KEY>`: newest first, average stars, number of players, and a **download CSV** link.
 - Without `FEEDBACK_KEY` set, or with the wrong key, the page answers "Not found".
 
+## What players choose (anonymous)
+The same page also shows **What players choose**: for each decision, how many players made it and the share who picked each answer, with bars. Each player counts once per answer; player ids are hashed and no names are stored. Kept in `DATA_DIR/stats.json`; `&format=stats` gives it as JSON.
+
+Recorded: state, party, agenda, adviser, level, deputy (unity or own pick), running at home, Quick start, honour carried, Chief of Staff, each godfather demand (gave in / refused), dilemmas, Desk cards (council elections, succession…), traditional-ruler matters, trips (went / sent / declined), bills (signed / vetoed), letters (personal / Chief of Staff), reforms adopted, ministries created, the nephew's ministry, ending, grade and the state of each ending.
+
 ## Products (create them in the Vatar dashboard)
 Each product sells more play, never a better result, so titles, honours and the boards keep their value. The `productId` must be typed exactly as below.
 

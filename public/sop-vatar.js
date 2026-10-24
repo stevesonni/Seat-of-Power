@@ -87,6 +87,12 @@
   // The Daily Decision's shared vote.
   window.SOP_dailyVote = function (day, choice) { return ready.then(function (on) { if (!on) return null; return call("/api/daily/vote", { day: day, choice: choice }); }).catch(function () { return null; }); };
   window.SOP_dailyStats = function (day) { return ready.then(function (on) { if (!on) return null; return call("/api/daily/stats", { day: day }); }).catch(function () { return null; }); };
+  // Anonymous choice tallies (what players pick, not who they are). Batched.
+  var trackQ = [], trackT = null;
+  window.SOP_track = function (event, value) {
+    if (!event || value == null) return; trackQ.push({ event: event, value: String(value) });
+    clearTimeout(trackT); trackT = setTimeout(function () { var items = trackQ.splice(0, 20); ready.then(function (on) { if (on && items.length) return call("/api/track", { items: items }); }).catch(function () {}); }, 1500);
+  };
   window.SOP_hallBoard = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/board"); }); };
   window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {

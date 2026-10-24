@@ -41,3 +41,20 @@ export const careerBadges = (list, zoneOf = () => null) => {
   ];
   return B.map(([id, icon, name, how, got]) => ({ id, icon, name, how, got: !!got }));
 };
+
+// What a badge is worth: one honour, chosen at the start of a campaign, gives
+// a head start. fx: app, pStab (points), cor (share), cashB, house (seats),
+// fg (federal relations), zones (every zone's mood).
+export const BADGE_PERKS = {
+  first: { text: "Known face: party +3", fx: { pStab: 3 } },
+  two: { text: "Two-term record: approval +3", fx: { app: 3 } },
+  gradeA: { text: "Reputation: approval +4", fx: { app: 4 } },
+  clean: { text: "Clean hands: corruption −4%", fx: { cor: -.04 } },
+  builder: { text: "Builder: ₦0.5B in the bank", fx: { cashB: .5 } },
+  survivor: { text: "Survivor: two more loyal lawmakers", fx: { house: 2 } },
+  aso: { text: "National profile: federal relations +10", fx: { fg: 10 } },
+  zones: { text: "Pan-Nigerian: every zone +2", fx: { zones: 2 } },
+  ten: { text: "Seasoned: ₦1B in the bank", fx: { cashB: 1 } },
+  all: { text: "Elder statesman: approval +5, party +5", fx: { app: 5, pStab: 5 } },
+  fallen: { text: "Comeback story: approval +3", fx: { app: 3 } },
+};

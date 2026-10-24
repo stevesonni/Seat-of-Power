@@ -13,3 +13,7 @@ test("the map keeps your best grade in each state; badges follow endings", () =>
   for (const id of ["first", "two", "gradeA", "clean", "builder", "fallen"]) assert.ok(got.includes(id), id);
   assert.ok(!got.includes("ten"));
 });
+import { BADGE_PERKS } from "../game/systems/career.js";
+test("every badge is worth something: a perk to carry into a campaign", () => {
+  careerBadges([]).forEach(b => { const p = BADGE_PERKS[b.id]; assert.ok(p && p.text && Object.keys(p.fx).length, b.id); });
+});
