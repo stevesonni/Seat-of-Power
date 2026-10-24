@@ -26,6 +26,12 @@ const PORT = +process.env.PORT || 8080;
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
+// FREE_CAREERS=1 (Railway Variables): every career unlocks for everyone, for
+// while Vatar has not yet approved the products. Remove it to bring back the
+// paywall; nothing a player bought is touched either way.
+const FREE_CAREERS = process.env.FREE_CAREERS === "1";
+const CAREERS = ["career_senator", "career_chairman", "career_ambassador", "presidential_run"];
+const entsOut = (ents) => FREE_CAREERS ? { ...(ents || {}), ...Object.fromEntries(CAREERS.map(k => [k, Math.max(1, (ents || {})[k] || 0)])) } : (ents || {});
 const PRODUCTS = { career_ambassador: "oneoff", career_chairman: "oneoff", career_senator: "oneoff", company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
 // The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
 const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
@@ -131,7 +137,7 @@ const withP = (id, fn) => { const prev = locks.get(id) || Promise.resolve(); con
 
 const KEY_OK = /^[a-z_]{1,32}$/; // sop_save, sop_profile, sop_preelection…
 const api = {
-  "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: p.ents || {} }; },
+  "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents) }; },
   "/api/save": async (b, id) => withP(id, (p) => {
     const d = b.data && typeof b.data === "object" ? b.data : {};
     for (const [k, v] of Object.entries(d)) { if (!KEY_OK.test(k)) continue; if (v == null || v === "") delete p.data[k]; else if (typeof v === "string" && v.length < 900_000) p.data[k] = v; }
@@ -140,14 +146,14 @@ const api = {
   // Spend one credit of a consumable (Second Chance).
   "/api/use": async (b, id) => withP(id, (p) => {
     const k = String(b.product || ""); if (PRODUCTS[k] !== "consumable" || !(p.ents[k] > 0)) return { ok: false };
-    p.ents[k] -= 1; writeP(id, p); return { ok: true, ents: p.ents };
+    p.ents[k] -= 1; writeP(id, p); return { ok: true, ents: entsOut(p.ents) };
   }),
   // Weekly challenge: the first attempt each week is free; another uses one challenge_retry.
   "/api/challenge/start": async (b, id) => withP(id, (p) => {
     const w = weekNow(); p.ch = p.ch || {}; const used = p.ch[w] || 0;
     if (used >= 1) { if (!(p.ents.challenge_retry > 0)) return { ok: false, need: "challenge_retry", week: w, attempts: used }; p.ents.challenge_retry -= 1; }
     p.ch = Object.fromEntries(Object.entries({ ...p.ch, [w]: used + 1 }).filter(([k]) => +k >= w - 3));
-    writeP(id, p); return { ok: true, week: w, attempts: used + 1, ents: p.ents };
+    writeP(id, p); return { ok: true, week: w, attempts: used + 1, ents: entsOut(p.ents) };
   }),
   // A finished challenge career: the player's best score this week is kept.
   "/api/challenge/score": async (b, id) => {
@@ -227,7 +233,7 @@ const api = {
     const co = mine || { id: "pc_" + crypto.randomBytes(6).toString("base64url"), owner: id, at: Date.now(), hiredBy: {}, earnM: 0, paidM: 0 };
     Object.assign(co, { name: chk.name, sector, hidden: false, renamedAt: mine ? Date.now() : undefined });
     C[co.id] = co; cosDirty = true;
-    return { ok: true, company: coPublic(co), ents: p.ents };
+    return { ok: true, company: coPublic(co), ents: entsOut(p.ents) };
   }),
   // Another governor hired a company: counts once per hiring player per company per day.
   "/api/company/hire": async (b, id) => {
@@ -272,7 +278,7 @@ const api = {
       return p.ents;
     });
     await vatar("/purchases/" + encodeURIComponent(pid) + "/deliver", {});
-    return { ok: true, productId: pu.productId, ents };
+    return { ok: true, productId: pu.productId, ents: entsOut(ents) };
   },
 };
 
@@ -302,7 +308,7 @@ http.createServer(async (req, res) => {
       return send(res, out._code || 200, out);
     }
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "method" });
-    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET });
+    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, freeCareers: FREE_CAREERS });
     if (url.pathname === "/feedback") {
       const k = Buffer.from(String(url.searchParams.get("key") || "")), want = Buffer.from(FEEDBACK_KEY);
       if (!FEEDBACK_KEY || k.length !== want.length || !crypto.timingSafeEqual(k, want)) return send(res, 404, "Not found", TYPES[".txt"]);
@@ -360,4 +366,4 @@ http.createServer(async (req, res) => {
     console.error("[server]", e);
     if (!res.headersSent) send(res, 500, { error: "error" });
   }
-}).listen(PORT, () => console.log("Seat of Power (Vatar edition) on :" + PORT + " · data in " + DATA + (SECRET ? "" : " · VATAR_SECRET not set: saves fall back to the device")));
+}).listen(PORT, () => console.log((FREE_CAREERS ? "[careers free] " : "") + "Seat of Power (Vatar edition) on :" + PORT + " · data in " + DATA + (SECRET ? "" : " · VATAR_SECRET not set: saves fall back to the device")));

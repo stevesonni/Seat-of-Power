@@ -120,3 +120,10 @@ A player registers a company with a name and one sector, using one `company_regi
 - The **Player companies** list on the feedback page has a Hide link for each name. A hidden company stops bidding everywhere, and its owner can rename it for free.
 
 **Storage:** `DATA_DIR/companies.json`. The owner's id stays on the server, and the game only ever receives names, sectors and hire counts.
+
+## Free careers while products await approval
+**The switch:** set `FREE_CAREERS=1` in Railway Variables, and every player gets the Senator, LGA Chairman, Ambassador and Road to Aso Rock unlocked. The Careers list then says "Unlocked."
+
+**To bring the paywall back:** remove the variable (Railway restarts the service). Purchases already made are untouched either way.
+
+**To check it:** `/health` shows `freeCareers: true|false`, and the server log line starts with `[careers free]`.

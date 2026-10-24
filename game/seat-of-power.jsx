@@ -2485,11 +2485,11 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
         <img src="./art/scenes/career-ladder.webp" alt="The career ladder: council hall, government house, the Senate and the presidency" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 18, marginBottom: 10 }} />
         <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Play your politician up the ladder, or jump into any office you have unlocked. Each one teaches how that office really works.</div>
         <div style={{ display: "grid", gap: 10 }}>
-          {[["icon-office-chairman", "LGA Chairman", "The man in between: every small problem comes to you, and the governor holds your money. First year free, then ₦500.", "Play", () => { setSheet(null); onChairman && onChairman(); }],
+          {[["icon-office-chairman", "LGA Chairman", "The man in between: every small problem comes to you, and the governor holds your money. " + careerPrice("career_chairman", "₦500"), "Play", () => { setSheet(null); onChairman && onChairman(); }],
             ["icon-office-governor", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
-            ["icon-office-senator", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. First year free, then ₦1,000.", "Play", () => { setSheet(null); onSenate && onSenate(); }],
+            ["icon-office-senator", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. " + careerPrice("career_senator", "₦1,000"), "Play", () => { setSheet(null); onSenate && onSenate(); }],
             ["icon-office-president", "Road to Aso Rock", "The presidential race. Earned: finish a governorship and run.", null, null],
-            ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad in trouble, a host that can expel you, and cables from Abuja. First year free, then ₦1,000.", "Play", () => { setSheet(null); onAmbassador && onAmbassador(); }]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
+            ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad in trouble, a host that can expel you, and cables from Abuja. " + careerPrice("career_ambassador", "₦1,000"), "Play", () => { setSheet(null); onAmbassador && onAmbassador(); }]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: UI.tints[2], display: "grid", placeItems: "center" }}><Ico n={ic} s={44} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.35 }}>{d}</span></span>
             {go ? <button onClick={go} style={{ minHeight: 44, padding: "8px 16px", borderRadius: 999, border: 0, background: UI.dark, color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: DS.t.meta, cursor: "pointer" }}>{cta}</button> : cta ? <span style={{ fontSize: DS.t.meta, color: UI.sub, fontWeight: 700 }}>{cta}</span> : <span />}
@@ -12374,6 +12374,8 @@ const AsoRock = ({ setup, stats, onExit }) => {
 // A career screen's picture: the painting whole, at its own 16:9 shape (never
 // cropped to a strip), with the person in a round portrait on its corner
 // rather than pasted into the scene at the wrong size.
+// The price line on the Careers list: "Unlocked" once owned (or while careers are free).
+const careerPrice = (k, price) => (window.SOP_ENTS || {})[k] > 0 || !VATAR ? "Unlocked." : "First year free, then " + price + ".";
 const CareerHero = ({ bg, scene, who }) => {
   const tall = TALL(), src = "./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp", d = tall ? 76 : 104;
   return <div style={{ position: "relative", maxWidth: 680, margin: "10px auto " + (who ? (tall ? 30 : 40) : 14) + "px" }}>
