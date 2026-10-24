@@ -84,7 +84,9 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false 
     let hit = null;
     // A shortcut that keeps coming back (say "Not now" on the same visitor) is a loop: decide instead.
     const recent = clicks.slice(-24), looping = (re) => recent.filter(c => re.test(c)).length >= 3;
-    for (const re of [...prefer, ...PRIO]) { if (looping(re) && !/Leave the Secretariat/.test(re.source)) continue; hit = await g.click(re); if (hit) break; }
+    // Swearing in a commissioner: press it directly (the bot's cover check can miss it inside the sheet).
+    if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && !x.disabled && /^Create and swear in/.test(x.textContent.trim())); if (b) { b.click(); return "btn Create and swear in"; } return null; });
+    if (!hit) for (const re of [...prefer, ...PRIO]) { if (looping(re) && !/Leave the Secretariat/.test(re.source)) continue; hit = await g.click(re); if (hit) break; }
     // Buttons pressed 3+ times in the last 24 clicks are a loop: try something else, or leave.
     const stuck = [...new Set(recent.filter(c => recent.filter(x => x === c).length >= 3).map(c => c.replace(/^(btn|card) /, "")))];
     if (!hit) hit = await g.page.evaluate(([skipSrc, stuck]) => {

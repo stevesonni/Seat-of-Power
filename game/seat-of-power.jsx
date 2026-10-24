@@ -5845,9 +5845,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     });
     return out.slice(0, 3);
   })();
-  const answerAudience = (a, o) => decide(() => {
+  // by: the Chief of Staff, when they saw the commissioner for you (no Secretariat screen opens).
+  const answerAudience = (a, o, by) => decide(() => {
     const m = minById(a.ministryId); if (!m) return;
-    setAudDone(d => ({ ...d, [a.id]: turn })); setSecr(f => ({ view: "dir", from: f && f.from }));
+    setAudDone(d => ({ ...d, [a.id]: turn })); if (!by) setSecr(f => ({ view: "dir", from: f && f.from }));
+    const out = audienceResult(a, o, m);
+    return out && by ? { ...out, title: (by.name.split(" ").slice(-2, -1)[0] || by.name) + " saw them: " + out.title.charAt(0).toLowerCase() + out.title.slice(1) } : out;
+  });
+  const audienceResult = (a, o, m) => {
     const cm = (action, resourcesM = 0) => setCommits(l => SYS.addCommitment(l, { id: "cm_" + a.id, who: m.minister, ministryId: m.id, action, resourcesM, reviewYear: turn + 1, year: turn }));
     const upd = (f) => setMinistries(ms => ms.map(x => x.id === m.id ? { ...f(x), met: turn } : x));
     if (o.id === "fund") { if (!spendB(.5, "₦500M for " + m.name)) return; upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 6) })); cm("Show results from the extra ₦500M", 500); return { icon: "💰", title: "₦500M for " + m.name, text: "Hon. " + m.minister + " promised results by next year. You will see whether they kept it.", tone: "neutral" }; }
@@ -5856,7 +5861,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (o.id === "praise") { setS(p => ({ ...p, app: cl100(p.app + 1) })); upd(x => ({ ...x, loyalty: Math.min(95, (x.loyalty == null ? 50 : x.loyalty) + 5) })); return { icon: "🏅", title: "Credit where it is due", text: "You praised Hon. " + m.minister + " in public.", tone: "good" }; }
     upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 4) })); cm("Hit a harder target next year");
     return { icon: "🎯", title: "A harder target", text: "Hon. " + m.minister + " accepts it. You will check next year.", tone: "neutral" };
-  });
+  };
+  // The Chief of Staff sees a commissioner in your place, and chooses in character:
+  // a deal-maker gives the money; a careful one asks for a plan; a sharp one raises the target.
+  const delegateAudience = (l) => {
+    const a = audiences.find(x => x.id === l.secr.audience), c = cosNow || COS_ACTING;
+    takeLetter(l); setLetterOpen(null); setMailOpen(false);
+    if (!a) return;
+    const has = (id) => a.options.find(o => o.id === id);
+    const o = (c.greed >= 40 && (s.cash || 0) >= .5 && has("fund")) || ((c.comp || 0) >= 70 && has("more")) || has("plan") || has("praise") || a.options[0];
+    track("letters", "audience handed to the Chief of Staff"); bumpCos();
+    addL("🗝️ " + c.name + " saw the commissioner (" + (minById(a.ministryId) || {}).name + "): " + o.label.toLowerCase() + ".", "political");
+    answerAudience(a, o, c);
+  };
 
   // ── PROJECTS (SYS.projects / loans / proposals) ──
   const [pflow, setPflow] = useState(null);
@@ -8463,7 +8480,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <span style={{ width: tall ? 44 : 56, height: tall ? 44 : 56, borderRadius: "50%", flexShrink: 0, background: "#cfccc5", boxShadow: "inset 0 2px 4px rgba(0,0,0,.18)", display: "grid", placeItems: "center", overflow: "hidden" }}>{img}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
               </button>;
-              return open.secr ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, open.secr.audience ? "See them now" : "Open the file", () => handleLetter(open), "s", true)}</div>
+              return open.secr ? <div style={{ display: "flex", gap: tall ? 8 : 14 }}>
+                  {open.secr.audience && pill(<img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />, <>{"Let " + first + " see them"} <Ico n="icon-delegate" s={tall ? 18 : 24} /></>, () => delegateAudience(open), "sd")}
+                  {pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, open.secr.audience ? "See them now" : "Open the file", () => handleLetter(open), "s", true)}</div>
                 : open.cat ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-state" s={tall ? 30 : 38} />, "🏛️ Create the ministry", () => handleLetter(open), "c", true)}</div>
                 : isNote(open) ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-ok" s={tall ? 30 : 38} />, "Noted", () => handleLetter(open), "n", true)}</div>
                 : <div style={{ display: "flex", gap: tall ? 8 : 14 }}>
