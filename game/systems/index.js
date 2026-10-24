@@ -28,3 +28,4 @@ export * from "./wiki.js";
 export * from "./hos.js";
 export * from "./office.js";
 export * from "./investors.js";
+export * from "../../server/hall-rules.mjs";

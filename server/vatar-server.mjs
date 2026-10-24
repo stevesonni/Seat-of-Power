@@ -16,10 +16,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from "./company-name.mjs";
+import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntries, playedAgain } from "./hall-rules.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
-const API = "https://lagoslife.app/api/games/v1";
+const API = process.env.VATAR_API || "https://lagoslife.app/api/games/v1"; // overridable only for tests
 const SECRET = process.env.VATAR_SECRET || "";
 const WHSEC = process.env.VATAR_WEBHOOK_SECRET || "";
 const PORT = +process.env.PORT || 8080;
@@ -84,11 +85,19 @@ const playSummary = (S) => {
 };
 let hallLock = Promise.resolve();
 const readHall = () => { try { return JSON.parse(fs.readFileSync(HALL, "utf8")); } catch (e) { return { entries: {} }; } };
+// The daily boards (one file a day) and how many careers each player has finished.
+const dayFile = (d) => path.join(DATA, "hall-days", d + ".json");
+const readDay = (d) => { try { return { day: d, ...JSON.parse(fs.readFileSync(dayFile(d), "utf8")) }; } catch (e) { return { day: d, entries: {} }; } };
+const writeJson = (f, v) => { const tmp = f + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(v)); fs.renameSync(tmp, f); };
+const HSTATS = path.join(DATA, "hall-stats.json");
+const readHallStats = () => { try { return JSON.parse(fs.readFileSync(HSTATS, "utf8")); } catch (e) { return { n: {} }; } };
+const boardOut = (rows, id) => rows.map(({ id: k, ...e }) => ({ ...e, me: k === id }));
 // The name on the boards: the player's Lagos Life username, as Vatar reports it.
 const userOf = (b, session) => { const c = seen.get(session); return cleanName((c && c.username) || b.username); };
 const cleanName = (t) => String(t || "").replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, 40) || "A governor";
 
 fs.mkdirSync(path.join(DATA, "players"), { recursive: true });
+fs.mkdirSync(path.join(DATA, "hall-days"), { recursive: true });
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".txt": "text/plain; charset=utf-8" };
 const baseHeaders = { "Content-Security-Policy": "frame-ancestors " + FRAMERS, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
@@ -182,6 +191,37 @@ const api = {
     const w = Number.isInteger(+b.week) ? +b.week : weekNow(), all = Object.entries(readBoard(w).entries).sort((x, y) => y[1].score - x[1].score);
     const me = all.findIndex(([k]) => k === id);
     return { week: w, top: all.slice(0, 20).map(([k, e], i) => ({ rank: i + 1, name: e.name, title: e.title, score: e.score, me: k === id })), you: me >= 0 ? { rank: me + 1, score: all[me][1].score } : null, players: all.length };
+  },
+  // A career has ended (entered in the Hall or not): counted for "N% played again".
+  "/api/hall/finish": async (b, id) => {
+    const run = hallLock.then(() => { const S = readHallStats(); S.n[id] = (S.n[id] || 0) + 1; writeJson(HSTATS, S); return { ok: true, ...playedAgain(S.n) }; });
+    hallLock = run.catch(() => {}); return run;
+  },
+  // Enter a finished governorship on today's board: once a day. The all-time Hall keeps the best.
+  "/api/hall/enter": async (b, id) => {
+    const n = Math.round(+b.score); if (!Number.isFinite(n) || n < 0 || n > 100000) return { _code: 400, error: "bad_request" };
+    const d = hallDay();
+    const run = hallLock.then(() => {
+      const D = readDay(d), mine = D.entries[id];
+      if (mine) return { ok: false, already: true, day: d, entry: mine };
+      const e = { name: userOf(b, b.session), title: cleanName(b.title), state: cleanName(b.state), grade: String(b.grade || "").slice(0, 2), score: n, at: Date.now() };
+      D.entries[id] = e; writeJson(dayFile(d), { entries: D.entries });
+      const H = readHall(), old = H.entries[id]; if (!old || n > old.score) { H.entries[id] = e; writeJson(HALL, H); }
+      const rank = Object.values(D.entries).filter(x => x.score > n).length + 1;
+      return { ok: true, day: d, rank, tier: (tierOf(n) || {}).id || null, players: Object.keys(D.entries).length };
+    });
+    hallLock = run.catch(() => {}); return run;
+  },
+  "/api/hall/today": async (b, id) => {
+    const d = hallDay(), D = readDay(d), rows = rankBoard(D.entries, 20), all = rankBoard(D.entries, 100000), me = all.find(r => r.id === id);
+    return { day: d, top: boardOut(rows, id), you: me ? { rank: me.rank, score: me.score, tier: me.tier } : null, players: all.length, entered: !!D.entries[id], ...playedAgain(readHallStats().n) };
+  },
+  // The weekly board: locked while the week runs, then each governor's best day.
+  "/api/hall/week": async (b, id) => {
+    const now = weekOf(), w = Number.isInteger(+b.week) ? Math.min(+b.week, now) : now - 1;
+    if (w >= now) return { week: w, locked: true, opensAt: weekOpensAt(w) };
+    const best = weekEntries(daysOfWeek(w).map(readDay)), rows = rankBoard(best, 20), all = rankBoard(best, 100000), me = all.find(r => r.id === id);
+    return { week: w, locked: false, top: boardOut(rows, id), you: me ? { rank: me.rank, score: me.score, tier: me.tier } : null, players: all.length, opensAt: weekOpensAt(now) };
   },
   // A finished career for the all-time Hall: the player's best is kept.
   "/api/hall/submit": async (b, id) => {

@@ -127,6 +127,11 @@
     if (!event || value == null) return; trackQ.push({ event: event, value: String(value) });
     clearTimeout(trackT); trackT = setTimeout(function () { var items = trackQ.splice(0, 20); ready.then(function (on) { if (on && items.length) return call("/api/track", { items: items }); }).catch(function () {}); }, 1500);
   };
+  // The daily Hall: a career's end is counted; a result is entered once a day; the week opens on Monday.
+  window.SOP_hallFinish = function () { return ready.then(function (on) { if (on) return call("/api/hall/finish"); }).catch(function () { return null; }); };
+  window.SOP_hallEnter = function (c) { return ready.then(function (on) { if (!on) return null; return call("/api/hall/enter", Object.assign({ username: uname() }, c)); }); };
+  window.SOP_hallToday = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/today"); }); };
+  window.SOP_hallWeek = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/hall/week", week == null ? {} : { week: week }); }); };
   window.SOP_hallBoard = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/board"); }); };
   window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {

@@ -4587,6 +4587,42 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
   </Cd>;
 };
 
+/* The Hall of Governors: today's board (one entry a day each), the week's
+   board (locked until Monday, then each governor's best day), the all-time
+   Hall and the weekly challenge. Tiers: SYS.TIERS (Gold 950+, Silver 800+,
+   Bronze 650+). */
+const HALL_TABS = [["today", "Today"], ["week", "Last week"], ["all", "All time"], ["challenge", "Challenge"]];
+const HallBoard = ({ tab: tab0 = "today", note }) => {
+  const [tab, setTab] = useState(tab0), [b, setB] = useState(null);
+  useEffect(() => {
+    let live = true; setB(null);
+    const get = tab === "today" ? window.SOP_hallToday : tab === "week" ? window.SOP_hallWeek : tab === "all" ? window.SOP_hallBoard : window.SOP_chBoard && (() => window.SOP_chBoard(weekNow()));
+    if (!get) { setB({ offline: true }); return; }
+    get().then(r => { if (live) setB(r || { offline: true }); }).catch(() => { if (live) setB({ error: true }); });
+    return () => { live = false; };
+  }, [tab]);
+  const medal = (t) => (SYS.TIERS.find(x => x.id === t) || {}).icon || "";
+  const days = (at) => Math.max(1, Math.ceil((at - Date.now()) / 86400000));
+  return <div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 10 }}>
+      {HALL_TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} aria-pressed={tab === k} style={{ borderRadius: 999, padding: "8px 6px", minHeight: 40, fontWeight: 800, fontSize: DS.t.meta, fontFamily: F.b, border: "1.5px solid " + (tab === k ? UI.green : UI.line), background: tab === k ? UI.green : "#fff", color: tab === k ? "#fff" : UI.ink, cursor: "pointer" }}>{l}</button>)}
+    </div>
+    <div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 8, lineHeight: 1.45 }}>{SYS.TIERS.map(t => t.icon + " " + t.nm + " " + t.min + "+").join(" · ")}{tab === "today" ? " · one entry a day" : tab === "week" && b && b.opensAt ? " · this week's board opens in " + days(b.opensAt) + " day" + (days(b.opensAt) === 1 ? "" : "s") : ""}</div>
+    {note}
+    {!b ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>Loading…</div>
+      : b.offline ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>The Hall of Governors is public in Lagos Life. Play there and your results appear here under your username.</div>
+      : b.error ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>The board couldn't be loaded. Try again in a moment.</div>
+      : b.locked ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>🔒 This week's board opens on Monday.</div>
+      : !(b.top || []).length ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>{tab === "today" ? "No governor has entered a result today. Be the first." : tab === "week" ? "Nobody entered a result last week." : "No results yet."}</div>
+      : <div style={{ display: "grid", gap: 6 }}>{b.top.map(e => <div key={e.rank} style={{ display: "grid", gridTemplateColumns: "34px 1fr auto", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 14, background: e.me ? UI.green + "18" : "#fff", border: "1px solid " + (e.me ? UI.green : UI.line) }}>
+          <b style={{ fontFamily: F.d, fontSize: TS(24) }}>{e.rank}</b>
+          <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{medal(e.tier || (SYS.tierOf(e.score) || {}).id)} {e.name}{e.me ? " (you)" : ""}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{[e.title, e.state, e.grade && "Grade " + e.grade].filter(Boolean).join(" · ")}</span></span>
+          <b style={{ fontFamily: F.m }}>{e.score}</b></div>)}</div>}
+    {b && b.you && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 10 }}>You: #{b.you.rank} of {b.players}, score {b.you.score}.</div>}
+    {b && tab === "today" && b.players >= 10 && b.pct > 0 && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 6 }}>{b.pct}% of governors played again for a better result.</div>}
+  </div>;
+};
+
 /* While the player is president, every line on screen reads in the
    president's words (SYS.presidentWords) and the governor's rooms become the
    Villa's (SYS.VILLA_ART). One observer over the page covers the game, the
@@ -4864,6 +4900,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { if (VATAR && phase === "reelection" && !gEnd) { try { window.storage?.set("sop_preelection", JSON.stringify(buildSnapshot())); } catch (e) {} } }, [phase]);
   // When the game ends, the save goes: the title screen offers a new game only.
   useEffect(() => { if (gEnd) { try { window.storage?.set("sop_save", ""); } catch (e) {} } }, [gEnd]);
+  const [hall, setHall] = useState(null); // { view: "ask" | "board", res, entered }
+  const enterHall = async () => {
+    setHall(h => ({ ...h, busy: true }));
+    let r = null; try { r = await window.SOP_hallEnter(hall.res); } catch (e) {}
+    setHall(h => ({ ...h, busy: false, view: "board", entered: r }));
+    if (r && r.ok) { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} track("hall", "entered"); } else track("hall", r && r.already ? "already" : "failed");
+  };
   // A finished career goes into the Hall of Governors on this device.
   useEffect(() => {
     if (!gEnd) return;
@@ -4876,7 +4919,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       try { window.SOP_vatarScore && window.SOP_vatarScore(careerScore); } catch (e) {}
       const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
       // The all-time Hall of Governors (Lagos Life): the best career per player.
-      if (!stc.secondChance) try { window.SOP_hallSubmit && window.SOP_hallSubmit({ score: careerScore, grade, state: String(state).replace(/_/g, " "), title: ({ complete: "Two terms", defeated: "Voted out", stepped_down: "Stepped down", pres_bid: "Ran for president", impeached: "Impeached", bankrupt: "State bankrupt", nullified: "Removed by the courts" }[gEnd] || "Governor") }); } catch (e) {}
+      // The Hall of Governors: every finished career counts; the player chooses whether to enter it today.
+      try { window.SOP_hallFinish && window.SOP_hallFinish(); } catch (e) {}
+      if (!stc.secondChance && !NAT && window.SOP_hallEnter) setTimeout(() => setHall({ view: "ask", res: { score: careerScore, grade, state: String(state).replace(/_/g, " "), title: ({ complete: "Two terms", defeated: "Voted out", stepped_down: "Stepped down", pres_bid: "Ran for president", impeached: "Impeached", bankrupt: "State bankrupt", nullified: "Removed by the courts" }[gEnd] || "Governor") } }), 2500);
       const p = await loadProfile(); if (!p) return;
       const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
       const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
@@ -8747,9 +8792,35 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       </div>
     );
 
+    const hallTier = hall && SYS.tierOf(hall.res.score), nextT = hall && SYS.TIERS.slice().reverse().find(t => t.min > hall.res.score);
+    const hallEl = hall && <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 85, background: "rgba(6,14,10,.62)", overflowY: "auto", padding: TALL() ? "16px 12px 40px" : "40px 20px" }}>
+      <div className="sop-pop" style={{ maxWidth: 620, margin: "0 auto", background: "#fffdf8", borderRadius: 24, padding: TALL() ? "18px 16px" : "26px 28px", boxShadow: "0 24px 60px rgba(0,0,0,.3)", fontFamily: F.b, color: UI.ink }}>
+        <div style={{ fontSize: DS.t.meta, letterSpacing: 2, fontWeight: 800, color: CL.gold, textTransform: "uppercase", textAlign: "center" }}>The Hall of Governors</div>
+        {hall.view === "ask" ? <>
+          <div style={{ textAlign: "center", margin: "10px 0 6px" }}><div style={{ fontSize: TS(64) }}>{hallTier ? hallTier.icon : "🏛️"}</div>
+            <div style={{ fontFamily: F.d, fontSize: TS(44), fontWeight: 700 }}>{hall.res.score}</div>
+            <div style={{ fontSize: DS.t.label, color: UI.sub }}>{hallTier ? hallTier.nm + " tier: " + hallTier.how : "No medal yet"}{nextT ? " · " + nextT.nm + " starts at " + nextT.min : ""}</div></div>
+          <p style={{ fontSize: DS.t.body, lineHeight: 1.5, textAlign: "center", margin: "10px 0 14px" }}>Enter this governorship on today's board? You can enter <b>one result a day</b>, so be sure it is the one you want, or play again for a better one.</p>
+          <div style={{ display: "grid", gap: 10 }}>
+            <Bt onClick={enterHall} disabled={hall.busy}>{hall.busy ? "Entering…" : "🏛️ Enter this result"}</Bt>
+            <Bt v="secondary" onClick={() => setHall(h => ({ ...h, view: "board", entered: null }))}>🔁 Play again for a better result</Bt>
+          </div>
+        </> : <>
+          {hall.entered && hall.entered.ok && <div style={{ textAlign: "center", margin: "10px 0" }}><div style={{ fontSize: TS(48) }}>{hallTier ? hallTier.icon : "🏛️"}</div><b style={{ fontSize: DS.t.body }}>Entered: #{hall.entered.rank} of {hall.entered.players} today{hallTier ? ", " + hallTier.nm : ""}.</b></div>}
+          {hall.entered && hall.entered.already && <div style={{ fontSize: DS.t.label, color: CL.org, margin: "8px 0", lineHeight: 1.45 }}>You already entered a result today (score {hall.entered.entry.score}). Tomorrow you can enter again.</div>}
+          {hall.entered === null && <div style={{ fontSize: DS.t.label, color: UI.sub, margin: "8px 0" }}>Not entered. Here is who is doing well today.</div>}
+          <HallBoard tab="today" />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
+            <Bt v="secondary" onClick={() => setHall(null)}>Close</Bt>
+            <Bt onClick={() => onEnd("again", s)}>🔁 Play again</Bt>
+          </div>
+        </>}
+      </div>
+    </div>;
     return (
       <div style={{ minHeight: "100%", background: CL.bg, padding: "58px 43px" }}>
         {anchorEl}
+        {hallEl}
         <Flag />
         <div style={{ maxWidth: 1272, margin: "58px auto", textAlign: "center" }}>
           <Sfx k={gEnd === "impeached" || gEnd === "defeated" || gEnd === "bankrupt" || gEnd === "nullified" ? "lose" : "win"} />
@@ -13522,20 +13593,9 @@ function App() {
       {scr === "setup" && <button onClick={async () => { if (await window.SOP_confirm("Leave the campaign?\n\nIt is not saved until you take office: next time you start the campaign again.", "Go to the home screen", "Keep campaigning")) rst(); }} aria-label="Home screen" style={{ position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 8px)", right: 10, zIndex: 70, background: "rgba(255,255,255,.92)", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "6px 12px", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: CL.txt, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}>🏠 Home</button>}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
-          {[["week", "This week · " + stateLabel(challengeOf(weekNow()).state)], ["all", "All time"]].map(([k, l]) => <button key={k} onClick={() => openBoard(k)} aria-pressed={board.tab === k} style={{ borderRadius: 999, padding: "10px 12px", minHeight: 44, fontWeight: 800, fontSize: DS.t.label, fontFamily: F.b, cursor: "pointer", border: "1px solid " + (board.tab === k ? UI.dark : UI.line), background: board.tab === k ? UI.dark : "#fff", color: board.tab === k ? "#fff" : UI.ink }}>{l}</button>)}
-        </div>
-        {board.loading ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>Loading…</div>
-          : board.offline ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>The Hall of Governors is public in Lagos Life. Play there and your best career appears here under your username.</div>
-          : board.error ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>The board couldn't be loaded. Try again in a moment.</div>
-          : !board.top.length ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>{board.tab === "all" ? "No finished governorships yet. Be the first in the Hall." : "No finished governorships yet this week. Be the first: play this week's challenge."}</div>
-          : <div style={{ display: "grid", gap: 6 }}>{board.top.map(e => <div key={e.rank} style={{ display: "grid", gridTemplateColumns: "34px 1fr auto", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 14, background: e.me ? UI.green + "18" : "#fff", border: "1px solid " + UI.line }}>
-              <b style={{ fontFamily: F.d, fontSize: TS(26) }}>{e.rank}</b>
-              <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{e.rank <= 3 ? ["🥇", "🥈", "🥉"][e.rank - 1] + " " : ""}{e.name}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{[e.title, e.state, e.grade && "Grade " + e.grade].filter(Boolean).join(" · ")}</span></span>
-              <b style={{ fontFamily: F.m }}>{e.score}</b></div>)}</div>}
-        {board.you && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 10 }}>You: #{board.you.rank} of {board.players}, best score {board.you.score}.</div>}
+        <HallBoard tab={board.tab === "all" ? "all" : "today"} />
       </EntranceSheet>}
-      {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
+      {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(); else if (ch === "again") { seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setSetup(null); setLoadedSave(null); setScr("setup"); } else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} onTakeOffice={su => { setSetup(su); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "ambassador" && <AmbassadorCareer profile={profile} onExit={rst} />}
       {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}
