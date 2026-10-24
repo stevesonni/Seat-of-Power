@@ -1823,7 +1823,7 @@ const CAMP_ART = [[/Rally Tour/, "camp-rally-tour"], [/Debate/, "camp-debate"], 
   [/GOTV/, "camp-gotv"], [/Polling Unit/, "camp-polling-agents"], [/Receipts/, "camp-answer-receipts"], [/Press Conference/, "camp-answer-press"]];
 const ATTACK_ART = [[/Credentials/, "attack-credentials"], [/Rally Outdraws/, "attack-rally"], [/Smear/, "attack-smear"], [/Endorsement/, "attack-endorsement"]];
 const artFor = (table, text) => { const hit = table.find(([rx]) => rx.test(text || "")); return hit ? hit[1] : null; };
-const CampaignMove = ({ opt, ok, why, boosted, onPick }) => {
+const CampaignMove = ({ opt, ok, why, boosted, advised, onPick }) => {
   const tall = TALL(), fz = campFz();
   const cost = opt.cost || opt.dc || 0;
   const icon = (opt.l.match(/^\S+/) || [""])[0], name = opt.l.replace(/^\S+\s/, "");
@@ -1841,6 +1841,7 @@ const CampaignMove = ({ opt, ok, why, boosted, onPick }) => {
       <div style={{ fontSize: fz.s, color: CL.td, margin: "2px 0 6px", lineHeight: 1.3, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }} title={[opt.d, opt.risk].filter(Boolean).join(" ")}>{line}</div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         <CampChip txt={cost > 0 ? "₦" + cost.toFixed(2) + "B" : "Free"} col={CL.gold} />
+        {advised && <CampChip txt="⭐ Adviser's pick" col={CL.gold} />}
         {opt.answer && <CampChip txt="Answers their attack" col={CL.red} />}
         {zoneTxt && <CampChip txt={zoneTxt} col={CL.blu} />}
         {boosted && <CampChip txt="Slogan +2" col={CL.grn} />}
@@ -3543,8 +3544,9 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         // window.SOP_TEST is set only by the automated playthroughs (tests/e2e), never by the game.
         const testSwing = window.SOP_TEST ? (window.SOP_TEST.win ? 40 : window.SOP_TEST.lose ? -40 : 0) : 0;
         const swing = (sCampScore - sCampOpp) * 0.32 + (firstRun && !hardMode ? 2 : 0) + testSwing;
-        const jitter = (eDay() - 0.5) * (hardMode ? 10 : 7);
-        return { ...z, support: cl100(z.support + swing + jitter - 1), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 2 : 1) + (eDay() - 0.5) * (hardMode ? 7 : 5)) };
+        // Election-day noise is small: a player who leads the final poll should almost always win.
+        const jitter = (eDay() - 0.5) * (hardMode ? 7 : 4);
+        return { ...z, support: cl100(z.support + swing + jitter - (hardMode ? 1 : 0)), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 2 : .5) + (eDay() - 0.5) * (hardMode ? 5 : 3)) };
       });
       const collation = lgaElectionSummary(swayedZones, partyStrength, oppStrength, st);
       const won = collation.won;
@@ -3562,6 +3564,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
               const weak = collation.rows.reduce((a, b) => sh(b) < sh(a) ? b : a, collation.rows[0]);
               const behind = sCampOpp > sCampScore;
               return <div style={{ textAlign: "left", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 17, padding: "16px 20px", marginBottom: 18, fontSize: TS(30), color: CL.tm, lineHeight: 1.45 }}>
+                <b style={{ color: CL.txt }}>Why:</b> {SYS.electionWhy(collation.rows, false)}<br />
                 <b style={{ color: CL.txt }}>Next time:</b> {weak ? "you were weakest in the " + weak.zone + " district (" + Math.round(sh(weak) * 100) + "% of the vote). Spend more campaign days there. " : ""}{behind ? "The opponent's attacks outscored your campaign: answer them instead of sitting them out." : "Pick moves that match your slogan; they count for more."}{firstRun && level !== "easy" ? " Easy mode is a gentler first race." : ""}
               </div>;
             })()}
@@ -3663,9 +3666,10 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
             </div>
           </Cd>}
 
+          {(() => { const adv = SYS.campaignAdvice({ zones: activeZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); return adv && <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={saName} /></div>; })()}
           <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(400px, 1fr))", gap: 14 }}>
-            {opts.map((opt, i) => { const ok = opt === sitOut || canTake(opt); const cost = optCost(opt);
-              return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} onPick={() => handleSC(opt)} />; })}
+            {(() => { const adv = SYS.campaignAdvice({ zones: activeZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); return opts.map((opt, i) => { const ok = opt === sitOut || canTake(opt); const cost = optCost(opt);
+              return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} advised={!!adv && adv.pick === opt.l} onPick={() => handleSC(opt)} />; }); })()}
           </div>
           <div style={{ textAlign: "center", marginTop: 18 }}><button onClick={restartElectionSetup} style={{ background: "none", border: 0, color: CL.td, fontSize: fz.s, textDecoration: "underline", cursor: "pointer", fontFamily: F.b }}>Restart election setup</button></div>
         </div>
@@ -5104,6 +5108,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [agenda, setAgenda] = useState(() => ld?.agenda || null);
   const agendaRef = React.useRef(agenda);
   const agendaLeftNow = SYS.agendaLeft(agenda, turn, setup?.level || "medium");
+  // The agenda, explained: what counts, what does not, and what this year's went on.
+  const explainAgenda = () => {
+    const size = SYS.agendaSize(setup?.level || "medium"), used = (agenda && agenda.turn === turn ? agenda.used : []) || [];
+    try { window.SOP_outcome({ icon: "🗓️", title: "Your agenda: " + size + " big decisions a year", text: (used.length ? "You have used " + used.length + ", " + (size - used.length) + " left. " : "None used yet. ") + "Big decisions are programmes, projects, executive orders, bills, revenue reforms, new ministries and investigations. Free, and never counted: reading and answering letters, the budget, appointing and firing, meetings, inspections and the treasury. A choice you repeat in the same year counts once. The agenda refills every new year.",
+      rows: used.map(u => ({ l: u.label, v: "used", good: true })), tone: "neutral",
+      learn: "Real governors face the same limit: the House of Assembly can pass only so many bills in a session, and the civil service can carry only a few big reforms at once. Choosing what matters most is the job." }); } catch (e) {}
+  };
   const takeAgenda = (kind, label, key) => {
     const r = SYS.spendAgenda(agendaRef.current, turn, setup?.level || "medium", { kind, label, key });
     if (!r.ok) {
@@ -5111,6 +5122,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return false;
     }
     agendaRef.current = r.agenda; setAgenda(r.agenda);
+    const left = SYS.agendaSize(setup?.level || "medium") - r.agenda.used.length;
+    if (left === 1 && !r.repeat) setTimeout(() => { try { present("Your Excellency, one big decision is left this year. Make it count: the need that hurts most, or the promise that is due. Letters, the budget and appointments stay free.", "neutral"); } catch (e) {} }, 900);
     return true;
   };
   // The last year whose end-of-year resolution has run (never twice).
@@ -9318,7 +9331,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
     {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
-    <span title="Major actions left this year: programmes, projects, orders, bills, reforms, new ministries. Meetings and inspections are free." style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Agenda {agendaLeftNow}/{SYS.agendaSize(setup?.level || "medium")} left</span>
+    <span role="button" tabIndex={0} onClick={explainAgenda} title="Major actions left this year: programmes, projects, orders, bills, reforms, new ministries. Meetings and inspections are free." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Agenda {agendaLeftNow}/{SYS.agendaSize(setup?.level || "medium")} left</span>
         {["Budget", "House vote", "Policies", "Review", "Mail"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
   </div>;
@@ -11023,10 +11036,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </Cd>;
             const sitOut = { l: "🪑 Sit this one out", d: "No money or time for anything better. The opponent gains ground everywhere.", days: Math.max(1, daysLeft), pts: 0, oppPts: 3, target: "all", opp: 3 };
             // Part 3 — three option cards, same layout every week
-            const OptCard = ({ opt }) => {
+            const OptCard = ({ opt, advised }) => {
               const ok = opt === sitOut || canTake(opt);
               const cost = optCost(opt);
-              return <CampaignMove opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > campWarChest + 1e-9 ? "Not enough money" : ""} onPick={() => handleChoice(opt)} />;
+              return <CampaignMove opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > campWarChest + 1e-9 ? "Not enough money" : ""} advised={advised} onPick={() => handleChoice(opt)} />;
             };
             const board = (opp, ev) => <CampaignBoard week={week} isOpp={opp} youImg={AVATAR_IMGS[setup?.avatar] || HERO_MALE} youName={(setup?.lastNm || pName.split(" ").pop() || "You")} youParty={party}
               oppName={oppName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oppParty?.id || "OPP"} oppImg={oppArt(oppName)} zones={activeReZones} swingId={reSwing.id} money={campWarChest} days={daysLeft} maxDays={WEEK_DAYS}
@@ -11180,9 +11193,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </div>;
                 })()}
               </div>
-              <div style={moveGrid}>
-                {weekPicks(weekActs, week > 1 ? (oppEvs[week - 2] || {}).opts : null, canTake, sitOut).map((act, i) => <OptCard key={i} opt={act} />)}
-              </div>
+              {(() => { const picks = weekPicks(weekActs, week > 1 ? (oppEvs[week - 2] || {}).opts : null, canTake, sitOut), adv = SYS.campaignAdvice({ zones: activeReZones, week, picks: picks.filter(o => o !== sitOut), ok: canTake });
+                return <>{adv && <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={cast.adviser.name} /></div>}
+                  <div style={moveGrid}>{picks.map((act, i) => <OptCard key={i} opt={act} advised={!!adv && adv.pick === act.l} />)}</div></>; })()}
               {/* Broke — choose to withdraw OR run with no funds (80/20 loss) */}
               {campWarChest < 0.05 && (campGfBorrowed || godfatherRel <= 30) && <div style={{ display: "grid", gap: 22, marginTop: 22 }}>
                 <Cd style={{ padding: 22, textAlign: "center", background: "#fff5f5", borderColor: CL.red + "55" }}>

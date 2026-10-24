@@ -30,3 +30,4 @@ export * from "./office.js";
 export * from "./investors.js";
 export * from "../../server/hall-rules.mjs";
 export * from "./presidency.js";
+export * from "./campaign.js";
