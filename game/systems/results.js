@@ -50,11 +50,11 @@ export const ministryYear = (m, lga, r = Math.random) => {
 };
 
 // A council election in every local government. lean: [north, central, south]
-// mood (positive helps you). Returns each council with your share.
-export const councilVote = (districts, lean, r = Math.random) => {
+// mood (positive helps you); home: the governor's own LGA. Returns each council with your share.
+export const councilVote = (districts, lean, r = Math.random, home = null) => {
   const out = [];
   districts.forEach((ls, zi) => ls.forEach(lga => {
-    const share = Math.max(20, Math.min(80, 50 + (lean[zi] || 0) * 2.2 + (r() * 24 - 12)));
+    const share = Math.max(20, Math.min(80, 50 + (lean[zi] || 0) * 2.2 + (r() * 24 - 12) + (lga === home ? 15 : 0))); // your home LGA leans your way
     out.push({ lga, zone: zi, share: Math.round(share) });
   }));
   const won = out.filter(x => x.share >= 50), lost = out.filter(x => x.share < 50);

@@ -696,7 +696,7 @@
       });
     });
     // Auto-fill baseline
-    if (!sections["Early life"].length) sections["Early life"].push({turn:0, txt:`${SOP.pName} was born in ${SOP.state} State. Educated locally and abroad, they entered politics via the ${SOP.party} party.`});
+    if (!sections["Early life"].length) sections["Early life"].push({turn:0, txt:`${SOP.pName} was born in ${SOP.setup && SOP.setup.homeLga ? SOP.setup.homeLga + ", " : ""}${SOP.state} State. Educated locally and abroad, they entered politics via the ${SOP.party} party.`});
     if (!sections["Political career"].length) sections["Political career"].push({turn:0, txt:`Elected Governor of ${SOP.state} State on the ${SOP.party} platform, promising a "${SOP.setup?.agenda||"reform"}" agenda.`});
     return SOP_H('div',{style:{background:"#fdfdf6",padding: 50,border:"1px solid "+c.bdr,borderRadius: 13}},[
       SOP_H('div',{style:{borderBottom:"2px solid "+c.txt,paddingBottom: 29,marginBottom: 43}},[

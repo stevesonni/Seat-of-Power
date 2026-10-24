@@ -2722,6 +2722,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   const [st, setSt] = useState(profile?.origin || null);
   const [depGov, setDepGov] = useState(null);
   const [homeDistrict, setHomeDistrict] = useState(null); // 0–2: North, Central, South senatorial district
+  const [homeLga, setHomeLga] = useState(null); // the local government you come from, inside that district
   const [partyDeal, setPartyDeal] = useState(null); // how you settled with the party after passing over its candidate
   const [agenda, setAgenda] = useState(null);
   const [slogan, setSlogan] = useState(null);
@@ -2918,10 +2919,15 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         <Field label="First name" value={firstNm} onChange={setFirstNm} placeholder="Ciroma Chukwuma" />
         <Field label="Last name" value={lastNm} onChange={setLastNm} placeholder="Adekunle" />
       </div>
-      <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "18px 0 6px 6px" }}>Your home district</div>
+      <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "18px 0 6px 6px" }}>Your home senatorial district</div>
       <div style={{ display: "grid", gap: 8 }}>
-        {SYS.DISTRICTS.map((d, i) => { const l = lgaCluster(getLGAs(st), i).slice(0, 3).join(", "); return <Tile key={d} tint={homeDistrict === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={homeDistrict === i} onClick={() => setHomeDistrict(i)} title={d} sub={l ? l + "…" : null} />; })}
+        {SYS.DISTRICTS.map((d, i) => { const l = lgaCluster(getLGAs(st), i).slice(0, 3).join(", "); return <Tile key={d} tint={homeDistrict === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={homeDistrict === i} onClick={() => { setHomeDistrict(i); setHomeLga(null); }} title={d} sub={l ? l + "…" : null} />; })}
       </div>
+      {homeDistrict != null && (() => { const ls = lgaCluster(getLGAs(st), homeDistrict); return ls.length ? <>
+        <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "16px 0 6px 6px" }}>Your home local government</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>{ls.map(l => { const on = (homeLga || ls[0]) === l; return <button key={l} onClick={() => setHomeLga(l)} aria-pressed={on} style={{ padding: "8px 14px", minHeight: 44, borderRadius: 999, border: "1.5px solid " + (on ? UI.dark : UI.line), background: on ? UI.dark : "#fff", color: on ? "#fff" : UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.meta, cursor: "pointer" }}>{l}</button>; })}</div>
+        <div style={{ fontSize: DS.t.meta, color: UI.sub, margin: "6px 6px 0" }}>Your people there vote for you, and expect you not to forget them.</div>
+      </> : null; })()}
     </Flow>;
   }
 
@@ -3617,7 +3623,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
           {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} onDone({ nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, homeLga: homeLga || (lgaCluster(getLGAs(st), homeDistrict == null ? 1 : homeDistrict)[0] || null), partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -5272,7 +5278,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const lean = [0, 1, 2].map(z => ((s.zoneMood || {})[z] || 0) + (s.app - 50) / 4 + (r() * 8 - 4));
       const oppZ = [0, 1, 2].filter(z => lean[z] < -1);
       // Every council votes; the projection is what a free vote would give you.
-      const districts = [0, 1, 2].map(z => lgaCluster(getLGAs(state), z)), vote = SYS.councilVote(districts, lean, r), N = vote.all.length;
+      const districts = [0, 1, 2].map(z => lgaCluster(getLGAs(state), z)), vote = SYS.councilVote(districts, lean, r, setup?.homeLga), N = vote.all.length;
       const names = (l, k = 4) => l.slice(0, k).map(x => x.lga).join(", ") + (l.length > k ? " and " + (l.length - k) + " more" : "");
       const oppZof = (l) => [...new Set(l.map(x => x.zone))];
       const result = (won, lostL, how) => ({ icon: "🗳️", title: "You won " + won + " of " + N + " councils", text: lostL.length ? "Opposition chairmen now run " + names(lostL) + ". " + how : how, tone: lostL.length > N / 2 ? "bad" : "good" });
