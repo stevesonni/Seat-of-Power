@@ -82,8 +82,10 @@
   window.SOP_chScore = function (week, score, name, title) { return ready.then(function (on) { if (on) return call("/api/challenge/score", { week: week, score: score, username: uname(), title: title }); }).catch(function () {}); };
   window.SOP_hallSubmit = function (c) { return ready.then(function (on) { if (on) return call("/api/hall/submit", Object.assign({ username: uname() }, c)); }).catch(function () {}); };
   // Player feedback goes to the game's server (read at /feedback with FEEDBACK_KEY).
-  window.SOP_feedbackOn = function () { return ready.then(function (on) { return !!on; }).catch(function () { return false; }); };
-  window.SOP_feedback = function (f) { return ready.then(function (on) { if (!on) throw new Error("offline"); return call("/api/feedback", Object.assign({ username: uname() }, f)); }); };
+  // Feedback always reaches the makers: with the Lagos Life session when it is confirmed, anonymously when not.
+  function openFeedback(f) { return fetch("/api/feedback-open", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ username: uname() }, f)) }).then(function (x) { return x.json().then(function (j) { if (!x.ok) { var e = new Error(j.error || "http_" + x.status); e.code = j.error; throw e; } return j; }); }); }
+  window.SOP_feedbackOn = function () { return Promise.resolve(true); };
+  window.SOP_feedback = function (f) { return ready.then(function (on) { if (!on) return openFeedback(f); return call("/api/feedback", Object.assign({ username: uname() }, f)).catch(function () { return openFeedback(f); }); }); };
   // The Daily Decision's shared vote.
   window.SOP_dailyVote = function (day, choice) { return ready.then(function (on) { if (!on) return null; return call("/api/daily/vote", { day: day, choice: choice }); }).catch(function () { return null; }); };
   window.SOP_dailyStats = function (day) { return ready.then(function (on) { if (!on) return null; return call("/api/daily/stats", { day: day }); }).catch(function () { return null; }); };

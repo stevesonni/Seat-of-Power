@@ -117,12 +117,22 @@ const vatar = async (p, body) => {
   return { http: r.status, ...j };
 };
 const seen = new Map(); // session token → { playerId, exp }, so saves don't re-verify every call
+// Why Vatar refused a session, at most once a minute: the status, Vatar's error and the key's
+// mode (test or live). Never the key or the session itself.
+const KEY_MODE = SECRET.startsWith("vtr_live_") ? "live" : SECRET.startsWith("vtr_test_") ? "test" : SECRET ? "unknown" : "none";
+let vfLast = 0, vfCount = 0;
+const verifyFailed = (v) => {
+  vfCount++; if (Date.now() - vfLast < 60e3) return;
+  vfLast = Date.now();
+  console.warn("[vatar] session verify refused ×" + vfCount + ": http " + v.http + " " + String(v.error || v.code || v.message || "").slice(0, 120) + " · key mode " + KEY_MODE + (v.playerId ? " · player id " + String(v.playerId).slice(0, 2) + "…" : ""));
+  vfCount = 0;
+};
 const who = async (session) => {
   if (typeof session !== "string" || session.length > 4096) return null;
   const c = seen.get(session);
   if (c && c.exp > Date.now()) return c.playerId;
   const v = await vatar("/session/verify", { session });
-  if (v.http !== 200 || !/^[pt]_[A-Za-z0-9_-]{1,80}$/.test(v.playerId || "")) return null;
+  if (v.http !== 200 || !/^[pt]_[A-Za-z0-9_-]{1,80}$/.test(v.playerId || "")) { verifyFailed(v); return null; }
   seen.set(session, { playerId: v.playerId, username: v.username || v.displayName || v.name || null, exp: Math.min(v.exp || 0, Date.now() + 14 * 60e3) });
   if (seen.size > 5000) for (const [k, x] of seen) if (x.exp < Date.now()) seen.delete(k);
   return v.playerId;
@@ -299,6 +309,14 @@ http.createServer(async (req, res) => {
       // A nudge only: the game claims purchases itself, and /claim checks them with the API.
       return send(res, 200, { ok: true });
     }
+    // Feedback from a player whose Lagos Life session could not be confirmed (or who opened
+    // the game directly): kept all the same, marked anonymous, five a day per address.
+    if (req.method === "POST" && url.pathname === "/api/feedback-open") {
+      let b; try { b = JSON.parse(await readBody(req, 16_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+      const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+      const out = await api["/api/feedback"]({ ...b, session: null }, "anon_" + crypto.createHash("sha256").update(ip).digest("hex").slice(0, 10));
+      return send(res, out._code || 200, out);
+    }
     if (req.method === "POST" && api[url.pathname]) {
       if (!SECRET) return send(res, 503, { error: "not_configured" });
       let b; try { b = JSON.parse(await readBody(req)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
@@ -308,7 +326,7 @@ http.createServer(async (req, res) => {
       return send(res, out._code || 200, out);
     }
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "method" });
-    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, freeCareers: FREE_CAREERS });
+    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, keyMode: KEY_MODE, freeCareers: FREE_CAREERS });
     if (url.pathname === "/feedback") {
       const k = Buffer.from(String(url.searchParams.get("key") || "")), want = Buffer.from(FEEDBACK_KEY);
       if (!FEEDBACK_KEY || k.length !== want.length || !crypto.timingSafeEqual(k, want)) return send(res, 404, "Not found", TYPES[".txt"]);
