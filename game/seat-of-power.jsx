@@ -12826,7 +12826,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     const res = SYS.roadTest(g, R("road"));
     trk("lga_road", (g.road.builder || "none") + (res.held ? "_held" : "_failed"));
     up(p => ({ ...SYS.applyLga(p, res.fx, -res.purse), road: { ...p.road, tested: true, held: res.held }, elecMod: (p.elecMod || 0) + res.elec, items: p.items.slice(1), story: [...(p.story || []), res.held ? "saw the market road survive the rains" : "watched the market road wash away in the rains"] }));
-    card({ icon: res.held ? "🛣️" : "🌊", img: res.held ? "./art/scenes/chairman-flag-off.webp" : "./art/backgrounds/flooded-community.webp", title: res.held ? "The road holds" : "The road washes away", text: res.held ? "The first big rains come and the market road holds. Trucks arrive from three LGAs." : "The first big rains come. The road you opened is a river of red mud, and the traders know whose road it was.", rows: lgaFxRows(res.fx, -res.purse).concat([{ l: "Election day", v: (res.elec > 0 ? "+" : "−") + Math.abs(res.elec), good: res.held }]), tone: res.held ? "good" : "bad", ok: "Next" });
+    card({ icon: res.held ? "🛣️" : "🌊", img: res.held ? "./art/scenes/market-road-finished.webp" : "./art/scenes/market-road-washout.webp", title: res.held ? "The road holds" : "The road washes away", text: res.held ? "The first big rains come and the market road holds. Trucks arrive from three LGAs." : "The first big rains come. The road you opened is a river of red mud, and the traders know whose road it was.", rows: lgaFxRows(res.fx, -res.purse).concat([{ l: "Election day", v: (res.elec > 0 ? "+" : "−") + Math.abs(res.elec), good: res.held }]), tone: res.held ? "good" : "bad", ok: "Next" });
   };
   // Nothing affordable: put it off, and let the staff do the least they can.
   const putOff = (it) => { const x = it.k === "callback" ? SYS.lgaCallback(it.id) : itemOf(it), o = it.k === "callback" ? x.opts[x.opts.length - 1] : SYS.delegated(it.k, x);
@@ -12895,7 +12895,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const people = G && G.npcs && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, margin: "-4px 0 12px" }}>
     <PersonChip img={G.gov >= 65 ? "governor-pleased" : G.gov < 35 ? "governor-angry" : "governor-worried"} name={G.govName} role="Governor" rel={G.gov} />
     <PersonChip img={G.npcs.party.rel >= 65 ? "party-chairman-pleased" : G.npcs.party.rel < 35 ? "party-chairman-angry" : "party-chairman"} name={G.npcs.party.name} role="Party chairman" rel={G.npcs.party.rel} />
-    <PersonChip img="councillor-male" name={G.npcs.cllr.name} role="Councillor" rel={G.npcs.cllr.rel} />
+    <PersonChip img={G.npcs.cllr.rel >= 65 ? "councillor-male-pleased" : G.npcs.cllr.rel < 35 ? "councillor-male-angry" : "councillor-male"} name={G.npcs.cllr.name} role="Councillor" rel={G.npcs.cllr.rel} />
   </div>;
   const wrap = (el) => <>{el}{notebook}</>;
 
@@ -12935,7 +12935,8 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     </Frame>);
     // The in-tray: more matters than you can handle; pick two.
     const choosableIdx = G.items.map((it2, i) => choosable(it2) ? i : -1).filter(i => i >= 0);
-    if (G.trayDone !== G.n && choosableIdx.length > SYS.ATTENTION) return wrap(<Frame bg="chairman-office" who="lga-treasurer">
+    if (G.trayDone !== G.n && choosableIdx.length > SYS.ATTENTION) return wrap(<Frame>
+      <img src="./art/objects/in-tray.webp" alt="Your in-tray" style={{ display: "block", width: tall ? 200 : 260, height: "auto", margin: "8px auto 0", filter: "drop-shadow(0 12px 18px rgba(0,0,0,.18))" }} />
       <H kick={kicker + " · your in-tray"} title={"Pick the " + SYS.ATTENTION + " matters you will handle yourself"} sub="Your staff will deal with the rest the cheap way. Some things can wait; some will not." />
       {header}{people}{roadLine}
       <div style={{ display: "grid", gap: 8 }}>{choosableIdx.map(i => { const it2 = G.items[i], on = tray.includes(i), full = tray.length >= SYS.ATTENTION; return <Opt key={i} on={on} ic={on ? "☑️" : "⬜"} l={itemTitle(it2)} d={it2.k === "alloc" ? "Left alone: the treasurer accepts whatever the state sends." : it2.k === "road" ? "Left alone: the party decides." : it2.k === "gov" ? "Left alone: the governor is told you are busy." : it2.k === "motion" ? "Left alone: the council decides without you." : "Left alone: the department does the least it can, and it may get worse."} onClick={() => setTray(p => on ? p.filter(x => x !== i) : full ? p : [...p, i])} />; })}</div>
