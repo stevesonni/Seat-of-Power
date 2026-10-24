@@ -74,7 +74,7 @@ export async function takeOffice(g) {
    `until(text)` is true. Clicks, in order: confirmations, setup, budget,
    House vote, policies, end of year, continue; otherwise the first offered
    choice (a button, or a clickable choice card). Returns the click log. */
-const SKIP = /^(☰|Compound|Govern|Today|News|Desk|Map|State|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Council|Personas|Public|Stakeholders|Money|💰 Treasury|Treasury|Economy|Contracts|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|🤵 Ask your SA$|Ask your SA$|Hide$|Less$|▼$|▲$|Open the council$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
+const SKIP = /^(🔀 Restructure|☰|Compound|Govern|Today|News|Desk|Map|State|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Council|Personas|Public|Stakeholders|Money|💰 Treasury|Treasury|Economy|Contracts|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|🤵 Ask your SA$|Ask your SA$|Hide$|Less$|▼$|▲$|Open the council$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
 const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound|Open the Treasury|Watch them decide|Not now)$/, /^✍️ Handle it personally$/, /^.{6,}(›|❗)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/, /^(✍️ )?Sign$/];
 export async function playUntil(g, until, { max = 400, prefer = [], log = false } = {}) {
   const clicks = [];
@@ -84,7 +84,7 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false 
     let hit = null;
     // A shortcut that keeps coming back (say "Not now" on the same visitor) is a loop: decide instead.
     const recent = clicks.slice(-12), looping = (re) => recent.filter(c => re.test(c)).length >= 3;
-    for (const re of [...prefer, ...PRIO]) { if (looping(re)) continue; hit = await g.click(re); if (hit) break; }
+    for (const re of [...prefer, ...PRIO]) { if (looping(re) && !/Leave the Secretariat/.test(re.source)) continue; hit = await g.click(re); if (hit) break; }
     // Buttons pressed 3+ times in the last 12 clicks are a loop: try something else, or leave.
     const stuck = [...new Set(recent.filter(c => recent.filter(x => x === c).length >= 3).map(c => c.replace(/^(btn|card) /, "")))];
     if (!hit) hit = await g.page.evaluate(([skipSrc, stuck]) => {
