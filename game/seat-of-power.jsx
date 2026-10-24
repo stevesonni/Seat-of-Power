@@ -5547,14 +5547,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const filed = margin < 2 || r() < (margin < 5 ? .7 : 0);
       if (!filed) return;
       next.petition = { term, stage: 0, margin, opp, oppParty, start: turn, lostBelow: false };
-      notes.push(["⚖️ " + opp + " (" + oppParty + ") has filed a petition against your " + (term === 1 ? "election" : "re-election") + ", citing your " + margin + "% margin.", "crisis"]);
+      notes.push(["⚖️ " + opp + " (" + oppParty + ") is challenging your " + (term === 1 ? "election" : "re-election") + " in court. Your margin: " + margin + "%.", "crisis"]);
     };
     const m1 = scenarioStart(setup).margin != null ? scenarioStart(setup).margin : setup?.election?.marginPct;
     if (turn === 1 && !next.pet1 && setup?.election && m1 < 5) { next.pet1 = true; startPet(1, m1, String(setup.election.opp || "The opposition candidate").replace(/^Hon\. /, ""), setup.election.oppParty || "OPP"); }
     if (turn === 5 && !next.pet2 && next.reMargin != null && next.reMargin < 5) { next.pet2 = true; startPet(2, next.reMargin, next.reOpp || "The opposition candidate", next.reOppParty || "OPP"); }
     const P0 = next.petition;
     if (P0 && P0.stage < 3 && turn >= P0.start + P0.stage) {
-      const COURTS = ["Governorship Election Tribunal", "Court of Appeal", "Supreme Court"];
+      const COURTS = ["Governorship Election Tribunal", "Court of Appeal", "Supreme Court"], SHORT = ["Tribunal", "Court of Appeal", "Supreme Court"];
+      const gavel = () => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} };
+      const LEARN = "A petition must be filed within 21 days of the result (S.285(5)). The tribunal rules within 180 days, and each appeal within 60 (S.285(6) and (7)). The Supreme Court is final.";
       const st0 = P0.stage, final = st0 === 2;
       const base = .12 + (P0.margin < 2 ? .15 : P0.margin < 3.5 ? .08 : .03) + Math.max(0, s.cor - .35) * .9 + (s.cor > .55 ? .1 : 0) + (setup?.gfDebt > 0 ? .03 : 0);
       const grounds = s.cor > .5 ? "inducement of voters and misuse of state funds" : P0.margin < 2 ? "over-voting in the polling units you won" : "non-compliance with the Electoral Act";
@@ -5566,29 +5568,32 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           scWiki("Controversies", "The Supreme Court nullified the election on a petition by " + P0.opp + ".");
           setStc(p => ({ ...p, petition: { ...p.petition, stage: 3, result: "lost" } }));
           setGEnd("nullified");
-          return { icon: "⚖️", title: "The Supreme Court has ruled against you", text: "Your election is nullified. " + P0.opp + " will be sworn in as governor.", tone: "bad" };
+          gavel();
+          return { icon: "⚖️", img: "./art/backgrounds/supreme-court-abuja.webp", title: "Supreme Court: election nullified", text: "Final. " + P0.opp + " will be sworn in.", tone: "bad" };
         }
         if (lost) {
           scFx({ app: -3 });
           addL("⚖️ The " + COURTS[st0] + " ruled for " + P0.opp + ". You stay in office pending your appeal to the " + COURTS[st0 + 1] + ".", "crisis");
           scWiki("Controversies", "The " + COURTS[st0] + " nullified the " + (P0.term === 1 ? "election" : "re-election") + "; the governor appealed.");
           setStc(p => ({ ...p, petition: { ...p.petition, stage: st0 + 1, lostBelow: true } }));
-          return { icon: "⚖️", title: "The " + COURTS[st0] + " ruled for " + P0.opp, text: "Your election was nullified, but you stay in office while you appeal to the " + COURTS[st0 + 1] + ".", tone: "bad" };
+          gavel();
+          return { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You lost at the " + SHORT[st0], text: "You stay in office and appeal to the " + COURTS[st0 + 1] + ".", rows: [{ l: "Approval", v: "−3", good: false }], tone: "bad", learn: st0 === 0 ? LEARN : undefined };
         }
         const quits = !final && st0 === 0 && P0.margin >= 4 && Math.random() < .5;
         scFx({ app: final ? 3 : 1, pStab: final ? 3 : 0 });
         addL("⚖️ The " + COURTS[st0] + " dismissed " + P0.opp + "'s petition." + (final ? " The matter is closed for good." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), "success");
         setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined } }));
-        return { icon: "⚖️", title: "Case dismissed!", text: "The " + COURTS[st0] + " threw out " + P0.opp + "'s petition." + (final ? " It is over for good: you keep your seat." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), tone: "good" };
+        gavel(); if (final || quits) setTimeout(() => { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} }, 900);
+        return { icon: "⚖️", img: final || quits ? "./art/scenes/news-victory-rally.webp" : "./art/scenes/news-court-steps.webp", title: "You won at the " + SHORT[st0], text: final ? "Final. You keep your seat." : quits ? P0.opp + " has given up. You keep your seat." : P0.opp + " appeals to the " + COURTS[st0 + 1] + ".", tone: "good", learn: st0 === 0 ? LEARN : undefined };
       };
-      cards.push({ key: "petition", kicker: "Election petition · " + (st0 + 1) + " of 3", color: CL.red, art: st0 === 2 ? ["supreme-court-abuja", "senior-advocate"] : st0 === 1 ? ["courtroom", "senior-advocate"] : ["courtroom", null, "petition-file"],
-        title: COURTS[st0] + ": " + P0.opp + " v. You",
-        brief: P0.opp + " says you won by " + grounds + ". Your margin was " + P0.margin + "%." + (P0.lostBelow ? " You lost at the lower court and are now the appellant." : "") + (s.cor > .45 ? " Your corruption record hands them evidence." : ""),
-        stakes: final ? "The Supreme Court is final. Lose here and you leave Government House." : "Lose here and you appeal; the case goes on.",
+      cards.push({ key: "petition", kicker: "Election petition · " + SHORT[st0] + " (" + (st0 + 1) + "/3)", color: CL.red, art: st0 === 2 ? ["supreme-court-abuja", "senior-advocate"] : st0 === 1 ? ["courtroom", "senior-advocate"] : ["courtroom", null, "petition-file"],
+        title: P0.opp + " v. You",
+        brief: "Their claim: " + grounds + ". Your margin: " + P0.margin + "%." + (P0.lostBelow ? " You lost below and appealed." : "") + (s.cor > .45 ? " Your record helps them." : ""),
+        stakes: final ? "Final. Lose and you leave office." : "Lose and you appeal.",
         options: [
-          { label: "Field a team of Senior Advocates", note: "₦0.8B from the state's legal budget. The best odds money can buy legally.", chips: fxChips({ debt: .8 }).concat([{ text: "Risk " + Math.round(Math.max(.03, base - .12) * 100) + "%", color: CL.org }]), run: () => decide(base - .12, () => scFx({ debt: .8 })) },
-          { label: "Rely on the facts and INEC's records", note: P0.margin >= 3 ? "Your margin is decent. The records may be enough." : "With a margin this thin, the records cut both ways.", chips: [{ text: "Free", color: CL.grn }, { text: "Risk " + Math.round(Math.max(.03, base - (P0.margin >= 3 ? .05 : 0)) * 100) + "%", color: CL.org }], run: () => decide(base - (P0.margin >= 3 ? .05 : 0)) },
-          { label: "\u201cSettle\u201d the panel", note: "Everyone knows how it is done. If it leaks, it is the end of your name.", risk: "About a 30% chance it leaks.", chips: fxChips({ cor: .08 }).concat([{ text: "Risk " + Math.round(Math.max(.03, base - .2) * 100) + "%", color: CL.org }]), run: () => decide(base - .2, () => { scFx({ cor: .08 }); if (Math.random() < .3) { scFx({ app: -5 }); addL("📰 A judge's aide leaked the payments to the press.", "crisis"); scWiki("Controversies", "Was accused of bribing an election petition panel."); } }) },
+          { label: "A SAN-led team", note: "₦0.8B from the legal budget. The best legal odds.", chips: fxChips({ debt: .8 }).concat([{ text: "Risk " + Math.round(Math.max(.03, base - .12) * 100) + "%", color: CL.org }]), run: () => decide(base - .12, () => scFx({ debt: .8 })) },
+          { label: "Argue on INEC's records", note: P0.margin >= 3 ? "Your margin may carry it." : "A thin margin: risky.", chips: [{ text: "Free", color: CL.grn }, { text: "Risk " + Math.round(Math.max(.03, base - (P0.margin >= 3 ? .05 : 0)) * 100) + "%", color: CL.org }], run: () => decide(base - (P0.margin >= 3 ? .05 : 0)) },
+          { label: "\u201cSettle\u201d the panel", note: "Corruption. It may leak.", risk: "About a 30% chance it leaks.", chips: fxChips({ cor: .08 }).concat([{ text: "Risk " + Math.round(Math.max(.03, base - .2) * 100) + "%", color: CL.org }]), run: () => decide(base - .2, () => { scFx({ cor: .08 }); if (Math.random() < .3) { scFx({ app: -5 }); addL("📰 A judge's aide leaked the payments to the press.", "crisis"); scWiki("Controversies", "Was accused of bribing an election petition panel."); } }) },
         ] });
     }
 
@@ -10731,7 +10736,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{(won ? "Four more years! INEC declares " + pName + " (" + party + ") re-elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments. Margin: " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " A second election between the top two settled it." : "")}</p>
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
                   <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (3 - collation.zonesWon) + "/3 zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
-                  <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Petition filed within the 21-day window (S.285(5)). Case number GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(marginPct * 10) / 10 }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
+                  <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Filed within 21 days (S.285(5)). Case GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(marginPct * 10) / 10 }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
                 </div>}
                 <details className="sp-brief" style={{ textAlign: "left", margin: "0 0 22px" }}><summary style={{ fontSize: 17 }}>See the full count</summary>
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29 }}>
@@ -10963,16 +10968,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={phase === "tribunal" && !tribunal}>
           <Cd style={{ textAlign: "center" }}>
-            <div style={{ fontSize: TS(98), marginBottom: 22 }}>⚖️</div>
-            <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(62), fontWeight: 600, margin: "14px 0" }}>Tribunal case not loaded</h3>
-            <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>Your petition state didn't persist. This can happen after a hot-reload during an election. Choose how to proceed.</p>
+            <img src="./art/objects/petition-file.webp" alt="The petition file" style={{ display: "block", width: TALL() ? 140 : 180, height: "auto", margin: "0 auto 8px" }} />
+            <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(TALL() ? 40 : 56), fontWeight: 700, margin: "6px 0" }}>The case file is missing</h3>
+            <p style={{ color: CL.tm, fontSize: TS(TALL() ? 24 : 34), marginBottom: 20 }}>Your petition didn't save. File it again, or accept the result.</p>
             <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
               <Bt onClick={() => {
                 const oppLast = "OPPOSITION";
-                setTribunal({ level: 0, groundId: null, spent: 0, log: ["Petition re-filed after state reset."], oppName: "Hon. " + oppLast, oppPartyId: "OPP", margin: 19 });
-              }} style={{ background: CL.gold, color: "#000" }}>⚖️ Re-file petition</Bt>
-              <Bt onClick={() => { setPhase("budget"); setTurn(t => Math.max(t, 5)); }} style={{ background: "#555" }}>🏳️ Skip & continue</Bt>
-              <Bt onClick={() => setGEnd("defeated")} style={{ background: CL.red }}>Accept defeat</Bt>
+                setTribunal({ level: 0, groundId: null, spent: 0, log: ["Filed again within 21 days (S.285(5))."], oppName: "Hon. " + oppLast, oppPartyId: "OPP", margin: 19 });
+              }} style={{ background: CL.gold, color: "#000" }}>⚖️ File again</Bt>
+              <Bt v="ghost" onClick={() => setGEnd("defeated")}>🏳️ Accept the result</Bt>
             </div>
           </Cd>
         </OL>
@@ -12148,7 +12152,9 @@ const AsoRock = ({ setup, stats, onExit }) => {
     const odds = Math.max(.05, .2 + (G.agents ? .12 : 0) - Math.max(0, G.cor - .3) * .6);
     const won = r0() < odds;
     up({ step: won ? "sworn" : "over_lost", petitioned: true, petitionWon: won, over: true });
-    card({ icon: "⚖️", title: won ? "The Supreme Court ruled for you" : "Petition dismissed", text: won ? "The court found the results in several states could not stand. You are declared President-elect." : "The court upheld " + G.opp.name + "'s victory. Odds were " + Math.round(odds * 100) + "%.", tone: won ? "good" : "bad" });
+    try { window.SOP_sound && window.SOP_sound("gavel"); if (won) setTimeout(() => window.SOP_sound("cheer"), 900); } catch (e) {}
+    card({ icon: "⚖️", img: won ? "./art/scenes/news-victory-rally.webp" : "./art/backgrounds/supreme-court-abuja.webp", title: won ? "Petition upheld: you are President-elect" : "Supreme Court: petition dismissed", text: won ? "Results in several states could not stand." : "Final. " + G.opp.name + " stays President-elect.", rows: [{ l: "Odds were", v: Math.round(odds * 100) + "%" }], tone: won ? "good" : "bad",
+      learn: "A presidential petition starts at the Court of Appeal, sitting as the Presidential Election Petition Court (S.239), and ends at the Supreme Court. It must be filed within 21 days (S.285(5))." });
   };
   const concede = () => up({ step: "over_lost", conceded: true, over: true });
 

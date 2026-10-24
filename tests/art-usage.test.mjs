@@ -96,3 +96,10 @@ test("every Ambassador picture is used", () => {
   assert.deepEqual(names.filter(n => !files.includes(n)), [], "all shipped");
   assert.deepEqual(names.filter(n => !src.includes('"' + n + '"') && !src.includes("/" + n + ".webp")), [], "all referenced");
 });
+
+// Pack 7: the flight (the plane, the signpost, four clouds).
+test("every flight-pack picture is used by the game", () => {
+  const files = ["airliner-side", "signpost", "cloud-"];
+  files.forEach(f => assert.ok(src.includes(f), f + " is used"));
+  ["airliner-side", "signpost", "cloud-1", "cloud-2", "cloud-3", "cloud-4"].forEach(f => assert.ok(fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f + " is in public/art/objects"));
+});

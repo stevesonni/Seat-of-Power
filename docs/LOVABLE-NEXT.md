@@ -163,7 +163,7 @@ Same rules as above. Mood variants keep the **same person and outfit**; only the
 
 ---
 
-## Pack 7: the flight (3D style)
+## Pack 7: the flight (3D style): delivered and in the game
 For the flight that plays whenever you travel. The game writes the place names itself, so **no text, letters or logos on anything**. Style: polished **3D render** (soft studio lighting, gentle shadows, slightly toy-like, like a mobile game). Transparent background (PNG or WebP) for every item.
 
 - `objects/airliner-side`: a twin-engine passenger jet seen **exactly side-on, facing right**, 2048×700. White body, **green tail and a green-and-gold stripe** along the side. An invented airline: **no name, no flag, no real airline's colours or logo** (not Air Peace, Arik, Nigeria Air or any other). Wheels up, as in flight.
