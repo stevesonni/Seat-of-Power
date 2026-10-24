@@ -517,7 +517,7 @@
             msg.textContent = e && e.code === 'enough_today' ? 'Thank you, that is plenty for today.' : 'Could not send it just now. Please try again in a moment.';
           });
         };
-        document.body.appendChild(back);
+        back.appendChild(card); document.body.appendChild(back);
         setTimeout(function () { card.querySelector('.fb-a').focus(); }, 60);
       };
       window.SOP_outcome = function (o) { queue.push(o || {}); setTimeout(next, 0); };
