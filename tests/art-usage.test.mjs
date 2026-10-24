@@ -17,9 +17,10 @@ test("every money-pack image is used by the game", () => {
   const unused = pack2.filter(f => !src.includes(path.basename(f)));
   assert.deepEqual(unused, []);
 });
-// Bills: the document, the pen, and the two stamps that land on it.
-test("the bill art is used: document, pen, VETOED and ASSENTED stamps", () => {
-  ["governor-signature-pen", "bill-paper-blank", "bill-document", "stamp-vetoed", "stamp-assented"].forEach(f => assert.ok(src.includes(f), f + " is used"));
+// Bills: the bill document is used. The signing animation (paper, pen, VETOED and
+// ASSENTED stamps) was retired at the owner's request: a bill ends on the front page.
+test("the bill document is used", () => {
+  assert.ok(src.includes("bill-document"), "bill-document is used");
 });
 // The October packs: badges, daily icons, the sealed letter, the investor, the billboard.
 test("every October image is used", () => {

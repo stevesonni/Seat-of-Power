@@ -6623,8 +6623,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setSkApp(p => { const n = { ...p }; Object.entries(bill.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
     const note = s.pStab < 40 ? " after tense caucus horse-trading" : "";
     addL("📜 BILL SIGNED: " + bill.nm + " passed by House" + note + " and signed into law.", "policy");
-    try { window.SOP_billSign && window.SOP_billSign({ title: bill.nm, state: stName, lines: String(bill.d || "").split(/(?<=\.)\s+/).filter(Boolean), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
-    return { icon: "📜", title: "Passed and signed", text: bill.nm + " is now law" + note + ".", tone: "good" };
+    // The front page is the announcement, with what the law changes.
+    const fxLine = Object.entries(bill.fx || {}).map(([k, v]) => ({ app: "Approval", corM: "Corruption", lit: "Literacy", hp: "Health" }[k] || k) + " " + (v > 0 ? "+" : "−") + (Math.abs(v) < 1 ? Math.round(Math.abs(v) * 100) + "%" : Math.abs(v))).join(" · ");
+    paper(govShort + " Signs " + bill.nm.replace(/ Bill$/, "") + " Into Law", (note ? "Passed after tense horse-trading" : "Passed by the House") + (fxLine ? " · " + fxLine : ""), true, "./art/scenes/news-signing-ceremony.webp");
+    return null;
   });
 
   // Judiciary — can trigger after certain actions
