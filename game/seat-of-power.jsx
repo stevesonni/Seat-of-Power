@@ -354,13 +354,21 @@ const buildBattlegrounds = (state, seed, partyId, oppPartyId) => {
     if (pid === "WPN") return (zoneInfo === "SE" || state === "Lagos") ? 1 : -3;
     return 0;
   };
+  // Party strength is in the poll from the start, so the poll is what gets counted:
+  // a weaker party starts visibly behind instead of losing a race it seemed to lead.
+  const strength = (pid) => (PARTIES.find(p => p.id === pid) || {}).strength || 1;
+  const ps = strength(partyId), os = strength(oppPartyId);
   return zonesOf(state).map((zone, idx) => {
     const names = lgaCluster(lgas, idx);
-    const base = 43 + Math.round(r() * 14) + partyBias(partyId);
-    const opp = 40 + Math.round(r() * 16) + partyBias(oppPartyId);
+    const b0 = 43 + Math.round(r() * 14) + partyBias(partyId), o0 = 40 + Math.round(r() * 16) + partyBias(oppPartyId);
+    const k = (b0 + o0) / (b0 * ps + o0 * os), base = Math.round(b0 * ps * k), opp = Math.round(o0 * os * k);
     return { id: idx, zone, names, key: names.slice(0, 4).join(", "), support: cl100(base), opp: cl100(opp), turnout: cl100(44 + Math.round(r() * 28)), swing: cl100(100 - Math.abs(base - opp) * 2), visits: 0 };
   });
 };
+/* What the polls show is what gets counted: the campaign's running points
+   (your moves against their attacks) and, at re-election, your record, moved
+   into every zone. Election night adds only a little noise. */
+const ptsShift = (zones, d) => !d ? zones : zones.map(z => ({ ...z, support: cl100(z.support + d), opp: cl100(z.opp - d * .4) }));
 // Poll share: you vs the main opponent, always adding to 100
 const pollShare = (z) => { const t = (z.support || 0) + (z.opp || 0); return t > 0 ? Math.round(100 * z.support / t) : 50; };
 const sgnN = (n) => (n > 0 ? "+" : n < 0 ? "\u2212" : "\u00b1") + Math.abs(n);
@@ -2039,6 +2047,12 @@ const OL = ({ children, show }) => {
 };
 
 // Special Adviser speech bubble — shows for ALL levels
+/* Consult your adviser: her portrait and a button. She comes forward with her
+   advice only when you ask. */
+const ConsultButton = ({ saName, onClick }) => <button onClick={onClick} className="sop-slide-up" style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", textAlign: "left", marginBottom: 12, borderRadius: 20, background: "#fff", border: "1.5px solid " + UI.green, padding: "10px 14px", cursor: "pointer", fontFamily: F.b }}>
+  <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 24, overflow: "hidden", background: UI.tints[2] }}><img src={saPortrait(saName)} alt="" style={{ width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" }} /></span>
+  <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body, color: UI.ink }}>💬 Consult {saName || "your adviser"}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>Where we stand, and the move she would make this week</span></span>
+</button>;
 const AdvBubble = ({ text, saName, full }) => {
   if (!text) return null;
   return React.createElement("div", { className: "sop-slide-up", style: { display: "flex", gap: 14, alignItems: "flex-start", marginBottom: DS.s[4], borderRadius: 24, background: "#fff", border: "1px solid " + UI.line, padding: TALL() ? "14px 16px" : "18px 22px", textAlign: "left" } },
@@ -3028,7 +3042,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   useEffect(() => { if (!mode || mode.kind !== "challenge" || chDone.current) return; if (st !== mode.state) { setSt(mode.state); return; } chDone.current = true; setLevel && setLevel("medium"); quickStart(); }, [st, mode]);
   // The Special Adviser is the player's choice (step 25), never a default.
   const [saName, setSaName] = useState(null);
-  const advisedRound = React.useRef(-1); // the campaign round the adviser last spoke in
+  const advisedPick = React.useRef(null); // this week's move she recommends, once consulted
+  const [consulted, setConsulted] = useState(-1); // the campaign round you last consulted her in
   // The comeback with the old team: every choice as it was; straight to the ticket.
   const comebackDone = React.useRef(false);
   useEffect(() => {
@@ -3391,6 +3406,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
     const oParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR2() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
     const ticketFx = SYS.campaignEffects(homeDistrict == null ? 1 : homeDistrict, depGov, partyDeal);
     const activeZones = sCampZones || buildBattlegrounds(st, 2026, party, oParty?.id).map((z, i) => ({ ...z, support: cl100(z.support + (ticketFx[i] || 0)) }));
+    const pollZones = ptsShift(activeZones, (sCampScore - sCampOpp) * 0.32); // what the polls show, and what is counted
     const swingZone = activeZones.reduce((a, b) => b.swing > a.swing ? b : a, activeZones[0]);
     const weakZone = activeZones.reduce((a, b) => b.support < a.support ? b : a, activeZones[0]);
     const baseZone = activeZones.reduce((a, b) => b.support > a.support ? b : a, activeZones[0]);
@@ -3471,8 +3487,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       const moveName = opt.l.replace(/^[^\s]+ /, "");
       const sBoost = sloganDef(slogan)?.boost.test(opt.l) ? 2 : 0; // the slogan carries matching moves
       if (sBoost) setSCampLog(c => [...c, "📣 \u201c" + slogan + "\u201d carried " + moveName + " (+2)."]);
+      // The adviser's pick is run with her ground game behind it: +2 where it lands.
+      const aBoost = advisedPick.current === opt.l ? 2 : 0;
+      if (aBoost) setSCampLog(c => [...c, "⭐ " + (saName || "Your adviser") + "'s plan: her people ran " + moveName + " on the ground (+2)."]);
       const before = activeZones;
-      const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1) + sBoost, (opt.opp || 0) - 1, opt.turnout || 0)
+      const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1) + sBoost + aBoost, (opt.opp || 0) - 1, opt.turnout || 0)
         .map((z, i) => { const d = pollShare(z) - pollShare(before[i]); return d !== 0 ? { ...z, moves: [...(before[i].moves || []), { w: week, l: moveName, d }] } : z; });
       // Their move lands straight after yours, before you can answer it.
       const ev = !isOpp ? oppEvts[week - 1] : null;
@@ -3534,22 +3553,20 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
 
     if (isResult) {
       const hardMode = level === "hard";
-      const partyStrength = PARTIES.find(p => p.id === party)?.strength || 1;
-      const oppStrength = oParty?.strength || 1;
       // Campaign efforts sway zone support before final collation
       // Seeded from the campaign itself, so the result does not change when the screen re-renders
       const eDay = rng((st?.length || 5) * 131 + sCampScore * 7 + sCampOpp * 13 + sCampLog.length * 29);
-      const swayedZones = activeZones.map(z => {
+      const swayedZones = pollZones.map(z => {
         // Collation: noise plus a small party-machine push for the opponent (bigger on hard).
         // The campaign itself is now where they fight you, so the final poll is a fair guide.
         // window.SOP_TEST is set only by the automated playthroughs (tests/e2e), never by the game.
         const testSwing = window.SOP_TEST ? (window.SOP_TEST.win ? 40 : window.SOP_TEST.lose ? -40 : 0) : 0;
-        const swing = (sCampScore - sCampOpp) * 0.32 + (firstRun && !hardMode ? 2 : 0) + testSwing;
+        const swing = (firstRun && !hardMode ? 2 : 0) + testSwing; // the campaign's points are already in the poll
         // Election-day noise is small: a player who leads the final poll should almost always win.
         const jitter = (eDay() - 0.5) * (hardMode ? 7 : 4);
         return { ...z, support: cl100(z.support + swing + jitter - (hardMode ? 1 : 0)), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 2 : .5) + (eDay() - 0.5) * (hardMode ? 5 : 3)) };
       });
-      const collation = lgaElectionSummary(swayedZones, partyStrength, oppStrength, st);
+      const collation = lgaElectionSummary(swayedZones, 1, 1, st); // party strength is already in the poll (buildBattlegrounds)
       const won = collation.won;
       const marginPct = collation.registeredTotal > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
       const yourTicket = (lastNm || "SURNAME").toUpperCase() + "/" + (depGov?.nm.split(" ").pop() || "DEP").toUpperCase();
@@ -3646,7 +3663,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "14px 16px 40px" : "28px 32px" }}>
         <div style={{ maxWidth: tall ? 980 : 1440, margin: "0 auto" }}>
           <CampaignBoard week={week} isOpp={isOpp} youImg={AVATAR_IMGS[avatar] || HERO_MALE} youName={lastNm || "You"} youParty={party} oppName={oName.replace(/^Hon\. /, "").split(" ").pop()} oppParty={oParty?.id || "OPP"} oppImg={oppArt(oName)}
-            zones={activeZones} swingId={swingZone.id} money={warChest} days={daysLeft} maxDays={WEEK_DAYS} gfDebt={gfDebt} slogan={slogan} lastLog={sCampLog.length ? sCampLog[sCampLog.length - 1] : null} ev={isOpp ? oppEvts[Math.floor(sCampRound / 2)] : null} />
+            zones={pollZones} swingId={swingZone.id} money={warChest} days={daysLeft} maxDays={WEEK_DAYS} gfDebt={gfDebt} slogan={slogan} lastLog={sCampLog.length ? sCampLog[sCampLog.length - 1] : null} ev={isOpp ? oppEvts[Math.floor(sCampRound / 2)] : null} />
 
           {/* Money trouble */}
           {!isOpp && warChest < 0.2 && !gfBorrowed && level !== "easy" && <Cd onClick={borrowFromGF} style={{ padding: tall ? 14 : 20, borderColor: CL.red + "44", marginBottom: 12 }}>
@@ -3667,14 +3684,14 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
             </div>
           </Cd>}
 
-          {(() => { const adv = SYS.campaignAdvice({ zones: activeZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); if (!adv) return null;
-            // Each new week the adviser steps forward (full screen) with her advice, and can act on it for you.
-            const best = adv.pick && opts.find(o => o.l === adv.pick);
-            if (advisedRound.current !== sCampRound) { advisedRound.current = sCampRound; setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(saName, adv.mood === "worried" ? "worried" : adv.mood === "pleased" ? "pleased" : "neutral") || saPortrait(saName), name: (saName || "Your adviser") + " · Special Adviser", text: adv.say, ok: best ? "Do it: " + adv.name : "Understood", fn: best ? () => { track("camp_advice", "followed"); handleSC(best); } : undefined, alt: best ? "I'll choose myself" : undefined } }); } catch (e) {} }, 350); }
-            return <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={saName} full /></div>; })()}
+          {(() => { const adv = SYS.campaignAdvice({ zones: pollZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); if (!adv) return null;
+            // The adviser comes when called: Consult brings her forward with her advice, and she can act on it for you.
+            const best = adv.pick && opts.find(o => o.l === adv.pick); advisedPick.current = consulted === sCampRound ? adv.pick : null;
+            const consult = () => { setConsulted(sCampRound); advisedPick.current = adv.pick; track("camp_advice", "consulted"); try { window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(saName, adv.mood === "worried" ? "worried" : adv.mood === "pleased" ? "pleased" : "neutral") || saPortrait(saName), name: (saName || "Your adviser") + " · Special Adviser", text: adv.say, ok: best ? "Do it: " + adv.name : "Understood", fn: best ? () => { track("camp_advice", "followed"); handleSC(best); } : undefined, alt: best ? "I'll choose myself" : undefined } }); } catch (e) {} };
+            return <ConsultButton saName={saName} onClick={consult} />; })()}
           <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(400px, 1fr))", gap: 14 }}>
-            {(() => { const adv = SYS.campaignAdvice({ zones: activeZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); return opts.map((opt, i) => { const ok = opt === sitOut || canTake(opt); const cost = optCost(opt);
-              return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} advised={!!adv && adv.pick === opt.l} onPick={() => handleSC(opt)} />; }); })()}
+            {(() => { const adv = SYS.campaignAdvice({ zones: pollZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); return opts.map((opt, i) => { const ok = opt === sitOut || canTake(opt); const cost = optCost(opt);
+              return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} advised={consulted === sCampRound && !!adv && adv.pick === opt.l} onPick={() => handleSC(opt)} />; }); })()}
           </div>
           <div style={{ textAlign: "center", marginTop: 18 }}><button onClick={restartElectionSetup} style={{ background: "none", border: 0, color: CL.td, fontSize: fz.s, textDecoration: "underline", cursor: "pointer", fontFamily: F.b }}>Restart election setup</button></div>
         </div>
@@ -4867,7 +4884,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [tribunal, setTribunal] = useState(null); // { level, groundId, cost, spent, log, oppName, oppPartyId, margin }
   const [mediaSeen, setMediaSeen] = useState(ld?.mediaSeen || []);
   const [campRound, setCampRound] = useState(0);
-  const reAdvised = React.useRef(-1); // the re-election round the adviser last spoke in
+  const [reConsulted, setReConsulted] = useState(-1); // the re-election round you last consulted the adviser in
+  const reAdvisedPick = React.useRef(null);
   const [campScore, setCampScore] = useState(0);
   const [campOpp, setCampOpp] = useState(0);
   const [campLog, setCampLog] = useState([]);
@@ -10968,7 +10986,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const oppName = cast.rival.name; // the rival from the first election comes back
             const oppParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
             // How you handled each zone's needs carries into the vote there.
-            const activeReZones = campZones || buildBattlegrounds(state, turn * 2027, party, oppParty?.id).map(z => ({ ...z, support: cl100(z.support + ((s.zoneMood || {})[z.id] || 0)) }));
+            const rawReZones = campZones || buildBattlegrounds(state, turn * 2027, party, oppParty?.id).map(z => ({ ...z, support: cl100(z.support + ((s.zoneMood || {})[z.id] || 0)) }));
+            // Your record is in the polls from the first day (approval, party, corruption, reputation,
+            // the fatigue every incumbent carries), and so is the campaign as it goes: what you see is what is counted.
+            const reNarr = narrative === "corrupt" ? -8 : narrative === "weak" ? -6 : narrative === "technocrat" || narrative === "reformer" ? 5 : narrative === "builder" ? 4 : narrative === "strongman" ? 3 : 0;
+            const reRecord = (s.app - 50) * 0.22 + (s.pStab - 50) * 0.08 + (0.4 - s.cor) * 22 + reNarr + (-3 - (turn - 4) * 0.5);
+            const activeReZones = ptsShift(rawReZones.map(z => ({ ...z, opp: cl100(z.opp + (setup?.level === "hard" ? 2.5 : 2)) })), reRecord + (campScore - campOpp) * 0.32);
             const reSwing = activeReZones.reduce((a, b) => b.swing > a.swing ? b : a, activeReZones[0]);
             const reWeak = activeReZones.reduce((a, b) => b.support < a.support ? b : a, activeReZones[0]);
             const reBase = activeReZones.reduce((a, b) => b.support > a.support ? b : a, activeReZones[0]);
@@ -11065,8 +11088,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               setCampScore(cs => cs + yourPts);
               setCampOpp(co => co + oppGain);
               const moveName = opt.l.replace(/^[^\s]+ /, "");
-              const before = activeReZones;
-              const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1), (opt.opp || 0) - 1, opt.turnout || 0)
+              const before = rawReZones; // stored raw: the record and points are added when shown
+              const aBoost = reAdvisedPick.current === opt.l ? 2 : 0; // the adviser's pick, with her people behind it
+              if (aBoost) setCampLog(c2 => [...c2, "⭐ " + cast.adviser.name + "'s plan: her people ran " + moveName + " on the ground (+2)."]);
+              const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1) + aBoost, (opt.opp || 0) - 1, opt.turnout || 0)
                 .map((z, i) => { const d = pollShare(z) - pollShare(before[i]); return d !== 0 ? { ...z, moves: [...(before[i].moves || []), { w: week, l: moveName, d }] } : z; });
               // Their move lands straight after yours, before you can answer it.
               const ev = !isOppEvent ? oppEvs[week - 1] : null;
@@ -11092,15 +11117,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             if (isResult) {
               const hm2 = setup?.level === "hard";
-              const narrBonus = narrative === "corrupt" ? -8 : narrative === "weak" ? -6 : narrative === "technocrat" || narrative === "reformer" ? 5 : narrative === "builder" ? 4 : narrative === "strongman" ? 3 : 0;
-              const rePartyStrength = PARTIES.find(p => p.id === party)?.strength || 1;
-              const reOppStrength = oppParty?.strength || 1;
-              // Incumbency fatigue: baseline anti-incumbent drag, bigger jitter, opponent boost
-              const antiIncumbent = -3 - (turn - 4) * 0.5;
-              const recordBoost = (s.app - 50) * 0.22 + (s.pStab - 50) * 0.08 + (0.4 - s.cor) * 22 + narrBonus + (campScore - campOpp) * 0.32 + antiIncumbent + (window.SOP_TEST ? (window.SOP_TEST.reWin ? 40 : window.SOP_TEST.reLose ? -40 : 0) : 0); // test-only switch (tests/e2e)
+              const recordBoost = (window.SOP_TEST ? (window.SOP_TEST.reWin ? 40 : window.SOP_TEST.reLose ? -40 : 0) : 0); // the record and the campaign are already in the poll; test-only switch (tests/e2e)
               const eDay = rng(turn * 977 + (state?.length || 5) * 131 + campScore * 7 + campOpp * 13 + campLog.length * 29);
-              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 10 : 7)), opp: cl100(z.opp - recordBoost * 0.35 + (hm2 ? 2.5 : 2) + (eDay() - 0.5) * (hm2 ? 7 : 5)) }));
-              const collation = lgaElectionSummary(swayedReZones, rePartyStrength, reOppStrength, state);
+              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 7 : 4)), opp: cl100(z.opp - recordBoost * 0.35 + (eDay() - 0.5) * (hm2 ? 5 : 3)) }));
+              const collation = lgaElectionSummary(swayedReZones, 1, 1, state); // party strength is already in the poll
               const won = collation.won;
               const marginPct = (collation.totalYou + collation.totalOpp) > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
               const yourLast = (setup?.lastNm || pName.split(" ").pop() || "YOU").toUpperCase();
@@ -11200,10 +11220,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 })()}
               </div>
               {(() => { const picks = weekPicks(weekActs, week > 1 ? (oppEvs[week - 2] || {}).opts : null, canTake, sitOut), adv = SYS.campaignAdvice({ zones: activeReZones, week, picks: picks.filter(o => o !== sitOut), ok: canTake });
-                const best = adv && adv.pick && picks.find(o => o.l === adv.pick);
-                if (adv && reAdvised.current !== campRound) { reAdvised.current = campRound; setTimeout(() => present(adv.say, adv.mood === "worried" ? "worried" : adv.mood === "pleased" ? "pleased" : "neutral", best ? () => { track("camp_advice", "followed"); handleChoice(best); } : undefined, best ? "Do it: " + adv.name : "Understood", best ? "I'll choose myself" : undefined), 350); }
-                return <>{adv && <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={cast.adviser.name} full /></div>}
-                  <div style={moveGrid}>{picks.map((act, i) => <OptCard key={i} opt={act} advised={!!adv && adv.pick === act.l} />)}</div></>; })()}
+                const best = adv && adv.pick && picks.find(o => o.l === adv.pick), asked = reConsulted === campRound; reAdvisedPick.current = asked && adv ? adv.pick : null;
+                const consult = () => { setReConsulted(campRound); reAdvisedPick.current = adv && adv.pick; track("camp_advice", "consulted"); present(adv.say, adv.mood === "worried" ? "worried" : adv.mood === "pleased" ? "pleased" : "neutral", best ? () => { track("camp_advice", "followed"); handleChoice(best); } : undefined, best ? "Do it: " + adv.name : "Understood", best ? "I'll choose myself" : undefined); };
+                return <>{adv && <ConsultButton saName={cast.adviser.name} onClick={consult} />}
+                  <div style={moveGrid}>{picks.map((act, i) => <OptCard key={i} opt={act} advised={asked && !!adv && adv.pick === act.l} />)}</div></>; })()}
               {/* Broke — choose to withdraw OR run with no funds (80/20 loss) */}
               {campWarChest < 0.05 && (campGfBorrowed || godfatherRel <= 30) && <div style={{ display: "grid", gap: 22, marginTop: 22 }}>
                 <Cd style={{ padding: 22, textAlign: "center", background: "#fff5f5", borderColor: CL.red + "55" }}>

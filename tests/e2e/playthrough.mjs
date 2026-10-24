@@ -37,6 +37,9 @@ if (which === "defeat" || which === "all") {
   check(!/THE GOLDFIELDS/i.test(t), "no goldfields epilogue while the storyline is off");
   if (/VOTED OUT/.test(t)) {
     check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /^🔁 The comeback/.test(x.textContent.trim())); b && b.click(); return !!b; }), "a defeated governor can make a comeback"); await g.wait(1500);
+    await g.wait(600);
+    check(/Bring back your old team\?/.test(await g.txt()), "the comeback offers the old team or a new one");
+    await g.click(/^Choose a new team$/); await g.wait(900);
     check(/Four years in opposition/.test(await g.txt()), "the comeback starts: four years in opposition, then the campaign");
   }
   check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
