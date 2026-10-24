@@ -380,7 +380,7 @@ const shiftZones = (zones, target, your = 0, opp = 0, turnout = 0) => zones.map(
 // The opponent's own move. It lands on the polls before you answer, harder on
 // hard mode and harder still when you lead (a trailing opponent goes all out).
 const oppStrike = (zones, hit, level, week) => {
-  const k = level === "hard" ? 1.3 : level === "easy" ? 0.7 : 1.1;
+  const k = level === "hard" ? 1.2 : level === "easy" ? 0.7 : 1.1;
   const state0 = zones.reduce((a, z) => a + pollShare(z), 0) / zones.length;
   const press = state0 > 54 ? 3 : state0 > 50 ? 1 : 0;
   const after = shiftZones(zones, hit.target ?? "all", -Math.round((hit.your || 0) * k), Math.round(((hit.opp || 0) + press) * k), hit.turnout ? -hit.turnout : 0);
@@ -3488,8 +3488,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       const sBoost = sloganDef(slogan)?.boost.test(opt.l) ? 2 : 0; // the slogan carries matching moves
       if (sBoost) setSCampLog(c => [...c, "📣 \u201c" + slogan + "\u201d carried " + moveName + " (+2)."]);
       // The adviser's pick is run with her ground game behind it: +2 where it lands.
-      const aBoost = advisedPick.current === opt.l ? 2 : 0;
-      if (aBoost) setSCampLog(c => [...c, "⭐ " + (saName || "Your adviser") + "'s plan: her people ran " + moveName + " on the ground (+2)."]);
+      const aBoost = advisedPick.current === opt.l ? (level === "hard" ? 5 : 3) : 0;
+      if (aBoost) setSCampLog(c => [...c, "⭐ " + (saName || "Your adviser") + "'s plan: her people ran " + moveName + " on the ground (+" + aBoost + ")."]);
       const before = activeZones;
       const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1) + sBoost + aBoost, (opt.opp || 0) - 1, opt.turnout || 0)
         .map((z, i) => { const d = pollShare(z) - pollShare(before[i]); return d !== 0 ? { ...z, moves: [...(before[i].moves || []), { w: week, l: moveName, d }] } : z; });
@@ -3564,7 +3564,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         const swing = (firstRun && !hardMode ? 2 : 0) + testSwing; // the campaign's points are already in the poll
         // Election-day noise is small: a player who leads the final poll should almost always win.
         const jitter = (eDay() - 0.5) * (hardMode ? 7 : 4);
-        return { ...z, support: cl100(z.support + swing + jitter - (hardMode ? 1 : 0)), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 2 : .5) + (eDay() - 0.5) * (hardMode ? 5 : 3)) };
+        return { ...z, support: cl100(z.support + swing + jitter), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 1 : .5) + (eDay() - 0.5) * (hardMode ? 5 : 3)) };
       });
       const collation = lgaElectionSummary(swayedZones, 1, 1, st); // party strength is already in the poll (buildBattlegrounds)
       const won = collation.won;
@@ -11089,8 +11089,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               setCampOpp(co => co + oppGain);
               const moveName = opt.l.replace(/^[^\s]+ /, "");
               const before = rawReZones; // stored raw: the record and points are added when shown
-              const aBoost = reAdvisedPick.current === opt.l ? 2 : 0; // the adviser's pick, with her people behind it
-              if (aBoost) setCampLog(c2 => [...c2, "⭐ " + cast.adviser.name + "'s plan: her people ran " + moveName + " on the ground (+2)."]);
+              const aBoost = reAdvisedPick.current === opt.l ? (hm2 ? 5 : 3) : 0; // the adviser's pick, with her people behind it
+              if (aBoost) setCampLog(c2 => [...c2, "⭐ " + cast.adviser.name + "'s plan: her people ran " + moveName + " on the ground (+" + aBoost + ")."]);
               const after = shiftZones(before, opt.target ?? "all", Math.max(0, (opt.your || 0) - 1) + aBoost, (opt.opp || 0) - 1, opt.turnout || 0)
                 .map((z, i) => { const d = pollShare(z) - pollShare(before[i]); return d !== 0 ? { ...z, moves: [...(before[i].moves || []), { w: week, l: moveName, d }] } : z; });
               // Their move lands straight after yours, before you can answer it.
