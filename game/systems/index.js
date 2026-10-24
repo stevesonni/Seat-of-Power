@@ -31,3 +31,4 @@ export * from "./investors.js";
 export * from "../../server/hall-rules.mjs";
 export * from "./presidency.js";
 export * from "./campaign.js";
+export * from "./bakunda.js";

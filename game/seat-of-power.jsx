@@ -903,6 +903,7 @@ const MINISTRY_CATALOGUE = [
 const band = (v) => v >= 70 ? "Strong" : v >= 50 ? "Solid" : "Weak";
 // Honours: milestones earned in office. c is a snapshot of the record.
 const HONOURS = [
+  { id: "peacemaker", i: "🕊️", nm: "Peacemaker", d: "Ended the Bakunda war with a treaty the National Assembly enacted.", ok: (c) => !!c.peace },
   { id: "ribbon", i: "✂️", nm: "First ribbon", d: "Delivered your first project.", ok: (c) => c.delivered >= 1 },
   { id: "builder", i: "🏗️", nm: "Master builder", d: "Delivered five projects.", ok: (c) => c.delivered >= 5 },
   { id: "listener", i: "👂", nm: "The listener", d: "Answered three community needs.", ok: (c) => c.met >= 3 },
@@ -5173,7 +5174,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // When a new year's budget opens, one card says what changed since the
   // last one, what happened, and any honour earned.
   const reportRef = React.useRef(ld?.reportAt ? { t: ld.reportAt, snap: ld.reportSnap } : null);
-  const honourCtx = () => ({ turn, secondChance: !!stc.secondChance, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
+  const honourCtx = () => ({ peace: !!(stc.bakunda && stc.bakunda.done), turn, secondChance: !!stc.secondChance, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
   useEffect(() => {
     if (phase !== "budget" || gEnd) return;
     const prev = reportRef.current;
@@ -5537,6 +5538,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           tone: f.bad ? "bad" : (f.fx.app >= 0 ? "good" : "neutral"), rows, learn: SYS.PRES_LEARN[c.learn] };
       } }; }) };
   };
+  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who, null, c.scene || null], title: c.t, brief: c.d,
+    options: c.opts.map(o => { const cost = o.cost || 0, app = (o.fx && o.fx.app || 0) - (c.spill || 0) - (c.fatigue || 0);
+      return { label: o.l, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : []), run: () => {
+        scFx({ app, sec: (o.fx && o.fx.sec || 0) - (c.spill ? .02 : 0), cor: o.fx && o.fx.cor, debt: cost > 0 ? cost : 0 });
+        const B0 = stc.bakunda, B1 = SYS.bakundaAfter(B0, o);
+        setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, bakunda: SYS.bakundaAfter(p.bakunda || B0, o) }; });
+        if (o.flight) try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: c.id === "bk2" ? "Bakunda" : c.id === "bk5" ? "Washington" : c.id === "bk4" && (B0 || {}).summits ? "Geneva" : "Abuja", left: "Aso Rock" } }); } catch (e) {}
+        const pp = o.paper || c.paper; if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined), 200);
+        // On Bakunda it is the Chief of Army Staff who comes to you, not the adviser.
+        const army = ((stc.pres || {}).npcs || {}).army, chief = "Gen. " + ((army && army.name) || "the Chief") + " · Chief of Army Staff";
+        const line = o.say || (c.stall ? "Mr. President, we are stalling. The force does not fit the ground, and every year costs us more." : null);
+        if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff.webp", name: chief, text: line, urgent: !!c.stall } }); } catch (e) {} }, 600);
+        addL("🌍 Bakunda: " + c.t.replace(/\u2060/g, "") + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue ? "crisis" : "policy");
+        if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
+        else if (c.id === "bk3" || c.id === "bk2") scWiki(c.id === "bk3" ? "Presidency" : "Presidency", c.id === "bk3" ? (o.id === "talk" ? "Answered the Bakunda–Ostrava Axis with sanctions and talks." : "Sent the armed forces against the Bakunda–Ostrava Axis.") : "Responded to General Voko's coup in Bakunda: " + o.l.toLowerCase() + ".");
+        track("bakunda_" + c.id, o.id);
+        return { icon: c.id === "bk7" || c.id === "bk7b" ? "🕊️" : "🌍", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : c.bg ? "./art/backgrounds/" + c.bg + ".webp" : undefined, title: o.l, text: (o.note ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : c.stall ? "The war is stalling: the wrong force for the ground makes every push count for less, and each extra year costs approval." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
+          tone: B1.done ? "good" : app < 0 ? "bad" : "neutral", rows: c.id === "bk3" || c.id === "bk6" || c.id === "bk4" || c.id === "bk5" ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }] : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
+      } }; }) });
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;
     const lv = setup?.level || "medium";
@@ -5966,6 +5986,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         next.pres.commits.forEach(k => { const ok = SYS.commitKept(next.pres, k); dApp += ok ? 3 : -3; notes.push([(ok ? "✅ Commitment kept: " : "💔 Commitment broken: ") + SYS.PRES_COMMITS[k].l + (ok ? " (approval +3)." : " (approval −3)."), ok ? "success" : "crisis"]); scWiki(ok ? "Presidency" : "Controversies", (ok ? "Kept" : "Failed to keep") + " the inaugural commitment: " + SYS.PRES_COMMITS[k].l.toLowerCase() + "."); });
       }
       SYS.presDeck(state + ":" + pName, turn, next.pres).forEach(it => cards.push(presCardFor(it)));
+      // The Bakunda crisis: a war storyline across the term (SYS.bakunda).
+      next.bakunda = next.bakunda || SYS.bakundaInit(state + ":" + pName);
+      SYS.bakundaCards(next.bakunda, turn, { nass: ((next.pres.npcs || {}).nass || {}).rel }).forEach(c => cards.push(bakundaCardFor(c)));
     }
 
     // Apply the year's passive costs.
@@ -8117,7 +8140,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The President's year is fuller: the national deck comes first; a summons to Abuja or a "federal matter" means nothing in Aso Rock.
     if (NAT) { const own = q.filter(k => !(k === "federal" || k === "abuja")); q.length = 0; own.forEach(k => q.push(k)); }
     const cap = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
-    const pri = (k) => k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
@@ -8674,7 +8697,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // ── Big moments: a front page with your name, the news anchors, the adviser in person ──
   const govShort = "Gov. " + String(pName || "").split(" ").pop();
-  const paper = (headline, sub, good = true, img) => { if (silentRef.current) return; try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
+  const paper = (headline, sub, good = true, img) => { if (silentRef.current) return; try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: NAT ? "The Daily Impact" : "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
   const [anchorNews, setAnchorNews] = useState(null);
   const anchors = (m, f) => { if (silentRef.current) return; try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
   const anchorEl = anchorNews ? <AnchorDesk lines={anchorNews} onDone={() => setAnchorNews(null)} /> : null;

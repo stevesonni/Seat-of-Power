@@ -48,3 +48,38 @@ The governor's Desk is a painted map of the state capital's compound (`compound-
 ## 2. Villa building icons (`compound/villa/`)
 The list under the map shows a small picture of each place. These are for the President's, in the same chunky painted style as the governor's building icons (transparent background, about **600×460**):
 - `v-villa` (the office block with the red carpet), `v-fec` (the rotunda), `v-assembly` (the National Assembly dome), `v-supreme-court`, `v-press-room`, `v-banquet-hall`, `v-guards-brigade` (the gate and guard posts), `v-air-fleet` (a hangar with the jet), `v-finance` (the federal Ministry of Finance), `v-party-hq` (a national party headquarters), `v-efcc` (a federal anti-graft agency building, no real logo), `v-inec` (a national electoral commission building, no real logo).
+
+---
+
+# Pack 16: the Bakunda war
+
+The presidency now has a war storyline across the term: unrest in the Republic of **Bakunda** (Nigeria's fictional northern neighbour), **General Voko**'s coup, his "Axis" pact with **Ostrava**, Nigeria's Army, Air Force or Navy sent against it, summits in Abuja and Geneva, a visit to **Washington**, war weariness, and a peace accord the National Assembly must enact. Everything below is fictional: no real leaders, no real flags, crests or seals (Bakunda's colours: maroon and sand; Ostrava's: slate grey and white).
+
+## Characters (`characters/`), standing, transparent background, about 700 px tall
+- `chief-of-army-staff-full-neutral`, `-full-pleased`, `-full-worried`, `-full-urgent`: the **same** Chief of Army Staff as `chief-of-army-staff`, full length, in four moods. He presents every Bakunda moment (like the adviser's full-length poses).
+- `general-voko`, `general-voko-angry`, `general-voko-pleased`: Bakunda's junta leader, in a maroon-and-sand uniform with dark glasses.
+- `ostrava-leader`, `ostrava-leader-angry`: Ostrava's head of state, slate-grey suit.
+- `us-president`, `us-president-pleased`: a **fictional** President of the United States who resembles no real president, in a dark suit.
+
+## Scenes (`scenes/`), 1280×720, no text
+- `oval-office`: **the President of Nigeria and the fictional US President seated in an oval office** (the curved walls, two sofas, a heavy desk by the windows), shaking hands for photographers. No real presidential seal: a plain carpet. This goes on the newspaper front page.
+- `bakunda-coup`: tanks and soldiers in a capital's central square at dawn, a radio mast, a burning car.
+- `refugees-border`: families with bundles crossing a dusty border post into Nigeria, Nigerian officials receiving them.
+- `airlift-evacuation`: Nigerians boarding a green-and-white jet on a dark apron, soldiers guiding them.
+- `axis-summit`: Voko and the Ostravan leader at a long table with two flags (maroon-and-sand, grey-and-white).
+- `army-convoy`: Nigerian mechanised infantry (armoured vehicles) on a border road.
+- `air-strike`: two jets over rugged highland camps.
+- `navy-patrol`: Nigerian gunboats on a wide lake at dusk, a supply boat stopped.
+- `ecowas-summit`: West African heads of state around a round table in Abuja.
+- `geneva-conference`: a long conference table in a European hall, delegations with headphones.
+- `war-weariness`: a barracks town at dusk: a funeral, a mother holding a soldier's photograph.
+- `peace-signing`: the accord signed at a long table, Voko's envoy and the Nigerian President, flags behind.
+- `treaty-vote`: the National Assembly voting, hands raised.
+
+## Objects (`objects/`), transparent, about 1000 px
+- `defence-file`: a thick buff folder stamped "SECRET" with a map clipped to it.
+- `peace-accord`: a bound treaty with ribbons and two pens.
+- `intelligence-cable`: a printed telegram on a desk.
+
+## Badge (`badges/`)
+- `badge-peacemaker`: a gold dove over two crossed rifles, in the round-medal style.
