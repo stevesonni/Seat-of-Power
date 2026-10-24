@@ -509,7 +509,7 @@
         h.style.cssText = 'font:800 32px/1.2 "Plus Jakarta Sans",sans-serif;color:#fff;margin-bottom:10px';
         // A picture for the result: a scene fills the top of the card; an object replaces the icon.
         if (o.img) {
-          var wide = /\/(scenes|backgrounds)\//.test(o.img), pic = document.createElement('img');
+          var wide = /\/(scenes|backgrounds|decisions)\//.test(o.img), pic = document.createElement('img');
           pic.src = o.img; pic.alt = '';
           pic.style.cssText = wide ? 'display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;margin:-6px 0 14px' : 'display:block;width:150px;height:150px;object-fit:contain;margin:0 auto 10px;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35))';
           if (o.coins && !wide) { var wrap = document.createElement('div'); wrap.style.cssText = 'position:relative;width:150px;height:150px;margin:0 auto 10px'; var burst = document.createElement('img'); burst.src = './art/objects/coins-burst.webp'; burst.alt = ''; burst.className = 'sop-burst'; burst.style.cssText = 'position:absolute;inset:-40px;width:230px;height:230px;object-fit:contain;opacity:.9'; pic.style.margin = '0'; pic.style.position = 'relative'; wrap.appendChild(burst); wrap.appendChild(pic); card.appendChild(wrap); }

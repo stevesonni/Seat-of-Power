@@ -104,3 +104,12 @@ test("every flight-pack picture is used by the game", () => {
   files.forEach(f => assert.ok(src.includes(f), f + " is used"));
   ["airliner-side", "signpost", "cloud-1", "cloud-2", "cloud-3", "cloud-4"].forEach(f => assert.ok(fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f + " is in public/art/objects"));
 });
+
+// The decision packs (8 onward): every picture in art/decisions is listed in DEC_ART.
+test("every decision picture is used by the game", () => {
+  const dir = path.join(root, "public/art/decisions"), jsx = fs.readFileSync(path.join(root, "game/seat-of-power.jsx"), "utf8");
+  const ids = fs.readdirSync(dir).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
+  assert.ok(ids.length >= 26, "Pack 8 is in (" + ids.length + ")");
+  const listed = (jsx.match(/const DEC_ART = new Set\(\[([^\]]*)\]\)/) || [])[1] || "";
+  assert.deepEqual(ids.filter(id => !listed.includes('"' + id + '"')), []);
+});

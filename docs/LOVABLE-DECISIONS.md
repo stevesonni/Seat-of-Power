@@ -13,7 +13,7 @@ Today only some decisions have their own picture (the ghost-workers purge, the c
 
 ---
 
-## Pack 8: laws (26)
+## Pack 8: laws (26): delivered and in the game
 The governor's bills and the bills the House sends up.
 - `land_reform`: a land registry office; a surveyor hands a family a clean new Certificate of Occupancy folder.
 - `edu_compulsory`: children in uniforms streaming into a rural school gate, a teacher waving them in.

@@ -1867,6 +1867,12 @@ const ShareCard = ({ img, name, line1, line2, grade }) => React.createElement("d
 // Scene art by situation. Generic townspeople (a doctor, a trader…) stand in
 // front where the scene is theirs; named cast only where the scene is about them.
 const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi";
+// A picture for each decision (Lovable's decision packs, in ./art/decisions/). Decisions that
+// are the same moment share one. Add a pack's ids here as it arrives.
+const DEC_ART = new Set(["child_rights", "edu_compulsory", "env_protect", "fiscal_resp", "foi", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "land_reform", "market_mod", "open_grazing", "pension", "procurement_law", "tenancy", "vapp", "youth_employ"]);
+const DEC_ALIAS = { hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
+const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
+const DecPic = ({ id, h }) => { const src = decArt(id); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
 const DILEMMA_ART = {
   herder: ["emirs-palace-courtyard", "police-commissioner"], strike: ["rally", "labour-leader"], land: ["back-room", "permanent-secretary"],
   flood: ["flooded-community", null], whistle: ["back-room", "commissioner-technocrat"], smear: ["tv-studio", "opposition-candidate-alt"],
@@ -6434,7 +6440,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (p.s === "health") setDelayedFx(d => [...d, { turn: turn + 2, fx: { hp: .02, app: 3 }, desc: p.nm + " impact: health outcomes improving across the state." }]);
     if (p.s === "agriculture") setDelayedFx(d => [...d, { turn: turn + 2, fx: { agr: .03, igr: 0.5 }, desc: p.nm + " paying off — harvest yields up, farm revenue flowing." }]);
     const later = { education: "In 3 years: literacy up, approval +5.", health: "In 2 years: better health, approval +3.", agriculture: "In 2 years: bigger harvests, revenue +₦0.5B." }[p.s];
-    return { icon: "📋", title: p.nm.replace(/^⭐\s*/, "") + " launched", text: naira(perH) + " a year for " + p.t + (p.t === 1 ? " year." : " years.") + " " + forS + " welcome it; " + againstS.toLowerCase() + " object." + (later ? " " + later : ""), tone: "good" };
+    return { icon: "📋", img: decArt(p.id) || undefined, title: p.nm.replace(/^⭐\s*/, "") + " launched", text: naira(perH) + " a year for " + p.t + (p.t === 1 ? " year." : " years.") + " " + forS + " welcome it; " + againstS.toLowerCase() + " object." + (later ? " " + later : ""), tone: "good" };
   });
   // ── CAPITAL PROJECT LIFECYCLE ──
   // Routes ALL capital builds through the shared sop-realism flow so the user
@@ -6582,7 +6588,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     scWiki(hit ? "Controversies" : "Governorship", "Signed an executive order: " + o.nm.toLowerCase() + "." + (hit ? " " + o.risk.log : ""));
     const sk = Object.entries(o.sk || {}).filter(([, v]) => v).map(([k, v]) => ({ l: (STAKEHOLDERS.find(x => x.id === k) || { nm: k }).nm, v: (v > 0 ? "+" : "−") + Math.abs(v), good: v > 0 }));
     sk.unshift(...Object.entries(o.fx).filter(([k]) => !["app", "corM", "pStab"].includes(k)).map(([k, v]) => ({ l: FX_NAME[k] || k, v: (v > 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%", good: v > 0 })));
-    return { icon: o.i, title: "Order signed: " + o.nm, text: o.d + (o.rev ? (o.rev > 0 ? " Saves about ₦" + o.rev + "B a year." : " Costs about ₦" + Math.abs(o.rev) + "B a year.") : "") + (hit ? " But: " + o.risk.log : ""), tone: hit ? "bad" : "good", rows: sk };
+    return { icon: o.i, img: decArt(o.id) || undefined, title: "Order signed: " + o.nm, text: o.d + (o.rev ? (o.rev > 0 ? " Saves about ₦" + o.rev + "B a year." : " Costs about ₦" + Math.abs(o.rev) + "B a year.") : "") + (hit ? " But: " + o.risk.log : ""), tone: hit ? "bad" : "good", rows: sk };
   });
   const [constChallenge, setConstChallenge] = useState(null);
   const uTried = (u) => { try { return !!(window.SOP_MEMORY && window.SOP_MEMORY.did("unconst_order", e => e.meta && e.meta.id === u.id)); } catch (e) { return false; } };
@@ -6643,7 +6649,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("📜 BILL SIGNED: " + bill.nm + " passed by House" + note + " and signed into law.", "policy");
     // The front page is the announcement, with what the law changes.
     const fxLine = Object.entries(bill.fx || {}).map(([k, v]) => ({ app: "Approval", corM: "Corruption", lit: "Literacy", hp: "Health" }[k] || k) + " " + (v > 0 ? "+" : "−") + (Math.abs(v) < 1 ? Math.round(Math.abs(v) * 100) + "%" : Math.abs(v))).join(" · ");
-    paper(govShort + " Signs " + bill.nm.replace(/ Bill$/, "") + " Into Law", (note ? "Passed after tense horse-trading" : "Passed by the House") + (fxLine ? " · " + fxLine : ""), true, "./art/scenes/news-signing-ceremony.webp");
+    paper(govShort + " Signs " + bill.nm.replace(/ Bill$/, "") + " Into Law", (note ? "Passed after tense horse-trading" : "Passed by the House") + (fxLine ? " · " + fxLine : ""), true, decArt(bill.id) || "./art/scenes/news-signing-ceremony.webp");
     return null;
   });
 
@@ -11120,7 +11126,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               });
               setSkApp(p => { const n = { ...p }; Object.entries(B.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
               addL(hasBad ? "✍️ Signed the " + B.nm + ", hidden clause and all. Corruption rises." : "✍️ Signed the " + B.nm + " into law." + (B.signCost > 0 ? " Cost: " + naira(B.signCost) : ""), hasBad ? "scandal" : "policy");
-              if (!hasBad) paper(govShort + " Signs " + billNm + " Into Law", "A win for " + stName, true, "./art/scenes/news-signing-ceremony.webp");
+              if (!hasBad) paper(govShort + " Signs " + billNm + " Into Law", "A win for " + stName, true, decArt(B.id) || "./art/scenes/news-signing-ceremony.webp");
               if (hasBad) paper("House Slips " + short(badClauses[0].t).split(":")[0] + " Past " + govShort, billNm + " signed unread · Corruption +4%", false, "./art/characters/speaker-pleased.webp");
               setBillFlags([]); advanceFn();
             };
@@ -11141,6 +11147,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               setBillFlags([]); advanceFn();
             };
             return <Cd style={{ borderColor: CL.pur + "33", padding: TALL() ? "16px 14px" : "26px 30px" }}>
+              <DecPic id={B.id} />
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
                 <img src="./art/characters/speaker.webp" alt="" style={{ width: TALL() ? 48 : 64, height: TALL() ? 56 : 76, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: CL.pur + "14" }} />
                 <div style={{ minWidth: 0 }}><Bg text="A bill from the House" color={CL.pur} />
@@ -11510,6 +11517,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               {(() => { const avail = POLICIES.filter(p => !pol.find(a => a.id === p.id)); const answers = (p) => activeNeeds.filter(n => n.status === "open" && (needType(n)?.fix || []).includes(p.id));
 const rankOf = (p) => answers(p).length ? 0 : touchesFlagship(p.nm + " " + p.d) ? 1 : 2;
 const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown = polAll ? ranked : ranked.slice(0, 2); return <><div style={{ display: "grid", gap: 12 }}>{shown.map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22, borderColor: answers(p).length ? CL.grn + "88" : undefined }}>
+                <DecPic id={p.id} />
                 {answers(p).map(n => <div key={n.id} style={{ display: "inline-block", marginBottom: 6, padding: "3px 10px", borderRadius: 999, background: CL.grn + "16", color: CL.grn, fontSize: PFS.s, fontWeight: 700 }}>{needType(n).icon} Answers: {needType(n).title(n.lga)}</div>)}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)} × {p.t}y</span></div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0" }}>{Object.entries(p.fx || {}).slice(0, 2).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}{p.jobsAdd ? <Bg text={p.jobsAdd.toLocaleString() + " jobs"} color={CL.blu} /> : null}</div>
@@ -11540,6 +11548,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(264px,1fr))", gap: 19 }}>
                   {BILLS.filter(b => !billsPassed.find(bp => bp.id === b.id)).map(b => (
                     <Cd key={b.id} onClick={() => sponsorBill(b)} style={{ padding: 24 }}>
+                      <DecPic id={b.id} />
                       <div style={{ fontWeight: 600, fontSize: PFS.m, color: CL.pur, marginBottom: 7 }}>{b.nm}</div>
                       <div style={{ fontSize: PFS.s, color: CL.td, marginBottom: 10 }}>{b.d}</div>
                       {touchesFlagship(b.nm + " " + b.d) && <div style={{ fontSize: PFS.s, color: CL.grn, marginBottom: 8 }}>Serves your flagship, {FLAGSHIP[setup.agenda].nm}.</div>}
@@ -11556,6 +11565,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               {polTab === "eo" && <div>
                 <p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 10px" }}>Signed today, no House vote. Once a term each.</p>
                 <div style={{ display: "grid", gap: 8, marginBottom: 18 }}>{ORDERS.map(o => { const done = orderSigned(o); const nd = o.need && activeNeeds.find(n => n.status === "open" && n.k === o.need); return <Cd key={o.id} onClick={done ? undefined : () => signOrder(o)} style={{ padding: 14, opacity: done ? .5 : 1 }}>
+                  <DecPic id={o.id} />
                   {nd && <div style={{ fontSize: PFS.s, color: CL.grn, fontWeight: 700, marginBottom: 4 }}>{needType(nd).icon} Answers: {needType(nd).title(nd.lga)}</div>}
                   <div style={{ fontWeight: 700, fontSize: PFS.m, color: CL.txt }}>{done ? "✅ " : o.i + " "}{o.nm}</div>
                   <div style={{ fontSize: PFS.s, color: CL.td, margin: "2px 0 6px" }}>{o.d}</div>
