@@ -3154,8 +3154,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         </div>;
         return <div style={{ position: "relative", borderRadius: 24, overflow: "hidden", aspectRatio: "16 / 10", background: "#d8c9ad url(./art/scenes/billboard-street.webp) center / 100% 100% no-repeat", boxShadow: "0 14px 30px rgba(0,0,0,.18)" }}>
           {/* the board */}
-          {/* printed on the board's blank face (x 10.4%–89.8%, y 6.4%–51%) */}
-          <div style={{ position: "absolute", left: "10.6%", right: "10.4%", top: "6.8%", height: "43.8%" }}>
+          {/* printed on the board's blank face (x 10%–90%, y 6%–50%) */}
+          <div style={{ position: "absolute", left: "10%", right: "10%", top: "6%", height: "44%" }}>
             <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", background: "linear-gradient(115deg, " + pc + " 0%, " + pc + " 58%, #ffffff 58.2%, #ffffff 100%)" }}>
               <div style={{ position: "absolute", left: tall ? 10 : 16, top: tall ? 8 : 12, bottom: tall ? 8 : 12, width: "50%", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div>
@@ -10409,8 +10409,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <AdvBubble text={ADV.reelection} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
               {/* The re-election billboard: your face on the frame, over the rally street. */}
-              {(() => { const P0 = PARTIES.find(x => x.id === setup?.party) || { nm: setup?.party || "", c: "#1a6d2e" }, pc0 = P0.c || "#1a6d2e", tall = TALL(); return <div style={{ position: "relative", borderRadius: 22, overflow: "hidden", aspectRatio: "16 / 10", background: "#d8c9ad url(./art/scenes/billboard-street.webp) center / 100% 100% no-repeat", marginBottom: 14 }}>
-                <div style={{ position: "absolute", left: "10.6%", right: "10.4%", top: "6.8%", height: "43.8%", overflow: "hidden", background: "linear-gradient(115deg, " + pc0 + " 0%, " + pc0 + " 60%, #fff 60.2%)" }}>
+              {(() => { const P0 = PARTIES.find(x => x.id === setup?.party) || { nm: setup?.party || "", c: "#1a6d2e" }, pc0 = P0.c || "#1a6d2e", tall = TALL(); return <div style={{ position: "relative", borderRadius: 22, overflow: "hidden", aspectRatio: "16 / 10", background: "#d8c9ad url(./art/scenes/billboard-rally.webp) center / 100% 100% no-repeat", marginBottom: 14 }}>
+                <div style={{ position: "absolute", left: "10%", right: "10%", top: "6%", height: "44%", overflow: "hidden", background: "linear-gradient(115deg, " + pc0 + " 0%, " + pc0 + " 60%, #fff 60.2%)" }}>
                   <div style={{ position: "absolute", left: tall ? 8 : 14, top: tall ? 6 : 10, bottom: tall ? 6 : 10, width: "58%", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", textAlign: "left" }}>
                     <div style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? 12 : 15, letterSpacing: 1, textTransform: "uppercase", opacity: .9 }}>{P0.nm} · {stName} {(setup?.startYear || 2027) + 4}</div>
                     <div style={{ fontFamily: F.d, fontWeight: 900, fontSize: tall ? 26 : 40, lineHeight: 1 }}>4 MORE YEARS</div>

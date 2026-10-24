@@ -25,7 +25,7 @@ test("the bill art is used: document, pen, VETOED and ASSENTED stamps", () => {
 test("every October image is used", () => {
   const dirs = { badges: "public/art/badges" };
   const files = fs.readdirSync(path.join(root, dirs.badges)).map(f => f.replace(/\.webp$/, ""))
-    .concat(["icon-daily", "icon-streak", "icon-streak-freeze", "icon-share", "letter-sealed-large", "wax-seal-red", "investor-foreign", "billboard-street"]);
+    .concat(["icon-daily", "icon-streak", "icon-streak-freeze", "icon-share", "letter-sealed-large", "wax-seal-red", "investor-foreign", "billboard-street", "billboard-rally"]);
   assert.deepEqual(files.filter(f => !src.includes(f)), []);
 });
 // Elections and projects pack: site pictures by stage, pins by colour, the count and the declaration.
