@@ -149,15 +149,15 @@
        the overlay, so it works on the zoomed stage at any size. */
     .sop-flight { position: fixed; inset: 0; z-index: 9960; overflow: hidden; cursor: pointer; transition: opacity .26s; animation: sopFadeIn .25s ease-out;
       background: linear-gradient(180deg, #3d78b8 0%, #5d9ad6 55%, #93c3ec 100%); }
-    .sop-flight .fl-clouds { position: absolute; inset: 0; pointer-events: none; animation: flDriftOut 4.4s linear forwards; }
+    .sop-flight .fl-clouds { position: absolute; inset: 0; pointer-events: none; animation: flDriftOut 7.6s linear forwards; }
     .sop-flight .fl-clouds.far { opacity: .55; animation-name: flFarOut; }
     .sop-flight .fl-clouds.near { opacity: .9; animation-name: flNearOut; }
     .sop-flight.home .fl-clouds { animation-name: flDriftHome; } .sop-flight.home .fl-clouds.far { animation-name: flFarHome; } .sop-flight.home .fl-clouds.near { animation-name: flNearHome; }
     .sop-flight .fl-cloud { position: absolute; height: auto; filter: drop-shadow(0 10px 14px rgba(40,80,130,.18)); }
     .sop-flight .near .fl-cloud { filter: blur(1.5px) drop-shadow(0 12px 16px rgba(40,80,130,.2)); }
-    .sop-flight .fl-plane { position: absolute; width: 56%; max-width: 620px; min-width: 260px; left: -60%; top: 70%; animation: flPlaneOut 4.2s cubic-bezier(.4,.05,.45,1) forwards; filter: drop-shadow(0 14px 18px rgba(10,40,80,.28)); }
+    .sop-flight .fl-plane { position: absolute; width: 56%; max-width: 620px; min-width: 260px; left: -60%; top: 70%; animation: flPlaneOut 7.2s cubic-bezier(.33,.12,.67,.88) forwards; filter: drop-shadow(0 14px 18px rgba(10,40,80,.28)); }
     .sop-flight.home .fl-plane { animation-name: flPlaneHome; }
-    .sop-flight .fl-bob { animation: flBob 1.3s ease-in-out infinite alternate; }
+    .sop-flight .fl-bob { animation: flBob 2.6s ease-in-out infinite alternate; }
     .sop-flight .fl-plane img { display: block; width: 100%; height: auto; max-width: none; }
     .sop-flight.home .fl-plane img { transform: scaleX(-1); }
     /* The road sign (Lovable's signpost): home on the upper board pointing left, the destination
@@ -171,9 +171,9 @@
     @keyframes flGlow { from { text-shadow: 0 2px 0 rgba(0,0,0,.28); } to { text-shadow: 0 2px 0 rgba(0,0,0,.28), 0 0 14px rgba(255,236,140,.95); } }
     @media (max-aspect-ratio: 1/1) { .sop-flight .fl-plane { width: 92%; } .sop-flight .fl-sign { left: 0; width: 62%; } .sop-flight .fl-cloud { transform: scale(1.5); } }
     .sop-flight .fl-skip { position: absolute; right: 4%; bottom: 3%; text-align: right; color: rgba(255,255,255,.8); font: 700 16px "Plus Jakarta Sans", sans-serif; }
-    @keyframes flPlaneOut { 0% { left: -60%; top: 56%; transform: rotate(-12deg) scale(1.05); } 50% { left: 22%; top: 30%; transform: rotate(-10deg) scale(.92); } 100% { left: 108%; top: -8%; transform: rotate(-16deg) scale(.7); } }
-    @keyframes flPlaneHome { 0% { left: 108%; top: -6%; transform: rotate(-11deg) scale(.72); } 50% { left: 22%; top: 24%; transform: rotate(-7deg) scale(.9); } 100% { left: -60%; top: 52%; transform: rotate(-3deg) scale(1.05); } }
-    @keyframes flBob { from { transform: translateY(-4px); } to { transform: translateY(4px); } }
+    @keyframes flPlaneOut { 0% { left: -60%; top: 50%; transform: rotate(-8deg) scale(1.04); } 50% { left: 22%; top: 30%; transform: rotate(-7deg) scale(.93); } 100% { left: 108%; top: -4%; transform: rotate(-9deg) scale(.74); } }
+    @keyframes flPlaneHome { 0% { left: 108%; top: -2%; transform: rotate(-7deg) scale(.74); } 50% { left: 22%; top: 24%; transform: rotate(-5deg) scale(.92); } 100% { left: -60%; top: 48%; transform: rotate(-3deg) scale(1.04); } }
+    @keyframes flBob { from { transform: translateY(-3px); } to { transform: translateY(3px); } }
     @keyframes flFarOut { from { transform: translate(25%, -4%); } to { transform: translate(-15%, 8%); } }
     @keyframes flDriftOut { from { transform: translate(40%, -8%); } to { transform: translate(-35%, 16%); } }
     @keyframes flNearOut { from { transform: translate(75%, -12%); } to { transform: translate(-90%, 34%); } }
@@ -343,7 +343,7 @@
        Formerly part of sop-v2.js. Appended to body, which the stage script
        below redirects into the scaled stage, so sizes are artboard px. */
     /* Sound: effects are recorded files in ./audio/sfx/<kind>.mp3, listed in
-       SFX as they arrive (gavel, notify, cheer: kept for big wins only; takeoff, landing: the flight, trimmed to its 4 seconds). window.SOP_sound(kind)
+       SFX as they arrive (gavel, notify, cheer: kept for big wins only; takeoff, landing: the flight, trimmed to its 7 seconds). window.SOP_sound(kind)
        plays one; SOP_soundOn() reads or sets the switch for effects and music
        (remembered on this device). */
     (function () {
@@ -482,7 +482,7 @@
           // Long names shrink until they fit the board (two lines at most).
           spans.forEach(function (el) { var f = parseFloat(getComputedStyle(el).fontSize) || 30; for (var k = 0; k < 30 && f > 11 && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1); k++) { f -= 1; el.style.fontSize = f + 'px'; } });
           var engine = null; try { engine = window.SOP_sound && window.SOP_sound(home ? 'landing' : 'takeoff'); } catch (e) {}
-          setTimeout(fend, still() ? 1400 : 4200);
+          setTimeout(fend, still() ? 1400 : 7200);
           return;
         }
         // The adviser steps in to deliver a message herself: SOP_outcome({ present: { img, name, text } }).
