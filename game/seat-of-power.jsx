@@ -2315,15 +2315,17 @@ const StreakSheet = ({ st, onClose }) => {
 // Your career: the map of states you have governed, and the badges earned.
 const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
+const playTimeText = (sec) => { const m = Math.floor(sec / 60); return m < 60 ? m + " min" : Math.floor(m / 60) + "h " + (m % 60) + "m"; };
 const CareerSheet = ({ onClose }) => {
-  const [list, setList] = useState(null), [sel, setSel] = useState(null);
+  const [list, setList] = useState(null), [sel, setSel] = useState(null), playSec = (() => { try { return window.SOP_playTime ? window.SOP_playTime() : 0; } catch (e) { return 0; } })();
   useEffect(() => { (async () => { try { const r = await window.storage.get("sop_career"); setList(r && r.value ? JSON.parse(r.value) : []); } catch (e) { setList([]); } })(); }, []);
   const L = list || [], m = SYS.careerMap(L), badges = SYS.careerBadges(L, (k) => STATES[k] && STATES[k].zone), got = badges.filter(b => b.got).length;
   const tall = TALL(), cell = tall ? 40 : 58;
   return <EntranceSheet title="Your career" onClose={onClose}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-      <b style={{ fontSize: DS.t.body, color: UI.ink }}>{Object.keys(m).length} of 37 states governed</b>
-      <span style={{ fontSize: DS.t.meta, color: UI.sub }}>{L.length} governorship{L.length === 1 ? "" : "s"}</span>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
+      {[[Object.keys(m).length + " / 37", "states governed"], [L.length, L.length === 1 ? "governorship" : "governorships"], [playSec >= 60 ? playTimeText(playSec) : "–", "time played"]].map(([v, l]) => <div key={l} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 14, padding: "8px 10px", textAlign: "center" }}>
+        <b style={{ display: "block", fontFamily: F.d, fontSize: DS.t.title || 22, color: UI.ink, lineHeight: 1.1 }}>{v}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{l}</span>
+      </div>)}
     </div>
     <div style={{ maxWidth: 560, margin: "0 auto 6px", background: "radial-gradient(120% 100% at 50% 40%, #eef5ec, #e3ecdf)", borderRadius: 18, padding: tall ? 6 : 10 }}>
       {/* The real map, the same shapes as the state picker, coloured by your best grade in each state. */}
@@ -2419,7 +2421,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
           {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
-            ["icon-state", "Your career map", "States you have governed, and your badges", () => setSheet("career")],
+            ["icon-state", "Your career map", "States governed, badges and time played", () => setSheet("career")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],

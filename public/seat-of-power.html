@@ -340,6 +340,26 @@
       setInterval(function () { if (bgm && window.SOP_paused && !bgm.paused) bgm.pause(); else if (bgm && !window.SOP_paused && bgm.paused && on && vol > 0 && document.visibilityState !== 'hidden') music(); }, 1500);
     })();
 
+    /* Play clock: seconds of real play (page in view, not paused, a tap in the
+       last two minutes), kept on this device in sop_playtime. The Vatar edition
+       also sends it to the server (SOP_playSend), which keeps the total across
+       devices. SOP_playTime() reads it. */
+    (function () {
+      var lastTap = Date.now(), pend = 0, STEP = 15;
+      function local() { try { return +localStorage.getItem('sop_playtime') || 0; } catch (e) { return 0; } }
+      document.addEventListener('pointerdown', function () { lastTap = Date.now(); }, true);
+      document.addEventListener('keydown', function () { lastTap = Date.now(); }, true);
+      window.SOP_playTime = local;
+      window.SOP_playTotal = function (t) { if (t > local()) try { localStorage.setItem('sop_playtime', String(Math.round(t))); } catch (e) {} };
+      setInterval(function () {
+        if (document.visibilityState === 'hidden' || window.SOP_paused || Date.now() - lastTap > 120000) return;
+        try { localStorage.setItem('sop_playtime', String(local() + STEP)); } catch (e) {}
+        pend += STEP;
+        if (pend >= 60 && window.SOP_playSend) { var n = pend; pend = 0; window.SOP_playSend(n); }
+      }, STEP * 1000);
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && pend > 0 && window.SOP_playSend) { var n = pend; pend = 0; window.SOP_playSend(n); } });
+    })();
+
     /* Confirm and alert inside the page. Browser dialogs are switched off in
        the claude.ai viewer (confirm() answers "no" at once), which silently
        blocked firing commissioners and other confirmed actions.

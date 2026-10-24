@@ -33,6 +33,17 @@ Players send "What do you not like?" and "What do you want to see better?" with 
 ## What players choose (anonymous)
 The same page also shows **What players choose**: for each decision, how many players made it and the share who picked each answer, with bars. Each player counts once per answer; player ids are hashed and no names are stored. Kept in `DATA_DIR/stats.json`; `&format=stats` gives it as JSON.
 
+## Play time
+- **Stats page:** a **Play time** section shows:
+  - total time played;
+  - the average and typical (median) player;
+  - how long players stay, in bands from under 5 minutes to 10+ hours;
+  - the 20 longest players, by anonymous id, with days played and when they were last seen.
+- **JSON:** `&format=stats` includes it as `_playtime`.
+- **What counts:** only real play, meaning the game is in view, not paused, and has had a tap in the last two minutes.
+- **How it is sent:** the game reports every minute to `/api/play`. The server accepts no more time than has actually passed.
+- **Players:** they see their own time on the Career map, next to states governed and governorships.
+
 Recorded: state, party, agenda, adviser, level, deputy (unity or own pick), running at home, Quick start, honour carried, Chief of Staff, each godfather demand (gave in / refused), dilemmas, Desk cards (council elections, succession…), traditional-ruler matters, trips (went / sent / declined), bills (signed / vetoed), letters (personal / Chief of Staff), reforms adopted, ministries created, the nephew's ministry, ending, grade and the state of each ending.
 
 ## Products (create them in the Vatar dashboard)

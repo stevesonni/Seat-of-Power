@@ -53,6 +53,15 @@ const statsNow = () => (stats = stats || readStats());
 setInterval(() => { if (!statsDirty) return; statsDirty = false; try { fs.mkdirSync(DATA, { recursive: true }); const tmp = STATS + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(stats)); fs.renameSync(tmp, STATS); } catch (e) { statsDirty = true; } }, 10000).unref();
 const anon = (id) => crypto.createHash("sha256").update("sop:" + id).digest("base64url").slice(0, 12);
 const TRACK_OK = /^[a-z_]{2,32}$/;
+// Play time for the insights page: totals, average, median, spread, longest players.
+const hm = (sec) => { const m = Math.round(sec / 60); return m < 60 ? m + "m" : Math.floor(m / 60) + "h " + (m % 60) + "m"; };
+const playSummary = (S) => {
+  const ps = Object.entries(S.play || {}).filter(([, P]) => P.s > 0).map(([who, P]) => ({ who, s: P.s, days: P.days.length, first: P.first, last: P.last })).sort((a, b) => b.s - a.s);
+  const tot = ps.reduce((a, p) => a + p.s, 0), med = ps.length ? ps[Math.floor(ps.length / 2)].s : 0;
+  const BK = [["under 5 min", 300], ["5–15 min", 900], ["15–30 min", 1800], ["30–60 min", 3600], ["1–3 hours", 10800], ["3–10 hours", 36000], ["10+ hours", Infinity]];
+  const buckets = BK.map(([l, hi], i) => ({ l, n: ps.filter(p => p.s < hi && p.s >= (i ? BK[i - 1][1] : 0)).length }));
+  return { players: ps.length, totalSec: tot, avgSec: ps.length ? Math.round(tot / ps.length) : 0, medianSec: med, buckets, top: ps.slice(0, 50) };
+};
 let hallLock = Promise.resolve();
 const readHall = () => { try { return JSON.parse(fs.readFileSync(HALL, "utf8")); } catch (e) { return { entries: {} }; } };
 // The name on the boards: the player's Lagos Life username, as Vatar reports it.
@@ -182,6 +191,13 @@ const api = {
     });
     return { ok: true };
   },
+  // Time played: real seconds, at most what has passed since the last report.
+  "/api/play": async (b, id) => {
+    const S = statsNow(), who = anon(id), now = Date.now(), P = (S.play = S.play || {})[who] = S.play[who] || { s: 0, first: now, last: 0, days: [] };
+    const sec = Math.max(0, Math.min(Math.round(+b.sec) || 0, 120, P.last ? Math.round((now - P.last) / 1000) + 20 : 120));
+    if (sec) { P.s += sec; P.last = now; const d = new Date(now).toISOString().slice(0, 10); if (P.days[P.days.length - 1] !== d) P.days = [...P.days, d].slice(-400); statsDirty = true; }
+    return { ok: true, total: P.s };
+  },
   // What a player does not like and wants to see better.
   "/api/feedback": async (b, id) => {
     const clip = (t, n) => String(t == null ? "" : t).replace(/[\u0000-\u0008\u000b-\u001f]/g, "").trim().slice(0, n);
@@ -254,15 +270,21 @@ http.createServer(async (req, res) => {
       const S = statsNow(), evs = Object.entries(S.ev).sort((a, b) => Object.keys(b[1].players).length - Object.keys(a[1].players).length);
       if (url.searchParams.get("format") === "stats") {
         const out = {}; evs.forEach(([e, E]) => { const np = Object.keys(E.players).length; out[e] = { players: np, values: Object.fromEntries(Object.entries(E.values).map(([v, V]) => [v, { players: Object.keys(V.p).length, times: V.n, pct: np ? Math.round(Object.keys(V.p).length / np * 100) : 0 }])) }; });
+        out._playtime = playSummary(S);
         return send(res, 200, out);
       }
       const statsHtml = evs.length ? evs.map(([e, E]) => { const np = Object.keys(E.players).length, vs = Object.entries(E.values).map(([v, V]) => [v, Object.keys(V.p).length, V.n]).sort((a, b) => b[1] - a[1]);
         return '<div class="c"><b>' + esc(e.replace(/_/g, " ")) + '</b> <span class="m">· ' + np + ' players</span>' + vs.slice(0, 40).map(([v, n, t]) => { const pc = np ? Math.round(n / np * 100) : 0; return '<div style="display:grid;grid-template-columns:minmax(120px,1fr) 3fr 64px;gap:8px;align-items:center;margin-top:6px"><span>' + esc(v) + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + pc + '%;background:#0b6b42"></span></span><span class="m" style="text-align:right">' + pc + '% · ' + n + '</span></div>'; }).join("") + '</div>'; }).join("") : "<p>No choices recorded yet.</p>";
+      const PS = playSummary(S), bmax = Math.max(1, ...PS.buckets.map(b => b.n));
+      const playHtml = '<h2 style="margin:22px 0 8px">Play time</h2>' + (PS.players ? '<div class="k"><div><b>' + hm(PS.totalSec) + '</b>played in all</div><div><b>' + hm(PS.avgSec) + '</b>average per player</div><div><b>' + hm(PS.medianSec) + '</b>typical player (median)</div><div><b>' + PS.players + '</b>players timed</div></div>'
+        + '<div class="c"><b>How long players stay</b>' + PS.buckets.map(b => '<div style="display:grid;grid-template-columns:110px 3fr 64px;gap:8px;align-items:center;margin-top:6px"><span>' + b.l + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(b.n / bmax * 100) + '%;background:#0b6b42"></span></span><span class="m" style="text-align:right">' + b.n + '</span></div>').join("") + '</div>'
+        + '<div class="c"><b>Longest players</b> <span class="m">· anonymous ids</span>' + PS.top.slice(0, 20).map((p, i) => '<div style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;margin-top:6px"><span class="m">' + (i + 1) + '</span><span>Player ' + esc(p.who.slice(0, 6)) + ' <span class="m">· ' + p.days + ' day' + (p.days === 1 ? '' : 's') + ' · last ' + esc(new Date(p.last).toISOString().slice(0, 10)) + '</span></span><b>' + hm(p.s) + '</b></div>').join("") + '</div>' : '<p>No play time recorded yet.</p>');
       const rated = rows.filter(r => r.rating), avg = rated.length ? (rated.reduce((a, r) => a + r.rating, 0) / rated.length).toFixed(1) : "–";
       const html = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Players: feedback and choices</title>'
         + '<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;background:#f6f2ea;color:#13261c}main{max-width:860px;margin:0 auto;padding:20px 16px}h1{margin:0 0 4px}.k{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px}.k b{display:block;font-size:26px}.k div{background:#fff;border:1px solid #e6dfd2;border-radius:14px;padding:10px 16px}.c{background:#fff;border:1px solid #e6dfd2;border-radius:16px;padding:14px 16px;margin:0 0 10px}.m{color:#6b7a70;font-size:14px}.l{font-weight:700;color:#a3271c}.w{font-weight:700;color:#0b6b42}a{color:#0b6b42}</style>'
         + '<main><h1>Player feedback</h1><div class="m">Seat of Power · newest first · <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=csv">download CSV</a></div>'
         + '<div class="k"><div><b>' + rows.length + '</b>messages</div><div><b>' + avg + ' ★</b>average of ' + rated.length + '</div><div><b>' + new Set(rows.map(r => r.player)).size + '</b>players</div></div>'
+        + playHtml
         + '<h2 style="margin:22px 0 8px">What players choose</h2><div class="m" style="margin-bottom:8px">Anonymous: each player counts once per answer. <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=stats">as JSON</a></div>' + statsHtml
         + '<h2 style="margin:22px 0 8px">Messages</h2>'
         + (rows.length ? rows.slice(0, 1000).map(r => '<div class="c"><div class="m">' + esc(r.at.replace("T", " ").slice(0, 16)) + ' · ' + esc(r.name || "a player") + (r.rating ? ' · ' + "★".repeat(r.rating) + "☆".repeat(5 - r.rating) : "") + (r.where ? ' · on ' + esc(r.where) : "") + (r.year ? ' · ' + esc(r.year) : "") + (r.state ? ' · ' + esc(r.state) : "") + '</div>'
