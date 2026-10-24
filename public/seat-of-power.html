@@ -145,6 +145,36 @@
     @keyframes sopSlideUp { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
     @keyframes sopSign { to { width: 56%; } }
     @keyframes sopPen { 0% { transform: translate(0,0) rotate(0); } 100% { transform: translate(120%, -4%) rotate(4deg); } }
+    /* A flight between drifting clouds (SOP_outcome({ flight })). Positions are % of
+       the overlay, so it works on the zoomed stage at any size. */
+    .sop-flight { position: fixed; inset: 0; z-index: 9960; overflow: hidden; cursor: pointer; transition: opacity .26s; animation: sopFadeIn .25s ease-out;
+      background: linear-gradient(180deg, #3d78b8 0%, #5d9ad6 55%, #93c3ec 100%); }
+    .sop-flight .fl-clouds { position: absolute; inset: 0; pointer-events: none; animation: flDriftOut 4.4s linear forwards; }
+    .sop-flight .fl-clouds.far { opacity: .55; animation-name: flFarOut; }
+    .sop-flight .fl-clouds.near { opacity: .9; animation-name: flNearOut; }
+    .sop-flight.home .fl-clouds { animation-name: flDriftHome; } .sop-flight.home .fl-clouds.far { animation-name: flFarHome; } .sop-flight.home .fl-clouds.near { animation-name: flNearHome; }
+    .sop-flight .fl-cloud { position: absolute; background: #fff; border-radius: 50%; filter: blur(3px); box-shadow: inset -10px -12px 22px rgba(110,150,195,.35); }
+    .sop-flight .near .fl-cloud { filter: blur(5px); }
+    .sop-flight .fl-cloud::before, .sop-flight .fl-cloud::after { content: ""; position: absolute; background: inherit; border-radius: 50%; box-shadow: inherit; }
+    .sop-flight .fl-cloud::before { width: 52%; height: 118%; left: 14%; top: -58%; }
+    .sop-flight .fl-cloud::after { width: 40%; height: 92%; left: 50%; top: -36%; }
+    .sop-flight .fl-plane { position: absolute; width: 56%; max-width: 620px; min-width: 260px; left: -60%; top: 70%; animation: flPlaneOut 4.2s cubic-bezier(.4,.05,.45,1) forwards; filter: drop-shadow(0 14px 18px rgba(10,40,80,.28)); }
+    .sop-flight.home .fl-plane { animation-name: flPlaneHome; }
+    @media (max-aspect-ratio: 1/1) { .sop-flight .fl-plane { width: 84%; } .sop-flight .fl-cap { font-size: 28px; } }
+    .sop-flight .fl-plane svg { display: block; width: 100%; height: auto; animation: flBob 1.3s ease-in-out infinite alternate; }
+    .sop-flight .fl-cap { position: absolute; left: 0; right: 0; top: 7%; text-align: center; color: #fff; font: 800 34px/1.2 "Plus Jakarta Sans", sans-serif; text-shadow: 0 3px 14px rgba(0,30,70,.5); padding: 0 16px; }
+    .sop-flight .fl-skip { position: absolute; left: 0; right: 0; bottom: 4%; text-align: center; color: rgba(255,255,255,.8); font: 700 16px "Plus Jakarta Sans", sans-serif; }
+    @keyframes flPlaneOut { 0% { left: -60%; top: 72%; transform: rotate(-13deg) scale(1.05); } 50% { left: 22%; top: 42%; transform: rotate(-10deg) scale(.92); } 100% { left: 108%; top: -6%; transform: rotate(-17deg) scale(.7); } }
+    @keyframes flPlaneHome { 0% { left: -60%; top: -4%; transform: rotate(11deg) scale(.72); } 50% { left: 22%; top: 34%; transform: rotate(7deg) scale(.9); } 100% { left: 108%; top: 66%; transform: rotate(3deg) scale(1.05); } }
+    @keyframes flBob { from { transform: translateY(-4px); } to { transform: translateY(4px); } }
+    @keyframes flFarOut { from { transform: translate(25%, -4%); } to { transform: translate(-15%, 8%); } }
+    @keyframes flDriftOut { from { transform: translate(40%, -8%); } to { transform: translate(-35%, 16%); } }
+    @keyframes flNearOut { from { transform: translate(75%, -12%); } to { transform: translate(-90%, 34%); } }
+    @keyframes flFarHome { from { transform: translate(25%, 6%); } to { transform: translate(-15%, -6%); } }
+    @keyframes flDriftHome { from { transform: translate(40%, 12%); } to { transform: translate(-35%, -12%); } }
+    @keyframes flNearHome { from { transform: translate(75%, 26%); } to { transform: translate(-90%, -26%); } }
+    @media (prefers-reduced-motion: reduce) { .sop-flight .fl-plane, .sop-flight .fl-clouds, .sop-flight .fl-plane svg { animation: none !important; } .sop-flight .fl-plane { left: 22%; top: 38%; } }
+    .sp-still .sop-flight .fl-plane, .sp-still .sop-flight .fl-clouds, .sp-still .sop-flight .fl-plane svg { animation: none !important; } .sp-still .sop-flight .fl-plane { left: 22%; top: 38%; }
     @keyframes sopPaperIn { 0% { opacity: 0; transform: rotate(-8deg) scale(.6); } 100% { opacity: 1; transform: rotate(0) scale(1); } }
     @keyframes sopPresentIn { 0% { opacity: 0; transform: translateX(-40px); } 100% { opacity: 1; transform: translateX(0); } }
     @keyframes sopStamp { 0% { opacity: 0; transform: rotate(-14deg) scale(2.4); } 60% { opacity: 1; transform: rotate(-14deg) scale(.92); } 100% { opacity: 1; transform: rotate(-14deg) scale(1); } }
@@ -388,6 +418,24 @@
     /* The result of a decision, shown at once so nothing happens silently.
        SOP_outcome({ icon, title, text, rows: [{ l, v, good }], tone, ok, action: { label, fn } })
        Cards queue: a second result waits until the first is closed. */
+      /* The plane: an invented carrier in green and white (no real airline). */
+      var PLANE_SVG = '<svg viewBox="0 0 420 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>'
+        + '<linearGradient id="flBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".62" stop-color="#eef2f4"/><stop offset="1" stop-color="#c6cfd5"/></linearGradient>'
+        + '<linearGradient id="flWing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d7dde2"/><stop offset="1" stop-color="#9aa6af"/></linearGradient>'
+        + '<clipPath id="flClip"><path d="M44 62 Q44 46 66 45 L345 45 Q380 46 400 66 Q382 84 345 85 L76 85 Q50 84 44 74 Z"/></clipPath></defs>'
+        + '<path d="M196 62 L262 24 L280 24 L238 64 Z" fill="#8d99a3"/>'
+        + '<path d="M56 50 L24 6 L58 6 L104 48 Z" fill="#0b8a4a"/><path d="M40 28 L49 28 L82 52 L70 52 Z" fill="#fff"/>'
+        + '<path d="M54 66 L18 84 L40 87 L86 70 Z" fill="url(#flWing)"/>'
+        + '<path d="M44 62 Q44 46 66 45 L345 45 Q380 46 400 66 Q382 84 345 85 L76 85 Q50 84 44 74 Z" fill="url(#flBody)"/>'
+        + '<g clip-path="url(#flClip)"><rect x="40" y="70" width="370" height="6" fill="#0b8a4a"/><rect x="40" y="77" width="370" height="3" fill="#f2c230"/></g>'
+        + '<path d="M372 53 Q384 55 392 62 L376 62 Q372 58 372 53 Z" fill="#1d2b36"/>'
+        + (function () { var w = ''; for (var x = 110; x <= 352; x += 10) w += '<rect x="' + x + '" y="57" width="5" height="6" rx="2" fill="#2b3a46"/>'; return w; })()
+        + '<rect x="97" y="54" width="7" height="14" rx="2" fill="none" stroke="#9aa6af" stroke-width="1.2"/><rect x="356" y="54" width="7" height="14" rx="2" fill="none" stroke="#9aa6af" stroke-width="1.2"/>'
+        + '<text x="160" y="53.5" font-family="Plus Jakarta Sans,Arial,sans-serif" font-weight="800" font-size="8.5" letter-spacing="1.6" fill="#0b8a4a">GREENWING</text>'
+        + '<path d="M186 74 L262 124 L286 124 L236 74 Z" fill="url(#flWing)"/>'
+        + '<rect x="206" y="88" width="36" height="13" rx="6.5" fill="#cdd5db"/><rect x="236" y="89.5" width="6" height="10" rx="2" fill="#1d2b36"/>'
+        + '<rect x="240" y="104" width="36" height="13" rx="6.5" fill="#cdd5db"/><rect x="270" y="105.5" width="6" height="10" rx="2" fill="#1d2b36"/>'
+        + '</svg>';
     (function () {
       var queue = [], open = false, held = false;
       function next() {
@@ -421,6 +469,25 @@
           pg.appendChild(pc); pb.appendChild(pg); document.body.appendChild(pb);
           try { window.SOP_sound && window.SOP_sound('news'); } catch (e) {}
           setTimeout(function () { pc.focus(); }, 30);
+          return;
+        }
+        // A flight: SOP_outcome({ flight: { dir: 'out' | 'home', label } }). The plane climbs
+        // away between drifting clouds, or comes down through them; it plays once
+        // (tap to skip), then the next card (usually the front page) follows.
+        if (o.flight) {
+          var FL = o.flight, home = FL.dir === 'home', fb = document.createElement('div'), fdone = false;
+          fb.className = 'sop-flight' + (home ? ' home' : '');
+          fb.setAttribute('role', 'img'); fb.setAttribute('aria-label', FL.label || (home ? 'Flying home' : 'Flying out'));
+          var layer = function (n, cls, top0, size0) { var L = document.createElement('div'); L.className = 'fl-clouds ' + cls; for (var ci = 0; ci < n; ci++) { var c = document.createElement('div'); c.className = 'fl-cloud'; var sz = size0 * (.7 + ((ci * 37) % 10) / 15); c.style.cssText = 'left:' + ((ci * 113) % 100) + '%;top:' + (top0 + (ci * 29) % 70) + '%;width:' + sz + 'vmin;height:' + sz * .42 + 'vmin'; L.appendChild(c); } return L; };
+          fb.appendChild(layer(5, 'far', 4, 20)); fb.appendChild(layer(4, 'mid', 10, 30));
+          var pl = document.createElement('div'); pl.className = 'fl-plane'; pl.innerHTML = PLANE_SVG; fb.appendChild(pl);
+          fb.appendChild(layer(3, 'near', 20, 42)); // in front of the plane: it flies between them
+          var cap = document.createElement('div'); cap.className = 'fl-cap'; cap.textContent = (home ? '🛬 ' : '🛫 ') + (FL.label || (home ? 'Flying home' : 'Flying out')); fb.appendChild(cap);
+          var skip = document.createElement('div'); skip.className = 'fl-skip'; skip.textContent = 'Tap to skip'; fb.appendChild(skip);
+          function fend() { if (fdone) return; fdone = true; fb.style.opacity = '0'; setTimeout(function () { fb.remove(); open = false; next(); }, 260); }
+          fb.onclick = fend; document.body.appendChild(fb);
+          try { window.SOP_sound && window.SOP_sound(home ? 'landing' : 'takeoff'); } catch (e) {}
+          setTimeout(fend, still() ? 1400 : 4200);
           return;
         }
         // The adviser steps in to deliver a message herself: SOP_outcome({ present: { img, name, text } }).

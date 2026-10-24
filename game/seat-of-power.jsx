@@ -8257,7 +8257,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // on the Desk saying what was chosen for each letter and how it went.
   const awayRef = React.useRef(false);
   const silentRef = React.useRef(null); // { report: [], cur } while answering quietly
-  const goAway = (months = 4) => { awayRef.current = months; };
+  // Going in person is a flight out (before the front page); coming back, a flight home.
+  const fly = (dir, label) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, label } }); } catch (e) {} };
+  const goAway = (months = 4, to) => { awayRef.current = months; if (to && to !== stName) fly("out", "Off to " + to); };
   useEffect(() => {
     if (phase !== "mail") return;
     if (awayRef.current && !silentRef.current) { silentRef.current = { report: [], months: awayRef.current }; awayRef.current = false; try { document.body.classList.add("sop-silent"); } catch (e) {} }
@@ -8269,6 +8271,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       silentRef.current = null; try { document.body.classList.remove("sop-silent"); } catch (e) {}
       const c = cosNow || COS_ACTING, months = ["", "one month", "two months", "three months", "four months", "five months", "six months"][Math.min(6, R.months)];
       if (R.report.length) postMail([letterOf("cos_report", { key: "cos_report_" + turn, live: true, kind: "briefing", stakes: 1, lines: R.report, tip: [c.name + ", Chief of Staff", "./art/characters/" + ((SYS.cosById(c.id) || c).img || "chief-of-staff-veteran") + ".webp", "While you were away: " + R.report.length + (R.report.length === 1 ? " letter" : " letters") + " answered", "What I decided for each, and how it went."] })]);
+      fly("home", "Home to " + stName);
       present("Welcome back, Your Excellency. You were away for " + months + ". " + (R.report.length ? c.name + " answered " + R.report.length + (R.report.length === 1 ? " letter" : " letters") + "; the report is on your desk." : "Nothing piled up while you were gone."), "neutral");
     }, nxt ? 250 : 400);
     return () => clearTimeout(t);
@@ -10150,7 +10153,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => {
                 setAbujaVisited(true);
-                goAway(2);
+                goAway(2, "Abuja");
                 setS(p => ({ ...p, pStab: cl100(p.pStab + 8), app: cl100(p.app - 3) }));
                 setSkApp(p => ({ ...p, party: cl100((p.party || 50) + 10) }));
                 addL("✈️ Visited Aso Rock. President received you warmly. Party stability rose. But citizens noticed your absence.", "political");
@@ -10224,7 +10227,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => {
                 setNetherlandsVisited(true);
-                goAway(4);
+                goAway(4, "The Hague");
                 const success = Math.random() < .55;
                 const hiddenBoost = 1.5 + Math.random() * 1.5;
                 if (success) {
@@ -10336,7 +10339,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Cd onClick={() => {
                 if (!spendB(0.2, "The trip to the wedding")) return;
                 setWeddingVisited(true);
-                goAway(1);
+                goAway(1, "Lagos");
                 setS(p => ({ ...p, pStab: cl100(p.pStab + 5), app: cl100(p.app - 4) }));
                 setSkApp(p => ({ ...p, party: cl100((p.party || 50) + 8), traditional: cl100((p.traditional || 50) + 5), media: cl100((p.media || 50) - 5) }));
                 addL("💒 Attended governor's daughter wedding. Networked with 12 governors. Media called it 'junketing.'", "political");
@@ -10407,7 +10410,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29, maxWidth: 840, margin: "0 auto" }}>
               <Cd onClick={() => {
                 if (!spendB(curInvite.goCost || 0, "The trip")) return;
-                goAway(6); track("trip", "went in person");
+                goAway(6, String(curInvite.from || "").replace(/^[^,]*,\s*/, "")); track("trip", "went in person");
                 setS(p => {
                   const n = { ...p };
                   if (curInvite.goFx.igr) { n.igr += curInvite.goFx.igr; n.invIGR = (n.invIGR || 0) + curInvite.goFx.igr * .5; }
@@ -12361,6 +12364,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
   const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const fly = (dir, label) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, label } }); } catch (e) {} };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0, g ? g.step : "");
   // A lesson goes into the next result card's "How it really works" box and into the notebook.
@@ -12395,6 +12399,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     trk("senate_race", res.won ? "won" : "lost");
     if (!res.won) { up({ step: "over", over: true, ending: "lost_race", raceRes: res }); return; }
     up({ step: "sp", raceRes: res });
+    fly("out", "Off to Abuja: the Senate");
     card({ icon: "🏛️", img: "./art/objects/senate-mace.webp", title: "Senator-elect", text: "You carried the " + districtName(g) + " with " + res.you + "% of the two-way vote. In June you take your seat in the red chamber.", rows: [], tone: "good", ok: "To Abuja" });
   };
 
@@ -12974,6 +12979,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
   const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const fly = (dir, label) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, label } }); } catch (e) {} };
   const learn = (k) => { const t = SYS.AMB_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("amb:" + k); lessons.current.push(t); } };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
@@ -12986,6 +12992,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
     const S = { v: 1, seed: Date.now(), name: profile.first + " " + profile.last, avatar: profile.avatar, post: postId, from: k,
       abuja: B.abuja, host: Pp.host + B.hostAdj, diaspora: Pp.diaspora + B.diasporaAdj, trade: 0, cor: B.cor, n: 1, step: "credentials", items: [], seen: [], helped: 0 };
     setG(S); trk("career_start", "ambassador_" + k + "_" + postId);
+    fly("out", "Off to " + Pp.city);
   };
   const present = () => {
     learn("appoint"); learn("credence");
@@ -13005,12 +13012,14 @@ const AmbassadorCareer = ({ profile, onExit }) => {
     const t = SYS.ambThreats(g, R("threat"));
     if (t) {
       learn(t.kind === "expelled" ? "vienna" : "mfa"); trk("amb_end", t.kind);
+      fly("home", t.kind === "expelled" ? "72 hours to leave: home to Abuja" : "Recalled: home to Abuja");
       up({ step: "over", over: true, ending: t.kind });
       card({ icon: t.kind === "expelled" ? "🚫" : "📞", img: "./art/backgrounds/evacuation-airport.webp", title: t.kind === "expelled" ? "Declared persona non grata" : "Recalled to Abuja", text: t.kind === "expelled" ? "The host government gives you 72 hours to leave the country." : "A one-line cable: return to Abuja for consultations. Everyone knows what that means.", rows: [], tone: "bad", ok: "Continue" });
       return;
     }
     if (g.n >= SYS.AMB_HALVES) { const end = SYS.ambEnding(g), score = SYS.ambScore(g), grade = SYS.ambGrade(score); trk("amb_end", end); trk("amb_grade", grade);
       up({ step: "over", over: true, ending: end, score, grade });
+      fly("home", end === "promoted" ? "Home to Abuja, and a new office" : "Posting over: home to Abuja");
       try { (async () => { const r0 = await window.storage.get("sop_career"); const L = r0 && r0.value ? JSON.parse(r0.value) : []; await window.storage.set("sop_career", JSON.stringify([...L, { office: "ambassador", post: g.post, grade, ending: end, at: Date.now(), name: g.name }].slice(-200))); })(); } catch (e) {}
       return; }
     up(p => { const q = SYS.applyAmb(p, SYS.AMB_DRIFT); return { ...q, n: p.n + 1, items: SYS.ambAgenda(p.seed, p.n + 1, q) }; });
