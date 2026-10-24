@@ -43,7 +43,8 @@ const HALL = path.join(DATA, "hall.json");
 // Player feedback: one JSON line per message. Read it at /feedback?key=FEEDBACK_KEY
 // (set FEEDBACK_KEY in Railway Variables; without it the page does not exist).
 const FEEDBACK = path.join(DATA, "feedback.jsonl");
-const FEEDBACK_KEY = process.env.FEEDBACK_KEY || "";
+let fbWhy = 0;
+const FEEDBACK_KEY = String(process.env.FEEDBACK_KEY || "").trim(); // a stray space or newline pasted with it does not count
 const fbCount = new Map(); // player → { day, n }: at most 5 messages a day each
 // The Daily Decision: how players voted, one file per day. Same epoch as game/systems/daily.js.
 const DAILY_EPOCH = Date.UTC(2026, 9, 24);
@@ -328,8 +329,12 @@ http.createServer(async (req, res) => {
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "method" });
     if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, keyMode: KEY_MODE, freeCareers: FREE_CAREERS });
     if (url.pathname === "/feedback") {
-      const k = Buffer.from(String(url.searchParams.get("key") || "")), want = Buffer.from(FEEDBACK_KEY);
-      if (!FEEDBACK_KEY || k.length !== want.length || !crypto.timingSafeEqual(k, want)) return send(res, 404, "Not found", TYPES[".txt"]);
+      const k = Buffer.from(String(url.searchParams.get("key") || "").trim()), want = Buffer.from(FEEDBACK_KEY);
+      if (!FEEDBACK_KEY || k.length !== want.length || !crypto.timingSafeEqual(k, want)) {
+        // Why it was refused (never the key): not set at all, or the key given does not match.
+        if (Date.now() - fbWhy > 30e3) { fbWhy = Date.now(); console.warn("[feedback page] refused: " + (!FEEDBACK_KEY ? "FEEDBACK_KEY is not set on the server" : "the key in the address does not match (" + k.length + " characters given, " + want.length + " expected)")); }
+        return send(res, 404, "Not found", TYPES[".txt"]);
+      }
       let rows = []; try { rows = fs.readFileSync(FEEDBACK, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean).reverse(); } catch (e) {}
       if (url.searchParams.get("format") === "csv") {
         const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
