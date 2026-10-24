@@ -696,3 +696,29 @@ Alternating with them: **the council chamber** (councillors' "allowances", an ok
 
 ## Career screens: pictures
 `CareerHero` shows each painting whole at 16:9, never cropped to a strip. The person appears in a round head-and-shoulders portrait on the picture's corner rather than pasted into the scene.
+
+## Career depth, Phase 1: "It comes back" (see docs/CAREER-DEPTH-PLAN.md)
+**The engine:** `game/systems/consequence.js`, shared by all careers.
+- **Seeds:** a choice plants a seed (`plant`), and 1–3 turns later the seed comes due (`dueSeeds`). `withCallbacks` puts its callback card at the front of the turn.
+- **Named people:** they live in `S.npcs` with a relationship from 0 to 100 (`moveRel`, `mood`, `relWord`).
+- **The Player Record** (`sop_record`, `recordCareer`): offices held, the seed tags worth carrying forward, the people met and their final relationship, and lifetime corruption. `formerEnemy` and `formerAlly` let the next office call them back.
+
+**The Chairman, retrofitted**
+- **Three named people,** with surnames only, because the portraits are men, and every name is different:
+  - **The Governor:** the existing favour meter, with a pleased, worried or angry portrait.
+  - **The Party Chairman:** decides the ticket. A party that loves you can override a cold governor; one that hates you can deny a warm one.
+  - **A troublesome Councillor:** leads impeachment when the council is restless.
+- **14 seeds and their callbacks,** marked **↩ It comes back.** They include:
+  - the motor-park eviction after giving land away;
+  - drains collapsing under a crony contractor;
+  - the governor punishing a snubbed rally;
+  - ghost ward projects;
+  - the councillor's signatures;
+  - state auditors after a lawsuit;
+  - ghost workers from party hires;
+  - the ₦2,000 certificate exposé;
+  - the burnt farm after taking sides.
+
+  Good deeds come back too: the staffed clinic holds during cholera, the graded road doubles market day, the traders' union and the teachers' union endorse you, and the reconciled villages invite you. Callbacks can move election day (`elecMod`).
+- **The party's own demand:** forty party members want council jobs.
+- **At the end:** the Chairman writes the record (people plus the tags worth carrying) for later offices to call back.

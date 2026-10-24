@@ -12746,9 +12746,12 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   // ── Starting: how you got the ticket, then the council election ──
   const begin = (b, k) => {
     const lgas = getLGAs(profile.origin || "Lagos"), lga = profile.lga || lgas[0] || "Central";
-    const S = { v: 1, seed: Date.now(), name: profile.first + " " + profile.last, avatar: profile.avatar, state: profile.origin || "Lagos", lga, from: k,
-      people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "half", items: [], seen: [], fixed: 0, log: [], courtWon: 0 };
-    S.items = SYS.lgaAgenda(S.seed, 1, S);
+    const seed = Date.now(), rn = SYS.seeded(seed, "names"), zone = STATES[profile.origin]?.zone || "SW", usedNm = new Set([String(profile.last || "")]), nm = () => { let x = ""; for (let i = 0; i < 12 && (!x || usedNm.has(x)); i++) x = String(gN(rn, zone, profile.origin)).split(" ").pop(); usedNm.add(x); return x; }; // surnames only (the portraits are men), all different
+    const S = { v: 2, seed, name: profile.first + " " + profile.last, avatar: profile.avatar, state: profile.origin || "Lagos", lga, from: k,
+      people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "half", items: [], seen: [], fixed: 0, log: [], courtWon: 0,
+      govName: "Gov. " + nm(), seeds: [], elecMod: 0,
+      npcs: { party: { name: "Chief " + nm(), role: "Party Chairman", rel: k === "anointed" ? 65 : k === "grassroots" ? 40 : 50 }, cllr: { name: "Hon. " + nm(), role: "Councillor", rel: 50 } } };
+    S.items = SYS.lgaTurn(S.seed, 1, S);
     setG(S); trk("career_start", "chairman_" + k);
     learn("siec"); learn("lgas");
     card({ icon: "🗳️", img: "./art/backgrounds/lga-secretariat.webp", title: "Chairman of " + lga, text: "The state electoral commission declares you winner in every ward. You are sworn in at the council secretariat this morning.", rows: [], tone: "good", ok: "Take office" });
@@ -12765,32 +12768,39 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     card({ icon: o.id === "court" ? "⚖️" : o.id === "protest" ? "🗣️" : "🏦", img: o.id === "accept" ? undefined : "./art/scenes/joint-account-meeting.webp", title: o.id === "court" ? (refund ? "The court orders the money paid" : "The case drags on") : o.id === "protest" ? (refund ? "The governor relents, a little" : "The governor smiles and says no") : "You sign for what arrived",
       text: "Of ₦" + a.gross + "M, the state kept ₦" + a.deducted + "M and teachers' and staff salaries took ₦" + a.salaries + "M." + (refund ? " ₦" + refund + "M comes back to the council." : ""), rows: lgaFxRows(o.fx, -(a.net + refund)), tone: refund ? "good" : o.id === "accept" ? "neutral" : "bad", ok: "Next" });
   };
-  const choose = (x, o, kind) => {
+  const choose = (x, o, kind, key) => {
     if (o.cost > 0 && o.cost > g.purse) return;
-    const res = SYS.lgaChoice(o, R(kind + x.id));
+    const res = SYS.lgaChoice(o, R(kind + (key || x.id)));
     const fixed = kind === "problem" && o.cost >= 20;
-    trk("lga_" + kind, x.id + "_" + o.id);
+    trk("lga_" + kind, (key || x.id) + "_" + o.id);
     learn(x.learn);
-    up(p => ({ ...SYS.applyLga(p, res.fx, o.cost), ...next(p), seen: [...p.seen, x.id], fixed: p.fixed + (fixed ? 1 : 0) }));
-    card({ icon: res.bad ? "📰" : fixed ? "🏗️" : "📌", img: fixed ? "./art/scenes/chairman-flag-off.webp" : undefined, title: o.l, text: res.bad ? "It goes wrong in public, and everyone in the ward knows whose decision it was." : fixed ? "Work starts this week. People stop you on the street to say thank you." : "Done.", rows: lgaFxRows(res.fx, o.cost), tone: res.bad ? "bad" : fixed ? "good" : "neutral", ok: "Next" });
+    up(p => { let q = SYS.moveRel(SYS.applyLga(p, res.fx, o.cost), o.npc || {}); if (key) q = SYS.markFired(q, key); if (o.seed) q = SYS.plant(q, o.seed, p.n); return { ...q, ...next(p), seen: key ? p.seen : [...p.seen, x.id], fixed: p.fixed + (fixed ? 1 : 0), elecMod: (p.elecMod || 0) + (o.elec || 0) }; });
+    const nRows = Object.entries(o.npc || {}).filter(([k2, v]) => v && g.npcs && g.npcs[k2]).map(([k2, v]) => ({ l: g.npcs[k2].name, v: (v > 0 ? "+" : "−") + Math.abs(v), good: v > 0 }));
+    const eRows = o.elec ? [{ l: "Election day", v: (o.elec > 0 ? "+" : "−") + Math.abs(o.elec), good: o.elec > 0 }] : [];
+    card({ icon: res.bad ? "📰" : fixed ? "🏗️" : key ? "↩️" : "📌", img: fixed ? "./art/scenes/chairman-flag-off.webp" : undefined, title: fill(o.l), text: res.bad ? "It goes wrong in public, and everyone in the ward knows whose decision it was." : fixed ? "Work starts this week. People stop you on the street to say thank you." : o.seed ? "Done. People will remember this." : "Done.", rows: lgaFxRows(res.fx, o.cost).concat(nRows, eRows), tone: res.bad ? "bad" : fixed || (x.good) ? "good" : "neutral", ok: "Next" });
   };
+  // Names in callbacks and motions: {gov}, {party}, {cllr}.
+  const fill = (t) => String(t || "").replace(/\{gov\}/g, (g && g.govName) || "the governor").replace(/\{party\}/g, (g && g.npcs && g.npcs.party.name) || "the party chairman").replace(/\{cllr\}/g, (g && g.npcs && g.npcs.cllr.name) || "a councillor");
   const endHalf = () => {
     const t = SYS.lgaThreats(g, R("threat"), g.n);
     if (t) {
       learn(t.kind === "dissolved" ? "caretaker" : "impeach");
       trk("lga_end", t.kind);
-      up({ step: "over", over: true, ending: t.kind });
+      up({ step: "over", over: true, ending: t.kind }); saveRecord(t.kind, SYS.lgaGrade(SYS.lgaScore(g)));
       card({ icon: t.kind === "dissolved" ? "🔒" : "🗳️", img: t.kind === "dissolved" ? "./art/scenes/joint-account-meeting.webp" : "./art/backgrounds/council-chamber.webp", title: t.kind === "dissolved" ? "The governor dissolves the council" : "The councillors remove you", text: t.kind === "dissolved" ? "A caretaker committee of his loyalists takes over the secretariat this morning." : "Two-thirds of the councillors vote you out at a sitting you were not told about.", rows: [], tone: "bad", ok: "Continue" });
       return;
     }
     if (g.n >= SYS.LGA_HALVES) { up({ step: "election" }); return; }
-    up(p => { const q = SYS.applyLga(p, SYS.LGA_DRIFT); return { ...q, n: p.n + 1, items: SYS.lgaAgenda(p.seed, p.n + 1, q) }; });
+    up(p => { const q = SYS.applyLga(p, SYS.LGA_DRIFT); return { ...q, n: p.n + 1, items: SYS.lgaTurn(p.seed, p.n + 1, q) }; });
   };
+  // One life: what this chairmanship leaves in the player's record.
+  const saveRecord = (ending, grade) => { try { (async () => { const r0 = await window.storage.get(SYS.RECORD_KEY); const rec = r0 && r0.value ? JSON.parse(r0.value) : null; await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec, { office: "chairman", ending, grade, cor: g.cor, S: { ...g, npcs: { gov: { name: g.govName, role: "Governor", rel: g.gov }, ...g.npcs } }, keepTags: ["land_given", "sued_governor", "payroll_padded", "cert_fee", "drain_crony", "clinic_staffed", "market_rebuilt", "teachers_paid"] }))); })(); } catch (e) {} };
   const election = () => {
     const res = SYS.lgaElection(g, R("election")), score = SYS.lgaScore(g), grade = SYS.lgaGrade(score);
     learn("siec");
     trk("lga_end", !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated"); trk("lga_grade", grade);
     up({ step: "over", over: true, ending: !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated", score, grade });
+    saveRecord(!res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated", grade);
     try { (async () => { const r0 = await window.storage.get("sop_career"); const L = r0 && r0.value ? JSON.parse(r0.value) : []; await window.storage.set("sop_career", JSON.stringify([...L, { office: "chairman", state: g.state, lga: g.lga, grade, ending: res.won ? "complete" : "defeated", at: Date.now(), name: g.name }].slice(-200))); })(); } catch (e) {}
   };
 
@@ -12821,6 +12831,16 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 10 }}>How local government really works. You have found {notesHave()} of {notesAll}.</div>
     {Object.entries(SYS.LGA_LEARN).map(([k, t]) => { const have = senNotes().includes("lga:" + k); return <div key={k} style={{ padding: "10px 0", borderBottom: "1px solid " + UI.line, fontSize: DS.t.meta, color: have ? UI.ink : UI.dim, lineHeight: 1.45 }}>{have ? t : "🔒 Found by playing."}</div>; })}
   </EntranceSheet>;
+  // The three people who decide a chairman's fate.
+  const PersonChip = ({ img, name, role, rel }) => { const m = SYS.mood(rel); return <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "44px 1fr", justifyItems: tall ? "center" : "stretch", textAlign: tall ? "center" : "left", gap: tall ? 3 : 8, alignItems: "center", background: "#fff", border: "1px solid " + (m === "angry" ? "#efc2bc" : m === "pleased" ? "#bfe3cb" : CL.bdr), borderRadius: 14, padding: "6px 8px", minWidth: 0 }}>
+    <span style={{ position: "relative", width: 44, height: 44, borderRadius: "50%", overflow: "hidden", background: "radial-gradient(circle at 50% 35%, #f6efe0, #d9cbb0)" }}><img src={"./art/characters/" + img + ".webp"} alt="" style={{ position: "absolute", left: "50%", top: 2, height: 185, width: "auto", maxWidth: "none", transform: "translateX(-50%)" }} /></span>
+    <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: tall ? TS(16) : TS(22), color: CL.txt, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{name}</b><span style={{ fontSize: tall ? TS(14) : TS(19), color: m === "angry" ? CL.red : m === "pleased" ? CL.grn : CL.td }}>{role} · {SYS.relWord(rel)}</span></span>
+  </div>; };
+  const people = G && G.npcs && <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6, margin: "-4px 0 12px" }}>
+    <PersonChip img={G.gov >= 65 ? "governor-pleased" : G.gov < 35 ? "governor-angry" : "governor-worried"} name={G.govName} role="Governor" rel={G.gov} />
+    <PersonChip img={G.npcs.party.rel >= 65 ? "party-chairman-pleased" : G.npcs.party.rel < 35 ? "party-chairman-angry" : "party-chairman"} name={G.npcs.party.name} role="Party chairman" rel={G.npcs.party.rel} />
+    <PersonChip img="councillor-male" name={G.npcs.cllr.name} role="Councillor" rel={G.npcs.cllr.rel} />
+  </div>;
   const wrap = (el) => <>{el}{notebook}</>;
 
   if (!loaded) return <Frame><H title="Loading…" /></Frame>;
@@ -12857,22 +12877,31 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     </Frame>);
     if (it.k === "alloc") return wrap(<Frame bg="chairman-office" who={G.gov < 45 ? "lga-treasurer-worried" : "lga-treasurer"}>
       <H kick={kicker + " · the allocation"} title="The money has come down from the state" sub={"The treasurer reads it out: ₦" + SYS.ALLOCATION_M + "M due from Abuja, less what the state keeps and the salaries it pays first. How much the state keeps depends on how the governor feels about you."} />
-      {header}{left}<Learn k="jaac" />
+      {header}{people}{left}<Learn k="jaac" />
       <div style={{ display: "grid", gap: 8 }}>{SYS.ALLOC_OPTS.map(o => <Opt key={o.id} ic={o.id === "accept" ? "🏦" : o.id === "protest" ? "🗣️" : "⚖️"} l={o.l} d={o.d} tone={o.id === "court" ? "bad" : null} onClick={() => takeAlloc(o)} />)}</div>
     </Frame>);
+    if (it.k === "callback") {
+      const x = SYS.LGA_CALLBACKS[it.id];
+      return wrap(<Frame {...(x.scene ? { scene: x.scene } : { bg: x.bg, who: x.who })}>
+        <div style={{ textAlign: "center" }}><span style={{ display: "inline-block", background: x.good ? "#e5f3ea" : "#fff2c9", color: x.good ? CL.grn : "#7a5a00", border: "1px solid " + (x.good ? "#bfe3cb" : "#e9cf8a"), borderRadius: 999, padding: "4px 14px", fontSize: fz.s, fontWeight: 800 }}>↩ It comes back</span></div>
+        <H kick={kicker} title={fill(x.t)} sub={fill(x.d)} />
+        {header}{people}{left}<Learn k={x.learn} />
+        <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, "callback", it.id)} />)}</div>
+      </Frame>);
+    }
     const pool = it.k === "problem" ? SYS.LGA_PROBLEMS : it.k === "motion" ? SYS.LGA_MOTIONS : SYS.GOV_ASKS, x = pool.find(y => y.id === it.id);
     const art = it.k === "problem" ? (x.scene ? { scene: x.scene } : { bg: x.bg, who: x.who }) : it.k === "motion" ? { bg: "council-chamber", who: x.id === "okada" || x.id === "impeach" ? "councillor-male" : "councillor-female" } : { scene: "joint-account-meeting" };
     const kick = it.k === "problem" ? kicker + " · " + lgaNm(G) : it.k === "motion" ? kicker + " · the council chamber" : kicker + " · Government House";
     return wrap(<Frame {...art}>
-      <H kick={kick} title={x.t} sub={x.d} />
-      {header}{left}<Learn k={x.learn} />
-      <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={o.l} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, it.k)} />)}</div>
+      <H kick={kick} title={fill(x.t)} sub={fill(x.d)} />
+      {header}{people}{left}<Learn k={x.learn} />
+      <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, it.k)} />)}</div>
     </Frame>);
   }
   if (G.step === "election") return wrap(<Frame bg="village-square">
-    <H kick="Three years on" title="The council election" sub={G.gov >= 25 ? "The party has given you the ticket. The state electoral commission runs the vote." : "The governor's men have handed the ticket to someone else."} />
+    <H kick="Three years on" title="The council election" sub={SYS.lgaTicket(G) ? G.npcs.party.name + " has given you the party's ticket. The state electoral commission runs the vote." : G.npcs.party.name + " has handed the ticket to someone else."} />
     {header}<Learn k="siec" />
-    <Bt onClick={election} style={{ width: "100%" }}>{G.gov >= 25 ? "🗳️ Count the votes →" : "See how it ends →"}</Bt>
+    <Bt onClick={election} style={{ width: "100%" }}>{SYS.lgaTicket(G) ? "🗳️ Count the votes →" : "See how it ends →"}</Bt>
   </Frame>);
   const score = G.score != null ? G.score : SYS.lgaScore(G), grade = G.grade || SYS.lgaGrade(score);
   const endT = { dissolved: ["Dissolved", "A caretaker committee runs " + lgaNm(G) + " now."], impeached: ["Impeached", "The councillors chose a new chairman."], no_ticket: ["Denied the ticket", "The governor's candidate runs in your place."], defeated: ["Voted out", "The wards wanted someone new."], reelected: ["Re-elected", "Three more years at the council secretariat."] }[G.ending] || ["The end", ""];

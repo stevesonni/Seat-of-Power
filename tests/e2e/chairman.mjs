@@ -25,7 +25,7 @@ for (let i = 0; i < 160; i++) {
   if (await g.page.evaluate(() => /How it really works ·/.test(document.body.innerText))) learnSeen = true;
   if (await closeCard()) { await g.wait(250); continue; }
   const t = await g.txt();
-  for (const k of ["The money has come down", "the council chamber", "Government House", "The council election"]) if (new RegExp(k, "i").test(t)) seen.add(k);
+  for (const k of ["The money has come down", "the council chamber", "Government House", "The council election", "It comes back"]) if (new RegExp(k, "i").test(t)) seen.add(k);
   if (/Re-elected|Voted out|Denied the ticket|Dissolved|Impeached/.test(t) && /chairman's notebook/.test(t)) break;
   const hit = await g.page.evaluate(() => {
     const pref = [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && /^(🏦Accept|Next half-year|To the council election|🗳️|See how it ends|💵|•)/.test(b.textContent.trim()));
@@ -40,7 +40,11 @@ const t = await g.txt();
 check(/Re-elected|Voted out|Denied the ticket|Dissolved|Impeached/.test(t), "the career reaches an ending (" + ((t.match(/Re-elected|Voted out|Denied the ticket|Dissolved|Impeached/) || ["none"])[0]) + ")");
 await shot("end");
 check(seen.has("The money has come down"), "the allocation comes down through the state");
-check(seen.has("the council chamber") && seen.has("Government House"), "the council and the governor both make demands");
+const early = /Dissolved|Impeached/.test(t); // a legitimate early end can come before every kind of card
+check(early || (seen.has("the council chamber") && seen.has("Government House")), "the council and the governor both make demands");
+check(early || seen.has("It comes back"), "an earlier choice comes back as a callback");
+const rec = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_record") || "null"));
+check(rec && rec.offices.some(o => o.office === "chairman") && rec.people.length >= 3, "the player record keeps the office and the people met");
 check(learnSeen, "result cards teach how it really works");
 const notes = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_notebook") || "[]").filter(k => k.startsWith("lga:")).length);
 check(notes >= 5, "the chairman's notebook fills (" + notes + " notes)");
