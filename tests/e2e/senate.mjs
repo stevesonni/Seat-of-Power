@@ -12,7 +12,7 @@ const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/
 await g.page.mouse.click(28, 26); await g.wait(500);
 check(!!(await g.click(/^Careers/)), "the menu has Careers"); await g.wait(500);
 check(/Senator/.test(await g.txt()) && /Coming soon/.test(await g.txt()), "Careers lists the Senator and what is coming");
-await g.page.evaluate(() => { const row = [...document.querySelectorAll("[role=dialog] div")].find(d => /^⚖️Senator/.test(d.textContent.trim()) && d.querySelector("button")); row.querySelector("button").click(); });
+await g.page.evaluate(() => { const row = [...document.querySelectorAll("[role=dialog] div")].find(d => /^Senator/.test(d.textContent.trim()) && d.querySelector("button")); row.querySelector("button").click(); });
 await g.wait(900);
 check(/Who are you when you walk in/.test(await g.txt()), "free play offers backgrounds");
 await g.click(/^✊Popular activist/); await g.wait(600);

@@ -64,9 +64,19 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 48, "48 icons");
+  assert.equal(icons.length, 53, "53 icons (48 + the five office icons)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
   ["news-court-steps", "news-governor-abroad", "news-investor-deal", "news-protest", "news-signing-ceremony", "news-victory-rally"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/scenes", f + ".webp")), f));
+});
+
+// The career packs: the ladder and the Senator are in the game; the others wait in art-staging/.
+test("every Senator and career-ladder picture is used", () => {
+  const names = ["constituency-office", "national-assembly-exterior", "senate-chamber", "senate-hearing-room", "senator-office-abuja", "lobbyist", "minister-witness", "minister-witness-worried", "senate-minority-leader",
+    "senate-president", "senate-president-pleased", "senate-president-angry", "senate-president-worried", "senator-female", "senator-veteran-male", "senator-young-male", "the-president", "the-president-pleased", "the-president-angry",
+    "committee-report", "senate-mace", "vote-card", "constituency-project-commissioning", "defection-press-conference", "oversight-grilling", "senate-president-election", "senate-vote", "career-ladder", "badge-senator"];
+  const files = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.basename(f, ".webp"));
+  assert.deepEqual(names.filter(n => !files.includes(n)), [], "all shipped");
+  assert.deepEqual(names.filter(n => !src.includes('"' + n + '"') && !src.includes("/" + n + ".webp")), [], "all referenced");
 });

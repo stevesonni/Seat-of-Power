@@ -1,5 +1,7 @@
 # For Lovable: art for the new careers
 
+> **Delivered (all five packs).** The ladder and Senator art is in `public/art`. The LGA Chairman, Ambassador and Presidency art (plus the chairman, ambassador and statesman badges) waits in `art-staging/` until those careers are built, because the game ships only pictures it uses.
+
 The game is growing from one office into a career ladder: **LGA Chairman → Governor → Senator → President**, with **Ambassador** as a side road. Please send each pack below as its own zip, with every file named exactly as listed. Any format is fine; I convert.
 
 **Rules for every picture**
