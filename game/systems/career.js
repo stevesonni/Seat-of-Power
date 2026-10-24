@@ -44,6 +44,7 @@ export const careerBadges = (list, zoneOf = () => null) => {
     ["commander", "🎖️", "Commander-in-Chief", "As President, face down tanks near the Villa", P.some(c => c.coup)],
     ["unifier", "🤝", "Unifier", "Leave the presidency with all six zones behind you", P.some(c => c.allZones && c.ending !== "impeached")],
     ["crisis", "⛓️", "Crisis ended", "As President, end the national crisis", P.some(c => c.crisisOver)],
+    ["peacemaker", "🕊️", "Peacemaker", "As President, end the Bakunda war with a treaty", P.some(c => c.peace)],
     ["fallen", "⚠️", "Fallen", "Be impeached or removed (it happens)", L.some(c => c.ending === "impeached" || c.ending === "nullified")],
   ];
   return B.map(([id, icon, name, how, got]) => ({ id, icon, name, how, got: !!got }));
@@ -63,6 +64,7 @@ export const BADGE_PERKS = {
   commander: { text: "Commander-in-Chief: security +3%", fx: { sec: .03 } },
   unifier: { text: "Unifier: every zone +3", fx: { zones: 3 } },
   crisis: { text: "Crisis-tested: party +4", fx: { pStab: 4 } },
+  peacemaker: { text: "Peacemaker: approval +3, security +2%", fx: { app: 3, sec: .02 } },
   statesman: { text: "Former President: party +6, approval +2", fx: { pStab: 6, app: 2 } },
   zones: { text: "Pan-Nigerian: every zone +2", fx: { zones: 2 } },
   ten: { text: "Seasoned: ₦1B in the bank", fx: { cashB: 1 } },

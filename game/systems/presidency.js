@@ -273,7 +273,7 @@ export const PRES_LOOK = {
   faac: ["governors-forum", "governors-forum-chair"], bailout: ["governors-forum", "governors-forum-chair"], statepolice: ["nass-joint-session", "inspector-general"],
   screening: ["fec-meeting", null], power: ["national-grid-dark", "governors-forum-chair"], loan: [null, null, "budget-briefcase"],
   unga: ["un-podium", null], meridia: ["presidential-jet", "foreign-head-of-state"], banquet: [null, "foreign-head-of-state"], au: ["guard-of-honour", "ecowas-envoy"], coupnext: [null, "ecowas-envoy"],
-  "insurgency:2": ["idp-return", null], "fuel:1": [null, null, "red-phone"],
+  "insurgency:2": ["idp-return", null], "fuel:0": ["fuel-queue", null], "fuel:2": ["fuel-queue", null],
 };
 // [background, character, object, scene] for a card.
 export const presArt = (P, it, c) => {

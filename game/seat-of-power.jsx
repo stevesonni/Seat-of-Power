@@ -903,7 +903,7 @@ const MINISTRY_CATALOGUE = [
 const band = (v) => v >= 70 ? "Strong" : v >= 50 ? "Solid" : "Weak";
 // Honours: milestones earned in office. c is a snapshot of the record.
 const HONOURS = [
-  { id: "peacemaker", i: "🕊️", nm: "Peacemaker", d: "Ended the Bakunda war with a treaty the National Assembly enacted.", ok: (c) => !!c.peace },
+  { id: "peacemaker", i: "🕊️", art: "badge-peacemaker", nm: "Peacemaker", d: "Ended the Bakunda war with a treaty the National Assembly enacted.", ok: (c) => !!c.peace },
   { id: "ribbon", i: "✂️", nm: "First ribbon", d: "Delivered your first project.", ok: (c) => c.delivered >= 1 },
   { id: "builder", i: "🏗️", nm: "Master builder", d: "Delivered five projects.", ok: (c) => c.delivered >= 5 },
   { id: "listener", i: "👂", nm: "The listener", d: "Answered three community needs.", ok: (c) => c.met >= 3 },
@@ -948,6 +948,7 @@ const PROMISE_TEXT = {
 // FNV-1a: hashStr's ×31 keeps the letter sum mod 3, which piles names into one zone.
 const zoneOfName = (name, n = 3) => { let h = 2166136261; for (const ch of String(name || "")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h % n; };
 const houseSeats = (pop) => pop >= 9 ? 40 : pop >= 5 ? 30 : 24;
+const NASS_SEATS = 469; // the President's: 109 senators and 360 representatives
 
 // Each state's own recurring crises, keyed by the issues listed for it in STATES.
 // fx: app/pStab are points; cor/sec/infra/hp/agr/lit are fractions; debt is ₦B.
@@ -1774,7 +1775,7 @@ const Ico = ({ n, s = 22, style }) => React.createElement("img", { src: "./art/i
 const SceneArt = ({ bg, scene, who, obj, alt, h = 230 }) => React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
     background: "#1d2a22 url(./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp) center/cover" } },
-  who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
+  scene ? null : who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
     : obj ? React.createElement("img", { src: "./art/objects/" + obj + ".webp", alt: alt || "", style: { height: Math.round(h * .68), width: "auto", objectFit: "contain", marginBottom: Math.round(h * .12), filter: "drop-shadow(0 10px 18px rgba(0,0,0,.35))" } }) : null);
 
 // ── Campaign screens (first election and re-election) ──
@@ -2429,7 +2430,7 @@ const StreakSheet = ({ st, onClose }) => {
 };
 
 // Your career: the map of states you have governed, and the badges earned.
-const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
+const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", peacemaker: "badge-peacemaker", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
 // ── YOUR COMPANY (the company_registration product, ₦1,500) ──
 // A contractor of the player's own, in one sector, that every player sees as
@@ -2527,7 +2528,10 @@ const CareerSheet = ({ onClose }) => {
   </EntranceSheet>;
 };
 
-const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onAmbassador, onChallenge, onScenario, onBoard, profile, setProfile }) => {
+const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onAmbassador, onChallenge, onScenario, onBoard, onPreview, profile, setProfile }) => {
+  // The Presidency preview: for trying the presidency without a governorship first (7 taps on the logo, or ?preview=presidency).
+  const taps = React.useRef(0);
+  const [preview, setPreview] = useState(() => { try { return localStorage.getItem("sop_preview") === "1" || /preview=presidency/.test(location.search); } catch (e) { return false; } });
   useMode("public");
   const [op, setOp] = useState(1);
   const [hasSave, setHasSave] = useState(false);
@@ -2578,7 +2582,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
         </button>
       </div>
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: tall ? "0 20px" : "0 40px" }}>
-        <img src={TITLE_LOGO} alt="The Seat of Power" style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
+        <img src={TITLE_LOGO} alt="The Seat of Power" onClick={() => { taps.current = (taps.current || 0) + 1; if (taps.current === 7) { try { localStorage.setItem("sop_preview", "1"); } catch (e) {} setPreview(true); try { window.SOP_toast && window.SOP_toast("Presidency preview unlocked: open Careers", "ok"); } catch (e) {} } }} style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
         <div style={{ marginTop: tall ? 8 : 12, fontSize: DS.t.label, letterSpacing: 2, textTransform: "uppercase", color: UI.sub, fontWeight: 700, textAlign: "center" }}>Campaign · Govern · Survive</div>
       </div>
       <TitleLineup ids={lineup} tall={tall} />
@@ -2605,6 +2609,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["icon-office-governor", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
             ["icon-office-senator", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. " + careerPrice("career_senator", "₦1,000"), "Play", () => { setSheet(null); onSenate && onSenate(); }],
             ["icon-office-president", "President of Nigeria", "Earned: finish a governorship and run. Win the race and govern from Aso Rock: 36 states, six zones, five power centres and the world stage.", null, null],
+            ...(preview && onPreview ? [["icon-office-president", "🦅 Presidency (preview)", "Straight to Eagle Square as President, for trying the presidency. It starts a new game.", "Play", async () => { if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nThe presidency preview replaces it once you take the oath.", "Start the preview", "Keep my career"))) return; setSheet(null); onPreview(profile); }]] : []),
             ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad in trouble, a host that can expel you, and cables from Abuja. " + careerPrice("career_ambassador", "₦1,000"), "Play", () => { setSheet(null); onAmbassador && onAmbassador(); }]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: UI.tints[2], display: "grid", placeItems: "center" }}><Ico n={ic} s={44} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.35 }}>{d}</span></span>
@@ -3899,12 +3904,12 @@ const JUDICIARY_EVENTS = [
 // Who is speaking for a House objection.
 const LAWMAKER_ART = (who) => /loyal to|godfather|'s members/i.test(who || "") ? "lawmaker-godfather-loyalist" : /opposition/i.test(who || "") ? "lawmaker-opposition-leader" : /caucus|party|Party stability/i.test(who || "") ? "lawmaker-majority-leader" : "lawmaker-backbencher";
 const LawFace = ({ who }) => <img src={"./art/characters/" + LAWMAKER_ART(who) + ".webp"} alt="" loading="lazy" style={{ width: 34, height: 40, objectFit: "cover", objectPosition: "top", borderRadius: 8, background: CL.grn + "14", verticalAlign: "middle", marginRight: 8, flexShrink: 0 }} />;
-const SeatStrip = ({ house }) => !house ? null : <div style={{ margin: "0 auto 22px", maxWidth: 732, padding: "18px 22px", borderRadius: 16, background: "#6b4a2b url(./art/objects/vote-tally-board.webp) center/100% 100% no-repeat" }}>
+const SeatStrip = ({ house }) => { if (!house) return null; const per = house.seats > 60 ? Math.ceil(house.seats / 40) : 1; return <div style={{ margin: "0 auto 22px", maxWidth: 732, padding: "18px 22px", borderRadius: 16, background: "#6b4a2b url(./art/objects/vote-tally-board.webp) center/100% 100% no-repeat" }}>
   <div style={{ display: "flex", flexWrap: "wrap", gap: 5, justifyContent: "center" }} aria-label={house.loyal + " of " + house.seats + " members back you"}>
-    {Array.from({ length: house.seats }, (_, i) => <span key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: i < house.loyal ? "#0b6b42" : "#d8cfb8" }} />)}
+    {Array.from({ length: Math.ceil(house.seats / per) }, (_, i) => <span key={i} style={{ width: 14, height: 14, borderRadius: "50%", background: i < Math.round(house.loyal / per) ? "#0b6b42" : "#d8cfb8" }} />)}
   </div>
-  <div style={{ fontSize: TS(30), color: "#fff8e6", marginTop: 8, textShadow: "0 1px 2px rgba(0,0,0,.6)" }}><b style={{ color: house.loyal > house.seats / 2 ? "#9be7b4" : "#ffb4a9" }}>{house.loyal} of {house.seats}</b> members back you · {Math.floor(house.seats / 2) + 1} needed</div>
-</div>;
+  <div style={{ fontSize: TS(30), color: "#fff8e6", marginTop: 8, textShadow: "0 1px 2px rgba(0,0,0,.6)" }}><b style={{ color: house.loyal > house.seats / 2 ? "#9be7b4" : "#ffb4a9" }}>{house.loyal} of {house.seats}</b> members back you · {Math.floor(house.seats / 2) + 1} needed{per > 1 ? " · each dot ≈ " + per : ""}</div>
+</div>; };
 const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, onDrop, grudges = [], speakerName = "The Speaker", addL, house, onClear, fixLabel }) => {
   const [voted, setVoted] = useState(false);
   const [result, setResult] = useState(null);
@@ -4799,6 +4804,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const sd = STATES[state];
   // The presidency: the same engine with Nigeria as the polity (six zones, 37 "areas").
   const NAT = state === NATION, ZN = zonesOf(state), ZIX = ZN.map((_, i) => i);
+  const MEM = NAT ? Math.round(NASS_SEATS / 40) : 1; // one governor-sized House member is about a dozen in the National Assembly
   useEffect(() => NAT ? presidentialScreen() : undefined, [NAT]);
   const MT = 8;
   const ld = loadedSave; // shorthand
@@ -5431,7 +5437,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, promises: upd, brokenAtRe: term === 1 ? broken : p.brokenAtRe }));
     return broken;
   };
-  const scHouse = () => stc.house || { seats: houseSeats(sd.pop || 5), loyal: Math.round(houseSeats(sd.pop || 5) * .62) };
+  const scHouse = () => { const H = stc.house || { seats: houseSeats(sd.pop || 5), loyal: Math.round(houseSeats(sd.pop || 5) * .62) }; return NAT && H.seats !== NASS_SEATS ? { ...H, seats: NASS_SEATS, loyal: Math.round(H.loyal / H.seats * NASS_SEATS) } : H; };
 
   // Revenue reforms: adopt now, pay on a schedule.
   const applyRev = (p, list) => { const n = { ...p }; list.forEach(x => { if (x.revIGR) n.revIGR = (n.revIGR || 0) + x.revIGR; if (x.taxEff) n.taxEff = (n.taxEff || 1) + x.taxEff; if (x.debt) n.debt = Math.max(0, (n.debt || 0) + x.debt); }); return n; };
@@ -5543,16 +5549,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         track("pres_" + (c.id || it.id), o.id);
         const rows = Object.entries(o.npc || {}).map(([k, v]) => ({ l: (after.npcs[k] || {}).name + " (" + SYS.PRES_NPCS[k].short + ")", v: (v > 0 ? "+" : "") + v, good: v > 0 }))
           .concat(it.k === "crisis" ? [{ l: SYS.PRES_CRISES[it.id].nm, v: after.over ? "Over" : after.sev + "/100", good: f.sev < 0 }] : []);
-        const broadcast = it.k === "crisis" || it.k === "coup";
         const flew = c.flight && (o.id === "go" || o.id === "invest");
         const good = !f.bad && f.fx.app >= 0 && Object.values(o.npc || {}).reduce((a, v) => a + v, 0) >= 0;
         const moodImg = ["inspector-general", "ecowas-envoy", "foreign-head-of-state", "chief-justice"].includes(who) ? "./art/characters/" + who + (good ? "-pleased" : "-angry") + ".webp" : undefined;
-        return { icon: broadcast ? "📺" : it.k === "world" ? "🌍" : "🦅", img: broadcast ? "./art/scenes/national-broadcast.webp" : flew ? "./art/scenes/presidential-jet.webp" : it.id === "banquet" && o.id === "full" ? "./art/scenes/guard-of-honour.webp" : it.k === "world" && bg === "state-banquet" ? "./art/backgrounds/state-banquet.webp" : scene ? "./art/scenes/" + scene + ".webp" : moodImg,
-          title: broadcast ? "Address to the nation: " + o.l.replace(/^./, x => x.toLowerCase()) : o.l, text: f.bad ? "It went wrong in public, and the country saw it." : after.over && !before.over ? SYS.PRES_CRISES[before.crisis].nm + " is over. The country exhales." : (o.adv ? "It moves your commitment: " + SYS.PRES_COMMITS[o.adv].l.toLowerCase() + "." : ""),
+        return { icon: it.k === "coup" ? "🎖️" : it.k === "crisis" ? "🚨" : it.k === "world" ? "🌍" : "🦅", img: /^(address|broadcast|speech)/.test(o.id) ? "./art/scenes/national-broadcast.webp" : it.k === "coup" ? "./art/scenes/coup-night.webp" : flew ? "./art/scenes/presidential-jet.webp" : it.id === "banquet" && o.id === "full" ? "./art/scenes/guard-of-honour.webp" : it.k === "world" && bg === "state-banquet" ? "./art/backgrounds/state-banquet.webp" : scene ? "./art/scenes/" + scene + ".webp" : moodImg,
+          title: o.l, text: f.bad ? "It went wrong in public, and the country saw it." : after.over && !before.over ? SYS.PRES_CRISES[before.crisis].nm + " is over. The country exhales." : (o.adv ? "It moves your commitment: " + SYS.PRES_COMMITS[o.adv].l.toLowerCase() + "." : ""),
           tone: f.bad ? "bad" : (f.fx.app >= 0 ? "good" : "neutral"), rows, learn: SYS.PRES_LEARN[c.learn] };
       } }; }) };
   };
-  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who, null, c.scene || null], title: c.t, brief: c.d,
+  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.t, brief: c.d,
     options: c.opts.map(o => { const cost = o.cost || 0, app = (o.fx && o.fx.app || 0) - (c.spill || 0) - (c.fatigue || 0);
       return { label: o.l, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : []), run: () => {
         scFx({ app, sec: (o.fx && o.fx.sec || 0) - (c.spill ? .02 : 0), cor: o.fx && o.fx.cor, debt: cost > 0 ? cost : 0 });
@@ -5561,16 +5566,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (o.flight) { const dest = c.id === "bk5" ? "Washington" : c.id === "bk4" && (B0 || {}).summits ? "Geneva" : "Abuja";
           if (c.id === "bk2") { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Bakunda", left: "Abuja" } }); } catch (e) {} } // the airlift: the jets go, not you
           else presTrip(dest, c.id === "bk5" ? "the White House meeting on Bakunda" : "the summit on Bakunda"); }
-        const pp = o.paper || c.paper; if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined), 200);
+        const pp = o.paper || c.paper, pImg = o.paperImg || c.paperImg || c.scene; if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], pImg ? "./art/scenes/" + pImg + ".webp" : undefined), 200);
         // On Bakunda it is the Chief of Army Staff who comes to you, not the adviser.
         const army = ((stc.pres || {}).npcs || {}).army, chief = "Gen. " + ((army && army.name) || "the Chief") + " · Chief of Army Staff";
         const line = o.say || (c.stall ? "Mr. President, we are stalling. The force does not fit the ground, and every year costs us more." : null);
-        if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff.webp", name: chief, text: line, urgent: !!c.stall } }); } catch (e) {} }, 600);
+        const mood = c.stall ? "urgent" : app < 0 || c.fatigue ? "worried" : o.say ? "pleased" : "neutral";
+        if (o.ally) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/us-president-pleased.webp", name: "The President of the United States", text: o.ally } }); } catch (e) {} }, 600);
+        else if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-" + mood + ".webp", name: chief, text: line, urgent: !!c.stall } }); } catch (e) {} }, 600);
         addL("🌍 Bakunda: " + c.t.replace(/\u2060/g, "") + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue ? "crisis" : "policy");
         if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
         else if (c.id === "bk3" || c.id === "bk2") scWiki(c.id === "bk3" ? "Presidency" : "Presidency", c.id === "bk3" ? (o.id === "talk" ? "Answered the Bakunda–Ostrava Axis with sanctions and talks." : "Sent the armed forces against the Bakunda–Ostrava Axis.") : "Responded to General Voko's coup in Bakunda: " + o.l.toLowerCase() + ".");
         track("bakunda_" + c.id, o.id);
-        return { icon: c.id === "bk7" || c.id === "bk7b" ? "🕊️" : "🌍", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : c.bg ? "./art/backgrounds/" + c.bg + ".webp" : undefined, title: o.l, text: (o.note ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : c.stall ? "The war is stalling: the wrong force for the ground makes every push count for less, and each extra year costs approval." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
+        return { icon: c.id === "bk7" || c.id === "bk7b" ? "🕊️" : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : c.stall ? "The war is stalling: the wrong force for the ground makes every push count for less, and each extra year costs approval." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
           tone: B1.done ? "good" : app < 0 ? "bad" : "neutral", rows: c.id === "bk3" || c.id === "bk6" || c.id === "bk4" || c.id === "bk5" ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }] : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
       } }; }) });
   const statecraftTurn = (q, rE) => {
@@ -5608,7 +5615,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
 
     // House of Assembly: members drift with your party grip and your standing.
-    if (!next.house) { const seats = houseSeats(sd.pop || 5); next.house = { seats, loyal: Math.round(seats * Math.min(.8, .5 + (s.pStab - 50) / 200 + .08)) }; }
+    if (!next.house || NAT && next.house.seats !== NASS_SEATS) { const seats = NAT ? NASS_SEATS : houseSeats(sd.pop || 5); next.house = { seats, loyal: Math.round(seats * Math.min(.8, .5 + (s.pStab - 50) / 200 + .08)) }; }
     else {
       let d = 0;
       if (s.pStab >= 65 && s.app >= 55) d += 1;
@@ -5618,7 +5625,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (s.cor > .5) d -= 1;
       if (lv === "hard" && r() < .4) d -= 1;
       if (lv === "easy" && d < 0 && r() < .5) d += 1;
-      const H0 = next.house, loyal = Math.max(0, Math.min(H0.seats, H0.loyal + d)), k = Math.abs(loyal - H0.loyal);
+      const H0 = next.house, loyal = Math.max(0, Math.min(H0.seats, H0.loyal + d * MEM)), k = Math.abs(loyal - H0.loyal);
       if (loyal < H0.loyal) notes.push(["🔀 " + k + " Assembly member" + (k === 1 ? "" : "s") + " defected to the opposition. " + loyal + " of " + H0.seats + " still with you; impeachment needs " + Math.ceil(H0.seats * 2 / 3) + " against you.", "political"]);
       if (loyal > H0.loyal) notes.push(["🤝 " + k + " Assembly member" + (k === 1 ? "" : "s") + " crossed to your side. " + loyal + " of " + H0.seats + " now with you.", "success"]);
       next.house = { ...H0, loyal };
@@ -5631,9 +5638,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         brief: against + " of " + H.seats + " members now sit against you. The Speaker, " + (cast?.speaker?.name || "the Speaker") + ", is sitting on your bills, and the opposition is counting towards the " + impNeed + " votes needed to impeach.",
         stakes: "If " + impNeed + " members turn against you, impeachment proceedings start.",
         options: [
-          { label: "Constituency projects for every member", note: "Roads and boreholes in their wards, through their contractors.", chips: fxChips({ debt: buy, cor: .02 }).concat([{ text: "+4 members", color: CL.grn }]), run: () => { scFx({ debt: buy, cor: .02 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 4) } })); addL("🏛️ Constituency projects for Assembly members won back 4 votes (debt +₦" + buy + "B).", "political"); } },
-          { label: "Share appointments with the party barons", note: "Board seats and commissioner slots for their people.", chips: fxChips({ pStab: 4, app: -1 }).concat([{ text: "+2 members", color: CL.grn }]), run: () => { scFx({ pStab: 4, app: -1 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 2) } })); addL("🏛️ Appointments shared with the party barons: 2 members return, the press calls it jobs for the boys.", "political"); } },
-          { label: "Go over their heads to the people", note: s.app >= 55 ? "You are popular. Members fear their own voters." : "With your approval this low, they may call your bluff.", chips: [{ text: s.app >= 55 ? "+2 members" : "Risky", color: s.app >= 55 ? CL.grn : CL.org }], run: () => { if (s.app >= 55) { setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 2) } })); addL("📣 You took the fight to their wards. Two members came back.", "success"); } else { scFx({ app: -2 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal - 1) } })); addL("📣 Your appeal to the people fell flat. Another member defected.", "crisis"); } } },
+          { label: "Constituency projects for every member", note: "Roads and boreholes in their wards, through their contractors.", chips: fxChips({ debt: buy, cor: .02 }).concat([{ text: "+" + 4 * MEM + " members", color: CL.grn }]), run: () => { scFx({ debt: buy, cor: .02 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 4 * MEM) } })); addL("🏛️ Constituency projects for Assembly members won back " + 4 * MEM + " votes (debt +₦" + buy + "B).", "political"); } },
+          { label: "Share appointments with the party barons", note: "Board seats and commissioner slots for their people.", chips: fxChips({ pStab: 4, app: -1 }).concat([{ text: "+" + 2 * MEM + " members", color: CL.grn }]), run: () => { scFx({ pStab: 4, app: -1 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 2 * MEM) } })); addL("🏛️ Appointments shared with the party barons: " + 2 * MEM + " members return, the press calls it jobs for the boys.", "political"); } },
+          { label: "Go over their heads to the people", note: s.app >= 55 ? "You are popular. Members fear their own voters." : "With your approval this low, they may call your bluff.", chips: [{ text: s.app >= 55 ? "+" + 2 * MEM + " members" : "Risky", color: s.app >= 55 ? CL.grn : CL.org }], run: () => { if (s.app >= 55) { setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 2 * MEM) } })); addL("📣 You took the fight to their wards. " + 2 * MEM + " members came back.", "success"); } else { scFx({ app: -2 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal - 1 * MEM) } })); addL("📣 Your appeal to the people fell flat. Another member defected.", "crisis"); } } },
         ] });
     }
 
@@ -5827,7 +5834,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const gfName = cast?.godfather?.name || "Your godfather";
     const gfGone = next.gf === "dead" || next.gf === "opposition";
     const setGf = (st0, extra = {}) => setStc(p => ({ ...p, gf: st0, ...extra }));
-    const houseAdd = (k) => setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + k)) } } : p);
+    const houseAdd = (k) => setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + k * MEM)) } } : p);
     if (!gfGone && turn >= 3 && !asked.gf_rise && godfatherRel >= 60 && godfatherPower >= 45) {
       asked.gf_rise = turn;
       cards.push({ key: "gf_rise", kicker: "Your godfather", color: CL.org, art: ["abuja-federal-office", "godfather-pleased"],
@@ -5887,17 +5894,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const startPet = (term, margin, opp, oppParty) => {
       const filed = margin < 2 || r() < (margin < 5 ? .7 : 0);
       if (!filed) return;
-      next.petition = { term, stage: 0, margin, opp, oppParty, start: turn, lostBelow: false };
+      next.petition = { term, stage: NAT ? 1 : 0, margin, opp, oppParty, start: turn, lostBelow: false };
       notes.push(["⚖️ " + opp + " (" + oppParty + ") is challenging your " + (term === 1 ? "election" : "re-election") + " in court. Your margin: " + margin + "%.", "crisis"]);
     };
     const m1 = scenarioStart(setup).margin != null ? scenarioStart(setup).margin : setup?.election?.marginPct;
     if (turn === 1 && !next.pet1 && setup?.election && m1 < 5) { next.pet1 = true; startPet(1, m1, String(setup.election.opp || "The opposition candidate").replace(/^Hon\. /, ""), setup.election.oppParty || "OPP"); }
     if (turn === 5 && !next.pet2 && next.reMargin != null && next.reMargin < 5) { next.pet2 = true; startPet(2, next.reMargin, next.reOpp || "The opposition candidate", next.reOppParty || "OPP"); }
     const P0 = next.petition;
-    if (P0 && P0.stage < 3 && turn >= P0.start + P0.stage) {
+    if (P0 && P0.stage < 3 && turn >= P0.start + P0.stage - (NAT ? 1 : 0)) {
       const COURTS = ["Governorship Election Tribunal", "Court of Appeal", "Supreme Court"], SHORT = ["Tribunal", "Court of Appeal", "Supreme Court"];
       const gavel = () => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} };
-      const LEARN = "A petition must be filed within 21 days of the result (S.285(5)). The tribunal rules within 180 days, and each appeal within 60 (S.285(6) and (7)). The Supreme Court is final.";
+      const LEARN = NAT ? "A presidential election petition goes straight to the Court of Appeal (S.239), not to a tribunal. It must be filed within 21 days (S.285(5)) and decided within 180; the appeal to the Supreme Court within 60 days. The Supreme Court is final." : "A petition must be filed within 21 days of the result (S.285(5)). The tribunal rules within 180 days, and each appeal within 60 (S.285(6) and (7)). The Supreme Court is final.";
       const st0 = P0.stage, final = st0 === 2;
       const base = .12 + (P0.margin < 2 ? .15 : P0.margin < 3.5 ? .08 : .03) + Math.max(0, s.cor - .35) * .9 + (s.cor > .55 ? .1 : 0) + (setup?.gfDebt > 0 ? .03 : 0);
       const grounds = s.cor > .5 ? "inducement of voters and misuse of state funds" : P0.margin < 2 ? "over-voting in the polling units you won" : "non-compliance with the Electoral Act";
@@ -5918,16 +5925,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           scWiki("Controversies", "The " + COURTS[st0] + " nullified the " + (P0.term === 1 ? "election" : "re-election") + "; the governor appealed.");
           setStc(p => ({ ...p, petition: { ...p.petition, stage: st0 + 1, lostBelow: true } }));
           gavel();
-          return { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You lost at the " + SHORT[st0], text: "You stay in office and appeal to the " + COURTS[st0 + 1] + ".", rows: [{ l: "Approval", v: "−3", good: false }], tone: "bad", learn: st0 === 0 ? LEARN : undefined };
+          return { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You lost at the " + SHORT[st0], text: "You stay in office and appeal to the " + COURTS[st0 + 1] + ".", rows: [{ l: "Approval", v: "−3", good: false }], tone: "bad", learn: st0 === (NAT ? 1 : 0) ? LEARN : undefined };
         }
-        const quits = !final && st0 === 0 && P0.margin >= 4 && Math.random() < .5;
+        const quits = !final && st0 === (NAT ? 1 : 0) && P0.margin >= 4 && Math.random() < .5;
         scFx({ app: final ? 3 : 1, pStab: final ? 3 : 0 });
         addL("⚖️ The " + COURTS[st0] + " dismissed " + P0.opp + "'s petition." + (final ? " The matter is closed for good." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), "success");
         setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined } }));
         gavel(); if (final || quits) setTimeout(() => { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} }, 900);
-        return { icon: "⚖️", img: final || quits ? "./art/scenes/news-victory-rally.webp" : "./art/scenes/news-court-steps.webp", title: "You won at the " + SHORT[st0], text: final ? "Final. You keep your seat." : quits ? P0.opp + " has given up. You keep your seat." : P0.opp + " appeals to the " + COURTS[st0 + 1] + ".", tone: "good", learn: st0 === 0 ? LEARN : undefined };
+        return { icon: "⚖️", img: final || quits ? "./art/scenes/news-victory-rally.webp" : "./art/scenes/news-court-steps.webp", title: "You won at the " + SHORT[st0], text: final ? "Final. You keep your seat." : quits ? P0.opp + " has given up. You keep your seat." : P0.opp + " appeals to the " + COURTS[st0 + 1] + ".", tone: "good", learn: st0 === (NAT ? 1 : 0) ? LEARN : undefined };
       };
-      cards.push({ key: "petition", kicker: "Election petition · " + SHORT[st0] + " (" + (st0 + 1) + "/3)", color: CL.red, art: st0 === 2 ? ["supreme-court-abuja", "senior-advocate"] : st0 === 1 ? ["courtroom", "senior-advocate"] : ["courtroom", null, "petition-file"],
+      cards.push({ key: "petition", kicker: "Election petition · " + SHORT[st0] + (NAT ? " (" + st0 + "/2)" : " (" + (st0 + 1) + "/3)"), color: CL.red, art: st0 === 2 ? ["supreme-court-abuja", "senior-advocate"] : st0 === 1 ? ["courtroom", "senior-advocate"] : ["courtroom", null, "petition-file"],
         title: P0.opp + " v. You",
         brief: "Their claim: " + grounds + ". Your margin: " + P0.margin + "%." + (P0.lostBelow ? " You lost below and appealed." : "") + (s.cor > .45 ? " Your record helps them." : ""),
         stakes: final ? "Final. Lose and you leave office." : "Lose and you appeal.",
@@ -7202,7 +7209,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (surv && won) {
       setImpSurv(true);
       setS(p => ({ ...p, app: cl100(p.app + 5), pStab: cl100(p.pStab + 15) })); // Boost pStab so it doesn't re-trigger
-      setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.min(p.house.seats, Math.max(p.house.loyal + 4, Math.ceil(p.house.seats / 3) + 2)) } } : p);
+      setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.min(p.house.seats, Math.max(p.house.loyal + 4 * MEM, Math.ceil(p.house.seats / 3) + 2)) } } : p);
       addL("🛡️ Survived impeachment! Public rallied. Party stability restored.", "political");
       advance();
     } else {
@@ -7907,7 +7914,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setS(p => ({ ...p, app: cl100(p.app - 3), cor: cl(p.cor + .02) }));
     } else fx.push({ icon: "🚧", text: co + " will expect the next big contract", bad: true });
     // His loyalists in the House now vote with you.
-    setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 3) } }) : p);
+    setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 3 * MEM) } }) : p);
     fx.push({ icon: "🏛️", text: "Three lawmakers loyal to him now vote with you", value: "House +3", good: true });
     // Someone was watching.
     const invId = investorsApproved[investorsApproved.length - 1], inv = invId ? INVESTORS.find(x => x.id === invId) : null;
@@ -8855,7 +8862,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
     setStc(p => ({ ...p, careerSaved: true })); track("ending", SYS.ENDING_NAME[gEnd] || gEnd); track("grade", gr); track("ending_state", state);
-    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0) } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
+    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), peace: !!(stc.bakunda && stc.bakunda.done && stc.bakunda.treaty === "enacted"), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0) } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
   // The Secretariat writes: each commissioner asking to see you, and each open
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the
@@ -8877,7 +8884,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The honour carried in from an earlier career, applied once at the start.
   useEffect(() => {
     const P = setup?.legacy && SYS.BADGE_PERKS[setup.legacy]; if (!P || stc.legacyDone || needSetup) return;
-    const f = P.fx; setStc(p => ({ ...p, legacyDone: true, house: f.house && p.house ? { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + f.house) } : p.house }));
+    const f = P.fx; setStc(p => ({ ...p, legacyDone: true, house: f.house && p.house ? { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + f.house * MEM) } : p.house }));
     setS(p => { const n = { ...p, app: cl100(p.app + (f.app || 0)), pStab: cl100(p.pStab + (f.pStab || 0)), cor: cl(p.cor + (f.cor || 0)), sec: cl(p.sec + (f.sec || 0)), cash: Math.round(((p.cash || 0) + (f.cashB || 0)) * 100) / 100 }; if (f.zones) { const zm = { ...(p.zoneMood || {}) }; ZIX.forEach(z => { zm[z] = (zm[z] || 0) + f.zones; }); n.zoneMood = zm; } return n; });
     if (f.fg) setFgRelation(r => Math.min(100, r + f.fg));
     addL("🎖️ Your record goes before you. " + P.text + ".", "success");
@@ -9899,7 +9906,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const cost = Math.round((1.4 + turn * 0.15) * 10) / 10;
             const done = (window.SOP_MEMORY ? window.SOP_MEMORY.all("flagship_milestone", e => e.meta && e.meta.delivered) : []).length;
             // This year's share, in plain terms: which road, how many guards, where.
-            const deliv = SYS.flagshipDeliverable(setup.agenda, ((year - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(year * 131 + state.length * 7));
+            const deliv = SYS.flagshipDeliverable(setup.agenda, ((year - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(year * 131 + state.length * 7), NAT ? ZN : null);
             const pick = (opt) => decide(() => {
               if (opt.debt && !spendB(opt.debt, "The flagship")) return;
               setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)) }));
@@ -11848,7 +11855,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 ["recommended", "Balanced", "Every sector healthy"],
                 ["populist", "Populist", "Wages and roads first"],
                 ["reformer", "Reformer", "Pay down debt"],
-                ["godfather", "Godfather's budget", "Big contracts"],
+                ["godfather", NAT ? "Party barons' budget" : "Godfather's budget", "Big contracts"],
               ];
               const same = (a, b) => BSECTORS.every(sec => (a[sec.k] || 0) === (b[sec.k] || 0));
               const warnCount = (v) => BSECTORS.filter(sec => { const m = SEC_META[sec.k], x = v[sec.k] || 0; return m && (x < m.min || x > m.max); }).length;
@@ -13724,6 +13731,17 @@ function App() {
       learn: "There is no limit on returning: a governor who lost may run again. The Constitution only limits anyone to two terms as governor in total (S.182(1)(b))." }); } catch (e) {}
   };
 
+  // The Presidency preview: your politician, just elected President, straight to the oath.
+  const presidencyPreview = (p) => {
+    const st = (p && p.origin && STATES[p.origin] && p.origin !== "FCT") ? p.origin : "Enugu", z = STATES[st].zone, r = rng(Date.now() % 99991);
+    const party = p && MAIN_PARTY_IDS.includes(p.leaning) ? p.leaning : "NRA", P = PARTIES.find(x => x.id === party) || PARTIES[0], O = PARTIES.find(x => MAIN_PARTY_IDS.includes(x.id) && x.id !== party) || PARTIES[1];
+    const G = { v: 1, seed: Date.now(), name: p ? (p.first + " " + p.last) : gN(r, z, st), avatar: (p && p.avatar) || "agbada", state: st, zone: z, party, partyNm: P.nm, from: "senator", bio: null, chest: 3, cor: .3,
+      opp: { name: gN(r, z === "NW" ? "SW" : "NW", NATION), party: O.id, partyNm: O.nm, zone: z === "NW" ? "SW" : "NW" }, ious: [], pledges: [], mate: { name: gN(r, "NC", NATION), zone: "NC", kind: "partyman" },
+      zones: { NW: 52, NE: 50, NC: 54, SW: 53, SE: 51, SS: 52 }, res: { nat: 52.4, statesWon: 21, s25: 29 } };
+    seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {}
+    track("preview", "presidency");
+    setSetup(presidentSetup(G, { level })); setLoadedSave(null); setScr("gov");
+  };
   // The politician profile on this device, used by the entrance and setup.
   const [profile, setProfile] = useState(null);
   const [startProfile, setStartProfile] = useState(null);
@@ -13852,7 +13870,7 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "title" && <TitleScreen onPreview={presidencyPreview} onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <button onClick={async () => { if (await window.SOP_confirm("Leave the campaign?\n\nIt is not saved until you take office: next time you start the campaign again.", "Go to the home screen", "Keep campaigning")) rst(); }} aria-label="Home screen" style={{ position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 8px)", right: 10, zIndex: 70, background: "rgba(255,255,255,.92)", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "6px 12px", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: CL.txt, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}>🏠 Home</button>}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>

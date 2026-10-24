@@ -85,3 +85,20 @@ The presidency now has a war storyline across the term: unrest in the Republic o
 
 ## Badge (`badges/`)
 - `badge-peacemaker`: a gold dove over two crossed rifles, in the round-medal style.
+
+---
+
+# Pack 17: the President's pilot and the Air Fleet
+
+> **Delivered: Pack 16**, 28 of its 30 pictures, all in the game. Missing from the zip: the pilot and the hangar below. Please send just these three files as one zip.
+
+Before every trip abroad, the President's pilot meets them at the Presidential Air Fleet and says: "Good day, Your Excellency. The jet is fuelled and ready for take-off. Shall we go now?" Right now a plain soldier stands in for him.
+
+**Rules:** the game's painted style; a fictional person; no real air force crest or flag other than green-white-green.
+
+## Characters (`characters/`): transparent background, full length, about 700 px tall
+1. `presidential-pilot`: a Nigerian Air Force **Group Captain**, mid-40s, in an olive flight jacket with pilot's wings and rank on the shoulders, aviator sunglasses tucked in the pocket, peaked cap. **Standing to attention and saluting**, facing the viewer.
+2. `presidential-pilot-pleased`: the **same man in the same outfit**, cap under his arm, smiling, one hand gesturing towards the jet ("This way, Your Excellency").
+
+## Scene (`scenes/`): 1280×720, no text
+3. `air-fleet-hangar`: **inside** the Presidential Air Fleet's hangar: a green-and-white presidential jet with its steps down, a red carpet running to the steps, two ground crew in overalls, warm floodlights, the hangar doors open to a dusk sky. No people in the foreground: the pilot stands in front of this picture.

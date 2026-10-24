@@ -36,6 +36,9 @@ const ZONE = "(North-West|North-East|North-Central|South-West|South-East|South-S
 /* Ordered: the longer phrases go first, so "State House of Assembly" becomes
    "National Assembly" before "State" is touched. */
 const RULES = [
+  [/\bGovernorship Election Tribunal\b/g, "Court of Appeal"],
+  // The President is Abuja: the federal government's own share of oil and VAT.
+  [/\bFAAC from Abuja\b/g, "Federal share of oil and VAT"],
   [/\bState House Report\b/g, "Nigeria Tonight"],
   [/\bState House of Assembly\b/g, "National Assembly"],
   [/\bHouse of Assembly\b/g, "National Assembly"],

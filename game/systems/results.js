@@ -8,10 +8,10 @@ const fmtN = (n) => Math.round(n).toLocaleString("en-GB");
 
 // This year's share of each flagship promise: { what, where } for one year (1–4 of a term).
 // lgas: the state's local governments; districts: [north, central, south] lists of them.
-export const flagshipDeliverable = (agenda, year, districts, r = Math.random) => {
+export const flagshipDeliverable = (agenda, year, districts, r = Math.random, names = null) => {
   const zi = (year - 1) % (districts.length || 3), ds = districts[zi] && districts[zi].length ? districts[zi] : districts.flat();
   const a = pick(ds, r) || "the state", b = pick(ds.filter(x => x !== a), r) || a;
-  const zone = ["North", "Central", "South"][zi];
+  const zone = (names && names[zi]) || ["North", "Central", "South"][zi];
   const D = {
     infrastructure: () => year <= 3 ? "the " + a + "–" + b + " trunk road in the " + zone + " district (" + (28 + Math.round(r() * 30)) + " km, dualised)" : "street lights and drainage along all three trunk roads",
     education: () => fmtN(30) + " primary schools in " + a + " and " + b + " rebuilt: roofs, desks, toilets and " + (90 + Math.round(r() * 60)) + " new teachers",
