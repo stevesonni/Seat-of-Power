@@ -141,3 +141,22 @@ All of it is set in **invented countries**: no real flags, landmarks or city sky
 - the assembly chamber, Abuja federal office, airport arrivals and Supreme Court backgrounds;
 - the billboards, letters, bills, stamps, wax seals, badges and 48 icons;
 - `lg-chairman`: an existing portrait, used for rival chairmen.
+
+---
+
+## Pack 6: named people and the market road (small, optional)
+Same rules as above. Mood variants keep the **same person and outfit**; only the expression and gesture change.
+
+**For the LGA Chairman (now)**
+- `characters/councillor-male-pleased` and `characters/councillor-male-angry`: moods for the existing councillor.
+- `scenes/market-road-finished`: the finished market road on a busy market day, with trucks, traders and a new culvert. Shown when the road survives the rains.
+- `scenes/market-road-washout`: a new red-earth road torn apart by rain, culverts exposed, traders staring. Shown when it fails.
+- `objects/in-tray`: a wooden office in-tray piled with files, a few stamped red URGENT (no other readable text). For the "pick two matters" screen.
+
+**For the Senator upgrade (next)**
+- `characters/rival-senator` with `-pleased` and `-angry`: an ambitious senator in a sharp agbada who wants your seat.
+- `characters/legislative-aide`: a young, sharp chief of staff in a suit with a tablet.
+
+**For the Ambassador upgrade (next)**
+- `characters/foreign-minister-nigeria-pleased` and `-angry`: moods for the existing Foreign Minister.
+- `characters/diaspora-leader`: an older Nigerian community leader abroad, in native wear with a winter coat.
