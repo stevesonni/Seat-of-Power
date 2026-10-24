@@ -1869,7 +1869,7 @@ const ShareCard = ({ img, name, line1, line2, grade }) => React.createElement("d
 const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi";
 // A picture for each decision (Lovable's decision packs, in ./art/decisions/). Decisions that
 // are the same moment share one. Add a pack's ids here as it arrives.
-const DEC_ART = new Set(["child_rights", "edu_compulsory", "env_protect", "fiscal_resp", "foi", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "land_reform", "market_mod", "open_grazing", "pension", "procurement_law", "tenancy", "vapp", "youth_employ"]);
+const DEC_ART = new Set(["afdb", "agro_processing", "child_rights", "china_infra", "chinese_steel", "dangote_cement", "data_centre", "diaspora_houston", "edu_compulsory", "env_protect", "fertilizer", "fintech_hub", "fiscal_resp", "foi", "garment_factory", "ge_power", "harvard", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "hotel_resort", "jud_budget", "jud_corrupt", "jud_land", "jud_mining", "jud_policy", "jud_security", "korea_skills", "land_reform", "m_blogger_bribe", "m_fake_news", "m_hashtag_fail", "m_influencer_visit", "m_newspaper_expose", "m_newspaper_praise", "m_radio_angry", "m_radio_praise", "m_tv_documentary", "m_viral_good", "market_mod", "mining_co", "mit", "oil_refinery", "open_grazing", "pension", "pharma_plant", "poultry_farm", "procurement_law", "shopping_mall", "solar_farm", "sweden_pm", "tenancy", "uae_invest", "uk_trade", "un_sdg", "university", "us_pres", "vapp", "world_bank", "youth_employ"]);
 const DEC_ALIAS = { hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
 const DecPic = ({ id, h }) => { const src = decArt(id); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
@@ -6685,7 +6685,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     if (s.cor > .4 && !courtDone(JUDICIARY_EVENTS[1]) && r() < .3) {
       const land = M && (M.did("godfather_contract") || M.did("contract_awarded") || M.did("nepotism_flag"));
-      return openCourt({ ...JUDICIARY_EVENTS[1], penalty: { corM: -.02, app: -4 }, cause: land ? "Filed after " + String(land.decision || land.note || "a contract you approved").replace(/\.$/, "") + " (turn " + land.t + ")." : "Filed because corruption in your government is at " + Math.round(s.cor * 100) + "%." });
+      return openCourt({ ...JUDICIARY_EVENTS[1], penalty: { corM: -.02, app: -4 }, cause: land ? "Filed after you " + (() => { const d = String(land.decision || land.note || "approved a contract").replace(/\.$/, ""); return d.charAt(0).toLowerCase() + d.slice(1); })() + " in " + (2026 + (land.t || 1)) + "." : "Filed because corruption in your government is at " + Math.round(s.cor * 100) + "%." });
     }
     if (pol.length > 2 && !courtDone(JUDICIARY_EVENTS[2]) && r() < .15) {
       const target = pol[Math.floor(r() * pol.length)];
@@ -6777,6 +6777,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Show result screen before continuing to next event
   // Accepts: { icon, title, narrative, effects: [{icon, text, value, good, bad}], tone, nextFn }
   const showResult = (cfg) => {
+    // The decision on screen lends its picture to the result (Lovable's decision packs).
+    if (!cfg.img) { const d = ({ media: curMedia, investor: curInvestor, intl_invite: curInvite, judiciary: curCourt || judEvent, dilemma: curD, federal: curFgEvent, shock: curShock, godfather: godfatherDemand, house_bill: pendingHouseBill })[phase]; const src = d && decArt(d.id); if (src) cfg = { ...cfg, img: src }; }
     if (cosAuto.current && cosAuto.current.pressed) { cosAuto.current.shown = true; cfg = { ...cfg, by: cosAuto.current.c.name, chose: cosAuto.current.label, byOk: cosAuto.current.r.ok }; }
     if (silentRef.current && silentNote(cfg.title, cfg.tone !== "bad")) { const fn = cfg.nextFn; setTimeout(() => { if (fn) fn(); else nextEvent(); }, 50); return; }
     try { window.SOP_sound && window.SOP_sound(cfg.tone === "good" ? "good" : cfg.tone === "bad" ? "bad" : "neutral"); } catch (e) {}
@@ -9241,7 +9243,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
             return <Cd style={{ borderColor: CL.pur + "44" }}>
               <div style={{ textAlign: "center", marginBottom: 29 }}>
-                <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />
+                {decArt(curCourt.id) ? <DecPic id={curCourt.id} /> : <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />}
                 <Bg text={stage} color={CL.pur} />
                 <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curCourt.title}</h3>
                 <More text={curCourt.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
@@ -9509,7 +9511,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={phase === "judiciary" && !!judEvent}>
           {judEvent && <Cd style={{ borderColor: CL.pur + "44", textAlign: "center" }}>
-            <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />
+            {decArt(judEvent.id) ? <DecPic id={judEvent.id} /> : <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />}
             <Bg text="Judicial Review" color={CL.pur} />
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{judEvent.nm}</h3>
             <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{briefly(judEvent.d, 120)}</p>
@@ -9947,7 +9949,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "media" && !!curMedia}>
           {curMedia && <Cd style={{ borderColor: curMedia.severity === "positive" ? CL.grn + "44" : CL.org + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <MediaArt m={curMedia} reporter={cast.reporter.name} h={TALL() ? 220 : 260} />
+              {decArt(curMedia.id) ? <DecPic id={curMedia.id} /> : <MediaArt m={curMedia} reporter={cast.reporter.name} h={TALL() ? 220 : 260} />}
               <Bg text={curMedia.type === "social" ? "Social Media" : curMedia.type === "newspaper" ? "Newspaper" : curMedia.type === "radio" ? "Radio" : curMedia.type === "tv" ? "Television" : "Blogger"} color={curMedia.severity === "positive" ? CL.grn : CL.org} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(62), fontWeight: 600 }}>{curMedia.title}</h3>
               <More text={curMedia.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 29 }} />
@@ -9995,7 +9997,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "investor" && !!curInvestor}>
           {curInvestor && <Cd style={{ borderColor: CL.blu + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg={investorArt(curInvestor.id)[0]} who={investorArt(curInvestor.id)[1]} alt={curInvestor.co || ""} h={TALL() ? 200 : 240} />
+              {decArt(curInvestor.id) ? <DecPic id={curInvestor.id} /> : <SceneArt bg={investorArt(curInvestor.id)[0]} who={investorArt(curInvestor.id)[1]} alt={curInvestor.co || ""} h={TALL() ? 200 : 240} />}
               <Bg text="Private Investment Proposal" color={CL.blu} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(62), fontWeight: 600 }}>{curInvestor.nm}</h3>
               <div style={{ fontSize: TS(34), color: CL.pur, fontFamily: F.m, marginBottom: 14 }}>{curInvestor.co}</div>
@@ -10357,7 +10359,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "intl_invite" && !!curInvite}>
           {curInvite && <Cd style={{ borderColor: CL.blu + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="airport-arrivals" h={TALL() ? 200 : 240} />
+              {decArt(curInvite.id) ? <DecPic id={curInvite.id} /> : <SceneArt bg="airport-arrivals" h={TALL() ? 200 : 240} />}
               <Bg text="International Invitation" color={CL.blu} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>Letter from {curInvite.who}</h3>
               <div style={{ fontSize: TS(34), color: CL.pur, fontFamily: F.m, marginBottom: 22 }}>{curInvite.from}</div>

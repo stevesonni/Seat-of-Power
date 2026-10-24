@@ -127,7 +127,7 @@ The governor's bills and the bills the House sends up.
 - `gf_assembly`: the godfather whispering to a lawmaker in the House of Assembly lobby.
 - `gf_revenue`: the godfather and an accountant studying the state revenue ledger.
 
-## Pack 12: media and the courts (16)
+## Pack 12: media and the courts (16): delivered and in the game
 - `m_hashtag_fail`: a phone screen full of photos of bad roads and empty hospitals (no readable text).
 - `m_newspaper_expose`: a newsroom with an editor holding up a front page with photographs.
 - `m_radio_angry`: a radio studio, the presenter fielding call after call, lights flashing.
@@ -145,7 +145,7 @@ The governor's bills and the bills the House sends up.
 - `jud_security`: lawyers in wigs outside a detention centre gate.
 - `jud_mining`: environmental activists and villagers at a mining pit with a court bailiff.
 
-## Pack 13: the world (28)
+## Pack 13: the world (28): delivered and in the game
 **Invitations abroad** (no real leaders: show from behind, as hands, or as generic officials):
 - `us_pres`: a grand Washington-style meeting room, two officials shaking hands, flags small behind.
 - `harvard`: a governor lecturing in a wood-panelled university hall.
