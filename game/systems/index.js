@@ -24,3 +24,4 @@ export * from "./results.js";
 export * from "./rulers.js";
 export * from "./daily.js";
 export * from "./career.js";
+export * from "./wiki.js";

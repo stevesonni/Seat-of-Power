@@ -7596,19 +7596,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const flag = FLAGSHIP[setup?.agenda];
     const short = (t, n = 140) => { t = String(t || "").replace(/^[^A-Za-z0-9"'“₦(]+/u, "").trim(); return t.length > n ? t.slice(0, n - 2).replace(/\s+\S*$/, "") + "…" : t; };
     const plain = (t) => short(t).replace(/^"|"$/g, "");
-    // References: each fact cites the news story that reported it.
-    const refs = [], refKey = {};
-    const cite = (e, fallbackHead) => {
-      const key = e && e.id ? e.id : fallbackHead;
-      if (refKey[key]) return { ref: refKey[key] };
-      const t = (e && e.t) || turn;
-      const log = e && logs.find(l => l.t === t && ((e.target && l.tx.includes(e.target)) || (e.decision && l.tx.toLowerCase().includes(String(e.decision).toLowerCase().slice(0, 18)))));
-      const body = e ? (e.note && e.decision && String(e.note).indexOf(String(e.decision).slice(0, 20)) < 0 ? e.decision + ": " + e.note : (e.note || e.decision || e.kind)) : fallbackHead;
-      const head = plain(log ? log.tx : body);
-      const n = refs.length + 1; refKey[key] = n;
-      refs.push({ n, head: head.replace(/[.\s]+$/, ""), src: e && /court|unconst/.test(e.kind || "") ? "State House Report" : paper, when: whenOf(t) });
-      return { ref: n };
-    };
     const ofKind = (k) => L.filter(e => Array.isArray(k) ? k.includes(e.kind) : e.kind === k);
     const loan = ofKind("campaign_loan")[0];
     const pols = ofKind("policy_enacted");
@@ -7625,113 +7612,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const pre = "Chief " + gN(rng(state.length * 991 + 5), sd?.zone, state);
     const successor = !ended ? "Incumbent" : gEnd === "defeated" ? ini(cast.rival.name) : gEnd === "impeached" ? (depGov?.nm || "Deputy governor") : (() => { const so = successionOutcome(); return so && so.won ? so.name : gN(rng(state.length * 733 + turn + 1), sd?.zone, state); })();
     const termStr = turn > 4 ? "Two terms" : "First term";
-    const lead1 = [pName + " is a Nigerian politician who " + (ended ? "served" : "has served") + " as the Governor of " + stName + " State " + (ended ? "from " + startYear + " to " + endYear : "since May " + startYear) + ". A member of the " + (pa?.nm || party) + ", " + he + " was elected in " + startYear + " on the slogan \"" + (setup?.slogan || "") + "\"" + (setup?.election ? ", defeating " + ini(setup.election.opp) + " of the " + setup.election.oppParty : "") + ". "];
-    if (flag) lead1.push(His + " administration's flagship programme " + (ended ? "was" : "is") + " " + flag.nm + ", a promise to " + flag.goal + ". ");
-    const del = flagM.filter(e => e.meta && e.meta.delivered && !e.meta.corners).length, cut = flagM.filter(e => e.meta && e.meta.corners).length, miss = flagM.filter(e => e.meta && !e.meta.delivered).length;
-    if (flagM.length) { lead1.push("By " + yearOf(flagM[flagM.length - 1].t) + " it had met " + (del + cut) + " of " + flagM.length + " yearly targets" + (cut ? ", " + cut + " of them by cutting corners" : "") + ". "); lead1.push(cite(flagM[flagM.length - 1])); }
-    const lead = [lead1];
-    if (ended) {
-      const out = gEnd === "impeached" ? He + " was removed from office by the State House of Assembly under Section 188 of the Constitution." : gEnd === "nullified" ? "The Supreme Court nullified " + his + " election on a petition by " + ((stc.petition && stc.petition.opp) || "the opposition candidate") + ", who was sworn in as governor." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182.";
-      lead.push([out + " " + His + " approval stood at " + Math.round(s.app) + "% when " + he + " left office."]);
-    }
-    const sections = [];
-    // Early life and campaign
-    const camp = [];
-    camp.push([pName + " entered politics through the " + (pa?.nm || party) + ". " + He + " won the party's governorship ticket in " + (startYear - 1) + " with " + (depGov?.nm || "a running mate") + " as running mate" + (setup?.partyAccepted === false ? ", a pick the party had not wanted" : setup?.partyAccepted ? ", the party's own choice" : "") + "."]);
-    const cp = [He + " campaigned on the slogan \"" + (setup?.slogan || "") + "\"" + (flag ? " and promised to " + flag.goal : "") + ". "];
-    if (setup?.election) cp.push("In the " + startYear + " election " + he + " carried " + setup.election.zonesWon + " of the state's three senatorial districts against " + ini(setup.election.opp) + " (" + setup.election.oppParty + "), winning by " + setup.election.marginPct + "%. ");
-    if (loan) { cp.push("The campaign was part-funded by a " + naira(loan.debtOwed?.amount || campaignGfDebt) + " loan from " + cast.godfather.name + ", a party financier."); cp.push(cite(loan)); }
-    camp.push(cp);
-    sections.push({ h: "Early life and campaign", paras: camp });
-    // Governorship
-    const subs = [];
-    if (ministries && ministries.some(m => m.minister)) {
-      const apps = ministries.filter(m => m.minister).slice(0, 4);
-      subs.push({ h: "Cabinet", paras: [[He + " was sworn in on 29 May " + startYear + ". " + His + " cabinet included " + apps.map(m => m.minister + " (" + m.name + ")").join(", ") + "."]] });
-    }
-    if (flag) {
-      const pp = [];
-      if (!flagM.length) pp.push("The " + flag.nm + " programme had no yearly target due yet.");
-      flagM.forEach(e => { pp.push("In " + yearOf(e.t) + ", " + (e.meta?.delivered ? (e.meta?.corners ? "the target was met on paper, with corners cut" : "the year's target was met in full") : "the year's target was missed") + ". "); pp.push(cite(e)); pp.push(" "); });
-      if (flagM.length) pp.push("In all, " + (del + cut) + " of " + flagM.length + " targets were met.");
-      subs.push({ h: "Flagship programme: " + flag.nm, paras: [pp] });
-    }
-    if (budgets.length) {
-      const pp = [];
-      const passed = budgets.filter(e => e.kind === "budget_passed"), forced = budgets.filter(e => e.kind === "budget_forced"), deals = budgets.filter(e => e.kind === "house_deal"), wd = budgets.filter(e => e.kind === "budget_withdrawn");
-      if (passed.length) { pp.push("The House of Assembly passed " + passed.length + " of " + his + " appropriation bills. The latest, " + short(passed[passed.length - 1].note, 90) + "."); pp.push(cite(passed[passed.length - 1])); pp.push(" "); }
-      if (deals.length) { pp.push(deals.length === 1 ? "One bill passed only after a deal with the Speaker. " : deals.length + " bills passed only after deals with the Speaker. "); pp.push(cite(deals[0])); pp.push(" "); }
-      if (wd.length) { pp.push("In " + yearOf(wd[0].t) + " " + he + " withdrew a rejected budget and ran the state on the previous year's figures."); pp.push(cite(wd[0])); pp.push(" "); }
-      if (forced.length) { pp.push(He + " forced " + (forced.length === 1 ? "one budget" : forced.length + " budgets") + " through by executive order, without the House."); pp.push(cite(forced[0])); }
-      subs.push({ h: "Budget", paras: [pp] });
-    }
-    if (pols.length || gfC.length || gfB.length || courts.length) {
-      const pp = [];
-      pols.slice(0, 5).forEach(e => { pp.push(He + " launched the " + String(e.decision || "").replace(/^(Enacted|Started) /, "").replace(/^⭐\s*/, "") + ", welcomed by " + ((e.beneficiaries || [])[0] || "supporters").toLowerCase() + " and opposed by " + ((e.losers || [])[0] || "critics").toLowerCase() + "."); pp.push(cite(e)); pp.push(" "); });
-      if (echoes.length) { const ec = echoes[echoes.length - 1]; pp.push("Residents later told reporters: \"" + short(ec.note, 100) + "\""); pp.push(cite(ec)); pp.push(" "); }
-      if (gfB.length) { pp.push(He + " refused " + gfB.length + (gfB.length === 1 ? " demand" : " demands") + " from " + cast.godfather.name + "."); pp.push(cite(gfB[0])); pp.push(" "); }
-      if (courts.length) { pp.push(He + " complied with " + courts.filter(e => e.kind === "court_compliance").length + " court ruling(s)."); pp.push(cite(courts[0])); }
-      subs.push({ h: "Key decisions", paras: [pp] });
-    }
-    // Everything the game wrote to the record (wikiEvents), told year by year
-    // under themed headings, so no decision goes unrecorded.
-    const sentence = (e) => {
-      let t = String(e.txt || "").trim().replace(/\s+/g, " "); if (!t) return null;
-      const iw = t.match(/^Ignored warnings?: (.*)$/i); if (iw) return "In " + yearOf(e.turn) + " " + he + " ignored warnings. " + iw[1].replace(/([^.!?])$/, "$1.");
-      if (!/[.!?]$/.test(t)) t += ".";
-      const first = t.split(" ")[0];
-      const verb = /^[A-Z][a-z]+(ed|ught|ent|ilt|ade|ok|on|ost|ave|aid|ut|oke|an|et)$/.test(first) && !/^(United|Red|Ahmed|Mohammed|Hamed|Saeed|Abdulrasheed)$/.test(first);
-      return "In " + yearOf(e.turn) + ", " + (verb ? he + " " + first.toLowerCase() + t.slice(first.length) : /^The /.test(t) ? "t" + t.slice(1) : t);
-    };
-    const THEMES = [
-      ["Projects and infrastructure", /road|bridge|project|commissioned|built|hospital|clinic|school|estate|housing|water|stadium|initiated|awarded|contract|EIA|site/i],
-      ["Economy and public finance", /debt|revenue|IGR|tax|loan|bond|relief|budget|FAAC|salar|arrears|registry|levy|Treasury Single|payroll|financed|investor/i],
-      ["Cabinet and appointments", /commissioner|ministry|cabinet|sacked|appoint|reshuffle|permanent secretar|adviser/i],
-      ["Security", /security|bandit|kidnap|police|vigilante|Amotekun|herders|cult/i],
-      ["Courts, elections and local government", /court|tribunal|petition|election|local government|LG |chairm|INEC/i],
-    ];
-    const gov = [], seen = new Set();
-    (wikiEvents || []).slice().reverse().forEach(e => { if (!e || e.section === "Controversies") return; const k = String(e.txt); if (seen.has(k)) return; seen.add(k); gov.push(e); });
-    const used = new Set();
-    THEMES.forEach(([h, rx]) => {
-      const es = gov.filter(e => !used.has(e) && rx.test(e.txt)); es.forEach(e => used.add(e));
-      if (!es.length) return;
-      subs.push({ h, paras: [[es.slice(-8).map(sentence).filter(Boolean).join(" ")]] });
+    // The story is written by SYS.writeBio from the facts below.
+    const exit = ended ? (() => { const out = gEnd === "impeached" ? He + " was removed from office by the State House of Assembly under Section 188 of the Constitution." : gEnd === "nullified" ? "The Supreme Court nullified " + his + " election on a petition by " + ((stc.petition && stc.petition.opp) || "the opposition candidate") + ", who was sworn in as governor." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182."; return out; })() : null;
+    let owed = 0; if (M) { try { owed = M.owed().length; } catch (e) {} }
+    const pj = projects || [], nd = needs || [], debtStart = (stc.oldDebt || {}).total;
+    const bio = SYS.writeBio({
+      female: fem, name: pName, stateName: stName, partyName: pa?.nm, partyId: party, slogan: setup?.slogan, startYear, endYear, turn, ended: !!ended, exit,
+      election: setup?.election ? { marginPct: setup.election.marginPct, zonesWon: setup.election.zonesWon, opp: ini(setup.election.opp), oppParty: setup.election.oppParty } : null,
+      deputy: depGov?.nm, mateAccepted: setup?.partyAccepted, flag: flag ? { nm: flag.nm, goal: flag.goal } : null,
+      flagMilestones: flagM.map(e => ({ t: e.t, delivered: !!(e.meta && e.meta.delivered), corners: !!(e.meta && e.meta.corners) })),
+      loan: loan ? { amount: naira(loan.debtOwed?.amount || campaignGfDebt) } : null, godfather: cast.godfather.name,
+      gfDeals: gfC.map(e => ({ t: e.t, note: e.note })), gfRefusals: gfB.map(e => ({ t: e.t, note: e.note })), gfFate: stc.gf === "dead" || stc.gf === "opposition" ? stc.gf : null, owed,
+      cabinet: (ministries || []).filter(m => m.minister).map(m => ({ minister: m.minister, name: m.name })),
+      events: wikiEvents || [], appH, app: s.app, cor: s.cor || 0,
+      debtStart, debt: s.debt, debtTxt: naira(s.debt), debtStartTxt: debtStart != null ? naira(debtStart) : null, igrTxt: naira(s.igr),
+      projects: { delivered: pj.filter(p => p.status === "delivered").length, building: pj.filter(p => p.status === "in_progress").length, stalled: pj.filter(p => ["abandoned", "suspended", "stalled"].includes(p.status)).length },
+      needs: { met: nd.filter(n => n.status === "met").length, failed: nd.filter(n => n.status === "failed" || n.status === "abandoned").length, open: nd.filter(n => ["open", "started", "stalled"].includes(n.status)).length },
+      ministries: (ministries || []).length, bills: billsPassed.length,
     });
-    const rest = gov.filter(e => !used.has(e));
-    if (rest.length) subs.push({ h: "Other events", paras: [[rest.slice(-6).map(sentence).filter(Boolean).join(" ")]] });
-    // The record in numbers.
-    const pj = projects || [], nd = needs || [];
-    const rec = [];
-    rec.push("Projects: " + pj.filter(p => p.status === "delivered").length + " delivered, " + pj.filter(p => p.status === "in_progress").length + " under construction" + (pj.some(p => p.status === "abandoned" || p.status === "suspended") ? ", " + pj.filter(p => p.status === "abandoned" || p.status === "suspended").length + " stalled or abandoned" : "") + ". ");
-    if (nd.length) rec.push("Community needs: " + nd.filter(n => n.status === "met").length + " met, " + nd.filter(n => n.status === "failed" || n.status === "abandoned").length + " failed, " + nd.filter(n => ["open", "started", "stalled"].includes(n.status)).length + " outstanding. ");
-    rec.push("State debt " + naira(s.debt) + "; own revenue " + naira(s.igr) + " a year. ");
-    rec.push((ministries || []).length + " ministries; " + billsPassed.length + " bill" + (billsPassed.length === 1 ? "" : "s") + " signed into law. ");
-    rec.push("Approval " + Math.round(s.app) + "%; corruption index " + Math.round((s.cor || 0) * 100) + "%.");
-    subs.push({ h: "Record in numbers", paras: [rec] });
-    sections.push({ h: "Governorship", subs: subs.length ? subs : [{ h: "Early months", paras: [["The administration had taken no recorded decisions yet."]] }] });
-    // Controversies
-    const cpp = [];
-    const said = new Set();
-    contro.forEach(e => {
-      if (said.has(e.kind + (e.target || ""))) return; said.add(e.kind + (e.target || ""));
-      const txt = e.kind === "godfather_contract" ? He + " gave " + cast.godfather.name + " what he asked for: " + short(e.note, 90) : e.kind === "court_defiance" ? He + " defied a court ruling (" + e.target + ")" : e.kind === "press_suppression" ? "The administration was accused of killing a press story about it" : e.kind === "nepotism_flag" ? "Appointments of relatives and allies were flagged" : e.kind === "budget_forced" ? "Spending without the House's approval drew a court challenge" : e.kind === "unconst_order" ? He + " issued an executive order the courts called unconstitutional: " + short(e.decision, 60).replace(/^Executive order: /, "") : e.kind === "house_deal" ? "Members were given constituency projects for their votes" : short(e.outcome || e.note, 110);
-      cpp.push(txt.replace(/\.?$/, ".")); cpp.push(cite(e)); cpp.push(" ");
-    });
-    const cseen = new Set();
-    (wikiEvents || []).slice().reverse().filter(e => e && e.section === "Controversies").forEach(e => { const k = String(e.txt); if (cseen.has(k)) return; cseen.add(k); const t = sentence(e); if (t) { cpp.push(t + " "); } });
-    if (M) { try { const owed = M.owed(); if (owed.length) cpp.push(owed.length + (owed.length === 1 ? " promise" : " promises") + " to power brokers remained unpaid" + (ended ? " when " + he + " left office." : ".")); } catch (e) {} }
-    sections.push({ h: "Controversies", paras: [cpp.length ? cpp : ["No controversy had been reported as of " + whenOf(turn) + "."]] });
-    // Legacy
-    if (ended) {
-      const lp = [];
-      lp.push("Analysts judged " + his + " record by the " + (flag ? flag.nm + " promise" : "promises") + ": " + (flagM.length ? (del + cut) + " of " + flagM.length + " yearly targets met" : "no yearly target was ever judged") + ". ");
-      lp.push("Approval moved from " + Math.round(appH[0] || 55) + "% to " + Math.round(s.app) + "%; state debt ended at " + naira(s.debt) + ". ");
-      lp.push(s.cor > .55 ? "After leaving office " + he + " faced EFCC questioning once immunity under Section 308 lapsed." : s.cor < .25 ? He + " left office with no corruption case against " + him + "." : "Questions about contracts outlived the administration.");
-      sections.push({ h: "Legacy", paras: [lp] });
-    } else if (turn > 2) {
-      sections.push({ h: "Assessment so far", paras: [["As of " + whenOf(turn) + ", " + his + " approval stood at " + Math.round(s.app) + "% and state debt at " + naira(s.debt) + "."]] });
-    }
+    const lead = bio.lead, sections = bio.sections, refs = bio.refs;
     const av = AVATARS.find(a => a.id === setup?.avatar);
     const w = {
       title: pName, stub: !final && turn <= 2, startYear,
