@@ -1182,30 +1182,31 @@ const HUB_BUILDINGS_STATE = [
   { id: "market", img: "b12-market", name: "Central Market", box: [1109, 472, 1406, 653] },
 ];
 /* The President's compound: the Villa and the Three Arms Zone (Pack 14's
-   compound-villa.webp). The same destinations as the governor's, on the
+   compound-villa-airport.webp, Pack 15). The same destinations as the governor's, on the
    buildings painted here; the rest open from the list under the map. */
 const VILLA_BUILDINGS = [
-  { id: "market", img: "b12-market", name: "Press Briefing Room", box: [30, 150, 455, 258] },
-  { id: "assembly", img: "b02-house-of-assembly", name: "National Assembly", box: [615, 8, 1025, 165] },
-  { id: "court", img: "b04-high-court", name: "Supreme Court", box: [1070, 85, 1492, 220] },
-  { id: "gh", img: "b01-government-house", name: "The Villa", box: [50, 278, 735, 482] },
-  { id: "secretariat", img: "b08-state-secretariat", name: "Federal Executive Council", box: [838, 255, 1150, 405] },
-  { id: "palace", img: "palace", name: "Banquet Hall", box: [1130, 312, 1486, 492] },
-  { id: "police", img: "b11-police-hq", name: "Guards Brigade", box: [155, 600, 560, 790] },
-  { id: "projects", img: "o-scaffold", name: "Helipad · project sites", overlay: true, box: [1185, 552, 1492, 680] },
-  { id: "airport", name: "Presidential Air Fleet", pic: "scenes/presidential-jet" },
-  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance", pic: "backgrounds/finance-ministry-office" },
-  { id: "party", img: "b07-party-secretariat", name: "Party Headquarters", pic: "backgrounds/party-convention-hall" },
-  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office", pic: "characters/efcc-investigator" },
-  { id: "inec", img: "b09-electoral-commission", name: "INEC", pic: "backgrounds/polling-unit" },
+  { id: "market", icon: "v-press-room", name: "Press Briefing Room", box: [30, 150, 455, 258] },
+  { id: "assembly", icon: "v-assembly", name: "National Assembly", box: [615, 8, 1025, 165] },
+  { id: "court", icon: "v-supreme-court", name: "Supreme Court", box: [1070, 85, 1492, 220] },
+  { id: "gh", icon: "v-villa", name: "The Villa", box: [50, 278, 735, 482] },
+  { id: "secretariat", icon: "v-fec", name: "Federal Executive Council", box: [838, 255, 1150, 405] },
+  { id: "palace", icon: "v-banquet-hall", name: "Banquet Hall", box: [1130, 312, 1486, 440] },
+  { id: "police", icon: "v-guards-brigade", name: "Guards Brigade", box: [155, 600, 560, 790] },
+  { id: "airport", icon: "v-air-fleet", name: "Presidential Air Fleet", box: [1075, 445, 1450, 625] },
+  { id: "projects", name: "Project sites", pic: "backgrounds/project-site-halfway" },
+  { id: "finance", icon: "v-finance", name: "Ministry of Finance" },
+  { id: "party", icon: "v-party-hq", name: "Party Headquarters" },
+  { id: "efcc", icon: "v-efcc", name: "EFCC Office" },
+  { id: "inec", icon: "v-inec", name: "INEC" },
 ];
 /* A Villa building's picture: cut from the Villa painting itself (so the list
    matches the map), or its own scene for places off the map. */
 const VillaThumb = ({ b, w, h }) => {
   if (!b) return null;
+  if (b.icon) return <img src={"./art/compound/villa/" + b.icon + ".webp"} alt="" style={{ width: w, height: h, objectFit: "contain", flexShrink: 0 }} />;
   if (!b.box) return <span style={{ display: "block", width: w, height: h, borderRadius: 8, flexShrink: 0, background: "#1d2a22 url(./art/" + b.pic + ".webp) center/cover" }} />;
   const [x0, y0, x1, y1] = b.box, bw = x1 - x0, bh = y1 - y0, k = Math.max(w / bw, h / bh);
-  return <span style={{ display: "block", width: w, height: h, borderRadius: 8, flexShrink: 0, backgroundImage: "url(./art/compound/compound-villa.webp)", backgroundSize: Math.round(1500 * k) + "px " + Math.round(850 * k) + "px", backgroundPosition: Math.round(-(x0 * k) + (w - bw * k) / 2) + "px " + Math.round(-(y0 * k) + (h - bh * k) / 2) + "px" }} />;
+  return <span style={{ display: "block", width: w, height: h, borderRadius: 8, flexShrink: 0, backgroundImage: "url(./art/compound/compound-villa-airport.webp)", backgroundSize: Math.round(1500 * k) + "px " + Math.round(850 * k) + "px", backgroundPosition: Math.round(-(x0 * k) + (w - bw * k) / 2) + "px " + Math.round(-(y0 * k) + (h - bh * k) / 2) + "px" }} />;
 };
 const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list, villa }) => {
   const HUB_BUILDINGS = villa ? VILLA_BUILDINGS : HUB_BUILDINGS_STATE, ON_MAP = HUB_BUILDINGS.filter(b => b.box);
@@ -1226,7 +1227,7 @@ const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list, vi
       <span style={{ background: "#0b7a4b", borderRadius: 999, padding: "8px 16px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(26), whiteSpace: "nowrap" }}>Go →</span>
     </button>}
     <div ref={wrapRef} style={{ position: "relative", isolation: "isolate", width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto", aspectRatio: HUB_W + " / " + HUB_H, borderRadius: 18, overflow: "hidden", background: "#5f8f3a", boxShadow: "0 10px 30px rgba(0,0,0,.18)", userSelect: "none" }}>
-      <img src={villa ? "./art/compound/compound-villa.webp" : "./art/compound/compound-full.webp"} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", filter: night ? "brightness(.62) saturate(.75)" : "none", transition: "filter .6s" }} />
+      <img src={villa ? "./art/compound/compound-villa-airport.webp" : "./art/compound/compound-full.webp"} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", filter: night ? "brightness(.62) saturate(.75)" : "none", transition: "filter .6s" }} />
       {night && <div style={{ position: "absolute", inset: 0, background: "rgba(20,34,90,.32)", mixBlendMode: "multiply", pointerEvents: "none" }} />}
       {/* a click area over each painted building; it lights up when it needs you */}
       {ON_MAP.map(b => { const badge = badges[b.id], [x0, y0, x1, y1] = b.box;
