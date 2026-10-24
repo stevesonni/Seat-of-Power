@@ -51,3 +51,15 @@ export const hosLine = (m, a, o) => {
   const asked = a.options.some(x => x.id === "fund") ? "asked for ₦500M to get stalled work moving" : "came to report that the ministry hit its targets";
   return "Hon. " + m.minister + ", Commissioner for " + m.name + ", " + asked + ". " + (DID[o.id] || "I chose: " + o.label.toLowerCase() + ".");
 };
+
+/* Failing commissioners: the Head of Service recommends firing one or keeping
+   them on watch for a year. A strict Head fires sooner, a generous one gives
+   more chances; nobody keeps a commissioner who wasted money or failed again
+   while already on watch. */
+export const hosFailing = (ministries = [], turn = 1) => ministries.filter(m => m.minister && (m.sinkhole || m.flag || ((m.perf || 50) < 42 && (m.hired == null || turn - m.hired >= 1))));
+export const hosVerdict = (hos, m, turn = 1) => {
+  const style = (hos && hos.style) || "careful", perf = m.perf || 50, watched = m.watch != null && m.watch < turn;
+  const fire = m.sinkhole || (m.flag && m.flag.kind === "graft") || watched || (style === "strict" ? perf < 42 : style === "careful" ? perf < 32 : perf < 22);
+  const why = m.sinkhole ? "wasted the ministry's money and delivered nothing" : m.flag ? "has an offence on file" : watched ? "was on watch last year and did not improve" : "delivered little this year (performance " + perf + "%)";
+  return { id: fire ? "fire" : "watch", why, line: "Hon. " + m.minister + " (" + m.name + ") " + why + ". " + (fire ? "I recommend you replace them." : "I recommend we keep them on watch and review them next year.") };
+};

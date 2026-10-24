@@ -5930,8 +5930,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   // The brief: the Head of Service's decision on every request, with the governor's reversals.
   const hosRows = () => (stc.hos ? audiences.map(a => { const m = minById(a.ministryId); if (!m) return null; const hosO = SYS.hosDecide(stc.hos, a, s.cash || 0); const pick = a.options.find(o => o.id === hosPick[a.id]) || hosO; return { a, m, hosO, pick, line: SYS.hosLine(m, a, hosO) }; }).filter(Boolean) : []);
+  // Failing commissioners and the Head of Service's verdict on each (fire, or keep on watch).
+  const hosFailingNow = stc.hos && stc.hosSigned !== turn ? SYS.hosFailing(ministries || [], turn) : [];
+  const hosVerdicts = () => hosFailingNow.map(m => { const v = SYS.hosVerdict(stc.hos, m, turn); return { m, v, pick: hosPick["m:" + m.id] || v.id }; });
   const signHosBrief = () => {
-    const rows = hosRows(); if (!rows.length) { setHosOpen(null); return; }
+    const rows = hosRows(), vs = hosVerdicts();
+    const fired = vs.filter(x => x.pick === "fire"), watched = vs.filter(x => x.pick === "watch");
+    fired.forEach(x => fireMinister(x.m.id, true));
+    if (watched.length) setMinistries(ms => ms.map(m => watched.some(x => x.m.id === m.id) ? { ...m, watch: turn, perf: Math.min(100, (m.perf || 50) + 4) } : m));
+    setStc(p => ({ ...p, hosSigned: turn }));
+    if (vs.length) addL("🏛️ On the Head of Service's advice: " + [fired.length ? "replaced " + fired.map(x => x.m.minister).join(", ") : null, watched.length ? "kept " + watched.map(x => x.m.minister).join(", ") + " on watch" : null].filter(Boolean).join("; ") + ".", "policy");
+    if (!rows.length) { setHosOpen(null); setHosPick({}); if (vs.length) try { window.SOP_outcome({ icon: "🏛️", img: "./art/characters/" + stc.hos.img + ".webp", title: "The brief is signed", text: (fired.length ? fired.length + " replaced. " : "") + (watched.length ? watched.length + " on watch: " + stc.hos.name + " will report on them next year." : ""), tone: "neutral" }); } catch (e) {} return; }
     const done = [], rev = rows.filter(r => r.pick.id !== r.hosO.id);
     rows.forEach(r => { const out = audienceResult(r.a, r.pick, r.m); setAudDone(d => ({ ...d, [r.a.id]: turn })); done.push({ l: r.m.name, v: r.pick.label + (r.pick.id !== r.hosO.id ? " (your call)" : ""), good: !!out }); });
     setHosOpen(null); setHosPick({}); track("hos_brief", rev.length ? "reversed " + rev.length : "signed as is");
@@ -6310,19 +6319,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const why = m.flag ? (OFFENCE[m.flag.kind]?.label + ": " + (m.flag.text || "")) : !fresh && (m.perf || 50) < 45 ? "Weak performance (" + m.perf + "%)." : (m.cor || 30) > 55 ? "The ministry is leaking money (corruption " + m.cor + "%)." : (m.loyalty || 50) < 35 ? "Doubtful loyalty (" + m.loyalty + "%)." : null;
     return { why, justified: !!why, t };
   };
-  const fireMinister = async (id) => {
+  const fireMinister = async (id, quiet) => {
     const m = (ministries || []).find(x => x.id === id); if (!m) return;
     const c = fireCase(m);
     const effects = c.justified
       ? (m.flag && m.flag.kind === "graft" ? "The public sees a governor who acts: approval +3, corruption −3%." : m.flag && m.flag.kind === "disloyal" ? "You reassert control of the cabinet (+2 party), but the commissioner takes their ward structures to the opposition." : "The ministry gets a fresh start under a new commissioner (approval +1).")
       : "Hon. " + m.minister + " has a clean record (performance " + m.perf + "%, loyalty " + (m.loyalty == null ? 50 : m.loyalty) + "%). Sacking a performer costs approval −2 and party −5, the ministry loses a year settling in, and the sacked commissioner joins the opposition in their zone.";
-    const ok = await window.SOP_confirm("Fire Hon. " + m.minister + " (" + m.name + ")?\n\nWhy: " + (c.why || "None. This would be a political sacking.") + "\n\nWhat happens: " + effects, "Fire");
+    const ok = quiet || await window.SOP_confirm("Fire Hon. " + m.minister + " (" + m.name + ")?\n\nWhy: " + (c.why || "None. This would be a political sacking.") + "\n\nWhat happens: " + effects, "Fire");
     if (!ok) return;
     const before = { ...snapRef.current };
     const r = rng(Date.now() % 100000);
     // Who replaces them: a loyalist from your home zone, or someone from the same zone.
     const oldZ = minZone(m), shortZ = balanceIssue(), fairZ = shortZ != null ? shortZ : oldZ;
-    const loyalist = fairZ !== homeZone && await window.SOP_confirm("Who replaces Hon. " + m.minister + "?\n\nA loyalist from your home zone (" + zoneName(homeZone) + "): loyal to you, but " + zoneName(fairZ) + " may cry marginalisation.\n\nOr someone from " + zoneName(fairZ) + ": " + (shortZ != null ? "restores the zonal balance." : "keeps the zones balanced."), "Appoint the loyalist", "Keep the balance");
+    const loyalist = !quiet && fairZ !== homeZone && await window.SOP_confirm("Who replaces Hon. " + m.minister + "?\n\nA loyalist from your home zone (" + zoneName(homeZone) + "): loyal to you, but " + zoneName(fairZ) + " may cry marginalisation.\n\nOr someone from " + zoneName(fairZ) + ": " + (shortZ != null ? "restores the zonal balance." : "keeps the zones balanced."), "Appoint the loyalist", "Keep the balance");
     const replacement = gN(r, sd.zone, setup?.state);
     const nt = traits(replacement);
     if (m.sinkhole) { setGodfatherRel(r2 => Math.max(0, r2 - 20)); setS(p => ({ ...p, pStab: cl100(p.pStab - 5) })); addL("🎩 You sacked " + cast.godfather.name + "'s nephew. He calls it a declaration of war (party −5).", "political"); }
@@ -8169,7 +8178,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The year's cabinet report: what each ministry actually did, by name.
     const lgx = getLGAs(state), rep = (ministries || []).filter(m => m.sinkhole || m.key || ["health", "educ", "agric", "works", "sec"].includes(m.id)).sort((a, b) => !!b.sinkhole - !!a.sinkhole).slice(0, 7)
       .map(m => m.sinkhole ? { ok: false, strong: false, line: "Hon. " + m.minister + " (" + m.name + ") wasted " + naira(nephewWasteB(m, turn)) + " on " + NEPHEW_WASTE[hashStr(m.id + turn) % NEPHEW_WASTE.length] + ". Nothing was delivered; the state's debt grows." } : SYS.ministryYear(m, lgx.length ? lgx[hashStr(m.id + turn) % lgx.length] : stName, SYS.seeded("cabinet", m.id, turn)));
-    if (rep.length) letters.push(letterOf("cabinet_report", { live: true, kind: "briefing", stakes: 1, lines: rep, tip: ["The Secretary to the State Government", "./art/characters/permanent-secretary.webp", "Cabinet report for " + absYear, "What each ministry did this year."] }));
+    // With a Head of Service the report is part of their annual brief, not a letter.
+    if (rep.length && stc.hos) setStc(p => ({ ...p, hosReport: { turn, lines: rep } }));
+    else if (rep.length) letters.push(letterOf("cabinet_report", { live: true, kind: "briefing", stakes: 1, lines: rep, tip: ["The Secretary to the State Government", "./art/characters/permanent-secretary.webp", "Cabinet report for " + absYear, "What each ministry did this year."] }));
     if (!letters.length) { setMail(m => m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:"))); mailOn.current = false; advance(); return; }
     mailOn.current = true;
     setEventQueue([]);
@@ -8520,7 +8531,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the
   // tray when it is settled.
   const secrItems = needSetup ? [] : [
-    ...(stc.hos ? (audiences.length ? [{ key: "secr:hosbrief:" + turn, secr: { hosBrief: true }, title: "This year's requests from commissioners", line: audiences.length + (audiences.length === 1 ? " request, decided. Reverse it before you sign" : " requests, decided. Reverse any before you sign") }] : [])
+    ...(stc.hos ? (audiences.length || hosFailingNow.length || (stc.hosReport && stc.hosReport.turn === turn && stc.hosSigned !== turn) ? [{ key: "secr:hosbrief:" + turn, secr: { hosBrief: true }, title: "The Head of Service's annual brief", line: [stc.hosReport && stc.hosReport.turn === turn ? "the cabinet report" : null, hosFailingNow.length ? hosFailingNow.length + " failing commissioner" + (hosFailingNow.length === 1 ? "" : "s") : null, audiences.length ? audiences.length + " request" + (audiences.length === 1 ? "" : "s") + ", decided" : null].filter(Boolean).join(" · ") + ". Reverse anything before you sign" }] : [])
       : audiences.map(a => ({ key: "secr:aud:" + a.id, secr: { audience: a.id }, ministryId: a.ministryId, title: "A request to see you", line: a.reason }))),
     ...(!stc.hos && (ministries || []).some(m => m.minister) ? [{ key: "secr:hosappoint", secr: { hosAppoint: true }, title: "Appoint a Head of Service", line: "The commissioners' requests will go to them. " + cast.adviser.name.split(" ").slice(-2).join(" ") + " has a recommendation" }] : []),
     ...cases.filter(c => c.stage !== "closed" && c.stage !== "decided").map(c => ({ key: "secr:case:" + c.id, secr: { caseId: c.id }, ministryId: c.ministryId, title: "A file on " + c.ministryName, line: c.what + " · " + SYS.STAGE_NAME[c.stage] })),
@@ -9116,13 +9127,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>
               </div>)}</div>
               <div style={{ textAlign: "center", marginTop: 12 }}><Bt v="ghost" onClick={() => setHosOpen(null)}>Later</Bt></div>
-            </>; })() : (() => { const rows = hosRows(), H = stc.hos || {}; return <>
+            </>; })() : (() => { const rows = hosRows(), H = stc.hos || {}, vs = hosVerdicts(), repL = stc.hosReport && stc.hosReport.turn === turn && stc.hosSigned !== turn ? stc.hosReport.lines : [], hd = (t) => <div style={{ fontSize: TALL() ? TS(15) : TS(20), fontWeight: 800, color: CL.td, letterSpacing: 1, textTransform: "uppercase", margin: "14px 0 8px" }}>{t}</div>; return <>
               <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", marginBottom: 12 }}>
                 <img src={"./art/characters/" + H.img + ".webp"} alt="" style={{ width: TALL() ? 64 : 84, height: TALL() ? 64 : 84, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
                 <div><div style={{ fontSize: TALL() ? TS(15) : TS(20), fontWeight: 800, color: CL.td, letterSpacing: 1, textTransform: "uppercase" }}>From the Head of Service</div>
                   <b style={{ fontSize: TALL() ? TS(22) : TS(32), color: CL.txt }}>{H.name}</b></div>
               </div>
-              <p style={{ fontSize: TALL() ? TS(19) : TS(27), color: CL.tm, lineHeight: 1.45, margin: "0 0 12px" }}>Your Excellency, {rows.length === 1 ? "one commissioner came" : rows.length + " commissioners came"} to me this year. Here is what I decided. Reverse anything you disagree with; nothing is final until you sign.</p>
+              <p style={{ fontSize: TALL() ? TS(19) : TS(27), color: CL.tm, lineHeight: 1.45, margin: "0 0 12px" }}>Your Excellency, here is the year in the ministries{vs.length ? ", my advice on the commissioners who are failing" : ""}{rows.length ? " and what I decided on " + (rows.length === 1 ? "one request" : rows.length + " requests") : ""}. Reverse anything you disagree with; nothing is final until you sign.</p>
+              {repL.length > 0 && <>{hd("The cabinet this year")}<div style={{ display: "grid", gap: 6 }}>{repL.map((l, i) => <div key={i} style={{ fontSize: TALL() ? TS(17) : TS(24), color: CL.txt, lineHeight: 1.4, padding: "8px 12px", borderRadius: 12, background: l.ok === false ? CL.red + "0d" : CL.grn + "0d", borderLeft: "4px solid " + (l.ok === false ? CL.red : CL.grn) }}>{l.line}</div>)}</div></>}
+              {vs.length > 0 && <>{hd("Commissioners who are failing")}<div style={{ display: "grid", gap: 10 }}>{vs.map(x => <div key={x.m.id} style={{ background: "#fff", border: "1.5px solid " + (x.pick !== x.v.id ? CL.org : CL.bdr), borderRadius: 16, padding: "12px 14px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center" }}>
+                  <img src={commissionerArt(x.m.minister, x.m.perf)} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+                  <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.txt, lineHeight: 1.4 }}>{x.v.line}</div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>{[["fire", "🔥 Replace them"], ["watch", "👁️ Keep on watch"]].map(([id, l]) => { const on = x.pick === id, rec = id === x.v.id; return <button key={id} aria-pressed={on} onClick={() => setHosPick(p => ({ ...p, ["m:" + x.m.id]: id }))} style={{ borderRadius: 999, padding: "6px 12px", border: "1.5px solid " + (on ? (rec ? CL.grn : CL.org) : CL.bdr), background: on ? (rec ? CL.grn + "14" : CL.org + "14") : "#fff", color: CL.txt, fontFamily: F.b, fontWeight: on ? 800 : 600, fontSize: TALL() ? TS(16) : TS(22), cursor: "pointer" }}>{l}{rec ? " · advised" : ""}</button>; })}</div>
+              </div>)}</div></>}
+              {rows.length > 0 && hd("Requests from commissioners")}
               <div style={{ display: "grid", gap: 10 }}>{rows.map(r => <div key={r.a.id} style={{ background: "#fff", border: "1.5px solid " + (r.pick.id !== r.hosO.id ? CL.org : CL.bdr), borderRadius: 16, padding: "12px 14px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center" }}>
                   <img src={commissionerArt(r.m.minister, r.m.perf)} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
@@ -9132,7 +9152,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>)}</div>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 14 }}>
                 <Bt v="ghost" onClick={() => setHosOpen(null)}>Later</Bt>
-                <Bt onClick={signHosBrief}>✍️ Sign it off{rows.some(r => r.pick.id !== r.hosO.id) ? " with your changes" : ""}</Bt>
+                <Bt onClick={signHosBrief}>✍️ Sign it off{rows.some(r => r.pick.id !== r.hosO.id) || vs.some(x => x.pick !== x.v.id) ? " with your changes" : ""}</Bt>
               </div>
             </>; })()}
           </div>

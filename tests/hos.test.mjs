@@ -24,3 +24,14 @@ test("the brief says who asked for what, and what was decided", () => {
   assert.equal(hosLine({ minister: "Ikechukwu Agbo", name: "Information" }, ask, ask.options[1]),
     "Hon. Ikechukwu Agbo, Commissioner for Information, asked for ₦500M to get stalled work moving. I gave a recovery plan instead.");
 });
+import { hosFailing, hosVerdict } from "../game/systems/hos.js";
+test("failing commissioners: the Head of Service recommends fire or watch", () => {
+  const ms = [{ id: "a", name: "Works", minister: "Ada Eze", perf: 30, hired: 1 }, { id: "b", name: "Health", minister: "Musa Bello", perf: 70, hired: 1 }, { id: "c", name: "Trade", minister: "Ola Ade", perf: 60, sinkhole: true, hired: 1 }];
+  const f = hosFailing(ms, 3);
+  assert.deepEqual(f.map(m => m.id), ["a", "c"]);
+  assert.equal(hosVerdict({ style: "strict" }, ms[0], 3).id, "fire");
+  assert.equal(hosVerdict({ style: "generous" }, ms[0], 3).id, "watch");
+  assert.equal(hosVerdict({ style: "generous" }, { ...ms[0], watch: 2 }, 3).id, "fire");
+  assert.equal(hosVerdict({ style: "generous" }, ms[2], 3).id, "fire");
+  assert.match(hosVerdict({ style: "careful" }, ms[0], 3).line, /^Hon\. Ada Eze \(Works\)/);
+});

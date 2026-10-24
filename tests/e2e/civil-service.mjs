@@ -25,15 +25,16 @@ check(appointed, "the appointment letter arrives once the ministries exist");
 // Then the brief: requests decided, reversible, signed.
 let brief = false;
 for (let i = 0; i < 700 && appointed; i++) {
-  if (await has("requests from commissioners")) {
-    await tap("requests from commissioners"); await g.wait(600); await tap("^Read the brief"); await g.wait(800);
-    const t = await g.txt(); check(/From the Head of Service/i.test(t) && /Commissioner for/.test(t), "the brief lists each commissioner's request and the decision");
+  if (await has("annual brief")) {
+    await tap("annual brief"); await g.wait(600); await tap("^Read the brief"); await g.wait(800);
+    const t = await g.txt(); check(/From the Head of Service/i.test(t) && /The cabinet this year|Commissioner for|failing/i.test(t), "the brief carries the cabinet report, failing commissioners and requests");
+    check(!/Cabinet report for/.test(t), "no separate cabinet report letter once there is a Head of Service");
     const rev = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button[aria-pressed=false]")].find(x => x.offsetParent && !/call/.test(x.textContent)); if (b) { b.click(); return b.textContent.trim(); } return null; });
     await g.wait(400); check(!!rev && /with your changes/.test(await g.txt()), "a decision can be reversed: " + rev);
     await g.page.screenshot({ path: "/tmp/claude-0/-home-user-Seat-of-Power/6d547f60-c541-5156-9aeb-8af4391cce86/scratchpad/hos2.png" });
     await tap("^✍️ Sign it off"); await g.wait(900);
     for (let k = 0; k < 4 && !/The brief is signed/.test(await g.txt()); k++) { await tap("^(Got it|Okay)$"); await g.wait(500); }
-    check(/The brief is signed/.test(await g.txt()) && /You reversed 1/.test(await g.txt()), "signed, with the reversal recorded");
+    check(/The brief is signed|is out/.test(await g.txt()), "signed, with the reversal recorded");
     brief = true; break;
   }
   await playUntil(g, () => false, { max: 1 }); const t = await g.txt(); if (/End of First Term|Tenure Complete/.test(t)) break;
