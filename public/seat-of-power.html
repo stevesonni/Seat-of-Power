@@ -337,9 +337,9 @@
        SOP_outcome({ icon, title, text, rows: [{ l, v, good }], tone, ok, action: { label, fn } })
        Cards queue: a second result waits until the first is closed. */
     (function () {
-      var queue = [], open = false;
+      var queue = [], open = false, held = false;
       function next() {
-        if (open || !queue.length) return;
+        if (open || held || !queue.length) return;
         open = true;
         var o = queue.shift();
         // A front page with the governor's name in it: SOP_outcome({ paper: { masthead, headline, sub, good, img } }).
@@ -442,7 +442,10 @@
         try { window.SOP_sound && window.SOP_sound(o.tone === 'bad' ? 'bad' : o.tone === 'good' ? 'good' : 'neutral'); } catch (e) {}
         setTimeout(function () { b.focus(); }, 30);
       }
-      window.SOP_outcome = function (o) { queue.push(o || {}); next(); };
+      window.SOP_outcome = function (o) { queue.push(o || {}); setTimeout(next, 0); };
+      // A broadcast (the news anchors) has the screen: pop-ups wait until it ends.
+      var holdT = null;
+      window.SOP_hold = function (on) { held = !!on; clearTimeout(holdT); if (held) holdT = setTimeout(function () { held = false; next(); }, 90000); else setTimeout(next, 250); };
       function still() { try { return matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.classList.contains('sp-still'); } catch (e) { return false; } }
       /* Signing a bill: the page with its title and clauses, the pen across the line,
          the governor's signature; or, vetoed, a red VETO stamp. SOP_billSign({ title, lines, sign, by, veto }). */

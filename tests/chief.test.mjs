@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { COS_ROSTER, cosById, cosOdds, cosHint, delegate, letterKind, cosFinishProject, SEALS } from "../game/systems/chief.js";
+import { COS_ROSTER, cosById, cosPick, cosOdds, cosHint, delegate, letterKind, cosFinishProject, SEALS } from "../game/systems/chief.js";
 
 const tech = cosById("technocrat"), fixer = cosById("fixer");
 test("four fictional Chiefs of Staff, each with a seal-able speciality", () => {
@@ -35,4 +35,15 @@ test("a stubborn project handed over is finished at a premium, or half the money
   assert.equal(won.ok, true); assert.equal(won.p.status, "delivered"); assert.equal(won.p.progress, 100); assert.ok(won.costM > 400);
   const lost = cosFinishProject(fixer, p, 3, () => .99);
   assert.equal(lost.ok, false); assert.equal(lost.p.status, "stalled"); assert.ok(lost.costM < won.costM);
+});
+
+test("each Chief of Staff takes an actual option, in their own way", () => {
+  const gf = ["🤝 Give Okafor What He Wants", "✊ Refuse Okafor"];
+  assert.equal(cosPick(cosById("fixer"), gf), 0);
+  assert.equal(cosPick(cosById("technocrat"), gf), 1);
+  const court = ["⚖️ Fight the Case at High Court", "✅ Comply with the Ruling"];
+  assert.equal(cosPick(cosById("veteran"), court), 1);
+  // a bad day: their second choice
+  assert.equal(cosPick(cosById("fixer"), gf, false), 1);
+  assert.equal(cosPick(cosById("fixer"), []), -1);
 });

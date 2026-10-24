@@ -1906,10 +1906,10 @@ const OL = ({ children, show }) => {
   if (!show) return null;
   if (TALL()) {
     // Phone: one decision fills the screen as a sheet that slides up.
-    return React.createElement("div", { style: { position: "fixed", inset: 0, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(180deg," + CL.bg + " 0%," + CL.card + " 100%)", padding: "28px 18px 48px" } },
+    return React.createElement("div", { className: "sop-ol", style: { position: "fixed", inset: 0, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(180deg," + CL.bg + " 0%," + CL.card + " 100%)", padding: "28px 18px 48px" } },
       React.createElement("div", { className: "sop-sheet", style: { width: "100%" } }, children));
   }
-  return React.createElement("div", { className: "sop-fade-in", style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "43px 29px", overflowY: "auto", WebkitOverflowScrolling: "touch" } },
+  return React.createElement("div", { className: "sop-fade-in sop-ol", style: { position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "43px 29px", overflowY: "auto", WebkitOverflowScrolling: "touch" } },
     React.createElement("div", { className: "sop-slide-up", style: { maxWidth: 984, width: "100%", margin: "auto 0" } }, children));
 };
 
@@ -2292,6 +2292,8 @@ const ANCHORS = { m: { first: "Ibrahim", last: "Danjuma" }, f: { first: "Funmi",
 // a bubble pointing at whoever is speaking, and their names on the bar.
 const AnchorDesk = ({ lines, onDone }) => {
   useMode("public");
+  // The anchors have the screen to themselves: pop-ups wait for them.
+  useEffect(() => { try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return () => { try { window.SOP_hold && window.SOP_hold(false); } catch (e) {} }; }, []);
   useEffect(() => { try { window.SOP_sound && window.SOP_sound("news"); } catch (e) {} }, []);
   const [i, setI] = useState(0);
   const line = lines[Math.min(i, lines.length - 1)];
@@ -6344,6 +6346,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Show result screen before continuing to next event
   // Accepts: { icon, title, narrative, effects: [{icon, text, value, good, bad}], tone, nextFn }
   const showResult = (cfg) => {
+    if (cosAuto.current && cosAuto.current.pressed) cfg = { ...cfg, by: cosAuto.current.c.name, chose: cosAuto.current.label };
     try { window.SOP_sound && window.SOP_sound(cfg.tone === "good" ? "good" : cfg.tone === "bad" ? "bad" : "neutral"); } catch (e) {}
     setEventResult(cfg);
     setPhase("event_result");
@@ -7786,16 +7789,59 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { icon: "🏗️", title: r.ok ? p.title + " is finished" : p.title + " is still stalled", text: (r.ok ? "Your Chief of Staff paid what it took. It cost more than it should, and the finish is not the best." : "The contractor took the money and did not come back.") + (r.crooked ? " Part of the payment went to a friend of " + c.name.split(" ").slice(-1)[0] + "." : ""), tone: r.ok ? "good" : "bad", rows: [{ l: "Cost", v: SYS.fmtM(r.costM), good: false }] };
     }
     if (l.cat) return null;
-    // Any other year event: the card is never opened; the outcome is theirs.
+    // Any other year event: the Chief of Staff opens the same card you would,
+    // and takes one of its options in front of you (see the effect below).
     const r = SYS.delegate(c, l.kind, l.stakes, v.title.replace(/^Your agenda: /, "your agenda, "));
-    forgetEvent(l.key);
+    cosAuto.current = { c, r, key: l.key, title: v.title, phase: l.key.startsWith("sc#") ? "sc" : l.key.startsWith("desk:") ? "desk" : l.key, tries: 0 };
+    setMailOpen(false); prepEvent(l.key); deskGo(l.key);
     setS(p => ({ ...p, app: cl100(p.app + r.fx.app), pStab: cl100(p.pStab + r.fx.pStab), cor: cl(p.cor + r.fx.cor) }));
     if (l.key === "flagship") { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: c.name, gravity: 1, evidence: 2, decision: "Left to the Chief of Staff", note: r.text, meta: { delivered: false } }); } catch (e) {} }
     if (r.later) setDelayedFx(d => [...d, { turn: turn + 1, ...r.later }]);
-    addL("🗝️ " + r.text, r.ok ? "info" : "political");
     bumpCos();
-    return { icon: "🗝️", title: r.ok ? "Handled by your Chief of Staff" : "Your Chief of Staff got it wrong", text: r.text + (r.later ? " It will come back next year." : ""), tone: r.ok ? "neutral" : "bad", rows: cosRows(r) };
+    return null;
   });
+  // The Chief of Staff at work: once the card is open, they pick an option
+  // (highlighted, with a banner naming the choice), press it, and the card's
+  // own result follows. Then a short note says who chose what and how it went.
+  const cosAuto = React.useRef(null);
+  useEffect(() => {
+    const A = cosAuto.current; if (!A || A.pressed) return;
+    if (phase !== A.phase) return;
+    const t = setTimeout(() => {
+      const ols = document.querySelectorAll(".sop-ol"), ol = ols[ols.length - 1];
+      const cands = ol ? [...ol.querySelectorAll(".ds-option:not([disabled]), .ds-card, button")].filter(el => {
+        if (el.matches("button") && !el.matches(".ds-option")) return /^(✍️ )?Sign$|^(🛑 |⛔ )?Veto$/i.test(el.innerText.trim());
+        if (el.matches(".ds-card") && el.style.cursor !== "pointer") return false;
+        return !el.querySelector(".ds-option, .ds-card[style*='cursor: pointer']");
+      }) : [];
+      const label = (el) => el.innerText.trim().split("\n")[0].replace(/^[^A-Za-z₦0-9]+/u, "").trim();
+      const nm = A.c.name, fail = () => { // nothing to press: the old summary stands
+        cosAuto.current = null; forgetEvent(A.key);
+        addL("🗝️ " + A.r.text, A.r.ok ? "info" : "political");
+        decide(() => ({ icon: "🗝️", title: A.r.ok ? "Handled by your Chief of Staff" : "Your Chief of Staff got it wrong", text: A.r.text, tone: A.r.ok ? "neutral" : "bad", rows: cosRows(A.r) }));
+        nextEvent();
+      };
+      if (!cands.length) return fail();
+      const labels = cands.map(label), i = SYS.cosPick(A.c, labels, A.r.ok), el = cands[Math.max(0, i)], lab = labels[Math.max(0, i)];
+      el.style.outline = "4px solid #e9b949"; el.style.outlineOffset = "3px"; try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
+      const ban = document.createElement("div"); ban.className = "sop-cos-banner";
+      ban.style.cssText = "position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9960;background:#12301f;color:#fff;border-radius:999px;padding:10px 20px;font:800 18px 'Plus Jakarta Sans',sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:92vw;text-align:center";
+      ban.textContent = "🗝️ " + nm + " chose: " + lab; document.body.appendChild(ban);
+      A.pressed = true; A.label = lab;
+      setTimeout(() => {
+        ban.remove(); el.style.outline = "";
+        el.click();
+        // The card refused (no money for that option): the matter is left as it was.
+        setTimeout(() => { if (el.isConnected && el.closest(".sop-ol")) { el.style.outline = ""; fail(); } }, 900);
+        addL("🗝️ " + nm + " decided " + A.title.replace(/^Your agenda: /, "your agenda") + ": " + lab + ". " + (A.r.ok ? "Carried out well." : "Carried out badly."), A.r.ok ? "info" : "political");
+        try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "cos_decision", actor: nm, gravity: 1, evidence: 2, decision: A.title + ": " + lab, note: A.r.text, meta: { ok: A.r.ok } }); } catch (e) {}
+        const how = A.r.ok ? "It was carried out well." : A.r.fx.app ? "It was carried out badly. " + A.r.text.split(". ").slice(1).join(". ") : "";
+        try { window.SOP_outcome && window.SOP_outcome({ img: "./art/characters/" + (A.c.img || "chief-of-staff-veteran") + ".webp", title: nm.split(" ").slice(0, 2).join(" ") + " chose: " + lab, text: how + (A.r.crooked ? " A contract in it went to a friend of " + nm.split(" ").slice(-1)[0] + "." : "") + (A.r.later ? " It will come back next year." : ""), tone: A.r.ok ? "neutral" : "bad", rows: cosRows(A.r) }); } catch (e) {}
+        cosAuto.current = null;
+      }, 1500);
+    }, 700);
+    return () => clearTimeout(t);
+  }, [phase]);
   const bumpCos = () => setCosOffice(o => o.cos ? { ...o, cos: { ...o.cos, handled: (o.cos.handled || 0) + 1 } } : o);
   const cosRows = (r) => [r.fx.app && { l: "Approval", v: (r.fx.app > 0 ? "+" : "") + r.fx.app, good: r.fx.app > 0 }, r.fx.pStab && { l: "Party", v: (r.fx.pStab > 0 ? "+" : "") + r.fx.pStab, good: r.fx.pStab > 0 }, r.fx.cor && { l: "Corruption", v: "+" + Math.round(r.fx.cor * 100) + "%", good: false }].filter(Boolean);
   // The tray is clear: the year moves on.
@@ -7831,7 +7877,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const govShort = "Gov. " + String(pName || "").split(" ").pop();
   const paper = (headline, sub, good = true, img) => { try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
   const [anchorNews, setAnchorNews] = useState(null);
-  const anchors = (m, f) => setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]);
+  const anchors = (m, f) => { try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
   const anchorEl = anchorNews ? <AnchorDesk lines={anchorNews} onDone={() => setAnchorNews(null)} /> : null;
   const present = (text, mood = "urgent") => { try { const nm = cast.adviser.name; window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(nm, mood) || saPortrait(nm), name: nm + " · Special Adviser", text, urgent: mood === "urgent" } }); } catch (e) {} };
   // The anchors cover the moments people talk about.
@@ -8829,6 +8875,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {eventResult && <Cd style={{ borderColor: eventResult.tone === "good" ? CL.grn + "44" : eventResult.tone === "bad" ? CL.red + "44" : CL.bdr }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
               {eventResult.img ? <img src={eventResult.img} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, marginBottom: 14 }} /> : <div style={{ fontSize: TS(113), marginBottom: 14 }}>{eventResult.icon}</div>}
+              {eventResult.by && <div style={{ display: "inline-block", background: "#12301f", color: "#fff", borderRadius: 999, padding: "4px 14px", fontSize: TS(30), fontWeight: 800, marginBottom: 8 }}>🗝️ {eventResult.by} chose: {eventResult.chose}</div>}
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(62), fontWeight: 600 }}>{eventResult.title}</h3>
             </div>
             {eventResult.narrative && <More text={eventResult.narrative} style={{ fontSize: TS(38), color: CL.tm, lineHeight: 1.5, marginBottom: 29, textAlign: "center", fontStyle: "italic" }} />}

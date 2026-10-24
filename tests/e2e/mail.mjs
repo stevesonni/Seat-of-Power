@@ -10,7 +10,7 @@ import { serve } from "./serve.mjs";
 const srv = await serve(), port = srv.port;
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
-const okay = async (g) => { for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(300); };
+const okay = async (g) => { for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)( →)?$/); i++) await g.wait(300); };
 const firstLetter = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("#sop-task button")].find(x => x.offsetParent && /(❗|›)$/.test(x.textContent.trim())); if (!b) return false; b.click(); return b.textContent.trim().slice(0, 60); });
 
 const g = await open(port, { save: YEAR1 });
@@ -34,14 +34,15 @@ check(!/The tray is clear/.test(t), "the year cannot move on while letters wait"
 check(presented, "the adviser steps in to announce the urgent letter");
 let handed = 0;
 for (let i = 0; i < 8; i++) {
-  const hit = await firstLetter(g); if (!hit) break;
+  let hit = await firstLetter(g); if (!hit) { await g.wait(1500); await okay(g); hit = await firstLetter(g); } if (!hit) break;
   await g.wait(400);
   const tt = await g.txt();
   if (i === 0) check(/Handle it personally/.test(tt) && /(Hand it to|Insist:)/.test(tt) && /(I can handle this|I can try|needs you)/.test(tt), "a letter offers both choices and the Chief of Staff's warning");
   if (!(await g.click(/^(Hand it to|Insist:|Noted)/))) break;
-  handed++; await g.wait(700); await okay(g);
+  handed++; await g.wait(2800); await okay(g); await g.wait(400); await okay(g);
 }
 check(handed >= 1, "handed " + handed + " letters to the Chief of Staff");
+for (let i = 0; i < 10 && !/The tray is clear/.test(await g.txt()); i++) { await okay(g); await g.wait(500); }
 t = await g.txt();
 check(/The tray is clear/.test(t), "with the tray clear, the year can move on");
 await g.click(/^The tray is clear/); await g.wait(1500); await okay(g);

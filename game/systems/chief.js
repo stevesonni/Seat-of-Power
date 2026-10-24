@@ -81,6 +81,34 @@ export const cosHint = (cos, kind, stakes) => {
 };
 export const cosRisk = (cos, kind, stakes) => { const p = cosOdds(cos, kind, stakes); return p >= .75 ? "safe" : p >= .5 ? "risky" : "needs you"; };
 
+// Which option on a decision card the Chief of Staff takes, from the
+// option labels. Each of the four leans their own way: the Fixer pays people
+// off and keeps the party sweet, the Matriarch talks and negotiates, the
+// Technocrat goes by the rules and the numbers, the Veteran plays it safe. A
+// greedy one likes a deal. When they get it wrong (ok false) they take their
+// second choice. Returns the index.
+const LEAN = {
+  fixer: [/give|accept|pay|deal|tent|appease|reward|meet|negotiat|party|loyal/i, /refuse|defy|reject|sack|probe|investigat/i],
+  matriarch: [/negotiat|meet|dialogue|talk|elders|compromise|tent|send|deputy|accept/i, /defy|force|sack|crack|police|army/i],
+  technocrat: [/comply|investigat|reform|audit|publish|approve|data|tender|fight the case|sign/i, /give|appease|pay off|ignore|defy|sweep/i],
+  veteran: [/comply|decline|stay|send|deputy|negotiat|consult|sign|safe/i, /defy|gamble|sweep|borrow|force/i],
+};
+export const cosPick = (cos, labels, ok = true) => {
+  if (!labels || !labels.length) return -1;
+  const [like, dislike] = LEAN[cos && cos.id] || [/negotiat|comply/i, /defy/i];
+  const greedy = cos && cos.greed >= 40;
+  const score = labels.map((l, i) => {
+    const t = String(l || "");
+    let v = 0;
+    if (like.test(t)) v += 3;
+    if (dislike.test(t)) v -= 3;
+    if (greedy && /give|accept|approve|deal|contract|incentive/i.test(t)) v += 1;
+    if (/₦\s?\d/.test(t)) v -= 0.5; // money is tight; cheaper is better
+    return { i, v: v - i * 0.01 };
+  }).sort((a, b) => b.v - a.v);
+  return (ok || score.length < 2 ? score[0] : score[1]).i;
+};
+
 // The Chief of Staff handles a letter. r: a random function. Returns the
 // outcome now and, when it went badly on something serious, a fallout next year.
 export const delegate = (cos, kind, stakes, title, r = Math.random) => {
