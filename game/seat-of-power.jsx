@@ -2560,7 +2560,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
           {[["icon-office-chairman", "LGA Chairman", "The man in between: every small problem comes to you, and the governor holds your money. " + careerPrice("career_chairman", "₦500"), "Play", () => { setSheet(null); onChairman && onChairman(); }],
             ["icon-office-governor", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
             ["icon-office-senator", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. " + careerPrice("career_senator", "₦1,000"), "Play", () => { setSheet(null); onSenate && onSenate(); }],
-            ["icon-office-president", "Road to Aso Rock", "The presidential race. Earned: finish a governorship and run.", null, null],
+            ["icon-office-president", "President of Nigeria", "Earned: finish a governorship and run. Win the race and govern from Aso Rock: 36 states, six zones, five power centres and the world stage.", null, null],
             ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad in trouble, a host that can expel you, and cables from Abuja. " + careerPrice("career_ambassador", "₦1,000"), "Play", () => { setSheet(null); onAmbassador && onAmbassador(); }]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: UI.tints[2], display: "grid", placeItems: "center" }}><Ico n={ic} s={44} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.35 }}>{d}</span></span>
@@ -4623,6 +4623,64 @@ const HallBoard = ({ tab: tab0 = "today", note }) => {
   </div>;
 };
 
+/* The inauguration at Eagle Square: the oath before the Chief Justice, three
+   commitments the term will be judged by, and the inaugural address. */
+const INAUGURAL = {
+  unity: { nm: "One Nigeria", line: "There is no Northern Nigeria and no Southern Nigeria. There is one Nigeria, and I am its servant.", d: "Every zone hears its name.", fx: { app: 2 }, zones: 2 },
+  reform: { nm: "Hard truths", line: "The easy years are over. We will stop spending what we do not have.", d: "The markets cheer; the party barons frown.", fx: { app: 1, pStab: -2, cor: -.02, igr: 10 } },
+  security: { nm: "Peace first", line: "No Nigerian should be afraid to sleep in their own home. That is my first duty.", d: "The security chiefs stand straighter.", fx: { app: 1, sec: .02 } },
+};
+const Inauguration = ({ name, vp, onDone }) => {
+  const [step, setStep] = useState(0), [picks, setPicks] = useState([]), [tone, setTone] = useState("unity");
+  const tall = TALL(), C = SYS.PRES_COMMITS;
+  const swear = () => { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} setStep(1); };
+  const pill = (on) => ({ textAlign: "left", borderRadius: 16, padding: "10px 14px", border: "2px solid " + (on ? "#c9a227" : "rgba(255,255,255,.25)"), background: on ? "rgba(201,162,39,.22)" : "rgba(255,255,255,.06)", color: "#fff", cursor: "pointer", fontFamily: F.b });
+  return <div role="dialog" aria-modal="true" aria-label="Inauguration" style={{ position: "fixed", inset: 0, zIndex: 9965, overflowY: "auto", background: "radial-gradient(circle at 50% 0%, #1d5c3a, #06180f 70%)", color: "#fff", padding: tall ? "14px 14px 40px" : "28px 24px 50px" }}>
+    <div className="sop-fade-in" style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ textAlign: "center", fontSize: tall ? TS(14) : TS(18), letterSpacing: 4, color: "#e9c766", fontWeight: 800 }}>🦅 29 MAY · EAGLE SQUARE, ABUJA</div>
+      <img src="./art/scenes/inauguration-eagle-square.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 20, margin: "10px 0 14px", border: "3px solid #c9a227", boxShadow: "0 16px 40px rgba(0,0,0,.5)" }} />
+      {step === 0 && <>
+        <h1 style={{ fontFamily: F.d, fontSize: tall ? TS(30) : TS(46), textAlign: "center", margin: "0 0 6px" }}>The oath of office</h1>
+        <div style={{ textAlign: "center", fontSize: tall ? TS(15) : TS(20), opacity: .8, marginBottom: 12 }}>The Chief Justice of Nigeria holds the Constitution.{vp ? " " + vp + " has just been sworn in as Vice-President." : ""}</div>
+        <blockquote style={{ margin: "0 auto 16px", maxWidth: 620, padding: "14px 18px", borderLeft: "4px solid #c9a227", background: "rgba(255,255,255,.06)", borderRadius: 12, fontFamily: F.d, fontStyle: "italic", fontSize: tall ? TS(17) : TS(23), lineHeight: 1.55 }}>
+          “I, {name}, do solemnly swear that I will be faithful and bear true allegiance to the Federal Republic of Nigeria; that as President I will discharge my duties to the best of my ability, faithfully and in accordance with the Constitution, and always in the interest of the sovereignty, integrity, solidarity, well-being and prosperity of the Federal Republic of Nigeria… So help me God.”</blockquote>
+        <div style={{ textAlign: "center" }}><button onClick={swear} className="sop-next" style={{ border: 0, borderRadius: 999, padding: "16px 34px", fontWeight: 800, fontSize: tall ? TS(20) : TS(26), background: "#c9a227", color: "#13261c", cursor: "pointer", fontFamily: F.b }}>✋ Take the oath</button></div>
+      </>}
+      {step === 1 && <>
+        <div className="sop-pop" style={{ textAlign: "center", fontSize: tall ? TS(16) : TS(21), color: "#e9c766", fontWeight: 800, marginBottom: 6 }}>💥 A 21-gun salute. The crowd roars. You are the President of the Federal Republic of Nigeria.</div>
+        <h2 style={{ fontFamily: F.d, fontSize: tall ? TS(26) : TS(38), textAlign: "center", margin: "6px 0" }}>Three commitments</h2>
+        <div style={{ textAlign: "center", fontSize: tall ? TS(15) : TS(20), opacity: .8, marginBottom: 12 }}>Choose the three things your term will be judged by. Choices that advance them show 🎯.</div>
+        <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1fr 1fr", gap: 8 }}>{Object.entries(C).map(([k, c]) => { const on = picks.includes(k); return <button key={k} aria-pressed={on} onClick={() => setPicks(p => on ? p.filter(x => x !== k) : p.length < 3 ? [...p, k] : p)} style={pill(on)}><b style={{ display: "block", fontSize: tall ? TS(18) : TS(23) }}>{on ? "🎯 " : ""}{c.l}</b><span style={{ fontSize: tall ? TS(14) : TS(18), opacity: .8 }}>{c.d}</span></button>; })}</div>
+        <div style={{ textAlign: "center", marginTop: 14 }}><button disabled={picks.length !== 3} onClick={() => setStep(2)} style={{ border: 0, borderRadius: 999, padding: "14px 30px", fontWeight: 800, fontSize: tall ? TS(19) : TS(24), background: picks.length === 3 ? "#c9a227" : "rgba(255,255,255,.2)", color: "#13261c", cursor: picks.length === 3 ? "pointer" : "default", fontFamily: F.b }}>{picks.length === 3 ? "Next: the address" : "Choose " + (3 - picks.length) + " more"}</button></div>
+      </>}
+      {step === 2 && <>
+        <h2 style={{ fontFamily: F.d, fontSize: tall ? TS(26) : TS(38), textAlign: "center", margin: "6px 0" }}>The inaugural address</h2>
+        <div style={{ textAlign: "center", fontSize: tall ? TS(15) : TS(20), opacity: .8, marginBottom: 12 }}>Two hundred million people are listening. What do they hear first?</div>
+        <div style={{ display: "grid", gap: 8 }}>{Object.entries(INAUGURAL).map(([k, t]) => <button key={k} aria-pressed={tone === k} onClick={() => setTone(k)} style={pill(tone === k)}><b style={{ display: "block", fontSize: tall ? TS(18) : TS(23) }}>{t.nm}</b><span style={{ fontFamily: F.d, fontStyle: "italic", fontSize: tall ? TS(15) : TS(20) }}>“{t.line}”</span><span style={{ display: "block", fontSize: tall ? TS(13) : TS(17), opacity: .75, marginTop: 4 }}>{t.d}</span></button>)}</div>
+        <div style={{ textAlign: "center", marginTop: 14 }}><button onClick={() => onDone({ commits: picks, tone })} style={{ border: 0, borderRadius: 999, padding: "16px 34px", fontWeight: 800, fontSize: tall ? TS(20) : TS(26), background: "#c9a227", color: "#13261c", cursor: "pointer", fontFamily: F.b }}>🎙️ Deliver the address</button></div>
+      </>}
+    </div>
+  </div>;
+};
+
+/* The Villa's dashboard: the five people who matter and the crisis. */
+const PowerCentres = ({ P }) => {
+  const tall = TALL(), C = P.crisis && SYS.PRES_CRISES[P.crisis], tone = (v) => v >= 60 ? "#2fa866" : v >= 35 ? "#d9a21b" : "#e0574c";
+  return <div style={{ maxWidth: tall ? 900 : 1320, margin: tall ? "0 0 14px" : "0 auto 18px", background: "linear-gradient(135deg, #fffaf0, #f7efd9)", border: "2px solid #c9a227", borderRadius: 18, padding: tall ? "12px 14px" : "16px 20px" }}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
+      <b style={{ fontFamily: F.d, fontSize: tall ? TS(24) : TS(38), color: CL.txt }}>🦅 The power centres</b>
+      {C && <span style={{ fontSize: tall ? TS(16) : TS(24), fontWeight: 800, color: P.over ? CL.grn : tone(100 - P.sev) }}>{P.over ? "✓ " + C.nm + " is over" : "🚨 " + C.nm + ": " + P.sev + "/100"}</span>}
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(5, 1fr)", gap: 8 }}>{Object.entries(P.npcs || {}).map(([k, n]) => <div key={k} style={{ display: "grid", gridTemplateColumns: "40px 1fr", gap: 8, alignItems: "center", background: "#fff", borderRadius: 12, padding: "6px 10px", border: "1px solid " + CL.bdr }}>
+      <span style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", background: "#efe3c6" }}><img src={"./art/characters/" + SYS.NPC_ART[k] + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /></span>
+      <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: tall ? TS(15) : TS(20), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{n.name}</b>
+        <span style={{ fontSize: tall ? TS(13) : TS(16), color: CL.td }}>{SYS.PRES_NPCS[k].role}</span>
+        <span style={{ display: "block", height: 5, borderRadius: 3, background: CL.bdr, marginTop: 3, overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: n.rel + "%", background: tone(n.rel) }} /></span></span>
+    </div>)}</div>
+    {(P.commits || []).length > 0 && <div style={{ fontSize: tall ? TS(14) : TS(19), color: CL.td, marginTop: 8 }}>🎯 {P.commits.map(k => SYS.PRES_COMMITS[k].l + " " + Math.min(SYS.COMMIT_NEED, (P.adv || {})[k] || 0) + "/" + SYS.COMMIT_NEED).join(" · ")}</div>}
+  </div>;
+};
+
 /* While the player is president, every line on screen reads in the
    president's words (SYS.presidentWords) and the governor's rooms become the
    Villa's (SYS.VILLA_ART). One observer over the page covers the game, the
@@ -5346,6 +5404,45 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return { icon: "📜", title: "Contractors took the notes", text: "₦" + cut + "B off the debt. Work slowed on every site and the contractor-financiers are sulking.", tone: "neutral" };
   });
 
+  // ── THE PRESIDENCY: five people who matter, a crisis, and the world ──
+  const presInitNow = () => {
+    const r = rng(state.length * 991 + pName.length * 37), names = {};
+    Object.keys(SYS.PRES_NPCS).forEach((k, i) => { names[k] = gN(r, NATION_ZONE_IDS[(homeZone + i + 1) % 6], NATION); });
+    return SYS.presInit(state + ":" + pName, names);
+  };
+  // The inauguration: the oath, three commitments, the address (see Inauguration).
+  const inaugurate = ({ commits, tone }) => {
+    const T = INAUGURAL[tone] || INAUGURAL.unity;
+    setStc(p => ({ ...p, inaugurated: true, pres: { ...(p.pres || presInitNow()), commits } }));
+    scFx(T.fx); if (T.zones) setS(p => { const zm = { ...(p.zoneMood || {}) }; ZIX.forEach(z => { zm[z] = (zm[z] || 0) + T.zones; }); return { ...p, zoneMood: zm }; });
+    addL("🦅 Sworn in at Eagle Square as President of the Federal Republic. Inaugural address: " + T.nm + ". Commitments: " + commits.map(k => SYS.PRES_COMMITS[k].l.toLowerCase()).join(", ") + ".", "success");
+    scWiki("Presidency", "Was sworn in at Eagle Square, Abuja, on 29 May " + (setup?.startYear || 2027) + ", promising " + commits.map(k => SYS.PRES_COMMITS[k].l.toLowerCase()).join(", ") + ".");
+    track("pres_inaugural", tone);
+    try { window.SOP_outcome({ icon: "📺", img: "./art/scenes/national-broadcast.webp", title: "“" + T.line + "”", text: "The address is carried live on every network. Your three commitments will be judged at the end of the term.", tone: "good",
+      rows: commits.map(k => ({ l: "🎯 " + SYS.PRES_COMMITS[k].l, v: "promised", good: true })), learn: SYS.PRES_LEARN.oath }); } catch (e) {}
+  };
+  const presCardFor = (it) => {
+    const P = stc.pres || presInitNow(), c = SYS.presCard(P, it), [bg, who] = SYS.presArt(P, it, c), npc = c.who && (P.npcs || {})[c.who];
+    const kicker = it.k === "crisis" ? SYS.PRES_CRISES[it.id].nm : it.k === "world" ? "The world stage" : it.k === "coup" ? "The barracks" : it.k === "callback" ? "It comes back" : npc ? SYS.PRES_NPCS[c.who].role + " · " + npc.name : "The nation";
+    return { key: "pres_" + it.k + "_" + it.id + "_" + turn, kicker, color: it.k === "crisis" || it.k === "coup" ? CL.red : it.k === "world" ? CL.blu : CL.gold, art: [bg, who], title: c.t, brief: c.d,
+      options: c.opts.map(o => { const f0 = SYS.presFx({ ...o, risk: 0 }); return { label: o.l, chips: fxChips({ app: f0.fx.app, cor: f0.fx.cor }).concat(f0.costB > 0 ? [{ text: naira(f0.costB), color: CL.org }] : f0.costB < 0 ? [{ text: "Borrow " + naira(-f0.costB), color: CL.org }] : []).concat(o.adv ? [{ text: "🎯 " + SYS.PRES_COMMITS[o.adv].l, color: CL.grn }] : []), run: () => {
+        const f = SYS.presFx(o), before = stc.pres || P;
+        scFx({ app: f.fx.app, sec: f.fx.sec, cor: f.fx.cor, igr: f.fx.igr, debt: f.costB > 0 ? f.costB : 0 });
+        if (f.costB < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - f.costB) * 100) / 100, debt: Math.round(((p.debt || 0) - f.costB) * 10) / 10 }));
+        const after = SYS.presAfter(before, it, o, f.sev, turn);
+        setStc(p => ({ ...p, pres: SYS.presAfter(p.pres || before, it, o, f.sev, turn) }));
+        if (c.flight && o.id === "go" || c.flight && o.id === "invest") try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: c.flight, left: "Abuja" } }); } catch (e) {}
+        addL((it.k === "crisis" ? "🚨 " : it.k === "world" ? "🌍 " : "🦅 ") + c.t + ": " + o.l.toLowerCase() + "." + (f.bad ? " It went wrong in public." : ""), f.bad ? "crisis" : "policy");
+        if (it.k !== "callback") scWiki(f.bad ? "Controversies" : "Presidency", c.t.replace(/\.$/, "") + ": " + o.l.replace(/^./, x => x.toLowerCase()) + (f.bad ? ", which went wrong in public." : "."));
+        track("pres_" + (c.id || it.id), o.id);
+        const rows = Object.entries(o.npc || {}).map(([k, v]) => ({ l: (after.npcs[k] || {}).name + " (" + SYS.PRES_NPCS[k].short + ")", v: (v > 0 ? "+" : "") + v, good: v > 0 }))
+          .concat(it.k === "crisis" ? [{ l: SYS.PRES_CRISES[it.id].nm, v: after.over ? "Over" : after.sev + "/100", good: f.sev < 0 }] : []);
+        const broadcast = it.k === "crisis" || it.k === "coup";
+        return { icon: broadcast ? "📺" : it.k === "world" ? "🌍" : "🦅", img: broadcast ? "./art/scenes/national-broadcast.webp" : it.k === "world" && bg === "state-banquet" ? "./art/backgrounds/state-banquet.webp" : undefined,
+          title: broadcast ? "Address to the nation: " + o.l.replace(/^./, x => x.toLowerCase()) : o.l, text: f.bad ? "It went wrong in public, and the country saw it." : after.over && !before.over ? SYS.PRES_CRISES[before.crisis].nm + " is over. The country exhales." : (o.adv ? "It moves your commitment: " + SYS.PRES_COMMITS[o.adv].l.toLowerCase() + "." : ""),
+          tone: f.bad ? "bad" : (f.fx.app >= 0 ? "good" : "neutral"), rows, learn: SYS.PRES_LEARN[c.learn] };
+      } }; }) };
+  };
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;
     const lv = setup?.level || "medium";
@@ -5762,6 +5859,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       Object.entries(drift).forEach(([z, v]) => addZ(z, v));
       const cold = council.rulers.filter(x => x.rel < 40);
       if (cold.length) notes.push(["👑 " + cold.map(x => x.name).slice(0, 2).join(" and ") + (cold.length > 2 ? " and others" : "") + " are cold towards you; their districts follow their lead.", "political"]);
+    }
+
+    // The Presidency's national deck (SYS.presidency): the crisis, the power centres, the world stage.
+    if (NAT) {
+      const P0 = next.pres || presInitNow();
+      const dr = SYS.presDrift(P0); next.pres = dr.P;
+      if (dr.fx.app) { dApp += dr.fx.app; next.pres = { ...next.pres }; notes.push(["🚨 " + SYS.PRES_CRISES[P0.crisis].nm + " is out of control: approval " + dr.fx.app + ".", "crisis"]); if (dr.fx.sec) dStat.sec = (dStat.sec || 0) + dr.fx.sec; }
+      // The inauguration's commitments are judged at the end of the first term.
+      if (turn === 5 && (next.pres.commits || []).length && !next.pres.judged) {
+        next.pres = { ...next.pres, judged: true };
+        next.pres.commits.forEach(k => { const ok = SYS.commitKept(next.pres, k); dApp += ok ? 3 : -3; notes.push([(ok ? "✅ Commitment kept: " : "💔 Commitment broken: ") + SYS.PRES_COMMITS[k].l + (ok ? " (approval +3)." : " (approval −3)."), ok ? "success" : "crisis"]); scWiki(ok ? "Presidency" : "Controversies", (ok ? "Kept" : "Failed to keep") + " the inaugural commitment: " + SYS.PRES_COMMITS[k].l.toLowerCase() + "."); });
+      }
+      SYS.presDeck(state + ":" + pName, turn, next.pres).forEach(it => cards.push(presCardFor(it)));
     }
 
     // Apply the year's passive costs.
@@ -7910,8 +8020,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const EVENT_NAME = { godfather: "a godfather's request", house_bill: "a House bill", investor: "an investor visit", federal: "a federal matter", shock: "a national shock", media: "a media request", dilemma: "a local dispute", hidden_threat: "an intelligence brief", intl_invite: "a foreign invitation", netherlands: "a trade mission", abuja: "an Abuja summons", wedding: "a society wedding" };
   const capQueue = (q) => {
     const lv = setup?.level || "medium";
-    const cap = turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
-    const pri = (k) => k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+    // The President's year is fuller: the national deck comes first; a summons to Abuja or a "federal matter" means nothing in Aso Rock.
+    if (NAT) { const own = q.filter(k => !(k === "federal" || k === "abuja")); q.length = 0; own.forEach(k => q.push(k)); }
+    const cap = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
+    const pri = (k) => k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
@@ -9171,7 +9283,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {/* Phone: one slim row pinned to the top. Name and turn on the left,
             approval on the right; tap it for the "State of the state" sheet.
             The ☰ menu holds Save, Help, text size and fullscreen. */}
-        {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)" }}>
+        {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: NAT ? "linear-gradient(180deg, #0a2a18, #14482b)" : "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)", borderBottom: NAT ? "3px solid #c9a227" : 0 }}>
+          {NAT && <div style={{ textAlign: "center", fontSize: TS(13), letterSpacing: 3, fontWeight: 800, color: "#e9c766", padding: "6px 0 0" }}>🦅 THE PRESIDENCY · ASO ROCK VILLA</div>}
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
             <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}><Ico n="icon-menu" s={32} /></button>
             {statusStrip(true)}
@@ -9184,6 +9297,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {TALL() && curScreen.subs.length > 1 && <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "0 -20px 16px", padding: "0 20px 2px" }}>
           {curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + (nav === t.k ? CL.grn : CL.bdr), background: nav === t.k ? CL.grn : CL.card, color: nav === t.k ? "#fff" : CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>{t.l}</button>)}
         </div>}
+        {!TALL() && NAT && <div style={{ textAlign: "center", fontSize: TS(18), letterSpacing: 4, fontWeight: 800, color: "#a8821b", borderBottom: "2px solid #c9a227", paddingBottom: 8, marginBottom: 14 }}>🦅 THE PRESIDENCY OF THE FEDERAL REPUBLIC OF NIGERIA · ASO ROCK VILLA</div>}
         {!TALL() && <div style={{ display: "flex", alignItems: "center", gap: 29, marginBottom: 22 }}>
           <div style={{ flexShrink: 0 }}>
             <div style={{ fontSize: TS(27), color: CL.td, fontWeight: 700 }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
@@ -9220,6 +9334,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {curScreen.subs.length > 1 && curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={subBtn(nav === t.k, CL.grn)}>{t.l}</button>)}
           </div>
         </div>}
+        {NAT && !stc.inaugurated && <Inauguration name={pName} vp={depGov && depGov.nm} onDone={inaugurate} />}
         {hosOpen && <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(6,14,10,.6)", overflowY: "auto", padding: TALL() ? "16px 12px 110px" : "40px 20px" }}>
           <div style={{ maxWidth: 760, margin: "0 auto", background: CL.bg, borderRadius: 24, padding: TALL() ? "18px 16px" : "26px 28px", boxShadow: "0 24px 60px rgba(0,0,0,.35)" }}>
             {hosOpen === "appoint" ? (() => { const rec = SYS.hosRecommend(hosCands, { cor: s.cor, cash: s.cash, perf: (ministries || []).reduce((a, m) => a + (m.perf || 50), 0) / Math.max(1, (ministries || []).length) }); const rc = hosCands.find(c => c.id === rec.id); return <>
@@ -9319,6 +9434,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {saBrief.urgent && !/^Balance the Appropriation|^Allegation in /.test(saBrief.title) && saLater !== saBrief.title + "|" + turn && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaLater(saBrief.title + "|" + turn)} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </div>}
 
+        {nav === "gov" && !needSetup && NAT && stc.pres && <PowerCentres P={stc.pres} />}
         {nav === "gov" && !needSetup && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
           const bIdx = balanceIssue();

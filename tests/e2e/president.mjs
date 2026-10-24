@@ -18,11 +18,24 @@ check(!!(await g.click(/Road to Aso Rock/)), "the title offers the presidential 
 check(/President of the Federal Republic/.test(await g.txt()), "the race ends sworn in");
 check(!!(await g.click(/Take the oath of office/)), "the winner takes the oath"); await g.wait(1500);
 await shot("oath");
-const r = await playUntil(g, t => /Year 2 of 4/.test(t), { max: 500 });
+// The inauguration at Eagle Square: the oath, three commitments, the address.
+check(/The oath of office/.test(await g.txt()), "the inauguration opens at Eagle Square");
+await g.click(/^✋ Take the oath$/); await g.wait(600);
+check(/Three commitments/.test(await g.txt()), "sworn in: choose three commitments");
+for (const re of [/Steady electricity/, /Jobs for young people/, /End grand corruption/]) { await g.page.evaluate((src) => { const b = [...document.querySelectorAll("[aria-label=Inauguration] button")].find(x => new RegExp(src).test(x.textContent)); b && b.click(); }, re.source); await g.wait(150); }
+await g.click(/^Next: the address$/); await g.wait(500);
+await shot("address");
+check(!!(await g.click(/Deliver the address/)), "the inaugural address is delivered"); await g.wait(1200);
+const seen = new Set();
+const r = await playUntil(g, t0 => { const t = t0.replace(/\u2060/g, ""); for (const k of ["Address to the nation", "Senate President ·", "Chair, Governors' Forum ·", "Chief of Army Staff ·", "Governor of the Central Bank ·", "National Chairman of the party ·", "The world stage", "The insurgency", "The fuel crisis", "The naira crisis"]) if (t.includes(k)) seen.add(k); return /Year 3 of 4/.test(t); }, { max: 900 });
+console.log("  national deck seen: " + [...seen].join(", "));
+check(seen.size >= 3, "the national deck plays: crisis, power centres, the world stage");
+const sv = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
+check(sv.stc && sv.stc.inaugurated && sv.stc.pres && (sv.stc.pres.commits || []).length === 3, "the commitments and the power centres are saved");
 const t = await g.txt();
 await shot("year2");
-check(r.ok, "the presidency plays into its second year");
-check(!/\bGovernor\b|House of Assembly|\bLGAs?\b|Commissioner/.test(t), "the screen speaks the president's words");
+check(r.ok, "the presidency plays into its third year");
+check(!/\bGovernor\b(?! of the Central Bank)|House of Assembly|\bLGAs?\b|Commissioner/.test(t), "the screen speaks the president's words");
 const left = (t.match(/[^\n]*(Governor|House of Assembly|Commissioner|LGA)[^\n]*/g) || []).slice(0, 6); if (left.length) console.log("  left:", left);
 check(!g.errors.length, "no page errors" + (g.errors.length ? ": " + g.errors.slice(0, 3).join(" | ") : ""));
 await g.browser.close(); srv.close();

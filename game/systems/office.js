@@ -36,6 +36,7 @@ const ZONE = "(North-West|North-East|North-Central|South-West|South-East|South-S
 /* Ordered: the longer phrases go first, so "State House of Assembly" becomes
    "National Assembly" before "State" is touched. */
 const RULES = [
+  [/\bState House Report\b/g, "Nigeria Tonight"],
   [/\bState House of Assembly\b/g, "National Assembly"],
   [/\bHouse of Assembly\b/g, "National Assembly"],
   [/\bState Executive Council\b/g, "Federal Executive Council"],
