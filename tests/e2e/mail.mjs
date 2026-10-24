@@ -11,7 +11,7 @@ const srv = await serve(), port = srv.port;
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const okay = async (g) => { for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)( →)?$/); i++) await g.wait(300); };
-const firstLetter = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("#sop-task button")].find(x => x.offsetParent && /(❗|›)$/.test(x.textContent.trim())); if (!b) return false; b.click(); return b.textContent.trim().slice(0, 60); });
+const firstLetter = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("#sop-task button")].find(x => x.offsetParent && /(❗|›)$/.test(x.textContent.trim()) && !/no ministry to fix it/.test(x.textContent)); if (!b) return false; b.click(); return b.textContent.trim().slice(0, 60); });
 
 const g = await open(port, { save: YEAR1 });
 await g.click(/^Continue/); await g.wait(1800);
@@ -52,7 +52,7 @@ if (!/Handle it personally/.test(await g.txt())) await firstLetter(g);
 await g.wait(300); await g.click(/^(Hand it to|Insist:|Noted)/); await g.wait(800); await okay(g);
 const d = await g.page.evaluate(() => { try { return { log: document.body.innerText } ; } catch (e) { return {}; } });
 check(/✓ Budget/.test(d.log) && !/Your mail/.test(d.log), "the Chief of Staff sent the budget and Year 2 is under way");
-check(/Goldfields: .*\(decide\)/.test(d.log) && await g.page.evaluate(() => !!document.querySelector('[aria-label="1 letters"]')), "the new year's goldfields matter lands as a letter");
+check(/Goldfields: .*\(decide\)/.test(d.log) && await g.page.evaluate(() => !!document.querySelector('[aria-label$=" letters"]')), "the new year's goldfields matter lands as a letter");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close();
 console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

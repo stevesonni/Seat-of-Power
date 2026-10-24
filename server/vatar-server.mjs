@@ -25,7 +25,7 @@ const PORT = +process.env.PORT || 8080;
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
-const PRODUCTS = { second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
+const PRODUCTS = { streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
 // The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
 const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
 const boardFile = (w) => path.join(DATA, "boards", "w" + w + ".json");
@@ -38,6 +38,12 @@ const HALL = path.join(DATA, "hall.json");
 const FEEDBACK = path.join(DATA, "feedback.jsonl");
 const FEEDBACK_KEY = process.env.FEEDBACK_KEY || "";
 const fbCount = new Map(); // player → { day, n }: at most 5 messages a day each
+// The Daily Decision: how players voted, one file per day. Same epoch as game/systems/daily.js.
+const DAILY_EPOCH = Date.UTC(2026, 9, 24);
+const dayNow = () => Math.max(1, Math.floor((Date.now() - DAILY_EPOCH) / 864e5) + 1);
+const dailyFile = (n) => path.join(DATA, "daily", "d" + n + ".json");
+const readDaily = (n) => { try { return JSON.parse(fs.readFileSync(dailyFile(n), "utf8")); } catch (e) { return { counts: [0, 0, 0], voters: {} }; } };
+let dailyLock = Promise.resolve();
 let hallLock = Promise.resolve();
 const readHall = () => { try { return JSON.parse(fs.readFileSync(HALL, "utf8")); } catch (e) { return { entries: {} }; } };
 // The name on the boards: the player's Lagos Life username, as Vatar reports it.
@@ -145,6 +151,14 @@ const api = {
     await (hallLock = hallLock.then(() => { const H = readHall(); if (H.entries[id]) { delete H.entries[id]; fs.writeFileSync(HALL, JSON.stringify(H)); } }).catch(() => {}));
     return { ok: true };
   },
+  // The Daily Decision: one vote per player per day; the answer is everyone's split.
+  "/api/daily/vote": async (b, id) => {
+    const n = Math.round(+b.day), c = Math.round(+b.choice), now = dayNow();
+    if (!(n >= now - 1 && n <= now) || !(c >= 0 && c <= 2)) return { _code: 400, error: "bad_request" };
+    const run = dailyLock.then(() => { const D = readDaily(n); if (D.voters[id] == null) { D.voters[id] = c; D.counts[c] = (D.counts[c] || 0) + 1; fs.mkdirSync(path.dirname(dailyFile(n)), { recursive: true }); const f = dailyFile(n), tmp = f + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(D)); fs.renameSync(tmp, f); } return { ok: true, counts: D.counts, mine: D.voters[id] }; });
+    dailyLock = run.catch(() => {}); return run;
+  },
+  "/api/daily/stats": async (b, id) => { const n = Math.round(+b.day); if (!(n >= 1 && n <= dayNow())) return { _code: 400, error: "bad_request" }; const D = readDaily(n); return { counts: D.counts, mine: D.voters[id] }; },
   // What a player does not like and wants to see better.
   "/api/feedback": async (b, id) => {
     const clip = (t, n) => String(t == null ? "" : t).replace(/[\u0000-\u0008\u000b-\u001f]/g, "").trim().slice(0, n);

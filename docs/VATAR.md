@@ -35,6 +35,7 @@ Each product sells more play, never a better result, so titles, honours and the 
 
 | productId | Kind | Price | Name to show | What the player gets |
 |---|---|---|---|---|
+| `streak_freeze` | consumable | ₦100 | Streak Freeze | Saves the daily streak on a day the player misses; used automatically. |
 | `challenge_retry` | consumable | ₦100 | Extra Challenge Attempt | One more run at this week's challenge (the first each week is free). The best score of the week counts. |
 | `second_chance` | consumable | ₦500 | Second Chance | Rerun a lost re-election, once per game. The career is marked in the Hall, earns no second-term points or "Second term" honour, and it can't be used in a challenge run. |
 | `scenario_pack` | one-off | ₦1,000 | Crisis Scenarios | Four starts: The Oil Crash, The Cholera Year, The Flood Year, The Broke State. |
@@ -49,6 +50,12 @@ Each product sells more play, never a better result, so titles, honours and the 
 |---|---|---|---|---|
 | `attire_glam` | one-off | ₦300 | Glam Pack | Pink Power, Pink Agbada, Owambe Queen, Owambe King. |
 | `attire_bigboy` | one-off | ₦300 | Big Boy Pack | Big Boy, Odogwu, Big Girl, Lagos Baddie. |
+
+**Free, to bring players back every day:** the Daily Decision and the streak.
+- **Daily Decision:** one dilemma a day (from `game/systems/daily.js`, day 1 is 24 October 2026 UTC), the same for everyone. After choosing, the player sees what happened, the share of governors who chose the same (from `/api/daily/vote`, one vote per player per day, kept in `/data/daily/d<day>.json`), and a spoiler-free share text for WhatsApp.
+- **Streak:** a day counts when the player answers the Daily Decision or closes a year of governing. A `streak_freeze` bridges one missed day.
+- **Year-end letter:** closing a year shows a sealed letter about next year; the title's Continue says when one is waiting.
+- **Career map:** each finished governorship colours its state on a map of the 36 states and the FCT, with eleven badges.
 
 **Free, to bring players back:** the weekly challenge.
 - **What it is:** a new state every Monday at 00:00 UTC, the same seeded luck for everyone, on Medium, set up by Quick start.

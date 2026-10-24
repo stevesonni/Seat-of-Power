@@ -84,6 +84,9 @@
   // Player feedback goes to the game's server (read at /feedback with FEEDBACK_KEY).
   window.SOP_feedbackOn = function () { return ready.then(function (on) { return !!on; }).catch(function () { return false; }); };
   window.SOP_feedback = function (f) { return ready.then(function (on) { if (!on) throw new Error("offline"); return call("/api/feedback", Object.assign({ username: uname() }, f)); }); };
+  // The Daily Decision's shared vote.
+  window.SOP_dailyVote = function (day, choice) { return ready.then(function (on) { if (!on) return null; return call("/api/daily/vote", { day: day, choice: choice }); }).catch(function () { return null; }); };
+  window.SOP_dailyStats = function (day) { return ready.then(function (on) { if (!on) return null; return call("/api/daily/stats", { day: day }); }).catch(function () { return null; }); };
   window.SOP_hallBoard = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/board"); }); };
   window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {

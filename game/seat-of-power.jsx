@@ -770,12 +770,57 @@ const NEED_TYPES = [
     fail: (l) => "Families evicted from the " + l + " schools now sleep under a flyover. The photographs go viral.",
     abandon: (l) => "The housing estate in " + l + " is a field of unfinished walls.",
     win: (l) => "Displaced families in " + l + " have keys to new homes." },
+  // Needs that only a ministry you create can answer (see NEED_MINISTRY).
+  { k: "traffic", icon: "🚦", stat: "infra", sector: "infrastructure", fix: ["rail", "okada_kit"],
+    title: (l) => "Gridlock is choking " + l,
+    why: (l) => "Workers spend four hours a day in traffic. Danfo drivers block the junctions and nobody plans the routes.",
+    ask: "Create the Ministry of Transport, then start the rail line or the keke scheme.",
+    fail: (l) => "An ambulance stuck in " + l + " traffic for two hours. The patient did not make it.",
+    abandon: (l) => "Half-built bus lanes in " + l + " have made the gridlock worse.",
+    win: (l) => "Traffic in " + l + " moves again. Commuters get an hour of their day back." },
+  { k: "youth", icon: "🧑🏾‍🤝‍🧑🏾", stat: "lit", sector: "education", fix: ["skills"],
+    title: (l) => "Idle young people in " + l + " are turning to crime",
+    why: (l) => "No jobs, no pitch, no training centre. The gangs recruit at the motor park.",
+    ask: "Create the Ministry of Sports & Youth Development, then start Youth Skills & Tech Training.",
+    fail: (l) => "A gang war in " + l + " leaves four teenagers dead.",
+    abandon: (l) => "The skills centre in " + l + " was built and never opened.",
+    win: (l) => "The skills centre in " + l + " is full. The gangs have fewer recruits." },
+  { k: "poverty", icon: "🍲", stat: "hp", sector: "health", fix: ["cct"],
+    title: (l) => "Families in " + l + " are going hungry",
+    why: (l) => "Food prices doubled this year. Mothers skip meals so children can eat once a day.",
+    ask: "Create the Ministry of Humanitarian Affairs, then start Conditional Cash Transfers.",
+    fail: (l) => "Children in " + l + " are treated for malnutrition. The pictures shame the state.",
+    abandon: (l) => "The cash transfer list in " + l + " was stolen by ghost names.",
+    win: (l) => "Cash transfers reach the poorest homes in " + l + ". Children are back in school." },
+  { k: "land", icon: "🗺️", stat: "infra", sector: "infrastructure", fix: ["land_digitise"],
+    title: (l) => "Land fights in " + l + " are scaring investors away",
+    why: (l) => "The same plot is sold three times. Land grabbers with fake papers bring thugs.",
+    ask: "Create the Ministry of Lands, then digitise the Certificates of Occupancy.",
+    fail: (l) => "Thugs fight over a plot in " + l + "; a factory that was coming goes to another state.",
+    abandon: (l) => "The land registry computers in " + l + " sit in their boxes.",
+    win: (l) => "Every plot in " + l + " has one owner on record. Investors are back." },
+  { k: "jobs", icon: "🏭", stat: "infra", sector: "infrastructure", fix: ["ind_park"],
+    title: (l) => "Factories are closing in " + l,
+    why: (l) => "Power is costly, permits take a year, and nobody in government speaks for industry.",
+    ask: "Create the Ministry of Commerce, Industry & Investment, then build the Industrial Park.",
+    fail: (l) => "The biggest employer in " + l + " shuts its gates. Two thousand jobs gone.",
+    abandon: (l) => "The industrial park in " + l + " has a gate and no factories.",
+    win: (l) => "New factories open in " + l + ". The night shift is hiring." },
+  { k: "digital", icon: "💻", stat: "lit", sector: "education", fix: ["digi_gov", "tech_hub"],
+    title: (l) => "Offices in " + l + " still run on paper files",
+    why: (l) => "A pension takes nine months. Files go missing until someone is paid to find them.",
+    ask: "Create the Ministry of Science, Technology & Digital Economy, then start the Digital Governance Platform.",
+    fail: (l) => "Pensioners in " + l + " protest after files were 'lost' for the third time.",
+    abandon: (l) => "Computers bought for " + l + " offices were never installed.",
+    win: (l) => "In " + l + " you can now apply, pay and track online." },
 ];
+// The ministry that must exist before a need can be answered.
+const NEED_MINISTRY = { water: "water", power: "power", housing: "housing", traffic: "transport", youth: "sports", poverty: "humanitarian", land: "lands", jobs: "commerce", digital: "digital" };
 // Project types that cannot start without their own commissioner.
 const NEEDS_MINISTRY = { stadium: "sports", esports: "sports", water: "water", dam: "water", power: "power", housing: "housing" };
 const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
 // What kind of need each project type answers, and what it improves when done.
-const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security" };
+const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security", industrial: "jobs", stadium: "youth", esports: "youth" };
 const PROJ_STAT = { stadium: "igr", esports: "igr", tourist: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
 const STAT_NAME = { infra: "Infrastructure", hp: "Health", lit: "Education", agr: "Agriculture", sec: "Security", igr: "Own revenue" };
 // Ministries a governor can add when the state needs them. key: the number a
@@ -2143,6 +2188,133 @@ const SCENARIOS = [
   { pack: "scenario_election", id: "godfather_candidate", icon: "🎩", nm: "The Godfather's Candidate", d: "He chose you, paid for everything, and the party did as he said. He expects contracts in your first month.", start: { cor: .12, pStab: 6, app: -4 } },
 ].map(x => ({ pack: "scenario_pack", ...x }));
 const scenarioStart = (setup) => { const m = setup && setup.mode; return m && m.kind === "scenario" ? (SCENARIOS.find(x => x.id === m.id) || {}).start || {} : {}; };
+// ── THE DAILY DECISION AND THE STREAK ──
+// One dilemma a day for everyone (SYS.dailyFor), how other governors chose
+// (our server), and a streak of days played. A year of governing also counts.
+const DAILY_KEY = "sop_daily";
+const loadDaily = async () => { try { const r = await window.storage.get(DAILY_KEY); const d = r?.value ? JSON.parse(r.value) : null; return { days: [], picks: {}, ...(d || {}) }; } catch (e) { return { days: [], picks: {} }; } };
+const saveDaily = async (d) => { try { await window.storage.set(DAILY_KEY, JSON.stringify(d)); } catch (e) {} try { window.dispatchEvent(new CustomEvent("sop-daily", { detail: d })); } catch (e) {} };
+const markPlayed = async () => { const d = await loadDaily(), n = SYS.dayNo(); if (!d.days.includes(n)) { d.days = [...d.days, n].slice(-400); await saveDaily(d); } return d; };
+if (typeof window !== "undefined") window.SOP_markPlayed = markPlayed;
+// Streak state, spending Streak Freezes on missed days when the player owns them.
+const useStreak = () => {
+  const [d, setD] = useState(null);
+  const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
+  useEffect(() => { loadDaily().then(setD); const f = (e) => setD(e.detail); const g = (e) => setEnts(e.detail || {}); window.addEventListener("sop-daily", f); window.addEventListener("sop-ents", g); return () => { window.removeEventListener("sop-daily", f); window.removeEventListener("sop-ents", g); }; }, []);
+  const today = SYS.dayNo(), fz = ents.streak_freeze || 0;
+  const st = d ? SYS.streakOf(d.days, today, fz) : { streak: 0, best: 0, use: 0, bridged: [] };
+  useEffect(() => { // spend freezes on the days they saved, once
+    if (!d || !st.use || !window.SOP_useCredit) return;
+    (async () => { const done = []; for (const day of st.bridged) { if (await window.SOP_useCredit("streak_freeze").catch(() => false)) done.push(day); } if (done.length) { const d2 = { ...d, days: [...d.days, ...done].sort((a, b) => a - b) }; setD(d2); saveDaily(d2); try { window.SOP_toast && window.SOP_toast("🧊 A Streak Freeze saved your streak", "ok"); } catch (e) {} } })();
+  }, [d && d.days.length, st.use]);
+  return { d, ...st, today, freezes: fz };
+};
+const Flame = ({ n, lit, size = 22 }) => <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontWeight: 900, color: lit ? "#e8590c" : "#9aa29c" }}><span className={lit ? "sop-flame" : ""} style={{ fontSize: size, filter: lit ? "none" : "grayscale(1)", display: "inline-block" }}>🔥</span>{n}</span>;
+
+const DailyScreen = ({ onClose }) => {
+  const tall = TALL(), n = SYS.dayNo(), D = SYS.dailyFor(n);
+  const [pick, setPick] = useState(null), [counts, setCounts] = useState(null), [streak, setStreak] = useState(null);
+  useEffect(() => { loadDaily().then(d => { if (d.picks[n] != null) { setPick(d.picks[n]); window.SOP_dailyStats && window.SOP_dailyStats(n).then(r => r && setCounts(r.counts)); setStreak(SYS.streakOf(d.days, n, 0).streak); } }); }, []);
+  const choose = async (i) => {
+    if (pick != null) return;
+    setPick(i); try { window.SOP_sound && window.SOP_sound("good"); } catch (e) {}
+    const d = await loadDaily(); d.picks = { ...d.picks, [n]: i }; if (!d.days.includes(n)) d.days = [...d.days, n]; await saveDaily(d);
+    setStreak(SYS.streakOf(d.days, n, 0).streak);
+    const r = window.SOP_dailyVote ? await window.SOP_dailyVote(n, i) : null; setCounts(r ? r.counts : null);
+  };
+  const total = counts ? counts.reduce((a, b) => a + (b || 0), 0) : 0;
+  const pct = (i) => total ? Math.round((counts[i] || 0) / total * 100) : null;
+  const O = pick != null ? D.options[pick] : null, f = O ? O.fx : {};
+  const share = O ? SYS.dailyShare(n, O, pct(pick)) : "";
+  const chip = (l, v, money) => v ? <span key={l} style={{ padding: "6px 12px", borderRadius: 999, fontWeight: 800, fontSize: tall ? TS(17) : TS(24), background: (v > 0 ? CL.grn : CL.red) + "18", color: v > 0 ? CL.grn : CL.red }}>{l} {v > 0 ? "+" : "−"}{money ? "₦" + Math.abs(v).toFixed(1) + "B" : Math.abs(v)}</span> : null;
+  return <div role="dialog" aria-modal="true" className="sop-fade-in" style={{ position: "fixed", inset: 0, zIndex: 300, background: "radial-gradient(120% 60% at 50% 0%, #1f5a3a 0%, #0f2a1c 55%, #0b1f15 100%)", overflowY: "auto" }}>
+    <div style={{ maxWidth: 760, margin: "0 auto", padding: tall ? "16px 14px 40px" : "28px 24px 48px" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", color: "#fff", marginBottom: 12 }}>
+        <div><div style={{ fontSize: tall ? TS(15) : TS(22), letterSpacing: 2, textTransform: "uppercase", color: "#e9b949", fontWeight: 800 }}>Daily Decision #{n}</div><div style={{ fontSize: tall ? TS(14) : TS(20), opacity: .8 }}>The same choice for every governor today</div></div>
+        <button onClick={onClose} aria-label="Close" style={{ width: 44, height: 44, borderRadius: 22, border: 0, background: "rgba(255,255,255,.12)", color: "#fff", fontSize: 20, cursor: "pointer" }}>✕</button>
+      </div>
+      <div className="ds-card" style={{ padding: 0, overflow: "hidden", borderRadius: tall ? 24 : 28 }}>
+        <SceneArt bg={D.bg} who={D.who} h={tall ? 190 : 260} />
+        <div style={{ padding: tall ? "14px 16px 18px" : "22px 28px 26px" }}>
+          <h2 className="ds-title" style={{ margin: "0 0 6px", fontSize: tall ? TS(28) : TS(46) }}>{D.icon} {D.title}</h2>
+          <p style={{ margin: "0 0 14px", color: CL.tm, fontSize: tall ? TS(19) : TS(30), lineHeight: 1.45 }}>{D.brief}</p>
+          <div style={{ display: "grid", gap: 10 }}>
+            {D.options.map((o, i) => { const mine = pick === i, p = pct(i); return <button key={i} className={pick == null ? "ds-option" : ""} disabled={pick != null} onClick={() => choose(i)} style={pick == null ? null : { position: "relative", overflow: "hidden", textAlign: "left", borderRadius: 18, border: "2px solid " + (mine ? CL.grn : CL.bdr), background: CL.card, padding: tall ? "12px 14px" : "16px 18px", fontFamily: F.b, color: CL.txt, cursor: "default" }}>
+              {pick != null && p != null && <span style={{ position: "absolute", inset: 0, width: p + "%", background: mine ? CL.grn + "22" : CL.bdr + "88", transition: "width .8s cubic-bezier(.2,.8,.2,1)" }} />}
+              <span style={{ position: "relative", display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+                <span className="ds-option-label" style={{ fontSize: tall ? TS(20) : TS(30) }}>{mine ? "✓ " : ""}{o.label}</span>
+                {pick != null && <b style={{ fontFamily: F.m, fontSize: tall ? TS(20) : TS(30), color: mine ? CL.grn : CL.td }}>{p != null ? p + "%" : ""}</b>}
+              </span>
+            </button>; })}
+          </div>
+          {O && <div className="sop-step" ref={(el) => { if (el && !el.dataset.seen) { el.dataset.seen = 1; setTimeout(() => { try { el.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 250); } }} style={{ marginTop: 16, display: "grid", gap: 10 }}>
+            <div style={{ background: "#12301f", color: "#fff", borderRadius: 18, padding: tall ? "14px 16px" : "18px 22px" }}>
+              <div style={{ fontSize: tall ? TS(14) : TS(20), color: "#e9b949", fontWeight: 800, letterSpacing: 1, textTransform: "uppercase" }}>What happened</div>
+              <div style={{ fontSize: tall ? TS(20) : TS(30), lineHeight: 1.4, marginTop: 4 }}>{O.out}</div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>{chip("Approval", f.app)}{chip("Money", f.cash, true)}{chip("Party", f.party)}</div>
+            </div>
+            <div style={{ textAlign: "center", fontSize: tall ? TS(18) : TS(26), color: CL.tm }}>{total ? <><b style={{ color: CL.txt }}>{pct(pick)}%</b> of {total.toLocaleString()} governors chose like you.</> : "Other governors' choices appear as they play."}</div>
+            {streak > 0 && <div className="sop-pop" style={{ textAlign: "center", fontSize: tall ? TS(24) : TS(36), fontWeight: 900, color: "#e8590c" }}><Flame n={streak} lit size={tall ? 30 : 42} /> day{streak === 1 ? "" : "s"} in a row</div>}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <PillBtn onClick={() => { try { window.open("https://wa.me/?text=" + encodeURIComponent(share), "_blank"); } catch (e) {} }}>Share on WhatsApp</PillBtn>
+              <PillBtn tone="plain" onClick={() => { try { navigator.clipboard?.writeText(share); window.SOP_toast && window.SOP_toast("Copied: paste it in your status", "ok"); } catch (e) {} }}>Copy result</PillBtn>
+            </div>
+            <PillBtn tone="plain" onClick={onClose}>Done · a new one tomorrow</PillBtn>
+          </div>}
+        </div>
+      </div>
+    </div>
+  </div>;
+};
+
+const StreakSheet = ({ st, onClose }) => {
+  const paid = VATAR && window.SOP_canBuy && window.SOP_canBuy();
+  const buy = () => window.SOP_buy("streak_freeze").then(() => { try { window.SOP_toast && window.SOP_toast("🧊 Streak Freeze ready", "ok"); } catch (e) {} }).catch(() => {});
+  const week = [6, 5, 4, 3, 2, 1, 0].map(k => st.today - k), has = new Set((st.d && st.d.days) || []);
+  return <EntranceSheet title="Your streak" onClose={onClose}>
+    <div style={{ textAlign: "center", padding: "6px 0 10px" }}>
+      <div className={st.streak ? "sop-flame" : ""} style={{ fontSize: 72, lineHeight: 1, filter: st.streak ? "none" : "grayscale(1)" }}>🔥</div>
+      <div style={{ fontFamily: F.d, fontWeight: 900, fontSize: DS.t.title, color: UI.ink }}>{st.streak} day{st.streak === 1 ? "" : "s"}</div>
+      <div style={{ fontSize: DS.t.meta, color: UI.sub }}>Best: {st.best} · {st.playedToday ? "done for today" : st.streak ? "play today to keep it" : "play today to start one"}</div>
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, margin: "14px 0" }}>{week.map(dn => <span key={dn} style={{ width: 34, height: 34, borderRadius: 17, display: "grid", placeItems: "center", background: has.has(dn) ? "#e8590c" : UI.tints[1], color: has.has(dn) ? "#fff" : UI.sub, fontWeight: 800, fontSize: 14, outline: dn === st.today ? "2px solid " + UI.ink : "none" }}>{has.has(dn) ? "✓" : ""}</span>)}</div>
+      <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Play the Daily Decision, or govern a year, once a day to keep your streak.</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#eaf4fb", border: "1px solid #b9dcf2", borderRadius: 16, padding: "12px 14px", textAlign: "left" }}>
+        <span style={{ fontSize: 34 }}>🧊</span>
+        <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body, color: UI.ink }}>Streak Freeze · you have {st.freezes}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>Saves your streak on a day you miss, automatically.</span></span>
+        {paid && <PillBtn onClick={buy} style={{ minWidth: 0, padding: "0 16px" }}>₦100</PillBtn>}
+      </div>
+    </div>
+  </EntranceSheet>;
+};
+
+// Your career: the map of states you have governed, and the badges earned.
+const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
+const CareerSheet = ({ onClose }) => {
+  const [list, setList] = useState(null), [sel, setSel] = useState(null);
+  useEffect(() => { (async () => { try { const r = await window.storage.get("sop_career"); setList(r && r.value ? JSON.parse(r.value) : []); } catch (e) { setList([]); } })(); }, []);
+  const L = list || [], m = SYS.careerMap(L), badges = SYS.careerBadges(L, (k) => STATES[k] && STATES[k].zone), got = badges.filter(b => b.got).length;
+  const tall = TALL(), cell = tall ? 40 : 58;
+  return <EntranceSheet title="Your career" onClose={onClose}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
+      <b style={{ fontSize: DS.t.body, color: UI.ink }}>{Object.keys(m).length} of 37 states governed</b>
+      <span style={{ fontSize: DS.t.meta, color: UI.sub }}>{L.length} governorship{L.length === 1 ? "" : "s"}</span>
+    </div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gridTemplateRows: "repeat(7, auto)", gap: tall ? 3 : 5, maxWidth: 520, margin: "0 auto 8px", background: "radial-gradient(120% 100% at 50% 40%, #eef5ec, #e3ecdf)", borderRadius: 18, padding: tall ? 6 : 10 }}>
+      {Object.entries(SYS.STATE_TILES).map(([k, [c, r]]) => { const o = m[k], on = sel === k; return <button key={k} onClick={() => setSel(on ? null : k)} title={stateLabel(k)} style={{ gridColumn: c + 1, gridRow: r + 1, aspectRatio: "1", borderRadius: tall ? 8 : 10, border: on ? "3px solid " + UI.ink : "1px solid " + (o ? "transparent" : "#cfd8cb"), background: o ? GRADE_COL[o.grade] || UI.green : "#f8faf6", color: o ? "#fff" : "#8a968c", fontFamily: F.b, fontWeight: 900, fontSize: tall ? 9 : 12, cursor: "pointer", padding: 0, minWidth: 0, minHeight: 0, boxShadow: o ? "0 3px 0 rgba(0,0,0,.18)" : "none", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", lineHeight: 1.05, overflow: "hidden" }}>
+        <span>{SYS.STATE_ABBR(k)}</span>{o ? <span style={{ fontSize: tall ? 12 : 16 }}>{o.grade}</span> : null}
+      </button>; })}
+    </div>
+    <div style={{ minHeight: 24, textAlign: "center", fontSize: DS.t.meta, color: UI.sub, marginBottom: 10 }}>{sel ? stateLabel(sel) + ": " + (m[sel] ? "best grade " + m[sel].grade + " · " + (SYS.ENDING_NAME[m[sel].ending] || "") + (m[sel].times > 1 ? " · governed " + m[sel].times + " times" : "") : "not governed yet. Start a new game here.") : "Tap a state. Colour shows your best grade."}</div>
+    <b style={{ display: "block", fontSize: DS.t.body, color: UI.ink, marginBottom: 8 }}>Badges · {got} of {badges.length}</b>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(" + (tall ? 140 : 180) + "px,1fr))", gap: 8 }}>
+      {badges.map(b => <div key={b.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8, alignItems: "center", padding: "8px 10px", borderRadius: 14, background: b.got ? "#fff7df" : "#f3f1ec", border: "1px solid " + (b.got ? "#e9cf8a" : UI.line), opacity: b.got ? 1 : .7 }}>
+        <span style={{ fontSize: 26, filter: b.got ? "none" : "grayscale(1)" }}>{b.got ? b.icon : "🔒"}</span>
+        <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.meta, color: UI.ink }}>{b.name}</b><span style={{ fontSize: 12, color: UI.sub, lineHeight: 1.3 }}>{b.how}</span></span>
+      </div>)}
+    </div>
+  </EntranceSheet>;
+};
+
 const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScenario, onBoard, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
@@ -2161,6 +2333,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
   const [chNew, setChNew] = useState(() => { try { return localStorage.getItem("sop_ch_seen") !== String(weekNow()); } catch (e) { return false; } });
   const seeCh = () => { try { localStorage.setItem("sop_ch_seen", String(weekNow())); } catch (e) {} setChNew(false); };
   const [soundOn, setSoundOn] = useState(() => { try { return window.SOP_soundOn ? window.SOP_soundOn() : true; } catch (e) { return true; } });
+  const st = useStreak(), dailyDone = !!(st.d && st.d.picks && st.d.picks[st.today] != null);
   useEffect(() => {
     setTimeout(() => setOp(1), 100);
     (async () => {
@@ -2171,7 +2344,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
           // A finished game is not something to continue.
           if (d.gEnd) return;
           setHasSave(true);
-          setSaveName(d.setup?.nm + " · " + (d.setup?.state || "").replace("_", " ") + " · Year " + d.turn + " of 8");
+          setSaveName(d.setup?.nm + " · " + (d.setup?.state || "").replace("_", " ") + " · Year " + d.turn + " of 8" + (d.stc && d.stc.teaser && d.stc.teaser.turn === d.turn ? " · ✉️ a sealed letter waits" : ""));
         }
       } catch (e) {}
     })();
@@ -2185,6 +2358,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
     <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
         <button onClick={() => setSheet("menu")} aria-label="Menu" style={{ position: "relative", width: 48, height: 48, borderRadius: 16, border: 0, background: UI.dark, color: "#fff", fontSize: 22, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.2)", display: "grid", placeItems: "center" }}><Ico n="icon-menu" s={30} />{chNew && <span aria-label="New challenge" style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "#e9b949", border: "2px solid #fff" }} />}</button>
+        <button onClick={() => setSheet("streak")} aria-label={"Streak: " + st.streak + " days"} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, background: "#fff", border: "1px solid " + (st.playedToday ? "#f3b38a" : UI.line), borderRadius: 999, padding: "6px 14px", minHeight: 44, fontSize: DS.t.body, cursor: "pointer", fontFamily: F.b, boxShadow: st.playedToday ? "0 0 0 3px #ffe3cf" : "none" }}><Flame n={st.streak} lit={st.streak > 0} /></button>
         <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: profile ? "4px 16px 4px 4px" : "10px 18px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", maxWidth: "60%" }}>
           {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 2 : undefined }} /> : <span aria-hidden="true">👤</span>}
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
@@ -2196,16 +2370,25 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
       </div>
       <TitleLineup ids={lineup} tall={tall} />
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
+        <button onClick={() => setSheet("daily")} className={dailyDone ? "" : "sop-glow"} style={{ width: "100%", maxWidth: 460, display: "flex", alignItems: "center", gap: 12, textAlign: "left", border: 0, borderRadius: 22, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: "#fff", background: dailyDone ? "linear-gradient(135deg,#3d4a42,#25302a)" : "linear-gradient(135deg,#1f7a4d,#0f3d26)", boxShadow: "0 6px 0 " + (dailyDone ? "#1a211d" : "#0a2a1a") + ", 0 10px 24px rgba(15,61,38,.3)" }}>
+          <span style={{ width: 50, height: 50, borderRadius: 14, background: "rgba(255,255,255,.12)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0 }}>{dailyDone ? "✅" : "📅"}</span>
+          <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{dailyDone ? "Today's decision: done" : "Today's decision #" + st.today}</b><span style={{ fontSize: DS.t.meta, opacity: .85 }}>{dailyDone ? "See how other governors chose · new one tomorrow" : "60 seconds · " + (st.streak ? "keep your " + st.streak + "-day streak" : "start a streak")}</span></span>
+          <Flame n={st.streak} lit={st.streak > 0} />
+        </button>
         <PillBtn onClick={() => onStart(profile)} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
+      {sheet === "daily" && <DailyScreen onClose={() => setSheet(null)} />}
+      {sheet === "streak" && <StreakSheet st={st} onClose={() => setSheet(null)} />}
+      {sheet === "career" && <CareerSheet onClose={() => setSheet(null)} />}
       {sheet === "menu" && <EntranceSheet title="Menu" onClose={() => setSheet(null)}>
         <div style={{ display: "grid", gap: 10 }}>
           {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
+            ["icon-state", "Your career map", "States you have governed, and your badges", () => setSheet("career")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
@@ -4572,6 +4755,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // fn runs the decision and returns the card ({ icon, title, text, tone });
   // returning nothing means nothing happened and no card shows.
   const announce = (o, before) => setTimeout(() => {
+    if (silentRef.current) { silentNote(o.title, o.tone !== "bad"); return; }
     try {
       const rows = [...(o.rows || []), ...(before ? statRows(before, snapRef.current) : [])].filter((r, i, a) => a.findIndex(x => x.l === r.l) === i);
       window.SOP_outcome && window.SOP_outcome({ ...o, rows, text: (o.text || "") + (rows.length ? "" : " Nothing changes at once; you will see the effect over the coming years.") });
@@ -4704,7 +4888,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => {
     if (needSetup || needs.length) return;
     const r = rng(turn * 31 + state.length * 7 + 5);
-    const a = makeNeed(r, []), b = makeNeed(r, [a.k]);
+    const own = Object.keys(NEED_MINISTRY); // the first needs can be answered with the starting ministries
+    const a = makeNeed(r, own), b = makeNeed(r, [a.k, ...own]);
     setNeeds([a, b]);
     addL("🧭 Your adviser has flagged two urgent needs: " + needType(a).title(a.lga) + "; " + needType(b).title(b.lga) + ".", "political");
   }, [needSetup]);
@@ -4712,12 +4897,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => {
     setNeeds(ns => { let changed = false; const out = ns.map(n => {
       if (n.status !== "open") return n;
+      if (NEED_MINISTRY[n.k] && !(ministries || []).some(m => m.id === NEED_MINISTRY[n.k])) return n; // nobody to run it yet
       const T = needType(n); const hit = T && pol.find(p => T.fix.includes(p.id));
       if (!hit) return n;
       changed = true;
       return { ...n, status: "started", link: hit.id, proj: hit.projectId || null, stall: 0 };
     }); return changed ? out : ns; });
-  }, [pol]);
+  }, [pol, ministries]);
   // A project you start yourself also answers a need: the one you aimed it at,
   // or any open need of the same kind.
   useEffect(() => {
@@ -6398,6 +6584,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Accepts: { icon, title, narrative, effects: [{icon, text, value, good, bad}], tone, nextFn }
   const showResult = (cfg) => {
     if (cosAuto.current && cosAuto.current.pressed) { cosAuto.current.shown = true; cfg = { ...cfg, by: cosAuto.current.c.name, chose: cosAuto.current.label, byOk: cosAuto.current.r.ok }; }
+    if (silentRef.current && silentNote(cfg.title, cfg.tone !== "bad")) { const fn = cfg.nextFn; setTimeout(() => { if (fn) fn(); else nextEvent(); }, 50); return; }
     try { window.SOP_sound && window.SOP_sound(cfg.tone === "good" ? "good" : cfg.tone === "bad" ? "bad" : "neutral"); } catch (e) {}
     setEventResult(cfg);
     setPhase("event_result");
@@ -7730,7 +7917,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const V = {
       flagship: () => FLAGSHIP[setup?.agenda] ? [sa, saPortrait(sa), "Your agenda: " + FLAGSHIP[setup.agenda].nm, "This year's share of your promise is due."] : null,
       budget: () => bm ? ["Hon. " + bm.minister + ", Budget & Economic Planning", "./art/characters/finance-commissioner.webp", "The " + absYear + " budget is ready for you", "Every ministry's share, for you to set and send to the House."]
-        : ["The Commissioner for Finance", "./art/characters/finance-commissioner.webp", "The " + absYear + " budget, drafted by Finance alone", "There is no Commissioner for Budget & Planning, so nobody checked the ministries' bids. Expect padding."],
+        : [((ministries || []).find(m => m.id === "fin") ? "Hon. " + (ministries || []).find(m => m.id === "fin").minister + ", Commissioner for Finance" : "The Commissioner for Finance"), "./art/characters/finance-commissioner.webp", "The " + absYear + " budget, drafted by Finance alone", "There is no Commissioner for Budget & Planning, so nobody checked the ministries' bids. Expect padding."],
       gold: () => { const b = gold && SYS.beat(gold, turn); return b ? ["The Chairman, " + (gold.lga || "the host") + " Local Government", "./art/characters/lg-chairman.webp", "Goldfields: " + b.title, b.known || "The communities want an answer this year."] : null; },
       godfather: () => [cast.godfather.name, "./art/characters/godfather.webp", "A private note from " + cast.godfather.name, (godfatherDemand && (godfatherDemand.title || godfatherDemand.nm)) || "He wants something."],
       house_bill: () => ["The Speaker, State House of Assembly", "./art/characters/speaker.webp", "A bill for your signature", (pendingHouseBill && (pendingHouseBill.nm || pendingHouseBill.title)) || "Members have passed a bill."],
@@ -7861,26 +8048,32 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { if (nav === "tre" && stc.treSeen !== turn) setStc(p => ({ ...p, treSeen: turn })); }, [nav, turn]);
   useEffect(() => { const el = paneRef.current; if (!el) return; el.classList.remove("sop-fade-in"); void el.offsetWidth; el.classList.add("sop-fade-in"); }, [nav]);
   const cosAuto = React.useRef(null);
-  // Travel takes the year. Once the governor goes abroad, the rest of this
-  // year's letters are handled by the Chief of Staff, one by one, in view.
+  // Travel takes time. While the governor is away the Chief of Staff answers the
+  // letters quietly (no pop-ups); back home there is one welcome and one report
+  // on the Desk saying what was chosen for each letter and how it went.
   const awayRef = React.useRef(false);
-  const goAway = () => { awayRef.current = "new"; };
+  const silentRef = React.useRef(null); // { report: [], cur } while answering quietly
+  const goAway = (months = 4) => { awayRef.current = months; };
   useEffect(() => {
-    if (phase !== "mail" || !awayRef.current || cosAuto.current) return;
+    if (phase !== "mail") return;
+    if (awayRef.current && !silentRef.current) { silentRef.current = { report: [], months: awayRef.current }; awayRef.current = false; try { document.body.classList.add("sop-silent"); } catch (e) {} }
+    const R = silentRef.current; if (!R || cosAuto.current) return;
     const nxt = (mail || []).find(l => !isNote(l) && l.key !== "budget" && !l.cat);
-    if (!nxt) return;
     const t = setTimeout(() => {
-      if (awayRef.current === "new") {
-        awayRef.current = true;
-        const c = cosNow || COS_ACTING;
-        present("Welcome back, Your Excellency. While you were abroad the year ran on: " + c.name + " is answering the rest of your letters.", "neutral", () => delegateLetter(nxt), "Watch them decide");
-      } else delegateLetter(nxt);
-    }, 900);
+      if (nxt) { R.cur = letterView(nxt).title; delegateLetter(nxt); return; }
+      // Done: the report goes on the Desk, and the adviser says so once.
+      silentRef.current = null; try { document.body.classList.remove("sop-silent"); } catch (e) {}
+      const c = cosNow || COS_ACTING, months = ["", "one month", "two months", "three months", "four months", "five months", "six months"][Math.min(6, R.months)];
+      if (R.report.length) postMail([letterOf("cos_report", { key: "cos_report_" + turn, live: true, kind: "briefing", stakes: 1, lines: R.report, tip: [c.name + ", Chief of Staff", "./art/characters/" + ((SYS.cosById(c.id) || c).img || "chief-of-staff-veteran") + ".webp", "While you were away: " + R.report.length + (R.report.length === 1 ? " letter" : " letters") + " answered", "What I decided for each, and how it went."] })]);
+      present("Welcome back, Your Excellency. You were away for " + months + ". " + (R.report.length ? c.name + " answered " + R.report.length + (R.report.length === 1 ? " letter" : " letters") + "; the report is on your desk." : "Nothing piled up while you were gone."), "neutral");
+    }, nxt ? 250 : 400);
     return () => clearTimeout(t);
   }, [phase, mail]);
+  const silentNote = (result, ok) => { const R = silentRef.current; if (!R) return false; const A = cosAuto.current; R.report.push({ ok: ok !== false && !(A && A.r && !A.r.ok), line: (R.cur || "A letter") + ": " + (A && A.label ? "chose “" + A.label + "”. " : "") + String(result || "handled").replace(/[.!]*$/, "") + "." }); return true; };
   useEffect(() => {
     const A = cosAuto.current; if (!A || A.pressed) return;
     if (phase !== A.phase) return;
+    const quiet = !!silentRef.current;
     const t = setTimeout(() => {
       const ols = document.querySelectorAll(".sop-ol"), ol = ols[ols.length - 1];
       const cands = ol ? [...ol.querySelectorAll(".ds-option:not([disabled]), .ds-card, button")].filter(el => {
@@ -7891,16 +8084,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const label = (el) => el.innerText.trim().split("\n")[0].replace(/^[^A-Za-z₦0-9]+/u, "").trim();
       const nm = A.c.name, fail = () => { // nothing to press: the old summary stands
         cosAuto.current = null; forgetEvent(A.key);
+        if (quiet) { silentNote(A.r.ok ? "handled it" : "handled it badly", A.r.ok); nextEvent(); return; }
         addL("🗝️ " + A.r.text, A.r.ok ? "info" : "political");
         decide(() => ({ icon: "🗝️", title: A.r.ok ? "Handled by your Chief of Staff" : "Your Chief of Staff got it wrong", text: A.r.text, tone: A.r.ok ? "neutral" : "bad", rows: cosRows(A.r) }));
         nextEvent();
       };
       if (!cands.length) return fail();
       const labels = cands.map(label), i = SYS.cosPick(A.c, labels, A.r.ok), el = cands[Math.max(0, i)], lab = labels[Math.max(0, i)];
-      el.style.outline = "4px solid #e9b949"; el.style.outlineOffset = "3px"; try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {}
+      if (!quiet) { el.style.outline = "4px solid #e9b949"; el.style.outlineOffset = "3px"; try { el.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (e) {} }
       const ban = document.createElement("div"); ban.className = "sop-cos-banner";
       ban.style.cssText = "position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:9960;background:#12301f;color:#fff;border-radius:999px;padding:10px 20px;font:800 18px 'Plus Jakarta Sans',sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35);max-width:92vw;text-align:center";
-      ban.textContent = "🗝️ " + nm + " chose: " + lab; document.body.appendChild(ban);
+      ban.textContent = "🗝️ " + nm + " chose: " + lab; if (!quiet) document.body.appendChild(ban);
       A.pressed = true; A.label = lab;
       setTimeout(() => {
         ban.remove(); el.style.outline = "";
@@ -7911,10 +8105,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "cos_decision", actor: nm, gravity: 1, evidence: 2, decision: A.title + ": " + lab, note: A.r.text, meta: { ok: A.r.ok } }); } catch (e) {}
         const how = A.r.ok ? "It was carried out well." : A.r.fx.app ? "It was carried out badly. " + A.r.text.split(". ").slice(1).join(". ") : "";
         // The result card already names the choice; a note follows only when there is more to say.
-        if (!(A.shown && A.r.ok && !A.r.crooked && !A.r.later)) try { window.SOP_outcome && window.SOP_outcome({ img: "./art/characters/" + (A.c.img || "chief-of-staff-veteran") + ".webp", title: nm.split(" ").slice(0, 2).join(" ") + " chose: " + lab, text: how + (A.r.crooked ? " A contract in it went to a friend of " + nm.split(" ").slice(-1)[0] + "." : "") + (A.r.later ? " It will come back next year." : ""), tone: A.r.ok ? "neutral" : "bad", rows: cosRows(A.r) }); } catch (e) {}
+        if (quiet) { if (!A.shown) silentNote(A.r.ok ? "done" : "done badly", A.r.ok); }
+        else if (!(A.shown && A.r.ok && !A.r.crooked && !A.r.later)) try { window.SOP_outcome && window.SOP_outcome({ img: "./art/characters/" + (A.c.img || "chief-of-staff-veteran") + ".webp", title: nm.split(" ").slice(0, 2).join(" ") + " chose: " + lab, text: how + (A.r.crooked ? " A contract in it went to a friend of " + nm.split(" ").slice(-1)[0] + "." : "") + (A.r.later ? " It will come back next year." : ""), tone: A.r.ok ? "neutral" : "bad", rows: cosRows(A.r) }); } catch (e) {}
         cosAuto.current = null;
-      }, 1500);
-    }, 700);
+      }, quiet ? 120 : 1500);
+    }, quiet ? 150 : 700);
     return () => clearTimeout(t);
   }, [phase]);
   const bumpCos = () => setCosOffice(o => o.cos ? { ...o, cos: { ...o.cos, handled: (o.cos.handled || 0) + 1 } } : o);
@@ -7929,16 +8124,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     due.forEach(d => addL((d.fx && d.fx.app < 0 ? "⚠️ " : "📈 ") + d.desc, d.fx && d.fx.app < 0 ? "political" : "success"));
   }, [turn]);
   // A need no ministry owns: the adviser writes, once, and says which ministry to create.
-  const NEED_OWNER = { water: "water", power: "power", housing: "housing" };
+  const NEED_OWNER = NEED_MINISTRY;
   const ownerAsked = React.useRef({});
   useEffect(() => {
-    if (needSetup || gEnd) return;
+    if (needSetup || gEnd || turn < 2) return;
     activeNeeds.forEach(n => {
-      const id = NEED_OWNER[n.k]; if (!id || (ministries || []).some(m => m.id === id) || ownerAsked.current[id]) return;
+      const id = NEED_OWNER[n.k]; if (!id || (ministries || []).some(m => m.id === id) || ownerAsked.current[id] || (stc.said || {})["own_" + id]) return;
       const cat = MINISTRY_CATALOGUE.find(c => c.id === id); if (!cat) return;
       ownerAsked.current[id] = 1;
       const nt = needType(n), sa = cast.adviser.name;
-      postMail([letterOf("ministry_tip", { key: "ministry_tip_" + id, live: true, cat: id, kind: "projects", stakes: 2, tip: [sa, saPortrait(sa), "Nobody owns " + nt.title(n.lga).toLowerCase().replace(/^./, c => c.toUpperCase()), "We have no Commissioner for " + cat.name + ", so nobody can plan or run the fix. Create the Ministry of " + cat.name + " (" + naira(cat.cost) + " a year) and the work can start."] })]);
+      postMail([letterOf("ministry_tip", { key: "ministry_tip_" + id, live: true, cat: id, kind: "projects", stakes: 2, tip: [sa, saPortrait(sa), nt.title(n.lga) + ": no ministry to fix it", "We have no Commissioner for " + cat.name + ", so nobody can plan or run the fix. Create the Ministry of " + cat.name + " (" + naira(cat.cost) + " a year) and the work can start."] })]);
+      setStc(p => ({ ...p, said: { ...(p.said || {}), ["own_" + id]: 1 } }));
+      // She says it in person too, with the way to do it.
+      setTimeout(() => present("Your Excellency, " + nt.title(n.lga).replace(/^./, c => c.toLowerCase()) + ". We have no Commissioner for " + cat.name + ", so nobody can run the fix. Create the ministry and the work can start.", "urgent", () => openNewMinistry(cat), "Create the Ministry of " + cat.name, "Not now"), 900);
     });
   }, [needs, ministries, turn]);
   // Goldfields and stalled projects are letters too, whenever they land.
@@ -7950,11 +8148,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // ── Big moments: a front page with your name, the news anchors, the adviser in person ──
   const govShort = "Gov. " + String(pName || "").split(" ").pop();
-  const paper = (headline, sub, good = true, img) => { try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
+  const paper = (headline, sub, good = true, img) => { if (silentRef.current) return; try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
   const [anchorNews, setAnchorNews] = useState(null);
-  const anchors = (m, f) => { try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
+  const anchors = (m, f) => { if (silentRef.current) return; try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
   const anchorEl = anchorNews ? <AnchorDesk lines={anchorNews} onDone={() => setAnchorNews(null)} /> : null;
-  const present = (text, mood = "urgent", fn, ok) => { try { const nm = cast.adviser.name; window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(nm, mood) || saPortrait(nm), name: nm + " · Special Adviser", text, urgent: mood === "urgent", fn, ok } }); } catch (e) {} };
+  const present = (text, mood = "urgent", fn, ok, alt) => { try { const nm = cast.adviser.name; window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(nm, mood) || saPortrait(nm), name: nm + " · Special Adviser", text, urgent: mood === "urgent", fn, ok, alt } }); } catch (e) {} };
   // The anchors cover the moments people talk about.
   const anchored = React.useRef({});
   useEffect(() => {
@@ -7985,47 +8183,56 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // reference and date, "Your Excellency", the matter, a signature and the seal.
       const OFFICE = { agenda: "Office of the Special Adviser to the Governor", budget: "Ministry of Budget & Economic Planning", gold: "Local Government Secretariat", crisis: "State Security Council", godfather: "Private & Confidential", party: "The Party Secretariat", house: "State House of Assembly", courts: "High Court of Justice", federal: "The Presidency · Abuja", community: open.key.startsWith("sc#ruler") ? "The Palace" : "A Community Delegation", press: "The Newsroom", travel: "Protocol Department, Government House", investment: "Investment Promotion Office", projects: "Ministry of Works & Infrastructure", intel: "Department of State Services · Secret", briefing: "Office of the Secretary to the State Government" };
       const ref = "GH/" + absYear + "/" + String(100 + (hashStr(open.id) % 900));
+      const fromSA = String(v.from || "") === cast.adviser.name;
+      const office = fromSA ? "Office of the Special Adviser to the Governor" : (OFFICE[open.kind] || "Government House");
+      const role = String(v.from || "").includes(",") ? String(v.from).split(",").slice(1).join(",").trim() : fromSA ? "Special Adviser to the Governor" : "";
       const signer = String(v.from || "").split(",")[0];
       const sc = (SYS.SEALS[open.kind] || {}).c || "#7a1f2b", tall = TALL();
-      const LS = tall ? { xs: TS(15), s: TS(17), m: TS(21), l: TS(23), h: TS(18), sig: TS(36) } : { xs: TS(20), s: TS(23), m: TS(29), l: TS(32), h: TS(26), sig: TS(54) };
+      const LS = tall ? { xs: TS(17), s: TS(20), m: TS(24), l: TS(26), h: TS(20), sig: TS(40) } : { xs: TS(20), s: TS(23), m: TS(29), l: TS(32), h: TS(26), sig: TS(54) };
       return <div className="sop-fade-in" style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(14,10,4,.72)", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: tall ? "22px 12px 40px" : "40px 24px" }} onClick={(e) => { if (e.target === e.currentTarget) setLetterOpen(null); }}>
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <div className="sop-letter" style={{ position: "relative", transform: "rotate(-.6deg)", background: "radial-gradient(130% 90% at 50% 0%, #fbf4e1 0%, #f3e6c4 70%, #e8d6aa 100%)", borderRadius: 4, padding: tall ? "26px 20px 30px" : "44px 52px 46px", color: "#2b2117", fontFamily: "Georgia, 'Times New Roman', serif", boxShadow: "0 30px 60px rgba(0,0,0,.45), 0 2px 0 #d9c69a, inset 0 0 60px rgba(150,110,40,.18)", marginBottom: 16 }}>
-          <div style={{ position: "absolute", inset: tall ? 8 : 12, border: "1px solid " + sc + "33", pointerEvents: "none" }} />
-          <div style={{ textAlign: "center" }}>
-            <img src={"./art/icons/" + (SEAL_ART[open.kind] || "seal-briefing") + ".webp"} alt="" style={{ width: tall ? 34 : 44, height: tall ? 34 : 44, opacity: .85 }} />
-            <div style={{ fontVariant: "small-caps", letterSpacing: 2, fontSize: LS.h, fontWeight: 700, color: sc, marginTop: 4 }}>{OFFICE[open.kind] || "Government House"}</div>
-            <div style={{ fontSize: LS.xs, color: "#7a6a52", letterSpacing: 1 }}>{stName} State of Nigeria</div>
-            <div style={{ borderTop: "2px solid " + sc + "88", borderBottom: "1px solid " + sc + "55", height: 3, margin: tall ? "10px 0 12px" : "14px 0 18px" }} />
+        <div className="sop-letter" style={{ position: "relative", borderRadius: tall ? 14 : 18, overflow: "hidden", boxShadow: "0 30px 60px rgba(0,0,0,.45)", background: "#f8f6e6", color: "#2b2117", marginBottom: 14 }}>
+          {/* Head: the green band with stars, the office on the pale band below it. */}
+          <div style={{ aspectRatio: "816 / 160", background: "url(./art/objects/letter-head.webp) center / 100% 100% no-repeat", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", paddingTop: "8%", textAlign: "center" }}>
+            <div style={{ fontFamily: F.b, fontWeight: 900, letterSpacing: 1, color: "#0f5a35", fontSize: tall ? TS(21) : TS(34), lineHeight: 1.05, textTransform: "uppercase", padding: "0 12px" }}>{office}</div>
+            <div style={{ fontFamily: F.b, fontWeight: 600, letterSpacing: 1.5, color: "#2f6b48", fontSize: LS.xs, textTransform: "uppercase", marginTop: 2 }}>{stName} State · Ref {ref}</div>
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: LS.xs, color: "#6b5b43", marginBottom: tall ? 14 : 20 }}><span>Ref: {ref}</span><span>{absYear}</span></div>
-          <div style={{ fontSize: LS.s, fontWeight: 700, textDecoration: "underline", textUnderlineOffset: 4, marginBottom: 12 }}>RE: {String(v.title).toUpperCase()}</div>
-          <div style={{ fontStyle: "italic", fontSize: LS.l, marginBottom: 10 }}>Your Excellency,</div>
-          {open.lines ? <div style={{ fontSize: LS.m, lineHeight: 1.6, display: "grid", gap: 8 }}>{open.lines.map((x, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8 }}><span style={{ color: x.ok ? "#1f7a46" : "#a3271c", fontWeight: 700 }}>{x.ok ? "✓" : "✗"}</span><span>{x.line}</span></div>)}</div>
-            : <div style={{ fontSize: LS.m, lineHeight: 1.65, textIndent: 28 }}>{v.body || v.line}{v.body && v.line && v.line !== v.body ? " " + v.line : ""}</div>}
-          <div style={{ marginTop: tall ? 18 : 26, fontSize: LS.m }}>Yours faithfully,</div>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12 }}>
-            <div>
-              <div style={{ fontFamily: "'Brush Script MT','Segoe Script','Snell Roundhand',cursive", fontSize: LS.sig, color: "#173a8c", lineHeight: 1.2, margin: "4px 0 0", transform: "rotate(-3deg)", transformOrigin: "left" }}>{signer}</div>
-              <div style={{ borderTop: "1px solid #8a7a5e", width: tall ? 170 : 230, paddingTop: 4, fontSize: LS.xs, color: "#4b3d2a" }}>{v.from}</div>
+          {/* Body: cream paper with the envelope watermark. */}
+          <div style={{ position: "relative", background: "#f8f6e6 url(./art/objects/letter-mark.webp) center 45% / 44% auto no-repeat", padding: tall ? "18px 20px 16px" : "30px 46px 26px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
+            <div style={{ textAlign: "center", fontWeight: 700, fontSize: tall ? TS(24) : TS(38), letterSpacing: .5, textTransform: "uppercase", lineHeight: 1.15, margin: "2px 0 14px" }}>{v.title}</div>
+            <div style={{ fontSize: LS.l, marginBottom: 10 }}>Your Excellency,</div>
+            {open.lines ? <div style={{ fontSize: LS.m, lineHeight: 1.55, display: "grid", gap: 8 }}>{open.lines.map((x, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8 }}><span style={{ color: x.ok ? "#1f7a46" : "#a3271c", fontWeight: 700 }}>{x.ok ? "✓" : "✗"}</span><span>{x.line}</span></div>)}</div>
+              : <div style={{ fontSize: LS.l, lineHeight: 1.55 }}>{v.body || v.line}{v.body && v.line && !v.line.startsWith(v.body.replace(/…$/, "").slice(0, 40)) && !v.body.includes(v.line.slice(0, 40)) ? " " + v.line : ""}</div>}
+            <div style={{ marginTop: tall ? 16 : 24, fontSize: LS.l }}>Yours faithfully,</div>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontFamily: "'Dancing Script','Brush Script MT','Segoe Script',cursive", fontWeight: 700, fontSize: LS.sig, color: "#1f4f9c", lineHeight: 1.15, margin: "2px 0" }}>{signer}</div>
+                {role && <div style={{ fontSize: LS.m, color: "#2b2117" }}>{role}</div>}
+              </div>
+              <div style={{ transform: "rotate(-12deg)", flexShrink: 0 }}><Seal kind={open.kind} size={tall ? 60 : 84} /></div>
             </div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-              {v.img && <img src={v.img} alt="" style={{ width: tall ? 54 : 70, height: tall ? 66 : 86, objectFit: "cover", objectPosition: "top", border: "4px solid #fff", boxShadow: "0 4px 10px rgba(0,0,0,.25)", transform: "rotate(4deg)", background: "#efe3c6" }} />}
-              <div style={{ transform: "rotate(-12deg)", marginBottom: -10 }}><Seal kind={open.kind} size={tall ? 62 : 80} /></div>
-            </div>
+          </div>
+          {/* Foot: the two ways to answer, as in the template. */}
+          <div style={{ background: "#dcd8d1", padding: tall ? "12px 12px 14px" : "16px 22px 20px", borderTop: "1px solid #cfcac1" }}>
+            {open.key === "budget" && !budgetMin() && (() => { const bc = MINISTRY_CATALOGUE.find(x => x.id === "budget"); return <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff8e6", border: "1px solid #e9cf8a", borderRadius: 16, padding: tall ? "10px 12px" : "12px 16px", marginBottom: 12 }}>
+              <img src={saPortrait(cast.adviser.name)} alt="" style={{ width: tall ? 44 : 56, height: tall ? 44 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+              <div style={{ fontFamily: F.b, fontSize: LS.xs, color: "#4b3d2a", lineHeight: 1.4 }}><b>{cast.adviser.name.split(" ").slice(-2).join(" ")}:</b> “Create a Ministry of Budget & Planning first, so someone checks every bid. Otherwise the padding costs us.”</div>
+              <button onClick={() => { setLetterOpen(null); setMailOpen(false); if (bc) openNewMinistry(bc); else goTab("min"); }} style={{ gridColumn: "1 / -1", minHeight: tall ? 50 : 60, borderRadius: 999, border: 0, background: "linear-gradient(180deg,#f0c75a,#d9a521)", color: "#2b1d05", fontFamily: F.b, fontWeight: 900, fontSize: tall ? TS(19) : TS(28), cursor: "pointer", boxShadow: "0 4px 0 #a97d12" }}>🏛️ Create the Ministry of Budget & Planning{bc ? " · " + naira(bc.cost) + " a year" : ""}</button>
+            </div>; })()}
+            {!isNote(open) && !open.cat && <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", fontFamily: F.b, fontSize: LS.xs, color: "#4b4a45", marginBottom: 10 }}><span aria-label={risk} style={{ width: 10, height: 10, borderRadius: 5, background: riskC, flexShrink: 0 }} /><b>{first}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}”</div>}
+            {(() => { const pill = (img, label, onClick, key, strong) => <button key={key} onClick={onClick} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: tall ? "6px 14px 6px 6px" : "8px 18px 8px 8px", minHeight: tall ? 58 : 72, borderRadius: 999, border: "2px solid " + (strong ? "#0f5a35" : "#c4c0b8"), background: strong ? "linear-gradient(180deg,#1b7a4c,#0f5a35)" : "linear-gradient(180deg,#f1f0ec,#dedbd5)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.7), 0 3px 8px rgba(0,0,0,.12)", cursor: "pointer", fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(19) : TS(28), color: strong ? "#fff" : "#2b2a26", lineHeight: 1.15, textAlign: "center" }}>
+                <span style={{ width: tall ? 44 : 56, height: tall ? 44 : 56, borderRadius: "50%", flexShrink: 0, background: "#cfccc5", boxShadow: "inset 0 2px 4px rgba(0,0,0,.18)", display: "grid", placeItems: "center", overflow: "hidden" }}>{img}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
+              </button>;
+              return open.cat ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-state" s={tall ? 30 : 38} />, "🏛️ Create the ministry", () => handleLetter(open), "c", true)}</div>
+                : isNote(open) ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-ok" s={tall ? 30 : 38} />, "Noted", () => handleLetter(open), "n", true)}</div>
+                : <div style={{ display: "flex", gap: tall ? 8 : 14 }}>
+                  {pill(<img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />, <>{risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first} <Ico n="icon-delegate" s={tall ? 18 : 24} /></>, () => delegateLetter(open), "d")}
+                  {pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, "✍️ Handle it personally", () => handleLetter(open), "h", true)}
+                </div>; })()}
           </div>
         </div>
-        {!isNote(open) && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 14, padding: "8px 12px", marginBottom: 12 }}>
-          <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
-          <span style={{ fontSize: fz.s, color: CL.txt }}><span aria-label={risk} style={{ display: "inline-block", width: 10, height: 10, borderRadius: 5, background: riskC, marginRight: 6 }} /><b>{first}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}”</span>
-        </div>}
-        {isNote(open) ? <Bt onClick={() => handleLetter(open)} style={{ width: "100%" }}><Ico n="icon-ok" s={24} style={{ marginRight: 6 }} />Noted</Bt> :
-        <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 10 }}>
-          <Bt onClick={() => handleLetter(open)}>✍️ Handle it personally</Bt>
-          <Bt v="ghost" onClick={() => delegateLetter(open)} style={{ background: "rgba(255,250,240,.95)", color: "#2b2117", borderColor: "#e9dcc0" }}><Ico n="icon-delegate" s={24} style={{ marginRight: 6 }} />{risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first}</Bt>
-        </div>}
-        {open.key === "budget" && !budgetMin() && <button onClick={() => { setLetterOpen(null); setMailOpen(false); goTab("min"); }} style={{ display: "block", background: "none", border: 0, padding: 0, color: CL.grn, fontWeight: 800, fontSize: fz.s, textDecoration: "underline", cursor: "pointer", fontFamily: F.b, marginTop: 10 }}>Create a Ministry of Budget & Economic Planning first</button>}
-        <button onClick={() => setLetterOpen(null)} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, marginTop: 12, cursor: "pointer", fontFamily: F.b, fontWeight: 700 }}>← Back to the mail</button>
+        <button onClick={() => setLetterOpen(null)} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, fontWeight: 700 }}>← Back to the mail</button>
         </div>
       </div>;
     }
@@ -8036,7 +8243,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <div style={{ fontSize: fz.s, color: CL.td, display: "flex", alignItems: "center", gap: 6 }}>{mail.some(l => l.stakes >= 3) && <Ico n="icon-urgent" s={20} />}{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") + " waiting" : "Nothing waiting"}</div></div>
       </div>
       <div style={{ display: "grid", gap: 8 }}>
-        {mail.map(l => { const v = letterView(l); return <button key={l.id} onClick={() => setLetterOpen(l.id)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "8px 10px" : "10px 14px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
+        {mail.slice().sort((a, b) => (b.stakes || 0) - (a.stakes || 0) || (!!a.cat - !!b.cat)).map(l => { const v = letterView(l); return <button key={l.id} onClick={() => setLetterOpen(l.id)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "8px 10px" : "10px 14px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
           <Seal kind={l.kind} size={TALL() ? 38 : 48} />
           <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.title}</b></span>
           <span aria-label={l.stakes >= 3 ? "Urgent" : "Open"} style={{ fontSize: fz.s, color: l.stakes >= 3 ? CL.red : CL.td, fontWeight: 800 }}>{l.stakes >= 3 ? "❗" : "›"}</span>
@@ -8059,6 +8266,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     "Take the budget to the House": "The budget is ready. Now the House of Assembly must pass it, and members will want to be asked.",
     "Sign programmes and orders": "The budget is through. Now sign the programmes and orders that deliver what you promised.",
   };
+  // The year's end: it counts toward the daily streak, and a sealed letter
+  // says what is coming next year (it opens when the year begins).
+  const teaser = () => {
+    const nt = turn + 1, yIn = ((nt - 1) % 4) + 1;
+    if (nt > MT) return null;
+    if (nt === 4 || nt === 8) return { from: "The Party Secretariat", line: "Election year. The opposition has chosen its candidate, and they want your seat.", kind: "party" };
+    const ru = council && SYS.rulerPick(council, nt);
+    if (ru && ru.rel < 40) return { from: ru.name, line: "The palace is not happy with you, and is about to say so in public.", kind: "community" };
+    const gb = gold && SYS.beat(gold, nt); if (gb) return { from: "The " + (gold.lga || "host") + " Local Government", line: "The goldfields: " + gb.title.toLowerCase() + ".", kind: "gold" };
+    if (yIn === 2 || yIn === 3) return { from: "Protocol, Government House", line: "An invitation from abroad is on its way. You may have to choose between the world and your state.", kind: "travel" };
+    if (ru) return { from: ru.name, line: "A royal delegation is coming to Government House with a request.", kind: "community" };
+    return { from: cast.godfather.name, line: "Your godfather wants a favour. He always does.", kind: "godfather" };
+  };
+  useEffect(() => { if (phase !== "end_turn" || gEnd) return; try { window.SOP_markPlayed && window.SOP_markPlayed(); } catch (e) {} const t0 = teaser(); if (t0) setStc(p => ({ ...p, teaser: { turn, ...t0 } })); }, [phase, turn]);
+  // A finished governorship goes on the career map, once.
+  useEffect(() => {
+    if (!gEnd || stc.careerSaved) return;
+    const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
+    const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
+    let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
+    setStc(p => ({ ...p, careerSaved: true }));
+    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
+  }, [gEnd]);
   const nextSaid = React.useRef({});
   // Twice a career the adviser asks for the player's feedback: after the second
   // year, and at the end. Not if they sent some in the last week.
@@ -8067,7 +8297,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, said: { ...(p.said || {}), [k]: 1 } }));
     let recent = false; try { recent = Date.now() - (+localStorage.getItem("sop_fb_sent") || 0) < 7 * 864e5; } catch (e) {}
     if (recent || !window.SOP_feedbackOn) return;
-    window.SOP_feedbackOn().then(on => { if (on) present(line, "neutral", () => { try { window.SOP_feedbackForm({ where: k, year: absYear, state: stName }); } catch (e) {} }, "Give feedback"); });
+    window.SOP_feedbackOn().then(on => { if (on) present(line, "neutral", () => { try { window.SOP_feedbackForm({ where: k, year: absYear, state: stName }); } catch (e) {} }, "Give feedback", "Not now"); });
   };
   useEffect(() => { if (phase === "end_turn" && turn === 2) askFeedback("fb_y2", "One more thing, Your Excellency: the people who made this game want to hear from you. What don't you like, and what would you change?"); }, [phase, turn]);
   useEffect(() => { if (gEnd) setTimeout(() => askFeedback("fb_end", "Before you go: what did you not like, and what do you want to see better? The makers read every message."), 2500); }, [gEnd]);
@@ -8719,6 +8949,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </span>
                   <span style={{ color: CL.td, fontSize: fz.s }}>{open ? "▲" : "▼"}</span>
                 </button>
+                {(() => { const mid = NEED_MINISTRY[n.k], cat = mid && !(ministries || []).some(m => m.id === mid) ? MINISTRY_CATALOGUE.find(c => c.id === mid) : null; return cat ? <div style={{ padding: TALL() ? "0 14px 14px" : "0 18px 16px" }}>
+                  <div style={{ fontSize: fz.s, color: CL.org, fontWeight: 700, marginBottom: 8 }}>🏛️ Nobody can fix this yet: there is no Ministry of {cat.name}.</div>
+                  <Bt onClick={() => openNewMinistry(cat)} style={{ width: "100%" }}>Create the Ministry of {cat.name} · {naira(cat.cost)} a year</Bt>
+                </div> : null; })()}
                 {open && <div style={{ padding: TALL() ? "0 14px 14px" : "0 18px 18px", fontSize: fz.s, color: CL.tm, lineHeight: 1.45, display: "grid", gap: 8 }}>
                   <div>{T.why(n.lga)}</div>
                   <div><b style={{ color: CL.txt }}>What answers it:</b> {fixes.join(", ")}{(T.eo || []).length ? ", or an executive order (the courts may strike it down)" : ""}. Start one in Policies.</div>
@@ -9662,14 +9896,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 In reality, Mr. President wants to discuss the next election cycle and assess loyalty.
               </p>
               <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 43 }}>
-                Going shows loyalty to the federal government and party structure — but while you are away, the Chief of Staff answers the rest of this year's letters. 
+                Going shows loyalty to the federal government and party structure — but your letters will wait while you are away. 
                 Refusing signals independence — but the President notices who didn't show up.
               </p>
             </div>
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => {
                 setAbujaVisited(true);
-                goAway();
+                goAway(2);
                 setS(p => ({ ...p, pStab: cl100(p.pStab + 8), app: cl100(p.app - 3) }));
                 setSkApp(p => ({ ...p, party: cl100((p.party || 50) + 10) }));
                 addL("✈️ Visited Aso Rock. President received you warmly. Party stability rose. But citizens noticed your absence.", "political");
@@ -9682,7 +9916,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 nextEvent();
               }} style={{ padding: 43 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.grn, marginBottom: 10 }}>✈️ Go to Abuja</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}><b style={{ color: CL.org }}>You will be away for the rest of the year. </b>Show loyalty to the President and party leadership. Network with other governors.</div>
+                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}><b style={{ color: CL.org }}>Letters will wait while you are away. </b>Show loyalty to the President and party leadership. Network with other governors.</div>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                   <Bg text="+8 party stability" color={CL.grn} />
                   <Bg text="-3 approval" color={CL.red} />
@@ -9743,7 +9977,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
               <Cd onClick={() => {
                 setNetherlandsVisited(true);
-                goAway();
+                goAway(4);
                 const success = Math.random() < .55;
                 const hiddenBoost = 1.5 + Math.random() * 1.5;
                 if (success) {
@@ -9773,7 +10007,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 }
               }} style={{ padding: 43 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.teal, marginBottom: 10 }}>✈️ Go to The Hague</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}><b style={{ color: CL.org }}>You will be away for the rest of the year. </b>Meet the investors personally. Your presence shows seriousness. 55% chance they commit.</div>
+                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}><b style={{ color: CL.org }}>Letters will wait while you are away. </b>Meet the investors personally. Your presence shows seriousness. 55% chance they commit.</div>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                   <Bg text="₦0.3B cost" color={CL.red} />
                   <Bg text="55% deal success" color={CL.teal} />
@@ -9855,7 +10089,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Cd onClick={() => {
                 if (!spendB(0.2, "The trip to the wedding")) return;
                 setWeddingVisited(true);
-                goAway();
+                goAway(1);
                 setS(p => ({ ...p, pStab: cl100(p.pStab + 5), app: cl100(p.app - 4) }));
                 setSkApp(p => ({ ...p, party: cl100((p.party || 50) + 8), traditional: cl100((p.traditional || 50) + 5), media: cl100((p.media || 50) - 5) }));
                 addL("💒 Attended governor's daughter wedding. Networked with 12 governors. Media called it 'junketing.'", "political");
@@ -9868,7 +10102,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 nextEvent();
               }} style={{ padding: 43 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.pur, marginBottom: 10 }}>💒 Attend the Wedding</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}><b style={{ color: CL.org }}>You will be away for the rest of the year. </b>Fly in with your entourage. Spray naira at the reception. Network with other governors in the VIP tent.</div>
+                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}><b style={{ color: CL.org }}>Letters will wait while you are away. </b>Fly in with your entourage. Spray naira at the reception. Network with other governors in the VIP tent.</div>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                   <Bg text="+5 party" color={CL.grn} />
                   <Bg text="-4 approval" color={CL.red} />
@@ -9926,7 +10160,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29, maxWidth: 840, margin: "0 auto" }}>
               <Cd onClick={() => {
                 if (!spendB(curInvite.goCost || 0, "The trip")) return;
-                goAway();
+                goAway(6);
                 setS(p => {
                   const n = { ...p };
                   if (curInvite.goFx.igr) { n.igr += curInvite.goFx.igr; n.invIGR = (n.invIGR || 0) + curInvite.goFx.igr * .5; }
@@ -9955,7 +10189,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 showResult({ icon: invRef.icon, title: "International Visit — " + invRef.from.split(",")[0], narrative: invRef.goLog + " Your personal presence opened doors that a delegation never could. International media covered your visit, boosting your state's global profile.", effects: goEffects, tone: "good", nextFn: () => nextEvent() });
               }} style={{ padding: 43 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.grn, marginBottom: 10, display: "flex", alignItems: "center", gap: 10 }}><Ico n="icon-travel" s={44} />Go in Person</div>
-                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>You will be away: the Chief of Staff answers the rest of this year's letters.</div>
+                <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>About six months away. Your letters will wait for you.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {curInvite.goCost > 0 && <Bg text={"₦" + curInvite.goCost + "B cost"} color={CL.red} />}
                   {curInvite.goFx.igr && <Bg text={"+" + naira(curInvite.goFx.igr) + " IGR"} color={CL.grn} />}
@@ -11071,6 +11305,12 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(53), fontWeight: 600, marginBottom: 22 }}>{yr} Complete</h3>
               <Sfx k="turn" />
               {headline && <FrontPage paper={state.replace("_", " ") + " Daily Tribune"} headline={headline} w={TALL() ? 260 : 340} />}
+              {stc.teaser && stc.teaser.turn === turn && turn < MT && <div className="sop-step" style={{ position: "relative", margin: "22px auto 6px", maxWidth: 560, textAlign: "left", background: "linear-gradient(180deg,#fbf4e1,#efe0b8)", border: "1px solid #d9c48e", borderRadius: 18, padding: TALL() ? "14px 14px 14px 76px" : "18px 22px 18px 104px", boxShadow: "0 12px 26px rgba(60,40,10,.18)", color: "#2b2117" }}>
+                <img src="./art/objects/letter-sealed.webp" alt="" style={{ position: "absolute", left: TALL() ? 8 : 14, top: "50%", transform: "translateY(-50%) rotate(-8deg)", width: TALL() ? 60 : 80, height: "auto" }} />
+                <div style={{ fontFamily: F.b, fontSize: TALL() ? TS(14) : TS(20), fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: "#a3271c" }}>Sealed until {absYear + 1}</div>
+                <div style={{ fontFamily: "Georgia, serif", fontSize: TALL() ? TS(16) : TS(24), color: "#5b4a33", marginTop: 2 }}>From: {stc.teaser.from}</div>
+                <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: TALL() ? TS(19) : TS(29), lineHeight: 1.4, marginTop: 4 }}>“{stc.teaser.line}”</div>
+              </div>}
               {/* Show this turn's key events so players SEE the cabinet/stakeholder/persona feedback */}
               <div style={{ textAlign: "left", margin: "29px 0", maxWidth: 732, marginLeft: "auto", marginRight: "auto" }}>
                 {logs.filter(l => l.t === turn).slice(0, 2).map((e, i) => {

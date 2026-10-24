@@ -35,7 +35,7 @@ const lendUntilOffer = async (g) => {
 };
 const ROAD = "500km Road Network";
 // Close any outcome card on top, as a player would, before the next click.
-const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|On to the next.*)$/); i++) await g.wait(350); };
+const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|On to the next.*|Not now)$/); i++) await g.wait(350); };
 const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(600); };
 
 // ── Money: with money in the bank, a project is paid from it and nothing is borrowed ──
