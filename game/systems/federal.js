@@ -196,3 +196,25 @@ export const FED_CROLES = [
   { k: "agr", t: "Minister of Agriculture", s: "agriculture" }, { k: "inf", t: "Minister of Information", s: "administration" },
   { k: "env", t: "Minister of the FCT", s: "infrastructure" }, { k: "wom", t: "Minister of Women Affairs", s: "health" },
 ];
+
+/* The President's debt is the nation's: there is no Abuja to ask. Relief comes
+   from the creditors. share: the part of the debt each holds; cut: the part
+   of that share forgiven. ctx: { cor, reforms (revenue measures adopted),
+   washington ("went" | "sent" | ...), app }. */
+export const FED_CREDITORS = [
+  { id: "paris", icon: "🏛️", nm: "Ask the Paris Club to forgive its loans", who: "the Paris Club of creditor nations", share: .3, cut: .6,
+    note: "Rich creditor nations wrote off 60% of Nigeria's debt to them in 2005, for clean books and reform. Success: approval +4.",
+    odds: (c) => Math.max(.05, Math.min(.75, .15 + (c.cor < .35 ? .2 : c.cor < .45 ? .05 : -.1) + (c.reforms >= 2 ? .2 : 0) + (c.app >= 55 ? .05 : 0))),
+    why: (c) => [c.cor >= .35 ? "your corruption is too high" : null, c.reforms < 2 ? "you have not reformed revenue (2+ measures help)" : null].filter(Boolean),
+    fx: { app: 4 }, failFx: { app: -1 } },
+  { id: "imf", icon: "🌐", nm: "Take an IMF programme for debt relief", who: "the International Monetary Fund", share: .25, cut: .5,
+    note: "Likely to succeed, but the conditions bite: end the fuel subsidy and let the naira float. Approval −5, labour angry.",
+    odds: (c) => Math.max(.3, Math.min(.85, .65 - (c.cor >= .5 ? .2 : 0))),
+    why: (c) => [c.cor >= .5 ? "the Fund doubts your books" : null].filter(Boolean),
+    fx: { app: -5, igr: 6 }, failFx: { app: -1 } },
+  { id: "usa", icon: "🇺🇸", nm: "Ask Washington to forgive its loans", who: "the United States", share: .1, cut: 1,
+    note: "Better if you went to Washington in person. Success: approval +2 and closer ties.",
+    odds: (c) => Math.max(.05, Math.min(.8, .2 + (c.washington === "went" ? .4 : c.washington === "sent" ? .15 : 0) + (c.cor < .4 ? .1 : 0))),
+    why: (c) => [c.washington !== "went" ? "you have not met the US President in person" : null, c.cor >= .4 ? "Congress reads the corruption stories" : null].filter(Boolean),
+    fx: { app: 2 }, failFx: { app: -1 } },
+];

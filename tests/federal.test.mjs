@@ -32,3 +32,12 @@ test("federal projects: rail, ports, refineries, pipelines and airports for the 
   assert.equal(parseProposal("50 boreholes in Kano", { federal: true }).status, "unsupported");
   assert.equal(parseProposal("50 boreholes in Kano").proposal.type, "water");
 });
+
+test("the President's debt relief comes from creditors (Paris Club, IMF, the US), not from Abuja", () => {
+  assert.deepEqual(F.FED_CREDITORS.map(c => c.id), ["paris", "imf", "usa"]);
+  F.FED_CREDITORS.forEach(c => { assert.ok(!/Abuja/.test(c.nm + c.note), c.id); assert.ok(c.share > 0 && c.cut > 0 && c.cut <= 1); });
+  const usa = F.FED_CREDITORS.find(c => c.id === "usa"), paris = F.FED_CREDITORS[0];
+  assert.ok(usa.odds({ cor: .3, washington: "went" }) > usa.odds({ cor: .3, washington: null }), "going to Washington helps");
+  assert.ok(paris.odds({ cor: .2, reforms: 3, app: 60 }) > paris.odds({ cor: .6, reforms: 0, app: 40 }), "clean books and reforms help");
+  assert.ok(paris.why({ cor: .6, reforms: 0 }).length === 2);
+});

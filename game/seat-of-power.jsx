@@ -5508,6 +5508,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const why = [fgRelation < 50 ? "Abuja doesn't trust you yet" : null, s.cor >= .4 ? "your corruption is too high" : null, Object.keys(stc.rev || {}).length < 3 ? "you haven't reformed revenue (3+ measures help)" : null].filter(Boolean);
     return { icon: "🇳🇬", title: "Abuja said no", text: "The Finance Minister told you to fix your books first" + (why.length ? ": " + why.join(", ") + "." : "."), tone: "bad", rows: [{ l: "Odds were", v: Math.round(odds * 100) + "%" }, { l: "Abuja relations", v: "−5", good: false }] };
   });
+  // The President's relief: from the creditors, not from Abuja (game/systems/federal.js).
+  const credCtx = () => ({ cor: s.cor || 0, reforms: Object.keys(stc.rev || {}).length, washington: (stc.bakunda || {}).washington, app: s.app });
+  const askCreditor = (C) => decide(() => {
+    if (debtDone(C.id) || (s.debt || 0) < 20) return; markDebt(C.id);
+    const odds = C.odds(credCtx());
+    if (Math.random() < odds) {
+      const cut = Math.round((s.debt || 0) * C.share * C.cut * 10) / 10;
+      setS(p => ({ ...p, debt: Math.max(0, Math.round(((p.debt || 0) - cut) * 10) / 10), app: cl100(p.app + (C.fx.app || 0)), igr: Math.round(((p.igr || 0) + (C.fx.igr || 0)) * 10) / 10 }));
+      addL(C.icon + " " + C.who.replace(/^./, x => x.toUpperCase()) + " agreed: ₦" + cut + "B of debt forgiven.", "success");
+      scWiki("Presidency", "Won debt relief from " + C.who + ": ₦" + cut + "B forgiven.");
+      return { icon: C.icon, title: "Relief from " + C.who, text: "₦" + cut + "B of the nation's debt forgiven." + (C.id === "imf" ? " The conditions start now: the subsidy goes and the naira floats." : ""), tone: "good", rows: [{ l: "Odds were", v: Math.round(odds * 100) + "%" }, { l: "Approval", v: (C.fx.app > 0 ? "+" : "") + C.fx.app, good: C.fx.app > 0 }] };
+    }
+    setS(p => ({ ...p, app: cl100(p.app + (C.failFx.app || 0)) }));
+    addL(C.icon + " " + C.who.replace(/^./, x => x.toUpperCase()) + " turned down your request for debt relief.", "political");
+    const why = C.why(credCtx());
+    return { icon: C.icon, title: C.who.replace(/^./, x => x.toUpperCase()) + " said no", text: "Not this time" + (why.length ? ": " + why.join(", ") + "." : "."), tone: "bad", rows: [{ l: "Odds were", v: Math.round(odds * 100) + "%" }] };
+  });
   const deferDebt = () => decide(() => {
     if (debtDone("defer") || (s.debt || 0) < 2) return; markDebt("defer");
     const amt = Math.round((s.debt || 0) * .6 * 10) / 10;
@@ -6986,7 +7003,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       { id: "pre", icon: "🎩", nm: "Contractor pre-financing", lender: "The contractor", share: .4 * 1.35, fx: { cor: .03 }, odds: 1,
         terms: "The contractor fronts the money and is repaid later with a fat margin (about 35% more). Corruption +3%.",
         why: ["Always available. It is how many states build, and why their projects cost so much."] },
-    ].map(o => ({ ...o, why: o.why.filter(Boolean).sort((a, b) => (b[0] === "✗") - (a[0] === "✗")) }));
+    ].map(o => !NAT ? o : o.id === "cash" ? { ...o, lender: "The Federal Treasury" }
+      // The President borrows for the nation: no Abuja guarantee, no federal fund to apply to.
+      : o.id === "bank" ? { ...o, nm: "Treasury bills and FGN bonds", lender: "Nigerian banks and pension funds, via the Debt Management Office", terms: "Quick, but dear: about 30% more in interest, and it crowds out lending to business." }
+      : o.id === "bond" ? { ...o, nm: "Eurobond", lender: "International investors, via the Debt Management Office", odds: pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0)),
+          terms: "Dollar debt at about 15%: cheap until the naira falls. The National Assembly must approve the borrowing plan.", why: [cor > .4 ? "✗ Rating agencies mark Nigeria down for corruption." : "✓ Nigeria's rating is acceptable.", hs.loyal < hs.seats / 2 ? "✗ The National Assembly is hostile and may refuse the borrowing plan." : "✓ The National Assembly will approve it."] }
+      : o.id === "dfi" ? { ...o, nm: "World Bank / African Development Bank loan", lender: "The World Bank and the African Development Bank", odds: !multi ? 0 : pc(.85 - Math.max(0, cor - .3) * 2 - (proj.needsEIA && !proj.eiaDone ? .4 : 0)),
+          terms: "The cheapest money there is (about 5%), but slow: the banks check safeguards and procurement.", why: !multi ? ["Development banks don't fund " + t + " projects."] : [cor > .35 ? "✗ Their integrity checks flag corruption (" + Math.round(cor * 100) + "%)." : "✓ Your books pass their checks.", proj.needsEIA && !proj.eiaDone ? "✗ No environmental assessment yet." : null] }
+      : o.id === "fed" ? { ...o, icon: "🇨🇳", nm: "China Exim Bank loan", lender: "The Export-Import Bank of China", share: .4 * 1.1, fx: { app: -1 }, odds: !multi ? 0 : pc(.8 - (cor > .5 ? .1 : 0)),
+          terms: "Fast and fairly cheap, but a Chinese contractor builds it and the loan is secured on oil revenue. Critics say you mortgaged the country (approval −1).", why: !multi ? ["Beijing does not lend for " + t + " projects."] : ["✓ Beijing lends for roads, rail, power and ports.", "✗ The loan is secured on oil money."] }
+      : o).map(o => ({ ...o, why: o.why.filter(Boolean).sort((a, b) => (b[0] === "✗") - (a[0] === "✗")) }));
   };
   const pickFinance = (o) => {
     const F0 = finProj; if (!F0) return;
@@ -7519,8 +7545,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (n.debt > (n.igr + n.faac) * 1.4) addL("🚨 DEBT CRISIS: State debt at ₦" + n.debt.toFixed(1) + "B! Debt service is consuming the budget. Credit agencies watching.", "crisis");
 
       // Federal relations affect FAAC — hostile FG slowly cuts your allocation
-      if (fgRelation < 30) { n.faac = Math.max(3, n.faac * .95); addL("🇳🇬 FG quietly reduces your FAAC. Relations: " + fgRelation + "%.", "crisis"); }
-      if (fgRelation > 70) { n.faac = n.faac * 1.02; }
+      if (!NAT && fgRelation < 30) { n.faac = Math.max(3, n.faac * .95); addL("🇳🇬 FG quietly reduces your FAAC. Relations: " + fgRelation + "%.", "crisis"); }
+      if (!NAT && fgRelation > 70) { n.faac = n.faac * 1.02; }
 
       // ── TIME DELAY SYSTEM — process delayed effects from previous turns ──
       setDelayedFx(prev => {
@@ -8262,7 +8288,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
 
     // LAYER 5: Federal Government Event (turns 2, 4, 6 — federal never sleeps)
-    if ((turn === 2 || turn === 4 || turn === 6) && fgEventsSeen.length < 4) {
+    if (!NAT && (turn === 2 || turn === 4 || turn === 6) && fgEventsSeen.length < 4) {
       const unseenFG = FG_EVENTS.filter(e => !fgEventsSeen.includes(e.id) && e.id !== "fg_faac_cut");
       // Pick contextual: punishment if FG relation low, reward if high
       const pool2 = fgRelation < 40 ? unseenFG.filter(e => e.type === "punish") : fgRelation > 65 ? unseenFG.filter(e => e.type === "reward") : unseenFG;
@@ -8388,7 +8414,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const unseen = SHOCK_EVENTS.filter(e => !shocksSeen.includes(e.id));
       if (unseen.length > 0) { setCurShock(pick(unseen, rE2)); setShocksSeen(p => [...p, unseen[0].id]); }
     }
-    if (next === "federal" && !curFgEvent) {
+    if (next === "federal" && !curFgEvent && !NAT) {
       const rE2 = rng(turn * 432 + state.length * 19);
       const unseen = FG_EVENTS.filter(e => !fgEventsSeen.includes(e.id));
       if (unseen.length > 0) { setCurFgEvent(pick(unseen, rE2)); setFgEventsSeen(p => [...p, unseen[0].id]); }
@@ -10408,7 +10434,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <More text={curFgEvent.id === "fg_efcc" ? efccCause().trim() + " " + curFgEvent.desc : curFgEvent.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
               {curFgEvent.id === "fg_efcc" && <p style={{ color: CL.txt, fontSize: TS(34), lineHeight: 1.45, textAlign: "left", marginBottom: 22 }}>The case officer is <b>{cast.efcc.name}</b>, {cast.efcc.title}. {window.SOP_CAST && window.SOP_CAST.history("efcc").length ? "You have met before." : "Nobody in your government has met this officer yet."}</p>}
               <div style={{ display: "flex", gap: 22, justifyContent: "center", marginBottom: 22 }}>
-                <Bg text={"FG Relations: " + fgRelation + "%"} color={fgRelation > 55 ? CL.grn : fgRelation > 35 ? CL.org : CL.red} />
+                {!NAT && <Bg text={"FG Relations: " + fgRelation + "%"} color={fgRelation > 55 ? CL.grn : fgRelation > 35 ? CL.org : CL.red} />}
                 <Bg text={curFgEvent.type === "reward" ? "Opportunity" : "Pressure"} color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
               </div>
             </div>
@@ -12103,7 +12129,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 </div>;
                 return <div style={{ display: "grid", gap: 8, marginBottom: 6 }}>
                   <div style={{ fontSize: fz.m, color: CL.txt }}><b>Your debt: ₦{(s.debt || 0).toFixed(1)}B</b> · repayments ₦{svc.toFixed(1)}B a year ({share}% of income){stc.defDebt ? " · ₦" + stc.defDebt.amt.toFixed(1) + "B pushed " + (stc.defDebt.due ? "to your second term" : "to your successor") : ""}</div>
-                  {row("relief", "🇳🇬 Ask Abuja to write off 80% of the debt", "A long shot: about " + Math.round(reliefOdds() * 100) + "% now. Better with good federal relations, clean books and revenue reforms. Success costs you federal goodwill and a debt of loyalty to the President.", !debtDone("relief") && (s.debt || 0) >= 6, (s.debt || 0) < 6 ? "Only worth asking when debt is ₦6B or more." : null, askRelief)}
+                  {NAT ? SYS.FED_CREDITORS.map(C => row(C.id, C.icon + " " + C.nm, C.note + " Odds now: about " + Math.round(C.odds(credCtx()) * 100) + "%.", !debtDone(C.id) && (s.debt || 0) >= 20, (s.debt || 0) < 20 ? "Only worth asking when the debt is ₦20B or more." : null, () => askCreditor(C))) : null}
+                  {!NAT && row("relief", "🇳🇬 Ask Abuja to write off 80% of the debt", "A long shot: about " + Math.round(reliefOdds() * 100) + "% now. Better with good federal relations, clean books and revenue reforms. Success costs you federal goodwill and a debt of loyalty to the President.", !debtDone("relief") && (s.debt || 0) >= 6, (s.debt || 0) < 6 ? "Only worth asking when debt is ₦6B or more." : null, askRelief)}
                   {row("defer", "🏦 Push repayments to the next administration", "Moves 60% of the debt off your books for now. " + (termNow === 1 ? "If you are re-elected, it comes back at the start of your second term." : "Your successor inherits it, and so does your Wikipedia page."), !debtDone("defer") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to restructure." : null, deferDebt)}
                   {row("notes", "📜 Pay contractors in promissory notes at a discount", "Cuts about 12% of the debt. Contractors slow down on every site, and the party's contractor-financiers sulk (party −2).", !debtDone("notes") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to discount." : null, discountDebt)}
                   {/* Reforms that raise money: a header with progress and this year's two slots. */}
