@@ -31,3 +31,11 @@ test("kept words stay a governor's", () => {
 test("the Villa's rooms exist for every governor room", () => {
   assert.ok(Object.values(VILLA_ART).every(Boolean));
 });
+import { villaCharacter } from "../game/systems/office.js";
+test("the deputy governor's portrait becomes the Vice-President's, the judge the Chief Justice", () => {
+  assert.equal(villaCharacter("deputy-male-suit-pleased"), "vice-president-pleased");
+  assert.equal(villaCharacter("deputy-northern-female-hijab-angry"), "vice-president-female-angry");
+  assert.equal(villaCharacter("deputy-female-worried"), "vice-president-female");
+  assert.equal(villaCharacter("judge"), "chief-justice");
+  assert.equal(villaCharacter("speaker"), null);
+});

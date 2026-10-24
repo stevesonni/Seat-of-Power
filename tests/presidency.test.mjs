@@ -12,7 +12,7 @@ test("each year brings the crisis, two in-tray cards and the world stage every o
   const d1 = presDeck("seed1", 1, P0), d2 = presDeck("seed1", 2, P0);
   assert.equal(d1[0].k, "crisis"); assert.equal(d1.filter(x => x.k === "card").length, 2); assert.ok(d1.some(x => x.k === "world"));
   assert.ok(!d2.some(x => x.k === "world"));
-  d1.forEach(it => { const c = presCard(P0, it); assert.ok(c && c.t && c.opts.length, JSON.stringify(it)); assert.ok(PRES_LEARN[c.learn], c.learn); assert.equal(presArt(P0, it, c).length, 2); });
+  d1.forEach(it => { const c = presCard(P0, it); assert.ok(c && c.t && c.opts.length, JSON.stringify(it)); assert.ok(PRES_LEARN[c.learn], c.learn); assert.equal(presArt(P0, it, c).length, 4); });
 });
 test("choices move people and come back the next year", () => {
   const it = { k: "card", id: "efcc" }, o = presCard(P0, it).opts.find(x => x.id === "slow");
@@ -45,4 +45,13 @@ test("the deck's governors stay governors under the president's vocabulary", asy
   assert.equal(presidentWords(PRES_NPCS.gov.role).replace(/⁠/g, ""), "Chair, Governors' Forum");
   const bail = PRES_CARDS.find(c => c.id === "bailout");
   assert.match(presidentWords(bail.d).replace(/⁠/g, ""), /The governors want a bailout/);
+});
+test("the Villa pack's pictures are on the cards they belong to", async () => {
+  const { presArt, presCard } = await import("../game/systems/presidency.js");
+  const art = (it) => presArt(P0, it, presCard(P0, it));
+  assert.equal(art({ k: "coup", id: "coup" })[3], "coup-night");
+  assert.equal(art({ k: "world", id: "unga" })[3], "un-podium");
+  assert.equal(art({ k: "card", id: "barracks" })[2], "red-phone");
+  assert.equal(art({ k: "card", id: "barracks" })[1], null);
+  assert.equal(art({ k: "card", id: "internal" })[1], "inspector-general");
 });

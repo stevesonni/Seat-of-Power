@@ -93,3 +93,12 @@ export const VILLA_ART = {
   "assembly-chamber": "senate-chamber",
   "assembly-chamber-wide": "senate-chamber",
 };
+
+/* The governor's people and the President's: the deputy governor's portrait
+   becomes the Vice-President's (keeping the mood), the judge the Chief Justice. */
+export const villaCharacter = (name) => {
+  const m = /^(deputy-(?:northern-)?female(?:-hijab)?|deputy-(?:male|southern-male)(?:-suit|-isiagu)?|judge)(?:-(pleased|angry|worried))?$/.exec(name || "");
+  if (!m) return null;
+  const base = m[1] === "judge" ? "chief-justice" : /female/.test(m[1]) ? "vice-president-female" : "vice-president";
+  return m[2] && m[2] !== "worried" ? base + "-" + m[2] : base;
+};

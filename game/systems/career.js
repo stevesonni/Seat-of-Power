@@ -41,6 +41,9 @@ export const careerBadges = (list, zoneOf = () => null) => {
     ["ten", "🗺️", "Ten states", "Govern ten different states", states.size >= 10],
     ["all", "👑", "The whole federation", "Govern all 36 states and the FCT", states.size >= 37],
     ["statesman", "🦅", "Statesman", "Serve a full term as President of Nigeria", P.some(c => c.ending === "complete" || c.terms >= 1 && c.ending !== "impeached" && c.ending !== "nullified")],
+    ["commander", "🎖️", "Commander-in-Chief", "As President, face down tanks near the Villa", P.some(c => c.coup)],
+    ["unifier", "🤝", "Unifier", "Leave the presidency with all six zones behind you", P.some(c => c.allZones && c.ending !== "impeached")],
+    ["crisis", "⛓️", "Crisis ended", "As President, end the national crisis", P.some(c => c.crisisOver)],
     ["fallen", "⚠️", "Fallen", "Be impeached or removed (it happens)", L.some(c => c.ending === "impeached" || c.ending === "nullified")],
   ];
   return B.map(([id, icon, name, how, got]) => ({ id, icon, name, how, got: !!got }));
@@ -57,6 +60,9 @@ export const BADGE_PERKS = {
   builder: { text: "Builder: ₦0.5B in the bank", fx: { cashB: .5 } },
   survivor: { text: "Survivor: two more loyal lawmakers", fx: { house: 2 } },
   aso: { text: "National profile: federal relations +10", fx: { fg: 10 } },
+  commander: { text: "Commander-in-Chief: security +3%", fx: { sec: .03 } },
+  unifier: { text: "Unifier: every zone +3", fx: { zones: 3 } },
+  crisis: { text: "Crisis-tested: party +4", fx: { pStab: 4 } },
   statesman: { text: "Former President: party +6, approval +2", fx: { pStab: 6, app: 2 } },
   zones: { text: "Pan-Nigerian: every zone +2", fx: { zones: 2 } },
   ten: { text: "Seasoned: ₦1B in the bank", fx: { cashB: 1 } },

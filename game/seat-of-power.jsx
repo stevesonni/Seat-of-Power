@@ -1158,7 +1158,7 @@ const REVENUE_MEASURES = [
 // its name and alerts. Points are in map pixels.
 const HUB_W = 1500, HUB_H = 850;
 // box: the building on the map [left, top, right, bottom].
-const HUB_BUILDINGS = [
+const HUB_BUILDINGS_STATE = [
   { id: "inec", img: "b09-electoral-commission", name: "Electoral Commission", box: [258, 31, 469, 142] },
   { id: "assembly", img: "b02-house-of-assembly", name: "House of Assembly", box: [633, 8, 867, 150] },
   { id: "party", img: "b07-party-secretariat", name: "Party Secretariat", box: [1039, 39, 1242, 142] },
@@ -1172,7 +1172,25 @@ const HUB_BUILDINGS = [
   { id: "projects", img: "o-scaffold", name: "Project Sites", overlay: true, box: [797, 472, 1062, 645] },
   { id: "market", img: "b12-market", name: "Central Market", box: [1109, 472, 1406, 653] },
 ];
-const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) => {
+/* The President's compound: the Villa and the Three Arms Zone (Pack 14's
+   compound-villa.webp). The same destinations as the governor's, on the
+   buildings painted here; the rest open from the list under the map. */
+const VILLA_BUILDINGS = [
+  { id: "market", img: "b12-market", name: "Press Briefing Room", box: [30, 150, 455, 258] },
+  { id: "assembly", img: "b02-house-of-assembly", name: "National Assembly", box: [615, 8, 1025, 165] },
+  { id: "court", img: "b04-high-court", name: "Supreme Court", box: [1070, 85, 1492, 220] },
+  { id: "gh", img: "b01-government-house", name: "The Villa", box: [50, 278, 735, 482] },
+  { id: "secretariat", img: "b08-state-secretariat", name: "Federal Executive Council", box: [838, 255, 1150, 405] },
+  { id: "palace", img: "palace", name: "Banquet Hall", box: [1130, 312, 1486, 492] },
+  { id: "police", img: "b11-police-hq", name: "Guards Brigade", box: [155, 600, 560, 790] },
+  { id: "projects", img: "o-scaffold", name: "Helipad · project sites", overlay: true, box: [1185, 552, 1492, 680] },
+  { id: "finance", img: "b03-ministry-of-finance", name: "Ministry of Finance" },
+  { id: "party", img: "b07-party-secretariat", name: "Party Headquarters" },
+  { id: "efcc", img: "b10-efcc-office", name: "EFCC Office" },
+  { id: "inec", img: "b09-electoral-commission", name: "INEC" },
+];
+const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list, villa }) => {
+  const HUB_BUILDINGS = villa ? VILLA_BUILDINGS : HUB_BUILDINGS_STATE, ON_MAP = HUB_BUILDINGS.filter(b => b.box);
   const wrapRef = React.useRef(null);
   const [cw, setCw] = React.useState(1000);
   React.useEffect(() => {
@@ -1190,23 +1208,23 @@ const CompoundHub = ({ badges, overlays, night, palace, onArrive, next, list }) 
       <span style={{ background: "#0b7a4b", borderRadius: 999, padding: "8px 16px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(26), whiteSpace: "nowrap" }}>Go →</span>
     </button>}
     <div ref={wrapRef} style={{ position: "relative", isolation: "isolate", width: "100%", maxWidth: TALL() ? "none" : "max(720px, calc((var(--stage-h, 1080px) - 500px) * 16 / 9))", margin: "0 auto", aspectRatio: HUB_W + " / " + HUB_H, borderRadius: 18, overflow: "hidden", background: "#5f8f3a", boxShadow: "0 10px 30px rgba(0,0,0,.18)", userSelect: "none" }}>
-      <img src="./art/compound/compound-full.webp" alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", filter: night ? "brightness(.62) saturate(.75)" : "none", transition: "filter .6s" }} />
+      <img src={villa ? "./art/compound/compound-villa.webp" : "./art/compound/compound-full.webp"} alt="" draggable={false} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block", filter: night ? "brightness(.62) saturate(.75)" : "none", transition: "filter .6s" }} />
       {night && <div style={{ position: "absolute", inset: 0, background: "rgba(20,34,90,.32)", mixBlendMode: "multiply", pointerEvents: "none" }} />}
       {/* a click area over each painted building; it lights up when it needs you */}
-      {HUB_BUILDINGS.map(b => { const badge = badges[b.id], [x0, y0, x1, y1] = b.box;
+      {ON_MAP.map(b => { const badge = badges[b.id], [x0, y0, x1, y1] = b.box;
         return <button key={b.id} onClick={() => go(b)} aria-label={b.name + (badge ? ": " + badge.text : "")} title={b.name} className={"sop-hub-spot" + (nextB && nextB.id === b.id ? " sop-next" : "")}
           style={{ position: "absolute", left: (x0 / HUB_W * 100) + "%", top: (y0 / HUB_H * 100) + "%", width: ((x1 - x0) / HUB_W * 100) + "%", height: ((y1 - y0) / HUB_H * 100) + "%", padding: 0, border: 0, borderRadius: 10, background: "transparent", cursor: "pointer", zIndex: 10,
             boxShadow: badge ? "inset 0 0 0 2px " + (badge.tone === "bad" ? "rgba(192,57,43,.85)" : "rgba(233,162,59,.9)") + ", 0 0 14px " + (badge.tone === "bad" ? "rgba(192,57,43,.55)" : "rgba(255,209,102,.6)") : "none" }} />; })}
       {/* names and alerts sit above every building so none is hidden */}
-      {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <div key={"l" + b.id} onClick={() => go(b)} style={{ position: "absolute", ...pct([(b.box[0] + b.box[2]) / 2, b.box[3]]), transform: "translate(-50%, -85%)", zIndex: 4500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
+      {ON_MAP.map(b => { const badge = badges[b.id]; return <div key={"l" + b.id} onClick={() => go(b)} style={{ position: "absolute", ...pct([(b.box[0] + b.box[2]) / 2, b.box[3]]), transform: "translate(-50%, -85%)", zIndex: 4500, display: "flex", flexDirection: "column", alignItems: "center", gap: 2, cursor: "pointer" }}>
         {badge && <span className="sop-fade-in" style={{ background: badge.tone === "bad" ? "#c0392b" : "#e9a23b", color: "#fff", borderRadius: 999, padding: (fz * .25) + "px " + (fz * .7) + "px", fontSize: fz, fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 3px 10px rgba(0,0,0,.3)", fontFamily: F.b }}>{badge.text}</span>}
         <span style={{ background: "rgba(18,48,31,.85)", color: "#fff", borderRadius: 999, padding: (fz * .2) + "px " + (fz * .6) + "px", fontSize: fz * .85, fontWeight: 700, whiteSpace: "nowrap", fontFamily: F.b }}>{b.name}</span>
       </div>; })}
       {/* what is happening around the buildings */}
-      {overlays.map(o => <img key={o.img + o.p} src={"./art/compound/overlays/" + o.img + ".webp"} alt="" draggable={false} className="sop-fade-in"
+      {!villa && overlays.map(o => <img key={o.img + o.p} src={"./art/compound/overlays/" + o.img + ".webp"} alt="" draggable={false} className="sop-fade-in"
         style={{ position: "absolute", ...pct(o.p), width: ((o.w || 120) / HUB_W * 100) + "%", transform: "translate(-50%, -85%)", zIndex: 20, pointerEvents: "none" }} />)}
     </div>
-    {list && <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 12 }}>
+    {(list || villa) && <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8, marginTop: 12 }}>
       {HUB_BUILDINGS.map(b => { const badge = badges[b.id]; return <button key={b.id} onClick={() => go(b)} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8, alignItems: "center", background: CL.card, border: "1.5px solid " + (badge ? (badge.tone === "bad" ? CL.red : CL.gold) + "88" : CL.bdr), borderRadius: 14, padding: "8px 10px", cursor: "pointer", textAlign: "left", fontFamily: F.b, color: CL.txt }}>
         <img src={b.id === "palace" ? "./art/compound/buildings/" + palace + ".webp" : b.overlay ? "./art/compound/overlays/" + b.img + ".webp" : "./art/compound/buildings/" + b.img + ".webp"} alt="" style={{ width: 52, height: 40, objectFit: "contain" }} />
         <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: TS(19), lineHeight: 1.2 }}>{b.name}</b>{badge ? <span style={{ fontSize: TS(17), color: badge.tone === "bad" ? CL.red : CL.org, fontWeight: 700 }}>{badge.text}</span> : <span style={{ fontSize: TS(17), color: CL.td }}>All quiet</span>}</span>
@@ -2385,7 +2403,7 @@ const StreakSheet = ({ st, onClose }) => {
 };
 
 // Your career: the map of states you have governed, and the badges earned.
-const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
+const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
 // ── YOUR COMPANY (the company_registration product, ₦1,500) ──
 // A contractor of the player's own, in one sector, that every player sees as
@@ -3009,6 +3027,18 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   useEffect(() => { if (!mode || mode.kind !== "challenge" || chDone.current) return; if (st !== mode.state) { setSt(mode.state); return; } chDone.current = true; setLevel && setLevel("medium"); quickStart(); }, [st, mode]);
   // The Special Adviser is the player's choice (step 25), never a default.
   const [saName, setSaName] = useState(null);
+  // The comeback with the old team: every choice as it was; straight to the ticket.
+  const comebackDone = React.useRef(false);
+  useEffect(() => {
+    if (!mode || mode.kind !== "comeback" || !mode.team || comebackDone.current) return;
+    const T = mode.team.setup || {}; comebackDone.current = true;
+    if (mode.team.state) setSt(mode.team.state);
+    if (T.customParty) { try { registerParty(T.customParty); setCustomParty(T.customParty); } catch (e) {} }
+    const P = PARTIES.find(x => x.id === T.party); if (P) { setParty(P.id); payTicket(P.ticket); }
+    if (T.avatar) setAvatar(T.avatar); if (T.homeDistrict != null) setHomeDistrict(T.homeDistrict); if (T.homeLga) setHomeLga(T.homeLga);
+    if (T.agenda) setAgenda(T.agenda); if (T.slogan) setSlogan(T.slogan); if (T.saName) setSaName(T.saName); if (T.depGov) setDepGov(T.depGov);
+    setPartyDeal(null); setStep(7);
+  }, [mode]);
   const [quickNext, setQuickNext] = useState(false); // Quick start: after choosing the adviser, go straight to the ticket
 
   // AGENDA_EFFECTS drives real gameplay each turn (see endTurn hook). Every option here
@@ -3291,9 +3321,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
     const accepted = depGov?.nm === partyFav.nm;
     const deal = SYS.PARTY_REACTION.find(o => o.id === partyDeal);
     const startingStab = accepted ? SYS.PARTY_ACCEPTED.pStab : (deal ? deal.pStab : 66);
-    return <Flow n={7} kicker="Step 7 of 7 · The ticket" title={accepted ? "A unity ticket" : "Your own running mate"} onBack={() => setStep(accepted ? 6 : 65)}
-      sub={accepted ? "The party got its deputy. The machine is behind you." : "You chose your deputy and settled with the party: " + (deal ? deal.label.toLowerCase() : "no deal") + "."}
+    const back = mode && mode.kind === "comeback" && mode.team;
+    return <Flow n={7} kicker="Step 7 of 7 · The ticket" title={back ? "The comeback ticket" : accepted ? "A unity ticket" : "Your own running mate"} onBack={() => setStep(accepted ? 6 : 65)}
+      sub={back ? "The same running mate, the same party and the same promises, four years on." : accepted ? "The party got its deputy. The machine is behind you." : "You chose your deputy and settled with the party: " + (deal ? deal.label.toLowerCase() : "no deal") + "."}
       cta={() => setStep(8)} ctaLabel="Launch the campaign">
+      {mode && mode.kind === "comeback" && <Situation tone="warn" head={mode.team ? "The old team is back" : "A new team for the comeback"} text={"You served one term before the voters turned you out. The Constitution allows two terms in all (S.182(1)(b)): win this, and you have four years left." + (mode.team && (mode.team.ministries || []).length ? " Your " + mode.team.ministries.length + " commissioners" + (mode.team.cos ? " and your Chief of Staff" : "") + " will be sworn in again." : "")} />}
       {(() => {
         const depFemale = FEMALE_FIRST.includes(String(depGov?.nm || "").split(" ")[0]);
         const depImg = deputyArt(depFemale, STATES[st]?.zone, depGov?.lo);
@@ -3316,7 +3348,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
             <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", background: "linear-gradient(115deg, " + pc + " 0%, " + pc + " 58%, #ffffff 58.2%, #ffffff 100%)" }}>
               <div style={{ position: "absolute", left: tall ? 10 : 16, top: tall ? 8 : 12, bottom: tall ? 8 : 12, width: "50%", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
                 <div>
-                  <div style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? 14 : 15, letterSpacing: 1, textTransform: "uppercase", opacity: .9, lineHeight: 1.2 }}>{P.nm} · {st.replace("_", " ")} 2027</div>
+                  <div style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? 14 : 15, letterSpacing: 1, textTransform: "uppercase", opacity: .9, lineHeight: 1.2 }}>{P.nm} · {st.replace("_", " ")} {mode && mode.kind === "comeback" ? (mode.startYear || 2027) + 8 : 2027}</div>
                   <div style={{ fontFamily: F.d, fontWeight: 900, fontSize: tall ? 30 : 38, lineHeight: 1, marginTop: 4, textShadow: "0 2px 0 rgba(0,0,0,.2)", wordBreak: "break-word" }}>{(lastNm || "").toUpperCase()}<span style={{ opacity: .7 }}> / </span>{(depGov?.nm.split(" ").pop() || "").toUpperCase()}</div>
                   <div style={{ fontFamily: F.b, fontWeight: 700, fontSize: tall ? 15 : 16, marginTop: 4, fontStyle: "italic", lineHeight: 1.2 }}>“{slogan}”</div>
                 </div>
@@ -3769,7 +3801,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
           {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} track("state", st); track("party", party); track("agenda", agenda); track("adviser", saName); track("level", level); track("deputy", accepted ? "party's pick (unity)" : "own pick"); track("runs_at_home", profile && profile.origin === st ? "yes" : "no"); track("quick_start", quickUsed ? "used" : "not used"); if (legacy) track("honour_carried", legacy); onDone({ legacy, nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, homeLga: homeLga || (lgaCluster(getLGAs(st), homeDistrict == null ? 1 : homeDistrict)[0] || null), partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} track("state", st); track("party", party); track("agenda", agenda); track("adviser", saName); track("level", level); track("deputy", accepted ? "party's pick (unity)" : "own pick"); track("runs_at_home", profile && profile.origin === st ? "yes" : "no"); track("quick_start", quickUsed ? "used" : "not used"); if (legacy) track("honour_carried", legacy); onDone({ legacy, nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, homeLga: homeLga || (lgaCluster(getLGAs(st), homeDistrict == null ? 1 : homeDistrict)[0] || null), partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null, ...(mode && mode.kind === "comeback" ? { comeback: { team: mode.team || null, terms: 1 }, startYear: (mode.startYear || 2027) + 4 } : {}) }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -4637,10 +4669,12 @@ const Inauguration = ({ name, vp, onDone }) => {
   const pill = (on) => ({ textAlign: "left", borderRadius: 16, padding: "10px 14px", border: "2px solid " + (on ? "#c9a227" : "rgba(255,255,255,.25)"), background: on ? "rgba(201,162,39,.22)" : "rgba(255,255,255,.06)", color: "#fff", cursor: "pointer", fontFamily: F.b });
   return <div role="dialog" aria-modal="true" aria-label="Inauguration" style={{ position: "fixed", inset: 0, zIndex: 9965, overflowY: "auto", background: "radial-gradient(circle at 50% 0%, #1d5c3a, #06180f 70%)", color: "#fff", padding: tall ? "14px 14px 40px" : "28px 24px 50px" }}>
     <div className="sop-fade-in" style={{ maxWidth: 760, margin: "0 auto" }}>
-      <div style={{ textAlign: "center", fontSize: tall ? TS(14) : TS(18), letterSpacing: 4, color: "#e9c766", fontWeight: 800 }}>🦅 29 MAY · EAGLE SQUARE, ABUJA</div>
+      <img src="./art/objects/presidential-seal.webp" alt="The presidential seal" className="sop-pop" style={{ display: "block", width: tall ? 64 : 84, height: tall ? 64 : 84, margin: "0 auto 4px" }} />
+      <div style={{ textAlign: "center", fontSize: tall ? TS(14) : TS(18), letterSpacing: 4, color: "#e9c766", fontWeight: 800 }}>29 MAY · EAGLE SQUARE, ABUJA</div>
       <img src="./art/scenes/inauguration-eagle-square.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 20, margin: "10px 0 14px", border: "3px solid #c9a227", boxShadow: "0 16px 40px rgba(0,0,0,.5)" }} />
       {step === 0 && <>
         <h1 style={{ fontFamily: F.d, fontSize: tall ? TS(30) : TS(46), textAlign: "center", margin: "0 0 6px" }}>The oath of office</h1>
+        <img src="./art/characters/chief-justice.webp" alt="The Chief Justice of Nigeria" style={{ display: "block", height: tall ? 120 : 160, width: "auto", margin: "0 auto 6px" }} />
         <div style={{ textAlign: "center", fontSize: tall ? TS(15) : TS(20), opacity: .8, marginBottom: 12 }}>The Chief Justice of Nigeria holds the Constitution.{vp ? " " + vp + " has just been sworn in as Vice-President." : ""}</div>
         <blockquote style={{ margin: "0 auto 16px", maxWidth: 620, padding: "14px 18px", borderLeft: "4px solid #c9a227", background: "rgba(255,255,255,.06)", borderRadius: 12, fontFamily: F.d, fontStyle: "italic", fontSize: tall ? TS(17) : TS(23), lineHeight: 1.55 }}>
           “I, {name}, do solemnly swear that I will be faithful and bear true allegiance to the Federal Republic of Nigeria; that as President I will discharge my duties to the best of my ability, faithfully and in accordance with the Constitution, and always in the interest of the sovereignty, integrity, solidarity, well-being and prosperity of the Federal Republic of Nigeria… So help me God.”</blockquote>
@@ -4687,18 +4721,25 @@ const PowerCentres = ({ P }) => {
    result cards and the dialogs alike. Returns the clean-up. */
 const presidentialScreen = () => {
   const W = SYS.presidentWords, ART = SYS.VILLA_ART;
-  const img = (el) => { const m = /art\/(backgrounds|scenes)\/([a-z0-9-]+)\.webp/.exec(el.getAttribute("src") || ""); if (m && ART[m[2]]) el.setAttribute("src", el.getAttribute("src").replace(m[2] + ".webp", ART[m[2]] + ".webp")); };
+  const img = (el) => {
+    const src = el.getAttribute("src") || "", m = /art\/(backgrounds|scenes|characters)\/([a-z0-9-]+)\.webp/.exec(src); if (!m) return;
+    const to = m[1] === "characters" ? SYS.villaCharacter(m[2]) : ART[m[2]];
+    if (to) el.setAttribute("src", src.replace(m[2] + ".webp", to + ".webp"));
+  };
+  // A painted background set in CSS (SceneArt): the same swap.
+  const bgi = (el) => { const st = el.getAttribute && el.getAttribute("style"); if (!st || st.indexOf("art/backgrounds/") < 0) return; const m = /art\/backgrounds\/([a-z0-9-]+)\.webp/.exec(st); if (m && ART[m[1]]) el.setAttribute("style", st.replace("backgrounds/" + m[1] + ".webp", "backgrounds/" + ART[m[1]] + ".webp")); };
   const text = (t) => { const p = t.parentNode; if (!p || /^(TEXTAREA|SCRIPT|STYLE)$/.test(p.nodeName)) return; const v = t.nodeValue, w = W(v); if (w !== v) t.nodeValue = w; };
   const all = (n) => {
     if (n.nodeType === 3) return text(n);
     if (n.nodeType !== 1) return;
-    if (n.nodeName === "IMG") img(n);
+    if (n.nodeName === "IMG") img(n); else bgi(n);
+    n.querySelectorAll && n.querySelectorAll("[style*='art/']").forEach(bgi);
     const tw = document.createTreeWalker(n, window.NodeFilter.SHOW_TEXT); let t; while ((t = tw.nextNode())) text(t);
     n.querySelectorAll && n.querySelectorAll("img").forEach(img);
   };
   all(document.body);
-  const ob = new window.MutationObserver(recs => recs.forEach(r => r.type === "characterData" ? text(r.target) : r.type === "attributes" ? img(r.target) : r.addedNodes.forEach(all)));
-  ob.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["src"] });
+  const ob = new window.MutationObserver(recs => recs.forEach(r => r.type === "characterData" ? text(r.target) : r.type === "attributes" ? (r.attributeName === "src" ? img(r.target) : bgi(r.target)) : r.addedNodes.forEach(all)));
+  ob.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["src", "style"] });
   return () => ob.disconnect();
 };
 const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
@@ -4722,7 +4763,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => NAT ? presidentialScreen() : undefined, [NAT]);
   const MT = 8;
   const ld = loadedSave; // shorthand
-  const [turn, setTurn] = useState(ld?.turn || 1);
+  // A comeback after defeat is the final term (S.182: two terms in all): it starts at year 5.
+  const [turn, setTurn] = useState(ld?.turn || (setup?.comeback ? 5 : 1));
   const campaignGfDebt = setup?.gfDebt || 0;
   const [s, setS] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; zonesOf(state).map((_, i) => i).filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
@@ -4832,7 +4874,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [achPopup, setAchPopup] = useState(null);
   const [gEnd, setGEnd] = useState(ld?.gEnd || null);
   // ── REALISM MODULE state (ministries, projects, procurement, council, wiki, SA) ──
-  const [ministries, setMinistries] = useState(ld?.ministries || null);
+  const [ministries, setMinistries] = useState(ld?.ministries || (setup?.comeback?.team?.ministries ? setup.comeback.team.ministries.map(m => ({ ...m, hired: 5, record: [], flag: null, sinkhole: false, watch: undefined, godfatherMandate: null })) : null));
   const [projects, setProjects] = useState(ld?.projects || []);
   const [procLog, setProcLog] = useState(ld?.procLog || []);
   const [council, setCouncil] = useState(ld?.council || null);
@@ -4959,6 +5001,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // When the game ends, the save goes: the title screen offers a new game only.
   useEffect(() => { if (gEnd) { try { window.storage?.set("sop_save", ""); } catch (e) {} } }, [gEnd]);
   const [hall, setHall] = useState(null); // { view: "ask" | "board", res, entered }
+  // The team a defeated governor can bring back for the comeback.
+  const teamOf = () => ({ setup: { party: setup?.party, depGov, saName: saOffice.adviser?.name || setup?.saName, agenda: setup?.agenda, slogan: setup?.slogan, homeDistrict: setup?.homeDistrict, homeLga: setup?.homeLga, avatar: setup?.avatar, customParty: setup?.customParty || null },
+    ministries: (ministries || []).filter(m => m.minister).map(m => ({ ...m })), cos: cosOffice.cos || null, terms: turn > 4 ? 2 : 1, state, startYear: setup?.startYear || 2027 });
   const enterHall = async () => {
     setHall(h => ({ ...h, busy: true }));
     let r = null; try { r = await window.SOP_hallEnter(hall.res); } catch (e) {}
@@ -5422,15 +5467,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       rows: commits.map(k => ({ l: "🎯 " + SYS.PRES_COMMITS[k].l, v: "promised", good: true })), learn: SYS.PRES_LEARN.oath }); } catch (e) {}
   };
   const presCardFor = (it) => {
-    const P = stc.pres || presInitNow(), c = SYS.presCard(P, it), [bg, who] = SYS.presArt(P, it, c), npc = c.who && (P.npcs || {})[c.who];
+    const P = stc.pres || presInitNow(), c = SYS.presCard(P, it), [bg, who, obj, scene] = SYS.presArt(P, it, c), npc = c.who && (P.npcs || {})[c.who];
     const kicker = it.k === "crisis" ? SYS.PRES_CRISES[it.id].nm : it.k === "world" ? "The world stage" : it.k === "coup" ? "The barracks" : it.k === "callback" ? "It comes back" : npc ? SYS.PRES_NPCS[c.who].role + " · " + npc.name : "The nation";
-    return { key: "pres_" + it.k + "_" + it.id + "_" + turn, kicker, color: it.k === "crisis" || it.k === "coup" ? CL.red : it.k === "world" ? CL.blu : CL.gold, art: [bg, who], title: c.t, brief: c.d,
+    return { key: "pres_" + it.k + "_" + it.id + "_" + turn, kicker, color: it.k === "crisis" || it.k === "coup" ? CL.red : it.k === "world" ? CL.blu : CL.gold, art: [bg, who, obj, scene], title: c.t, brief: c.d,
       options: c.opts.map(o => { const f0 = SYS.presFx({ ...o, risk: 0 }); return { label: o.l, chips: fxChips({ app: f0.fx.app, cor: f0.fx.cor }).concat(f0.costB > 0 ? [{ text: naira(f0.costB), color: CL.org }] : f0.costB < 0 ? [{ text: "Borrow " + naira(-f0.costB), color: CL.org }] : []).concat(o.adv ? [{ text: "🎯 " + SYS.PRES_COMMITS[o.adv].l, color: CL.grn }] : []), run: () => {
         const f = SYS.presFx(o), before = stc.pres || P;
         scFx({ app: f.fx.app, sec: f.fx.sec, cor: f.fx.cor, igr: f.fx.igr, debt: f.costB > 0 ? f.costB : 0 });
         if (f.costB < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - f.costB) * 100) / 100, debt: Math.round(((p.debt || 0) - f.costB) * 10) / 10 }));
         const after = SYS.presAfter(before, it, o, f.sev, turn);
-        setStc(p => ({ ...p, pres: SYS.presAfter(p.pres || before, it, o, f.sev, turn) }));
+        setStc(p => { const np = SYS.presAfter(p.pres || before, it, o, f.sev, turn); if (it.k === "coup" && !f.bad) np.coupSurvived = true; return { ...p, pres: np }; });
         if (c.flight && o.id === "go" || c.flight && o.id === "invest") try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: c.flight, left: "Abuja" } }); } catch (e) {}
         addL((it.k === "crisis" ? "🚨 " : it.k === "world" ? "🌍 " : "🦅 ") + c.t + ": " + o.l.toLowerCase() + "." + (f.bad ? " It went wrong in public." : ""), f.bad ? "crisis" : "policy");
         if (it.k !== "callback") scWiki(f.bad ? "Controversies" : "Presidency", c.t.replace(/\.$/, "") + ": " + o.l.replace(/^./, x => x.toLowerCase()) + (f.bad ? ", which went wrong in public." : "."));
@@ -5438,7 +5483,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const rows = Object.entries(o.npc || {}).map(([k, v]) => ({ l: (after.npcs[k] || {}).name + " (" + SYS.PRES_NPCS[k].short + ")", v: (v > 0 ? "+" : "") + v, good: v > 0 }))
           .concat(it.k === "crisis" ? [{ l: SYS.PRES_CRISES[it.id].nm, v: after.over ? "Over" : after.sev + "/100", good: f.sev < 0 }] : []);
         const broadcast = it.k === "crisis" || it.k === "coup";
-        return { icon: broadcast ? "📺" : it.k === "world" ? "🌍" : "🦅", img: broadcast ? "./art/scenes/national-broadcast.webp" : it.k === "world" && bg === "state-banquet" ? "./art/backgrounds/state-banquet.webp" : undefined,
+        const flew = c.flight && (o.id === "go" || o.id === "invest");
+        const good = !f.bad && f.fx.app >= 0 && Object.values(o.npc || {}).reduce((a, v) => a + v, 0) >= 0;
+        const moodImg = ["inspector-general", "ecowas-envoy", "foreign-head-of-state", "chief-justice"].includes(who) ? "./art/characters/" + who + (good ? "-pleased" : "-angry") + ".webp" : undefined;
+        return { icon: broadcast ? "📺" : it.k === "world" ? "🌍" : "🦅", img: broadcast ? "./art/scenes/national-broadcast.webp" : flew ? "./art/scenes/presidential-jet.webp" : it.id === "banquet" && o.id === "full" ? "./art/scenes/guard-of-honour.webp" : it.k === "world" && bg === "state-banquet" ? "./art/backgrounds/state-banquet.webp" : scene ? "./art/scenes/" + scene + ".webp" : moodImg,
           title: broadcast ? "Address to the nation: " + o.l.replace(/^./, x => x.toLowerCase()) : o.l, text: f.bad ? "It went wrong in public, and the country saw it." : after.over && !before.over ? SYS.PRES_CRISES[before.crisis].nm + " is over. The country exhales." : (o.adv ? "It moves your commitment: " + SYS.PRES_COMMITS[o.adv].l.toLowerCase() + "." : ""),
           tone: f.bad ? "bad" : (f.fx.app >= 0 ? "good" : "neutral"), rows, learn: SYS.PRES_LEARN[c.learn] };
       } }; }) };
@@ -7847,7 +7895,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const He = fem ? "She" : "He", he = fem ? "she" : "he", his = fem ? "her" : "his", His = fem ? "Her" : "His", him = fem ? "her" : "him";
     // Eight turns make two four-year terms, so a turn is a year of the
     // calendar: sworn in May 2027, turn 1 runs to May 2028.
-    const yearOf = (t) => 2026 + (t || 1);
+    const base = setup?.startYear || 2027, yearOf = (t) => base - 1 + (t || 1);
     const whenOf = (t) => "November " + yearOf(t);
     const paper = "The " + stName + " Daily Tribune";
     const pa = PARTIES.find(x => x.id === party);
@@ -7863,9 +7911,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const gfC = ofKind("godfather_contract"), gfB = ofKind("godfather_betrayal");
     const contro = ofKind(["court_defiance", "press_suppression", "nepotism_flag", "budget_forced", "unconst_order", "house_deal", "godfather_contract", "delayed_consequence"]);
     const courts = ofKind(["court_compliance", "court_appeal"]);
-    const startYear = 2027;
+    const startYear = setup?.comeback ? base + 4 : base; // a comeback governor took office four years later
     const ended = final && gEnd;
-    const endYear = gEnd === "complete" ? 2035 : (gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid") ? (turn <= 4 ? 2031 : 2035) : yearOf(turn);
+    const endYear = gEnd === "complete" ? base + 8 : (gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid") ? (turn <= 4 ? base + 4 : base + 8) : yearOf(turn);
     const ini = (n) => String(n || "").replace(/^(Hon\.|Chief|Rt\. Hon\.|Dr\.|Comrade)\s+/, "");
     const pre = "Chief " + gN(rng(state.length * 991 + 5), sd?.zone, state);
     const successor = !ended ? "Incumbent" : gEnd === "defeated" ? ini(cast.rival.name) : gEnd === "impeached" ? (depGov?.nm || "Deputy governor") : (() => { const so = successionOutcome(); return so && so.won ? so.name : gN(rng(state.length * 733 + turn + 1), sd?.zone, state); })();
@@ -7894,7 +7942,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       title: pName, stub: !final && turn <= 2, startYear,
       portrait: av ? AVATAR_IMGS[av.id] : null,
       office: "Governor of " + stName + " State",
-      inOffice: "In office · 29 May " + startYear + " – " + (ended ? (endYear === 2031 || endYear === 2035 ? "29 May " + endYear : endYear) : "present"),
+      inOffice: "In office · 29 May " + startYear + " – " + (ended ? (endYear === base + 4 || endYear === base + 8 ? "29 May " + endYear : endYear) : "present"),
       rows: [["Deputy", depGov?.nm || "—"]].concat((stc.honours || []).length ? [["Honours", (stc.honours || []).map(id => (HONOURS.find(h => h.id === id) || {}).nm).filter(Boolean).join(", ")]] : []).concat([["Preceded by", pre], ["Succeeded by", successor], ["Political party", pa?.nm || party], ["Term", termStr]]).concat(flag ? [["Flagship", flag.nm]] : []).concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
       lead, sections, refs,
       cats: ["Governors of " + stName + " State", (pa?.nm || party) + " politicians", "Living people"].concat(gEnd === "impeached" ? ["Impeached Nigerian governors"] : []),
@@ -8269,7 +8317,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Every file that reaches the governor lands as a letter on the Desk. Open it
   // and handle it yourself, or hand it to your Chief of Staff, who may do it
   // well, badly or crookedly. The year does not move on until the tray is clear.
-  const [cosOffice, setCosOffice] = useState(() => ld?.cosOffice || { cos: null, history: [] });
+  const [cosOffice, setCosOffice] = useState(() => ld?.cosOffice || (setup?.comeback?.team?.cos ? { cos: setup.comeback.team.cos, history: [] } : { cos: null, history: [] }));
   const [cosPickOpen, setCosPickOpen] = useState(() => !(ld?.cosOffice && ld.cosOffice.cos));
   const [mail, setMail] = useState(() => (ld?.mail || []).filter(l => l.live && l.key !== "gold"));
   const [mailOpen, setMailOpen] = useState(false);
@@ -8722,7 +8770,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
     setStc(p => ({ ...p, careerSaved: true })); track("ending", SYS.ENDING_NAME[gEnd] || gEnd); track("grade", gr); track("ending_state", state);
-    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
+    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0) } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
   // The Secretariat writes: each commissioner asking to see you, and each open
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the
@@ -8745,7 +8793,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => {
     const P = setup?.legacy && SYS.BADGE_PERKS[setup.legacy]; if (!P || stc.legacyDone || needSetup) return;
     const f = P.fx; setStc(p => ({ ...p, legacyDone: true, house: f.house && p.house ? { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + f.house) } : p.house }));
-    setS(p => { const n = { ...p, app: cl100(p.app + (f.app || 0)), pStab: cl100(p.pStab + (f.pStab || 0)), cor: cl(p.cor + (f.cor || 0)), cash: Math.round(((p.cash || 0) + (f.cashB || 0)) * 100) / 100 }; if (f.zones) { const zm = { ...(p.zoneMood || {}) }; ZIX.forEach(z => { zm[z] = (zm[z] || 0) + f.zones; }); n.zoneMood = zm; } return n; });
+    setS(p => { const n = { ...p, app: cl100(p.app + (f.app || 0)), pStab: cl100(p.pStab + (f.pStab || 0)), cor: cl(p.cor + (f.cor || 0)), sec: cl(p.sec + (f.sec || 0)), cash: Math.round(((p.cash || 0) + (f.cashB || 0)) * 100) / 100 }; if (f.zones) { const zm = { ...(p.zoneMood || {}) }; ZIX.forEach(z => { zm[z] = (zm[z] || 0) + f.zones; }); n.zoneMood = zm; } return n; });
     if (f.fg) setFgRelation(r => Math.min(100, r + f.fg));
     addL("🎖️ Your record goes before you. " + P.text + ".", "success");
   }, [needSetup]);
@@ -9015,7 +9063,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 14px", fontSize: TS(50), fontWeight: 600 }}>What Next?</h3>
               <p style={{ color: CL.td, fontSize: TS(36), margin: "0 0 22px" }}>You lost re-election. Your political life is not over.</p>
               <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
-                <Bt onClick={() => onEnd("comeback", s)}>🔁 The comeback: run again in four years</Bt>
+                <Bt onClick={() => onEnd("comeback", { ...s, team: teamOf() })}>🔁 The comeback: run again in four years</Bt>
                 {!NAT && <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for the Senate</Bt>}
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
               </div>
@@ -9040,7 +9088,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })}>🇳🇬 ENTER PRESIDENTIAL RACE →</Bt>
             </Cd>
           )}
-          {gEnd === "nullified" && <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 36 }}><Bt onClick={() => onEnd("comeback", s)}>🔁 The comeback: run again in four years</Bt><Bt v="secondary" onClick={() => onEnd("restart", s)}>Play again</Bt></div>}
+          {gEnd === "nullified" && <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 36 }}><Bt onClick={() => onEnd("comeback", { ...s, team: teamOf() })}>🔁 The comeback: run again in four years</Bt><Bt v="secondary" onClick={() => onEnd("restart", s)}>Play again</Bt></div>}
           {(gEnd === "impeached" || gEnd === "bankrupt") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
 
           {/* REPORT CARD and SUCCESSION */}
@@ -9284,7 +9332,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             approval on the right; tap it for the "State of the state" sheet.
             The ☰ menu holds Save, Help, text size and fullscreen. */}
         {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: NAT ? "linear-gradient(180deg, #0a2a18, #14482b)" : "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)", borderBottom: NAT ? "3px solid #c9a227" : 0 }}>
-          {NAT && <div style={{ textAlign: "center", fontSize: TS(13), letterSpacing: 3, fontWeight: 800, color: "#e9c766", padding: "6px 0 0" }}>🦅 THE PRESIDENCY · ASO ROCK VILLA</div>}
+          {NAT && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: TS(13), letterSpacing: 3, fontWeight: 800, color: "#e9c766", padding: "6px 0 0" }}><img src="./art/objects/presidential-seal.webp" alt="" style={{ width: 22, height: 22 }} />THE PRESIDENCY · ASO ROCK VILLA</div>}
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
             <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}><Ico n="icon-menu" s={32} /></button>
             {statusStrip(true)}
@@ -9297,7 +9345,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {TALL() && curScreen.subs.length > 1 && <div style={{ display: "flex", gap: 8, overflowX: "auto", margin: "0 -20px 16px", padding: "0 20px 2px" }}>
           {curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={{ flex: "0 0 auto", padding: "8px 18px", minHeight: 48, borderRadius: 999, border: "1px solid " + (nav === t.k ? CL.grn : CL.bdr), background: nav === t.k ? CL.grn : CL.card, color: nav === t.k ? "#fff" : CL.tm, fontFamily: F.c, fontWeight: 700, fontSize: TS(20), cursor: "pointer", whiteSpace: "nowrap" }}>{t.l}</button>)}
         </div>}
-        {!TALL() && NAT && <div style={{ textAlign: "center", fontSize: TS(18), letterSpacing: 4, fontWeight: 800, color: "#a8821b", borderBottom: "2px solid #c9a227", paddingBottom: 8, marginBottom: 14 }}>🦅 THE PRESIDENCY OF THE FEDERAL REPUBLIC OF NIGERIA · ASO ROCK VILLA</div>}
+        {!TALL() && NAT && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: TS(18), letterSpacing: 4, fontWeight: 800, color: "#a8821b", borderBottom: "2px solid #c9a227", paddingBottom: 8, marginBottom: 14 }}><img src="./art/objects/presidential-seal.webp" alt="" style={{ width: 40, height: 40 }} />THE PRESIDENCY OF THE FEDERAL REPUBLIC OF NIGERIA · ASO ROCK VILLA</div>}
         {!TALL() && <div style={{ display: "flex", alignItems: "center", gap: 29, marginBottom: 22 }}>
           <div style={{ flexShrink: 0 }}>
             <div style={{ fontSize: TS(27), color: CL.td, fontWeight: 700 }}>Gov. {pName} · {party} · {state.replace("_", " ")}</div>
@@ -9389,14 +9437,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {!TALL() && curScreen.id === "desk" && mail.length > 0 && phase !== "mail" && <button onClick={() => setMailOpen(true)} aria-label={"Mail: " + mail.length} style={{ position: "fixed", right: 16, bottom: TALL() ? 104 : 24, zIndex: 65, display: "flex", alignItems: "center", gap: 6, background: CL.gold, color: "#1a2e05", border: 0, borderRadius: 999, padding: "6px 16px 6px 8px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), boxShadow: "0 8px 20px rgba(0,0,0,.25)", cursor: "pointer", fontFamily: F.b }}><img src="./art/objects/mailbox-tray.webp" alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />📬 {mail.length}</button>}
         <div ref={paneRef}>
         {nav === "hub" && <div style={{ maxWidth: TALL() ? 900 : 1440, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
-          <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} />
+          <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} villa={NAT} />
           {TALL() && <div style={{ fontSize: TS(18), color: CL.td, textAlign: "center", marginTop: 10 }}>Turn your phone sideways for the full compound.</div>}
         </div>}
         <OL show={!!hubSheet}>
           {hubSheet && (() => { const v = hubSheetView(hubSheet); if (!v) return null; return <Cd>
             <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>
               <img src={"./art/compound/buildings/" + v.img + ".webp"} alt="" style={{ width: TALL() ? 90 : 130, height: "auto" }} />
-              <h3 style={{ fontFamily: F.d, fontSize: TALL() ? TS(30) : TS(44), margin: 0, color: CL.txt }}>{v.title}</h3>
+              <h3 style={{ fontFamily: F.d, fontSize: TALL() ? TS(30) : TS(44), margin: 0, color: CL.txt }}>{NAT ? ((VILLA_BUILDINGS.find(b => b.id === hubSheet) || {}).name || v.title) : v.title}</h3>
             </div>
             {v.rows}
             {v.note && <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.td, marginTop: 10 }}>{v.note}</div>}
@@ -9789,7 +9837,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "sc" && scCards.length > 0}>
-          {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
+          {scCards[0] && (() => { const c = scCards[0]; return <><SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} /><DecisionCard kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
             onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
@@ -13569,11 +13617,19 @@ function App() {
   const [loadedSave, setLoadedSave] = useState(null);
   const rst = () => { setScr("title"); setSetup(null); setFinalStats(null); setLoadedSave(null); };
   // After a defeat: four years in opposition, then the same politician back on the ballot in the same state.
-  const comeback = () => {
+  // A defeated governor runs again four years on: with the old team, or a new one. Either
+  // way only one term is left (S.182(1)(b): two terms in all).
+  const comeback = async (team) => {
     const stName = String((setup && setup.state) || (profile && profile.state) || "your state").replace(/_/g, " ");
+    let keep = false;
+    if (team && team.setup && team.terms === 1) {
+      const dep = team.setup.depGov && team.setup.depGov.nm, n = (team.ministries || []).length;
+      keep = await window.SOP_confirm("Bring back your old team?\n\n" + [dep && "Running mate: " + dep, team.setup.saName && "Special Adviser: " + team.setup.saName, team.cos && team.cos.name && "Chief of Staff: " + team.cos.name, n && n + " commissioner" + (n === 1 ? "" : "s"), team.setup.party && "The " + team.setup.party + " ticket, the same agenda and slogan"].filter(Boolean).join("\n") + "\n\nOr start again and choose everyone afresh. Either way, you have four years left: the Constitution allows two terms in all.", "Bring back my team", "Choose a new team");
+      track("comeback", keep ? "same team" : "new team");
+    }
     seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {}
-    setStartProfile(profile ? { ...profile, state: (setup && setup.state) || profile.state } : null); setStartMode(null); setSetup(null); setLoadedSave(null); setScr("setup");
-    try { window.SOP_outcome && window.SOP_outcome({ icon: "🔁", title: "Four years in opposition", text: "You spent them in " + stName + ", holding the new government to account. Now the primaries are open again, and your name is on the ballot.", tone: "good",
+    setStartProfile(profile ? { ...profile, state: (setup && setup.state) || profile.state } : null); setStartMode(team && team.terms === 1 ? { kind: "comeback", team: keep ? team : null, startYear: team.startYear || 2027 } : null); setSetup(null); setLoadedSave(null); setScr("setup");
+    try { window.SOP_outcome && window.SOP_outcome({ icon: "🔁", title: "Four years in opposition", text: "You spent them in " + stName + ", holding the new government to account. Now the primaries are open again, and your name is on the ballot. Win, and these four years are your last.", tone: "good",
       learn: "There is no limit on returning: a governor who lost may run again. The Constitution only limits anyone to two terms as governor in total (S.182(1)(b))." }); } catch (e) {}
   };
 
@@ -13711,7 +13767,7 @@ function App() {
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
         <HallBoard tab={board.tab === "all" ? "all" : "today"} />
       </EntranceSheet>}
-      {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(); else if (ch === "again") { seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setSetup(null); setLoadedSave(null); setScr("setup"); } else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
+      {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(stats && stats.team); else if (ch === "again") { seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setSetup(null); setLoadedSave(null); setScr("setup"); } else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} onTakeOffice={su => { setSetup(su); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "ambassador" && <AmbassadorCareer profile={profile} onExit={rst} />}
       {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}

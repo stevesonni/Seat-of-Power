@@ -125,6 +125,11 @@ export const PRES_CARDS = [
   { id: "efcc", who: "party", t: "The EFCC wants to charge a party baron", d: "The anti-graft agency has a case against the former governor who funded your campaign. The party chairman calls it persecution.", learn: "efcc",
     opts: [{ id: "law", l: "Let the law take its course", cost: 0, fx: { nation: 6, cor: -.04 }, npc: { party: -14 }, adv: "graft", seed: "baron_charged" },
       { id: "slow", l: "Ask the EFCC to 'review the file'", cost: 0, fx: { cor: .05 }, npc: { party: 10 }, seed: "baron_shielded" }] },
+  // The courts
+  { id: "courtorder", art: ["supreme-court-abuja", "chief-justice"], t: "The Supreme Court orders a detainee released", d: "The court has ordered the security services to free a journalist held for months without trial. The DSS says he is a threat. The Chief Justice is watching what you do.", learn: "courts",
+    opts: [{ id: "obey", l: "Obey the court at once", cost: 0, fx: { nation: 4, cor: -.01 }, npc: { nass: 3, army: -2 } },
+      { id: "appeal", l: "Obey, and ask the court to review the evidence", cost: 0, fx: { nation: 1 } },
+      { id: "defy", l: "Keep him: national security comes first", cost: 0, fx: { nation: -6, cor: .02 }, npc: { army: 4, nass: -6 }, seed: "court_defied" }] },
   // The country
   { id: "strike", t: "A general strike over the minimum wage", d: "The labour unions want the minimum wage tripled. The governors say they cannot pay it.", learn: "wage",
     opts: [{ id: "meet", l: "Agree a new wage, phased in", cost: 160, fx: { nation: 5 }, npc: { gov: -6 } },
@@ -150,6 +155,8 @@ export const PRES_CARDS = [
 
 /* "It comes back": each seed's callback, with the person it concerns. */
 export const PRES_CALLBACKS = {
+  court_defied: { t: "The Bar boycotts the courts", d: "Lawyers across the country stop work over the defied court order. Foreign embassies issue statements. The Chief Justice speaks of 'executive lawlessness'.", learn: "courts",
+    opts: [{ id: "release", l: "Release him and apologise", cost: 0, fx: { nation: 3 }, npc: { nass: 4 } }, { id: "dig", l: "Dig in", cost: 0, fx: { nation: -6, cor: .02 }, npc: { nass: -6 } }] },
   budget_padded: { t: "The padded budget is exposed", who: "nass", d: "A newspaper publishes the list: 600 'constituency projects', many in senators' home villages, some already 'completed' on paper.", learn: "budget",
     opts: [{ id: "audit", l: "Order the Auditor-General to check every one", cost: 0, fx: { nation: 4, cor: -.02 }, npc: { nass: -10 }, adv: "graft" }, { id: "defend", l: "Defend them as development", cost: 0, fx: { nation: -6 }, npc: { nass: 4 } }] },
   budget_held: { t: "Senators sit on your next bill", who: "nass", d: "Still angry about the budget, the Senate has delayed your bills for three months.", learn: "budget",
@@ -182,6 +189,7 @@ export const PRES_CALLBACKS = {
 
 /* How it really works, for the President's notebook. */
 export const PRES_LEARN = {
+  courts: "Section 287: the decisions of the Supreme Court must be enforced in every part of the Federation by every authority and person. Section 35 says no one may be detained for long without trial; a court can order their release.",
   coup: "Section 1(2): Nigeria shall not be governed, nor shall anyone take control of its government, except under the Constitution. The President commands the armed forces (Section 218); the Guards Brigade protects the seat of government.",
   oath: "Section 140: the President takes the Oath of Allegiance and the oath of office in the Seventh Schedule before the Chief Justice of Nigeria, on 29 May, before taking up the office.",
   exec: "Section 5 of the Constitution vests the executive power of the Federation in the President, who serves a four-year term and may be elected twice (Section 137).",
@@ -259,7 +267,21 @@ export const PRES_COUP = { id: "coup", t: "Tanks near the Three Arms Zone", who:
     { id: "broadcast", l: "Go on national television at once", cost: 0, fx: { nation: 8 }, npc: { army: -4 } },
     { id: "purge", l: "Retire the whole top brass", cost: 0, fx: { nation: -2 }, npc: { army: -12 }, risk: .35 }] };
 export const presCard = (P, it) => it.k === "crisis" ? PRES_CRISES[it.id].cards[it.i] : it.k === "callback" ? PRES_CALLBACKS[it.id] : it.k === "world" ? PRES_WORLD.find(c => c.id === it.id) : it.k === "coup" ? PRES_COUP : PRES_CARDS.find(c => c.id === it.id);
-export const presArt = (P, it, c) => [c.art ? c.art[0] : it.k === "crisis" ? (PRES_CRISES[it.id].bg || "situation-room") : CARD_BG[c.who] || "villa-office", c.art ? c.art[1] : c.who ? NPC_ART[c.who] : "special-adviser"];
+/* Pack 14's pictures for particular cards: [scene, character, object]. */
+export const PRES_LOOK = {
+  coup: ["coup-night", "chief-of-army-staff"], court_defied: [null, "chief-justice"], barracks: [null, null, "red-phone"], internal: [null, "inspector-general"],
+  faac: ["governors-forum", "governors-forum-chair"], bailout: ["governors-forum", "governors-forum-chair"], statepolice: ["nass-joint-session", "inspector-general"],
+  screening: ["fec-meeting", null], power: ["national-grid-dark", "governors-forum-chair"], loan: [null, null, "budget-briefcase"],
+  unga: ["un-podium", null], meridia: ["presidential-jet", "foreign-head-of-state"], banquet: [null, "foreign-head-of-state"], au: ["guard-of-honour", "ecowas-envoy"], coupnext: [null, "ecowas-envoy"],
+  "insurgency:2": ["idp-return", null], "fuel:1": [null, null, "red-phone"],
+};
+// [background, character, object, scene] for a card.
+export const presArt = (P, it, c) => {
+  const L = PRES_LOOK[it.k === "crisis" ? it.id + ":" + it.i : c.id || it.id] || [];
+  const bg = c.art ? c.art[0] : it.k === "crisis" ? (PRES_CRISES[it.id].bg || "situation-room") : CARD_BG[c.who] || "villa-office";
+  const who = L[1] !== undefined && (L[1] || L[2]) ? L[1] : c.art ? c.art[1] : c.who ? NPC_ART[c.who] : "special-adviser";
+  return [bg, who, L[2] || null, L[0] || null];
+};
 
 /* A choice in the engine's terms. nation → approval; economy → yearly
    revenue (₦B); security → the security index; cost → paid from the bank

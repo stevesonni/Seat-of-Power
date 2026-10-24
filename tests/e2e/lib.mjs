@@ -54,6 +54,10 @@ export async function campaign(g, { adviser = /Prof\. Bola Adekunle/ } = {}) {
   await g.page.evaluate((src) => { const rx = new RegExp(src); const t = [...document.querySelectorAll("button")].find(b => rx.test(b.textContent)); t && t.click(); }, adviser.source); await g.wait(300);
   await g.click(/^Appoint/); await g.wait(400); await g.click(/See the ticket/); await g.wait(500);
   await g.click(/Launch the campaign/); await g.wait(800);
+  return runCampaign(g);
+}
+// From the launched campaign to the result.
+export async function runCampaign(g) {
   for (let i = 0; i < 220; i++) {
     const t = await g.txt();
     if (/GOVERNOR-ELECT|DEFEATED/.test(t)) return /GOVERNOR-ELECT/.test(t) ? "won" : "lost";
