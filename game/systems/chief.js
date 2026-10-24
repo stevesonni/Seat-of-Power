@@ -56,7 +56,7 @@ export const letterKind = (key) => {
   if (k === "godfather" || k.startsWith("sc#gf")) return ["godfather", 2];
   if (k === "federal") return ["federal", 2];
   if (k === "sc#faac") return ["budget", 2];
-  if (k === "dilemma" || k.startsWith("sc#lg")) return ["community", 2];
+  if (k === "dilemma" || k.startsWith("sc#lg") || k.startsWith("sc#ruler")) return ["community", 2];
   if (k.startsWith("stall:")) return ["projects", 2];
   if (k === "media") return ["press", 1];
   if (k === "investor") return ["investment", 1];

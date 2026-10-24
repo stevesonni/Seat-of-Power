@@ -187,6 +187,10 @@
     .sop-shine { background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%) no-repeat; background-size: 200% 100%; animation: sopShine 2.6s ease-in-out infinite; }
     @media (prefers-reduced-motion: reduce) { .ds-option, .sop-tabpane, .sop-bump, .sop-delta, .sop-shine { animation: none !important; } }
     .sp-still .ds-option, .sp-still .sop-tabpane, .sp-still .sop-bump, .sp-still .sop-shine { animation: none !important; }
+    @keyframes sopUnfold { 0% { opacity: 0; transform: rotate(-.6deg) translateY(-28px) scaleY(.35); } 60% { opacity: 1; transform: rotate(-.6deg) translateY(4px) scaleY(1.02); } 100% { transform: rotate(-.6deg); } }
+    .sop-letter { transform-origin: top center; animation: sopUnfold .55s cubic-bezier(.2,.8,.2,1) both; }
+    @media (prefers-reduced-motion: reduce) { .sop-letter { animation: none; } }
+    .sp-still .sop-letter { animation: none; }
     .ds-chiprow { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-3); }
     .ds-chip {
       display: inline-block; padding: 6px 20px; border-radius: var(--r-pill);
@@ -466,6 +470,47 @@
         try { window.SOP_sound && window.SOP_sound(o.tone === 'bad' ? 'bad' : o.tone === 'good' ? 'good' : 'neutral'); } catch (e) {}
         setTimeout(function () { b.focus(); }, 30);
       }
+      /* Feedback from players: what they do not like and what they want better.
+         SOP_feedbackForm({ where, year, state }). Sent with SOP_feedback (sop-vatar.js). */
+      window.SOP_feedbackForm = function (ctx) {
+        ctx = ctx || {};
+        var back = document.createElement('div');
+        back.style.cssText = 'position:fixed;inset:0;z-index:9970;background:rgba(6,14,10,.65);display:flex;align-items:center;justify-content:center;padding:16px;animation:sopFadeIn .18s ease-out';
+        var card = document.createElement('div'); card.setAttribute('role', 'dialog'); card.setAttribute('aria-modal', 'true');
+        card.style.cssText = 'background:#fffaf0;color:#13261c;border-radius:24px;max-width:520px;width:100%;max-height:92vh;overflow:auto;padding:22px 20px 18px;box-shadow:0 28px 70px rgba(0,0,0,.45);font:500 17px/1.45 "Plus Jakarta Sans",sans-serif;animation:sopSlideUp .25s cubic-bezier(.2,.8,.2,1)';
+        var stars = 0;
+        card.innerHTML = '<div style="font:800 24px/1.2 Fraunces,Georgia,serif;margin-bottom:4px">Help us make the game better</div>'
+          + '<div style="color:#5b6b61;font-size:15px;margin-bottom:12px">The makers read every message.</div>'
+          + '<div style="font-weight:800;font-size:15px;margin-bottom:4px">How do you like it so far?</div><div class="fb-stars" style="display:flex;gap:6px;margin-bottom:12px"></div>'
+          + '<label style="display:block;font-weight:800;font-size:15px;margin-bottom:4px">What do you not like?</label><textarea class="fb-a" maxlength="1500" rows="3" style="width:100%;box-sizing:border-box;border:1px solid #d9cfb9;border-radius:12px;padding:10px;font:inherit;margin-bottom:10px;background:#fff" placeholder="Anything that annoyed, confused or bored you"></textarea>'
+          + '<label style="display:block;font-weight:800;font-size:15px;margin-bottom:4px">What do you want to see better, or added?</label><textarea class="fb-b" maxlength="1500" rows="3" style="width:100%;box-sizing:border-box;border:1px solid #d9cfb9;border-radius:12px;padding:10px;font:inherit;margin-bottom:8px;background:#fff" placeholder="Your idea for the game"></textarea>'
+          + '<div class="fb-msg" style="min-height:20px;font-size:14px;color:#a3271c;margin-bottom:6px"></div>'
+          + '<div style="display:flex;gap:8px"><button type="button" class="fb-x" style="flex:1;min-height:50px;border-radius:999px;border:1px solid #d9cfb9;background:transparent;font:800 17px \'Plus Jakarta Sans\',sans-serif;cursor:pointer;color:#5b6b61">Not now</button><button type="button" class="fb-go" style="flex:2;min-height:50px;border-radius:999px;border:0;background:#0b6b42;color:#fff;font:800 18px \'Plus Jakarta Sans\',sans-serif;cursor:pointer">Send</button></div>';
+        var row = card.querySelector('.fb-stars');
+        function paint() { [].forEach.call(row.children, function (b, i) { b.textContent = i < stars ? '★' : '☆'; b.style.color = i < stars ? '#e9a400' : '#b7ab91'; }); }
+        for (var i = 1; i <= 5; i++) (function (n) { var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', n + ' star' + (n > 1 ? 's' : '')); b.style.cssText = 'font-size:34px;line-height:1;background:none;border:0;cursor:pointer;padding:0 2px'; b.onclick = function () { stars = n; paint(); }; row.appendChild(b); })(i);
+        paint();
+        function close() { back.remove(); }
+        card.querySelector('.fb-x').onclick = close;
+        back.onclick = function (e) { if (e.target === back) close(); };
+        var go = card.querySelector('.fb-go'), msg = card.querySelector('.fb-msg');
+        go.onclick = function () {
+          var a = card.querySelector('.fb-a').value.trim(), b = card.querySelector('.fb-b').value.trim();
+          if (!a && !b && !stars) { msg.textContent = 'Tell us something first.'; return; }
+          go.disabled = true; go.textContent = 'Sending…';
+          var send = window.SOP_feedback ? window.SOP_feedback({ rating: stars, dislike: a, want: b, where: ctx.where || '', year: ctx.year || '', state: ctx.state || '' }) : Promise.reject(new Error('offline'));
+          send.then(function () {
+            card.innerHTML = '<div style="text-align:center;padding:18px 6px"><div style="font-size:52px">🙏</div><div style="font:800 24px Fraunces,Georgia,serif;margin:6px 0">Thank you</div><div style="color:#5b6b61">Your message is with the makers.</div><button type="button" style="margin-top:16px;width:100%;min-height:50px;border-radius:999px;border:0;background:#0b6b42;color:#fff;font:800 18px \'Plus Jakarta Sans\',sans-serif;cursor:pointer">Back to the game</button></div>';
+            card.querySelector('button').onclick = close;
+            try { localStorage.setItem('sop_fb_sent', String(Date.now())); } catch (e) {}
+          }, function (e) {
+            go.disabled = false; go.textContent = 'Send';
+            msg.textContent = e && e.code === 'enough_today' ? 'Thank you, that is plenty for today.' : 'Could not send it just now. Please try again in a moment.';
+          });
+        };
+        document.body.appendChild(back);
+        setTimeout(function () { card.querySelector('.fb-a').focus(); }, 60);
+      };
       window.SOP_outcome = function (o) { queue.push(o || {}); setTimeout(next, 0); };
       // A broadcast (the news anchors) has the screen: pop-ups wait until it ends.
       var holdT = null;

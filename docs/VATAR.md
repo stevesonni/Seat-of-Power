@@ -19,8 +19,16 @@ The game is served by `server/vatar-server.mjs` on Railway (project **seat-of-po
 | `DATA_DIR` | `/data` |
 | `VATAR_SECRET` | the owner pastes `vtr_test_…` (later `vtr_live_…`) |
 | `VATAR_WEBHOOK_SECRET` | the owner pastes `vtr_whsec_…` |
+| `FEEDBACK_KEY` | a long password the owner makes up; it opens the feedback page |
 
 Never commit the secrets or paste them into chat.
+
+## Player feedback
+Players send "What do you not like?" and "What do you want to see better?" with 1–5 stars, from the ☰ menu (title screen and in game). The adviser also asks once after year 2 and once at the end of a career, unless the player sent feedback in the last week. A player can send at most 5 messages a day.
+
+- Stored on the server in `DATA_DIR/feedback.jsonl`, one line per message, with the Lagos Life username, screen, year and state.
+- Read it at `https://<your Railway domain>/feedback?key=<FEEDBACK_KEY>`: newest first, average stars, number of players, and a **download CSV** link.
+- Without `FEEDBACK_KEY` set, or with the wrong key, the page answers "Not found".
 
 ## Products (create them in the Vatar dashboard)
 Each product sells more play, never a better result, so titles, honours and the boards keep their value. The `productId` must be typed exactly as below.

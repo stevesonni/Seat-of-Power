@@ -81,6 +81,9 @@
   window.SOP_USERNAME = uname;
   window.SOP_chScore = function (week, score, name, title) { return ready.then(function (on) { if (on) return call("/api/challenge/score", { week: week, score: score, username: uname(), title: title }); }).catch(function () {}); };
   window.SOP_hallSubmit = function (c) { return ready.then(function (on) { if (on) return call("/api/hall/submit", Object.assign({ username: uname() }, c)); }).catch(function () {}); };
+  // Player feedback goes to the game's server (read at /feedback with FEEDBACK_KEY).
+  window.SOP_feedbackOn = function () { return ready.then(function (on) { return !!on; }).catch(function () { return false; }); };
+  window.SOP_feedback = function (f) { return ready.then(function (on) { if (!on) throw new Error("offline"); return call("/api/feedback", Object.assign({ username: uname() }, f)); }); };
   window.SOP_hallBoard = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/board"); }); };
   window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {

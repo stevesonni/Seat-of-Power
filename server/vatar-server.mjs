@@ -33,6 +33,11 @@ let boardLock = Promise.resolve();
 const readBoard = (w) => { try { return JSON.parse(fs.readFileSync(boardFile(w), "utf8")); } catch (e) { return { entries: {} }; } };
 // The Hall of Governors (all time): each player's best finished career.
 const HALL = path.join(DATA, "hall.json");
+// Player feedback: one JSON line per message. Read it at /feedback?key=FEEDBACK_KEY
+// (set FEEDBACK_KEY in Railway Variables; without it the page does not exist).
+const FEEDBACK = path.join(DATA, "feedback.jsonl");
+const FEEDBACK_KEY = process.env.FEEDBACK_KEY || "";
+const fbCount = new Map(); // player → { day, n }: at most 5 messages a day each
 let hallLock = Promise.resolve();
 const readHall = () => { try { return JSON.parse(fs.readFileSync(HALL, "utf8")); } catch (e) { return { entries: {} }; } };
 // The name on the boards: the player's Lagos Life username, as Vatar reports it.
@@ -140,6 +145,18 @@ const api = {
     await (hallLock = hallLock.then(() => { const H = readHall(); if (H.entries[id]) { delete H.entries[id]; fs.writeFileSync(HALL, JSON.stringify(H)); } }).catch(() => {}));
     return { ok: true };
   },
+  // What a player does not like and wants to see better.
+  "/api/feedback": async (b, id) => {
+    const clip = (t, n) => String(t == null ? "" : t).replace(/[\u0000-\u0008\u000b-\u001f]/g, "").trim().slice(0, n);
+    const dislike = clip(b.dislike, 1500), want = clip(b.want, 1500), rating = Math.max(0, Math.min(5, Math.round(+b.rating || 0)));
+    if (!dislike && !want && !rating) return { _code: 400, error: "empty" };
+    const day = new Date().toISOString().slice(0, 10), c = fbCount.get(id);
+    const n = c && c.day === day ? c.n : 0; if (n >= 5) return { _code: 429, error: "enough_today" };
+    fbCount.set(id, { day, n: n + 1 });
+    const rec = { at: new Date().toISOString(), player: id, name: userOf(b, b.session), rating, dislike, want, where: clip(b.where, 40), year: clip(b.year, 20), state: clip(b.state, 40) };
+    fs.mkdirSync(DATA, { recursive: true }); fs.appendFileSync(FEEDBACK, JSON.stringify(rec) + "\n");
+    return { ok: true };
+  },
   // A purchase counts only when Vatar's server says it is paid and it is this player's.
   "/claim": async (b, id) => {
     const pid = String(b.purchaseId || ""); if (!/^[A-Za-z0-9_-]{1,80}$/.test(pid)) return { _code: 400, error: "bad_request" };
@@ -187,6 +204,26 @@ http.createServer(async (req, res) => {
     }
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "method" });
     if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET });
+    if (url.pathname === "/feedback") {
+      const k = Buffer.from(String(url.searchParams.get("key") || "")), want = Buffer.from(FEEDBACK_KEY);
+      if (!FEEDBACK_KEY || k.length !== want.length || !crypto.timingSafeEqual(k, want)) return send(res, 404, "Not found", TYPES[".txt"]);
+      let rows = []; try { rows = fs.readFileSync(FEEDBACK, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean).reverse(); } catch (e) {}
+      if (url.searchParams.get("format") === "csv") {
+        const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
+        const csv = "when,player,stars,does not like,wants better,screen,year,state\n" + rows.map(r => [r.at, r.name || r.player, r.rating, r.dislike, r.want, r.where, r.year, r.state].map(q).join(",")).join("\n");
+        res.writeHead(200, { ...baseHeaders, "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=seat-of-power-feedback.csv", "Cache-Control": "no-store" }); return res.end(csv);
+      }
+      const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+      const rated = rows.filter(r => r.rating), avg = rated.length ? (rated.reduce((a, r) => a + r.rating, 0) / rated.length).toFixed(1) : "–";
+      const html = '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Player feedback</title>'
+        + '<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;background:#f6f2ea;color:#13261c}main{max-width:860px;margin:0 auto;padding:20px 16px}h1{margin:0 0 4px}.k{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px}.k b{display:block;font-size:26px}.k div{background:#fff;border:1px solid #e6dfd2;border-radius:14px;padding:10px 16px}.c{background:#fff;border:1px solid #e6dfd2;border-radius:16px;padding:14px 16px;margin:0 0 10px}.m{color:#6b7a70;font-size:14px}.l{font-weight:700;color:#a3271c}.w{font-weight:700;color:#0b6b42}a{color:#0b6b42}</style>'
+        + '<main><h1>Player feedback</h1><div class="m">Seat of Power · newest first · <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=csv">download CSV</a></div>'
+        + '<div class="k"><div><b>' + rows.length + '</b>messages</div><div><b>' + avg + ' ★</b>average of ' + rated.length + '</div><div><b>' + new Set(rows.map(r => r.player)).size + '</b>players</div></div>'
+        + (rows.length ? rows.slice(0, 1000).map(r => '<div class="c"><div class="m">' + esc(r.at.replace("T", " ").slice(0, 16)) + ' · ' + esc(r.name || "a player") + (r.rating ? ' · ' + "★".repeat(r.rating) + "☆".repeat(5 - r.rating) : "") + (r.where ? ' · on ' + esc(r.where) : "") + (r.year ? ' · ' + esc(r.year) : "") + (r.state ? ' · ' + esc(r.state) : "") + '</div>'
+          + (r.dislike ? '<div><span class="l">Does not like:</span> ' + esc(r.dislike) + '</div>' : "") + (r.want ? '<div><span class="w">Wants better:</span> ' + esc(r.want) + '</div>' : "") + '</div>').join("") : '<p>No feedback yet.</p>')
+        + '</main>';
+      res.writeHead(200, { ...baseHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end(html);
+    }
     if (url.pathname === "/" || url.pathname === "/seat-of-power.html") return send(res, 200, page, TYPES[".html"]);
     // Static files from public/, never outside it.
     const f = path.resolve(ROOT, "." + decodeURIComponent(url.pathname));

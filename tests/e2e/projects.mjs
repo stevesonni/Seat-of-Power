@@ -21,6 +21,7 @@ const toPolicies = async (g) => {
   await g.click(/^Continue/); await g.wait(1800);
   await playUntil(g, t => /Done: end the year/.test(t), { max: 40, prefer: [/^Tell the communities first/] });
   await g.click(/^Decide later this year$/); await g.wait(300);
+  for (let i = 0; i < 3 && await g.click(/^(Continue|Got it|Okay)$/); i++) await g.wait(400); // the adviser's announcements
   await g.wait(400); await g.click(/^Spread it over 4 years/); await g.wait(600); // the last government's debt (new games)
   for (let i = 0; i < 3 && await g.click(/^(Got it|Okay)$/); i++) await g.wait(300); // the year's money card
 };

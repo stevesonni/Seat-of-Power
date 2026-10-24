@@ -22,7 +22,7 @@ await g.wait(500);
 check(!/Pick your Chief of Staff/.test(await g.txt()), "the picker closes");
 const r = await playUntil(g, tx => /Done: end the year/.test(tx), { max: 60 });
 check(r.ok, "reached the end of Year 1");
-await g.wait(400); await g.click(/^Spread it over 4 years/); await g.wait(500); await okay(g);
+await g.wait(400); await okay(g); await g.click(/^Spread it over 4 years/); await g.wait(500); await okay(g);
 check(await g.page.evaluate(() => !!document.querySelector('[aria-label$=" letters"]')), "the goldfields matter waits as a letter on the Desk tab");
 await g.click(/^Done: end the year/); await g.wait(1500); await okay(g);
 await g.click(/^CONTINUE$/); await g.wait(1400);
