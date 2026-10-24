@@ -80,3 +80,11 @@ test("every Senator and career-ladder picture is used", () => {
   assert.deepEqual(names.filter(n => !files.includes(n)), [], "all shipped");
   assert.deepEqual(names.filter(n => !src.includes('"' + n + '"') && !src.includes("/" + n + ".webp")), [], "all referenced");
 });
+test("every LGA Chairman picture is used", () => {
+  const names = ["chairman-office", "council-chamber", "lga-secretariat", "rural-health-centre", "rural-road-mud", "village-square", "councillor-female", "councillor-male", "health-worker",
+    "lga-treasurer", "lga-treasurer-worried", "village-head", "chairman-flag-off", "joint-account-meeting", "market-fire-aftermath", "badge-chairman"];
+  const files = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.basename(f, ".webp"));
+  const rules = fs.readFileSync(path.join(root, "game/systems/lga.js"), "utf8"), all = src + rules;
+  assert.deepEqual(names.filter(n => !files.includes(n)), [], "all shipped");
+  assert.deepEqual(names.filter(n => !all.includes('"' + n + '"') && !all.includes("/" + n + ".webp")), [], "all referenced");
+});

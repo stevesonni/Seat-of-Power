@@ -607,3 +607,47 @@ Rules live in `game/systems/` (no screen code; `window.SOP_SYS` in the game). Un
 - **The race:** thoughtful play wins 93–100% depending on the background; random play wins 40–76%.
 
 **Test:** `tests/e2e/senate.mjs`.
+
+## Careers: the LGA Chairman (release 1)
+**Where it lives:** rules in `game/systems/lga.js`; the screen is `ChairmanCareer`. It is first on the Careers list, in ladder order.
+
+**Start:** in the player's own home LGA (from their profile). The player picks how they got the ticket: the governor's choice, the people's favourite, or the wealthy returnee.
+
+**Six half-years.** Each one opens with **the allocation** coming down through the state, where the governor's deduction depends on his favour and salaries come off first. The chairman then:
+- accepts it;
+- protests to the governor in person;
+- or goes to court citing the 2024 Supreme Court ruling.
+
+Then come problems with faces:
+- a health centre with no nurse;
+- a washed-out market road;
+- a market fire;
+- a land dispute between villages;
+- birth registration;
+- refuse;
+- unpaid teachers.
+
+Alternating with them: **the council chamber** (councillors' "allowances", an okada bye-law, a market levy, impeachment whispers) and **the governor's requests** (a crowd for his rally, council land for a friend, a drainage contract for his man).
+
+**Endings**
+- A governor defied too far can **dissolve the council**.
+- A council ignored can **impeach** the chairman (two-thirds).
+- Otherwise, **the council election**, run by the state's own electoral commission. The governor's favour decides the ticket.
+
+**Grade:** the people 40%, problems fixed 30%, clean hands 20%, the purse 10%.
+
+**Teaching:** 15 notes in the chairman's pages of the notebook, from the First and Fourth Schedules, Sections 7 and 162(6), the 2024 Supreme Court ruling, SIECs, caretaker committees, impeachment by councillors, levies, bye-laws, the Land Use Act and more.
+
+**Ladder:** a re-elected chairman can **Run for Governor**, which opens a new governorship with their profile.
+
+**Records:** saved in `sop_career` with `office: "chairman"`.
+
+**Vatar:** the first year is free, then `career_chairman` (one-off, ₦500).
+
+**Art:** all 15 pictures in Lovable's LGA pack plus `badge-chairman`, enforced by `tests/art-usage.test.mjs`.
+
+**Balance** (2,000 simulated terms per background):
+- **Sensible play:** wins 80–100%, mostly A and B.
+- **Random play:** mostly loses. Fighting the governor every half-year gets the council dissolved.
+
+**Test:** `tests/e2e/chairman.mjs`.

@@ -2411,7 +2411,7 @@ const CareerSheet = ({ onClose }) => {
   </EntranceSheet>;
 };
 
-const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChallenge, onScenario, onBoard, profile, setProfile }) => {
+const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onChallenge, onScenario, onBoard, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
   const [hasSave, setHasSave] = useState(false);
@@ -2485,10 +2485,10 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChallen
         <img src="./art/scenes/career-ladder.webp" alt="The career ladder: council hall, government house, the Senate and the presidency" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 18, marginBottom: 10 }} />
         <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Play your politician up the ladder, or jump into any office you have unlocked. Each one teaches how that office really works.</div>
         <div style={{ display: "grid", gap: 10 }}>
-          {[["icon-office-governor", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
+          {[["icon-office-chairman", "LGA Chairman", "The man in between: every small problem comes to you, and the governor holds your money. First year free, then ₦500.", "Play", () => { setSheet(null); onChairman && onChairman(); }],
+            ["icon-office-governor", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
             ["icon-office-senator", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. First year free, then ₦1,000.", "Play", () => { setSheet(null); onSenate && onSenate(); }],
             ["icon-office-president", "Road to Aso Rock", "The presidential race. Earned: finish a governorship and run.", null, null],
-            ["icon-office-chairman", "LGA Chairman", "The man in between: the governor holds your money.", "Coming soon", null],
             ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad and orders from Abuja.", "Coming soon", null]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: UI.tints[2], display: "grid", placeItems: "center" }}><Ico n={ic} s={44} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.35 }}>{d}</span></span>
@@ -2501,7 +2501,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChallen
           {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
-            ["icon-politician", "Careers", "Governor, Senator, and the road to Aso Rock", () => setSheet("careers")],
+            ["icon-politician", "Careers", "LGA Chairman, Governor, Senator, and the road to Aso Rock", () => setSheet("careers")],
             ["icon-state", "Your career map", "States governed, badges and time played", () => setSheet("career")],
             ["seal-projects", "Your company", "Register a contractor every player sees · ₦1,500", () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
@@ -12698,6 +12698,186 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   </Frame>);
 };
 
+// ── THE LGA CHAIRMAN CAREER ──
+// The man in between: the people bring every small problem to the council,
+// and the governor controls the money on its way down. Rules in
+// game/systems/lga.js. Free play from Careers; inside Vatar the career is
+// the career_chairman product, first year free. Every choice teaches how
+// local government really works (the chairman's pages of the notebook).
+const LGA_KEY = "sop_lga";
+const LGA_FX_NM = { people: "The people", gov: "The governor's favour", council: "The council", cor: "Corruption" };
+const lgaFxRows = (fx, costM) => Object.entries(fx || {}).filter(([k, v]) => v && LGA_FX_NM[k]).map(([k, v]) => ({ l: LGA_FX_NM[k], v: k === "cor" ? (v > 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%" : (v > 0 ? "+" : "−") + Math.abs(v), good: k === "cor" ? v < 0 : v > 0 }))
+  .concat(costM ? [{ l: "Council purse", v: (costM > 0 ? "−" : "+") + "₦" + Math.abs(costM) + "M", good: costM < 0 }] : []);
+
+const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
+  const tall = TALL(), fz = tall ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(40) } : { s: TS(27), m: TS(33), l: TS(46), xl: TS(64) };
+  const [g, setG] = useState(null), [loaded, setLoaded] = useState(false), [ents, setEnts] = useState(() => window.SOP_ENTS || {}), [busy, setBusy] = useState(false), [book, setBook] = useState(false);
+  useEffect(() => {
+    const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
+    (async () => { try { const r = await window.storage.get(LGA_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setG(d); } } catch (e) {} setLoaded(true); })();
+    return () => window.removeEventListener("sop-ents", f);
+  }, []);
+  useEffect(() => { if (g) { try { window.storage.set(LGA_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
+  const lessons = React.useRef([]);
+  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const learn = (k) => { const t = SYS.LGA_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("lga:" + k); lessons.current.push(t); } };
+  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+  const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
+  const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_chairman > 0;
+  const buy = () => { setBusy(true); window.SOP_buy("career_chairman").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const lgaNm = (G) => G.lga || "your local government";
+
+  // ── Starting: how you got the ticket, then the council election ──
+  const begin = (b, k) => {
+    const lgas = getLGAs(profile.origin || "Lagos"), lga = profile.lga || lgas[0] || "Central";
+    const S = { v: 1, seed: Date.now(), name: profile.first + " " + profile.last, avatar: profile.avatar, state: profile.origin || "Lagos", lga, from: k,
+      people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "half", items: [], seen: [], fixed: 0, log: [], courtWon: 0 };
+    S.items = SYS.lgaAgenda(S.seed, 1, S);
+    setG(S); trk("career_start", "chairman_" + k);
+    learn("siec"); learn("lgas");
+    card({ icon: "🗳️", img: "./art/backgrounds/lga-secretariat.webp", title: "Chairman of " + lga, text: "The state electoral commission declares you winner in every ward. You are sworn in at the council secretariat this morning.", rows: [], tone: "good", ok: "Take office" });
+  };
+
+  // ── The half-year's items ──
+  const next = (p) => ({ items: p.items.slice(1) });
+  const takeAlloc = (o) => {
+    const a = SYS.allocation(g, R("alloc"));
+    let refund = 0; if (o.refund && R("alloc" + o.id)() < o.chance) refund = Math.round(a.deducted * o.refund);
+    trk("lga_alloc", o.id + (refund ? "_won" : ""));
+    if (o.id !== "accept") { learn("jaac"); } if (o.id === "court") learn("supreme");
+    up(p => ({ ...SYS.applyLga(p, o.fx, -(a.net + refund)), ...next(p), courtWon: p.courtWon + (o.id === "court" && refund ? 1 : 0) }));
+    card({ icon: o.id === "court" ? "⚖️" : o.id === "protest" ? "🗣️" : "🏦", img: o.id === "accept" ? undefined : "./art/scenes/joint-account-meeting.webp", title: o.id === "court" ? (refund ? "The court orders the money paid" : "The case drags on") : o.id === "protest" ? (refund ? "The governor relents, a little" : "The governor smiles and says no") : "You sign for what arrived",
+      text: "Of ₦" + a.gross + "M, the state kept ₦" + a.deducted + "M and teachers' and staff salaries took ₦" + a.salaries + "M." + (refund ? " ₦" + refund + "M comes back to the council." : ""), rows: lgaFxRows(o.fx, -(a.net + refund)), tone: refund ? "good" : o.id === "accept" ? "neutral" : "bad", ok: "Next" });
+  };
+  const choose = (x, o, kind) => {
+    if (o.cost > 0 && o.cost > g.purse) return;
+    const res = SYS.lgaChoice(o, R(kind + x.id));
+    const fixed = kind === "problem" && o.cost >= 20;
+    trk("lga_" + kind, x.id + "_" + o.id);
+    learn(x.learn);
+    up(p => ({ ...SYS.applyLga(p, res.fx, o.cost), ...next(p), seen: [...p.seen, x.id], fixed: p.fixed + (fixed ? 1 : 0) }));
+    card({ icon: res.bad ? "📰" : fixed ? "🏗️" : "📌", img: fixed ? "./art/scenes/chairman-flag-off.webp" : undefined, title: o.l, text: res.bad ? "It goes wrong in public, and everyone in the ward knows whose decision it was." : fixed ? "Work starts this week. People stop you on the street to say thank you." : "Done.", rows: lgaFxRows(res.fx, o.cost), tone: res.bad ? "bad" : fixed ? "good" : "neutral", ok: "Next" });
+  };
+  const endHalf = () => {
+    const t = SYS.lgaThreats(g, R("threat"), g.n);
+    if (t) {
+      learn(t.kind === "dissolved" ? "caretaker" : "impeach");
+      trk("lga_end", t.kind);
+      up({ step: "over", over: true, ending: t.kind });
+      card({ icon: t.kind === "dissolved" ? "🔒" : "🗳️", img: t.kind === "dissolved" ? "./art/scenes/joint-account-meeting.webp" : "./art/backgrounds/council-chamber.webp", title: t.kind === "dissolved" ? "The governor dissolves the council" : "The councillors remove you", text: t.kind === "dissolved" ? "A caretaker committee of his loyalists takes over the secretariat this morning." : "Two-thirds of the councillors vote you out at a sitting you were not told about.", rows: [], tone: "bad", ok: "Continue" });
+      return;
+    }
+    if (g.n >= SYS.LGA_HALVES) { up({ step: "election" }); return; }
+    up(p => { const q = SYS.applyLga(p, SYS.LGA_DRIFT); return { ...q, n: p.n + 1, items: SYS.lgaAgenda(p.seed, p.n + 1, q) }; });
+  };
+  const election = () => {
+    const res = SYS.lgaElection(g, R("election")), score = SYS.lgaScore(g), grade = SYS.lgaGrade(score);
+    learn("siec");
+    trk("lga_end", !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated"); trk("lga_grade", grade);
+    up({ step: "over", over: true, ending: !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated", score, grade });
+    try { (async () => { const r0 = await window.storage.get("sop_career"); const L = r0 && r0.value ? JSON.parse(r0.value) : []; await window.storage.set("sop_career", JSON.stringify([...L, { office: "chairman", state: g.state, lga: g.lga, grade, ending: res.won ? "complete" : "defeated", at: Date.now(), name: g.name }].slice(-200))); })(); } catch (e) {}
+  };
+
+  // ── Rendering ──
+  const G = g;
+  const Frame = ({ bg, scene, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
+    <Flag />
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <SceneArt bg={bg} scene={scene} who={w} h={tall ? 170 : 230} />}{children}</div>
+  </div>;
+  const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
+    {kick && <div style={{ fontSize: fz.s, letterSpacing: 3, color: CL.gold, fontFamily: F.m, textTransform: "uppercase" }}>{kick}</div>}
+    <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.xl, margin: "4px 0", fontWeight: 700 }}>{title}</h2>
+    {sub && <div style={{ fontSize: fz.s, color: CL.td, lineHeight: 1.4 }}>{sub}</div>}
+  </div>;
+  const Opt = ({ ic, l, d, right, onClick, disabled, tone }) => <button onClick={onClick} disabled={disabled} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", width: "100%", padding: tall ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + (tone === "bad" ? "#efc2bc" : CL.bdr), background: disabled ? "#f1ede4" : "#fff", color: CL.txt, cursor: disabled ? "default" : "pointer", opacity: disabled ? .55 : 1, fontFamily: F.b }}>
+    <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b>{d && <span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span>}</span>{right ? <span style={{ fontWeight: 800, fontSize: fz.s, color: CL.org, whiteSpace: "nowrap" }}>{right}</span> : <span />}
+  </button>;
+  const Learn = ({ k }) => { const t = SYS.LGA_LEARN[k]; return t ? <div style={{ background: "#eef4fb", border: "1px solid #c9dcf0", borderRadius: 14, padding: "10px 14px", fontSize: fz.s, color: "#1d3a5c", lineHeight: 1.45, margin: "10px 0" }}><b>📘 How it really works · </b>{t}</div> : null; };
+  const Meter = ({ k, v, bad }) => <div style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 12, padding: tall ? "6px 8px" : "8px 12px", minWidth: 0 }}>
+    <div style={{ fontSize: tall ? TS(15) : TS(22), color: CL.td, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k}</div><b style={{ fontSize: fz.m, color: bad ? CL.red : CL.txt }}>{v}</b></div>;
+  const notesHave = () => senNotes().filter(k => k.startsWith("lga:")).length, notesAll = Object.keys(SYS.LGA_LEARN).length;
+  const header = G && <div style={{ display: "grid", gridTemplateColumns: tall ? "repeat(3, 1fr)" : "repeat(6, 1fr)", gap: 6, margin: "6px 0 12px" }}>
+    <Meter k="🧑🏾‍🤝‍🧑🏾 People" v={G.people + "%"} bad={G.people < 40} /><Meter k="🏛️ Governor" v={G.gov} bad={G.gov < 30} /><Meter k="🪑 Council" v={G.council + "%"} bad={G.council < 35} />
+    <Meter k="💀 Corruption" v={Math.round(G.cor * 100) + "%"} bad={G.cor > .4} /><Meter k="💰 Purse" v={"₦" + G.purse + "M"} bad={G.purse < 30} />
+    <button onClick={() => setBook(true)} style={{ border: "1px solid #c9dcf0", background: "#eef4fb", borderRadius: 12, color: "#1d3a5c", fontWeight: 800, fontSize: fz.s, fontFamily: F.b, cursor: "pointer" }}>📘 {notesHave()}/{notesAll}</button>
+  </div>;
+  const notebook = book && <EntranceSheet title="📘 The chairman's notebook" onClose={() => setBook(false)}>
+    <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 10 }}>How local government really works. You have found {notesHave()} of {notesAll}.</div>
+    {Object.entries(SYS.LGA_LEARN).map(([k, t]) => { const have = senNotes().includes("lga:" + k); return <div key={k} style={{ padding: "10px 0", borderBottom: "1px solid " + UI.line, fontSize: DS.t.meta, color: have ? UI.ink : UI.dim, lineHeight: 1.45 }}>{have ? t : "🔒 Found by playing."}</div>; })}
+  </EntranceSheet>;
+  const wrap = (el) => <>{el}{notebook}</>;
+
+  if (!loaded) return <Frame><H title="Loading…" /></Frame>;
+  if (!G) {
+    if (!profile) return <Frame bg="lga-secretariat"><H kick="Careers" title="LGA Chairman" sub="Create your politician first: your name, face, state and home LGA." /><Cd><Bt onClick={onExit} style={{ width: "100%" }}>Back</Bt></Cd></Frame>;
+    return <Frame bg="lga-secretariat">
+      <H kick="Careers · local government" title="LGA Chairman" sub={"Chairman of " + (profile.lga || "your local government") + ", " + String(profile.origin || "").replace(/_/g, " ") + " State. Every small problem comes to you; the money comes through the governor."} />
+      <Learn k="lgas" />
+      <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ fontSize: fz.s, color: CL.td, textAlign: "center" }}>How did you get the ticket?</div>
+        {Object.entries(SYS.LGA_STARTS).map(([k, b]) => <Opt key={k} ic={k === "anointed" ? "🤝" : k === "grassroots" ? "✊" : "✈️"} l={b.nm} d={b.d} onClick={() => begin(b, k)} />)}
+      </div>
+      <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, marginTop: 10 }}>{unlocked ? "" : "Your first year as chairman is free."}</div>
+      <div style={{ textAlign: "center", marginTop: 6 }}><Bt v="ghost" onClick={onExit}>Back</Bt></div>
+    </Frame>;
+  }
+  const kicker = "Year " + SYS.halfYear(G.n) + " of 3 · " + (G.n % 2 === 1 ? "first" : "second") + " half";
+
+  if (G.step === "half") {
+    if (!unlocked && G.n > SYS.LGA_TRIAL) return wrap(<Frame bg="chairman-office" who="lga-treasurer-worried">
+      <H kick="Year 2 begins" title="The council resumes" sub={"Your first year is over: the people " + G.people + "%, the governor's favour " + G.gov + ". The treasurer has news about the next allocation, and the councillors are restless."} />
+      <Cd style={{ textAlign: "center" }}>
+        <div style={{ fontSize: fz.m, color: CL.tm, marginBottom: 12 }}>Unlock the full chairmanship: three years, the council election, and every page of the chairman's notebook. Yours to replay as often as you like.</div>
+        <Bt onClick={buy} disabled={busy} style={{ width: "100%" }}>{busy ? "Opening…" : "Unlock the LGA Chairman · ₦500"}</Bt>
+        <div style={{ marginTop: 10 }}><Bt v="ghost" onClick={onExit}>Not now (your council is saved)</Bt></div>
+      </Cd>
+    </Frame>);
+    const it = G.items[0];
+    const left = <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, marginBottom: 8 }}>{G.items.length} matter{G.items.length === 1 ? "" : "s"} on your desk this half-year · {G.fixed} problem{G.fixed === 1 ? "" : "s"} fixed so far</div>;
+    if (!it) return wrap(<Frame bg="lga-secretariat" who="councillor-female">
+      <H kick={kicker} title={G.n >= SYS.LGA_HALVES ? "Three years are over" : "Half a year done"} sub={G.n >= SYS.LGA_HALVES ? "The council election is next." : "People are quick to forget what you did last season (the people " + SYS.LGA_DRIFT.people + ")."} />
+      {header}
+      <Bt onClick={endHalf} style={{ width: "100%" }}>{G.n >= SYS.LGA_HALVES ? "To the council election →" : "Next half-year →"}</Bt>
+    </Frame>);
+    if (it.k === "alloc") return wrap(<Frame bg="chairman-office" who={G.gov < 45 ? "lga-treasurer-worried" : "lga-treasurer"}>
+      <H kick={kicker + " · the allocation"} title="The money has come down from the state" sub={"The treasurer reads it out: ₦" + SYS.ALLOCATION_M + "M due from Abuja, less what the state keeps and the salaries it pays first. How much the state keeps depends on how the governor feels about you."} />
+      {header}{left}<Learn k="jaac" />
+      <div style={{ display: "grid", gap: 8 }}>{SYS.ALLOC_OPTS.map(o => <Opt key={o.id} ic={o.id === "accept" ? "🏦" : o.id === "protest" ? "🗣️" : "⚖️"} l={o.l} d={o.d} tone={o.id === "court" ? "bad" : null} onClick={() => takeAlloc(o)} />)}</div>
+    </Frame>);
+    const pool = it.k === "problem" ? SYS.LGA_PROBLEMS : it.k === "motion" ? SYS.LGA_MOTIONS : SYS.GOV_ASKS, x = pool.find(y => y.id === it.id);
+    const art = it.k === "problem" ? (x.scene ? { scene: x.scene } : { bg: x.bg, who: x.who }) : it.k === "motion" ? { bg: "council-chamber", who: x.id === "okada" || x.id === "impeach" ? "councillor-male" : "councillor-female" } : { scene: "joint-account-meeting" };
+    const kick = it.k === "problem" ? kicker + " · " + lgaNm(G) : it.k === "motion" ? kicker + " · the council chamber" : kicker + " · Government House";
+    return wrap(<Frame {...art}>
+      <H kick={kick} title={x.t} sub={x.d} />
+      {header}{left}<Learn k={x.learn} />
+      <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={o.l} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, it.k)} />)}</div>
+    </Frame>);
+  }
+  if (G.step === "election") return wrap(<Frame bg="village-square">
+    <H kick="Three years on" title="The council election" sub={G.gov >= 25 ? "The party has given you the ticket. The state electoral commission runs the vote." : "The governor's men have handed the ticket to someone else."} />
+    {header}<Learn k="siec" />
+    <Bt onClick={election} style={{ width: "100%" }}>{G.gov >= 25 ? "🗳️ Count the votes →" : "See how it ends →"}</Bt>
+  </Frame>);
+  const score = G.score != null ? G.score : SYS.lgaScore(G), grade = G.grade || SYS.lgaGrade(score);
+  const endT = { dissolved: ["Dissolved", "A caretaker committee runs " + lgaNm(G) + " now."], impeached: ["Impeached", "The councillors chose a new chairman."], no_ticket: ["Denied the ticket", "The governor's candidate runs in your place."], defeated: ["Voted out", "The wards wanted someone new."], reelected: ["Re-elected", "Three more years at the council secretariat."] }[G.ending] || ["The end", ""];
+  const restart = () => { try { window.storage.set(LGA_KEY, ""); } catch (e) {} setG(null); };
+  return wrap(<Frame {...(G.ending === "reelected" ? { scene: "chairman-flag-off" } : { bg: "village-square", who: "village-head" })}>
+    <H kick="LGA Chairman" title={endT[0]} sub={endT[1]} />
+    <Cd style={{ textAlign: "center" }}>
+      {G.ending === "reelected" && <img src="./art/badges/badge-chairman.webp" alt="Chairman badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 4px" }} />}
+      <div style={{ fontSize: TS(tall ? 110 : 150), lineHeight: 1, fontWeight: 900, fontFamily: F.d, color: grade === "A" || grade === "B" ? CL.grn : grade === "F" ? CL.red : CL.gold }}>{grade}</div>
+      <div style={{ fontSize: fz.s, color: CL.td }}>Score {score} · the people {G.people}% · {G.fixed} problems fixed · corruption {Math.round(G.cor * 100)}%</div>
+    </Cd>
+    <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: "#1d3a5c" }}>📘 The chairman's notebook: {notesHave()} of {notesAll} notes found.</div><Bt v="secondary" onClick={() => setBook(true)} style={{ marginTop: 8 }}>Open the notebook</Bt></Cd>
+    <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+      {G.ending === "reelected" && onGovernor && <Bt onClick={() => { restart(); onGovernor(); }}>🏛️ Run for Governor →</Bt>}
+      <Bt v="secondary" onClick={restart}>Play the chairmanship again</Bt>
+      <Bt v="ghost" onClick={() => { restart(); onExit(); }}>Back to the title</Bt>
+    </div>
+  </Frame>);
+};
+
 const EndScr = ({ type, state, onRestart }) => {
   const ms = { retire: { i: "🏡", t: "Elder Statesman", d: "You served " + (state || "").replace("_", " ") + " with dignity. History will remember your tenure." }, senate_w: { i: "🏛️", t: "Distinguished Senator", d: "From Government House to the National Assembly. Your experience serves the nation." }, senate_l: { i: "📖", t: "Defeated", d: "The Senate eluded you. But your governance record in " + (state || "").replace("_", " ") + " endures." }, pres_w: { i: "🇳🇬", t: "Mr. President", d: "From " + (state || "").replace("_", " ") + " to Aso Rock!" }, pres_l: { i: "📖", t: "Chapter Closes", d: "The presidency eluded you." }, fctm: { i: "📜", t: "Honourable Minister of the FCT", d: "Aso Rock has called. You now oversee Abuja — the seat of national power. Roads, planning, satellite towns, the Presidential Villa itself. A rare honour reserved only for governors of proven integrity and results. Your work in " + (state || "").replace("_", " ") + " earned you this portfolio." } };
   const m = ms[type] || ms.retire;
@@ -12940,7 +13120,7 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen onSenate={() => { setFinalStats(null); setScr("senate"); }} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "title" && <TitleScreen onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
@@ -12958,6 +13138,7 @@ function App() {
       </EntranceSheet>}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} />}
+      {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}
       {scr === "senate" && <SenateCareer stats={finalStats} profile={profile} onExit={rst} onPresident={(rec) => { setFinalStats(f => ({ ...(f || {}), rec })); setScr("pres"); }} />}
       {scr === "end_ret" && <EndScr type="retire" state={setup?.state} onRestart={rst} />}
       {scr === "end_sen_w" && <EndScr type="senate_w" state={setup?.state} onRestart={rst} />}
