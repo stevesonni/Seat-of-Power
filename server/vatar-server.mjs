@@ -15,6 +15,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from "./company-name.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -25,7 +26,7 @@ const PORT = +process.env.PORT || 8080;
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
-const PRODUCTS = { streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
+const PRODUCTS = { company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
 // The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
 const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
 const boardFile = (w) => path.join(DATA, "boards", "w" + w + ".json");
@@ -53,6 +54,16 @@ const statsNow = () => (stats = stats || readStats());
 setInterval(() => { if (!statsDirty) return; statsDirty = false; try { fs.mkdirSync(DATA, { recursive: true }); const tmp = STATS + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(stats)); fs.renameSync(tmp, STATS); } catch (e) { statsDirty = true; } }, 10000).unref();
 const anon = (id) => crypto.createHash("sha256").update("sop:" + id).digest("base64url").slice(0, 12);
 const TRACK_OK = /^[a-z_]{2,32}$/;
+// Companies players register: every player sees them as contractors. The
+// owner's id stays on the server; hires (one per hiring player per company
+// per day) earn the owner fees, paid into their next campaign's war chest.
+const COMPANIES = path.join(DATA, "companies.json");
+const readCos = () => { try { return JSON.parse(fs.readFileSync(COMPANIES, "utf8")); } catch (e) { return {}; } };
+let cos = null, cosDirty = false;
+const cosNow = () => (cos = cos || readCos());
+setInterval(() => { if (!cosDirty) return; cosDirty = false; try { fs.mkdirSync(DATA, { recursive: true }); const tmp = COMPANIES + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(cos)); fs.renameSync(tmp, COMPANIES); } catch (e) { cosDirty = true; } }, 5000).unref();
+const myCo = (id) => Object.values(cosNow()).find(c => c.owner === id) || null;
+const coPublic = (c) => ({ id: c.id, name: c.name, sector: c.sector, hires: Object.keys(c.hiredBy || {}).length });
 // Play time for the insights page: totals, average, median, spread, longest players.
 const hm = (sec) => { const m = Math.round(sec / 60); return m < 60 ? m + "m" : Math.floor(m / 60) + "h " + (m % 60) + "m"; };
 const playSummary = (S) => {
@@ -198,6 +209,41 @@ const api = {
     if (sec) { P.s += sec; P.last = now; const d = new Date(now).toISOString().slice(0, 10); if (P.days[P.days.length - 1] !== d) P.days = [...P.days, d].slice(-400); statsDirty = true; }
     return { ok: true, total: P.s };
   },
+  // Player companies: the visible list, which one is mine, and fees waiting.
+  "/api/company/list": async (b, id) => {
+    const C = cosNow(), mine = myCo(id);
+    const list = Object.values(C).filter(c => !c.hidden).map(coPublic).sort((a, b) => b.hires - a.hires).slice(0, 300);
+    return { list, mine: mine ? { ...coPublic(mine), hidden: !!mine.hidden, owedM: Math.min(PAYOUT_CAP_M, mine.earnM - mine.paidM) } : null };
+  },
+  // Register (one company_registration credit), or rename: free when we hid the old name.
+  "/api/company/register": async (b, id) => withP(id, (p) => {
+    const chk = checkCompanyName(b.name), sector = String(b.sector || "");
+    if (!chk.ok) return { ok: false, error: "bad_name", why: chk.why };
+    if (!COMPANY_SECTORS.includes(sector)) return { ok: false, error: "bad_sector" };
+    const C = cosNow(), mine = myCo(id), low = chk.name.toLowerCase();
+    if (Object.values(C).some(c => c !== mine && c.name.toLowerCase() === low)) return { ok: false, error: "taken", why: "Another player already registered that name." };
+    const free = mine && mine.hidden;
+    if (!free) { if (!(p.ents.company_registration > 0)) return { ok: false, need: "company_registration" }; p.ents.company_registration -= 1; writeP(id, p); }
+    const co = mine || { id: "pc_" + crypto.randomBytes(6).toString("base64url"), owner: id, at: Date.now(), hiredBy: {}, earnM: 0, paidM: 0 };
+    Object.assign(co, { name: chk.name, sector, hidden: false, renamedAt: mine ? Date.now() : undefined });
+    C[co.id] = co; cosDirty = true;
+    return { ok: true, company: coPublic(co), ents: p.ents };
+  }),
+  // Another governor hired a company: counts once per hiring player per company per day.
+  "/api/company/hire": async (b, id) => {
+    const c = cosNow()[String(b.id || "")]; if (!c || c.hidden || c.owner === id) return { ok: true };
+    const who2 = anon(id), day = new Date().toISOString().slice(0, 10);
+    c.hiredBy = c.hiredBy || {}; c.hireDays = c.hireDays || {};
+    if (c.hireDays[who2] === day) return { ok: true };
+    c.hireDays[who2] = day; c.hiredBy[who2] = (c.hiredBy[who2] || 0) + 1; c.earnM += FEE_PER_HIRE_M; cosDirty = true;
+    return { ok: true };
+  },
+  // The owner draws their fees into a new campaign (up to the cap at a time).
+  "/api/company/claim": async (b, id) => {
+    const c = myCo(id); if (!c) return { amountM: 0 };
+    const amountM = Math.max(0, Math.min(PAYOUT_CAP_M, c.earnM - c.paidM)); c.paidM += amountM; if (amountM) cosDirty = true;
+    return { amountM, hires: Object.keys(c.hiredBy || {}).length, name: c.name };
+  },
   // What a player does not like and wants to see better.
   "/api/feedback": async (b, id) => {
     const clip = (t, n) => String(t == null ? "" : t).replace(/[\u0000-\u0008\u000b-\u001f]/g, "").trim().slice(0, n);
@@ -275,6 +321,12 @@ http.createServer(async (req, res) => {
       }
       const statsHtml = evs.length ? evs.map(([e, E]) => { const np = Object.keys(E.players).length, vs = Object.entries(E.values).map(([v, V]) => [v, Object.keys(V.p).length, V.n]).sort((a, b) => b[1] - a[1]);
         return '<div class="c"><b>' + esc(e.replace(/_/g, " ")) + '</b> <span class="m">· ' + np + ' players</span>' + vs.slice(0, 40).map(([v, n, t]) => { const pc = np ? Math.round(n / np * 100) : 0; return '<div style="display:grid;grid-template-columns:minmax(120px,1fr) 3fr 64px;gap:8px;align-items:center;margin-top:6px"><span>' + esc(v) + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + pc + '%;background:#0b6b42"></span></span><span class="m" style="text-align:right">' + pc + '% · ' + n + '</span></div>'; }).join("") + '</div>'; }).join("") : "<p>No choices recorded yet.</p>";
+      const hideId = url.searchParams.get("hide"), showId = url.searchParams.get("show"), C0 = cosNow();
+      if (hideId && C0[hideId]) { C0[hideId].hidden = true; cosDirty = true; }
+      if (showId && C0[showId]) { C0[showId].hidden = false; cosDirty = true; }
+      const kq = '?key=' + encodeURIComponent(FEEDBACK_KEY), coList = Object.values(C0).sort((a, b) => b.at - a.at);
+      const coHtml = '<h2 style="margin:22px 0 8px">Player companies</h2><div class="m" style="margin-bottom:8px">Every player sees these names. Hide any that copy a real firm or person, or are rude; the owner then renames for free.</div>'
+        + (coList.length ? '<div class="c">' + coList.slice(0, 300).map(c => '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #efe8db"><span' + (c.hidden ? ' style="text-decoration:line-through;color:#9aa39c"' : '') + '><b>' + esc(c.name) + '</b> <span class="m">· ' + esc(c.sector) + ' · hired by ' + Object.keys(c.hiredBy || {}).length + ' · ' + esc(new Date(c.at).toISOString().slice(0, 10)) + '</span></span><a href="' + kq + (c.hidden ? '&show=' : '&hide=') + encodeURIComponent(c.id) + '">' + (c.hidden ? 'Show' : 'Hide') + '</a></div>').join("") + '</div>' : '<p>No companies yet.</p>');
       const PS = playSummary(S), bmax = Math.max(1, ...PS.buckets.map(b => b.n));
       const playHtml = '<h2 style="margin:22px 0 8px">Play time</h2>' + (PS.players ? '<div class="k"><div><b>' + hm(PS.totalSec) + '</b>played in all</div><div><b>' + hm(PS.avgSec) + '</b>average per player</div><div><b>' + hm(PS.medianSec) + '</b>typical player (median)</div><div><b>' + PS.players + '</b>players timed</div></div>'
         + '<div class="c"><b>How long players stay</b>' + PS.buckets.map(b => '<div style="display:grid;grid-template-columns:110px 3fr 64px;gap:8px;align-items:center;margin-top:6px"><span>' + b.l + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(b.n / bmax * 100) + '%;background:#0b6b42"></span></span><span class="m" style="text-align:right">' + b.n + '</span></div>').join("") + '</div>'
@@ -285,6 +337,7 @@ http.createServer(async (req, res) => {
         + '<main><h1>Player feedback</h1><div class="m">Seat of Power · newest first · <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=csv">download CSV</a></div>'
         + '<div class="k"><div><b>' + rows.length + '</b>messages</div><div><b>' + avg + ' ★</b>average of ' + rated.length + '</div><div><b>' + new Set(rows.map(r => r.player)).size + '</b>players</div></div>'
         + playHtml
+        + coHtml
         + '<h2 style="margin:22px 0 8px">What players choose</h2><div class="m" style="margin-bottom:8px">Anonymous: each player counts once per answer. <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=stats">as JSON</a></div>' + statsHtml
         + '<h2 style="margin:22px 0 8px">Messages</h2>'
         + (rows.length ? rows.slice(0, 1000).map(r => '<div class="c"><div class="m">' + esc(r.at.replace("T", " ").slice(0, 16)) + ' · ' + esc(r.name || "a player") + (r.rating ? ' · ' + "★".repeat(r.rating) + "☆".repeat(5 - r.rating) : "") + (r.where ? ' · on ' + esc(r.where) : "") + (r.year ? ' · ' + esc(r.year) : "") + (r.state ? ' · ' + esc(r.state) : "") + '</div>'

@@ -90,6 +90,18 @@
   // Time played: the server keeps the total for this player across devices.
   window.SOP_playSend = function (sec) { ready.then(function (on) { if (on) return call("/api/play", { sec: sec }).then(function (r) { if (r && r.total && window.SOP_playTotal) window.SOP_playTotal(r.total); }); }).catch(function () {}); };
   ready.then(function (on) { if (on) window.SOP_playSend(0); });
+  // Player companies: the shared list, registering (buys company_registration when
+  // there is no credit), hires by other governors, and the owner's fees.
+  window.SOP_companies = function () { return ready.then(function (on) { if (!on) return null; return call("/api/company/list"); }).catch(function () { return null; }); };
+  window.SOP_companyRegister = function (name, sector) {
+    function reg() { return call("/api/company/register", { name: name, sector: sector }).then(function (r) { if (r.ents) setEnts(r.ents); return r; }); }
+    return ready.then(function (on) {
+      if (!on) { var e = new Error("offline"); e.code = "offline"; throw e; }
+      return reg().then(function (r) { return r.need ? window.SOP_buy("company_registration").then(reg) : r; });
+    });
+  };
+  window.SOP_companyHire = function (id) { ready.then(function (on) { if (on) return call("/api/company/hire", { id: id }); }).catch(function () {}); };
+  window.SOP_companyClaim = function () { return ready.then(function (on) { if (!on) return null; return call("/api/company/claim"); }).catch(function () { return null; }); };
   // Anonymous choice tallies (what players pick, not who they are). Batched.
   var trackQ = [], trackT = null;
   window.SOP_track = function (event, value) {

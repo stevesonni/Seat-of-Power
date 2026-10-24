@@ -72,11 +72,31 @@ export const CONTRACTORS = [
 ];
 export const contractorById = (id) => CONTRACTORS.find(c => c.id === id);
 
+/* Companies registered by players (the company_registration product): top
+   contractors in their one sector, seen by every player. mineId marks the
+   player's own, which they may hire but which is a conflict of interest.
+   Called again whenever the list is refreshed; ids stay stable so saves
+   that awarded work to a player company keep their contractor. */
+export const PLAYER_CO = { price: 1.05, reliability: .92, speed: .88, quality: .92, integrity: .9, capacity: 3 };
+export const registerCompanies = (list = [], mineId = null) => {
+  (list || []).forEach(x => {
+    if (!x || !/^pc_[A-Za-z0-9_-]{4,40}$/.test(x.id || "") || !SECTORS[x.sector]) return;
+    const mine = x.id === mineId, prev = CONTRACTORS.find(c => c.id === x.id);
+    const c = { id: x.id, name: String(x.name || "").slice(0, 40), sectors: [x.sector], ...PLAYER_CO, ties: mine ? "self" : null, player: true, mine, hires: x.hires || 0, hidden: !!x.hidden,
+      note: mine ? "Your own company: 15% comes back to your campaign fund, but corruption rises with every deal and the EFCC is watching." : "★ Player-owned · hired by " + (x.hires || 0) + " governor" + (x.hires === 1 ? "" : "s") + "." };
+    if (prev) Object.assign(prev, c); else CONTRACTORS.push(c);
+  });
+  return CONTRACTORS.filter(c => c.player).length;
+};
+
 // Who can bid for this project, and who cannot (and why).
 export const eligible = (type, projects = []) => {
   const sector = TYPE_SECTOR[type] || "roads";
   const busy = (id) => projects.filter(p => p.contractorId === id && p.status === "in_progress").length;
-  return CONTRACTORS.filter(c => c.sectors.includes(sector)).map(c => ({ ...c, active: busy(c.id), full: busy(c.id) >= c.capacity }));
+  // Player companies: the three most hired in the sector (plus your own), listed first.
+  const pc = CONTRACTORS.filter(c => c.player && !c.hidden && c.sectors.includes(sector)).sort((a, b) => (b.mine - a.mine) || (b.hires - a.hires));
+  const shown = pc.filter(c => c.mine).concat(pc.filter(c => !c.mine).slice(0, 3));
+  return shown.concat(CONTRACTORS.filter(c => !c.player && c.sectors.includes(sector))).map(c => ({ ...c, active: busy(c.id), full: busy(c.id) >= c.capacity }));
 };
 
 /* The funding check. needM is the full cost of the scope you set. */

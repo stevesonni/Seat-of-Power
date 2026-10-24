@@ -2315,6 +2315,70 @@ const StreakSheet = ({ st, onClose }) => {
 // Your career: the map of states you have governed, and the badges earned.
 const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
+// ── YOUR COMPANY (the company_registration product, ₦1,500) ──
+// A contractor of the player's own, in one sector, that every player sees as
+// a top bidder. Hires by other governors earn fees, paid into the owner's
+// next campaign. The list lives on our server (SOP_companies); a copy is
+// kept on the device so saves that hired a player company still read.
+const CO_CACHE = "sop_companies";
+const loadCompanies = async () => {
+  let r = null; try { r = window.SOP_companies ? await window.SOP_companies() : null; } catch (e) {}
+  try { if (r) localStorage.setItem(CO_CACHE, JSON.stringify(r)); else r = JSON.parse(localStorage.getItem(CO_CACHE) || "null"); } catch (e) {}
+  if (r) SYS.registerCompanies([...(r.list || []), ...(r.mine ? [r.mine] : [])], r.mine && r.mine.id);
+  return r;
+};
+const CompanySheet = ({ onClose }) => {
+  const [d, setD] = useState(null), [nm, setNm] = useState(""), [sec, setSec] = useState("health"), [busy, setBusy] = useState(false), [err, setErr] = useState(""), [online, setOnline] = useState(true);
+  useEffect(() => { loadCompanies().then(r => { setD(r || { list: [], mine: null }); setOnline(!!(window.SOP_canBuy && window.SOP_canBuy())); if (r && r.mine) { setSec(r.mine.sector); } }); }, []);
+  const mine = d && d.mine, chk = nm.trim() ? SYS.checkCompanyName(nm) : null, renaming = mine && mine.hidden;
+  const go = async () => {
+    if (!chk || !chk.ok) return; setBusy(true); setErr("");
+    try { const r = await window.SOP_companyRegister(nm, sec); if (r && r.ok) { setNm(""); const x = await loadCompanies(); setD(x); try { window.SOP_toast && window.SOP_toast(r.company.name + " is registered", "ok"); } catch (e) {} } else setErr((r && r.why) || "That did not go through. Try again."); }
+    catch (e) { if (e && e.code !== "cancelled") setErr(e && e.code === "offline" ? "Registering needs the Lagos Life app." : "The payment did not complete."); }
+    setBusy(false);
+  };
+  const tile = (C, preview) => <div style={{ background: "#fff", border: "2px solid #e9cf8a", borderRadius: 18, padding: "12px 14px", boxShadow: "0 6px 16px rgba(0,0,0,.06)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <span style={{ width: 46, height: 46, borderRadius: 14, background: "#fff7df", display: "grid", placeItems: "center", fontSize: 24, flexShrink: 0 }}>{SECTOR_ICON[C.sector] || "🏗️"}</span>
+      <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body, color: UI.ink, wordBreak: "break-word" }}>{C.name}</b>
+        <span style={{ fontSize: DS.t.meta, color: "#8a6a12", fontWeight: 700 }}>★ Player-owned · {SYS.SECTORS[C.sector]}{preview ? "" : " · hired by " + (C.hires || 0)}</span></span>
+    </div>
+    <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>{[["Reliable", SYS.PLAYER_CO.reliability], ["Quality", SYS.PLAYER_CO.quality], ["Speed", SYS.PLAYER_CO.speed], ["Integrity", SYS.PLAYER_CO.integrity]].map(([l, v]) => <span key={l} style={{ fontSize: DS.t.meta, fontWeight: 700, background: "#eaf4ec", color: "#0b6b42", borderRadius: 999, padding: "3px 9px" }}>{l} {Math.round(v * 100)}</span>)}</div>
+  </div>;
+  return <EntranceSheet title="Your company" onClose={onClose}>
+    {!d ? <div style={{ color: UI.sub }}>Loading…</div> : <>
+      {mine && <div style={{ marginBottom: 16 }}>
+        {tile(mine)}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 10 }}>
+          <div style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 14, padding: "10px 12px", textAlign: "center" }}><b style={{ display: "block", fontFamily: F.d, fontSize: 22 }}>{mine.hires || 0}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>governors hired it</span></div>
+          <div style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 14, padding: "10px 12px", textAlign: "center" }}><b style={{ display: "block", fontFamily: F.d, fontSize: 22 }}>{SYS.fmtM(mine.owedM || 0)}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>fees for your next campaign</span></div>
+        </div>
+        {mine.hidden ? <div style={{ marginTop: 10, background: "#fdecea", color: "#8a1c12", borderRadius: 14, padding: "10px 12px", fontSize: DS.t.meta }}>This name was taken down because it looks like a real company or person, or breaks the rules. Choose a new one below, free.</div>
+          : <div style={{ marginTop: 10, fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.5 }}>Every governor in Lagos Life sees it as a top bidder for {SYS.SECTORS[mine.sector].toLowerCase()}. Each one who hires it pays you {SYS.fmtM(SYS.FEE_PER_HIRE_M)}, paid into the war chest of your next campaign. In your own state you can give it contracts: 15% comes back to your campaign fund, but corruption climbs with every deal and the EFCC starts asking questions.</div>}
+      </div>}
+      {(!mine || renaming) && <>
+        <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Register your own construction company. <b style={{ color: UI.ink }}>Every player sees it</b> as a top-rated bidder in its sector, and each governor who hires it pays you fees for your next campaign.</div>
+        <label style={{ display: "block", marginBottom: 10 }}><span style={{ fontSize: DS.t.meta, color: UI.sub, fontWeight: 700 }}>Company name</span>
+          <input value={nm} onChange={e => setNm(e.target.value)} maxLength={36} placeholder="e.g. Sunny Construction" style={{ display: "block", width: "100%", boxSizing: "border-box", marginTop: 4, padding: "12px 14px", fontSize: 16, borderRadius: 14, border: "1.5px solid " + (chk && !chk.ok ? "#c0392b" : UI.line), fontFamily: F.b, background: "#fff", color: UI.ink }} />
+          {chk && !chk.ok && <span style={{ display: "block", fontSize: DS.t.meta, color: "#a3271c", marginTop: 4 }}>{chk.why}</span>}
+        </label>
+        <span style={{ fontSize: DS.t.meta, color: UI.sub, fontWeight: 700 }}>What it builds</span>
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0 12px" }}>{SYS.COMPANY_SECTORS.map(k => <button key={k} onClick={() => setSec(k)} aria-pressed={sec === k} style={{ minHeight: 40, padding: "6px 12px", borderRadius: 999, border: "1.5px solid " + (sec === k ? UI.dark : UI.line), background: sec === k ? UI.dark : "#fff", color: sec === k ? "#fff" : UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.meta, cursor: "pointer" }}>{SECTOR_ICON[k]} {SYS.SECTORS[k]}</button>)}</div>
+        {chk && chk.ok && <div style={{ marginBottom: 12 }}><div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 6 }}>How other governors will see it</div>{tile({ name: chk.name, sector: sec }, true)}</div>}
+        <div style={{ fontSize: DS.t.meta, color: UI.dim, marginBottom: 10, lineHeight: 1.4 }}>Invent your own name. Names of real companies, banks, brands or politicians, and rude names, are taken down.</div>
+        {err && <div style={{ color: "#a3271c", fontSize: DS.t.meta, marginBottom: 8 }}>{err}</div>}
+        <PillBtn disabled={busy || !chk || !chk.ok || !online} onClick={go} style={{ width: "100%" }}>{busy ? "Registering…" : renaming ? "Register the new name · free" : "Register my company · ₦1,500"}</PillBtn>
+        {!online && <div style={{ fontSize: DS.t.meta, color: UI.sub, marginTop: 6, textAlign: "center" }}>Companies are registered in the Lagos Life app.</div>}
+      </>}
+      {(d.list || []).filter(c => !mine || c.id !== mine.id).length > 0 && <div style={{ marginTop: 18 }}>
+        <b style={{ display: "block", fontSize: DS.t.body, marginBottom: 6 }}>Most hired player companies</b>
+        {(d.list || []).filter(c => !mine || c.id !== mine.id).slice(0, 10).map((c, i) => <div key={c.id} style={{ display: "grid", gridTemplateColumns: "28px 1fr auto", gap: 8, alignItems: "center", padding: "8px 0", borderBottom: "1px solid " + UI.line }}>
+          <span style={{ color: UI.sub, fontWeight: 800 }}>{i + 1}</span><span style={{ minWidth: 0 }}><b style={{ fontSize: DS.t.meta }}>{c.name}</b><span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub }}>{SECTOR_ICON[c.sector]} {SYS.SECTORS[c.sector]}</span></span><span style={{ fontSize: DS.t.meta, color: UI.sub }}>hired {c.hires}×</span>
+        </div>)}
+      </div>}
+    </>}
+  </EntranceSheet>;
+};
 const playTimeText = (sec) => { const m = Math.floor(sec / 60); return m < 60 ? m + " min" : Math.floor(m / 60) + "h " + (m % 60) + "m"; };
 const CareerSheet = ({ onClose }) => {
   const [list, setList] = useState(null), [sel, setSel] = useState(null), playSec = (() => { try { return window.SOP_playTime ? window.SOP_playTime() : 0; } catch (e) { return 0; } })();
@@ -2416,12 +2480,14 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
       {sheet === "daily" && <DailyScreen onClose={() => setSheet(null)} />}
       {sheet === "streak" && <StreakSheet st={st} onClose={() => setSheet(null)} />}
       {sheet === "career" && <CareerSheet onClose={() => setSheet(null)} />}
+      {sheet === "company" && <CompanySheet onClose={() => setSheet(null)} />}
       {sheet === "menu" && <EntranceSheet title="Menu" onClose={() => setSheet(null)}>
         <div style={{ display: "grid", gap: 10 }}>
           {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
             ["icon-state", "Your career map", "States governed, badges and time played", () => setSheet("career")],
+            ["seal-projects", "Your company", "Register a contractor every player sees · ₦1,500", () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
@@ -2774,6 +2840,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   const [sCampDays, setSCampDays] = useState(0); // campaign days spent on this week's main move
   const [election, setElection] = useState(null); // the first election's result, for the Wikipedia article
   const [warChest, setWarChest] = useState(0.8); // ₦800M starting campaign funds
+  // Fees your company earned from other governors go into this campaign.
+  useEffect(() => { let off = false; (async () => { try { const r = window.SOP_companyClaim ? await window.SOP_companyClaim() : null; if (off || !r || !(r.amountM > 0)) return; setWarChest(w => Math.round((w + r.amountM / 1000) * 100) / 100); window.SOP_outcome && window.SOP_outcome({ icon: "💼", title: r.name + " paid in", text: r.hires + " governor" + (r.hires === 1 ? "" : "s") + " hired your company. Its fees go into this campaign's war chest.", rows: [{ l: "War chest", v: "+" + SYS.fmtM(r.amountM), good: true }], tone: "good", ok: "Good" }); } catch (e) {} })(); return () => { off = true; }; }, []);
   // Personal campaign loans from the godfather: one record per accepted offer
   // (SYS.addLoan ignores a repeat of the same key). gfDebt is their total in ₦B.
   const [gfLoans, setGfLoans] = useState([]);
@@ -4192,9 +4260,9 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
       {spLab("How the contract is let")}
       <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>{Object.entries(SYS.PROCUREMENT).map(([k, M]) => <button key={k} className="sp-opt" aria-pressed={meth === k} onClick={() => onFlow({ ...F0, method: k })}><b style={{ display: "block", fontSize: 15 }}>{M.nm}</b><span style={{ fontSize: 13, color: "#5b6b55" }}>{Math.round(M.price * 100)}% of price{M.cor > 0 ? " · corruption risk" : ""}</span></button>)}</div>
       {spLab("Bidders")}
-      <div style={{ display: "grid", gap: 8 }}>{list.map(c => <div key={c.id} className="sp-card" style={{ padding: "12px 14px", boxShadow: "none", borderColor: c.nepotism ? "#efc2bc" : "#e7dcc4", opacity: c.full ? .6 : 1 }}>
+      <div style={{ display: "grid", gap: 8 }}>{list.map(c => <div key={c.id} className="sp-card" style={{ padding: "12px 14px", boxShadow: "none", borderColor: c.nepotism || c.mine ? "#efc2bc" : c.player ? "#e9cf8a" : "#e7dcc4", background: c.player && !c.mine ? "#fffbef" : undefined, opacity: c.full ? .6 : 1 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          <div style={{ minWidth: 0 }}><b style={{ font: "700 17px 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{c.name}</b><div style={{ fontSize: 13, color: c.nepotism ? "#b3261e" : "#7a6c4c" }}>{SYS.fmtM(Math.round(proj.estimateM * c.price * (SYS.PROCUREMENT[meth] || {}).price))} · {c.active}/{c.capacity} jobs{c.nepotism ? " · " + c.note : ""}</div></div>
+          <div style={{ minWidth: 0 }}><b style={{ font: "700 17px 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{c.name}</b>{c.player && <span style={{ marginLeft: 8, verticalAlign: "middle", fontSize: 12, fontWeight: 800, borderRadius: 999, padding: "2px 9px", background: c.mine ? "#fdecea" : "#fff2c9", color: c.mine ? "#a3271c" : "#7a5a00" }}>{c.mine ? "Your company" : "★ Player-owned"}</span>}<div style={{ fontSize: 13, color: c.nepotism || c.mine ? "#b3261e" : "#7a6c4c" }}>{SYS.fmtM(Math.round(proj.estimateM * c.price * (SYS.PROCUREMENT[meth] || {}).price))} · {c.active}/{c.capacity} jobs{c.nepotism || c.player ? " · " + c.note : ""}</div></div>
           <button className="sp-btn" disabled={c.full} onClick={() => onAward(proj.id, c.id, meth)} style={{ minHeight: 42, padding: "8px 16px", fontSize: 15 }}>{c.full ? "Fully booked" : "Award contract"}</button>
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 8 }}>{bar("Reliable", c.reliability)}{bar("Quality", c.quality)}{bar("Speed", c.speed)}{bar("Integrity", c.integrity)}</div>
@@ -5904,7 +5972,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const p = (projects || []).find(x => x.id === id), C = SYS.contractorById(cid), M = SYS.PROCUREMENT[mth] || SYS.PROCUREMENT.open; if (!p || !C) return;
     const est = Math.round(p.estimateM * M.price);
     setProjects(prev => prev.map(x => x.id === id ? { ...x, contractorId: cid, contractor: C.name, method: M.nm, estimateM: est, baseCost: est / 1000, status: "in_progress", startTurn: turn, decisions: [...(x.decisions || []), { year: turn, text: "Awarded to " + C.name + " by " + M.nm.toLowerCase() + (est !== p.estimateM ? " (" + SYS.fmtM(est) + ")" : "") + "." }] } : x));
-    setS(q => ({ ...q, cor: cl(q.cor + M.cor + (C.nepotism ? .04 : 0)) }));
+    // Your own company: a kickback into your political war chest, corruption
+    // that climbs with every deal, and the EFCC opening a file from the second.
+    const selfDeal = C.player && C.mine, nSelf = (stc.selfDeals || 0) + (selfDeal ? 1 : 0);
+    const selfCor = selfDeal ? .03 + .02 * (nSelf - 1) : 0, kickB = selfDeal ? Math.round(est * .15) / 1000 : 0;
+    setS(q => ({ ...q, cor: cl(q.cor + M.cor + (C.nepotism ? .04 : 0) + selfCor), ...(selfDeal && nSelf >= 2 ? { app: cl100(q.app - (nSelf >= 3 ? 6 : 3)), pStab: cl100(q.pStab - (nSelf >= 3 ? 5 : 0)) } : {}) }));
+    if (selfDeal) {
+      setStc(q => ({ ...q, selfDeals: nSelf })); setPersonalFund(f => Math.round((f + kickB) * 1000) / 1000);
+      if (nSelf >= 2) setFgRelation(v => Math.max(0, v - (nSelf >= 3 ? 8 : 4)));
+      try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "nepotism_flag", actor: "governor", target: C.name, gravity: Math.min(5, 2 + nSelf), evidence: 4, corruptionDelta: Math.round(selfCor * 100), note: p.title + " to the governor's own company", meta: { project: p.title } }); } catch (e) {}
+      const efcc = nSelf >= 3 ? { t: "EFCC operatives visit " + C.name + "'s offices", d: "They leave with the company's books and its contracts with the state. Every paper in the country runs it." } : nSelf === 2 ? { t: "The EFCC opens a file", d: "A petition lists two state contracts given to a company the governor owns. Investigators have written for the records." } : null;
+      setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ icon: efcc ? "🚨" : "💼", title: efcc ? efcc.t : "Your company won the contract", text: (efcc ? efcc.d + " " : "") + "The kickback went into your personal campaign fund.", rows: [{ l: "Campaign fund", v: "+" + SYS.fmtM(Math.round(kickB * 1000)), good: true }, { l: "Corruption", v: "+" + Math.round(selfCor * 100) + "%", good: false }].concat(nSelf >= 2 ? [{ l: "Approval", v: nSelf >= 3 ? "−6" : "−3", good: false }, { l: "Federal relations", v: nSelf >= 3 ? "−8" : "−4", good: false }] : []).concat(nSelf >= 3 ? [{ l: "Party stability", v: "−5", good: false }] : []), tone: efcc ? "bad" : "neutral", ok: "Understood" }); } catch (e) {} }, 400);
+    }
+    if (C.player && !C.mine) { try { window.SOP_companyHire && window.SOP_companyHire(C.id); } catch (e) {} track("player_company_hired", C.sectors[0]); }
+    if (selfDeal) { addL("💼 You gave " + p.title + " to your own company, " + C.name + ": " + SYS.fmtM(Math.round(kickB * 1000)) + " into your campaign fund, corruption +" + Math.round(selfCor * 100) + "%." + (nSelf >= 3 ? " The EFCC has the company's books." : nSelf === 2 ? " The EFCC has opened a file." : ""), "scandal"); scWiki("Controversies", "Awarded " + p.title + " to " + C.name + ", a company the governor owns."); track("player_company_hired", "own"); }
     if (C.nepotism) { setNepotismCount(n => (n || 0) + 1); scWiki("Controversies", "Awarded " + p.title + " to " + C.name + " (" + C.note.toLowerCase().replace(/\.$/, "") + ")."); }
     else scWiki("Governorship", "Awarded " + p.title + " to " + C.name + " by " + M.nm.toLowerCase() + ".");
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: C.nepotism ? "nepotism_flag" : "contract_awarded", actor: "governor", target: C.name, gravity: C.nepotism ? 4 : mth === "sole" ? 3 : 1, evidence: 3, corruptionDelta: Math.round((M.cor + (C.nepotism ? .04 : 0)) * 100), note: p.title + " via " + M.nm, meta: { project: p.title } }); } catch (e) {}
@@ -12482,6 +12563,7 @@ function App() {
     try { const b = await get(); setBoard({ tab, ...(b || { top: [], players: 0, offline: !b }) }); } catch (e) { setBoard({ tab, top: [], players: 0, error: true }); }
   };
   useEffect(() => { loadProfile().then(p => { if (p) { window.SOP_FRAME = p.frame || null; setProfile(p); } }); }, [scr]);
+  useEffect(() => { loadCompanies(); }, [scr]); // player companies join every contractor list
 
   const loadGame = async () => {
     try {

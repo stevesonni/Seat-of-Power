@@ -52,6 +52,7 @@ Each product sells more play, never a better result, so titles, honours and the 
 | productId | Kind | Price | Name to show | What the player gets |
 |---|---|---|---|---|
 | `streak_freeze` | consumable | ₦100 | Streak Freeze | Saves the daily streak on a day the player misses; used automatically. |
+| `company_registration` | consumable | ₦1,500 | Register your company | Registers the player's own contractor; every player sees it. One credit per registration (a rename after we hide a name is free). |
 | `challenge_retry` | consumable | ₦100 | Extra Challenge Attempt | One more run at this week's challenge (the first each week is free). The best score of the week counts. |
 | `second_chance` | consumable | ₦500 | Second Chance | Rerun a lost re-election, once per game. The career is marked in the Hall, earns no second-term points or "Second term" honour, and it can't be used in a challenge run. |
 | `scenario_pack` | one-off | ₦1,000 | Crisis Scenarios | Four starts: The Oil Crash, The Cholera Year, The Flood Year, The Broke State. |
@@ -91,3 +92,28 @@ Each product sells more play, never a better result, so titles, honours and the 
 - No sound while Vatar pauses the game.
 - The final career score (grade × 10, + 50 per honour, + 200 for a second term) goes to the leaderboard.
 - Parties are fictional (NRA, YDM, UCP, PFP, WPN). Old saves are converted on load.
+
+## Player companies
+A player registers a company with a name and one sector, using one `company_registration` credit (₦1,500). Menu → Your company.
+
+**What other players see**
+- The company bids for that sector's projects, marked "★ Player-owned".
+- It has top stats: reliable 92, quality 92, speed 88, integrity 90.
+- It costs 5% more than average.
+- Each sector lists the three most-hired player companies.
+
+**What the owner gets**
+- Each governor who hires the company earns the owner ₦20M, counted once per hiring player per company per day.
+- The fees are paid into the owner's next campaign war chest, up to ₦1B at a time.
+
+**Self-dealing.** In the owner's own game, the company is "Your company". Giving it a contract:
+- pays 15% of the contract into the personal campaign fund that pays for re-election;
+- raises corruption by 3% for the first deal and 2% more for each one after (3%, 5%, 7%…);
+- from the second deal, opens an EFCC file: approval −3 and federal relations −4;
+- from the third, brings an EFCC raid on the company: approval −6, federal relations −8 and party stability −5.
+
+**Names**
+- `server/company-name.mjs` checks every name. It refuses real firms, banks, brands and politicians, rude words and junk, and adds "Ltd" when a name has no company ending.
+- The **Player companies** list on the feedback page has a Hide link for each name. A hidden company stops bidding everywhere, and its owner can rename it for free.
+
+**Storage:** `DATA_DIR/companies.json`. The owner's id stays on the server, and the game only ever receives names, sectors and hire counts.
