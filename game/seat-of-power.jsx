@@ -12371,6 +12371,19 @@ const AsoRock = ({ setup, stats, onExit }) => {
 };
 
 // ─── SENATE RACE ───
+// A career screen's picture: the painting whole, at its own 16:9 shape (never
+// cropped to a strip), with the person in a round portrait on its corner
+// rather than pasted into the scene at the wrong size.
+const CareerHero = ({ bg, scene, who }) => {
+  const tall = TALL(), src = "./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp", d = tall ? 76 : 104;
+  return <div style={{ position: "relative", maxWidth: 680, margin: "10px auto " + (who ? (tall ? 30 : 40) : 14) + "px" }}>
+    <img src={src} alt="" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 20, boxShadow: "0 10px 24px rgba(0,0,0,.14)" }} />
+    {who && <div style={{ position: "absolute", left: tall ? 12 : 18, bottom: -(tall ? 22 : 30), width: d, height: d, borderRadius: "50%", overflow: "hidden", border: "4px solid #fff", background: "radial-gradient(circle at 50% 35%, #f6efe0, #d9cbb0)", boxShadow: "0 8px 18px rgba(0,0,0,.25)" }}>
+      <img src={"./art/characters/" + who + ".webp"} alt="" style={{ position: "absolute", left: "50%", top: Math.round(d * .04), height: d * 4.2, width: "auto", maxWidth: "none", transform: "translateX(-50%)" }} />
+    </div>}
+  </div>;
+};
+
 // ── THE SENATOR CAREER ──
 // A senator runs nothing and spends little: their power is a vote. Rules in
 // game/systems/senate.js. Two ways in: a governor's "Run for Senate" (the
@@ -12521,7 +12534,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   const G = g;
   const Frame = ({ bg, scene, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
     <Flag />
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <SceneArt bg={bg} scene={scene} who={w} h={tall ? 170 : 230} />}{children}</div>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <CareerHero bg={bg} scene={scene} who={w} />}{children}</div>
   </div>;
   const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
     {kick && <div style={{ fontSize: fz.s, letterSpacing: 3, color: CL.gold, fontFamily: F.m, textTransform: "uppercase" }}>{kick}</div>}
@@ -12783,7 +12796,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const G = g;
   const Frame = ({ bg, scene, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
     <Flag />
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <SceneArt bg={bg} scene={scene} who={w} h={tall ? 170 : 230} />}{children}</div>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <CareerHero bg={bg} scene={scene} who={w} />}{children}</div>
   </div>;
   const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
     {kick && <div style={{ fontSize: fz.s, letterSpacing: 3, color: CL.gold, fontFamily: F.m, textTransform: "uppercase" }}>{kick}</div>}
