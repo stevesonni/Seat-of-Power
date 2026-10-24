@@ -4498,7 +4498,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
           <b style={{ display: "block", fontSize: fz.m }}>{o.label}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{o.note}</span>
         </button>)}
       </div>
-      <div style={{ textAlign: "right" }}><Bt v="ghost" onClick={() => onOpen({ view: "dir" })}>Not now</Bt></div>
+      <div style={{ textAlign: "right" }}><Bt v="ghost" onClick={() => onOpen({ view: "dir" })}>See them later</Bt></div>
     </Cd>;
   }
 
