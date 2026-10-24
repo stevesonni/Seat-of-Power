@@ -5520,6 +5520,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         options: list.map(o => ({ label: o.label, note: o.note, chips: fxChips(o.fx).concat([{ text: "Loyalty " + Math.round(o.who.loyal * 100) + "%", color: CL.pur }, { text: "Electability " + o.who.elect, color: CL.blu }]), run: () => pickS(o) })) });
     }
 
+    // The nephew's ministry wastes money every year: from the bank first, then debt.
+    (ministries || []).filter(m => m.sinkhole).forEach(m => {
+      const w = nephewWasteB(m, turn), what = NEPHEW_WASTE[hashStr(m.id + turn) % NEPHEW_WASTE.length];
+      scFx({ debt: w, app: -1 });
+      notes.push(["💸 Hon. " + m.minister + " (" + m.name + ") wasted " + naira(w) + " on " + what + ". It came out of the treasury" + ((s.cash || 0) < w ? " and onto the debt." : "."), "scandal"]);
+    });
+
     // Traditional rulers: one matter a year from the council, and the year's drift.
     if (turn >= 2 && council && !council.dissolved && (council.rulers || []).length) {
       const ru = SYS.rulerPick(council, turn);
@@ -6103,7 +6110,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const loyalist = fairZ !== homeZone && await window.SOP_confirm("Who replaces Hon. " + m.minister + "?\n\nA loyalist from your home zone (" + zoneName(homeZone) + "): loyal to you, but " + zoneName(fairZ) + " may cry marginalisation.\n\nOr someone from " + zoneName(fairZ) + ": " + (shortZ != null ? "restores the zonal balance." : "keeps the zones balanced."), "Appoint the loyalist", "Keep the balance");
     const replacement = gN(r, sd.zone, setup?.state);
     const nt = traits(replacement);
-    setMinistries(ms => ms.map(x => x.id === id ? { ...x, minister: replacement, perf: Math.min(45, nt.comp), cor: Math.max(10, Math.round(100 - nt.hon) - 10), loyalty: loyalist ? 80 : 55, zone: loyalist ? homeZone : fairZ, hired: turn, record: [], flag: null, godfatherMandate: null } : x));
+    if (m.sinkhole) { setGodfatherRel(r2 => Math.max(0, r2 - 20)); setS(p => ({ ...p, pStab: cl100(p.pStab - 5) })); addL("🎩 You sacked " + cast.godfather.name + "'s nephew. He calls it a declaration of war (party −5).", "political"); }
+    setMinistries(ms => ms.map(x => x.id === id ? { ...x, minister: replacement, perf: Math.min(45, nt.comp), cor: Math.max(10, Math.round(100 - nt.hon) - 10), loyalty: loyalist ? 80 : 55, zone: loyalist ? homeZone : fairZ, hired: turn, record: [], flag: null, godfatherMandate: null, sinkhole: false } : x));
     const firedZone = oldZ; // the sacked commissioner's own zone
     if (c.justified && m.flag && m.flag.kind === "graft") setS(p => ({ ...p, app: cl100(p.app + 3), cor: cl(p.cor - .03) }));
     else if (c.justified && m.flag && m.flag.kind === "disloyal") setS(p => ({ ...p, pStab: cl100(p.pStab + 2), zoneMood: { ...(p.zoneMood || {}), [firedZone]: ((p.zoneMood || {})[firedZone] || 0) - 2 } }));
@@ -7352,6 +7360,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, gfRoadPull: { turn: turn + 1, nm: inv ? inv.co : "Jade River Infrastructure Co.", igr: inv ? Math.round(inv.igrBoost * .6 * 10) / 10 : .4, jobs: inv ? Math.round(inv.jobs * .6) : 0 } }));
     return fx;
   };
+  // The godfather's nephew: a ministry made for him, which wastes money every year.
+  const [gfNephew, setGfNephew] = useState(null); // { gf, nm } while choosing his ministry
+  const nephewWasteB = (m, t) => (hashStr(m.id + ":" + t) % 2 ? 1 : .5);
+  const NEPHEW_WASTE = ["a fleet of SUVs for a ministry with no programme", "\"consultancy\" fees to companies registered last month", "a launch party, a jingle and billboards with his face", "foreign trips for a staff of forty", "an office complex that is still a hole in the ground"];
+  const createNephewMinistry = (cat) => decide(() => {
+    const N = gfNephew; if (!N) return null;
+    spendB(cat.cost, "The Ministry of " + cat.name + " (for the godfather's nephew)", { force: true });
+    const m = { id: cat.id, name: cat.name, icon: cat.icon, key: cat.key, unlock: cat.unlock, budget: 0, staff: cat.staff, perf: 25, cor: 65, minister: N.nm, permSec: gN(rng(turn * 31 + 7), sd.zone, setup?.state), loyalty: 30, zone: homeZone, hired: turn, record: [], sinkhole: true, godfatherMandate: true };
+    setMinistries(ms => [...(ms || []), m]);
+    setGfNephew(null);
+    addL("🎩 Created the Ministry of " + cat.name + " for Hon. " + N.nm + ", " + N.gf + "'s nephew.", "scandal");
+    try { setWikiEvents(w => [{ turn, section: "Controversies", txt: "Created the Ministry of " + cat.name + " to give the godfather's nephew, Hon. " + N.nm + ", a cabinet seat." }, ...(w || [])]); } catch (e) {}
+    setTimeout(() => nextEvent(), 50);
+    return { icon: cat.icon, title: "Hon. " + N.nm + " is a commissioner", text: "The Ministry of " + cat.name + " exists because his uncle asked. Expect it to cost you every year.", tone: "bad", rows: [{ l: "Set-up", v: naira(cat.cost), good: false }] };
+  });
   const recordGfDemand = (dem, accepted, gfName) => {
     const L = window.SOP_LEDGER, M = window.SOP_MEMORY;
     if (!L || !dem) return;
@@ -8014,8 +8037,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const stall = (projects || []).filter(p => p.status === "stalled").slice(0, 2).map(p => "stall:" + p.id);
     const letters = [...q, ...stall].map(k => letterOf(k, { live: k.startsWith("stall:") }));
     // The year's cabinet report: what each ministry actually did, by name.
-    const lgx = getLGAs(state), rep = (ministries || []).filter(m => m.key || ["health", "educ", "agric", "works", "sec"].includes(m.id)).slice(0, 7)
-      .map(m => SYS.ministryYear(m, lgx.length ? lgx[hashStr(m.id + turn) % lgx.length] : stName, SYS.seeded("cabinet", m.id, turn)));
+    const lgx = getLGAs(state), rep = (ministries || []).filter(m => m.sinkhole || m.key || ["health", "educ", "agric", "works", "sec"].includes(m.id)).sort((a, b) => !!b.sinkhole - !!a.sinkhole).slice(0, 7)
+      .map(m => m.sinkhole ? { ok: false, strong: false, line: "Hon. " + m.minister + " (" + m.name + ") wasted " + naira(nephewWasteB(m, turn)) + " on " + NEPHEW_WASTE[hashStr(m.id + turn) % NEPHEW_WASTE.length] + ". Nothing was delivered; the state's debt grows." } : SYS.ministryYear(m, lgx.length ? lgx[hashStr(m.id + turn) % lgx.length] : stName, SYS.seeded("cabinet", m.id, turn)));
     if (rep.length) letters.push(letterOf("cabinet_report", { live: true, kind: "briefing", stakes: 1, lines: rep, tip: ["The Secretary to the State Government", "./art/characters/permanent-secretary.webp", "Cabinet report for " + absYear, "What each ministry did this year."] }));
     if (!letters.length) { setMail(m => m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:"))); mailOn.current = false; advance(); return; }
     mailOn.current = true;
@@ -9501,6 +9524,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setGodfatherRel(r2 => Math.min(100, r2 + 15));
                 recordGfDemand(godfatherDemand, true, gf.nm);
                 const roadFx = godfatherDemand.id === "gf_contract" ? gfRoadGrab(gf.nm) : [];
+                const nephew = godfatherDemand.id === "gf_appointment";
                 addL("🎩 " + gf.nm + ": " + godfatherDemand.acceptLog + " He's satisfied — for now.", "political");
                 showResult({ icon: "🎩", title: gf.nm + " — Appeased", narrative: gf.nm.split(" ").pop() + " nods slowly. \"Good. You understand how this works.\" He leaves Government House with what he came for. Your party is stable. But your integrity — and your EFCC file — just got heavier.", effects: [
                   godfatherDemand.acceptFx.corM ? { icon: "💀", text: "Corruption rises", value: "+" + Math.round(godfatherDemand.acceptFx.corM * 100) + "%", bad: true } : null,
@@ -9508,7 +9532,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   godfatherDemand.acceptFx.app ? { icon: "📉", text: "Approval", value: godfatherDemand.acceptFx.app + "%", bad: true } : null,
                   { icon: "🤝", text: "Godfather relationship", value: "+15", good: true },
                   ...roadFx,
-                ].filter(Boolean), tone: roadFx.length ? "bad" : "neutral", nextFn: () => { setGodfatherDemand(null); nextEvent(); } });
+                  nephew ? { icon: "🏛️", text: "You must now create a ministry for his nephew", bad: true } : null,
+                ].filter(Boolean), tone: roadFx.length ? "bad" : "neutral", nextFn: () => { setGodfatherDemand(null); if (nephew) setGfNephew({ gf: gf.nm, nm: String(gN(rng(turn * 977 + 3), sd.zone, state)).split(" ")[0] + " " + gf.nm.split(" ").pop() }); else nextEvent(); } });
               }} style={{ padding: 43, borderColor: CL.org + "33" }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.org, marginBottom: 10 }}>🤝 Give {gf.nm.split(" ").pop()} What He Wants</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -11004,6 +11029,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {/* Capital project intake — Step 1 of the shared lifecycle.
             After confirmation this hands off to the sop-realism procurement modal
             (contractor selection from the real bidder pool). */}
+        <OL show={!!gfNephew}>
+          {gfNephew && (() => { const avail = MINISTRY_CATALOGUE.filter(c => !(ministries || []).some(m => m.id === c.id)); return <Cd style={{ padding: TALL() ? "18px 16px" : "28px 32px" }}>
+            <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 12 }}>
+              <img src="./art/characters/godfather.webp" alt="" style={{ width: TALL() ? 64 : 84, height: TALL() ? 80 : 104, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: "#13161c" }} />
+              <div><div style={{ fontSize: TALL() ? TS(15) : TS(22), fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: CL.org }}>The godfather's nephew</div>
+                <b style={{ display: "block", fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt, lineHeight: 1.15 }}>Which ministry for Hon. {gfNephew.nm}?</b>
+                <div style={{ fontSize: TALL() ? TS(17) : TS(26), color: CL.td }}>Whatever you pick, it will waste ₦0.5–1B a year until you remove him.</div></div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: 8 }}>
+              {avail.map(c => <button key={c.id} className="ds-option" onClick={() => createNephewMinistry(c)} style={{ minHeight: 0, padding: TALL() ? "12px 14px" : "14px 18px" }}>
+                <span className="ds-option-label" style={{ fontSize: TALL() ? TS(20) : TS(28) }}>{c.icon} {c.name}</span>
+                <span className="ds-option-note" style={{ display: "block" }}>Set-up {naira(c.cost)}</span>
+              </button>)}
+            </div>
+          </Cd>; })()}
+        </OL>
+
         <OL show={!!newMin}>
           {newMin && (() => {
             const fz = TALL() ? { s: TS(18), m: TS(21), l: TS(28) } : { s: TS(26), m: TS(32), l: TS(46) };
