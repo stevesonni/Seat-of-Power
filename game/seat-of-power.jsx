@@ -5748,6 +5748,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [cases, setCases] = useState(() => ld?.cases || []);
   const [commits, setCommits] = useState(() => ld?.commits || (setup?.partyPromise ? [{ id: "cm_party_promise", who: pName, ministryId: "party", action: setup.partyPromise, resourcesM: 0, reviewYear: 5, personal: true, byGovernor: true, status: "open", madeYear: 0, notes: ["Made at the convention, the price of choosing your own running mate."] }] : []));
   const [audDone, setAudDone] = useState(() => ld?.audDone || {});
+  // The Head of the Civil Service (SYS.hos): appointed on the Special Adviser's recommendation;
+  // commissioners' requests go to them, and come back as one brief the governor can reverse.
+  const [hosOpen, setHosOpen] = useState(null); // null | "appoint" | "brief"
+  const [hosPick, setHosPick] = useState({});   // audience id → the option the governor chose instead
+  const hosCands = React.useMemo(() => {
+    const nameFor = (female, k) => { for (let i = 0; i < 80; i++) { const n = gN(rng(hashStr(state + ":" + pName + ":hos" + k) + i * 97), sd?.zone, state); if (FEMALE_FIRST.includes(n.split(" ")[0]) === female) return n; } return gN(rng(k + 5), sd?.zone, state); };
+    return SYS.hosCandidates(state + ":" + pName).map((c, i) => ({ ...c, name: nameFor(c.female, i) }));
+  }, [state, pName]);
   const [secr, setSecr] = useState(null); // null | { view: "dir" } | { caseId } | { audience }, plus { from: the tab to return to }
   const openSecr = (f) => setSecr(s0 => ({ ...(f || { view: "dir" }), from: (f && f.from) || (s0 && s0.from) || null }));
   const closeSecr = () => { const back = secr && secr.from; setSecr(null); if (back) setNav(back); };
@@ -5874,6 +5882,24 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     track("letters", "audience handed to the Chief of Staff"); bumpCos();
     addL("🗝️ " + c.name + " saw the commissioner (" + (minById(a.ministryId) || {}).name + "): " + o.label.toLowerCase() + ".", "political");
     answerAudience(a, o, c);
+  };
+
+  const appointHos = (c) => {
+    setStc(p => ({ ...p, hos: { name: c.name, img: c.img, style: c.style, female: c.female, at: turn } })); setHosOpen(null);
+    track("hos", c.style); addL("🏛️ Appointed " + c.name + " Head of the Civil Service. Commissioners' requests now go through " + (c.female ? "her" : "him") + ".", "policy");
+    scWiki("Governorship", "Appointed " + c.name + " as Head of the Civil Service.");
+    try { window.SOP_outcome({ icon: "🏛️", img: "./art/characters/" + c.img + ".webp", title: c.name + " is Head of Service", text: "Commissioners will take their requests to " + (c.female ? "her" : "him") + ". Once a year you get one brief with every decision, and you can reverse any of them.", tone: "good",
+      learn: "Each state's Head of Service is the most senior civil servant, appointed by the governor from among the permanent secretaries. The Head of Service runs the civil service, while commissioners are political appointees." }); } catch (e) {}
+  };
+  // The brief: the Head of Service's decision on every request, with the governor's reversals.
+  const hosRows = () => (stc.hos ? audiences.map(a => { const m = minById(a.ministryId); if (!m) return null; const hosO = SYS.hosDecide(stc.hos, a, s.cash || 0); const pick = a.options.find(o => o.id === hosPick[a.id]) || hosO; return { a, m, hosO, pick, line: SYS.hosLine(m, a, hosO) }; }).filter(Boolean) : []);
+  const signHosBrief = () => {
+    const rows = hosRows(); if (!rows.length) { setHosOpen(null); return; }
+    const done = [], rev = rows.filter(r => r.pick.id !== r.hosO.id);
+    rows.forEach(r => { const out = audienceResult(r.a, r.pick, r.m); setAudDone(d => ({ ...d, [r.a.id]: turn })); done.push({ l: r.m.name, v: r.pick.label + (r.pick.id !== r.hosO.id ? " (your call)" : ""), good: !!out }); });
+    setHosOpen(null); setHosPick({}); track("hos_brief", rev.length ? "reversed " + rev.length : "signed as is");
+    addL("🏛️ Signed off the Head of Service's brief on " + rows.length + " request" + (rows.length === 1 ? "" : "s") + (rev.length ? "; you reversed " + rev.length + ": " + rev.map(r => r.m.name).join(", ") + "." : ", as decided."), "policy");
+    try { window.SOP_outcome({ icon: "🏛️", img: "./art/characters/" + stc.hos.img + ".webp", title: "The brief is signed", text: rev.length ? "You reversed " + rev.length + " of " + stc.hos.name + "'s decisions. The rest stand." : "Every decision stands as " + stc.hos.name + " made it.", rows: done, tone: "neutral" }); } catch (e) {}
   };
 
   // ── PROJECTS (SYS.projects / loans / proposals) ──
@@ -8077,7 +8103,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       wedding: () => ["Protocol, Government House", "./art/characters/permanent-secretary.webp", "A society wedding in Lagos", "Everyone who matters will be there."],
     }[k];
     const sm = l.secr ? (ministries || []).find(m => m.id === l.ministryId) : null;
-    const v = V ? V() : l.secr ? [sm ? (sm.acting ? "" : "Hon. ") + sm.minister + ", " + sm.name : "The State Secretariat", sm ? commissionerArt(sm.minister, sm.perf) : "./art/characters/permanent-secretary.webp", (sm ? sm.name + ": " : "") + l.title0, String(l.line0 || "").replace(/^./, c => c.toUpperCase())] : l.tip ? l.tip : sc ? [sc.from || sa, sc.img ? sc.img : saPortrait(sa), sc.title || "A matter of state", (sc.text || sc.desc || "").split(". ")[0]]
+    const v = V ? V() : l.secr && l.secr.hosBrief && stc.hos ? [stc.hos.name + ", Head of Service", "./art/characters/" + stc.hos.img + ".webp", l.title0, l.line0]
+      : l.secr && l.secr.hosAppoint ? [cast.adviser.name + " · Special Adviser", saPortrait(cast.adviser.name), l.title0, l.line0]
+      : l.secr ? [sm ? (sm.acting ? "" : "Hon. ") + sm.minister + ", " + sm.name : "The State Secretariat", sm ? commissionerArt(sm.minister, sm.perf) : "./art/characters/permanent-secretary.webp", (sm ? sm.name + ": " : "") + l.title0, String(l.line0 || "").replace(/^./, c => c.toUpperCase())] : l.tip ? l.tip : sc ? [sc.from || sa, sc.img ? sc.img : saPortrait(sa), sc.title || "A matter of state", (sc.text || sc.desc || "").split(". ")[0]]
       : dc ? [dc.source || sa, saPortrait(sa), dc.title || "A briefing", dc.topic ? "On " + dc.topic + "." : ""]
       : pj ? ["The site engineer, " + pj.title, "./art/characters/contractor.webp", pj.title + " has stalled", SYS.fmtM(SYS.remainingM(pj)) + " of work is left and the contractor has left the site."]
       : null;
@@ -8122,6 +8150,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const takeLetter = (l) => setMail(m => m.filter(x => x.id !== l.id));
   const isNote = (l) => !!(l.tip && !l.cat);
   const handleLetter = (l) => {
+    if (l.secr && (l.secr.hosAppoint || l.secr.hosBrief)) { setLetterOpen(null); setMailOpen(false); setHosOpen(l.secr.hosAppoint ? "appoint" : "brief"); return; }
     if (!isNote(l) && !l.cat && !l.secr) track("letters", "handled personally");
     if (l.secr) { setLetterOpen(null); setMailOpen(false); openSecr({ ...l.secr, from: nav }); return; }
     takeLetter(l); setLetterOpen(null); setMailOpen(false);
@@ -8384,7 +8413,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </button>;
               return open.secr ? <div style={{ display: "flex", gap: tall ? 8 : 14 }}>
                   {open.secr.audience && pill(<img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />, <>{"Let " + first + " see them"} <Ico n="icon-delegate" s={tall ? 18 : 24} /></>, () => delegateAudience(open), "sd")}
-                  {pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, open.secr.audience ? "See them now" : "Open the file", () => handleLetter(open), "s", true)}</div>
+                  {pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, open.secr.audience ? "See them now" : open.secr.hosAppoint ? "Choose a Head of Service" : open.secr.hosBrief ? "Read the brief" : "Open the file", () => handleLetter(open), "s", true)}</div>
                 : open.cat ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-state" s={tall ? 30 : 38} />, "🏛️ Create the ministry", () => handleLetter(open), "c", true)}</div>
                 : isNote(open) ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-ok" s={tall ? 30 : 38} />, "Noted", () => handleLetter(open), "n", true)}</div>
                 : <div style={{ display: "flex", gap: tall ? 8 : 14 }}>
@@ -8454,7 +8483,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the
   // tray when it is settled.
   const secrItems = needSetup ? [] : [
-    ...audiences.map(a => ({ key: "secr:aud:" + a.id, secr: { audience: a.id }, ministryId: a.ministryId, title: "A request to see you", line: a.reason })),
+    ...(stc.hos ? (audiences.length ? [{ key: "secr:hosbrief:" + turn, secr: { hosBrief: true }, title: "This year's requests from commissioners", line: audiences.length + (audiences.length === 1 ? " request, decided. Reverse it before you sign" : " requests, decided. Reverse any before you sign") }] : [])
+      : audiences.map(a => ({ key: "secr:aud:" + a.id, secr: { audience: a.id }, ministryId: a.ministryId, title: "A request to see you", line: a.reason }))),
+    ...(!stc.hos && (ministries || []).some(m => m.minister) ? [{ key: "secr:hosappoint", secr: { hosAppoint: true }, title: "Appoint a Head of Service", line: "The commissioners' requests will go to them. " + cast.adviser.name.split(" ").slice(-2).join(" ") + " has a recommendation" }] : []),
     ...cases.filter(c => c.stage !== "closed" && c.stage !== "decided").map(c => ({ key: "secr:case:" + c.id, secr: { caseId: c.id }, ministryId: c.ministryId, title: "A file on " + c.ministryName, line: c.what + " · " + SYS.STAGE_NAME[c.stage] })),
   ];
   const secrSig = secrItems.map(x => x.key + "|" + x.line).join(";");
@@ -9027,6 +9058,46 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
           <div style={{ display: "flex", gap: 7, flexWrap: TALL() ? "nowrap" : "wrap", overflowX: TALL() ? "auto" : "visible", marginTop: 12, paddingBottom: 2 }}>
             {curScreen.subs.length > 1 && curScreen.subs.map(t => <button key={t.k} onClick={() => setNav(t.k)} style={subBtn(nav === t.k, CL.grn)}>{t.l}</button>)}
+          </div>
+        </div>}
+        {hosOpen && <div role="dialog" aria-modal="true" style={{ position: "fixed", inset: 0, zIndex: 80, background: "rgba(6,14,10,.6)", overflowY: "auto", padding: TALL() ? "16px 12px 110px" : "40px 20px" }}>
+          <div style={{ maxWidth: 760, margin: "0 auto", background: CL.bg, borderRadius: 24, padding: TALL() ? "18px 16px" : "26px 28px", boxShadow: "0 24px 60px rgba(0,0,0,.35)" }}>
+            {hosOpen === "appoint" ? (() => { const rec = SYS.hosRecommend(hosCands, { cor: s.cor, cash: s.cash, perf: (ministries || []).reduce((a, m) => a + (m.perf || 50), 0) / Math.max(1, (ministries || []).length) }); const rc = hosCands.find(c => c.id === rec.id); return <>
+              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 6px", fontSize: TALL() ? TS(30) : TS(46) }}>Appoint a Head of Service</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff8e6", border: "1px solid #e9cf8a", borderRadius: 16, padding: "10px 12px", margin: "8px 0 14px" }}>
+                <img src={saPortrait(cast.adviser.name)} alt="" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
+                <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: "#4b3d2a", lineHeight: 1.4 }}><b>{cast.adviser.name.split(" ").slice(-2).join(" ")}:</b> “I recommend {rc.name}: {rec.why}.”</div>
+              </div>
+              <div style={{ display: "grid", gap: 10 }}>{hosCands.map(c => <div key={c.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", background: "#fff", border: "2px solid " + (c.id === rec.id ? CL.grn : CL.bdr), borderRadius: 18, padding: "12px 14px" }}>
+                <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: TALL() ? 64 : 84, height: TALL() ? 64 : 84, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+                <div style={{ minWidth: 0 }}>
+                  {c.id === rec.id && <div style={{ fontSize: TALL() ? TS(15) : TS(20), fontWeight: 800, color: CL.grn }}>★ Your adviser's choice</div>}
+                  <b style={{ display: "block", fontSize: TALL() ? TS(22) : TS(32), color: CL.txt }}>{c.name}</b>
+                  <div style={{ fontSize: TALL() ? TS(17) : TS(24), color: CL.tm, lineHeight: 1.35 }}><b>{SYS.HOS_STYLES[c.style].nm}.</b> {SYS.HOS_STYLES[c.style].d}</div>
+                  <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td, margin: "2px 0 8px" }}>{c.record}</div>
+                  <Bt onClick={() => appointHos(c)} v={c.id === rec.id ? undefined : "secondary"}>Appoint {c.name.split(" ")[0]}</Bt>
+                </div>
+              </div>)}</div>
+              <div style={{ textAlign: "center", marginTop: 12 }}><Bt v="ghost" onClick={() => setHosOpen(null)}>Later</Bt></div>
+            </>; })() : (() => { const rows = hosRows(), H = stc.hos || {}; return <>
+              <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", marginBottom: 12 }}>
+                <img src={"./art/characters/" + H.img + ".webp"} alt="" style={{ width: TALL() ? 64 : 84, height: TALL() ? 64 : 84, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+                <div><div style={{ fontSize: TALL() ? TS(15) : TS(20), fontWeight: 800, color: CL.td, letterSpacing: 1, textTransform: "uppercase" }}>From the Head of Service</div>
+                  <b style={{ fontSize: TALL() ? TS(22) : TS(32), color: CL.txt }}>{H.name}</b></div>
+              </div>
+              <p style={{ fontSize: TALL() ? TS(19) : TS(27), color: CL.tm, lineHeight: 1.45, margin: "0 0 12px" }}>Your Excellency, {rows.length === 1 ? "one commissioner came" : rows.length + " commissioners came"} to me this year. Here is what I decided. Reverse anything you disagree with; nothing is final until you sign.</p>
+              <div style={{ display: "grid", gap: 10 }}>{rows.map(r => <div key={r.a.id} style={{ background: "#fff", border: "1.5px solid " + (r.pick.id !== r.hosO.id ? CL.org : CL.bdr), borderRadius: 16, padding: "12px 14px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center" }}>
+                  <img src={commissionerArt(r.m.minister, r.m.perf)} alt="" style={{ width: 44, height: 44, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+                  <div style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.txt, lineHeight: 1.4 }}>{r.line}</div>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>{r.a.options.map(o => { const on = r.pick.id === o.id, hosO = o.id === r.hosO.id; return <button key={o.id} aria-pressed={on} onClick={() => setHosPick(p => ({ ...p, [r.a.id]: o.id }))} style={{ borderRadius: 999, padding: "6px 12px", border: "1.5px solid " + (on ? (hosO ? CL.grn : CL.org) : CL.bdr), background: on ? (hosO ? CL.grn + "14" : CL.org + "14") : "#fff", color: CL.txt, fontFamily: F.b, fontWeight: on ? 800 : 600, fontSize: TALL() ? TS(16) : TS(22), cursor: "pointer" }}>{o.label}{hosO ? " · " + (H.female ? "her" : "his") + " call" : on ? " · reversed" : ""}</button>; })}</div>
+              </div>)}</div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap", marginTop: 14 }}>
+                <Bt v="ghost" onClick={() => setHosOpen(null)}>Later</Bt>
+                <Bt onClick={signHosBrief}>✍️ Sign it off{rows.some(r => r.pick.id !== r.hosO.id) ? " with your changes" : ""}</Bt>
+              </div>
+            </>; })()}
           </div>
         </div>}
         {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); else setMailOpen(true); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
