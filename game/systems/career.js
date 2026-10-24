@@ -17,15 +17,17 @@ export const ENDING_NAME = { complete: "Served two terms", stepped_down: "Steppe
 const GRADE_RANK = { A: 5, B: 4, C: 3, D: 2, F: 1 };
 
 // The best result in each state: { state: { grade, ending, times } }.
+// Records from other offices (office: "senator"…) sit in the same list; the map is governorships.
+export const governorships = (list) => (list || []).filter(c => !c.office || c.office === "governor");
 export const careerMap = (list) => {
   const m = {};
-  (list || []).forEach(c => { const o = m[c.state]; if (!o || (GRADE_RANK[c.grade] || 0) > (GRADE_RANK[o.grade] || 0)) m[c.state] = { grade: c.grade, ending: c.ending, times: (o ? o.times : 0) + 1 }; else o.times++; });
+  governorships(list).forEach(c => { const o = m[c.state]; if (!o || (GRADE_RANK[c.grade] || 0) > (GRADE_RANK[o.grade] || 0)) m[c.state] = { grade: c.grade, ending: c.ending, times: (o ? o.times : 0) + 1 }; else o.times++; });
   return m;
 };
 
 // Badges: { id, icon, name, how, got }.
 export const careerBadges = (list, zoneOf = () => null) => {
-  const L = list || [], states = new Set(L.map(c => c.state)), zones = new Set(L.map(c => zoneOf(c.state)).filter(Boolean));
+  const L = governorships(list), states = new Set(L.map(c => c.state)), zones = new Set(L.map(c => zoneOf(c.state)).filter(Boolean));
   const B = [
     ["first", "🏛️", "Sworn in", "Finish your first governorship", L.length >= 1],
     ["two", "🎖️", "Two-termer", "Serve two full terms", L.some(c => c.ending === "complete")],

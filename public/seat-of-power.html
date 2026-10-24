@@ -478,6 +478,8 @@
           });
           card.appendChild(g);
         }
+        // Edutainment: how it really works (the Constitution, the law, the record).
+        if (o.learn) { var ln = document.createElement('div'); ln.style.cssText = 'text-align:left;background:#eef4fb;color:#1d3a5c;border-radius:16px;padding:12px 16px;margin:0 0 16px;font:500 18px/1.45 "Plus Jakarta Sans",sans-serif'; var lb = document.createElement('b'); lb.textContent = '📘 How it really works · '; ln.appendChild(lb); ln.appendChild(document.createTextNode(String(o.learn).slice(0, 420))); card.appendChild(ln); }
         var b = document.createElement('button'); b.type = 'button'; b.textContent = o.ok || 'Okay';
         var bg = o.tone === 'bad' ? '#c0392b' : '#22a565';
         b.style.cssText = 'width:100%;min-height:58px;border:0;border-radius:999px;background:' + bg + ';color:#fff;font:800 24px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 8px 22px ' + bg + '55';

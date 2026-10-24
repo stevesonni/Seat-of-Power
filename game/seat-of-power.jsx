@@ -2387,7 +2387,7 @@ const CareerSheet = ({ onClose }) => {
   const tall = TALL(), cell = tall ? 40 : 58;
   return <EntranceSheet title="Your career" onClose={onClose}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
-      {[[Object.keys(m).length + " / 37", "states governed"], [L.length, L.length === 1 ? "governorship" : "governorships"], [playSec >= 60 ? playTimeText(playSec) : "–", "time played"]].map(([v, l]) => <div key={l} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 14, padding: "8px 10px", textAlign: "center" }}>
+      {[[Object.keys(m).length + " / 37", "states governed"], [SYS.governorships(L).length, SYS.governorships(L).length === 1 ? "governorship" : "governorships"], [playSec >= 60 ? playTimeText(playSec) : "–", "time played"]].map(([v, l]) => <div key={l} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 14, padding: "8px 10px", textAlign: "center" }}>
         <b style={{ display: "block", fontFamily: F.d, fontSize: DS.t.title || 22, color: UI.ink, lineHeight: 1.1 }}>{v}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{l}</span>
       </div>)}
     </div>
@@ -2411,7 +2411,7 @@ const CareerSheet = ({ onClose }) => {
   </EntranceSheet>;
 };
 
-const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScenario, onBoard, profile, setProfile }) => {
+const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChallenge, onScenario, onBoard, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
   const [hasSave, setHasSave] = useState(false);
@@ -2481,11 +2481,26 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
       {sheet === "streak" && <StreakSheet st={st} onClose={() => setSheet(null)} />}
       {sheet === "career" && <CareerSheet onClose={() => setSheet(null)} />}
       {sheet === "company" && <CompanySheet onClose={() => setSheet(null)} />}
+      {sheet === "careers" && <EntranceSheet title="Careers" onClose={() => setSheet(null)}>
+        <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5, marginBottom: 12 }}>Play your politician up the ladder, or jump into any office you have unlocked. Each one teaches how that office really works.</div>
+        <div style={{ display: "grid", gap: 10 }}>
+          {[["🏛️", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
+            ["⚖️", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. First year free, then ₦1,000.", "Play", () => { setSheet(null); onSenate && onSenate(); }],
+            ["🇳🇬", "Road to Aso Rock", "The presidential race. Earned: finish a governorship and run.", null, null],
+            ["🏘️", "LGA Chairman", "The man in between: the governor holds your money.", "Coming soon", null],
+            ["✈️", "Ambassador", "Far from home: Nigerians abroad and orders from Abuja.", "Coming soon", null]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
+            <span style={{ width: 52, height: 52, borderRadius: 14, background: UI.tints[2], display: "grid", placeItems: "center", fontSize: 28 }}>{ic}</span>
+            <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.35 }}>{d}</span></span>
+            {go ? <button onClick={go} style={{ minHeight: 44, padding: "8px 16px", borderRadius: 999, border: 0, background: UI.dark, color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: DS.t.meta, cursor: "pointer" }}>{cta}</button> : cta ? <span style={{ fontSize: DS.t.meta, color: UI.sub, fontWeight: 700 }}>{cta}</span> : <span />}
+          </div>)}
+        </div>
+      </EntranceSheet>}
       {sheet === "menu" && <EntranceSheet title="Menu" onClose={() => setSheet(null)}>
         <div style={{ display: "grid", gap: 10 }}>
           {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
+            ["icon-politician", "Careers", "Governor, Senator, and the road to Aso Rock", () => setSheet("careers")],
             ["icon-state", "Your career map", "States governed, badges and time played", () => setSheet("career")],
             ["seal-projects", "Your company", "Register a contractor every player sees · ₦1,500", () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
@@ -8562,7 +8577,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const rc = { gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(p => p.status === "kept").length, broken: (stc.promises || []).filter(p => p.status === "broken").length, promised: (stc.promises || []).length };
     const rcTitle = reportTitle(rc);
     // Everything the presidential run needs to know about this governorship.
-    const presRec = () => ({ name: pName, avatar: setup?.avatar, state, party, honours: stc.honours || [], fund: personalFund,
+    const presRec = () => ({ name: pName, avatar: setup?.avatar, state, party, district: setup?.homeDistrict != null ? setup.homeDistrict : null, honours: stc.honours || [], fund: personalFund,
       terms: turn > 4 ? 2 : 1, resigned: gEnd === "pres_bid", title: rcTitle, flagship: FLAGSHIP[setup?.agenda]?.nm || null, deputy: depGov?.nm || null, slogan: setup?.slogan || null,
       met: rc.met, failed: rc.failed, kept: rc.kept, broken: rc.broken, debt: Math.round((s.debt || 0) * 10) / 10, arrears: rc.arrearsMax, efcc: (s.cor || 0) > .45, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won") });
     const canP = ov > 52 && s.app > 42 && (gEnd === "complete" || gEnd === "stepped_down");
@@ -8731,7 +8746,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>What Next?</h3>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
-                <Bt v="secondary" onClick={() => onEnd("senate", s)}>🏛️ Senate</Bt>
+                <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Senate</Bt>
                 <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 President</Bt>
               </div>
               {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
@@ -8763,7 +8778,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 29 }}>You stepped down voluntarily. Your record speaks for itself.</p>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
-                <Bt v="secondary" onClick={() => onEnd("senate", s)}>🏛️ Run for Senate</Bt>
+                <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for Senate</Bt>
                 <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 Run for President</Bt>
               </div>
               {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
@@ -12355,68 +12370,329 @@ const AsoRock = ({ setup, stats, onExit }) => {
 };
 
 // ─── SENATE RACE ───
-const SenateRace = ({ setup, stats, onResult }) => {
-  const [result, setResult] = useState(null);
-  const st = stats || { app: 50, cor: .3, debt: 5, pStab: 50 };
+// ── THE SENATOR CAREER ──
+// A senator runs nothing and spends little: their power is a vote. Rules in
+// game/systems/senate.js. Two ways in: a governor's "Run for Senate" (the
+// story: the record comes along) or the Careers menu (free play: pick a
+// background). Inside Vatar the career is the career_senator product; the
+// first year is free. Every bill, hearing and event carries a short note on
+// how the Senate really works, kept in the Senate notebook.
+const SEN_KEY = "sop_senate", NOTEBOOK_KEY = "sop_notebook";
+const SEN_FX_NM = { home: "Support at home", clout: "Standing in Abuja", loyalty: "Party loyalty", cor: "Corruption", chest: "War chest" };
+const senFxRows = (fx) => Object.entries(fx || {}).filter(([k, v]) => v && SEN_FX_NM[k]).map(([k, v]) => ({ l: SEN_FX_NM[k], v: k === "cor" ? (v > 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%" : k === "chest" ? (v > 0 ? "+" : "−") + "₦" + Math.round(Math.abs(v) * 1000) + "M" : (v > 0 ? "+" : "−") + Math.abs(v), good: k === "cor" ? v < 0 : v > 0 }));
+const senNotes = () => { try { return JSON.parse(localStorage.getItem(NOTEBOOK_KEY) || "[]"); } catch (e) { return []; } };
+const senNote = (k) => { try { const n = senNotes(); if (!n.includes(k)) localStorage.setItem(NOTEBOOK_KEY, JSON.stringify([...n, k])); } catch (e) {} };
+const senLearnText = (k) => SYS.LEARN[k] || (SYS.BILLS.find(b => "bill:" + b.id === k) || {}).learn || "";
+const SEN_NOTE_KEYS = () => Object.keys(SYS.LEARN).concat(SYS.BILLS.map(b => "bill:" + b.id));
 
-  const runElection = () => {
-    // Senate is easier than presidency but not guaranteed
-    // Base: approval * 0.4 + party stability * 0.3 + anti-corruption bonus
-    const base = st.app * 0.4 + st.pStab * 0.3 + (1 - st.cor) * 20;
-    const debtPenalty = Math.max(0, (st.debt || 0) - ((st.igr || 0) + (st.faac || 0))) * 1.5;
-    const luck = (Math.random() - 0.5) * 15;
-    const score = base - debtPenalty + luck;
-    // Need 42 to win — achievable but not automatic
-    const won = score > 42;
-    setResult({ won, score: score.toFixed(1) });
+const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
+  const tall = TALL(), fz = tall ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(40) } : { s: TS(27), m: TS(33), l: TS(46), xl: TS(64) };
+  const rec = (stats && stats.rec) || null;
+  const [g, setG] = useState(null), [loaded, setLoaded] = useState(false), [ents, setEnts] = useState(() => window.SOP_ENTS || {}), [busy, setBusy] = useState(false);
+  const [fundPick, setFundPick] = useState([]), [pocket, setPocket] = useState(false), [book, setBook] = useState(false);
+  useEffect(() => {
+    const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
+    (async () => { try { const r = await window.storage.get(SEN_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over && (!rec || d.name === rec.name)) setG(d); } } catch (e) {} setLoaded(true); })();
+    return () => window.removeEventListener("sop-ents", f);
+  }, []);
+  useEffect(() => { if (g) { try { window.storage.set(SEN_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
+  const lessons = React.useRef([]);
+  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+  const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0, g ? g.step : "");
+  // A lesson goes into the next result card's "How it really works" box and into the notebook.
+  const learnRow = (k) => { const t = senLearnText(k); if (t && !lessons.current.includes(t)) { senNote(k); lessons.current.push(t); } return []; };
+  const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_senator > 0;
+  const buy = () => { setBusy(true); window.SOP_buy("career_senator").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+
+  // ── Starting ──
+  const who = rec ? { name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, district: rec.district }
+    : profile ? { name: profile.first + " " + profile.last, avatar: profile.avatar, state: profile.origin, party: profile.leaning, district: profile.district } : null;
+  const begin = (base, from) => {
+    const r = SYS.seeded(Date.now(), "sen");
+    const myP = PARTIES.find(p => p.id === who.party) || PARTIES[0];
+    const govParty = r() < .5;
+    const S = { v: 1, seed: Date.now(), name: who.name, avatar: who.avatar, state: who.state || "Lagos", district: who.district != null ? who.district : 1, party: myP.id, from,
+      govParty, home: base.home, clout: base.clout, loyalty: base.loyalty, cor: base.cor, chest: base.chest, godfather: !!base.godfather,
+      oppName: gN(r, STATES[who.state]?.zone || "SW", who.state), step: "race", n: 0, race: null, items: [], log: [], delivered: [], projects: [], sponsored: 0, ownUsed: [], seen: [], defected: false, committee: null };
+    S.race = SYS.raceStart(S);
+    setG(S); trk("career_start", "senator_" + from);
+  };
+  const districtName = (G) => ["North", "Central", "South"][G.district] + " senatorial district of " + String(G.state || "").replace(/_/g, " ");
+
+  // ── The race ──
+  const raceMove = (m) => {
+    if (m.cost > g.chest + 1e-9) return;
+    const res = SYS.raceMove(g.race, g, m, R("race" + g.race.week));
+    up(p => ({ ...SYS.applyFx(p, { chest: -m.cost, cor: res.cor }), race: res.race }));
+    card({ icon: m.ic, title: m.l, text: res.gain >= 0 ? "Your numbers move." : "It cost you more than it won.", rows: [{ l: "Your share", v: (res.gain - Math.round(res.opp / 2) >= 0 ? "+" : "") + (res.gain - Math.round(res.opp / 2)) + "%", good: res.gain >= res.opp / 2 }].concat(m.cost ? [{ l: "War chest", v: "−₦" + Math.round(m.cost * 1000) + "M", good: false }] : []).concat(g.race.week === 0 ? learnRow("race") : []), tone: res.gain >= 3 ? "good" : "neutral", ok: "Continue" });
+  };
+  const raceEnd = () => {
+    const res = SYS.raceResult(g.race, R("raceEnd"));
+    trk("senate_race", res.won ? "won" : "lost");
+    if (!res.won) { up({ step: "over", over: true, ending: "lost_race", raceRes: res }); return; }
+    up({ step: "sp", raceRes: res });
+    card({ icon: "🏛️", title: "Senator-elect", text: "You carried the " + districtName(g) + " with " + res.you + "% of the two-way vote. In June you take your seat in the red chamber.", rows: [], tone: "good", ok: "To Abuja" });
   };
 
-  if (result) return (
-    <div style={{ minHeight: "100%", background: result.won ? "#f0fff0" : CL.bg, padding: "72px 43px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Flag />
-      <div style={{ textAlign: "center", maxWidth: 840, marginTop: 72 }}>
-        <div style={{ fontSize: TS(134), marginBottom: 29 }}>{result.won ? "🏛️" : "😔"}</div>
-        <h2 style={{ fontFamily: F.d, color: result.won ? CL.grn : CL.red, fontSize: TS(94), fontWeight: 700, margin: "0 0 29px" }}>
-          {result.won ? "SENATOR-ELECT!" : "DEFEATED"}
-        </h2>
-        <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.6, marginBottom: 43 }}>
-          {result.won
-            ? "From Government House to the National Assembly. The people trust your experience. Distinguished Senator from " + (setup?.state || "").replace("_", " ") + " State."
-            : "The senatorial race proved tougher than expected. Your opponent ran a strong campaign, and the electorate wanted fresh blood. Your governance legacy endures — but the Red Chamber belongs to someone else."}
-        </p>
-        <Cd style={{ marginBottom: 43, textAlign: "left" }}>
-          <div style={{ fontSize: TS(34), fontWeight: 700, color: CL.pur, fontFamily: F.m, marginBottom: 14 }}>ELECTION BREAKDOWN</div>
-          <div style={{ fontSize: TS(34), color: CL.tm, lineHeight: 1.5 }}>
-            Your governance record and popularity determined the outcome.{"\n"}
-            Final score: {result.score} (needed 42 to win){"\n"}
-            {result.won ? "Your name recognition, party support, and clean record carried the day." : "Low approval, corruption allegations, or weak party support cost you the seat."}
-          </div>
-        </Cd>
-        <Bt onClick={() => onResult(result.won)} style={{ padding: "38px 113px", fontSize: TS(48) }}>
-          {result.won ? "TAKE YOUR SEAT" : "RETURN TO PRIVATE LIFE"}
-        </Bt>
-      </div>
-    </div>
-  );
+  // ── The Senate President election ──
+  const pickSP = (id) => {
+    const res = SYS.spElection(id, R("sp"));
+    trk("senate_sp", id + (res.won ? "_won" : "_lost"));
+    up(p => ({ ...SYS.applyFx(p, res.fx), committee: res.committee, step: "session", n: 1, items: buildItems({ ...p, committee: res.committee }, 1) }));
+    card({ icon: res.won ? "🎉" : "🥶", title: res.won ? "Your candidate won" : "Your candidate lost", text: res.won ? "You backed the winner. You will chair the " + res.committee + " Committee." : "The new Senate President remembers who voted against him. No committee chair for you this term.", rows: senFxRows(res.fx).concat(learnRow("sp")), tone: res.won ? "good" : "bad", ok: "Take my seat" });
+  };
 
-  return (
-    <div style={{ minHeight: "100%", background: CL.bg, padding: "72px 43px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <Flag />
-      <div style={{ textAlign: "center", maxWidth: 840, marginTop: 72 }}>
-        <div style={{ fontSize: TS(124), marginBottom: 29 }}>🏛️</div>
-        <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(86), fontWeight: 600, margin: "0 0 22px" }}>Senatorial Election</h2>
-        <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 43 }}>
-          You've declared for the Senate — {(setup?.state || "").replace("_", " ")} Senatorial District. Your governance record is your campaign platform, but victory is not guaranteed. This is democracy.
-        </p>
-        <Cd style={{ marginBottom: 43, textAlign: "left" }}>
-          <div style={{ fontSize: TS(34), color: CL.tm, lineHeight: 1.5 }}>
-            Your chances depend on: approval rating, party stability, corruption record, and debt levels. Even a good governor can lose a senatorial race — the electorate is unpredictable.
+  // ── Sessions: two bills, then a hearing or the constituency fund, an event, and your own bill once a year ──
+  const buildItems = (S, n) => {
+    const bills = SYS.sessionBills(S.seed, n).map(b => ({ k: "bill", id: b.id }));
+    const extra = n % 2 === 1 ? [{ k: "hearing", id: SYS.hearingFor(S.seed, n).id }] : [{ k: "fund" }];
+    const ev = SYS.eventFor(S.seed, n, S);
+    const own = n % 2 === 1 && SYS.OWN_BILLS.some(b => !(S.ownUsed || []).includes(b.id)) ? [{ k: "own" }] : [];
+    return [...bills, ...extra, ...(ev ? [{ k: "event", id: ev.id }] : []), ...own];
+  };
+  const next = (p) => { const items = p.items.slice(1); return { items }; };
+  const billOf = (id) => SYS.sessionBills(g.seed, g.n).find(b => b.id === id) || SYS.BILLS.find(b => b.id === id);
+  const vote = (b, v) => {
+    const res = SYS.castVote(b, v, g, R("vote" + b.id));
+    trk("senate_vote", b.id + "_" + v);
+    const items = res.vetoed ? [{ k: "veto", id: b.id }, ...g.items.slice(1)] : g.items.slice(1);
+    up(p => ({ ...SYS.applyFx(p, res.fx), items, projects: res.project ? [...p.projects, res.project] : p.projects, log: [...p.log, { n: p.n, t: b.t, v, passed: res.passed }] }));
+    const vtxt = v === "no" ? "You voted no." : v === "trade" ? (res.project ? "You voted yes, and the leadership put " + res.project.t + " for your district in the budget." : "You asked for a project in return. The leadership laughed and took your vote anyway.") : "You voted yes.";
+    card({ icon: res.passed ? "✅" : "❌", title: b.t + (res.passed ? " passes" : " fails"), text: vtxt + " The Senate divided " + res.ayes + " to " + res.noes + "." + (res.vetoed ? " But the President has refused to sign it." : ""), rows: senFxRows(res.fx).concat(learnRow("bill:" + b.id)).concat(v === "trade" && res.project ? learnRow("trade") : []), tone: res.passed === (v !== "no") ? "good" : "neutral", ok: "Next" });
+  };
+  const veto = (b, lead) => {
+    if (!lead) { up(p => next(p)); card({ icon: "🗑️", title: "The bill dies", text: "Without an override the vetoed " + b.t + " is dead for this Assembly.", rows: learnRow("override"), tone: "neutral", ok: "Next" }); return; }
+    const res = SYS.overrideVote(g, R("ovr" + b.id));
+    trk("senate_override", res.passed ? "won" : "lost");
+    up(p => ({ ...SYS.applyFx(p, res.fx), ...next(p) }));
+    card({ icon: res.passed ? "⚖️" : "🥀", title: res.passed ? "Veto overridden" : "The override falls short", text: res.ayes + " senators voted to override; " + SYS.OVERRIDE_NEED + " were needed. " + (res.passed ? b.t + " becomes law without the President's signature." : "The Villa has made a note of who led it."), rows: senFxRows(res.fx).concat(learnRow("override")), tone: res.passed ? "good" : "bad", ok: "Next" });
+  };
+  const hearing = (h, o) => {
+    const fx = o.fx(g), caught = o.risk ? R("hear" + h.id)() < o.risk : false;
+    if (caught) { fx.home = (fx.home || 0) - 8; fx.clout = (fx.clout || 0) - 4; }
+    trk("senate_hearing", o.id);
+    up(p => ({ ...SYS.applyFx(p, fx), ...next(p) }));
+    card({ icon: o.id === "silence" ? "🤫" : "🔎", title: o.l, text: (o.id === "grill" ? "The clip of the " + h.min + " stammering is everywhere by evening." : o.id === "report" ? "Your committee's report goes to the EFCC with the evidence attached." : "The file is closed.") + (caught ? " A clerk leaks the envelope story to the press." : ""), rows: senFxRows(fx).concat(learnRow("hearing")), tone: o.id === "silence" ? (caught ? "bad" : "neutral") : "good", ok: "Next" });
+  };
+  const spend = () => {
+    const res = SYS.spendFund(fundPick, pocket, R("fund"));
+    if (!res.ok) { card({ icon: "⚠️", title: "Too much", text: res.why, tone: "bad", ok: "Fix it" }); return; }
+    trk("senate_fund", pocket ? "pocketed" : "delivered");
+    up(p => ({ ...SYS.applyFx(p, { home: res.home, cor: res.cor, chest: res.chest }), delivered: [...p.delivered, ...res.delivered], ...next(p) }));
+    setFundPick([]); setPocket(false);
+    card({ icon: res.exposed ? "📰" : "🏗️", title: res.exposed ? "A newspaper visits your 'projects'" : "The constituency projects go ahead", text: (res.delivered.length ? "Delivered: " + res.delivered.join("; ") + "." : "Nothing was built.") + (res.chest ? " ₦" + Math.round(res.chest * 1000) + "M was 'managed'." : "") + (res.exposed ? " Reporters find empty sites where the money went." : ""), rows: senFxRows({ home: res.home, cor: res.cor, chest: res.chest }).concat(learnRow("fund")), tone: res.exposed ? "bad" : "good", ok: "Next" });
+  };
+  const event = (ev, o) => {
+    const res = SYS.eventChoice(ev, o.id, R("ev" + ev.id));
+    trk("senate_event", ev.id + "_" + o.id);
+    up(p => ({ ...SYS.applyFx(p, res.fx), seen: [...p.seen, ev.id], defected: p.defected || res.defect, govParty: res.defect ? !p.govParty : p.govParty, ...next(p) }));
+    card({ icon: res.caught ? "📰" : "📌", title: o.l, text: res.msg, rows: senFxRows(res.fx).concat(learnRow(ev.id === "defect" ? "defect" : ev.id)), tone: res.caught ? "bad" : "neutral", ok: "Next" });
+  };
+  const sponsor = (b) => {
+    if (!b) { up(p => next(p)); return; }
+    const res = SYS.sponsorBill(b, g, R("own" + b.id));
+    trk("senate_own_bill", b.id + (res.passed ? "_passed" : "_failed"));
+    up(p => ({ ...SYS.applyFx(p, res.fx), ownUsed: [...p.ownUsed, b.id], sponsored: p.sponsored + (res.passed ? 1 : 0), ...next(p) }));
+    card({ icon: res.passed ? "📜" : "📭", title: res.passed ? "Your bill passes" : "Your bill stalls", text: res.passed ? "The " + b.t + " clears both chambers. Your name is on a law." : "The " + b.t + " dies in committee. Bills need allies; build standing and try again.", rows: senFxRows(res.fx).concat(learnRow("vote")), tone: res.passed ? "good" : "neutral", ok: "Next" });
+  };
+  const endSession = () => {
+    // A district that has given up on you can recall you.
+    if (g.home < 20) {
+      const removed = R("recall")() < .5;
+      trk("senate_recall", removed ? "removed" : "survived");
+      if (removed) { up({ step: "over", over: true, ending: "recalled" }); card({ icon: "📝", title: "Recalled", text: "More than half of your district's registered voters signed the petition, and the referendum went against you.", rows: learnRow("recall"), tone: "bad", ok: "Continue" }); return; }
+      card({ icon: "📝", title: "A recall petition fails", text: "Your opponents gathered signatures but fell short. Your district is warning you.", rows: learnRow("recall"), tone: "bad", ok: "Continue" });
+    }
+    if (g.n >= SYS.SESSIONS) { up({ step: "reelect" }); return; }
+    up(p => ({ ...SYS.applyFx(p, SYS.SESSION_DRIFT), n: p.n + 1, items: buildItems(p, p.n + 1) }));
+  };
+  const faceVoters = () => {
+    const res = SYS.reElection(g, R("re"));
+    const score = SYS.senateScore(g), grade = SYS.senateGrade(score);
+    trk("senate_end", !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated"); trk("senate_grade", grade);
+    up({ step: "over", over: true, ending: !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated", reRes: res, score, grade });
+    try { (async () => { const r0 = await window.storage.get("sop_career"); const L = r0 && r0.value ? JSON.parse(r0.value) : []; await window.storage.set("sop_career", JSON.stringify([...L, { office: "senator", state: g.state, grade, ending: res.won ? "complete" : "defeated", at: Date.now(), name: g.name }].slice(-200))); })(); } catch (e) {}
+  };
+
+  // ── Rendering ──
+  const G = g;
+  const Frame = ({ bg, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
+    <Flag />
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>{bg && <SceneArt bg={bg} who={w} h={tall ? 170 : 230} />}{children}</div>
+  </div>;
+  const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
+    {kick && <div style={{ fontSize: fz.s, letterSpacing: 3, color: CL.gold, fontFamily: F.m, textTransform: "uppercase" }}>{kick}</div>}
+    <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.xl, margin: "4px 0", fontWeight: 700 }}>{title}</h2>
+    {sub && <div style={{ fontSize: fz.s, color: CL.td, lineHeight: 1.4 }}>{sub}</div>}
+  </div>;
+  const Opt = ({ ic, l, d, right, onClick, disabled, tone }) => <button onClick={onClick} disabled={disabled} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", width: "100%", padding: tall ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + (tone === "bad" ? "#efc2bc" : CL.bdr), background: disabled ? "#f1ede4" : "#fff", color: CL.txt, cursor: disabled ? "default" : "pointer", opacity: disabled ? .55 : 1, fontFamily: F.b }}>
+    <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b>{d && <span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span>}</span>{right ? <span style={{ fontWeight: 800, fontSize: fz.s, color: CL.org, whiteSpace: "nowrap" }}>{right}</span> : <span />}
+  </button>;
+  const Learn = ({ k }) => { const t = senLearnText(k); return t ? <div style={{ background: "#eef4fb", border: "1px solid #c9dcf0", borderRadius: 14, padding: "10px 14px", fontSize: fz.s, color: "#1d3a5c", lineHeight: 1.45, margin: "10px 0" }}><b>📘 How it really works · </b>{t}</div> : null; };
+  const Meter = ({ k, v, bad }) => <div style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 12, padding: tall ? "6px 8px" : "8px 12px", minWidth: 0 }}>
+    <div style={{ fontSize: tall ? TS(15) : TS(22), color: CL.td, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k}</div>
+    <b style={{ fontSize: fz.m, color: bad ? CL.red : CL.txt }}>{v}</b></div>;
+  const header = G && <div style={{ display: "grid", gridTemplateColumns: tall ? "repeat(3, 1fr)" : "repeat(5, 1fr)", gap: 6, margin: "6px 0 12px" }}>
+    <Meter k="🏠 Home" v={G.home + "%"} bad={G.home < 40} /><Meter k="🏛️ Abuja" v={G.clout} bad={G.clout < 30} /><Meter k="🎗️ Party" v={G.loyalty + "%"} bad={G.loyalty < 35} />
+    <Meter k="💀 Corruption" v={Math.round(G.cor * 100) + "%"} bad={G.cor > .4} /><Meter k="💰 Chest" v={"₦" + G.chest.toFixed(1) + "B"} bad={G.chest < .3} />
+    {tall && <button onClick={() => setBook(true)} style={{ border: "1px solid #c9dcf0", background: "#eef4fb", borderRadius: 12, color: "#1d3a5c", fontWeight: 800, fontSize: fz.s, fontFamily: F.b, cursor: "pointer" }}>📘 {senNotes().length}/{SEN_NOTE_KEYS().length}</button>}
+  </div>;
+  const notebook = book && <EntranceSheet title="📘 Your Senate notebook" onClose={() => setBook(false)}>
+    <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 10 }}>How the Senate really works, from the Constitution and the law. You have found {senNotes().length} of {SEN_NOTE_KEYS().length}.</div>
+    {SEN_NOTE_KEYS().map(k => { const have = senNotes().includes(k); return <div key={k} style={{ padding: "10px 0", borderBottom: "1px solid " + UI.line, fontSize: DS.t.meta, color: have ? UI.ink : UI.dim, lineHeight: 1.45 }}>{have ? senLearnText(k) : "🔒 Found by playing."}</div>; })}
+  </EntranceSheet>;
+  const wrap = (el) => <>{el}{notebook}</>;
+
+  if (!loaded) return <Frame><H title="Loading…" /></Frame>;
+  if (!G) {
+    if (!who) return <Frame bg="assembly-chamber-wide"><H kick="Careers" title="The Senator" sub="Create your politician first: your name, face and home district." /><Cd><Bt onClick={onExit} style={{ width: "100%" }}>Back</Bt></Cd></Frame>;
+    const fromGov = rec ? SYS.senateFromGovernor(stats) : null;
+    return <Frame bg="assembly-chamber-wide" who="speaker">
+      <H kick="Careers · the Senate" title="The Senator" sub="109 senators. No budget, no ministries: your power is your vote, and what it can buy for the people at home." />
+      {rec ? <Cd>
+        <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Former Governor {rec.name} runs for the {["North", "Central", "South"][who.district != null ? who.district : 1]} senatorial district of {(rec.state || "").replace(/_/g, " ")}. Your record comes with you:</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginBottom: 12 }}><Meter k="🏠 Home" v={fromGov.home + "%"} /><Meter k="🏛️ Abuja" v={fromGov.clout} /><Meter k="💀 Corruption" v={Math.round(fromGov.cor * 100) + "%"} /></div>
+        <Bt onClick={() => begin(fromGov, "governor")} style={{ width: "100%" }}>Declare for the Senate →</Bt>
+      </Cd> : <div style={{ display: "grid", gap: 8 }}>
+        <div style={{ fontSize: fz.s, color: CL.td, textAlign: "center" }}>Who are you when you walk in?</div>
+        {Object.entries(SYS.SENATE_STARTS).map(([k, b]) => <Opt key={k} ic={k === "former_gov" ? "🏛️" : k === "activist" ? "✊" : "💼"} l={b.nm} d={b.d} onClick={() => begin(b, k)} />)}
+      </div>}
+      <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, marginTop: 10 }}>{unlocked ? "" : "Your first year in the Senate is free."}</div>
+      <div style={{ textAlign: "center", marginTop: 6 }}><Bt v="ghost" onClick={onExit}>Back</Bt></div>
+    </Frame>;
+  }
+  const kicker = G.step === "session" ? "Year " + SYS.sessionYear(G.n) + " of 4 · session " + (G.n % 2 === 1 ? 1 : 2) + " · " + (G.committee ? "Chair, " + G.committee : "Backbencher") : "";
+
+  if (G.step === "race") {
+    const wk = G.race.week;
+    return wrap(<Frame bg="rally">
+      <H kick={"The Senate race · week " + Math.min(4, wk + 1) + " of 4"} title={"The " + districtName(G)} sub={G.name + " (" + G.party + ") against " + G.oppName} />
+      {header}
+      <Cd><div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Your share of the two-way vote (poll)</div>
+        <div style={{ height: 16, borderRadius: 8, background: "#c0392b33", overflow: "hidden" }}><div style={{ width: G.race.you + "%", height: "100%", background: G.race.you >= 50 ? "#2fa866" : "#e9a23b", transition: "width .5s" }} /></div>
+        <b style={{ display: "block", marginTop: 6, fontSize: fz.m, color: G.race.you >= 50 ? CL.grn : CL.org }}>{G.race.you}% · {G.oppName.split(" ").pop()} {100 - G.race.you}%</b></Cd>
+      {wk === 0 && <Learn k="race" />}
+      <div style={{ display: "grid", gap: 8, marginTop: 12 }}>{wk < 4 ? SYS.RACE_MOVES.map(m => <Opt key={m.id} ic={m.ic} l={m.l} d={m.d} right={m.cost ? "₦" + Math.round(m.cost * 1000) + "M" : null} disabled={m.cost > G.chest + 1e-9} tone={m.cor ? "bad" : null} onClick={() => raceMove(m)} />) : <Bt onClick={raceEnd} style={{ width: "100%" }}>🗳️ Election day →</Bt>}</div>
+    </Frame>);
+  }
+  if (G.step === "sp") return wrap(<Frame bg="assembly-chamber-wide" who="speaker">
+    <H kick="Your first week in the Senate" title="Elect the Senate President" sub="The most important vote you will cast this term. Back the winner and doors open; back the loser and they close." />
+    {header}<Learn k="sp" />
+    <div style={{ display: "grid", gap: 8 }}>{SYS.SP_CANDIDATES.map(c => <Opt key={c.id} ic={c.id === "anointed" ? "🏛️" : c.id === "rebel" ? "⚔️" : "🔀"} l={c.nm} d={c.d} onClick={() => pickSP(c.id)} />)}</div>
+  </Frame>);
+
+  if (G.step === "session") {
+    // The free year ends after session 2: a cliffhanger, then the unlock.
+    if (!unlocked && G.n > SYS.TRIAL_SESSIONS) return wrap(<Frame bg="assembly-chamber-wide">
+      <H kick={"Year 2 begins"} title="The Senate resumes" sub={"Your first year is over: support at home " + G.home + "%, standing in Abuja " + G.clout + ". The President's biggest bill of the term is on its way, and the defection season is about to open."} />
+      <Cd style={{ textAlign: "center" }}>
+        <div style={{ fontSize: fz.m, color: CL.tm, marginBottom: 12 }}>Unlock the full Senate career: four years, re-election, your own laws, and every page of the Senate notebook. Yours to replay as often as you like.</div>
+        <Bt onClick={buy} disabled={busy} style={{ width: "100%" }}>{busy ? "Opening…" : "Unlock the Senator · ₦1,000"}</Bt>
+        <div style={{ marginTop: 10 }}><Bt v="ghost" onClick={onExit}>Not now (your seat is saved)</Bt></div>
+      </Cd>
+    </Frame>);
+    const it = G.items[0];
+    const progress = <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, marginBottom: 8 }}>{G.items.length} item{G.items.length === 1 ? "" : "s"} left on this session's order paper{G.projects.length ? " · " + G.projects.length + " federal project" + (G.projects.length === 1 ? "" : "s") + " won for home" : ""}</div>;
+    if (!it) return wrap(<Frame bg="assembly-chamber-wide">
+      <H kick={kicker} title={G.n >= SYS.SESSIONS ? "The term is over" : "The Senate adjourns"} sub={G.n >= SYS.SESSIONS ? "Four years. Time to ask your district for another four." : "Senators go home until the next session. At home people ask what you have done for them lately (support " + SYS.SESSION_DRIFT.home + "), and in Abuja others move into the space you leave (standing " + SYS.SESSION_DRIFT.clout + ")."} />
+      {header}
+      <Bt onClick={endSession} style={{ width: "100%" }}>{G.n >= SYS.SESSIONS ? "Go home and face the voters →" : "Next session →"}</Bt>
+    </Frame>);
+    if (it.k === "bill" || it.k === "veto") {
+      const b = billOf(it.id);
+      if (it.k === "veto") return wrap(<Frame bg="assembly-chamber" who="governor-angry">
+        <H kick={kicker} title="The President has vetoed it" sub={"He refuses to sign the " + b.t + ". The Senate can override him with two-thirds: " + SYS.OVERRIDE_NEED + " of 109."} />
+        {header}<Learn k="override" />
+        <div style={{ display: "grid", gap: 8 }}><Opt ic="⚖️" l="Lead the override" d="Count the votes, twist arms. The Villa will not forget." onClick={() => veto(b, true)} /><Opt ic="🗑️" l="Let it die" d="Live to fight another day." onClick={() => veto(b, false)} /></div>
+      </Frame>);
+      return wrap(<Frame>
+        <H kick={kicker} title={b.prez ? "A bill from the President" : "A bill on the floor"} />
+        {header}{progress}
+        <div style={{ background: "linear-gradient(180deg,#fffaf0,#f7efdc)", border: "4px double #c9a24a", borderRadius: 18, padding: tall ? "16px 16px" : "22px 26px", boxShadow: "0 8px 20px rgba(0,0,0,.08)" }}>
+          <div style={{ fontSize: fz.s, letterSpacing: 2, color: "#7a6c4c", textTransform: "uppercase" }}>Senate of the Federal Republic</div>
+          <b style={{ display: "block", fontFamily: F.d, fontSize: fz.l, color: "#17301f", margin: "4px 0 8px" }}>{b.t}</b>
+          <div style={{ fontSize: fz.m, color: "#3b4a40", lineHeight: 1.45 }}>{b.d}</div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
+            <span style={{ fontSize: fz.s, fontWeight: 800, borderRadius: 999, padding: "3px 10px", background: b.home >= 0 ? "#e5f3ea" : "#fdecea", color: b.home >= 0 ? CL.grn : CL.red }}>Your district {b.home >= 3 ? "wants it" : b.home > 0 ? "leans yes" : b.home <= -3 ? "hates it" : b.home < 0 ? "leans no" : "is split"}</span>
+            {b.prez && <span style={{ fontSize: fz.s, fontWeight: 800, borderRadius: 999, padding: "3px 10px", background: "#fff2c9", color: "#7a5a00" }}>{G.govParty ? "Your party whips for it" : "The ruling party wants it"}</span>}
           </div>
+        </div>
+        <Learn k={"bill:" + b.id} />
+        <div style={{ display: "grid", gap: 8 }}>
+          <Opt ic="🟩" l="Vote yes" d={b.prez ? "Stand with the President." : "Back the bill."} onClick={() => vote(b, "yes")} />
+          <Opt ic="🟥" l="Vote no" d={b.prez && G.govParty ? "Defy your own party's whip." : "Oppose it."} onClick={() => vote(b, "no")} />
+          <Opt ic="🤝" l="Yes, for a federal project in my district" d={G.clout >= 45 ? "Your standing should get it." : "With your standing, they may laugh."} onClick={() => vote(b, "trade")} />
+        </div>
+      </Frame>);
+    }
+    if (it.k === "hearing") {
+      const h = SYS.HEARINGS.find(x => x.id === it.id);
+      return wrap(<Frame bg="assembly-chamber" who="commissioner-male-suit-worried">
+        <H kick={kicker + " · oversight"} title={"The " + h.min + " is in the witness chair"} sub={"Your committee's auditors found: " + h.found} />
+        {header}{progress}<Learn k="hearing" />
+        <div style={{ display: "grid", gap: 8 }}>{SYS.HEARING_OPTS.map(o => <Opt key={o.id} ic={o.id === "grill" ? "🎤" : o.id === "report" ? "📑" : "🤫"} l={o.l} d={o.d} tone={o.risk ? "bad" : null} onClick={() => hearing(h, o)} />)}</div>
+      </Frame>);
+    }
+    if (it.k === "fund") {
+      const spent = SYS.FUND_ITEMS.filter(i => fundPick.includes(i.id)).reduce((a, i) => a + i.b, 0), left = Math.round((SYS.FUND_B - spent) * 100) / 100;
+      return wrap(<Frame bg="project-ribbon-cutting">
+        <H kick={kicker + " · constituency projects"} title="₦1B for your district" sub="Pick what to build at home. What you do not spend can go back to the Treasury, or be 'managed'." />
+        {header}{progress}<Learn k="fund" />
+        <div style={{ display: "grid", gap: 8 }}>{SYS.FUND_ITEMS.map(i => { const on = fundPick.includes(i.id), can = on || i.b <= left + 1e-9; return <Opt key={i.id} ic={on ? "☑️" : "⬜"} l={i.l} d={"Support at home +" + i.home} right={"₦" + Math.round(i.b * 1000) + "M"} disabled={!can} onClick={() => setFundPick(p => on ? p.filter(x => x !== i.id) : [...p, i.id])} />; })}</div>
+        <Cd style={{ marginTop: 10 }}>
+          <div style={{ fontSize: fz.m, color: CL.txt, marginBottom: 8 }}>Left over: <b>₦{Math.round(left * 1000)}M</b></div>
+          <label style={{ display: "flex", gap: 10, alignItems: "center", fontSize: fz.s, color: pocket ? CL.red : CL.tm, cursor: "pointer" }}><input type="checkbox" checked={pocket} onChange={e => setPocket(e.target.checked)} style={{ width: 22, height: 22 }} />"Manage" what is left over (your war chest gains; if reporters look, it is a scandal)</label>
+          <Bt onClick={spend} style={{ width: "100%", marginTop: 10 }}>Approve the projects →</Bt>
         </Cd>
-        <SceneArt bg="polling-unit" h={TALL() ? 200 : 260} /><Bt onClick={runElection} style={{ padding: "43px 120px", fontSize: TS(50) }}>🗳️ ELECTION DAY</Bt>
-      </div>
+      </Frame>);
+    }
+    if (it.k === "event") {
+      const ev = SYS.SENATE_EVENTS.find(e => e.id === it.id);
+      return wrap(<Frame bg={ev.id === "insecurity" ? "idp-camp" : ev.id === "strike" ? "classroom" : ev.id === "defect" ? "party-convention-hall" : "back-room"} who={ev.id === "godfather" ? "godfather" : ev.id === "lobbyist" ? "investor-nigerian" : null}>
+        <H kick={kicker} title={ev.t} sub={ev.d} />
+        {header}{progress}<Learn k={ev.id} />
+        <div style={{ display: "grid", gap: 8 }}>{ev.opts.map(o => <Opt key={o.id} ic="•" l={o.l} tone={o.risk ? "bad" : null} onClick={() => event(ev, o)} />)}</div>
+      </Frame>);
+    }
+    if (it.k === "own") {
+      const avail = SYS.OWN_BILLS.filter(b => !G.ownUsed.includes(b.id));
+      return wrap(<Frame bg="assembly-chamber-wide">
+        <H kick={kicker} title="Sponsor a bill of your own" sub="Once a year you can put your name on a bill. It needs allies: the more standing you have in Abuja, the better its chances." />
+        {header}{progress}<Learn k="vote" />
+        <div style={{ display: "grid", gap: 8 }}>{avail.map(b => { const p = Math.round(Math.max(.08, Math.min(.92, .25 + (G.clout - b.need) / 60)) * 100); return <Opt key={b.id} ic="📜" l={b.t} d={"Support at home +" + b.home + " if it passes"} right={p + "% chance"} onClick={() => sponsor(b)} />; })}
+          <Opt ic="⏭️" l="Not this year" onClick={() => sponsor(null)} /></div>
+      </Frame>);
+    }
+  }
+  if (G.step === "reelect") {
+    const ticket = G.loyalty >= 35 || G.defected;
+    return wrap(<Frame bg="polling-unit">
+      <H kick="Four years on" title="Your district decides" sub={ticket ? "Your party has given you the ticket. Your opponent has been campaigning for a year." : "Your party has given the ticket to someone else. Without a platform, you cannot run."} />
+      {header}
+      <Cd><div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.5 }}>Delivered at home: {G.delivered.length ? G.delivered.join("; ") : "nothing"}. Federal projects won: {G.projects.length}. Laws with your name: {G.sponsored}.</div></Cd>
+      <Bt onClick={faceVoters} style={{ width: "100%", marginTop: 12 }}>{ticket ? "🗳️ Count the votes →" : "See how it ends →"}</Bt>
+    </Frame>);
+  }
+  // Over
+  const score = G.score != null ? G.score : SYS.senateScore(G), grade = G.grade || SYS.senateGrade(score);
+  const endT = { lost_race: ["Defeated", "The " + districtName(G) + " chose " + G.oppName + "."], recalled: ["Recalled", "Your district took its seat back before your term ended."], no_ticket: ["Denied the ticket", "Your party chose another candidate. Four years in the Senate end here."], defeated: ["Voted out", "The district wanted someone new."], reelected: ["Re-elected", "Four more years in the red chamber."] }[G.ending] || ["The end", ""];
+  const restart = () => { try { window.storage.set(SEN_KEY, ""); } catch (e) {} setG(null); };
+  return wrap(<Frame bg={G.ending === "reelected" ? "rally" : "veranda-night"}>
+    <H kick="The Senator" title={endT[0]} sub={endT[1]} />
+    {G.ending !== "lost_race" && <Cd style={{ textAlign: "center" }}>
+      <div style={{ fontSize: TS(tall ? 110 : 150), lineHeight: 1, fontWeight: 900, fontFamily: F.d, color: grade === "A" || grade === "B" ? CL.grn : grade === "F" ? CL.red : CL.gold }}>{grade}</div>
+      <div style={{ fontSize: fz.s, color: CL.td }}>Score {score} · home {G.home}% · standing {G.clout} · corruption {Math.round(G.cor * 100)}%</div>
+      <div style={{ fontSize: fz.s, color: CL.tm, marginTop: 8, lineHeight: 1.5 }}>{G.delivered.length} things built at home · {G.projects.length} federal projects won · {G.sponsored} law{G.sponsored === 1 ? "" : "s"} in your name{G.defected ? " · crossed the floor" : ""}</div>
+    </Cd>}
+    <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: "#1d3a5c" }}>📘 Senate notebook: {senNotes().length} of {SEN_NOTE_KEYS().length} notes found.</div><Bt v="secondary" onClick={() => setBook(true)} style={{ marginTop: 8 }}>Open the notebook</Bt></Cd>
+    <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+      {rec && G.ending === "reelected" && onPresident && <Bt onClick={() => onPresident(rec)}>🇳🇬 Run for President →</Bt>}
+      <Bt v="secondary" onClick={restart}>Play the Senate again</Bt>
+      <Bt v="ghost" onClick={() => { restart(); onExit(); }}>Back to the title</Bt>
     </div>
-  );
+  </Frame>);
 };
 
 const EndScr = ({ type, state, onRestart }) => {
@@ -12661,7 +12937,7 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "title" && <TitleScreen onSenate={() => { setFinalStats(null); setScr("senate"); }} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
@@ -12679,7 +12955,7 @@ function App() {
       </EntranceSheet>}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} />}
-      {scr === "senate" && <SenateRace setup={setup} stats={finalStats} onResult={won => setScr(won ? "end_sen_w" : "end_sen_l")} />}
+      {scr === "senate" && <SenateCareer stats={finalStats} profile={profile} onExit={rst} onPresident={(rec) => { setFinalStats(f => ({ ...(f || {}), rec })); setScr("pres"); }} />}
       {scr === "end_ret" && <EndScr type="retire" state={setup?.state} onRestart={rst} />}
       {scr === "end_sen_w" && <EndScr type="senate_w" state={setup?.state} onRestart={rst} />}
       {scr === "end_sen_l" && <EndScr type="senate_l" state={setup?.state} onRestart={rst} />}

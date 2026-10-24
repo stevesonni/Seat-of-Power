@@ -13,7 +13,7 @@ export const sessionYear = (n) => Math.ceil(n / 2);
 /* Free-play starts: who you are when you did not climb here as governor. */
 export const SENATE_STARTS = {
   former_gov: { nm: "Former governor", d: "Known everywhere, owed favours, and your record follows you.", home: 52, clout: 60, loyalty: 60, cor: .3, chest: 2.5 },
-  activist: { nm: "Popular activist", d: "The people love you. Abuja does not know you yet, and you are broke.", home: 66, clout: 30, loyalty: 45, cor: .08, chest: .4 },
+  activist: { nm: "Popular activist", d: "The people love you. Abuja does not know you yet, and you are broke.", home: 60, clout: 30, loyalty: 45, cor: .08, chest: .4 },
   businessman: { nm: "Godfather's candidate", d: "Deep pockets and a powerful sponsor. He will want his returns.", home: 45, clout: 50, loyalty: 70, cor: .25, chest: 4, godfather: true },
 };
 
@@ -31,7 +31,7 @@ export const RACE_MOVES = [
   { id: "radio", ic: "📻", l: "Radio in every language", d: "Cheap and wide.", cost: .1, you: 4 },
   { id: "cash", ic: "💵", l: "“Mobilisation” on election eve", d: "Money at the polling units. Works; and it is a crime.", cost: .6, you: 8, cor: .05 },
 ];
-export const raceStart = (S) => ({ you: Math.round(cl(38 + (S.home - 50) * .35, 25, 60)), week: 0, log: [] });
+export const raceStart = (S) => ({ you: Math.round(cl(43 + (S.home - 50) * .2, 30, 56)), week: 0, log: [] });
 export const raceMove = (race, S, m, r) => {
   let gain = m.you || 0;
   if (m.record) gain = Math.round((S.home - 45) / 3 - S.cor * 10);
@@ -195,10 +195,14 @@ export const reElection = (S, r) => {
   const you = cl(S.home * .7 + 15 + Math.min(10, S.chest * 2) - S.cor * 20 + (r() - .5) * 10, 5, 95);
   return { ticket: true, won: you >= 50, you: Math.round(you) };
 };
-/* The grade for the term: home (40%), standing (25%), what you delivered
-   and passed (20%), clean hands (15%). */
-export const senateScore = (S) => Math.round(S.home * .4 + S.clout * .25 + Math.min(100, (S.delivered || []).length * 8 + (S.sponsored || 0) * 15) * .2 + (1 - S.cor) * 100 * .15);
-export const senateGrade = (score) => score >= 75 ? "A" : score >= 62 ? "B" : score >= 50 ? "C" : score >= 38 ? "D" : "F";
+/* The grade for the term: home (35%), standing (20%), what you delivered,
+   won and passed (25%), clean hands (20%). */
+export const senateLegacy = (S) => Math.min(100, (S.delivered || []).length * 3 + (S.projects || []).length * 7 + (S.sponsored || 0) * 15);
+export const senateScore = (S) => Math.round(S.home * .35 + S.clout * .2 + senateLegacy(S) * .25 + (1 - S.cor) * 100 * .2);
+export const senateGrade = (score) => score >= 78 ? "A" : score >= 65 ? "B" : score >= 52 ? "C" : score >= 40 ? "D" : "F";
+/* Between sessions: the district asks what you have done lately, and Abuja
+   moves on to the next senator with something to trade. */
+export const SESSION_DRIFT = { home: -7, clout: -3 };
 
 /* Your own bill, once a year: passes with enough standing. */
 export const OWN_BILLS = [

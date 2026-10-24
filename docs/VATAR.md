@@ -52,6 +52,7 @@ Each product sells more play, never a better result, so titles, honours and the 
 | productId | Kind | Price | Name to show | What the player gets |
 |---|---|---|---|---|
 | `streak_freeze` | consumable | ₦100 | Streak Freeze | Saves the daily streak on a day the player misses; used automatically. |
+| `career_senator` | one-off | ₦1,000 | The Senator | The full Senate career after the free first year: four years, re-election, the player's own laws, the whole Senate notebook. |
 | `company_registration` | consumable | ₦1,500 | Register your company | Registers the player's own contractor; every player sees it. One credit per registration (a rename after we hide a name is free). |
 | `challenge_retry` | consumable | ₦100 | Extra Challenge Attempt | One more run at this week's challenge (the first each week is free). The best score of the week counts. |
 | `second_chance` | consumable | ₦500 | Second Chance | Rerun a lost re-election, once per game. The career is marked in the Hall, earns no second-term points or "Second term" honour, and it can't be used in a challenge run. |

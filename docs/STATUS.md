@@ -571,3 +571,39 @@ Rules live in `game/systems/` (no screen code; `window.SOP_SYS` in the game). Un
 - A campaign loan that an old save had already folded into state debt can't be separated out.
 - Only Edo has real senatorial districts; other states group their LGAs automatically.
 - Projects from old saves keep the old procurement model.
+
+## Careers: the Senator (release 1)
+**Where it lives:** rules in `game/systems/senate.js`; the screen is `SenateCareer` in `game/seat-of-power.jsx`.
+
+**Two ways in**
+- **Story:** a finished governor's **Run for Senate** carries the record in. Approval becomes support at home, the score becomes standing in Abuja, and corruption and the campaign fund carry over. This replaces the old one-roll `SenateRace`.
+- **Free play:** title menu → **Careers** → Senator. The player picks a background: former governor, popular activist, or the godfather's candidate.
+
+**The term**
+- **The race:** four weeks of moves in the home senatorial district.
+- **The Senate President election:** the player backs a candidate. Backing the winner brings a committee chair.
+- **Eight sessions** over four years. Each session has:
+  - two bills (the Appropriation Bill every second session). Votes are yes, no, or **yes for a federal project in my district**, which needs standing;
+  - a ministerial oversight hearing, or the **₦1B constituency fund** (deliver it, or "manage" what is left);
+  - an event (defection offer, lobbyist, bandits at home, budget padding, the lecturers' strike, the godfather, ministerial screening);
+  - once a year, the player's own bill.
+- **Vetoes:** the President can veto a bill that passes. The player can lead an override, which needs 73 of 109.
+- **Fade between sessions:** support at home −7, standing −3.
+- **Recall:** a district below 20% support can recall its senator.
+- **Re-election:** the party may deny the ticket to a disloyal senator, unless they defected.
+
+**Grade:** home 35%, standing 20%, legacy (things built, federal projects won, laws passed) 25%, clean hands 20%.
+
+**Teaching:** every bill, hearing and event has a **How it really works** note from the Constitution or the law. It shows in the result card (`learn` on `SOP_outcome`) and is kept in the **Senate notebook** (`sop_notebook`, 29 notes).
+
+**Records:** a term is recorded in `sop_career` with `office: "senator"`. The map and badges count governorships only.
+
+**Vatar:** the first year is free. After that comes `career_senator` (one-off, ₦1,000).
+
+**Art:** it uses existing scenes until Lovable's Senator pack arrives (`docs/LOVABLE-NEXT.md`).
+
+**Balance** (2,000 simulated terms per case):
+- **Random play:** mostly B and C, with about 9% A.
+- **The race:** thoughtful play wins 93–100% depending on the background; random play wins 40–76%.
+
+**Test:** `tests/e2e/senate.mjs`.

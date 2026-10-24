@@ -17,3 +17,9 @@ import { BADGE_PERKS } from "../game/systems/career.js";
 test("every badge is worth something: a perk to carry into a campaign", () => {
   careerBadges([]).forEach(b => { const p = BADGE_PERKS[b.id]; assert.ok(p && p.text && Object.keys(p.fx).length, b.id); });
 });
+test("senate records do not count as governorships on the map or for badges", async () => {
+  const { careerMap: cm, careerBadges: cb } = await import("../game/systems/career.js");
+  const L = [{ office: "senator", state: "Lagos", grade: "A", ending: "complete" }];
+  assert.deepEqual(cm(L), {});
+  assert.equal(cb(L).filter(b => b.got).length, 0);
+});

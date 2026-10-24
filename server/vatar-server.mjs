@@ -26,7 +26,7 @@ const PORT = +process.env.PORT || 8080;
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
-const PRODUCTS = { company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
+const PRODUCTS = { career_senator: "oneoff", company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
 // The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
 const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
 const boardFile = (w) => path.join(DATA, "boards", "w" + w + ".json");
