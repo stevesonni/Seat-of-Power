@@ -29,7 +29,7 @@ for (let i = 0; i < 160; i++) {
   if (/Promoted|Posting complete|Recalled|Expelled/.test(t) && /ambassador's notebook/.test(t)) break;
   const hit = await g.page.evaluate(() => {
     const pref = [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && /^(Present the letter|Next half-year|Read Abuja|•)/.test(b.textContent.trim()));
-    const any = pref || [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && !/^(☰|‹|Back|✕|📘)/.test(b.textContent.trim()) && b.textContent.trim().length > 3);
+    const any = pref || [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && !/^(🏠|☰|‹|Back|✕|📘)/.test(b.textContent.trim()) && b.textContent.trim().length > 3);
     if (any) { any.click(); return any.textContent.trim().slice(0, 40); }
     return null;
   });

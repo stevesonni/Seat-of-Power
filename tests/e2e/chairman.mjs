@@ -32,7 +32,7 @@ for (let i = 0; i < 160; i++) {
   const hit = await g.page.evaluate(() => {
     if (/your in-tray/i.test(document.body.innerText)) { const boxes = [...document.querySelectorAll("button")].filter(b => /^⬜/.test(b.textContent.trim())); if (boxes.length && [...document.querySelectorAll("button")].filter(b => /^☑️/.test(b.textContent.trim())).length < 2) { boxes[boxes.length - 1].click(); return "tray pick"; } }
     const pref = [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && /^(Handle these two|🤝|Go and see the road|🏦Accept|Next half-year|To the council election|🗳️|See how it ends|💵|•)/.test(b.textContent.trim()));
-    const any = pref || [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && !/^(☰|‹|Back|✕|📘)/.test(b.textContent.trim()) && b.textContent.trim().length > 3);
+    const any = pref || [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && !/^(🏠|☰|‹|Back|✕|📘)/.test(b.textContent.trim()) && b.textContent.trim().length > 3);
     if (any) { any.click(); return any.textContent.trim().slice(0, 40); }
     return null;
   });

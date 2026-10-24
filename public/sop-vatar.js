@@ -46,9 +46,11 @@
 
   function flush() {
     var d = dirty; dirty = {};
-    if (!Object.keys(d).length) return;
-    call("/api/save", { data: d }).catch(function () { for (var k in d) if (!(k in dirty)) dirty[k] = d[k]; timer = setTimeout(flush, 5000); });
+    if (!Object.keys(d).length) return Promise.resolve();
+    return call("/api/save", { data: d }).catch(function () { for (var k in d) if (!(k in dirty)) dirty[k] = d[k]; timer = setTimeout(flush, 5000); });
   }
+  // Send waiting saves now (before a reload, say).
+  window.SOP_storageFlush = function () { clearTimeout(timer); return ready.then(function (on) { if (on) return flush(); }); };
   window.storage = {
     get: function (k) { return ready.then(function (on) { if (on) return cache[k] != null && cache[k] !== "" ? { value: cache[k] } : null; return local.get(k); }); },
     set: function (k, v) { return ready.then(function (on) { local.set(k, v); if (!on) return; cache[k] = v; dirty[k] = v; clearTimeout(timer); timer = setTimeout(flush, 1200); }); }

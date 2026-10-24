@@ -2109,6 +2109,20 @@ const HowToPlay = ({ show, onClose }) => {
 // keeps the careers you finished. It lives behind one small chip on the title
 // screen. Real accounts (cloud saves, a public Hall) need a server and come later.
 const PROFILE_KEY = "sop_profile";
+// Starting afresh: the politician, the game in progress and the record of every office held
+// are deleted (purchases and settings stay), then the page reloads clean.
+const FRESH_KEYS = ["sop_save", "sop_profile", "sop_preelection", "sop_record", "sop_career", "sop_senate", "sop_lga", "sop_amb", "sop_notebook", "sop_pres"];
+const startAfresh = async () => {
+  const ok = await window.SOP_confirm("Start afresh?\n\nYour politician, the game in progress, your career map and the record of every office you have held are deleted. This cannot be undone.\n\nYour purchases and settings stay.", "Delete and start afresh", "Keep playing");
+  if (!ok) return;
+  for (const k of FRESH_KEYS) { try { await window.storage.set(k, ""); } catch (e) {} try { localStorage.removeItem(k); } catch (e) {} }
+  try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {}
+  try { window.SOP_storageFlush && await window.SOP_storageFlush(); } catch (e) {}
+  location.reload();
+};
+// A way home from every career screen (progress is saved after every move).
+const HomeBar = ({ onExit }) => <div style={{ position: "relative" }}><Flag />
+  {onExit && <button onClick={onExit} aria-label="Home screen" style={{ position: "absolute", left: 0, top: -6, display: "flex", alignItems: "center", gap: 6, background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "6px 14px", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: CL.txt, cursor: "pointer" }}>🏠 Home</button>}</div>;
 const loadProfile = async () => { try { const r = await window.storage.get(PROFILE_KEY); return r?.value ? renameParties(JSON.parse(r.value)) : null; } catch (e) { return null; } };
 const saveProfile = async (p) => { try { await window.storage.set(PROFILE_KEY, JSON.stringify(p)); } catch (e) {} };
 const stateLabel = (id) => String(id || "").replace(/_/g, " ");
@@ -2547,7 +2561,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
             ["icon-sound", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
-          ].map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
+          ].concat(profile ? [["icon-politician", "Start afresh", "Delete your politician and records, and begin again", () => { setSheet(null); startAfresh(); }]] : []).map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
             <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 24, opacity: ic === "icon-sound" && !soundOn ? .45 : 1 }}><Ico n={ic} s={38} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{sub}</span></span>
             {dot ? <span style={{ display: "flex", alignItems: "center", gap: 4, background: "#e9b949", color: UI.ink, borderRadius: 999, padding: "3px 10px 3px 4px", fontSize: DS.t.meta, fontWeight: 800 }}><Ico n="icon-new" s={20} />NEW</span> : <span style={{ color: UI.dim }}>›</span>}
@@ -8877,14 +8891,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   ];
   const WIKI_SCREEN = { id: "wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] };
   const menuItems = () => [
-    ["📖 Your Wiki page", () => setNav("bio")],
-    ["⚖️ The Constitution", () => setNav("con")],
-    ["📊 Standing", () => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }],
+    ["🏠 Home screen (your game is saved)", async () => { await saveGame(); onEnd("restart"); }],
+    ["🗑️ Start afresh: a new politician", () => startAfresh()],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
     ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .3; return v === 0 ? "off" : Math.round(v * 100) + "%"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .3 : v < .5 ? .6 : v < .9 ? 1 : 0); setMenuOpen(false); } catch (e) {} }],
     ["Tell us what to improve", () => { try { window.SOP_feedbackForm({ where: nav, year: absYear, state: stName }); } catch (e) {} }, "icon-ask-sa"],
-    ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
     [(soundOn ? "Sound: on" : "Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }, "icon-sound"],
     ["⛶ Fullscreen", () => { try { window.SOP_fullscreen && window.SOP_fullscreen(); } catch (e) {} }],
   ].concat(VATAR && window.SOP_canBuy && window.SOP_canBuy() ? [["🔁 Second Chance" + ((window.SOP_ENTS || {}).second_chance > 0 ? " (" + window.SOP_ENTS.second_chance + " ready)" : ""), buySecondChance]] : []).filter(([l]) => !(VATAR && /Fullscreen/.test(l)));
@@ -12176,7 +12188,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
   // ── Rendering ──
   const G = g;
   const Frame = ({ bg, who, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "16px 16px 120px" : "36px 43px" }}>
-    <Flag />
+    <HomeBar onExit={onExit} />
     <div style={{ maxWidth: 900, margin: "0 auto" }}>
       {bg && <SceneArt bg={bg} who={who} h={TALL() ? 170 : 230} />}
       {children}
@@ -12496,7 +12508,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   // ── Rendering ──
   const G = g;
   const Frame = ({ bg, scene, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
-    <Flag />
+    <HomeBar onExit={onExit} />
     <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <CareerHero bg={bg} scene={scene} who={w} />}{children}</div>
   </div>;
   const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
@@ -12811,7 +12823,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   // ── Rendering ──
   const G = g;
   const Frame = ({ bg, scene, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
-    <Flag />
+    <HomeBar onExit={onExit} />
     <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <CareerHero bg={bg} scene={scene} who={w} />}{children}</div>
   </div>;
   const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
@@ -13038,7 +13050,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   // ── Rendering ──
   const G = g;
   const Frame = ({ bg, scene, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
-    <Flag />
+    <HomeBar onExit={onExit} />
     <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <CareerHero bg={bg} scene={scene} who={w} />}{children}</div>
   </div>;
   const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
@@ -13371,6 +13383,7 @@ function App() {
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
       {scr === "title" && <TitleScreen onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "setup" && <button onClick={async () => { if (await window.SOP_confirm("Leave the campaign?\n\nIt is not saved until you take office: next time you start the campaign again.", "Go to the home screen", "Keep campaigning")) rst(); }} aria-label="Home screen" style={{ position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 8px)", right: 10, zIndex: 70, background: "rgba(255,255,255,.92)", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "6px 12px", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: CL.txt, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}>🏠 Home</button>}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>

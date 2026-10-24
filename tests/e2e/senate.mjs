@@ -31,7 +31,7 @@ for (let i = 0; i < 160; i++) {
     const fund = [...document.querySelectorAll("button")].filter(b => /^⬜/.test(b.textContent.trim()) && !b.disabled);
     if (fund.length && ![...document.querySelectorAll("button")].some(b => /^☑️/.test(b.textContent.trim()))) { fund[0].click(); return "fund pick"; }
     const pref = [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && /^(🗳️|Approve the projects|Next session|Go home and face|🟩|⚖️Lead the override|🎤|•|📜|Count the votes|See how it ends)/.test(b.textContent.trim()));
-    const any = pref || [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && !/^(☰|‹|Back|✕|📘)/.test(b.textContent.trim()) && b.textContent.trim().length > 3);
+    const any = pref || [...document.querySelectorAll("button")].find(b => b.offsetParent && !b.disabled && !/^(🏠|☰|‹|Back|✕|📘)/.test(b.textContent.trim()) && b.textContent.trim().length > 3);
     if (any) { any.click(); return any.textContent.trim().slice(0, 40); }
     return null;
   });
