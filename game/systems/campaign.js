@@ -18,17 +18,18 @@ export const campaignAdvice = ({ zones = [], week = 1, picks = [], ok = () => tr
   const order = zones.map((z, i) => ({ z, s: shares[i] })).sort((a, b) => a.s - b.s);
   const weak = order[0], gap = Math.max(0, 50 - state);
   const usable = picks.filter(m => ok(m) && (m.pts || m.your));
-  const score = (m) => lift(m, weak.z) * 1.6 + zones.reduce((a, z) => a + lift(m, z), 0) * .5 + (m.answer ? 4 : 0) + (m.pts || 0) * .3 - (m.cost || 0);
+  // An attack left unanswered sticks, so answering comes first; a move that leaves you owing favours counts against.
+  const score = (m) => lift(m, weak.z) * 1.6 + zones.reduce((a, z) => a + lift(m, z), 0) * .5 + (m.answer ? 12 : 0) + (m.pts || 0) * .3 - (m.cost || 0) - (m.corAdd ? 3 : 0);
   const best = usable.slice().sort((a, b) => score(b) - score(a))[0] || null;
-  const name = best ? best.l.replace(/^\S+\s/, "") : null;
-  const where = best && best.target !== "all" && best.target === weak.z.id ? " It goes straight to " + zname(weak.z) + "." : best && best.target === "all" ? " It lifts every zone at once." : "";
-  const standing = state >= 53 ? "You lead (" + state + "%)." : state >= 50 ? "You are just ahead (" + state + "%): one bad week and it flips." : "You are behind: " + state + "% to " + (100 - state) + "%.";
-  const zoneLine = weak.s < 50 ? " You are losing " + zname(weak.z) + " (" + weak.s + "%); that is where this race is decided." : " Your weakest zone is " + zname(weak.z) + " (" + weak.s + "%).";
-  const last = week >= 4 ? (state < 50 ? " This is the last week. Put everything into " + zname(weak.z) + ", or we lose." : " Last week: protect the lead and get our voters out.") : "";
-  const ans = best && best.answer ? " They attacked us: answer it, or it sticks." : "";
+  const name = best ? best.l.replace(/^\S+\s/, "") : null, Z = "the " + zname(weak.z), free = best && !(best.cost > 0);
+  // She speaks as a counsellor: where we stand, where it is slipping, what to do and why it works.
+  const standing = state >= 53 ? "we lead, " + state + "%." : state >= 50 ? "we are just ahead, " + state + "%: one bad week and it flips." : "we are behind, " + state + "% to " + (100 - state) + "%.";
+  const zoneLine = weak.s < 50 ? " We are losing " + Z + " (" + weak.s + "%), and that is where this race is decided." : " " + Z.replace(/^the/, "The") + " is our weakest zone (" + weak.s + "%).";
+  const why = !best ? "" : best.answer ? " They attacked us: the " + name + " answers them before it sticks." : best.target === "all" ? " The " + name + " reaches every zone, " + Z + " included" + (free ? ", and it costs nothing." : ".") : best.target === weak.z.id ? " The " + name + " goes straight to " + Z + "." : " The " + name + " is the strongest move we can afford this week.";
+  const close = !best ? " We cannot afford a strong move: sit this week out and keep the money." : week >= 4 ? (state < 50 ? " This is the last week. Do this and we can still win." : " Last week: do this and we hold the lead to the end.") : state < 50 ? " Do this and we close the gap." : " That is how we win this.";
   return {
-    say: (isOpp ? "They have moved. " : "") + standing + zoneLine + last + (best ? " My advice: " + name + "." + where + ans : " We cannot afford a strong move; sit out and save the money."),
-    pick: best ? best.l : null, mood: state < 48 ? "worried" : state > 52 ? "pleased" : "neutral", state, weakest: zname(weak.z), behind: gap,
+    say: "Your Excellency, " + (isOpp ? "they have moved, and " : "") + standing + zoneLine + why + close,
+    pick: best ? best.l : null, name, mood: state < 48 ? "worried" : state > 52 ? "pleased" : "neutral", state, weakest: zname(weak.z), behind: gap,
   };
 };
 

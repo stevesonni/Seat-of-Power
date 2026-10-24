@@ -61,7 +61,7 @@ export async function runCampaign(g) {
   for (let i = 0; i < 220; i++) {
     const t = await g.txt();
     if (/GOVERNOR-ELECT|DEFEATED/.test(t)) return /GOVERNOR-ELECT/.test(t) ? "won" : "lost";
-    await g.page.evaluate(() => { const bad = /^‹$|^\?$|Sound|Skip|Help|Start over|Restart|again|Borrow|godfather|Petition|Tribunal|Menu|☰|Run with no money|Home|afresh/i; const els = [...document.querySelectorAll("button, [role=button], div, li")].filter(e => e.offsetParent && getComputedStyle(e).cursor === "pointer" && !e.disabled && !bad.test(e.textContent.trim()) && e.textContent.trim().length < 300); const pref = els.find(b => /^(Continue|Next|See|Count|Okay|Results|Proceed|Close|Got it|Done|Confirm|Go)/i.test(b.textContent.trim())); const b = pref || els[els.length - 1]; b && b.click(); });
+    await g.page.evaluate(() => { const bad = /^‹$|^\?$|Sound|Skip|Help|Start over|Restart|again|Borrow|godfather|Petition|Tribunal|Menu|☰|Run with no money|Home|afresh/i; const els = [...document.querySelectorAll("button, [role=button], div, li")].filter(e => e.offsetParent && getComputedStyle(e).cursor === "pointer" && !e.disabled && !bad.test(e.textContent.trim()) && e.textContent.trim().length < 300); const pref = els.find(b => /^(Do it|Continue|Next|See|Count|Okay|Results|Proceed|Close|Got it|Done|Confirm|Go)/i.test(b.textContent.trim())); const b = pref || els[els.length - 1]; b && b.click(); });
     await g.wait(250);
   }
   return "stuck";
@@ -79,7 +79,7 @@ export async function takeOffice(g) {
    House vote, policies, end of year, continue; otherwise the first offered
    choice (a button, or a clickable choice card). Returns the click log. */
 const SKIP = /^(🏠|🗑️|🔀 Restructure|☰|Compound|Govern|Today|News|Desk|Map|State|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Council|Personas|Public|Stakeholders|Money|💰 Treasury|Treasury|Economy|Contracts|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|🤵 Ask your SA$|Ask your SA$|Hide$|Less$|▼$|▲$|Open the council$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
-const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound|Open the Treasury|Watch them decide|Not now)$/, /^✍️ Handle it personally$/, /^.{6,}(›|❗)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Create and swear in/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/, /^(✍️ )?Sign$/];
+const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound|Open the Treasury|Watch them decide|Not now)$/, /^Do it: /, /^✍️ Handle it personally$/, /^.{6,}(›|❗)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Create and swear in/, /^Convene the council$/, /^Submit to the House of Assembly/, /^🗳️ Call the vote/, /^Proceed to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/, /^(✍️ )?Sign$/];
 export async function playUntil(g, until, { max = 400, prefer = [], log = false } = {}) {
   const clicks = [];
   for (let i = 0; i < max; i++) {

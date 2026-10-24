@@ -2039,14 +2039,14 @@ const OL = ({ children, show }) => {
 };
 
 // Special Adviser speech bubble — shows for ALL levels
-const AdvBubble = ({ text, saName }) => {
+const AdvBubble = ({ text, saName, full }) => {
   if (!text) return null;
   return React.createElement("div", { className: "sop-slide-up", style: { display: "flex", gap: 14, alignItems: "flex-start", marginBottom: DS.s[4], borderRadius: 24, background: "#fff", border: "1px solid " + UI.line, padding: TALL() ? "14px 16px" : "18px 22px", textAlign: "left" } },
     React.createElement("div", { style: { width: 64, height: 64, flexShrink: 0, borderRadius: 32, overflow: "hidden", background: UI.tints[2] } },
       React.createElement("img", { src: saPortrait(saName), alt: String(saName || "Special Adviser"), style: { width: "100%", height: "140%", objectFit: "cover", objectPosition: "top" } })),
     React.createElement("div", { style: { flex: 1, minWidth: 0 } },
       React.createElement("div", { style: { fontSize: DS.t.meta, fontWeight: 700, color: UI.green, marginBottom: 4 } }, saName ? "Your adviser, " + saName : "Your adviser"),
-      React.createElement("div", { style: { fontSize: DS.t.body, color: UI.ink, lineHeight: 1.5, fontFamily: F.b } }, briefly(text, 90))
+      React.createElement("div", { style: { fontSize: DS.t.body, color: UI.ink, lineHeight: 1.5, fontFamily: F.b } }, full ? text : briefly(text, 90))
     )
   );
 };
@@ -3028,6 +3028,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   useEffect(() => { if (!mode || mode.kind !== "challenge" || chDone.current) return; if (st !== mode.state) { setSt(mode.state); return; } chDone.current = true; setLevel && setLevel("medium"); quickStart(); }, [st, mode]);
   // The Special Adviser is the player's choice (step 25), never a default.
   const [saName, setSaName] = useState(null);
+  const advisedRound = React.useRef(-1); // the campaign round the adviser last spoke in
   // The comeback with the old team: every choice as it was; straight to the ticket.
   const comebackDone = React.useRef(false);
   useEffect(() => {
@@ -3666,7 +3667,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
             </div>
           </Cd>}
 
-          {(() => { const adv = SYS.campaignAdvice({ zones: activeZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); return adv && <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={saName} /></div>; })()}
+          {(() => { const adv = SYS.campaignAdvice({ zones: activeZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); if (!adv) return null;
+            // Each new week the adviser steps forward (full screen) with her advice, and can act on it for you.
+            const best = adv.pick && opts.find(o => o.l === adv.pick);
+            if (advisedRound.current !== sCampRound) { advisedRound.current = sCampRound; setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(saName, adv.mood === "worried" ? "worried" : adv.mood === "pleased" ? "pleased" : "neutral") || saPortrait(saName), name: (saName || "Your adviser") + " · Special Adviser", text: adv.say, ok: best ? "Do it: " + adv.name : "Understood", fn: best ? () => { track("camp_advice", "followed"); handleSC(best); } : undefined, alt: best ? "I'll choose myself" : undefined } }); } catch (e) {} }, 350); }
+            return <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={saName} full /></div>; })()}
           <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(400px, 1fr))", gap: 14 }}>
             {(() => { const adv = SYS.campaignAdvice({ zones: activeZones, week, picks: opts.filter(o => o !== sitOut), ok: canTake, isOpp }); return opts.map((opt, i) => { const ok = opt === sitOut || canTake(opt); const cost = optCost(opt);
               return <CampaignMove key={i} opt={{ ...opt, zoneLabel: zoneLabel(opt.target) }} ok={ok} why={cost > warChest + 1e-9 ? "Not enough money" : ""} boosted={sloganDef(slogan)?.boost.test(opt.l)} advised={!!adv && adv.pick === opt.l} onPick={() => handleSC(opt)} />; }); })()}
@@ -4862,6 +4867,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [tribunal, setTribunal] = useState(null); // { level, groundId, cost, spent, log, oppName, oppPartyId, margin }
   const [mediaSeen, setMediaSeen] = useState(ld?.mediaSeen || []);
   const [campRound, setCampRound] = useState(0);
+  const reAdvised = React.useRef(-1); // the re-election round the adviser last spoke in
   const [campScore, setCampScore] = useState(0);
   const [campOpp, setCampOpp] = useState(0);
   const [campLog, setCampLog] = useState([]);
@@ -11194,7 +11200,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 })()}
               </div>
               {(() => { const picks = weekPicks(weekActs, week > 1 ? (oppEvs[week - 2] || {}).opts : null, canTake, sitOut), adv = SYS.campaignAdvice({ zones: activeReZones, week, picks: picks.filter(o => o !== sitOut), ok: canTake });
-                return <>{adv && <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={cast.adviser.name} /></div>}
+                const best = adv && adv.pick && picks.find(o => o.l === adv.pick);
+                if (adv && reAdvised.current !== campRound) { reAdvised.current = campRound; setTimeout(() => present(adv.say, adv.mood === "worried" ? "worried" : adv.mood === "pleased" ? "pleased" : "neutral", best ? () => { track("camp_advice", "followed"); handleChoice(best); } : undefined, best ? "Do it: " + adv.name : "Understood", best ? "I'll choose myself" : undefined), 350); }
+                return <>{adv && <div style={{ marginBottom: 12 }}><AdvBubble text={adv.say} saName={cast.adviser.name} full /></div>}
                   <div style={moveGrid}>{picks.map((act, i) => <OptCard key={i} opt={act} advised={!!adv && adv.pick === act.l} />)}</div></>; })()}
               {/* Broke — choose to withdraw OR run with no funds (80/20 loss) */}
               {campWarChest < 0.05 && (campGfBorrowed || godfatherRel <= 30) && <div style={{ display: "grid", gap: 22, marginTop: 22 }}>

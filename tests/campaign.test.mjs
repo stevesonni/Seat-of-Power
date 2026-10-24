@@ -7,7 +7,7 @@ const picks = [{ l: "📺 Live Debate", target: "all", your: 2, opp: -1, pts: 7,
 test("the adviser names the zone that decides the race and the move that wins it", () => {
   const a = campaignAdvice({ zones, week: 2, picks });
   assert.equal(a.weakest, "North"); assert.equal(a.pick, "🏘️ Door-to-Door Canvass");
-  assert.match(a.say, /losing North \(45%\)/); assert.match(a.say, /straight to North/);
+  assert.match(a.say, /^Your Excellency/); assert.match(a.say, /losing the North \(45%\)/); assert.match(a.say, /straight to the North/);
 });
 test("it never recommends what you cannot afford", () => {
   const a = campaignAdvice({ zones, week: 2, picks, ok: (m) => (m.cost || 0) < .3 });
@@ -16,12 +16,17 @@ test("it never recommends what you cannot afford", () => {
 test("the last week is plain about being behind", () => {
   const behind = zones.map(z => ({ ...z, support: z.support - 6, opp: z.opp + 6 }));
   const a = campaignAdvice({ zones: behind, week: 4, picks });
-  assert.match(a.say, /You are behind/); assert.match(a.say, /last week/); assert.equal(a.mood, "worried");
+  assert.match(a.say, /we are behind/); assert.match(a.say, /last week/); assert.equal(a.mood, "worried");
 });
 test("answering an attack is advised", () => {
   const a = campaignAdvice({ zones, week: 3, picks: [...picks, { l: "🎤 Press Conference", target: "all", your: 3, opp: -2, pts: 4, cost: 0, answer: true }] });
-  assert.equal(a.pick, "🎤 Press Conference"); assert.match(a.say, /answer it/);
+  assert.equal(a.pick, "🎤 Press Conference"); assert.match(a.say, /answers them/);
 });
 test("after the count, one sentence on why", () => {
   assert.match(electionWhy([{ zone: "North Senatorial", won: false, yourVotes: 40, oppVotes: 60 }, { zone: "South", won: true, yourVotes: 60, oppVotes: 40 }], false), /You lost North by 20 points/);
+});
+test("after an attack she says answer it, even over a strong zone move", () => {
+  const z = [{ id: 0, zone: "North", support: 48, opp: 52 }, { id: 1, zone: "Central", support: 55, opp: 45 }, { id: 2, zone: "South", support: 53, opp: 47 }];
+  const a = campaignAdvice({ zones: z, week: 2, picks: [{ l: "🧾 Publish Receipts", target: 0, your: 3, opp: -1, pts: 4, cost: .02, answer: true }, { l: "🤝 LGA Chair Coalition", target: 0, your: 7, opp: -3, pts: 4, cost: 0, corAdd: .02 }] });
+  assert.equal(a.pick, "🧾 Publish Receipts");
 });
