@@ -25,7 +25,7 @@ export const SECTORS = {
   roads: "Roads and transport", health: "Health facilities", education: "Schools and colleges", water: "Water and sanitation",
   energy: "Power", markets: "Markets and housing", security: "Security equipment", waste: "Waste", industry: "Industrial estates", sports: "Sports", tourism: "Tourism and culture",
 };
-export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports", esports: "sports", tourist: "tourism" };
+export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports", esports: "sports", tourist: "tourism", rail: "roads", airport: "roads", seaport: "industry", refinery: "industry", pipeline: "energy" };
 
 // Simulation unit costs (₦M) and typical duration. Assumptions for play, not
 // real tender prices.
@@ -38,6 +38,10 @@ export const UNIT = {
   cctv: { unit: "camera", per: 3, def: 400, years: 1, nm: "CCTV network" }, landfill: { unit: "site", per: 2500, def: 1, years: 2, nm: "Landfill" },
   industrial: { unit: "hectare", per: 60, def: 50, years: 2, nm: "Industrial park" }, stadium: { unit: "seat", per: .4, def: 10000, years: 3, nm: "Stadium" },
   esports: { unit: "gaming seat", per: 2.5, def: 800, years: 1, nm: "Esports arena" }, tourist: { unit: "site", per: 1800, def: 1, years: 2, nm: "Tourist attraction" },
+  // Federal only: the President builds these (game/systems/federal.js).
+  rail: { unit: "km", per: 6500, def: 120, years: 4, nm: "Standard-gauge railway" }, pipeline: { unit: "km", per: 900, def: 200, years: 3, nm: "Gas pipeline" },
+  refinery: { unit: "thousand-barrel capacity", per: 3200, def: 30, years: 3, nm: "Modular refinery" }, seaport: { unit: "berth", per: 22000, def: 4, years: 4, nm: "Deep seaport" },
+  airport: { unit: "terminal", per: 45000, def: 1, years: 3, nm: "Airport terminal" },
 };
 // Facilities that must be equipped and staffed to work.
 export const FACILITY = {
@@ -68,6 +72,7 @@ export const CONTRACTORS = [
   { id: "sentry", name: "Sentry Security Systems", sectors: ["security"], capacity: 3, price: 1, reliability: .85, speed: .9, quality: .8, integrity: .8, ties: null, note: "Vehicles, cameras and control rooms." },
   { id: "bastion", name: "Bastion Construction", sectors: ["roads", "education", "health", "markets", "sports", "water", "tourism"], capacity: 5, price: 1.12, reliability: .55, speed: .6, quality: .55, integrity: .4, ties: "party", note: "The party's favourite contractor. Will take any job." },
   { id: "rainbow", name: "Rainbow Ventures Ltd", sectors: Object.keys(SECTORS), capacity: 9, price: 1.4, reliability: .35, speed: .5, quality: .4, integrity: .1, ties: "family", nepotism: true, note: "Owned by your spouse's cousin." },
+  { id: "atlantic", name: "Atlantic Rail & Marine Consortium", sectors: ["roads", "energy", "industry"], capacity: 3, price: 1.1, reliability: .82, speed: .75, quality: .85, integrity: .75, ties: "federal", note: "Rail, ports and pipelines: the heavy federal work, with foreign partners." },
   { id: "muhammad", name: "Alhaji Muhammad & Sons Ltd", sectors: Object.keys(SECTORS), capacity: 9, price: 1.3, reliability: .45, speed: .55, quality: .45, integrity: .15, ties: "godfather", nepotism: true, note: "The godfather's front company." },
 ];
 export const contractorById = (id) => CONTRACTORS.find(c => c.id === id);
@@ -90,12 +95,18 @@ export const registerCompanies = (list = [], mineId = null) => {
 };
 
 // Who can bid for this project, and who cannot (and why).
-export const eligible = (type, projects = []) => {
+/* Every player's company gets seen (our promise): each tender shows your own,
+   the two most hired in the sector, and three more in rotation, so a new
+   company with no hires yet comes up in other players' tenders too. key (the
+   project's id) keeps one tender's list steady while it is open. */
+const hashStr = (t) => { let h = 2166136261; for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619); return h >>> 0; };
+export const rotatePick = (list, n, key) => list.map(c => [hashStr(key + ":" + c.id), c]).sort((a, b) => a[0] - b[0]).slice(0, n).map(x => x[1]);
+export const eligible = (type, projects = [], key = "") => {
   const sector = TYPE_SECTOR[type] || "roads";
   const busy = (id) => projects.filter(p => p.contractorId === id && p.status === "in_progress").length;
-  // Player companies: the three most hired in the sector (plus your own), listed first.
   const pc = CONTRACTORS.filter(c => c.player && !c.hidden && c.sectors.includes(sector)).sort((a, b) => (b.mine - a.mine) || (b.hires - a.hires));
-  const shown = pc.filter(c => c.mine).concat(pc.filter(c => !c.mine).slice(0, 3));
+  const others = pc.filter(c => !c.mine), top = others.slice(0, 2);
+  const shown = pc.filter(c => c.mine).concat(top, rotatePick(others.filter(c => !top.includes(c)), 3, String(key)));
   return shown.concat(CONTRACTORS.filter(c => !c.player && c.sectors.includes(sector))).map(c => ({ ...c, active: busy(c.id), full: busy(c.id) >= c.capacity }));
 };
 

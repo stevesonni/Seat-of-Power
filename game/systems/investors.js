@@ -8,18 +8,18 @@
 import { seeded } from "./rng.js";
 
 // How strongly each kind of project draws investors (0 = not at all).
-export const ATTRACTS = { industrial: 1, power: .9, dam: .6, road: .55, bridge: .45, tourist: .7, esports: .5, stadium: .4, housing: .5, market: .5, water: .35, vehicles: .3, hospital: .3, school: .2 };
+export const ATTRACTS = { rail: .8, seaport: .95, refinery: .9, pipeline: .85, airport: .7, industrial: 1, power: .9, dam: .6, road: .55, bridge: .45, tourist: .7, esports: .5, stadium: .4, housing: .5, market: .5, water: .35, vehicles: .3, hospital: .3, school: .2 };
 
 export const FIRMS = [
-  { id: "jinhai", flag: "🇨🇳", country: "China", nm: "Jinhai Morning Star Industries", head: "Zhou Wenhai, Chairman", kinds: ["industrial", "power", "dam", "road", "bridge", "housing"] },
-  { id: "huaxin", flag: "🇨🇳", country: "China", nm: "Huaxin Pearl River Machinery", head: "Liang Meiyu, Managing Director", kinds: ["industrial", "road", "bridge", "market", "vehicles"] },
-  { id: "larkspur", flag: "🇺🇸", country: "the United States", nm: "Larkspur Hill Capital", head: "Dana Whitfield, Partner", kinds: ["industrial", "power", "esports", "housing", "hospital"] },
+  { id: "jinhai", flag: "🇨🇳", country: "China", nm: "Jinhai Morning Star Industries", head: "Zhou Wenhai, Chairman", kinds: ["rail", "seaport", "pipeline", "industrial", "power", "dam", "road", "bridge", "housing"] },
+  { id: "huaxin", flag: "🇨🇳", country: "China", nm: "Huaxin Pearl River Machinery", head: "Liang Meiyu, Managing Director", kinds: ["rail", "airport", "industrial", "road", "bridge", "market", "vehicles"] },
+  { id: "larkspur", flag: "🇺🇸", country: "the United States", nm: "Larkspur Hill Capital", head: "Dana Whitfield, Partner", kinds: ["refinery", "airport", "industrial", "power", "esports", "housing", "hospital"] },
   { id: "bluemesa", flag: "🇺🇸", country: "the United States", nm: "Blue Mesa Agri-Foods Inc.", head: "Marcus Ellery, President", kinds: ["industrial", "dam", "road", "market", "water"] },
-  { id: "nordvik", flag: "🇸🇪", country: "Sweden", nm: "Nordvik Energi AB", head: "Ingrid Lindqvist, Chief Executive", kinds: ["power", "dam", "industrial", "water", "school"] },
-  { id: "holmgren", flag: "🇸🇪", country: "Sweden", nm: "Holmgren & Berg Components AB", head: "Erik Holmgren, Chairman", kinds: ["industrial", "vehicles", "road", "bridge", "hospital"] },
-  { id: "rheinfeld", flag: "🇩🇪", country: "Germany", nm: "Rheinfeld Werke GmbH", head: "Klaus Brenner, Managing Director", kinds: ["industrial", "power", "vehicles"] },
+  { id: "nordvik", flag: "🇸🇪", country: "Sweden", nm: "Nordvik Energi AB", head: "Ingrid Lindqvist, Chief Executive", kinds: ["pipeline", "refinery", "power", "dam", "industrial", "water", "school"] },
+  { id: "holmgren", flag: "🇸🇪", country: "Sweden", nm: "Holmgren & Berg Components AB", head: "Erik Holmgren, Chairman", kinds: ["seaport", "rail", "industrial", "vehicles", "road", "bridge", "hospital"] },
+  { id: "rheinfeld", flag: "🇩🇪", country: "Germany", nm: "Rheinfeld Werke GmbH", head: "Klaus Brenner, Managing Director", kinds: ["refinery", "pipeline", "industrial", "power", "vehicles"] },
   { id: "sakuradelta", flag: "🇯🇵", country: "Japan", nm: "Sakura Delta Motors", head: "Hiroshi Tanabe, President", kinds: ["industrial", "road", "vehicles"] },
-  { id: "alwaha", flag: "🇦🇪", country: "the United Arab Emirates", nm: "Al Waha Hospitality Group", head: "Omar Al Suwaidi, Chairman", kinds: ["tourist", "stadium", "esports", "housing", "market"] },
+  { id: "alwaha", flag: "🇦🇪", country: "the United Arab Emirates", nm: "Al Waha Hospitality Group", head: "Omar Al Suwaidi, Chairman", kinds: ["airport", "seaport", "tourist", "stadium", "esports", "housing", "market"] },
   { id: "coastlight", flag: "🇬🇧", country: "the United Kingdom", nm: "Coastlight Leisure plc", head: "Fiona Marsh, Chief Executive", kinds: ["tourist", "stadium", "esports", "hospital"] },
 ];
 
@@ -39,6 +39,11 @@ const WHAT = {
   vehicles: ["a bus assembly line for the new fleet"],
   hospital: ["a diagnostic centre beside the hospital"],
   school: ["a technical college partnership"],
+  rail: ["a dry port and freight terminal on the line", "a rolling-stock assembly plant"],
+  seaport: ["a container terminal at the port", "a shipping and logistics hub"],
+  refinery: ["a petrochemical plant beside the refinery", "a fuel distribution network"],
+  pipeline: ["a gas-fired power plant on the pipeline", "a fertiliser plant on the gas line"],
+  airport: ["a cargo terminal for perishable exports", "an airport hotel and maintenance hangar"],
 };
 
 /* The governance score the firms read (0–1): corruption weighs most, then

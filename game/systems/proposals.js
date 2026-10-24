@@ -6,8 +6,14 @@
    text gets one focused question; things a state government cannot build
    get an explanation instead of invented benefits. */
 import { UNIT, FACILITY, SECTORS, TYPE_SECTOR, estimate } from "./projects.js";
+const FED_ONLY = ["rail", "pipeline", "refinery", "seaport", "airport"];
 
 const TYPE_WORDS = [
+  ["rail", /\b(rail(way)?s?|trains?|standard[- ]gauge|metro line)\b/i],
+  ["pipeline", /\b(pipelines?|gas lines?)\b/i],
+  ["refinery", /\b(refiner(y|ies))\b/i],
+  ["seaport", /\b(seaports?|deep ?sea ports?|ports?|berths?|jett(y|ies))\b/i],
+  ["airport", /\b(airports?|terminals?|runways?)\b/i],
   ["esports", /\b(e-?sports?|gaming (arena|cent(re|er)|hub))\b/i],
   ["tourist", /\b(tourists?|tourism|resorts?|heritage sites?|museums?|beach(es)?|attractions?)\b/i],
   ["hospital", /\b(hospital|clinic|health ?cent(re|er)s?|phc|maternity|medical cent(re|er)|wards?|beds?)\b/i],
@@ -28,12 +34,14 @@ const TYPE_WORDS = [
 // Not within a state government's power, or not a capital project.
 const UNSUPPORTED = [
   [/\b(army|military|soldiers?|navy|air ?force)\b/i, "The armed forces are federal (Exclusive List). A state can fund vigilance groups or equipment for the police, not an army."],
-  [/\b(seaports?|ports? authority)\b/i, "Seaports are under federal control. A state can build roads to a port, not the port."],
+  [/\b(seaports?|ports? authority|deep ?sea ports?)\b/i, "Seaports are under federal control. A state can build roads to a port, not the port.", "gov"],
+  [/\b(railways?|standard[- ]gauge)\b/i, "Railways are on the Exclusive List: the Federal Government builds them. A state can fund a light rail only with federal approval.", "gov"],
   [/\b(nuclear|reactor)\b/i, "Nuclear power is federal and far beyond a state budget."],
   [/\b(print(ing)? money|currency)\b/i, "Only the Central Bank issues currency."],
-  [/\b(refiner(y|ies)|oil wells?)\b/i, "Refineries need federal licences and private investors; look out for investor proposals on the Desk."],
+  [/\b(refiner(y|ies)|oil wells?|gas pipelines?)\b/i, "Refineries need federal licences and private investors; look out for investor proposals on the Desk.", "gov"],
+  [/\b(boreholes?|street ?lights?|motor parks?|market stalls?)\b/i, "That is a state or local government's job. The Federal Government can fund it through the states, but not build it itself.", "fed"],
 ];
-const UNIT_WORDS = { hospital: /(\d[\d,]*)\s*(beds?)/i, school: /(\d[\d,]*)\s*(classrooms?|blocks?)/i, road: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)/i, bridge: /(\d+)\s*(bridges?)/i,
+const UNIT_WORDS = { rail: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)\s*(of )?(rail|railway|track)/i, pipeline: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)\s*(of )?(gas )?pipe/i, seaport: /(\d+)\s*(berths?)/i, hospital: /(\d[\d,]*)\s*(beds?)/i, school: /(\d[\d,]*)\s*(classrooms?|blocks?)/i, road: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)/i, bridge: /(\d+)\s*(bridges?)/i,
   water: /(\d[\d,]*)\s*(boreholes?|schemes?)/i, dam: /(\d+)\s*(dams?)/i, power: /(\d[\d,.]*)\s*(mw|megawatts?)/i, market: /(\d[\d,]*)\s*(stalls?|shops?)/i, housing: /(\d[\d,]*)\s*(homes?|houses|units|flats)/i,
   cctv: /(\d[\d,]*)\s*(cameras?)/i, vehicles: /(\d[\d,]*)\s*(vehicles?|vans?|ambulances?)/i, landfill: /(\d+)\s*(sites?|landfills?)/i, industrial: /(\d[\d,]*)\s*(hectares?|ha)\b/i, stadium: /(\d[\d,]*)\s*(seats?|capacity)/i };
 
@@ -54,13 +62,18 @@ const BENEFIT = {
   stadium: (q) => q.toLocaleString() + " seats; events bring visitors and some revenue.",
   esports: (q) => q.toLocaleString() + " gaming seats; tournaments draw young people and sponsors.",
   tourist: () => "A site that brings visitors, hotels and spending, if someone manages the tourists.",
+  rail: (q) => q + " km of railway: freight off the roads, cheaper food from the north, and passengers in hours, not days.",
+  pipeline: (q) => q + " km of gas pipeline: gas for power plants and factories along the route.",
+  refinery: (q) => (q * 1000).toLocaleString() + " barrels a day refined at home: fewer fuel imports, fewer queues.",
+  seaport: (q) => q + " deep-water berths: big ships dock here, and the Lagos ports breathe.",
+  airport: () => "A new terminal: more flights, more visitors, and cargo for exporters.",
 };
 
-export const parseProposal = (text, { lgas = [] } = {}) => {
+export const parseProposal = (text, { lgas = [], federal = false } = {}) => {
   const t = String(text || "").trim();
   if (t.length < 4) return { status: "clarify", question: "What do you want to build, and where?", choices: Object.keys(UNIT).slice(0, 8) };
-  for (const [re, why] of UNSUPPORTED) if (re.test(t)) return { status: "unsupported", why };
-  const hits = TYPE_WORDS.filter(([, re]) => re.test(t)).map(([k]) => k);
+  for (const [re, why, who] of UNSUPPORTED) if ((!who || who === (federal ? "fed" : "gov")) && re.test(t)) return { status: "unsupported", why };
+  const hits = TYPE_WORDS.filter(([k, re]) => (federal || !FED_ONLY.includes(k)) && re.test(t)).map(([k]) => k);
   if (!hits.length) return { status: "clarify", question: "Which of these is it closest to? The state can build these kinds of projects.", choices: ["road", "hospital", "school", "water", "power", "market", "housing", "cctv"] };
   // "beds" alone is a hospital, "road to the hospital" is a road: prefer the type named with a number, then the first match.
   const numbered = hits.find(k => UNIT_WORDS[k] && UNIT_WORDS[k].test(t));

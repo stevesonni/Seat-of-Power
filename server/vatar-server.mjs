@@ -74,6 +74,8 @@ const cosNow = () => (cos = cos || readCos());
 setInterval(() => { if (!cosDirty) return; cosDirty = false; try { fs.mkdirSync(DATA, { recursive: true }); const tmp = COMPANIES + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(cos)); fs.renameSync(tmp, COMPANIES); } catch (e) { cosDirty = true; } }, 5000).unref();
 const myCo = (id) => Object.values(cosNow()).find(c => c.owner === id) || null;
 const coPublic = (c) => ({ id: c.id, name: c.name, sector: c.sector, hires: Object.keys(c.hiredBy || {}).length });
+// Times other governors used it (one per hiring player per day), and how many of those the owner has been told about.
+const coUses = (c) => Object.values(c.hiredBy || {}).reduce((a, n) => a + n, 0);
 // Play time for the insights page: totals, average, median, spread, longest players.
 const hm = (sec) => { const m = Math.round(sec / 60); return m < 60 ? m + "m" : Math.floor(m / 60) + "h " + (m % 60) + "m"; };
 const playSummary = (S) => {
@@ -273,8 +275,9 @@ const api = {
   // Player companies: the visible list, which one is mine, and fees waiting.
   "/api/company/list": async (b, id) => {
     const C = cosNow(), mine = myCo(id);
-    const list = Object.values(C).filter(c => !c.hidden).map(coPublic).sort((a, b) => b.hires - a.hires).slice(0, 300);
-    return { list, mine: mine ? { ...coPublic(mine), hidden: !!mine.hidden, owedM: Math.min(PAYOUT_CAP_M, mine.earnM - mine.paidM) } : null };
+    // Every visible company, so every one can come up in other players' tenders.
+    const list = Object.values(C).filter(c => !c.hidden).map(coPublic).sort((a, b) => b.hires - a.hires).slice(0, 3000);
+    return { list, mine: mine ? { ...coPublic(mine), hidden: !!mine.hidden, owedM: Math.min(PAYOUT_CAP_M, mine.earnM - mine.paidM), uses: coUses(mine), told: mine.told || 0 } : null };
   },
   // Register (one company_registration credit), or rename: free when we hid the old name.
   "/api/company/register": async (b, id) => withP(id, (p) => {
@@ -298,6 +301,12 @@ const api = {
     if (c.hireDays[who2] === day) return { ok: true };
     c.hireDays[who2] = day; c.hiredBy[who2] = (c.hiredBy[who2] || 0) + 1; c.earnM += FEE_PER_HIRE_M; cosDirty = true;
     return { ok: true };
+  },
+  // The owner has seen the "your company was used N times" notice.
+  "/api/company/told": async (b, id) => {
+    const c = myCo(id); if (!c) return { ok: true };
+    c.told = coUses(c); cosDirty = true;
+    return { ok: true, told: c.told };
   },
   // The owner draws their fees into a new campaign (up to the cap at a time).
   "/api/company/claim": async (b, id) => {

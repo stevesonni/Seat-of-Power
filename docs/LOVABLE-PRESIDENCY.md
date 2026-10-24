@@ -102,3 +102,105 @@ Before every trip abroad, the President's pilot meets them at the Presidential A
 
 ## Scene (`scenes/`): 1280×720, no text
 3. `air-fleet-hangar`: **inside** the Presidential Air Fleet's hangar: a green-and-white presidential jet with its steps down, a red carpet running to the steps, two ground crew in overalls, warm floodlights, the hangar doors open to a dusk sky. No people in the foreground: the pilot stands in front of this picture.
+
+---
+
+# Pack 18: the Federal Government (the big presidency pack)
+
+> **Delivered: Pack 17** (the pilot, saluting and pleased, and the Air Fleet hangar). He now meets the President in the hangar before every trip.
+
+The presidency now has its own government: federal ministries (including the FCT Minister), national programmes, bills for the National Assembly, executive orders, the Assembly's own bills, revenue measures and national projects (railways, seaports, refineries, pipelines, airports). Each needs its own picture, so it stops borrowing the governor's. Please send one zip, every file named exactly as listed.
+
+**Rules:** the game's painted style; all people fictional (no real presidents, ministers, governors or lookalikes); no real coats of arms, logos, agency crests or flags (green-white-green is fine); real places may be suggested plainly, with no signage. Decision pictures and scenes are **1280×720 with no text**. Characters are on a transparent background, about 700 px tall, with moods as the same person in the same outfit.
+
+## 1. Decision pictures (`decisions/`), one per federal choice
+Programmes:
+- `f_school_feed`: women cooking in big pots in a schoolyard, pupils queuing with plates.
+- `f_cash`: an elderly woman checking a bank alert on a phone outside a village bank agent's kiosk.
+- `f_student_loans`: university students at laptops filling in a loan application, a campus behind.
+- `f_nhia`: a mother showing a health insurance card at a clinic reception.
+- `f_ippis`: federal workers queuing to have their fingerprints scanned at a ministry.
+- `f_police_recruit`: a passing-out parade of new police officers on a training ground.
+- `f_jobs_corps`: young graduates in matching vests teaching, nursing and farming (three small vignettes in one scene).
+- `f_grid`: linemen on a new high-voltage transmission tower at sunset.
+- `f_anchor`: farmers collecting seed and fertiliser sacks from a lorry, a grain silo behind.
+- `f_state_police`: a new state police unit in a distinct uniform at a launch ceremony.
+- `f_national_id`: a family enrolling for ID cards: a photo booth and a fingerprint pad.
+- `f_primary_health`: a renovated ward clinic with solar panels, a midwife at the door.
+- `f_coastal`: a new highway running along the Atlantic coast, palm trees and a lagoon.
+- `f_rail`: a modern standard-gauge train crossing the savannah.
+- `f_gas`: a large gas pipeline being laid across open country, welders at work.
+- `f_refinery`: a modular refinery on a creek in the Niger Delta, workers in overalls.
+- `f_second_bridge`: a long new cable-stayed bridge over a wide brown river.
+- `f_mambilla`: a huge hydro dam in green highlands, water thundering from the spillway.
+
+Bills (sent to the National Assembly):
+- `f_electoral`: a presiding officer uploading a result sheet from a tablet at a polling unit.
+- `f_pib`: an oil platform at sea and a community meeting on shore.
+- `f_state_police_amend`: senators debating in the red chamber.
+- `f_tax`: a market trader paying tax on her phone.
+- `f_whistle`: a civil servant slipping a folder to a journalist in a car park at night.
+- `f_lg_autonomy`: a local council chairman receiving a cheque, councillors clapping.
+- `f_min_wage`: labour union members celebrating with placards.
+- `f_poca`: officers sealing a mansion with a "forfeited" tape (no text: a plain tape).
+- `f_electricity`: a state-owned power plant opening, a governor cutting a ribbon.
+- `f_mining`: mining marshals raiding an illegal gold pit.
+- `f_disability`: a wheelchair user going up a new ramp into a federal building.
+- `f_not_too_young`: a young candidate addressing a crowd of young people.
+
+Executive orders:
+- `f_eo_business`: an investor receiving a permit across a counter, a fast clock on the wall.
+- `f_eo_tsa`: a Central Bank vault-and-ledger scene, accounts closing on screens.
+- `f_eo_local`: a factory floor making Nigerian goods, crates being loaded.
+- `f_eo_medical`: a minister being treated in a Nigerian teaching hospital.
+- `f_eo_visa`: African travellers at an arrivals desk, a stamp coming down.
+- `f_eo_border`: customs officers and soldiers at a closed land-border gate, lorries queuing.
+- `f_eo_food`: grain sacks released from a strategic reserve warehouse onto trucks.
+- `f_eo_assets`: investigators freezing a luxury car fleet with clamps.
+- `f_eo_merge`: civil servants carrying boxes out of an agency office.
+- `f_eo_lg_funds`: a council treasurer reading a bank alert, surprised and pleased.
+- `f_eo_curfew`: soldiers and police at a joint checkpoint on a highway at dusk.
+- `f_eo_power`: engineers fast-tracking a substation, cranes at work.
+
+The National Assembly's bills (sign or veto):
+- `nb_constituency`: a lawmaker cutting a ribbon on a small borehole in front of a banner.
+- `nb_nddc`: an abandoned, overgrown project site in the creeks.
+- `nb_pensions`: retired lawmakers in agbada at a pension office, ordinary pensioners queuing outside.
+- `nb_peace_corps`: young people in a new uniform marching.
+- `nb_social_media`: a young woman looking at a phone showing a blocked page.
+- `nb_disabilities`: students on a federal university campus, a fees office.
+
+Revenue measures:
+- `f_customs`: a container scanner at a seaport, a truck passing through.
+- `f_oil_theft`: an illegal refinery in a creek being destroyed, smoke rising.
+- `f_vat`: a supermarket checkout with a till receipt.
+- `f_assets`: an auction room, a federal building on a screen.
+
+## 2. Characters (`characters/`), each with `-pleased` and `-angry`
+- `fct-minister`: the Minister of the FCT, in a well-cut suit, holding a land title.
+- `finance-minister`: a woman technocrat in a dark suit and headwrap.
+- `petroleum-minister`: a man in a white kaftan with a hard hat under his arm.
+- `defence-minister`: a retired general in a civilian suit.
+- `attorney-general`: in a dark suit, holding the Constitution.
+- `national-security-adviser`: a stern man in a suit with an earpiece.
+- `presidential-chief-of-staff`: an older man in agbada with a folder.
+- `speaker-of-the-house`: the Speaker of the House of Representatives, in agbada.
+- `labour-leader`: the national labour union president, in a union T-shirt with a megaphone.
+- `oil-community-leader`: a Niger Delta community chief in a wrapper and bowler hat.
+
+## 3. Scenes (`scenes/`)
+- `federal-project-commissioning`: the President cutting a ribbon at a new railway station, crowds and a train behind.
+- `executive-order-signing`: the President signing an order at the Villa desk, ministers watching.
+- `bill-assent`: the President signing a bill into law, the Senate President and the Speaker watching.
+- `veto-override`: both chambers of the National Assembly voting together, hands raised.
+- `port-congestion`: miles of container trucks queued on a port road.
+- `labour-strike`: a nationwide strike: a shuttered city and a labour march.
+- `campus-shut`: an empty federal university campus during a lecturers' strike.
+- `abuja-skyline`: the capital at dusk, with a domed assembly building and modern towers (no real landmarks' signs).
+- `presidential-media-chat`: the President answering journalists in the Villa press room.
+
+## 4. Objects (`objects/`), transparent, about 1000 px
+- `executive-order-folder`: a green leather folder with a gold eagle (fictional) and a pen.
+- `assent-pen`: a heavy gold fountain pen on a stand.
+- `national-id-card`: a plain green-and-white ID card (no real design).
+- `federation-account-ledger`: a big ledger book with a calculator.

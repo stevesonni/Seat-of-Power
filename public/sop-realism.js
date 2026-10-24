@@ -367,7 +367,10 @@
   function initMinistries(SOP) {
         const seed = (SOP.state?.length||1)*77;
         const mandates = SOP.setup?.gfMandates || [];
-        const mins = DEFAULT_MINISTRIES.map((m, i) => {
+        // The President's cabinet: the same ten seats, as federal ministries.
+        const FED = SOP.state === "Nigeria" && window.SOP_SYS && window.SOP_SYS.FED_CORE, FED_ICON = { sec: "🎖️", lg: "🛂", just: "⚖️" };
+        const base = FED ? DEFAULT_MINISTRIES.map(m => ({ ...m, name: FED[m.id] || m.name, icon: FED_ICON[m.id] || m.icon, staff: m.staff * 8 })) : DEFAULT_MINISTRIES;
+        const mins = base.map((m, i) => {
           const mandate = mandates.find(x => x.type === "commissioner" && x.ministryId === m.id);
           return { ...m, minister: mandate?.name || newNpc(SOP.state, seed + i*13, "Commissioner").name, permSec: newNpc(SOP.state, seed + i*29 + 5, "Permanent Secretary").name, loyalty: mandate ? 88 : 45 + ((seed + i * 17) % 45), cor: mandate ? Math.max(m.cor, 52) : m.cor, godfatherMandate: mandate || null };
         });

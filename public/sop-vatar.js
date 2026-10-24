@@ -120,6 +120,7 @@
     });
   };
   window.SOP_companyHire = function (id) { ready.then(function (on) { if (on) return call("/api/company/hire", { id: id }); }).catch(function () {}); };
+  window.SOP_companyTold = function () { ready.then(function (on) { if (on) return call("/api/company/told"); }).catch(function () {}); };
   window.SOP_companyClaim = function () { return ready.then(function (on) { if (!on) return null; return call("/api/company/claim"); }).catch(function () { return null; }); };
   // Anonymous choice tallies (what players pick, not who they are). Batched.
   var trackQ = [], trackT = null;

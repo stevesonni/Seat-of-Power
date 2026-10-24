@@ -39,6 +39,10 @@ const RULES = [
   [/\bGovernorship Election Tribunal\b/g, "Court of Appeal"],
   // The President is Abuja: the federal government's own share of oil and VAT.
   [/\bFAAC from Abuja\b/g, "Federal share of oil and VAT"],
+  [/\bTraditional Rulers Council\b/g, "National Council of Traditional Rulers"],
+  [/\bUnder state law, the Governor is patron-in-chief\b/g, "By convention, the President is its patron"],
+  [/\bPick a local government\b/g, "Pick a state"],
+  [/\bNo local government named\b/g, "No state named"],
   [/\bState House Report\b/g, "Nigeria Tonight"],
   [/\bState House of Assembly\b/g, "National Assembly"],
   [/\bHouse of Assembly\b/g, "National Assembly"],
