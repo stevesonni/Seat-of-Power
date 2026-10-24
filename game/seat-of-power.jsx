@@ -199,7 +199,7 @@ const cl100 = (v) => Math.max(0, Math.min(100, v));
 const rng = (s) => { let x = ((Math.abs(s) + 1) % 2147483647) || 1; return () => { x = (x * 16807) % 2147483647; return (x - 1) / 2147483646; }; };
 const pick = (a, r) => a[Math.floor(r() * a.length)];
 const ri = (a, b, r) => Math.floor(a + r() * (b - a + 1));
-const naira = (v) => "₦" + (typeof v === "number" ? v.toFixed(1) : v) + "B";
+const naira = (v) => typeof v === "number" && Math.abs(v) >= 1000 ? "₦" + (v / 1000).toFixed(2) + "T" : "₦" + (typeof v === "number" ? v.toFixed(1) : v) + "B";
 const ZONES = { SW: "South-West", SS: "South-South", SE: "South-East", NW: "North-West", NE: "North-East", NC: "North-Central" };
 const ZC = { SW: "#f59e0b", SS: "#06b6d4", SE: "#22c55e", NW: "#ef4444", NE: "#8b5cf6", NC: "#ec4899" };
 const mkS = (p, i, f, l, n, s, h, a, u, pv, z, d, desc, iss) => ({
@@ -319,7 +319,19 @@ const STATE_LGAS = {
 };
 
 const ZONE_LABELS = ["North Senatorial", "Central Senatorial", "South Senatorial"];
+// The presidency runs on the governorship's engine with Nigeria as the polity:
+// its "LGAs" are the 36 states and the FCT, its zones the six geopolitical zones.
+const NATION = "Nigeria";
+const NATION_ZONES = ["North-West", "North-East", "North-Central", "South-West", "South-East", "South-South"];
+const NATION_ZONE_IDS = ["NW", "NE", "NC", "SW", "SE", "SS"];
+const zonesOf = (state) => state === NATION ? NATION_ZONES : ZONE_LABELS;
 const getLGAs = (state) => STATE_LGAS[state] || [];
+/* Nigeria as a polity: kept out of Object.keys (so no state picker, map or
+   leaderboard ever lists it) but readable as STATES.Nigeria. The money is the
+   Federal Government's: independent revenue and its share of the Federation
+   Account, about nine times the largest state's. */
+Object.defineProperty(STATES, NATION, { enumerable: false, value: mkS(220, 240, 380, .62, .40, .38, .40, .50, .33, .46, "NC", "Extreme", "The Federal Republic.", ["insecurity", "fuel and power", "the naira"]) });
+Object.defineProperty(STATE_LGAS, NATION, { enumerable: false, value: Object.keys(STATES) });
 // Real senatorial districts where they are entered (index 0 North, 1 Central,
 // 2 South); elsewhere the state's LGAs are dealt into three groups.
 const SENATORIAL = {
@@ -327,7 +339,7 @@ const SENATORIAL = {
         ["Esan Central", "Esan North-East", "Esan South-East", "Esan West", "Igueben"],
         ["Egor", "Ikpoba-Okha", "Oredo", "Orhionmwon", "Ovia North-East", "Ovia South-West", "Uhunmwonde"]],
 };
-const lgaCluster = (lgas, idx) => { const st = Object.keys(STATE_LGAS).find(k => STATE_LGAS[k] === lgas); if (st && SENATORIAL[st]) return SENATORIAL[st][idx].filter(l => lgas.includes(l)); return lgas.filter((_, i) => i % 3 === idx); };
+const lgaCluster = (lgas, idx) => { const st = lgas === STATE_LGAS[NATION] ? NATION : Object.keys(STATE_LGAS).find(k => STATE_LGAS[k] === lgas); if (st === NATION) return lgas.filter(k => (k === "FCT" ? "NC" : STATES[k]?.zone) === NATION_ZONE_IDS[idx]); if (st && SENATORIAL[st]) return SENATORIAL[st][idx].filter(l => lgas.includes(l)); return lgas.filter((_, i) => i % 3 === idx); };
 const buildBattlegrounds = (state, seed, partyId, oppPartyId) => {
   const lgas = getLGAs(state);
   const r = rng(seed + state.length * 101 + (partyId || "").length * 17);
@@ -342,7 +354,7 @@ const buildBattlegrounds = (state, seed, partyId, oppPartyId) => {
     if (pid === "WPN") return (zoneInfo === "SE" || state === "Lagos") ? 1 : -3;
     return 0;
   };
-  return ZONE_LABELS.map((zone, idx) => {
+  return zonesOf(state).map((zone, idx) => {
     const names = lgaCluster(lgas, idx);
     const base = 43 + Math.round(r() * 14) + partyBias(partyId);
     const opp = 40 + Math.round(r() * 16) + partyBias(oppPartyId);
@@ -720,6 +732,7 @@ const BIO_JOBS = ["Former teacher","Ex-banker","Retired civil servant","Business
 const BIO_LINKS = ["connected to the state farmers association","with links to the market women alliance","known associate of the transport workers union","well-regarded by traditional rulers","active in the traders association","with strong ties to the youth council","connected to religious leaders across the state","known in the construction industry","with deep party connections at ward level","a protege of a former commissioner","linked to the civil service establishment","active in the women's cooperative network","with quiet influence at the Government Lodge","funded by a powerful contractors' cartel","trusted by the okada/keke riders union","raised in a prominent ruling-house compound"];
 
 function gN(r, zone, stateId) {
+  if (stateId === NATION) { const z = ZNAMES[pick(NATION_ZONE_IDS, r)] || ZNAMES.NC; return pick(z.fn, r) + " " + pick(z.ln, r); }
   if (stateId && SNAMES[stateId]) { const z = SNAMES[stateId]; return pick(z.fn, r) + " " + pick(z.ln, r); }
   const z = ZNAMES[zone] || ZNAMES.SW; return pick(z.fn, r) + " " + pick(z.ln, r);
 }
@@ -924,7 +937,7 @@ const PROMISE_TEXT = {
   security: (z) => "Safe roads and farms in " + z + " zone",
 };
 // FNV-1a: hashStr's ×31 keeps the letter sum mod 3, which piles names into one zone.
-const zoneOfName = (name) => { let h = 2166136261; for (const ch of String(name || "")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h % 3; };
+const zoneOfName = (name, n = 3) => { let h = 2166136261; for (const ch of String(name || "")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h % n; };
 const houseSeats = (pop) => pop >= 9 ? 40 : pop >= 5 ? 30 : 24;
 
 // Each state's own recurring crises, keyed by the issues listed for it in STATES.
@@ -2372,7 +2385,7 @@ const StreakSheet = ({ st, onClose }) => {
 };
 
 // Your career: the map of states you have governed, and the badges earned.
-const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
+const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
 // ── YOUR COMPANY (the company_registration product, ₦1,500) ──
 // A contractor of the player's own, in one sector, that every player sees as
@@ -4574,6 +4587,26 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
   </Cd>;
 };
 
+/* While the player is president, every line on screen reads in the
+   president's words (SYS.presidentWords) and the governor's rooms become the
+   Villa's (SYS.VILLA_ART). One observer over the page covers the game, the
+   result cards and the dialogs alike. Returns the clean-up. */
+const presidentialScreen = () => {
+  const W = SYS.presidentWords, ART = SYS.VILLA_ART;
+  const img = (el) => { const m = /art\/(backgrounds|scenes)\/([a-z0-9-]+)\.webp/.exec(el.getAttribute("src") || ""); if (m && ART[m[2]]) el.setAttribute("src", el.getAttribute("src").replace(m[2] + ".webp", ART[m[2]] + ".webp")); };
+  const text = (t) => { const p = t.parentNode; if (!p || /^(TEXTAREA|SCRIPT|STYLE)$/.test(p.nodeName)) return; const v = t.nodeValue, w = W(v); if (w !== v) t.nodeValue = w; };
+  const all = (n) => {
+    if (n.nodeType === 3) return text(n);
+    if (n.nodeType !== 1) return;
+    if (n.nodeName === "IMG") img(n);
+    const tw = document.createTreeWalker(n, window.NodeFilter.SHOW_TEXT); let t; while ((t = tw.nextNode())) text(t);
+    n.querySelectorAll && n.querySelectorAll("img").forEach(img);
+  };
+  all(document.body);
+  const ob = new window.MutationObserver(recs => recs.forEach(r => r.type === "characterData" ? text(r.target) : r.type === "attributes" ? img(r.target) : r.addedNodes.forEach(all)));
+  ob.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["src"] });
+  return () => ob.disconnect();
+};
 const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const setup = rawSetup && rawSetup.state && STATES[rawSetup.state] ? rawSetup : null;
   if (!setup) {
@@ -4590,11 +4623,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   }
   const { nm: pName, party, state, depGov, partyAccepted, startingStab } = setup;
   const sd = STATES[state];
+  // The presidency: the same engine with Nigeria as the polity (six zones, 37 "areas").
+  const NAT = state === NATION, ZN = zonesOf(state), ZIX = ZN.map((_, i) => i);
+  useEffect(() => NAT ? presidentialScreen() : undefined, [NAT]);
   const MT = 8;
   const ld = loadedSave; // shorthand
   const [turn, setTurn] = useState(ld?.turn || 1);
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; [0, 1, 2].filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
+  const [s, setS] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: 0, cashYear: 0, zoneMood: (() => { const hd = setup?.homeDistrict; if (hd == null || !depGov || depGov.district !== hd) return {}; const z = {}; zonesOf(state).map((_, i) => i).filter(x => x !== hd).forEach(x => { z[x] = -2; }); return z; })(), pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
@@ -5016,7 +5052,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const activeNeeds = needs.filter(n => n.status === "open" || n.status === "started" || n.status === "stalled");
   // The Desk shows only what still needs you: work already under way steps aside.
   const deskNeeds = activeNeeds.filter(n => n.status !== "started"), workingNeeds = activeNeeds.filter(n => n.status === "started");
-  const zoneName = (zi) => (ZONE_LABELS[zi] || "").replace(" Senatorial", "");
+  const zoneName = (zi) => (ZN[zi] || "").replace(" Senatorial", "");
   const makeNeed = (r, avoid) => {
     const pool = NEED_TYPES.filter(t => !avoid.includes(t.k));
     const w = pool.map(t => Math.max(.12, 1.1 - (s[t.stat] == null ? .5 : s[t.stat])));
@@ -5108,7 +5144,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return n;
     });
     if (lastActTurn.current < turn - 1) {
-      dApp -= 3; [0, 1, 2].forEach(z => addZ(z, -2));
+      dApp -= 3; ZIX.forEach(z => addZ(z, -2));
       notes.push(["🪑 A whole year without a single new programme or project. The papers call it \"Government on autopilot\" (approval −3, every zone −2).", "crisis"]);
       try { setWikiEvents(w => [{ turn, section: "Controversies", txt: "Went a year without starting any programme or project; the press dubbed it \"government on autopilot\"." }, ...w]); } catch (e) {}
     }
@@ -5137,10 +5173,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const stName = state.replace("_", " ");
   // A commissioner's zone: stored when you appoint a replacement; the first
   // cabinet is balanced across the three zones, as governors do by default.
-  const minZone = (m) => m.zone != null ? m.zone : Math.max(0, (ministries || []).findIndex(x => x.id === m.id)) % 3;
-  const homeZone = setup?.homeDistrict != null ? setup.homeDistrict : zoneOfName(pName); // chosen at setup (older saves: from the name)
-  const cabZones = () => { const c = [0, 0, 0]; (ministries || []).forEach(m => { if (m.minister) c[minZone(m)]++; }); return c; };
-  const balanceIssue = () => { const c = cabZones(); return (ministries || []).length >= 5 && Math.max(...c) - Math.min(...c) >= 3 ? c.indexOf(Math.min(...c)) : null; };
+  const minZone = (m) => m.zone != null ? m.zone : Math.max(0, (ministries || []).findIndex(x => x.id === m.id)) % ZN.length;
+  const homeZone = setup?.homeDistrict != null ? setup.homeDistrict : zoneOfName(pName, ZN.length); // chosen at setup (older saves: from the name)
+  const cabZones = () => { const c = ZIX.map(() => 0); (ministries || []).forEach(m => { if (m.minister) c[minZone(m)]++; }); return c; };
+  // Federal character (S.14(3)): in Abuja a zone with no minister is a scandal.
+  const balanceIssue = () => { const c = cabZones(); return NAT ? ((ministries || []).length >= 6 && Math.min(...c) === 0 ? c.indexOf(0) : null) : (ministries || []).length >= 5 && Math.max(...c) - Math.min(...c) >= 3 ? c.indexOf(Math.min(...c)) : null; };
   const monthWage = () => Math.max(.3, Math.round((s.faac || 10) * .55 / 12 * 10) / 10); // FAAC is a year's allocation
   const promiseKept = (p) => needs.some(n => n.status === "met" && n.zone === p.zone && needType(n)?.sector === p.sector) || ((s[SECTOR_STAT[p.sector]] || 0) - p.base >= .06);
   const scFx = (fx = {}, zone = null, dz = 0) => setS(p => {
@@ -5167,8 +5204,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const makePromises = (term) => {
     const r = rng(state.length * 211 + term * 37 + turn);
     const secs = ["infrastructure", "health", "education", "agriculture", "security"];
-    return [0, 1, 2].map(z => {
-      const sec = secs.splice(Math.floor(r() * secs.length), 1)[0];
+    return ZIX.map(z => {
+      const sec = secs.length ? secs.splice(Math.floor(r() * secs.length), 1)[0] : "infrastructure";
       return { id: "pr_" + term + "_" + z, term, zone: z, sector: sec, text: PROMISE_TEXT[sec](zoneName(z)), base: s[SECTOR_STAT[sec]] || 0, status: "pending" };
     });
   };
@@ -5408,12 +5445,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Local government: the council elections, then the fight over LG autonomy.
     const asked = { ...(next.asked || {}) };
     const zoneList = (zs) => zs.map(zoneName).join(" and ");
-    if (turn >= 2 && !asked.lg_election) {
+    if (!NAT && turn >= 2 && !asked.lg_election) {
       asked.lg_election = turn;
-      const lean = [0, 1, 2].map(z => ((s.zoneMood || {})[z] || 0) + (s.app - 50) / 4 + (r() * 8 - 4));
-      const oppZ = [0, 1, 2].filter(z => lean[z] < -1);
+      const lean = ZIX.map(z => ((s.zoneMood || {})[z] || 0) + (s.app - 50) / 4 + (r() * 8 - 4));
+      const oppZ = ZIX.filter(z => lean[z] < -1);
       // Every council votes; the projection is what a free vote would give you.
-      const districts = [0, 1, 2].map(z => lgaCluster(getLGAs(state), z)), vote = SYS.councilVote(districts, lean, r, setup?.homeLga), N = vote.all.length;
+      const districts = ZIX.map(z => lgaCluster(getLGAs(state), z)), vote = SYS.councilVote(districts, lean, r, setup?.homeLga), N = vote.all.length;
       const names = (l, k = 4) => l.slice(0, k).map(x => x.lga).join(", ") + (l.length > k ? " and " + (l.length - k) + " more" : "");
       const oppZof = (l) => [...new Set(l.map(x => x.zone))];
       const result = (won, lostL, how) => ({ icon: "🗳️", title: "You won " + won + " of " + N + " councils", text: lostL.length ? "Opposition chairmen now run " + names(lostL) + ". " + how : how, tone: lostL.length > N / 2 ? "bad" : "good" });
@@ -6307,7 +6344,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [meetMin, setMeetMin] = useState(null); // ministry id you are meeting
   const candidates = (seed) => {
     const r = rng(seed), kinds = [["A technocrat from the private sector", 0, -8], ["A party loyalist who ran your ward campaign", 0, 18], ["A former permanent secretary", 0, 4]];
-    return kinds.map(([bg, , loy], i) => { const z = i === 0 ? homeZone : (homeZone + i) % 3; const nm = gN(r, sd.zone, setup?.state); const t = traits(nm); return { nm, bg, zone: z, comp: t.comp, hon: t.hon, loyalty: 55 + loy }; });
+    return kinds.map(([bg, , loy], i) => { const z = i === 0 ? homeZone : (homeZone + i) % ZN.length; const nm = gN(r, sd.zone, setup?.state); const t = traits(nm); return { nm, bg, zone: z, comp: t.comp, hon: t.hon, loyalty: 55 + loy }; });
   };
   const openNewMinistry = (cat) => setNewMin({ cat, picks: candidates(Date.now() % 99991), choice: 0 });
   const createMinistry = () => decide(() => {
@@ -8477,7 +8514,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
     setStc(p => ({ ...p, careerSaved: true })); track("ending", SYS.ENDING_NAME[gEnd] || gEnd); track("grade", gr); track("ending_state", state);
-    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
+    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
   // The Secretariat writes: each commissioner asking to see you, and each open
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the
@@ -8500,7 +8537,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => {
     const P = setup?.legacy && SYS.BADGE_PERKS[setup.legacy]; if (!P || stc.legacyDone || needSetup) return;
     const f = P.fx; setStc(p => ({ ...p, legacyDone: true, house: f.house && p.house ? { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + f.house) } : p.house }));
-    setS(p => { const n = { ...p, app: cl100(p.app + (f.app || 0)), pStab: cl100(p.pStab + (f.pStab || 0)), cor: cl(p.cor + (f.cor || 0)), cash: Math.round(((p.cash || 0) + (f.cashB || 0)) * 100) / 100 }; if (f.zones) { const zm = { ...(p.zoneMood || {}) }; [0, 1, 2].forEach(z => { zm[z] = (zm[z] || 0) + f.zones; }); n.zoneMood = zm; } return n; });
+    setS(p => { const n = { ...p, app: cl100(p.app + (f.app || 0)), pStab: cl100(p.pStab + (f.pStab || 0)), cor: cl(p.cor + (f.cor || 0)), cash: Math.round(((p.cash || 0) + (f.cashB || 0)) * 100) / 100 }; if (f.zones) { const zm = { ...(p.zoneMood || {}) }; ZIX.forEach(z => { zm[z] = (zm[z] || 0) + f.zones; }); n.zoneMood = zm; } return n; });
     if (f.fg) setFgRelation(r => Math.min(100, r + f.fg));
     addL("🎖️ Your record goes before you. " + P.text + ".", "success");
   }, [needSetup]);
@@ -8718,11 +8755,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>What Next?</h3>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
-                <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Senate</Bt>
-                <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 President</Bt>
+                {!NAT && <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Senate</Bt>}
+                {!NAT && <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 President</Bt>}
               </div>
-              {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
-              {canFctm && (
+              {!NAT && !canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
+              {!NAT && canFctm && (
                 <div style={{ marginTop: 43, padding: 36, background: "linear-gradient(135deg," + CL.gold + "18," + CL.grn + "12)", border: "2px solid " + CL.gold, borderRadius: 17 }}>
                   <div style={{ fontSize: TS(79), textAlign: "center", marginBottom: 14 }}>📜✨</div>
                   <div style={{ fontSize: TS(34), color: CL.gold, fontFamily: F.m, fontWeight: 700, textAlign: "center", letterSpacing: 2 }}>OFFICIAL LETTER FROM ASO ROCK</div>
@@ -8744,7 +8781,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <p style={{ color: CL.td, fontSize: TS(36), margin: "0 0 22px" }}>You lost re-election. Your political life is not over.</p>
               <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt onClick={() => onEnd("comeback", s)}>🔁 The comeback: run again in four years</Bt>
-                <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for the Senate</Bt>
+                {!NAT && <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for the Senate</Bt>}
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
               </div>
             </Cd>
@@ -8755,10 +8792,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 29 }}>You stepped down voluntarily. Your record speaks for itself.</p>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
-                <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for Senate</Bt>
-                <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 Run for President</Bt>
+                {!NAT && <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for Senate</Bt>}
+                {!NAT && <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 Run for President</Bt>}
               </div>
-              {!canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
+              {!NAT && !canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
             </Cd>
           )}
           {gEnd === "pres_bid" && (
@@ -9479,7 +9516,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const cost = Math.round((1.4 + turn * 0.15) * 10) / 10;
             const done = (window.SOP_MEMORY ? window.SOP_MEMORY.all("flagship_milestone", e => e.meta && e.meta.delivered) : []).length;
             // This year's share, in plain terms: which road, how many guards, where.
-            const deliv = SYS.flagshipDeliverable(setup.agenda, ((year - 1) % 4) + 1, [0, 1, 2].map(z => lgaCluster(getLGAs(state), z)), rng(year * 131 + state.length * 7));
+            const deliv = SYS.flagshipDeliverable(setup.agenda, ((year - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(year * 131 + state.length * 7));
             const pick = (opt) => decide(() => {
               if (opt.debt && !spendB(opt.debt, "The flagship")) return;
               setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)) }));
@@ -10594,7 +10631,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.blu, marginBottom: 10 }}>🏛️ Step Down</div>
                 <div style={{ fontSize: TS(34), color: CL.td }}>Exit with dignity. Senate / retirement available.</div>
               </Cd>
-              {(() => {
+              {!NAT && (() => {
                 const di2 = ((s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100);
                 const fi2 = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
                 const ov2 = (di2 * .3 + s.app * .3 + fi2 * .2 + (100 - s.cor * 100) * .2);
@@ -10758,7 +10795,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <h3 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(53), fontWeight: 600, margin: "7px 0" }}>{won ? "RE-ELECTED!" : "DEFEATED"}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{(won ? "Four more years! INEC declares " + pName + " (" + party + ") re-elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments. Margin: " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " A second election between the top two settled it." : "")}</p>
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
-                  <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (3 - collation.zonesWon) + "/3 zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
+                  <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (ZN.length - collation.zonesWon) + "/" + ZN.length + " zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
                   <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Filed within 21 days (S.285(5)). Case GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(marginPct * 10) / 10 }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
                 </div>}
                 <details className="sp-brief" style={{ textAlign: "left", margin: "0 0 22px" }}><summary style={{ fontSize: 17 }}>See the full count</summary>
@@ -10806,7 +10843,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </Cd>
                 </details>
                 {won && (
-                  <Bt onClick={() => { setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); addL("🗳️ RE-ELECTED with " + fmtVotesFull(collation.totalYou) + " votes vs " + fmtVotesFull(collation.totalOpp) + " (" + collation.zonesWon + "/3 zones)", "political"); setStc(p => ({ ...p, reMargin: Math.round(marginPct * 10) / 10, reOpp: oppName, reOppParty: oppParty?.id || "OPP" })); setTurn(5); setPhase("budget"); }} style={{ padding: "36px 86px", fontSize: TS(43) }}>BEGIN 2ND TERM</Bt>
+                  <Bt onClick={() => { setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); addL("🗳️ RE-ELECTED with " + fmtVotesFull(collation.totalYou) + " votes vs " + fmtVotesFull(collation.totalOpp) + " (" + collation.zonesWon + "/" + ZN.length + " zones)", "political"); setStc(p => ({ ...p, reMargin: Math.round(marginPct * 10) / 10, reOpp: oppName, reOppParty: oppParty?.id || "OPP" })); setTurn(5); setPhase("budget"); }} style={{ padding: "36px 86px", fontSize: TS(43) }}>BEGIN 2ND TERM</Bt>
                 )}
               </Cd>;
             }
@@ -11938,7 +11975,23 @@ const presTitle = (G) => {
 };
 const presGoodRecord = (b) => !!b && b.met >= b.failed && b.kept >= b.broken && !b.efcc;
 
-const AsoRock = ({ setup, stats, onExit }) => {
+/* The winner of the presidential race takes office on the governorship's
+   engine, with Nigeria as the polity. Everything the race produced comes
+   along: the running mate, the pledges, the promises made to get there. */
+const PLEDGE_AGENDA = { NW: "security", NE: "security", NC: "agriculture", SW: "infrastructure", SE: "infrastructure", SS: "anticorruption" };
+const presidentSetup = (G, setup) => {
+  const zi = Math.max(0, NATION_ZONE_IDS.indexOf(G.zone)), parts = String(G.name || "").split(" ");
+  const mate = G.mate || { name: gN(rng(G.seed || 7), "NC", NATION), zone: "NC", kind: "partyman" };
+  const mz = Math.max(0, NATION_ZONE_IDS.indexOf(mate.zone));
+  const dep = SYS.genDeputies({ stateId: NATION, playerDistrict: zi, names: [mate.name, mate.name, mate.name, mate.name] })[0];
+  return { office: "president", legacy: setup?.legacy || null, nm: G.name, firstNm: parts[0], lastNm: parts.slice(1).join(" "), party: G.party, state: NATION,
+    depGov: { ...dep, nm: mate.name, district: mz, bio: genBio(rng(mate.name.length * 31 + 5)) }, avatar: G.avatar, agenda: PLEDGE_AGENDA[G.pledges && G.pledges[0]] || setup?.agenda || "infrastructure",
+    slogan: setup?.slogan || "A New Dawn", saName: setup?.saName || null, partyAccepted: true, startingStab: 62, gfDebt: Math.min(3, (G.ious || []).length), gfLoans: [], favours: Math.min(.12, (G.ious || []).length * .03),
+    gfMandates: [], homeDistrict: zi, homeLga: G.state, partyDeal: "accepted", partyPromise: null, level: setup?.level, warChestRemaining: Math.max(0, G.chest || 0),
+    election: G.res ? { opp: G.opp.name, oppParty: G.opp.party, zonesWon: Object.values(G.zones || {}).filter(v => v >= 50).length, marginPct: Math.round(((G.runoffShare != null ? G.runoffShare : G.res.nat) * 2 - 100) * 10) / 10, votes: 0, oppVotes: 0 } : null,
+    presRace: { ious: G.ious || [], pledges: G.pledges || [], from: G.from || null, bio: G.bio || null, opp: G.opp, runoff: G.runoffShare != null, petitioned: !!G.petitioned }, customParty: null };
+};
+const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
   const fz = TALL() ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(40) } : { s: TS(27), m: TS(33), l: TS(46), xl: TS(64) };
   const rec = (stats && stats.rec) || null;
   const [g, setG] = useState(null);           // the whole run; null until loaded or begun
@@ -12188,7 +12241,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
   const concede = () => up({ step: "over_lost", conceded: true, over: true });
 
   // ── The end: the Hall, the leaderboard, a clean slate ──
-  const finish = async () => {
+  const finish = async (stay) => {
     const won = G.step === "sworn";
     try {
       const p = await loadProfile();
@@ -12196,7 +12249,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
     } catch (e) {}
     try { window.SOP_vatarScore && window.SOP_vatarScore((won ? 1500 : 300) + Math.round((G.res ? G.res.nat : 0) * 10)); } catch (e) {}
     try { await window.storage.set(PRES_KEY, ""); } catch (e) {}
-    onExit();
+    if (stay !== true) onExit();
   };
 
   // ── Rendering ──
@@ -12349,8 +12402,8 @@ const AsoRock = ({ setup, stats, onExit }) => {
       {G.res && <div style={{ fontSize: fz.s, color: CL.tm, marginBottom: 8 }}>Final share {G.runoffShare != null ? "(runoff) " + G.runoffShare : G.res.nat}% · {G.res.statesWon} states won · 25% in {G.res.s25}.</div>}
       {G.ious.length > 0 && <div style={{ fontSize: fz.s, color: CL.org, marginBottom: 8 }}>Promises you made to get here: {G.ious.join("; ")}.</div>}
       {G.pledges.length > 0 && <div style={{ fontSize: fz.s, color: CL.txt, marginBottom: 8 }}>You pledged: {G.pledges.map(z => PLEDGES[z].toLowerCase()).join("; ")}.</div>}
-      {won && <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 12 }}>Governing Nigeria is the next chapter: <b>The Presidency</b> is coming. Your promises and debts will be waiting.</div>}
-      <Bt onClick={finish} style={{ width: "100%" }}>{won ? "🏅 Into the Hall of Governors" : "Return to the title"}</Bt>
+      {won && <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 12 }}>Thirty-six states, six zones, two hundred million people. Your promises and debts come with you.</div>}
+      <Bt onClick={won && onTakeOffice ? async () => { const su = presidentSetup(G, setup); await finish(true); onTakeOffice(su); } : () => finish()} style={{ width: "100%" }}>{won ? "🦅 Take the oath of office" : "Return to the title"}</Bt>
     </Cd>
   </Frame>;
 };
@@ -13422,7 +13475,7 @@ function App() {
         {board.you && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 10 }}>You: #{board.you.rank} of {board.players}, best score {board.you.score}.</div>}
       </EntranceSheet>}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
-      {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} />}
+      {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} onTakeOffice={su => { setSetup(su); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "ambassador" && <AmbassadorCareer profile={profile} onExit={rst} />}
       {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}
       {scr === "senate" && <SenateCareer stats={finalStats} profile={profile} onExit={rst} onPresident={(rec) => { setFinalStats(f => ({ ...(f || {}), rec })); setScr("pres"); }} />}

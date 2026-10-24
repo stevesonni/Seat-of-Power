@@ -27,6 +27,7 @@ export const careerMap = (list) => {
 
 // Badges: { id, icon, name, how, got }.
 export const careerBadges = (list, zoneOf = () => null) => {
+  const P = (list || []).filter(c => c.office === "president");
   const L = governorships(list), states = new Set(L.map(c => c.state)), zones = new Set(L.map(c => zoneOf(c.state)).filter(Boolean));
   const B = [
     ["first", "🏛️", "Sworn in", "Finish your first governorship", L.length >= 1],
@@ -39,6 +40,7 @@ export const careerBadges = (list, zoneOf = () => null) => {
     ["zones", "🧭", "Six zones", "Govern a state in every geopolitical zone", zones.size >= 6],
     ["ten", "🗺️", "Ten states", "Govern ten different states", states.size >= 10],
     ["all", "👑", "The whole federation", "Govern all 36 states and the FCT", states.size >= 37],
+    ["statesman", "🦅", "Statesman", "Serve a full term as President of Nigeria", P.some(c => c.ending === "complete" || c.terms >= 1 && c.ending !== "impeached" && c.ending !== "nullified")],
     ["fallen", "⚠️", "Fallen", "Be impeached or removed (it happens)", L.some(c => c.ending === "impeached" || c.ending === "nullified")],
   ];
   return B.map(([id, icon, name, how, got]) => ({ id, icon, name, how, got: !!got }));
@@ -55,6 +57,7 @@ export const BADGE_PERKS = {
   builder: { text: "Builder: ₦0.5B in the bank", fx: { cashB: .5 } },
   survivor: { text: "Survivor: two more loyal lawmakers", fx: { house: 2 } },
   aso: { text: "National profile: federal relations +10", fx: { fg: 10 } },
+  statesman: { text: "Former President: party +6, approval +2", fx: { pStab: 6, app: 2 } },
   zones: { text: "Pan-Nigerian: every zone +2", fx: { zones: 2 } },
   ten: { text: "Seasoned: ₦1B in the bank", fx: { cashB: 1 } },
   all: { text: "Elder statesman: approval +5, party +5", fx: { app: 5, pStab: 5 } },

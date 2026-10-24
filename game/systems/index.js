@@ -26,3 +26,4 @@ export * from "./daily.js";
 export * from "./career.js";
 export * from "./wiki.js";
 export * from "./hos.js";
+export * from "./office.js";
