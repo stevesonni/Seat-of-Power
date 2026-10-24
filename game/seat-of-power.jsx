@@ -869,7 +869,7 @@ const NEED_TYPES = [
 // The ministry that must exist before a need can be answered.
 const NEED_MINISTRY = { water: "water", power: "power", housing: "housing", traffic: "transport", youth: "sports", poverty: "humanitarian", land: "lands", jobs: "commerce", digital: "digital" };
 // Project types that cannot start without their own commissioner.
-const NEEDS_MINISTRY = { stadium: "sports", esports: "sports", water: "water", dam: "water", power: "power", housing: "housing" };
+const NEEDS_MINISTRY = { stadium: "sports", esports: "sports", water: "water", dam: "water", power: "power", housing: "housing", industrial: "commerce", tourist: "tourism", landfill: "env", vehicles: "transport" };
 const needType = (n) => NEED_TYPES.find(t => t.k === (n && n.k));
 // What kind of need each project type answers, and what it improves when done.
 const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security", industrial: "jobs", stadium: "youth", esports: "youth" };
@@ -4853,6 +4853,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // Auto-save every turn change
   useEffect(() => { try { if (!gEnd) window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch(e) {} }, [turn]);
+  // A quiet save after something lasting happens mid-year (investors committing).
+  const [saveTick, setSaveTick] = useState(0);
+  useEffect(() => { if (saveTick) try { if (!gEnd) window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, [saveTick]);
   // Vatar edition: a checkpoint before the re-election, for Second Chance.
   useEffect(() => { if (VATAR && phase === "reelection" && !gEnd) { try { window.storage?.set("sop_preelection", JSON.stringify(buildSnapshot())); } catch (e) {} } }, [phase]);
   // When the game ends, the save goes: the title screen offers a new game only.
@@ -6584,6 +6587,24 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // A delivered project improves its sector, scaled by its size and by how
   // much of the money reached the site.
+  /* Business follows good governance: a finished project that business needs
+     brings two letters from foreign firms (SYS.projectInvestors). What they
+     commit counts: jobs, revenue every year and approval, all credited to you. */
+  const welcomeInvestors = (p) => {
+    const inv = SYS.projectInvestors(p, { cor: s.cor, app: s.app, sec: s.sec, stName, seed: turn });
+    if (!inv.length) return;
+    const got = inv.filter(x => x.ok), jobs = got.reduce((a, x) => a + x.jobs, 0), igrB = Math.round(got.reduce((a, x) => a + x.igrB, 0) * 100) / 100;
+    if (got.length) setS(x => ({ ...x, invJobs: (x.invJobs || 0) + jobs, invIGR: Math.round(((x.invIGR || 0) + igrB) * 100) / 100, igr: Math.round(((x.igr || 0) + igrB) * 100) / 100, totalJobs: (x.totalJobs || 0) + jobs, app: cl100(x.app + got.length) }));
+    got.forEach(x => { addL("🌍 " + x.firm.flag + " " + x.firm.nm + " (" + x.firm.country + ") will build " + x.what + ", drawn by " + p.title + ": " + x.jobs.toLocaleString() + " jobs, ₦" + x.igrB + "B a year.", "success"); scWiki("Governorship", "The completion of " + p.title + " drew " + x.firm.nm + " of " + x.firm.country + ", which built " + x.what + " employing " + x.jobs.toLocaleString() + " people."); });
+    inv.filter(x => !x.ok).forEach(x => addL("🌍 " + x.firm.nm + " (" + x.firm.country + ") visited " + p.title + " but held back: investors are watching how the state is run.", "political"));
+    try { got.forEach(x => window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "investment_attracted", actor: "governor", gravity: 1, evidence: 3, decision: x.firm.nm + " invests after " + p.title, note: x.jobs + " jobs" })); } catch (e) {}
+    track("investors", got.length + "/" + inv.length);
+    if (got.length) setTimeout(() => setSaveTick(t => t + 1), 200); // keep what they committed across a reload
+    try { window.SOP_outcome({ icon: got.length ? "🌍" : "🧐", img: "./art/characters/investor-foreign.webp", title: got.length === inv.length ? "Investors are coming to " + stName : got.length ? "One investor is coming; one is waiting" : "Investors came, and held back", text: got.length ? p.title + " brought them. " + (got.length < inv.length ? "The other firm is watching how the state is run." : "Good governance pays.") : "They saw " + p.title + ", but not a state they trust yet.",
+      rows: inv.map(x => ({ l: x.firm.flag + " " + x.firm.nm, v: x.ok ? x.jobs.toLocaleString() + " jobs · ₦" + x.igrB + "B/yr" : "Holding back", good: x.ok })), tone: got.length ? "good" : "bad",
+      learn: "Investors read a state's record before they commit: finished projects, honest contracts, security and public support. Money stolen from a project costs far more in investment that never comes." }); } catch (e) {}
+    setTimeout(() => postMail(inv.map(x => letterOf("investor_come", { key: "investor_" + p.id + "_" + x.firm.id, live: true, kind: "investment", stakes: 1, lines: x.lines, tip: [x.firm.head + ", " + x.firm.nm + " " + x.firm.flag, "./art/characters/investor-foreign.webp", x.ok ? p.title + " brought us to " + stName : "We came to see " + p.title, x.ok ? "We are coming to build." : "Not yet."] }))), 900);
+  };
   const projDelivered = (p) => {
     // Money approved but not spent comes back to the treasury, by letter from Finance.
     const leftM = Math.round((p.approvedM || 0) - (p.spentM || 0));
@@ -6605,6 +6626,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return;
     }
     setS(x => ({ ...x, [k]: k === "igr" ? (x.igr || 0) + gain : cl(x[k] + gain) }));
+    welcomeInvestors(p);
     paper(govShort + " Opens " + p.title, p.leakage > .2 ? "Money went missing on the way" : "Built by " + (p.contractor || "the contractor"), !(p.leakage > .2), "./art/backgrounds/project-ribbon-cutting.webp");
   };
   // ── FINANCING A PROJECT ──
