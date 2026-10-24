@@ -305,52 +305,31 @@
     /* Toast: short notices that fade (delayed consequences, warnings).
        Formerly part of sop-v2.js. Appended to body, which the stage script
        below redirects into the scaled stage, so sizes are artboard px. */
-    /* Sound: short tones made with Web Audio, so there are no files to load.
-       window.SOP_sound(kind) plays one; SOP_soundOn() reads or sets the switch
-       (remembered on this device). Taps on buttons give a soft click. */
+    /* Sound: effects are recorded files in ./audio/sfx/<kind>.mp3, listed in
+       SFX as they arrive (none yet, so nothing plays). window.SOP_sound(kind)
+       plays one; SOP_soundOn() reads or sets the switch for effects and music
+       (remembered on this device). */
     (function () {
-      var ctx = null, on = true;
+      var on = true, SFX = {}, cache = {};
       try { on = localStorage.getItem('sop_sound') !== 'off'; } catch (e) {}
-      function ac() {
-        if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
-        if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
-        return ctx;
-      }
-      function tone(f, t0, dur, type, vol, f2) {
-        var c = ac(); if (!c) return;
-        var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + t0;
-        o.type = type || 'sine'; o.frequency.setValueAtTime(f, t);
-        if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
-        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.08, t + 0.012);
-        g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + 0.02);
-      }
-      var KINDS = {
-        tap: function () { tone(880, 0, 0.05, 'triangle', 0.025); },
-        good: function () { tone(523, 0, 0.16, 'sine', 0.07); tone(784, 0.1, 0.24, 'sine', 0.07); },
-        bad: function () { tone(330, 0, 0.2, 'triangle', 0.07); tone(247, 0.14, 0.32, 'triangle', 0.07); },
-        neutral: function () { tone(587, 0, 0.18, 'sine', 0.06); },
-        news: function () { tone(392, 0, 0.14, 'square', 0.035); tone(523, 0.12, 0.14, 'square', 0.035); tone(784, 0.24, 0.32, 'square', 0.035); },
-        gavel: function () { tone(160, 0, 0.09, 'square', 0.08, 90); tone(160, 0.16, 0.09, 'square', 0.08, 90); },
-        turn: function () { tone(392, 0, 0.5, 'sine', 0.06); tone(494, 0.05, 0.5, 'sine', 0.04); tone(587, 0.1, 0.6, 'sine', 0.04); },
-        win: function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.11, 0.3, 'triangle', 0.07); }); },
-        lose: function () { [392, 330, 262].forEach(function (f, i) { tone(f, i * 0.18, 0.4, 'sine', 0.07); }); }
+      window.SOP_sound = function (kind) {
+        if (!on || !SFX[kind]) return;
+        try { var a = cache[kind] || (cache[kind] = new Audio('./audio/sfx/' + kind + '.mp3')); a.currentTime = 0; a.volume = 0.5; var p = a.play(); if (p && p.catch) p.catch(function () {}); } catch (e) {}
       };
-      window.SOP_sound = function (kind) { if (!on) return; try { (KINDS[kind] || KINDS.tap)(); } catch (e) {} };
       window.SOP_soundOn = function (v) {
-        if (typeof v === 'boolean') { on = v; try { localStorage.setItem('sop_sound', v ? 'on' : 'off'); } catch (e) {} if (v) window.SOP_sound('good'); music(); }
+        if (typeof v === 'boolean') { on = v; try { localStorage.setItem('sop_sound', v ? 'on' : 'off'); } catch (e) {} music(); }
         return on;
       };
       /* Background music: one quiet loop, under everything. Starts on the first
          tap (browsers block autoplay), stops with Sound off and while Vatar pauses
-         the game. Volume 0–1, kept per device; the default is low. */
-      var bgm = null, vol = 0.15;
-      try { var sv = localStorage.getItem('sop_music_vol'); if (sv != null && !isNaN(+sv)) vol = Math.max(0, Math.min(1, +sv)); } catch (e) {}
+         the game. Volume 0–1, kept per device; the default is 30%. */
+      var bgm = null, vol = 0.3;
+      try { var sv = localStorage.getItem('sop_music_vol'); if (sv != null && !isNaN(+sv) && +sv !== 0.15) vol = Math.max(0, Math.min(1, +sv)); } catch (e) {} // 0.15 was the old default
       function music() {
         try {
           var want = on && vol > 0 && !window.SOP_paused && document.visibilityState !== 'hidden';
           if (!bgm) { if (!want) return; bgm = new Audio('./audio/bg-music.mp3'); bgm.loop = true; bgm.preload = 'auto'; }
-          bgm.volume = vol * 0.6; // the scale tops out well below full volume
+          bgm.volume = vol;
           if (want) { var p = bgm.play(); if (p && p.catch) p.catch(function () {}); } else bgm.pause();
         } catch (e) {}
       }
@@ -359,11 +338,6 @@
       document.addEventListener('pointerdown', function first() { document.removeEventListener('pointerdown', first, true); music(); }, true);
       document.addEventListener('visibilitychange', music);
       setInterval(function () { if (bgm && window.SOP_paused && !bgm.paused) bgm.pause(); else if (bgm && !window.SOP_paused && bgm.paused && on && vol > 0 && document.visibilityState !== 'hidden') music(); }, 1500);
-      document.addEventListener('pointerdown', function (e) {
-        var t = e.target, b = t && t.closest && t.closest('button, [role="button"], a');
-        if (!b && t && t.nodeType === 1) { for (var el = t, i = 0; el && i < 4; el = el.parentElement, i++) { if (getComputedStyle(el).cursor === 'pointer') { b = el; break; } } }
-        if (b && !b.disabled) window.SOP_sound('tap');
-      }, true);
     })();
 
     /* Confirm and alert inside the page. Browser dialogs are switched off in

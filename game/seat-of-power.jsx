@@ -2205,7 +2205,7 @@ const SCENARIOS = [
 const scenarioStart = (setup) => { const m = setup && setup.mode; return m && m.kind === "scenario" ? (SCENARIOS.find(x => x.id === m.id) || {}).start || {} : {}; };
 // Background music volume (the loop itself lives in the page shell).
 const MusicSlider = () => {
-  const [v, setV] = useState(() => { try { return window.SOP_musicVol ? window.SOP_musicVol() : .15; } catch (e) { return .15; } });
+  const [v, setV] = useState(() => { try { return window.SOP_musicVol ? window.SOP_musicVol() : .3; } catch (e) { return .3; } });
   return <label style={{ display: "grid", gridTemplateColumns: "48px 1fr", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px" }}>
     <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 26 }}>🎵</span>
     <span><b style={{ display: "block", fontSize: DS.t.body }}>Music {v === 0 ? "off" : Math.round(v * 100) + "%"}</b>
@@ -8788,7 +8788,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["📊 Standing", () => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
-    ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .15; return v === 0 ? "off" : v <= .2 ? "low" : v <= .5 ? "medium" : "high"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .15 : v <= .2 ? .4 : v <= .5 ? .8 : 0); setMenuOpen(false); } catch (e) {} }],
+    ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .3; return v === 0 ? "off" : Math.round(v * 100) + "%"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .3 : v < .5 ? .6 : v < .9 ? 1 : 0); setMenuOpen(false); } catch (e) {} }],
     ["Tell us what to improve", () => { try { window.SOP_feedbackForm({ where: nav, year: absYear, state: stName }); } catch (e) {} }, "icon-ask-sa"],
     ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
     [(soundOn ? "Sound: on" : "Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }, "icon-sound"],
