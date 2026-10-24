@@ -722,3 +722,17 @@ Alternating with them: **the council chamber** (councillors' "allowances", an ok
   Good deeds come back too: the staffed clinic holds during cholera, the graded road doubles market day, the traders' union and the teachers' union endorse you, and the reconciled villages invite you. Callbacks can move election day (`elecMod`).
 - **The party's own demand:** forty party members want council jobs.
 - **At the end:** the Chairman writes the record (people plus the tags worth carrying) for later offices to call back.
+
+## The Chairman proof (after Perplexity's review)
+- **One promise on swearing-in day:** the road will last, no mother dies for want of a nurse, or no new levies. It is judged at the end.
+- **The in-tray.** Each half-year the matters arrive together, and you **handle two yourself**.
+  - The allocation, the road, the council and the governor are delegated in plain ways (`SYS.delegated`).
+  - A neglected problem comes back **worse** a half-year later (`neglect:<id>` callbacks).
+  - The allocation always comes first, so money arrives before anything costs money.
+- **The market road (`SYS.ROAD`):** commitment (who builds it), then a warning (a named trader's photo, an overrun, or a forgotten route), then an intervention (repair, inspect, or open on schedule).
+  - The rains test it in year 2 (`roadTest`), and the result follows from the whole chain.
+  - The road's state is always visible.
+- **No dead ends:** if nothing on a card is affordable, "Not enough money: put it off" appears.
+- **A four-part verdict** (`lgaVerdict`): Delivery, Integrity, Survival, Your promise, plus "Your term:" (your actual decisions) and "Who you leave behind" (your three people).
+- **The question at the end:** "Which decision would you change?" goes to the feedback page (where = `chairman_end`).
+- **One life:** a former chairman who becomes governor of the **same state** meets their past on day one (`chairmanEchoes`): the market women campaign for them, or the evicted traders don't forget; the road still stands, or is on the posters; the councillor they fought sits in the House of Assembly; their old party chairman works the party for them.

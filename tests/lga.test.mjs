@@ -45,3 +45,28 @@ test("the record carries people and tags into the next office", () => {
   const R = SYS.recordCareer(null, { office: "chairman", ending: "reelected", grade: "B", cor: .2, S, keepTags: ["land_given"] });
   assert.deepEqual(R.tags, ["land_given"]); assert.equal(SYS.formerEnemy(R, "senator").name, "Hon. Bayo Ade"); assert.equal(R.offices.length, 1);
 });
+test("the market road: who builds it and how you intervene decide whether it survives the rains", () => {
+  const held = (q) => { let n = 0; for (let i = 0; i < 400; i++) if (SYS.roadTest({ road: { quality: q } }, seeded("r", i)).held) n++; return n / 400; };
+  assert.ok(held(.45) < .55 && held(.95) > .85, "a crony road rarely survives; a repaired, tendered road usually does");
+  const S = { seen: [], council: 60, road: {} };
+  assert.ok(SYS.lgaAgenda("s", 1, S).some(x => x.k === "road" && x.id === "award"));
+  assert.ok(SYS.lgaAgenda("s", 2, { ...S, road: { builder: "sponsor" } }).some(x => x.id === "warn"));
+  assert.equal(SYS.lgaTurn("s", 4, { ...S, road: { builder: "tender", quality: .8 } })[0].k, "roadtest");
+});
+test("delegated matters: staff take the cheap, clean option, and a neglected problem comes back worse", () => {
+  const nurse = SYS.LGA_PROBLEMS.find(p => p.id === "nurse");
+  const d = SYS.delegated("problem", nurse); assert.ok(d.cost <= 0 && !(d.fx.cor > 0) && d.neglect);
+  assert.equal(SYS.delegated("road", SYS.ROAD.award).id, "sponsor", "the party wins when you are not in the room");
+  const c = SYS.lgaCallback("neglect:nurse"); assert.ok(c && /^Worse:/.test(c.t) && c.opts.length === 2);
+});
+test("the verdict has four parts, and the promise is judged on what you did", () => {
+  const v = SYS.lgaVerdict({ fixed: 4, road: { held: true, tested: true }, cor: .1, promise: "levy", seenOpt: ["levy:double"] }, "reelected");
+  assert.deepEqual(v.map(x => x[0]), ["Delivery", "Integrity", "Survival", "Your promise"]);
+  assert.equal(v[3][2], "Broken"); assert.equal(v[2][2], "Strong");
+});
+test("a chairmanship in the same state meets the new governor; another state's does not", () => {
+  const S = { seeds: [{ key: "market_rebuilt", due: 1, at: 1 }, { key: "road_held", due: 0, at: 4 }], npcs: { cllr: { name: "Hon. Eze", role: "Councillor", rel: 10 } } };
+  const rec = SYS.recordCareer(null, { office: "chairman", ending: "reelected", grade: "B", cor: .1, S, keepTags: ["market_rebuilt", "road_held"], state: "Enugu", place: "Nsukka" });
+  const E = SYS.chairmanEchoes(rec, "Enugu"); assert.ok(E && E.lines.length === 3 && /market women/.test(E.lines[0].text) && /Hon\. Eze/.test(E.lines[2].text));
+  assert.equal(SYS.chairmanEchoes(rec, "Lagos"), null);
+});

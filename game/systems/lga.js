@@ -83,11 +83,17 @@ export const lgaAgenda = (seed, n, S) => {
   const m = n % 2 === 1 ? pick(LGA_MOTIONS) : null; if (m) items.push({ k: "motion", id: m.id });
   const g = n % 2 === 0 ? pick(GOV_ASKS) : null; if (g) items.push({ k: "gov", id: g.id });
   if (n % 2 === 0) { const p2 = pick(LGA_PROBLEMS.filter(x => !p || x.id !== p.id)); if (p2) items.push({ k: "problem", id: p2.id }); }
+  const rd = S.road || {};
+  if (n === 1 && !rd.builder) items.push({ k: "road", id: "award" });
+  if (n === 2 && rd.builder && !rd.warned) items.push({ k: "road", id: "warn" });
   return items;
 };
 
 /* The half-year's queue: callbacks that have come due go first. */
-export const lgaTurn = (seed, n, S) => withCallbacks(S, n, lgaAgenda(seed, n, S), LGA_CALLBACKS);
+export const lgaCallback = (key) => LGA_CALLBACKS[key] || (key.startsWith("neglect:") ? (() => { const x = LGA_PROBLEMS.find(p => p.id === key.slice(8)); return x ? neglectCard(x) : null; })() : null);
+export const lgaTurn = (seed, n, S) => { const table = {}; (S.seeds || []).forEach(x => { const c = lgaCallback(x.key); if (c) table[x.key] = c; }); const items = withCallbacks(S, n, lgaAgenda(seed, n, S), table);
+  // The rainy season of year 2 tests the road, whatever was decided.
+  return n === 4 && S.road && S.road.builder && !S.road.tested ? [{ k: "roadtest", id: "test" }, ...items] : items; };
 /* The chairman's three named people (names are made per run). */
 export const LGA_NPCS = { party: { role: "Party Chairman", art: "party-chairman" }, cllr: { role: "Councillor", art: "councillor-male" } };
 export const applyLga = (S, fx = {}, costM = 0) => ({ ...S,
@@ -120,6 +126,59 @@ export const lgaElection = (S, r) => {
 export const lgaLegacy = (S) => Math.min(100, (S.fixed || 0) * 11);
 export const lgaScore = (S) => Math.round(S.people * .4 + lgaLegacy(S) * .3 + (1 - S.cor) * 100 * .2 + Math.min(100, Math.max(0, S.purse)) * .1);
 export const lgaGrade = (score) => score >= 76 ? "A" : score >= 65 ? "B" : score >= 52 ? "C" : score >= 40 ? "D" : "F";
+
+/* ── The market road: one project you live with for the whole term ──
+   Commitment (who builds it), warning (a named trader sees a problem),
+   intervention (repair, inspect, or open on time), then the rainy season
+   tests what you built. quality runs 0–1; every choice moves it. */
+export const ROAD = {
+  award: { t: "The Umuchi market road contract", who: "contractor", bg: "rural-road-mud", learn: "functions",
+    d: "The one project everyone will judge you by. {party} has a contractor ready; the council engineer wants an open tender; the traders would settle for smaller access roads now.",
+    opts: [{ id: "sponsor", l: "Give it to the party's contractor", cost: 90, fx: { gov: 4 }, npc: { party: 10 }, road: { builder: "sponsor", quality: .45 }, story: "gave the market road to the party's contractor" },
+      { id: "tender", l: "Open tender: the best bid wins", cost: 110, fx: { people: 2 }, npc: { party: -10 }, road: { builder: "tender", quality: .8 }, story: "put the market road out to open tender" },
+      { id: "small", l: "Build three small access roads instead", cost: 70, fx: { people: 4 }, road: { builder: "small", quality: .65 }, story: "built three small access roads instead of one big one" }] },
+  warn: { t: "A trader sends a photograph", who: "market-trader", bg: "road-construction-site", learn: "functions",
+    d: { sponsor: "Mama Chika, who sells pepper at the junction, sends a photo: the drains are barely knee-deep, half what the plan says. The contractor says fixing them will delay the opening by months.",
+      tender: "The road is going well, but the contractor wants ₦30M more for 'unforeseen rock'. {party} says this is what you get for ignoring the party.",
+      small: "Two of the three access roads are done. Traders on the third route say theirs has been forgotten, and they are blocking the council gate." },
+    opts: [{ id: "repair", l: "Stop work and make them do it properly", cost: 0, fx: { people: 2 }, npc: { party: -6 }, road: { quality: .25 }, story: "stopped the road to fix it properly" },
+      { id: "inspect", l: "Commission an independent inspection", cost: 25, fx: {}, road: { quality: .15 }, story: "paid for an independent inspection of the road" },
+      { id: "open", l: "Push on and open it on schedule", cost: 0, fx: { people: 3 }, road: { quality: 0 }, story: "pushed the road through to open on schedule" }] },
+};
+export const roadTest = (S, r) => { const q = (S.road && S.road.quality) || 0, held = r() < q; return { held, fx: held ? { people: 9 } : { people: -10 }, elec: held ? 5 : -6, purse: held ? 40 : 0 }; };
+
+/* Your one promise, made on day one and judged at the end. */
+export const LGA_PROMISES = {
+  road: { l: "The market road will last", d: "Judged in the rainy season.", kept: (S) => !!(S.road && S.road.held) },
+  clinic: { l: "No mother will die for want of a nurse", d: "Staff the health centres.", kept: (S) => (S.seenOpt || []).includes("nurse:hire") },
+  levy: { l: "No new levies on traders", d: "Do not raise market fees or charge for certificates.", kept: (S) => !(S.seenOpt || []).some(k => k === "levy:double" || k === "births:fee") },
+};
+
+/* The in-tray: you handle two matters yourself; the rest go to your staff,
+   who do the cheapest thing. A neglected problem comes back worse. */
+export const ATTENTION = 2;
+export const delegated = (kind, x) => {
+  if (kind === "alloc") return { id: "accept", l: "The treasurer accepted it quietly", ...ALLOC_OPTS[0] };
+  if (kind === "road") return x.opts[0]; // the party's pressure wins when you are not in the room
+  if (kind === "gov") return { id: "busy", l: "Your aide told the governor you were busy", cost: 0, fx: { gov: -4 } };
+  if (kind === "motion") return { id: "absent", l: "The council decided without you", cost: 0, fx: { council: -3 } };
+  const cheap = x.opts.filter(o => o.cost <= 0 && !(o.fx && o.fx.cor > 0)).slice(-1)[0] || x.opts[x.opts.length - 1];
+  return { ...cheap, neglect: true };
+};
+/* A problem left to the department, half a year on. */
+export const neglectCard = (x) => ({ t: "Worse: " + x.t.replace(/^./, c => c.toLowerCase()), who: x.who, bg: x.bg, scene: x.scene, learn: x.learn,
+  d: "You left it to the department, and they did the least they could. Now it is worse, and people know you looked away.",
+  opts: [{ id: "now", l: "Deal with it properly now", cost: Math.round(Math.max(30, (x.opts[0].cost || 30) * 1.4)), fx: { people: 3 } }, { id: "leave", l: "Leave it again", cost: 0, fx: { people: -7 }, elec: -3 }] });
+
+/* The four-part verdict that replaces a single grade. */
+export const lgaVerdict = (S, ending) => {
+  const word = (v) => v >= 75 ? "Strong" : v >= 50 ? "Fair" : "Weak";
+  const delivery = Math.min(100, (S.fixed || 0) * 14 + (S.road ? (S.road.held ? 30 : S.road.tested ? 0 : 10) : 0));
+  const integrity = Math.round((1 - (S.cor || 0)) * 100);
+  const survival = { reelected: 90, defeated: 45, no_ticket: 35, dissolved: 15, impeached: 10 }[ending] ?? 50;
+  const P = S.promise && LGA_PROMISES[S.promise], kept = P ? P.kept(S) : null;
+  return [["Delivery", delivery, word(delivery)], ["Integrity", integrity, word(integrity)], ["Survival", survival, word(survival)], ["Your promise", kept == null ? 50 : kept ? 100 : 0, kept == null ? "None made" : kept ? "Kept" : "Broken"]];
+};
 
 /* "It comes back": each seed's callback, a card with a named person.
    {gov}, {party} and {cllr} are filled with this run's names. elec moves

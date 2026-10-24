@@ -8547,6 +8547,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (f.fg) setFgRelation(r => Math.min(100, r + f.fg));
     addL("🎖️ Your record goes before you. " + P.text + ".", "success");
   }, [needSetup]);
+  // One life: a chairmanship in this state meets the new governor on day one.
+  useEffect(() => {
+    if (stc.echoDone) return;
+    (async () => { try {
+      const r0 = await window.storage.get(SYS.RECORD_KEY); const rec = r0 && r0.value ? JSON.parse(r0.value) : null;
+      const E = SYS.chairmanEchoes(rec, state); setStc(p => ({ ...p, echoDone: true })); if (!E) return;
+      const sum = E.lines.reduce((a, l) => { Object.entries(l.fx).forEach(([k, v]) => a[k] = (a[k] || 0) + v); return a; }, {});
+      setS(p => ({ ...p, app: cl100(p.app + (sum.app || 0)), pStab: cl100(p.pStab + (sum.pStab || 0)) }));
+      if (sum.house) setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal + sum.house) } }) : p);
+      E.lines.forEach(l => addL("🏘️ " + l.text, (l.fx.app || 0) + (l.fx.pStab || 0) >= 0 && !l.fx.house ? "success" : "political"));
+      track("chairman_echo", E.lines.length);
+      window.SOP_outcome && window.SOP_outcome({ icon: "🏘️", img: "./art/backgrounds/lga-secretariat.webp", title: "Your past in " + (E.place || "your LGA") + " meets you", text: E.lines[0].text, rows: [].concat(sum.app ? [{ l: "Approval", v: (sum.app > 0 ? "+" : "−") + Math.abs(sum.app), good: sum.app > 0 }] : [], sum.pStab ? [{ l: "Party", v: "+" + sum.pStab, good: true }] : [], sum.house ? [{ l: "House", v: "−1 loyal", good: false }] : []), tone: (sum.app || 0) + (sum.pStab || 0) >= 0 ? "good" : "bad", ok: "Take office" });
+    } catch (e) {} })();
+  }, []);
   const nextSaid = React.useRef({});
   // Twice a career the adviser asks for the player's feedback: after the second
   // year, and at the end. Not if they sent some in the last week.
@@ -12748,13 +12762,17 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     const lgas = getLGAs(profile.origin || "Lagos"), lga = profile.lga || lgas[0] || "Central";
     const seed = Date.now(), rn = SYS.seeded(seed, "names"), zone = STATES[profile.origin]?.zone || "SW", usedNm = new Set([String(profile.last || "")]), nm = () => { let x = ""; for (let i = 0; i < 12 && (!x || usedNm.has(x)); i++) x = String(gN(rn, zone, profile.origin)).split(" ").pop(); usedNm.add(x); return x; }; // surnames only (the portraits are men), all different
     const S = { v: 2, seed, name: profile.first + " " + profile.last, avatar: profile.avatar, state: profile.origin || "Lagos", lga, from: k,
-      people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "half", items: [], seen: [], fixed: 0, log: [], courtWon: 0,
+      people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "promise", items: [], seen: [], seenOpt: [], story: [], fixed: 0, log: [], courtWon: 0, road: {}, trayDone: 0,
       govName: "Gov. " + nm(), seeds: [], elecMod: 0,
       npcs: { party: { name: "Chief " + nm(), role: "Party Chairman", rel: k === "anointed" ? 65 : k === "grassroots" ? 40 : 50 }, cllr: { name: "Hon. " + nm(), role: "Councillor", rel: 50 } } };
     S.items = SYS.lgaTurn(S.seed, 1, S);
     setG(S); trk("career_start", "chairman_" + k);
+  };
+  const promise = (key) => {
+    trk("lga_promise", key);
+    up({ promise: key, step: "half" });
     learn("siec"); learn("lgas");
-    card({ icon: "🗳️", img: "./art/backgrounds/lga-secretariat.webp", title: "Chairman of " + lga, text: "The state electoral commission declares you winner in every ward. You are sworn in at the council secretariat this morning.", rows: [], tone: "good", ok: "Take office" });
+    card({ icon: "🗳️", img: "./art/backgrounds/lga-secretariat.webp", title: "Chairman of " + g.lga, text: "The state electoral commission declares you winner in every ward. You are sworn in at the council secretariat this morning.", rows: [], tone: "good", ok: "Take office" });
   };
 
   // ── The half-year's items ──
@@ -12774,13 +12792,50 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     const fixed = kind === "problem" && o.cost >= 20;
     trk("lga_" + kind, (key || x.id) + "_" + o.id);
     learn(x.learn);
-    up(p => { let q = SYS.moveRel(SYS.applyLga(p, res.fx, o.cost), o.npc || {}); if (key) q = SYS.markFired(q, key); if (o.seed) q = SYS.plant(q, o.seed, p.n); return { ...q, ...next(p), seen: key ? p.seen : [...p.seen, x.id], fixed: p.fixed + (fixed ? 1 : 0), elecMod: (p.elecMod || 0) + (o.elec || 0) }; });
+    up(p => { let q = SYS.moveRel(SYS.applyLga(p, res.fx, o.cost), o.npc || {}); if (key) q = SYS.markFired(q, key); if (o.seed) q = SYS.plant(q, o.seed, p.n);
+      const road = o.road ? { ...p.road, ...(o.road.builder ? { builder: o.road.builder } : {}), quality: Math.min(1, (o.road.builder ? 0 : (p.road.quality || 0)) + (o.road.quality || 0)), warned: kind === "road" && x === SYS.ROAD.warn ? true : p.road.warned } : p.road;
+      return { ...q, ...next(p), road, seen: key || kind === "road" ? p.seen : [...p.seen, x.id], seenOpt: [...(p.seenOpt || []), (kind === "road" ? "road" : x.id) + ":" + o.id], story: o.story ? [...(p.story || []), o.story] : (p.story || []), fixed: p.fixed + (fixed ? 1 : 0), elecMod: (p.elecMod || 0) + (o.elec || 0) }; });
     const nRows = Object.entries(o.npc || {}).filter(([k2, v]) => v && g.npcs && g.npcs[k2]).map(([k2, v]) => ({ l: g.npcs[k2].name, v: (v > 0 ? "+" : "−") + Math.abs(v), good: v > 0 }));
     const eRows = o.elec ? [{ l: "Election day", v: (o.elec > 0 ? "+" : "−") + Math.abs(o.elec), good: o.elec > 0 }] : [];
     card({ icon: res.bad ? "📰" : fixed ? "🏗️" : key ? "↩️" : "📌", img: fixed ? "./art/scenes/chairman-flag-off.webp" : undefined, title: fill(o.l), text: res.bad ? "It goes wrong in public, and everyone in the ward knows whose decision it was." : fixed ? "Work starts this week. People stop you on the street to say thank you." : o.seed ? "Done. People will remember this." : "Done.", rows: lgaFxRows(res.fx, o.cost).concat(nRows, eRows), tone: res.bad ? "bad" : fixed || (x.good) ? "good" : "neutral", ok: "Next" });
   };
   // Names in callbacks and motions: {gov}, {party}, {cllr}.
   const fill = (t) => String(t || "").replace(/\{gov\}/g, (g && g.govName) || "the governor").replace(/\{party\}/g, (g && g.npcs && g.npcs.party.name) || "the party chairman").replace(/\{cllr\}/g, (g && g.npcs && g.npcs.cllr.name) || "a councillor");
+  // The in-tray: pick the matters you handle yourself; staff do the rest, cheaply.
+  const [tray, setTray] = useState([]);
+  const choosable = (it) => ["alloc", "problem", "motion", "gov", "road"].includes(it.k);
+  const itemOf = (it) => it.k === "road" ? SYS.ROAD[it.id] : it.k === "problem" ? SYS.LGA_PROBLEMS.find(y => y.id === it.id) : it.k === "motion" ? SYS.LGA_MOTIONS.find(y => y.id === it.id) : it.k === "gov" ? SYS.GOV_ASKS.find(y => y.id === it.id) : null;
+  const itemTitle = (it) => it.k === "alloc" ? "The allocation from the state" : fill((itemOf(it) || {}).t);
+  const settleTray = () => {
+    const keepRaw = g.items.filter((it, i) => !choosable(it) || tray.includes(i)), away = g.items.filter((it, i) => choosable(it) && !tray.includes(i));
+    const keep = [...keepRaw.filter(it => it.k === "alloc"), ...keepRaw.filter(it => it.k !== "alloc")]; // money first
+    let q = { ...g }, lines = [];
+    away.forEach(it => {
+      const x = itemOf(it), o = SYS.delegated(it.k, x || {});
+      if (it.k === "alloc") { const al = SYS.allocation(q, R("alloc")); q = SYS.applyLga(q, o.fx, -al.net); lines.push("The treasurer accepted the allocation: ₦" + al.net + "M after the state's cut and salaries."); return; }
+      q = SYS.moveRel(SYS.applyLga(q, o.fx || {}, Math.max(0, o.cost || 0) <= q.purse ? (o.cost || 0) : 0), o.npc || {});
+      if (it.k === "road") { q = { ...q, road: { ...q.road, ...(o.road && o.road.builder ? { builder: o.road.builder, quality: o.road.quality } : {}), warned: it.id === "warn" ? true : q.road.warned }, story: [...(q.story || []), it.id === "award" ? "let the party pick the market road's contractor" : "let the road go ahead without looking"] }; lines.push(it.id === "award" ? "With you busy, " + fill("{party}") + " gave the road to the party's contractor." : "Nobody checked the trader's photograph. The road went on as it was."); return; }
+      if (it.k === "problem") { q = SYS.plant({ ...q, seen: [...q.seen, x.id], seenOpt: [...(q.seenOpt || []), x.id + ":" + o.id] }, "neglect:" + x.id, q.n, {}, [1, 2]); lines.push(fill(x.t) + ": the department chose \u201c" + o.l.toLowerCase() + "\u201d."); return; }
+      q = { ...q, seen: [...q.seen, x.id] }; lines.push(fill(x.t) + ": " + o.l.replace(/^./, ch => ch.toLowerCase()) + ".");
+    });
+    trk("lga_tray", away.length + "_delegated");
+    setG({ ...q, items: keep, trayDone: g.n }); setTray([]);
+    if (lines.length) card({ icon: "🗂️", title: "Handled by your staff", text: lines.slice(0, 1).join(" "), rows: lines.slice(1, 4).map(l => ({ l, v: "" })), tone: "neutral", ok: "To my desk" });
+  };
+  const testRoad = () => {
+    const res = SYS.roadTest(g, R("road"));
+    trk("lga_road", (g.road.builder || "none") + (res.held ? "_held" : "_failed"));
+    up(p => ({ ...SYS.applyLga(p, res.fx, -res.purse), road: { ...p.road, tested: true, held: res.held }, elecMod: (p.elecMod || 0) + res.elec, items: p.items.slice(1), story: [...(p.story || []), res.held ? "saw the market road survive the rains" : "watched the market road wash away in the rains"] }));
+    card({ icon: res.held ? "🛣️" : "🌊", img: res.held ? "./art/scenes/chairman-flag-off.webp" : "./art/backgrounds/flooded-community.webp", title: res.held ? "The road holds" : "The road washes away", text: res.held ? "The first big rains come and the market road holds. Trucks arrive from three LGAs." : "The first big rains come. The road you opened is a river of red mud, and the traders know whose road it was.", rows: lgaFxRows(res.fx, -res.purse).concat([{ l: "Election day", v: (res.elec > 0 ? "+" : "−") + Math.abs(res.elec), good: res.held }]), tone: res.held ? "good" : "bad", ok: "Next" });
+  };
+  // Nothing affordable: put it off, and let the staff do the least they can.
+  const putOff = (it) => { const x = it.k === "callback" ? SYS.lgaCallback(it.id) : itemOf(it), o = it.k === "callback" ? x.opts[x.opts.length - 1] : SYS.delegated(it.k, x);
+    trk("lga_putoff", it.k + "_" + it.id);
+    up(p => { let q = SYS.moveRel(SYS.applyLga(p, o.fx || {}, 0), o.npc || {}); if (it.k === "callback") q = SYS.markFired(q, it.id); if (it.k === "problem") q = SYS.plant(q, "neglect:" + x.id, p.n, {}, [1, 2]); if (it.k === "road" && o.road) q = { ...q, road: { ...p.road, ...(o.road.builder ? { builder: o.road.builder, quality: o.road.quality * .8 } : {}), warned: it.id === "warn" ? true : p.road.warned } };
+      return { ...q, items: p.items.slice(1), seen: it.k === "callback" || it.k === "road" ? p.seen : [...p.seen, x.id] }; });
+    card({ icon: "⏳", title: "Put off for lack of money", text: "The council purse cannot cover any of it. Your staff do the least they can, and people notice.", rows: lgaFxRows(o.fx || {}, 0), tone: "bad", ok: "Next" }); };
+  const broke = (opts) => opts.every(o => o.cost > 0 && o.cost > (g ? g.purse : 0));
+  const PutOff = ({ it, opts }) => broke(opts) ? <Opt ic="⏳" l="Not enough money: put it off" d={"The purse holds ₦" + G.purse + "M."} tone="bad" onClick={() => putOff(it)} /> : null;
   const endHalf = () => {
     const t = SYS.lgaThreats(g, R("threat"), g.n);
     if (t) {
@@ -12794,7 +12849,8 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     up(p => { const q = SYS.applyLga(p, SYS.LGA_DRIFT); return { ...q, n: p.n + 1, items: SYS.lgaTurn(p.seed, p.n + 1, q) }; });
   };
   // One life: what this chairmanship leaves in the player's record.
-  const saveRecord = (ending, grade) => { try { (async () => { const r0 = await window.storage.get(SYS.RECORD_KEY); const rec = r0 && r0.value ? JSON.parse(r0.value) : null; await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec, { office: "chairman", ending, grade, cor: g.cor, S: { ...g, npcs: { gov: { name: g.govName, role: "Governor", rel: g.gov }, ...g.npcs } }, keepTags: ["land_given", "sued_governor", "payroll_padded", "cert_fee", "drain_crony", "clinic_staffed", "market_rebuilt", "teachers_paid"] }))); })(); } catch (e) {} };
+  const saveRecord = (ending, grade) => { try { (async () => { const r0 = await window.storage.get(SYS.RECORD_KEY); const rec = r0 && r0.value ? JSON.parse(r0.value) : null; const roadSeed = g.road && g.road.tested ? [{ key: g.road.held ? "road_held" : "road_failed", due: 0, at: g.n }] : [];
+      await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec, { office: "chairman", ending, grade, cor: g.cor, state: g.state, place: g.lga, S: { ...g, seeds: [...(g.seeds || []), ...roadSeed], npcs: { gov: { name: g.govName, role: "Governor", rel: g.gov }, ...g.npcs } }, keepTags: ["land_given", "sued_governor", "payroll_padded", "cert_fee", "drain_crony", "clinic_staffed", "market_rebuilt", "teachers_paid", "road_held", "road_failed"] }))); })(); } catch (e) {} };
   const election = () => {
     const res = SYS.lgaElection(g, R("election")), score = SYS.lgaScore(g), grade = SYS.lgaGrade(score);
     learn("siec");
@@ -12858,6 +12914,15 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     </Frame>;
   }
   const kicker = "Year " + SYS.halfYear(G.n) + " of 3 · " + (G.n % 2 === 1 ? "first" : "second") + " half";
+  if (G.step === "promise") return wrap(<Frame bg="village-square" who="village-head">
+    <H kick={"Swearing-in day · " + lgaNm(G)} title="Make one promise" sub="The crowd at the secretariat wants to hear one thing you will do. You will be judged on it at the end of your term." />
+    {people}
+    <div style={{ display: "grid", gap: 8 }}>{Object.entries(SYS.LGA_PROMISES).map(([k2, P]) => <Opt key={k2} ic="🤝" l={"\u201c" + P.l + "\u201d"} d={P.d} onClick={() => promise(k2)} />)}</div>
+  </Frame>);
+  const roadLine = G.road && G.road.builder ? <div style={{ display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap", fontSize: fz.s, color: CL.td, margin: "-6px 0 10px" }}>
+    <span style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "4px 12px" }}>🛣️ Market road: {G.road.tested ? (G.road.held ? "open and holding" : "washed away") : G.road.builder === "sponsor" ? "the party's contractor" : G.road.builder === "tender" ? "open-tender contractor" : "three access roads"}{!G.road.tested ? " · build quality " + (G.road.quality >= .75 ? "good" : G.road.quality >= .55 ? "fair" : "poor") : ""}</span>
+    {G.promise && <span style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "4px 12px" }}>🤝 Promise: {SYS.LGA_PROMISES[G.promise].l}</span>}
+  </div> : G.promise ? <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, margin: "-6px 0 10px" }}>🤝 Promise: {SYS.LGA_PROMISES[G.promise].l}</div> : null;
 
   if (G.step === "half") {
     if (!unlocked && G.n > SYS.LGA_TRIAL) return wrap(<Frame bg="chairman-office" who="lga-treasurer-worried">
@@ -12868,6 +12933,14 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
         <div style={{ marginTop: 10 }}><Bt v="ghost" onClick={onExit}>Not now (your council is saved)</Bt></div>
       </Cd>
     </Frame>);
+    // The in-tray: more matters than you can handle; pick two.
+    const choosableIdx = G.items.map((it2, i) => choosable(it2) ? i : -1).filter(i => i >= 0);
+    if (G.trayDone !== G.n && choosableIdx.length > SYS.ATTENTION) return wrap(<Frame bg="chairman-office" who="lga-treasurer">
+      <H kick={kicker + " · your in-tray"} title={"Pick the " + SYS.ATTENTION + " matters you will handle yourself"} sub="Your staff will deal with the rest the cheap way. Some things can wait; some will not." />
+      {header}{people}{roadLine}
+      <div style={{ display: "grid", gap: 8 }}>{choosableIdx.map(i => { const it2 = G.items[i], on = tray.includes(i), full = tray.length >= SYS.ATTENTION; return <Opt key={i} on={on} ic={on ? "☑️" : "⬜"} l={itemTitle(it2)} d={it2.k === "alloc" ? "Left alone: the treasurer accepts whatever the state sends." : it2.k === "road" ? "Left alone: the party decides." : it2.k === "gov" ? "Left alone: the governor is told you are busy." : it2.k === "motion" ? "Left alone: the council decides without you." : "Left alone: the department does the least it can, and it may get worse."} onClick={() => setTray(p => on ? p.filter(x => x !== i) : full ? p : [...p, i])} />; })}</div>
+      <Bt onClick={settleTray} disabled={tray.length !== SYS.ATTENTION} style={{ width: "100%", marginTop: 12 }}>{tray.length === SYS.ATTENTION ? "Handle these two; delegate the rest →" : "Pick " + (SYS.ATTENTION - tray.length) + " more"}</Bt>
+    </Frame>);
     const it = G.items[0];
     const left = <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, marginBottom: 8 }}>{G.items.length} matter{G.items.length === 1 ? "" : "s"} on your desk this half-year · {G.fixed} problem{G.fixed === 1 ? "" : "s"} fixed so far</div>;
     if (!it) return wrap(<Frame bg="lga-secretariat" who="councillor-female">
@@ -12877,16 +12950,29 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     </Frame>);
     if (it.k === "alloc") return wrap(<Frame bg="chairman-office" who={G.gov < 45 ? "lga-treasurer-worried" : "lga-treasurer"}>
       <H kick={kicker + " · the allocation"} title="The money has come down from the state" sub={"The treasurer reads it out: ₦" + SYS.ALLOCATION_M + "M due from Abuja, less what the state keeps and the salaries it pays first. How much the state keeps depends on how the governor feels about you."} />
-      {header}{people}{left}<Learn k="jaac" />
+      {header}{people}{roadLine}{left}<Learn k="jaac" />
       <div style={{ display: "grid", gap: 8 }}>{SYS.ALLOC_OPTS.map(o => <Opt key={o.id} ic={o.id === "accept" ? "🏦" : o.id === "protest" ? "🗣️" : "⚖️"} l={o.l} d={o.d} tone={o.id === "court" ? "bad" : null} onClick={() => takeAlloc(o)} />)}</div>
     </Frame>);
+    if (it.k === "roadtest") return wrap(<Frame bg="rural-road-mud">
+      <H kick={kicker + " · the rainy season"} title="The rains have come" sub={"Everything you decided about the market road is about to be tested: " + (G.story || []).filter(l => /road/.test(l)).join("; ") + "."} />
+      {header}{people}{roadLine}
+      <Bt onClick={testRoad} style={{ width: "100%" }}>Go and see the road →</Bt>
+    </Frame>);
+    if (it.k === "road") {
+      const x = SYS.ROAD[it.id], d = typeof x.d === "object" ? x.d[G.road.builder] || "" : x.d;
+      return wrap(<Frame bg={x.bg} who={x.who}>
+        <H kick={kicker + (it.id === "warn" ? " · a warning" : " · the market road")} title={x.t} sub={fill(d)} />
+        {header}{people}{roadLine}{left}<Learn k={x.learn} />
+        <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} onClick={() => choose(x, o, "road")} />)}<PutOff it={it} opts={x.opts} /></div>
+      </Frame>);
+    }
     if (it.k === "callback") {
-      const x = SYS.LGA_CALLBACKS[it.id];
+      const x = SYS.lgaCallback(it.id);
       return wrap(<Frame {...(x.scene ? { scene: x.scene } : { bg: x.bg, who: x.who })}>
         <div style={{ textAlign: "center" }}><span style={{ display: "inline-block", background: x.good ? "#e5f3ea" : "#fff2c9", color: x.good ? CL.grn : "#7a5a00", border: "1px solid " + (x.good ? "#bfe3cb" : "#e9cf8a"), borderRadius: 999, padding: "4px 14px", fontSize: fz.s, fontWeight: 800 }}>↩ It comes back</span></div>
         <H kick={kicker} title={fill(x.t)} sub={fill(x.d)} />
-        {header}{people}{left}<Learn k={x.learn} />
-        <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, "callback", it.id)} />)}</div>
+        {header}{people}{roadLine}{left}<Learn k={x.learn} />
+        <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, "callback", it.id)} />)}<PutOff it={it} opts={x.opts} /></div>
       </Frame>);
     }
     const pool = it.k === "problem" ? SYS.LGA_PROBLEMS : it.k === "motion" ? SYS.LGA_MOTIONS : SYS.GOV_ASKS, x = pool.find(y => y.id === it.id);
@@ -12894,8 +12980,8 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     const kick = it.k === "problem" ? kicker + " · " + lgaNm(G) : it.k === "motion" ? kicker + " · the council chamber" : kicker + " · Government House";
     return wrap(<Frame {...art}>
       <H kick={kick} title={fill(x.t)} sub={fill(x.d)} />
-      {header}{people}{left}<Learn k={x.learn} />
-      <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, it.k)} />)}</div>
+      {header}{people}{roadLine}{left}<Learn k={x.learn} />
+      <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(x, o, it.k)} />)}<PutOff it={it} opts={x.opts} /></div>
     </Frame>);
   }
   if (G.step === "election") return wrap(<Frame bg="village-square">
@@ -12908,11 +12994,14 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const restart = () => { try { window.storage.set(LGA_KEY, ""); } catch (e) {} setG(null); };
   return wrap(<Frame {...(G.ending === "reelected" ? { scene: "chairman-flag-off" } : { bg: "village-square", who: "village-head" })}>
     <H kick="LGA Chairman" title={endT[0]} sub={endT[1]} />
-    <Cd style={{ textAlign: "center" }}>
-      {G.ending === "reelected" && <img src="./art/badges/badge-chairman.webp" alt="Chairman badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 4px" }} />}
-      <div style={{ fontSize: TS(tall ? 110 : 150), lineHeight: 1, fontWeight: 900, fontFamily: F.d, color: grade === "A" || grade === "B" ? CL.grn : grade === "F" ? CL.red : CL.gold }}>{grade}</div>
-      <div style={{ fontSize: fz.s, color: CL.td }}>Score {score} · the people {G.people}% · {G.fixed} problems fixed · corruption {Math.round(G.cor * 100)}%</div>
+    <Cd>
+      {G.ending === "reelected" && <img src="./art/badges/badge-chairman.webp" alt="Chairman badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 8px" }} />}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>{SYS.lgaVerdict(G, G.ending).map(([k2, v, w]) => <div key={k2} style={{ background: CL.bg, borderRadius: 14, padding: "10px 12px", textAlign: "center" }}>
+        <div style={{ fontSize: fz.s, color: CL.td }}>{k2}</div><b style={{ fontSize: fz.l, fontFamily: F.d, color: v >= 75 ? CL.grn : v >= 50 ? CL.gold : CL.red }}>{w}</b></div>)}</div>
+      {(G.story || []).length > 0 && <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 12 }}><b style={{ color: CL.txt }}>Your term:</b> you {G.story.slice(-5).join("; ")}.</div>}
+      {G.npcs && <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 8 }}><b style={{ color: CL.txt }}>Who you leave behind:</b> {G.govName}, {SYS.relWord(G.gov)}; {G.npcs.party.name}, {SYS.relWord(G.npcs.party.rel)}; {G.npcs.cllr.name}, {SYS.relWord(G.npcs.cllr.rel)}.</div>}
     </Cd>
+    <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: CL.txt, fontWeight: 700 }}>Which decision would you change?</div><div style={{ fontSize: fz.s, color: CL.td, margin: "4px 0 8px" }}>Tell us. It shapes how the careers grow.</div><Bt v="secondary" onClick={() => { try { window.SOP_feedbackForm({ where: "chairman_end", year: "LGA", state: G.state }); } catch (e) {} }}>Tell us</Bt></Cd>
     <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: "#1d3a5c" }}>📘 The chairman's notebook: {notesHave()} of {notesAll} notes found.</div><Bt v="secondary" onClick={() => setBook(true)} style={{ marginTop: 8 }}>Open the notebook</Bt></Cd>
     <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
       {G.ending === "reelected" && onGovernor && <Bt onClick={() => { restart(); onGovernor(); }}>🏛️ Run for Governor →</Bt>}

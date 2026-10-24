@@ -60,3 +60,39 @@ Each person has a name (generated per run), a portrait with moods, and a relatio
 
 ## Teaching tied to survival (Gemini)
 The "How it really works" notes stay, but each one is attached to the move that uses the rule. For example, the Chairman's court case is *the* way to get Section 162 money back. The note explains the rule exactly when the player needs it.
+
+---
+
+## Revision after Perplexity's review (this supersedes the order above)
+
+**Prove it in one career first.** We build a complete **LGA Chairman** and put it in front of players, and only then retrofit the Senator and Ambassador. The test: do players remember names, events and regrets, or only scores?
+
+### What the Chairman proof adds
+1. **Commitment → warning → intervention.** One persistent project per term: **the market road**.
+   - The contract choice is the commitment.
+   - Next half-year, a named trader sends a warning (for example, "the drains are too shallow").
+   - You can intervene: demand repairs (angering your sponsor), commission an inspection (time and money), or open on schedule.
+   - The rainy season then tests the road, and the result follows from the whole chain.
+   - Good choices create complications too: the competent contractor delivers, but your sponsor's protection is gone.
+2. **Attention: choose what to ignore.** Each half-year, matters arrive in an **in-tray**. You handle **two** yourself. The rest are delegated to a named person with a plain, lower-quality outcome, and a problem left alone can get worse and come back.
+3. **People with interests.** Each of the three people shows **what they want**. Promises you make are tracked as kept or broken.
+4. **A four-part verdict** instead of one grade: **Delivery, Integrity, Survival, Promises**, plus a short story that names your actual decisions ("You gave the motor-park land to the governor's friend…").
+5. **One recognition scene** when the chairman becomes a governor. The traders you protected, or displaced, meet you on day one.
+6. **One question at the end:** "Which decision would you change?" It goes to the feedback page, so we learn what players remember.
+
+### Teaching
+- Every note keeps its source.
+- Before the careers are promoted, a separate accuracy check goes through every note against its source.
+- Abuses (for example, dissolving councils) are presented as pressure that the courts have ruled unlawful, never as a legal power.
+
+### Career identities (the design compass)
+
+| Career | The question |
+|---|---|
+| Chairman | Who gets the little we have? |
+| Senator | What must I trade to get this through? |
+| Ambassador | How do I persuade people I cannot command? |
+| Governor | Can I deliver what I promised? |
+| President | What do I protect when I cannot protect everything? |
+
+The Presidency (later) will have one sustained crisis, three national commitments, a cabinet that implements, and a coalition of power centres, not 36 governors simulated at once.
