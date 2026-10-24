@@ -9,110 +9,67 @@ Send each group as its own zip, with every file named exactly as listed. Any for
 
 ---
 
-## 1. Icon pack (new, the most important). Paste this:
+## 1. The campaign billboard (the ticket screen)
 
-> Please make a set of **44 game icons** for "Seat of Power", a Nigerian governor game.
+> A Nigerian state-capital street scene for a governorship game, in the game's painted style.
 >
-> **Style for every icon:**
-> - **Look:** flat, friendly, chunky, with a bold dark outline. Bright but not neon.
-> - **Colours:** deep green #0b6b42, gold #e9b949, red #b3261e, cream #f4efe6, plus one accent colour if needed.
-> - **Shape:** a rounded square or circle.
-> - **Format:** 512×512 transparent PNG.
-> - **No text inside any icon.**
-> - **No real logos and no coat of arms.**
-> - **Consistency:** the same line weight and lighting on all of them, so they look like one set.
->
-> **Tabs and menu (10):**
-> - `icon-desk`: a governor's desk with a lamp
-> - `icon-state`: a map pin over a small state map
-> - `icon-people`: three faces
-> - `icon-menu`: three lines
-> - `icon-politician`: a person in a cap
-> - `icon-challenge`: a trophy
-> - `icon-scenarios`: a scroll
-> - `icon-hall`: a building with columns and a star
-> - `icon-help`: a question mark in a speech bubble
-> - `icon-sound`: a speaker
->
-> **The four numbers (5):**
-> - `icon-approval`: a thumbs up
-> - `icon-bank`: a strongbox with a coin
-> - `icon-party`: a waving flag
-> - `icon-corruption`: a brown envelope with a hand reaching
-> - `icon-debt`: a ledger with a red ribbon
->
-> **Letter seals (16):** wax seals, each a different colour with a small symbol:
-> - `seal-agenda`: green with a star
-> - `seal-budget`: blue with a bar chart
-> - `seal-gold`: gold with a pickaxe
-> - `seal-crisis`: red with an exclamation mark
-> - `seal-godfather`: purple with a top hat
-> - `seal-party`: purple with a flag
-> - `seal-house`: maroon with a dome
-> - `seal-courts`: black with scales
-> - `seal-abuja`: green and white with a star
-> - `seal-community`: brown with houses
-> - `seal-press`: grey with a newspaper
-> - `seal-invitation`: teal with a plane
-> - `seal-investor`: teal with a briefcase
-> - `seal-projects`: orange with a hard hat
-> - `seal-intel`: slate with an eye
-> - `seal-briefing`: sage with a folder
->
-> **Actions (8):**
-> - `icon-sign`: a fountain pen
-> - `icon-veto`: a red stop hand
-> - `icon-flag-clause`: a little red flag
-> - `icon-ask-sa`: a woman adviser with a speech bubble
-> - `icon-delegate`: a golden key
-> - `icon-travel`: a plane
-> - `icon-send-envoy`: a person with a suitcase
-> - `icon-mail`: an envelope with a red count bubble (the bubble left empty)
->
-> **Status (5):**
-> - `icon-urgent`: a red bell
-> - `icon-ok`: a green tick
-> - `icon-warning`: an amber triangle
-> - `icon-locked`: a padlock
-> - `icon-new`: a gold burst
+> - `scenes/billboard-street`: 1600×1000.
+>   - **The billboard:** a big roadside campaign billboard on one steel pole, with a metal catwalk and trusses under it, towering over a busy street.
+>   - **Its face:** completely **blank**, flat cream-white, facing the viewer straight on, filling about the top-middle 80% width by 45% height. The game prints the ticket on it.
+>   - **Around it:** a hazy harmattan sky, rooftops, a few kiosks, keke and cars below.
+> - `objects/billboard-frame`: the same billboard alone (frame, catwalk, pole) on a **transparent** background, with the face cut out (transparent), so it can sit over any street.
 
-## 2. Front-page photos (new)
-These are 1600×900 scenes in black and white or sepia, used as the newspaper photo:
+## 2. Bills: stamps and paper
 
-- `scenes/news-governor-abroad`: the governor (seen from behind) shaking hands with foreign officials at a podium with flags (no real flags or crests)
-- `scenes/news-signing-ceremony`: the governor signing a document at a table, cameras flashing
-- `scenes/news-investor-deal`: two people shaking hands in front of a factory model
-- `scenes/news-protest`: a crowd with placards outside Government House
-- `scenes/news-court-steps`: lawyers in wigs on courthouse steps facing reporters
-- `scenes/news-victory-rally`: a cheering crowd with confetti and green-and-white balloons
+> - `objects/stamp-vetoed`: a red rubber-stamp impression reading VETOED. Double border, rough ink, slightly uneven, transparent background, 1000×420.
+> - `objects/stamp-assented`: the same style in deep blue, reading ASSENTED.
+> - `objects/bill-document`: a blank portrait legal document, 1000×1400.
+>   - **Paper:** aged cream, with a double gold rule border.
+>   - **Top:** a small invented green-and-gold state assembly crest.
+>   - **Middle:** empty space for the text.
+>   - **Bottom:** a signature line.
 
-## 3. Attire packs (they make money)
-The full brief is in `docs/ART-ATTIRE.md`. These are 8 governor looks:
+## 3. Wax seal for the sealed year-end letter
 
-- `governor-pink-power`
-- `governor-pink-agbada`
-- `governor-owambe-queen`
-- `governor-owambe-king`
-- `governor-big-boy`
-- `governor-odogwu`
-- `governor-big-girl`
-- `governor-lagos-baddie`
+> - `objects/wax-seal-red`: a large red wax seal pressed on paper (transparent background), 512×512, with a star in the middle.
+> - `objects/letter-sealed-large`: a folded cream letter closed with that seal, at a slight angle, transparent background, 900×700.
 
-## 4. Chief of Staff and the mailbox
-The full brief is in `docs/ART-MAILBOX.md`.
+## 4. Daily Decision and streak icons
 
-- **Chief of Staff portraits:** `chief-of-staff-fixer`, `chief-of-staff-matriarch`, `chief-of-staff-technocrat`, `chief-of-staff-veteran`
-- **Mailbox objects:** `mailbox-tray`, `letter-sealed`, `letter-open`
+Same set style as the 44 icons: flat, chunky, bold dark outline, 512×512 transparent.
 
-## 5. Clean-up of existing art
-Some backgrounds still show a national coat of arms (for example `backgrounds/courtroom`). Please send versions with the invented green-and-gold state seal instead, using the same file names.
+> - `icon-daily`: a calendar page with a gold star.
+> - `icon-streak`: a bright flame.
+> - `icon-streak-freeze`: an ice cube with a small flame inside.
+> - `icon-share`: a paper plane.
+
+## 5. Career badges (11)
+
+Round medals, 512×512, transparent, in the icon style:
+
+> - `badge-sworn-in`: a hand on a book.
+> - `badge-two-termer`: two gold stars on a ribbon.
+> - `badge-grade-a`: a gold A.
+> - `badge-clean-hands`: two hands with sparkles.
+> - `badge-builder`: a hard hat and a road.
+> - `badge-survivor`: a shield with a crack, still standing.
+> - `badge-aso-rock`: a rock outcrop with a green-white-green ribbon (no flag or crest).
+> - `badge-six-zones`: a compass with six points.
+> - `badge-ten-states`: a map pin with the number 10.
+> - `badge-federation`: a crown over a map outline.
+> - `badge-fallen`: a broken gavel.
+
+## 6. One more character
+
+> - `characters/investor-foreign`: a fictional foreign businessman in a suit holding a folder, standing, transparent background, 700 tall. Not a real person. He writes the letter that pulls an investment.
+
+---
 
 ## Already done, nothing needed
-These are all in the game:
-- the adviser's full figure;
-- the House pictures;
-- the campaign scenes;
-- every reaction mood;
-- the money, election and project packs.
-
-The stamps are gone, apart from the one VETO mark drawn on vetoed bills.
+These are in the game:
+- the letter template;
+- the Chief of Staff portraits and the mailbox;
+- the newspaper photos;
+- the 44 icons;
+- the attire packs;
+- the emblem clean-up.

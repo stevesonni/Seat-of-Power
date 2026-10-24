@@ -21,9 +21,7 @@ async function firstTerm(test) {
   }, { max: 900 });
   check(r.ok, "reached the end of the first term");
   const d = await save(g);
-  check(!!d.gold && d.gold.discoveredYear === 1, "gold discovered in Year 1 (" + (d.gold && d.gold.discoveredYear) + ")");
-  check(seen.y2esc || (d.gold && d.gold.history.some(h => h.year === 2 && /rush/.test(h.text))), "escalation beat in Year 2");
-  check(d.gold && Object.keys(d.gold.decided).length >= 3, "a goldfields decision most years (" + (d.gold && Object.keys(d.gold.decided).join(",")) + ")");
+  check(!d.gold, "no goldfields while the storyline is switched off");
   check(seen.years.join(",").startsWith("1,2,3,4") || seen.years.length >= 3, "four annual chapters seen: " + seen.years.join(","));
   check((d.yearDone || 0) >= 3, "year-end ran for each year (" + d.yearDone + ")");
   return g;
@@ -35,7 +33,7 @@ if (which === "defeat" || which === "all") {
   check(r.ok, "first term ended without re-election (" + ((await g.txt()).match(/VOTED OUT|STEPPED DOWN/) || ["?"])[0] + ")");
   const t = await g.txt();
   check(/1 term \(4 years\)/.test(t), "defeat screen shows one four-year term");
-  check(/THE GOLDFIELDS AFTER YOU/i.test(t) && /You left/.test(t) && /successor/i.test(t), "successor epilogue built from the real state");
+  check(!/THE GOLDFIELDS/i.test(t), "no goldfields epilogue while the storyline is off");
   check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
   await g.browser.close();
 }
@@ -46,7 +44,6 @@ if (which === "second" || which === "all") {
   check(r1.ok, "re-elected into Year 5");
   if (!r1.ok) { console.log("  last clicks: " + r1.clicks.slice(-15).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 600)); }
   const y5 = await save(g);
-  check(!!y5.gold && y5.gold.discoveredYear === 1 && Object.keys(y5.gold.decided).length >= Object.keys(before.gold.decided).length, "the same goldfields crisis carries into Year 5");
   check((y5.cases || []).length >= (before.cases || []).length && (y5.projects || []).length >= (before.projects || []).length, "cases and projects carried into the second term");
   const seen = [];
   const r2 = await playUntil(g, t => { const m = t.match(/2nd Term — Year (\d) of 4/); if (m && !seen.includes(m[1])) seen.push(m[1]); return /Tenure Complete/.test(t); }, { max: 1500, prefer });
@@ -54,7 +51,6 @@ if (which === "second" || which === "all") {
   if (!r2.ok) { console.log("  last clicks: " + r2.clicks.slice(-15).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 900)); }
   const t = await g.txt();
   check(/2 terms \(8 years\)/.test(t), "end screen: two terms, eight years");
-  check(/THE GOLDFIELDS AFTER EIGHT YEARS/i.test(t), "Year 8 goldfields assessment shown");
   check(!/Year 9|3rd Term/.test(t), "no third term");
   check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
   await g.browser.close();

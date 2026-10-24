@@ -3109,15 +3109,36 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
           <div style={{ fontSize: DS.t.meta, fontWeight: 700, marginTop: 6, lineHeight: 1.25 }}>{who}</div>
           <div style={{ fontSize: DS.t.meta, opacity: .7 }}>{role}</div>
         </div>;
-        return <div style={{ background: UI.dark, color: "#fff", borderRadius: 28, padding: TALL() ? "18px 14px" : "26px 28px" }}>
-          <div style={{ textAlign: "center", fontSize: DS.t.meta, letterSpacing: 1.5, textTransform: "uppercase", opacity: .75, fontWeight: 700 }}>{PARTIES.find(p => p.id === party)?.nm} · {st.replace("_", " ")} 2027</div>
-          <div style={{ display: "flex", alignItems: "center", gap: TALL() ? 8 : 18, marginTop: 12 }}>
-            {pic(AVATAR_IMGS[avatar], nm, "for Governor")}
-            <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
-              <div style={{ fontFamily: F.d, fontSize: TALL() ? 28 : 40, fontWeight: 700, lineHeight: 1.1, wordBreak: "break-word" }}>{(lastNm || "").toUpperCase()}<br /><span style={{ opacity: .6, fontSize: "70%" }}>/</span><br />{(depGov?.nm.split(" ").pop() || "").toUpperCase()}</div>
-              <div style={{ fontSize: DS.t.meta, opacity: .85, marginTop: 8 }}>“{slogan}”</div>
+        // The ticket as a campaign billboard over a state-capital street.
+        const P = PARTIES.find(p => p.id === party) || { nm: party, c: "#1a6d2e" }, pc = P.c || "#1a6d2e", tall = TALL();
+        const fig = (src, who) => <img src={src} alt={who} style={{ height: "100%", width: "auto", maxWidth: "34%", objectFit: "contain", objectPosition: "bottom", display: "block", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.35))" }} />;
+        return <div style={{ position: "relative", borderRadius: 24, overflow: "hidden", aspectRatio: tall ? "4 / 4.4" : "16 / 10", background: "linear-gradient(180deg,#d9d2c3 0%,#e8dcc4 38%,#cdbb98 62%,#b9a27c 100%)" }}>
+          {/* the street below, hazy */}
+          <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "46%", background: "url(./art/backgrounds/busy-market-street.webp) center 70% / cover", filter: "saturate(.85) sepia(.15) contrast(.95)", opacity: .95 }} />
+          <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg, rgba(232,220,196,.0) 0%, rgba(232,220,196,.0) 50%, rgba(232,220,196,.35) 58%, rgba(0,0,0,0) 75%)" }} />
+          {/* the pole and the walkway */}
+          <div style={{ position: "absolute", left: "48%", width: "4%", top: "56%", bottom: 0, background: "linear-gradient(90deg,#6f7377,#c9cdd1 45%,#7c8085)", boxShadow: "0 0 6px rgba(0,0,0,.25)" }} />
+          <div style={{ position: "absolute", left: "6%", right: "6%", top: "53%", height: "4%", background: "repeating-linear-gradient(90deg,#4d5257 0 3px,transparent 3px 14px), linear-gradient(180deg,#8b9096,#5c6166)", borderTop: "2px solid #a9adb2" }} />
+          <div style={{ position: "absolute", left: "8%", right: "8%", top: "57%", height: "6%", background: "repeating-linear-gradient(60deg, transparent 0 18px, #6b7075 18px 21px), repeating-linear-gradient(-60deg, transparent 0 18px, #6b7075 18px 21px)", opacity: .8 }} />
+          {/* the board */}
+          <div style={{ position: "absolute", left: "5%", right: "5%", top: "5%", height: "48%", background: "#f4f1ea", padding: tall ? 5 : 8, boxShadow: "0 18px 30px rgba(0,0,0,.35)" }}>
+            <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", background: "linear-gradient(115deg, " + pc + " 0%, " + pc + " 58%, #ffffff 58.2%, #ffffff 100%)" }}>
+              <div style={{ position: "absolute", left: tall ? 10 : 16, top: tall ? 8 : 12, bottom: tall ? 8 : 12, width: "50%", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? 14 : 15, letterSpacing: 1, textTransform: "uppercase", opacity: .9, lineHeight: 1.2 }}>{P.nm} · {st.replace("_", " ")} 2027</div>
+                  <div style={{ fontFamily: F.d, fontWeight: 900, fontSize: tall ? 30 : 38, lineHeight: 1, marginTop: 4, textShadow: "0 2px 0 rgba(0,0,0,.2)", wordBreak: "break-word" }}>{(lastNm || "").toUpperCase()}<span style={{ opacity: .7 }}> / </span>{(depGov?.nm.split(" ").pop() || "").toUpperCase()}</div>
+                  <div style={{ fontFamily: F.b, fontWeight: 700, fontSize: tall ? 15 : 16, marginTop: 4, fontStyle: "italic", lineHeight: 1.2 }}>“{slogan}”</div>
+                </div>
+                <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, background: "#fff", borderRadius: 6, padding: tall ? "3px 10px" : "4px 12px", fontFamily: F.b, fontWeight: 900, fontSize: tall ? 18 : 22, color: "#b3261e" }}><span style={{ color: pc }}>☑</span> VOTE</div>
+              </div>
+              <div style={{ position: "absolute", right: 0, bottom: 0, height: "100%", width: "52%", display: "flex", justifyContent: "flex-end", alignItems: "flex-end", gap: 2 }}>
+                {fig(AVATAR_IMGS[avatar], nm)}
+                {fig(depImg, depGov?.nm || "")}
+              </div>
+              <div style={{ position: "absolute", right: tall ? 6 : 12, top: tall ? 6 : 10, textAlign: "right", fontFamily: F.b, fontSize: tall ? 12 : 13, fontWeight: 800, color: "#12301f", lineHeight: 1.25, background: "rgba(255,255,255,.85)", borderRadius: 6, padding: "2px 6px" }}>{nm}<div style={{ fontWeight: 600, opacity: .75 }}>for Governor</div>{depGov?.nm}<div style={{ fontWeight: 600, opacity: .75 }}>for Deputy</div></div>
+              {/* matte vinyl sheen */}
+              <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,.08) 100%)", pointerEvents: "none" }} />
             </div>
-            {pic(depImg, depGov?.nm || "", "for Deputy")}
           </div>
         </div>;
       })()}
@@ -5903,12 +5924,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { if (gEnd || turn < 1) return; clearTimeout(recSaveT.current); recSaveT.current = setTimeout(() => { try { window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} }, 600); }, [cases, commits, agenda, projects, loans, s.cash, s.debt]);
 
   // ── THE GOLDFIELDS (SYS.deposits): discovered in Year 1, escalating from Year 2 ──
-  const [gold, setGold] = useState(() => ld?.gold || null);
+  // Switched off for now (the storyline is being reworked): no new goldfields, and saves drop theirs.
+  const GOLD_ON = false;
+  const [gold, setGold] = useState(() => GOLD_ON ? ld?.gold || null : null);
   const [goldOpen, setGoldOpen] = useState(false);
   const goldSeed = state + ":" + pName + ":" + (setup?.startYear || 2027);
   const goldShown = React.useRef(ld?.goldShown || 0);
   useEffect(() => {
-    if (gEnd || needSetup || phase !== "policy") return;
+    if (!GOLD_ON || gEnd || needSetup || phase !== "policy") return;
     if (!gold) {
       // Year 1 in a new game. A save from before this storyline discovers it now.
       const lg = getLGAs(state), lga = lg.length ? lg[hashStr(goldSeed) % lg.length] : state.replace("_", " ");
@@ -6482,7 +6505,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setSkApp(p => { const n = { ...p }; Object.entries(bill.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
     const note = s.pStab < 40 ? " after tense caucus horse-trading" : "";
     addL("📜 BILL SIGNED: " + bill.nm + " passed by House" + note + " and signed into law.", "policy");
-    try { window.SOP_billSign && window.SOP_billSign({ title: bill.nm, lines: [bill.d].concat(Object.entries(bill.fx || {}).map(([k, v]) => fxChip(k, v))), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
+    try { window.SOP_billSign && window.SOP_billSign({ title: bill.nm, state: stName, lines: String(bill.d || "").split(/(?<=\.)\s+/).filter(Boolean), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
     return { icon: "📜", title: "Passed and signed", text: bill.nm + " is now law" + note + ".", tone: "good" };
   });
 
@@ -7307,6 +7330,28 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (money) return money;
     return pick(pool, r);
   };
+  // The godfather gets the road: a running road project is taken from its
+  // contractor and given to his company at an inflated price. His loyalists in
+  // the House come over to you; an investor who watched will write next year.
+  const gfRoadGrab = (gfName) => {
+    const co = gfName.split(" ").pop() + " Holdings Ltd", fx = [];
+    const road = (projects || []).find(p => (p.type === "road" || p.type === "bridge" || /road/i.test(p.title || "")) && !["delivered", "abandoned"].includes(p.status));
+    if (road) {
+      const old = road.contractor, est = Math.round((road.estimateM || road.baseCost * 1000 || 3000) * 1.4);
+      setProjects(prev => prev.map(x => x.id === road.id ? { ...x, contractorId: "gf_co", contractor: co, estimateM: est, baseCost: est / 1000, quality: Math.max(.2, (x.quality == null ? .7 : x.quality) - .15), nepotism: true, status: x.status === "in_progress" ? "in_progress" : x.status, decisions: [...(x.decisions || []), { year: turn, text: (old ? old + " was removed; " : "") + "the contract went to " + co + ", your godfather's company, with no bidding. New price " + SYS.fmtM(est) + "." }] } : x));
+      addL("🚧 " + road.title + ": " + (old ? old + " is off the site. " : "") + co + " takes over, and the price rises to " + SYS.fmtM(est) + ".", "scandal");
+      fx.push({ icon: "🚧", text: road.title + " handed to " + co + (old ? " (" + old + " removed)" : ""), value: "+40% cost", bad: true });
+      fx.push({ icon: "📉", text: "The papers call it a no-bid handover", value: "−3 approval", bad: true });
+      setS(p => ({ ...p, app: cl100(p.app - 3), cor: cl(p.cor + .02) }));
+    } else fx.push({ icon: "🚧", text: co + " will expect the next road contract", bad: true });
+    // His loyalists in the House now vote with you.
+    setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 3) } }) : p);
+    fx.push({ icon: "🏛️", text: "Three lawmakers loyal to him now vote with you", value: "House +3", good: true });
+    // Someone was watching.
+    const invId = investorsApproved[investorsApproved.length - 1], inv = invId ? INVESTORS.find(x => x.id === invId) : null;
+    setStc(p => ({ ...p, gfRoadPull: { turn: turn + 1, nm: inv ? inv.co : "Jade River Infrastructure Co.", igr: inv ? Math.round(inv.igrBoost * .6 * 10) / 10 : .4, jobs: inv ? Math.round(inv.jobs * .6) : 0 } }));
+    return fx;
+  };
   const recordGfDemand = (dem, accepted, gfName) => {
     const L = window.SOP_LEDGER, M = window.SOP_MEMORY;
     if (!L || !dem) return;
@@ -7881,7 +7926,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // well, badly or crookedly. The year does not move on until the tray is clear.
   const [cosOffice, setCosOffice] = useState(() => ld?.cosOffice || { cos: null, history: [] });
   const [cosPickOpen, setCosPickOpen] = useState(() => !(ld?.cosOffice && ld.cosOffice.cos));
-  const [mail, setMail] = useState(() => (ld?.mail || []).filter(l => l.live));
+  const [mail, setMail] = useState(() => (ld?.mail || []).filter(l => l.live && l.key !== "gold"));
   const [mailOpen, setMailOpen] = useState(false);
   const [mailPing, setMailPing] = useState(null);
   const [letterOpen, setLetterOpen] = useState(null);
@@ -7943,7 +7988,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       netherlands: () => ["Protocol, Government House", "./art/characters/permanent-secretary.webp", "A trade mission to the Netherlands", "Ports, flowers and farm technology."],
       wedding: () => ["Protocol, Government House", "./art/characters/permanent-secretary.webp", "A society wedding in Lagos", "Everyone who matters will be there."],
     }[k];
-    const v = V ? V() : l.tip ? l.tip : sc ? [sc.from || sa, sc.img ? sc.img : saPortrait(sa), sc.title || "A matter of state", (sc.text || sc.desc || "").split(". ")[0]]
+    const sm = l.secr ? (ministries || []).find(m => m.id === l.ministryId) : null;
+    const v = V ? V() : l.secr ? [sm ? (sm.acting ? "" : "Hon. ") + sm.minister + ", " + sm.name : "The State Secretariat", sm ? commissionerArt(sm.minister, sm.perf) : "./art/characters/permanent-secretary.webp", (sm ? sm.name + ": " : "") + l.title0, String(l.line0 || "").replace(/^./, c => c.toUpperCase())] : l.tip ? l.tip : sc ? [sc.from || sa, sc.img ? sc.img : saPortrait(sa), sc.title || "A matter of state", (sc.text || sc.desc || "").split(". ")[0]]
       : dc ? [dc.source || sa, saPortrait(sa), dc.title || "A briefing", dc.topic ? "On " + dc.topic + "." : ""]
       : pj ? ["The site engineer, " + pj.title, "./art/characters/contractor.webp", pj.title + " has stalled", SYS.fmtM(SYS.remainingM(pj)) + " of work is left and the contractor has left the site."]
       : null;
@@ -7957,6 +8003,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   // The year's matters arrive together after the year closes.
   const postYearMail = (q) => {
+    const pull = stc.gfRoadPull && stc.gfRoadPull.turn <= turn ? stc.gfRoadPull : null;
+    if (pull) {
+      setStc(p => ({ ...p, gfRoadPull: null }));
+      setS(p => ({ ...p, app: cl100(p.app - 3), igr: Math.max(0, (p.igr || 0) - pull.igr), invIGR: Math.max(0, (p.invIGR || 0) - pull.igr), invJobs: Math.max(0, (p.invJobs || 0) - pull.jobs), totalJobs: Math.max(0, (p.totalJobs || 0) - pull.jobs) }));
+      addL("🏭 " + pull.nm + " pulled its investment after the no-bid road contract" + (pull.jobs ? ": " + pull.jobs.toLocaleString() + " jobs gone" : "") + ". Approval −3.", "crisis");
+      setTimeout(() => postMail([letterOf("investor_pull", { key: "investor_pull_" + turn, live: true, kind: "investment", stakes: 1, lines: [{ ok: false, line: "We watched a ₦3B road go to a politician's company with no bidding." }, { ok: false, line: "We cannot explain that risk to our board. We are pulling out" + (pull.jobs ? " and " + pull.jobs.toLocaleString() + " jobs go with us" : "") + "." }, { ok: false, line: "Revenue −₦" + pull.igr + "B a year; approval −3." }], tip: ["The Managing Director, " + pull.nm, "./art/characters/investor-nigerian.webp", pull.nm + " is pulling out", "We cannot invest where contracts are handed out."] })]), 300);
+    }
     awayRef.current = false; // a new year: the governor is home
     const stall = (projects || []).filter(p => p.status === "stalled").slice(0, 2).map(p => "stall:" + p.id);
     const letters = [...q, ...stall].map(k => letterOf(k, { live: k.startsWith("stall:") }));
@@ -7981,6 +8034,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const takeLetter = (l) => setMail(m => m.filter(x => x.id !== l.id));
   const isNote = (l) => !!(l.tip && !l.cat);
   const handleLetter = (l) => {
+    if (l.secr) { setLetterOpen(null); setMailOpen(false); openSecr({ ...l.secr, from: nav }); return; }
     takeLetter(l); setLetterOpen(null); setMailOpen(false);
     if (isNote(l)) return; // a report or a notice: read and filed
     if (l.key === "budget") {
@@ -7988,6 +8042,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (!budgetMin()) { const padB = Math.max(.2, Math.round(SYS.revenueB(s) * .025 * 10) / 10); setS(p => ({ ...p, cor: cl(p.cor + .005), cash: Math.max(0, Math.round(((p.cash || 0) - padB) * 100) / 100) })); addL("📊 No Commissioner for Budget & Planning checked the ministries' bids: " + naira(padB) + " of padding went into the budget. Create the ministry under People → Ministries.", "political"); }
       return;
     }
+    if (l.secr) { setLetterOpen(null); setMailOpen(false); openSecr({ ...l.secr, from: nav }); return; }
     if (l.key === "gold") { setGoldOpen(true); return; }
     if (l.key.startsWith("stall:")) { const p = (projects || []).find(x => x.id === l.key.slice(6)); goTab("prj"); if (p) setTimeout(() => openStep(p), 50); return; }
     if (l.cat) { const cat = MINISTRY_CATALOGUE.find(c => c.id === l.cat); if (cat && !(ministries || []).some(m => m.id === cat.id)) openNewMinistry(cat); else goTab("min"); return; }
@@ -8067,7 +8122,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (phase !== "mail") return;
     if (awayRef.current && !silentRef.current) { silentRef.current = { report: [], months: awayRef.current }; awayRef.current = false; try { document.body.classList.add("sop-silent"); } catch (e) {} }
     const R = silentRef.current; if (!R || cosAuto.current) return;
-    const nxt = (mail || []).find(l => !isNote(l) && l.key !== "budget" && !l.cat);
+    const nxt = (mail || []).find(l => !isNote(l) && l.key !== "budget" && !l.cat && !l.secr);
     const t = setTimeout(() => {
       if (nxt) { R.cur = letterView(nxt).title; delegateLetter(nxt); return; }
       // Done: the report goes on the Desk, and the adviser says so once.
@@ -8193,7 +8248,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const OFFICE = { agenda: "Office of the Special Adviser to the Governor", budget: "Ministry of Budget & Economic Planning", gold: "Local Government Secretariat", crisis: "State Security Council", godfather: "Private & Confidential", party: "The Party Secretariat", house: "State House of Assembly", courts: "High Court of Justice", federal: "The Presidency · Abuja", community: open.key.startsWith("sc#ruler") ? "The Palace" : "A Community Delegation", press: "The Newsroom", travel: "Protocol Department, Government House", investment: "Investment Promotion Office", projects: "Ministry of Works & Infrastructure", intel: "Department of State Services · Secret", briefing: "Office of the Secretary to the State Government" };
       const ref = "GH/" + absYear + "/" + String(100 + (hashStr(open.id) % 900));
       const fromSA = String(v.from || "") === cast.adviser.name;
-      const office = fromSA ? "Office of the Special Adviser to the Governor" : (OFFICE[open.kind] || "Government House");
+      const office = fromSA ? "Office of the Special Adviser to the Governor" : open.secr ? "The State Secretariat" : (OFFICE[open.kind] || "Government House");
       const role = String(v.from || "").includes(",") ? String(v.from).split(",").slice(1).join(",").trim() : fromSA ? "Special Adviser to the Governor" : "";
       const signer = String(v.from || "").split(",")[0];
       const sc = (SYS.SEALS[open.kind] || {}).c || "#7a1f2b", tall = TALL();
@@ -8228,12 +8283,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ fontFamily: F.b, fontSize: LS.xs, color: "#4b3d2a", lineHeight: 1.4 }}><b>{cast.adviser.name.split(" ").slice(-2).join(" ")}:</b> “Create a Ministry of Budget & Planning first, so someone checks every bid. Otherwise the padding costs us.”</div>
               <button onClick={() => { setLetterOpen(null); setMailOpen(false); if (bc) openNewMinistry(bc); else goTab("min"); }} style={{ gridColumn: "1 / -1", minHeight: tall ? 50 : 60, borderRadius: 999, border: 0, background: "linear-gradient(180deg,#f0c75a,#d9a521)", color: "#2b1d05", fontFamily: F.b, fontWeight: 900, fontSize: tall ? TS(19) : TS(28), cursor: "pointer", boxShadow: "0 4px 0 #a97d12" }}>🏛️ Create the Ministry of Budget & Planning{bc ? " · " + naira(bc.cost) + " a year" : ""}</button>
             </div>; })()}
-            {!isNote(open) && !open.cat && <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", fontFamily: F.b, fontSize: LS.xs, color: "#4b4a45", marginBottom: 10 }}><span aria-label={risk} style={{ width: 10, height: 10, borderRadius: 5, background: riskC, flexShrink: 0 }} /><b>{first}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}”</div>}
+            {!isNote(open) && !open.cat && !open.secr && <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", fontFamily: F.b, fontSize: LS.xs, color: "#4b4a45", marginBottom: 10 }}><span aria-label={risk} style={{ width: 10, height: 10, borderRadius: 5, background: riskC, flexShrink: 0 }} /><b>{first}:</b> “{SYS.cosHint(c, open.kind, open.stakes)}”</div>}
             {(() => { const pill = (img, label, onClick, key, strong) => <button key={key} onClick={onClick} style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 10, padding: tall ? "6px 14px 6px 6px" : "8px 18px 8px 8px", minHeight: tall ? 58 : 72, borderRadius: 999, border: "2px solid " + (strong ? "#0f5a35" : "#c4c0b8"), background: strong ? "linear-gradient(180deg,#1b7a4c,#0f5a35)" : "linear-gradient(180deg,#f1f0ec,#dedbd5)", boxShadow: "inset 0 1px 0 rgba(255,255,255,.7), 0 3px 8px rgba(0,0,0,.12)", cursor: "pointer", fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(19) : TS(28), color: strong ? "#fff" : "#2b2a26", lineHeight: 1.15, textAlign: "center" }}>
                 <span style={{ width: tall ? 44 : 56, height: tall ? 44 : 56, borderRadius: "50%", flexShrink: 0, background: "#cfccc5", boxShadow: "inset 0 2px 4px rgba(0,0,0,.18)", display: "grid", placeItems: "center", overflow: "hidden" }}>{img}</span>
                 <span style={{ flex: 1, minWidth: 0 }}>{label}</span>
               </button>;
-              return open.cat ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-state" s={tall ? 30 : 38} />, "🏛️ Create the ministry", () => handleLetter(open), "c", true)}</div>
+              return open.secr ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, open.secr.audience ? "See them now" : "Open the file", () => handleLetter(open), "s", true)}</div>
+                : open.cat ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-state" s={tall ? 30 : 38} />, "🏛️ Create the ministry", () => handleLetter(open), "c", true)}</div>
                 : isNote(open) ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-ok" s={tall ? 30 : 38} />, "Noted", () => handleLetter(open), "n", true)}</div>
                 : <div style={{ display: "flex", gap: tall ? 8 : 14 }}>
                   {pill(<img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />, <>{risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first} <Ico n="icon-delegate" s={tall ? 18 : 24} /></>, () => delegateLetter(open), "d")}
@@ -8298,6 +8354,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, careerSaved: true }));
     (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
+  // The Secretariat writes: each commissioner asking to see you, and each open
+  // file, is a letter on the Desk. Acting on it opens that item; it leaves the
+  // tray when it is settled.
+  const secrItems = needSetup ? [] : [
+    ...audiences.map(a => ({ key: "secr:aud:" + a.id, secr: { audience: a.id }, ministryId: a.ministryId, title: "A request to see you", line: a.reason })),
+    ...cases.filter(c => c.stage !== "closed" && c.stage !== "decided").map(c => ({ key: "secr:case:" + c.id, secr: { caseId: c.id }, ministryId: c.ministryId, title: "A file on " + c.ministryName, line: c.what + " · " + SYS.STAGE_NAME[c.stage] })),
+  ];
+  const secrSig = secrItems.map(x => x.key + "|" + x.line).join(";");
+  useEffect(() => {
+    setMail(ml => {
+      const keep = ml.filter(l => !l.secr || secrItems.some(x => x.key === l.key));
+      const add = secrItems.filter(x => !keep.some(l => l.key === x.key)).map(x => ({ id: x.key + "@" + turn, key: x.key, kind: "briefing", stakes: 2, live: true, secr: x.secr, ministryId: x.ministryId, title0: x.title, line0: x.line }));
+      return add.length || keep.length !== ml.length ? [...keep, ...add] : ml;
+    });
+  }, [secrSig]);
   const nextSaid = React.useRef({});
   // Twice a career the adviser asks for the player's feedback: after the second
   // year, and at the end. Not if they sent some in the last week.
@@ -8771,7 +8842,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
-    <button onClick={() => setSecr({ view: "dir", from: nav })} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: CL.txt, border: "1px solid " + ((cases.some(c => c.stage !== "decided" && c.stage !== "closed") || audiences.length) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>🏢 Secretariat{(() => { const n = cases.filter(c => c.stage !== "decided" && c.stage !== "closed").length + audiences.length; return n ? " (" + n + ")" : ""; })()}</button>
     {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
     <span title="Major actions left this year: programmes, projects, orders, bills, reforms, new ministries. Meetings and inspections are free." style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Agenda {agendaLeftNow}/{SYS.agendaSize(setup?.level || "medium")} left</span>
         {["Budget", "House vote", "Policies", "Review", "Mail"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
@@ -8881,7 +8951,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         })()}
         {nav === "gov" && !(phase === "budget" && needSetup) && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 22px", display: "grid", gap: 10 }}>
           {lastCon && lastCon.turn >= turn - 1 && <Consequence icon={lastCon.icon} text={lastCon.text} />}
-          {!/^Balance the Appropriation/.test(saBrief.title) && saLater !== saBrief.title + "|" + turn && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaLater(saBrief.title + "|" + turn)} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
+          {saBrief.urgent && !/^Balance the Appropriation|^Allegation in /.test(saBrief.title) && saLater !== saBrief.title + "|" + turn && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaLater(saBrief.title + "|" + turn)} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </div>}
 
         {nav === "gov" && !needSetup && (() => {
@@ -9430,13 +9500,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 });
                 setGodfatherRel(r2 => Math.min(100, r2 + 15));
                 recordGfDemand(godfatherDemand, true, gf.nm);
+                const roadFx = godfatherDemand.id === "gf_contract" ? gfRoadGrab(gf.nm) : [];
                 addL("🎩 " + gf.nm + ": " + godfatherDemand.acceptLog + " He's satisfied — for now.", "political");
                 showResult({ icon: "🎩", title: gf.nm + " — Appeased", narrative: gf.nm.split(" ").pop() + " nods slowly. \"Good. You understand how this works.\" He leaves Government House with what he came for. Your party is stable. But your integrity — and your EFCC file — just got heavier.", effects: [
                   godfatherDemand.acceptFx.corM ? { icon: "💀", text: "Corruption rises", value: "+" + Math.round(godfatherDemand.acceptFx.corM * 100) + "%", bad: true } : null,
                   godfatherDemand.acceptFx.pStab ? { icon: "🏛️", text: "Party stability", value: "+" + godfatherDemand.acceptFx.pStab, good: true } : null,
                   godfatherDemand.acceptFx.app ? { icon: "📉", text: "Approval", value: godfatherDemand.acceptFx.app + "%", bad: true } : null,
                   { icon: "🤝", text: "Godfather relationship", value: "+15", good: true },
-                ].filter(Boolean), tone: "neutral", nextFn: () => { setGodfatherDemand(null); nextEvent(); } });
+                  ...roadFx,
+                ].filter(Boolean), tone: roadFx.length ? "bad" : "neutral", nextFn: () => { setGodfatherDemand(null); nextEvent(); } });
               }} style={{ padding: 43, borderColor: CL.org + "33" }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.org, marginBottom: 10 }}>🤝 Give {gf.nm.split(" ").pop()} What He Wants</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -10879,14 +10951,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               });
               setSkApp(p => { const n = { ...p }; Object.entries(B.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
               addL(hasBad ? "✍️ Signed the " + B.nm + ", hidden clause and all. Corruption rises." : "✍️ Signed the " + B.nm + " into law." + (B.signCost > 0 ? " Cost: " + naira(B.signCost) : ""), hasBad ? "scandal" : "policy");
-              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, lines: (B.clauses || []).map(c => short(c.t)), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
+              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, state: stName, lines: (B.clauses || []).map(c => short(c.t)), sign: pName.split(" ").pop(), by: "Governor of " + stName + " State" }); } catch (e) {}
               if (!hasBad) setTimeout(() => paper(govShort + " Signs " + B.nm.replace(/ Bill$/, "") + " Into Law", "A win for " + stName, true, "./art/scenes/news-signing-ceremony.webp"), 2600);
               if (hasBad) later({ icon: "🕵️", img: "./art/characters/speaker-pleased.webp", title: "The House got what it wanted", text: "You signed " + short(badClauses[0].t).split(":")[0] + " without reading it. Corruption +4%.", tone: "bad" });
               setBillFlags([]); advanceFn();
             };
             const doVeto = () => {
               setSkApp(p => { const n = { ...p }; Object.entries(B.vetoSk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, lines: (B.clauses || []).map(c => short(c.t)), by: "Governor of " + stName + " State", veto: true }); } catch (e) {}
+              try { window.SOP_billSign && window.SOP_billSign({ title: B.nm, state: stName, lines: (B.clauses || []).map(c => short(c.t)), by: "Governor of " + stName + " State", veto: true }); } catch (e) {}
               if (caughtBad) {
                 // You read it, flagged the trick and sent it back: the press notices.
                 setS(p => ({ ...p, app: cl100(p.app + 5), cor: cl(p.cor - .03) }));
