@@ -88,3 +88,10 @@ test("every LGA Chairman picture is used", () => {
   assert.deepEqual(names.filter(n => !files.includes(n)), [], "all shipped");
   assert.deepEqual(names.filter(n => !all.includes('"' + n + '"') && !all.includes("/" + n + ".webp")), [], "all referenced");
 });
+test("every Ambassador picture is used", () => {
+  const names = ["consular-hall", "detention-visiting-room", "embassy-exterior", "embassy-office", "evacuation-airport", "foreign-ministry-meeting", "citizen-student-abroad", "citizen-trader-abroad", "consular-officer",
+    "detained-citizen", "foreign-minister-nigeria", "host-minister", "diplomatic-cable", "letter-of-credence", "passport-green", "diaspora-town-hall", "presenting-credentials", "trade-deal-signing", "badge-ambassador"];
+  const files = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.basename(f, ".webp"));
+  assert.deepEqual(names.filter(n => !files.includes(n)), [], "all shipped");
+  assert.deepEqual(names.filter(n => !src.includes('"' + n + '"') && !src.includes("/" + n + ".webp")), [], "all referenced");
+});

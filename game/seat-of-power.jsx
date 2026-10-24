@@ -2411,7 +2411,7 @@ const CareerSheet = ({ onClose }) => {
   </EntranceSheet>;
 };
 
-const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onChallenge, onScenario, onBoard, profile, setProfile }) => {
+const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onAmbassador, onChallenge, onScenario, onBoard, profile, setProfile }) => {
   useMode("public");
   const [op, setOp] = useState(1);
   const [hasSave, setHasSave] = useState(false);
@@ -2489,7 +2489,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["icon-office-governor", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
             ["icon-office-senator", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. First year free, then ₦1,000.", "Play", () => { setSheet(null); onSenate && onSenate(); }],
             ["icon-office-president", "Road to Aso Rock", "The presidential race. Earned: finish a governorship and run.", null, null],
-            ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad and orders from Abuja.", "Coming soon", null]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
+            ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad in trouble, a host that can expel you, and cables from Abuja. First year free, then ₦1,000.", "Play", () => { setSheet(null); onAmbassador && onAmbassador(); }]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: UI.tints[2], display: "grid", placeItems: "center" }}><Ico n={ic} s={44} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.35 }}>{d}</span></span>
             {go ? <button onClick={go} style={{ minHeight: 44, padding: "8px 16px", borderRadius: 999, border: 0, background: UI.dark, color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: DS.t.meta, cursor: "pointer" }}>{cta}</button> : cta ? <span style={{ fontSize: DS.t.meta, color: UI.sub, fontWeight: 700 }}>{cta}</span> : <span />}
@@ -2501,7 +2501,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
           {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
-            ["icon-politician", "Careers", "LGA Chairman, Governor, Senator, and the road to Aso Rock", () => setSheet("careers")],
+            ["icon-politician", "Careers", "LGA Chairman, Governor, Senator, Ambassador, and the road to Aso Rock", () => setSheet("careers")],
             ["icon-state", "Your career map", "States governed, badges and time played", () => setSheet("career")],
             ["seal-projects", "Your company", "Register a contractor every player sees · ₦1,500", () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
@@ -12891,6 +12891,168 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   </Frame>);
 };
 
+// ── THE AMBASSADOR CAREER ──
+// Far from home, with three masters: Abuja's cables, the host government that
+// can expel you, and the Nigerians abroad who come to the embassy when
+// things go wrong. The countries are invented. Rules in
+// game/systems/ambassador.js; inside Vatar the career is career_ambassador,
+// first year free. Every choice teaches how diplomacy really works.
+const AMB_KEY = "sop_amb";
+const AMB_FX_NM = { abuja: "Abuja's confidence", host: "The host government", diaspora: "Nigerians abroad", trade: "Deals won", cor: "Corruption" };
+const ambFxRows = (fx) => Object.entries(fx || {}).filter(([k, v]) => v && AMB_FX_NM[k]).map(([k, v]) => ({ l: AMB_FX_NM[k], v: k === "cor" ? (v > 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%" : (v > 0 ? "+" : "−") + Math.abs(v), good: k === "cor" ? v < 0 : v > 0 }));
+const AMB_ART = {
+  detained: { bg: "detention-visiting-room", who: "detained-citizen" }, students: { bg: "consular-hall", who: "citizen-student-abroad" }, traders: { bg: "embassy-exterior", who: "citizen-trader-abroad" },
+  passports: { bg: "consular-hall", who: "consular-officer" }, evacuate: { bg: "evacuation-airport" }, deathrow: { bg: "detention-visiting-room", who: "detained-citizen" },
+  minister: { bg: "foreign-ministry-meeting", who: "host-minister" }, fair: { scene: "trade-deal-signing" }, townhall: { scene: "diaspora-town-hall" }, gala: { bg: "embassy-office" },
+  investor: { bg: "foreign-ministry-meeting", who: "host-minister" }, match: { bg: "embassy-exterior" },
+};
+
+const AmbassadorCareer = ({ profile, onExit }) => {
+  const tall = TALL(), fz = tall ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(40) } : { s: TS(27), m: TS(33), l: TS(46), xl: TS(64) };
+  const [g, setG] = useState(null), [loaded, setLoaded] = useState(false), [ents, setEnts] = useState(() => window.SOP_ENTS || {}), [busy, setBusy] = useState(false), [book, setBook] = useState(false), [post, setPost] = useState(null);
+  useEffect(() => {
+    const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
+    (async () => { try { const r = await window.storage.get(AMB_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setG(d); } } catch (e) {} setLoaded(true); })();
+    return () => window.removeEventListener("sop-ents", f);
+  }, []);
+  useEffect(() => { if (g) { try { window.storage.set(AMB_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
+  const lessons = React.useRef([]);
+  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const learn = (k) => { const t = SYS.AMB_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("amb:" + k); lessons.current.push(t); } };
+  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+  const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
+  const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_ambassador > 0;
+  const buy = () => { setBusy(true); window.SOP_buy("career_ambassador").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const P = (G) => SYS.POSTINGS[G.post];
+
+  const begin = (postId, k) => {
+    const Pp = SYS.POSTINGS[postId], B = SYS.AMB_STARTS[k];
+    const S = { v: 1, seed: Date.now(), name: profile.first + " " + profile.last, avatar: profile.avatar, post: postId, from: k,
+      abuja: B.abuja, host: Pp.host + B.hostAdj, diaspora: Pp.diaspora + B.diasporaAdj, trade: 0, cor: B.cor, n: 1, step: "credentials", items: [], seen: [], helped: 0 };
+    setG(S); trk("career_start", "ambassador_" + k + "_" + postId);
+  };
+  const present = () => {
+    learn("appoint"); learn("credence");
+    up(p => ({ step: "half", items: SYS.ambAgenda(p.seed, 1, p) }));
+    card({ icon: "📜", img: "./art/objects/letter-of-credence.webp", title: "Your credentials are accepted", text: "The head of state of " + P(g).nm + " receives your letter of credence. From today you speak for Nigeria in " + P(g).city + ".", rows: [], tone: "good", ok: "To the embassy" });
+  };
+  const ALL = () => [...SYS.CABLES, ...SYS.CASES, ...SYS.HOST_ITEMS];
+  const choose = (it, x, o) => {
+    const res = SYS.ambChoice(o, R(it.k + x.id));
+    trk("amb_" + it.k, x.id + "_" + o.id); learn(x.learn); if (it.k === "cable") learn("mfa");
+    const helped = it.k === "case" && (o.fx.diaspora || 0) > 0;
+    up(p => ({ ...SYS.applyAmb(p, res.fx), items: p.items.slice(1), seen: [...p.seen, x.id], helped: p.helped + (helped ? 1 : 0) }));
+    card({ icon: res.bad ? "📰" : it.k === "cable" ? "📨" : helped ? "🤝" : "📌", img: it.k === "cable" ? "./art/objects/diplomatic-cable.webp" : x.id === "passports" ? "./art/objects/passport-green.webp" : undefined, title: o.l,
+      text: res.bad ? "It goes wrong: the story is in the host country's papers and on Abuja's desk by morning." : helped ? "Word spreads through the community that the embassy came through." : "Done.", rows: ambFxRows(res.fx), tone: res.bad ? "bad" : helped ? "good" : "neutral", ok: "Next" });
+  };
+  const endHalf = () => {
+    const t = SYS.ambThreats(g, R("threat"));
+    if (t) {
+      learn(t.kind === "expelled" ? "vienna" : "mfa"); trk("amb_end", t.kind);
+      up({ step: "over", over: true, ending: t.kind });
+      card({ icon: t.kind === "expelled" ? "🚫" : "📞", img: "./art/backgrounds/evacuation-airport.webp", title: t.kind === "expelled" ? "Declared persona non grata" : "Recalled to Abuja", text: t.kind === "expelled" ? "The host government gives you 72 hours to leave the country." : "A one-line cable: return to Abuja for consultations. Everyone knows what that means.", rows: [], tone: "bad", ok: "Continue" });
+      return;
+    }
+    if (g.n >= SYS.AMB_HALVES) { const end = SYS.ambEnding(g), score = SYS.ambScore(g), grade = SYS.ambGrade(score); trk("amb_end", end); trk("amb_grade", grade);
+      up({ step: "over", over: true, ending: end, score, grade });
+      try { (async () => { const r0 = await window.storage.get("sop_career"); const L = r0 && r0.value ? JSON.parse(r0.value) : []; await window.storage.set("sop_career", JSON.stringify([...L, { office: "ambassador", post: g.post, grade, ending: end, at: Date.now(), name: g.name }].slice(-200))); })(); } catch (e) {}
+      return; }
+    up(p => { const q = SYS.applyAmb(p, SYS.AMB_DRIFT); return { ...q, n: p.n + 1, items: SYS.ambAgenda(p.seed, p.n + 1, q) }; });
+  };
+
+  // ── Rendering ──
+  const G = g;
+  const Frame = ({ bg, scene, who: w, children }) => <div style={{ minHeight: "100%", background: CL.bg, padding: tall ? "16px 16px 120px" : "36px 43px" }}>
+    <Flag />
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>{(bg || scene) && <CareerHero bg={bg} scene={scene} who={w} />}{children}</div>
+  </div>;
+  const H = ({ kick, title, sub }) => <div style={{ textAlign: "center", margin: "10px 0 14px" }}>
+    {kick && <div style={{ fontSize: fz.s, letterSpacing: 3, color: CL.gold, fontFamily: F.m, textTransform: "uppercase" }}>{kick}</div>}
+    <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.xl, margin: "4px 0", fontWeight: 700 }}>{title}</h2>
+    {sub && <div style={{ fontSize: fz.s, color: CL.td, lineHeight: 1.4 }}>{sub}</div>}
+  </div>;
+  const Opt = ({ ic, l, d, onClick, tone, on }) => <button onClick={onClick} aria-pressed={on} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", width: "100%", padding: tall ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + (on ? CL.grn : tone === "bad" ? "#efc2bc" : CL.bdr), background: on ? CL.grn + "10" : "#fff", color: CL.txt, cursor: "pointer", fontFamily: F.b }}>
+    <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b>{d && <span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span>}</span>
+  </button>;
+  const Learn = ({ k }) => { const t = SYS.AMB_LEARN[k]; return t ? <div style={{ background: "#eef4fb", border: "1px solid #c9dcf0", borderRadius: 14, padding: "10px 14px", fontSize: fz.s, color: "#1d3a5c", lineHeight: 1.45, margin: "10px 0" }}><b>📘 How it really works · </b>{t}</div> : null; };
+  const Meter = ({ k, v, bad }) => <div style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 12, padding: tall ? "6px 8px" : "8px 12px", minWidth: 0 }}>
+    <div style={{ fontSize: tall ? TS(15) : TS(22), color: CL.td, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k}</div><b style={{ fontSize: fz.m, color: bad ? CL.red : CL.txt }}>{v}</b></div>;
+  const notesHave = () => senNotes().filter(k => k.startsWith("amb:")).length, notesAll = Object.keys(SYS.AMB_LEARN).length;
+  const header = G && <div style={{ display: "grid", gridTemplateColumns: tall ? "repeat(3, 1fr)" : "repeat(6, 1fr)", gap: 6, margin: "6px 0 12px" }}>
+    <Meter k="🇳🇬 Abuja" v={G.abuja} bad={G.abuja < 30} /><Meter k="🤝 Host" v={G.host} bad={G.host < 30} /><Meter k="🧳 Diaspora" v={G.diaspora + "%"} bad={G.diaspora < 40} />
+    <Meter k="📈 Deals" v={G.trade} /><Meter k="💀 Corruption" v={Math.round(G.cor * 100) + "%"} bad={G.cor > .4} />
+    <button onClick={() => setBook(true)} style={{ border: "1px solid #c9dcf0", background: "#eef4fb", borderRadius: 12, color: "#1d3a5c", fontWeight: 800, fontSize: fz.s, fontFamily: F.b, cursor: "pointer" }}>📘 {notesHave()}/{notesAll}</button>
+  </div>;
+  const notebook = book && <EntranceSheet title="📘 The ambassador's notebook" onClose={() => setBook(false)}>
+    <div style={{ fontSize: DS.t.label, color: UI.sub, marginBottom: 10 }}>How diplomacy really works. You have found {notesHave()} of {notesAll}.</div>
+    {Object.entries(SYS.AMB_LEARN).map(([k, t]) => { const have = senNotes().includes("amb:" + k); return <div key={k} style={{ padding: "10px 0", borderBottom: "1px solid " + UI.line, fontSize: DS.t.meta, color: have ? UI.ink : UI.dim, lineHeight: 1.45 }}>{have ? t : "🔒 Found by playing."}</div>; })}
+  </EntranceSheet>;
+  const wrap = (el) => <>{el}{notebook}</>;
+
+  if (!loaded) return <Frame><H title="Loading…" /></Frame>;
+  if (!G) {
+    if (!profile) return <Frame bg="embassy-exterior"><H kick="Careers" title="Ambassador" sub="Create your politician first: your name and face." /><Cd><Bt onClick={onExit} style={{ width: "100%" }}>Back</Bt></Cd></Frame>;
+    return <Frame bg="embassy-exterior">
+      <H kick="Careers · the Foreign Service" title="Ambassador" sub="The President has named you an ambassador and the Senate has confirmed you. Three masters now: Abuja, your host country, and every Nigerian there in trouble." />
+      <Learn k="appoint" />
+      <div style={{ fontSize: fz.s, color: CL.td, textAlign: "center", margin: "6px 0" }}>1 · Where are you posted?</div>
+      <div style={{ display: "grid", gap: 8 }}>{Object.entries(SYS.POSTINGS).map(([k, p]) => <Opt key={k} ic="🌍" l={p.nm.replace(/^the /, "").replace(/^./, c => c.toUpperCase())} d={p.d} on={post === k} onClick={() => setPost(k)} />)}</div>
+      {post && <><div style={{ fontSize: fz.s, color: CL.td, textAlign: "center", margin: "14px 0 6px" }}>2 · Who are you?</div>
+        <div style={{ display: "grid", gap: 8 }}>{Object.entries(SYS.AMB_STARTS).map(([k, b]) => <Opt key={k} ic={k === "career" ? "🎓" : k === "appointee" ? "🤝" : "🧳"} l={b.nm} d={b.d} onClick={() => begin(post, k)} />)}</div></>}
+      <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, marginTop: 10 }}>{unlocked ? "" : "Your first year abroad is free."}</div>
+      <div style={{ textAlign: "center", marginTop: 6 }}><Bt v="ghost" onClick={onExit}>Back</Bt></div>
+    </Frame>;
+  }
+  const kicker = "Year " + Math.ceil(G.n / 2) + " of 3 · " + P(G).city;
+
+  if (G.step === "credentials") return wrap(<Frame scene="presenting-credentials">
+    <H kick={"Arrival · " + P(G).city} title="Present your credentials" sub={"Before you can work, the head of state of " + P(G).nm + " must receive the President's letter introducing you."} />
+    {header}<Learn k="credence" />
+    <Bt onClick={present} style={{ width: "100%" }}>Present the letter of credence →</Bt>
+  </Frame>);
+  if (G.step === "half") {
+    if (!unlocked && G.n > SYS.AMB_TRIAL) return wrap(<Frame bg="embassy-office" who="foreign-minister-nigeria">
+      <H kick="Year 2 begins" title="A cable from the Foreign Minister" sub={"Your first year is over: Abuja's confidence " + G.abuja + ", the host government " + G.host + ", Nigerians abroad " + G.diaspora + "%. The cable on your desk is marked PRIORITY."} />
+      <Cd style={{ textAlign: "center" }}>
+        <div style={{ fontSize: fz.m, color: CL.tm, marginBottom: 12 }}>Unlock the full posting: three years, the end-of-posting verdict (recall, expulsion or promotion), and every page of the ambassador's notebook. Yours to replay in every country.</div>
+        <Bt onClick={buy} disabled={busy} style={{ width: "100%" }}>{busy ? "Opening…" : "Unlock the Ambassador · ₦1,000"}</Bt>
+        <div style={{ marginTop: 10 }}><Bt v="ghost" onClick={onExit}>Not now (your posting is saved)</Bt></div>
+      </Cd>
+    </Frame>);
+    const it = G.items[0];
+    const left = <div style={{ textAlign: "center", fontSize: fz.s, color: CL.td, marginBottom: 8 }}>{G.items.length} matter{G.items.length === 1 ? "" : "s"} on your desk · {G.helped} Nigerian{G.helped === 1 ? "" : "s"} helped so far</div>;
+    if (!it) return wrap(<Frame bg="embassy-office" who="consular-officer">
+      <H kick={kicker} title={G.n >= SYS.AMB_HALVES ? "Your posting is ending" : "Half a year done"} sub={G.n >= SYS.AMB_HALVES ? "Abuja is writing your assessment." : "New arrivals bring new troubles, Abuja forgets, and the host's patience wears (Nigerians abroad " + SYS.AMB_DRIFT.diaspora + ", Abuja " + SYS.AMB_DRIFT.abuja + ", the host " + SYS.AMB_DRIFT.host + ")."} />
+      {header}
+      <Bt onClick={endHalf} style={{ width: "100%" }}>{G.n >= SYS.AMB_HALVES ? "Read Abuja's verdict →" : "Next half-year →"}</Bt>
+    </Frame>);
+    const x = ALL().find(y => y.id === it.id);
+    const art = it.k === "cable" ? { bg: "embassy-office", who: "foreign-minister-nigeria" } : AMB_ART[x.id] || { bg: "embassy-office" };
+    return wrap(<Frame {...art}>
+      <H kick={kicker + (it.k === "cable" ? " · from Abuja" : it.k === "case" ? " · the consular section" : "")} title={x.t} sub={x.d} />
+      {header}{left}<Learn k={x.learn} />
+      <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic="•" l={o.l} tone={o.risk || (o.fx.cor > 0) ? "bad" : null} onClick={() => choose(it, x, o)} />)}</div>
+    </Frame>);
+  }
+  const score = G.score != null ? G.score : SYS.ambScore(G), grade = G.grade || SYS.ambGrade(score);
+  const endT = { promoted: ["Promoted", "The President names you Minister of Foreign Affairs."], completed: ["Posting complete", "You hand over to your successor and fly home."], recalled: ["Recalled", "Abuja brought you home early."], expelled: ["Expelled", "Declared persona non grata by " + P(G).nm + "."] }[G.ending] || ["The end", ""];
+  const restart = () => { try { window.storage.set(AMB_KEY, ""); } catch (e) {} setG(null); setPost(null); };
+  return wrap(<Frame {...(G.ending === "promoted" ? { bg: "foreign-ministry-meeting" } : G.ending === "completed" ? { bg: "embassy-exterior" } : { bg: "evacuation-airport" })}>
+    <H kick="Ambassador" title={endT[0]} sub={endT[1]} />
+    <Cd style={{ textAlign: "center" }}>
+      {(G.ending === "promoted" || G.ending === "completed") && <img src="./art/badges/badge-ambassador.webp" alt="Ambassador badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 4px" }} />}
+      <div style={{ fontSize: TS(tall ? 110 : 150), lineHeight: 1, fontWeight: 900, fontFamily: F.d, color: grade === "A" || grade === "B" ? CL.grn : grade === "F" ? CL.red : CL.gold }}>{grade}</div>
+      <div style={{ fontSize: fz.s, color: CL.td }}>Score {score} · Nigerians abroad {G.diaspora}% · {G.helped} helped · {G.trade} deal{G.trade === 1 ? "" : "s"}</div>
+    </Cd>
+    <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: "#1d3a5c" }}>📘 The ambassador's notebook: {notesHave()} of {notesAll} notes found.</div><Bt v="secondary" onClick={() => setBook(true)} style={{ marginTop: 8 }}>Open the notebook</Bt></Cd>
+    <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+      <Bt v="secondary" onClick={restart}>Take another posting</Bt>
+      <Bt v="ghost" onClick={() => { restart(); onExit(); }}>Back to the title</Bt>
+    </div>
+  </Frame>);
+};
+
 const EndScr = ({ type, state, onRestart }) => {
   const ms = { retire: { i: "🏡", t: "Elder Statesman", d: "You served " + (state || "").replace("_", " ") + " with dignity. History will remember your tenure." }, senate_w: { i: "🏛️", t: "Distinguished Senator", d: "From Government House to the National Assembly. Your experience serves the nation." }, senate_l: { i: "📖", t: "Defeated", d: "The Senate eluded you. But your governance record in " + (state || "").replace("_", " ") + " endures." }, pres_w: { i: "🇳🇬", t: "Mr. President", d: "From " + (state || "").replace("_", " ") + " to Aso Rock!" }, pres_l: { i: "📖", t: "Chapter Closes", d: "The presidency eluded you." }, fctm: { i: "📜", t: "Honourable Minister of the FCT", d: "Aso Rock has called. You now oversee Abuja — the seat of national power. Roads, planning, satellite towns, the Presidential Villa itself. A rare honour reserved only for governors of proven integrity and results. Your work in " + (state || "").replace("_", " ") + " earned you this portfolio." } };
   const m = ms[type] || ms.retire;
@@ -13133,7 +13295,7 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "title" && <TitleScreen onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
@@ -13151,6 +13313,7 @@ function App() {
       </EntranceSheet>}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} />}
+      {scr === "ambassador" && <AmbassadorCareer profile={profile} onExit={rst} />}
       {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}
       {scr === "senate" && <SenateCareer stats={finalStats} profile={profile} onExit={rst} onPresident={(rec) => { setFinalStats(f => ({ ...(f || {}), rec })); setScr("pres"); }} />}
       {scr === "end_ret" && <EndScr type="retire" state={setup?.state} onRestart={rst} />}

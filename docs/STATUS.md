@@ -651,3 +651,48 @@ Alternating with them: **the council chamber** (councillors' "allowances", an ok
 - **Random play:** mostly loses. Fighting the governor every half-year gets the council dissolved.
 
 **Test:** `tests/e2e/chairman.mjs`.
+
+## Careers: the Ambassador (release 1)
+**Where it lives:** rules in `game/systems/ambassador.js`; the screen is `AmbassadorCareer`.
+
+**The countries are invented:** the Republic of Valdoria, the Kingdom of Ostrava, the Federation of Meridia. There are no real flags or nations.
+
+**Start:** the player picks a posting and a background: career diplomat, political appointee, or diaspora champion. The posting opens with presenting the letter of credence.
+
+**Six half-years.** Each one brings:
+- **a cable from Abuja:** win their UN vote, sign the trade deal by Friday, deny the visa story, ask for a loan, the President's state visit, a budget cut;
+- **a Nigerian in trouble:** held without charge, unpaid scholarship students, traders' goods seized, the passport queue, riots needing an evacuation, a death-row plea;
+- **a host or community matter:** the host minister's visa threat, a trade fair, a diaspora town hall, the Independence Day reception, an investor, a Super Eagles match.
+
+**Endings**
+- **Recall** if Abuja loses confidence.
+- **Expulsion** (persona non grata) if the host does.
+- Otherwise Abuja's verdict: **posting complete**, or **promoted to Foreign Minister**.
+
+**Grade:** Nigerians abroad 35%, Abuja 20%, the host 20%, deals 15%, clean hands 10%.
+
+**Teaching:** 14 notes, covering:
+- Section 171;
+- the letter of credence;
+- the two Vienna Conventions;
+- passports;
+- evacuations;
+- NiDCOM;
+- remittances;
+- cables;
+- non-oil exports;
+- UN vote trading;
+- visa reciprocity;
+- death-row cases;
+- why the diaspora cannot vote from abroad.
+
+**Vatar:** the first year is free, then `career_ambassador` (one-off, ₦1,000).
+
+**Art:** all 18 pictures in Lovable's Ambassador pack plus `badge-ambassador`, enforced by `tests/art-usage.test.mjs`.
+
+**Balance** (2,100 simulated postings per background): careful play is usually promoted with A or B; random play lands on C or D.
+
+**Test:** `tests/e2e/ambassador.mjs`.
+
+## Career screens: pictures
+`CareerHero` shows each painting whole at 16:9, never cropped to a strip. The person appears in a round head-and-shoulders portrait on the picture's corner rather than pasted into the scene.
