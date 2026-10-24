@@ -4265,6 +4265,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
           <div style={{ minWidth: 0 }}><b style={{ font: "700 17px 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{c.name}</b>{c.player && <span style={{ marginLeft: 8, verticalAlign: "middle", fontSize: 12, fontWeight: 800, borderRadius: 999, padding: "2px 9px", background: c.mine ? "#fdecea" : "#fff2c9", color: c.mine ? "#a3271c" : "#7a5a00" }}>{c.mine ? "Your company" : "★ Player-owned"}</span>}<div style={{ fontSize: 13, color: c.nepotism || c.mine ? "#b3261e" : "#7a6c4c" }}>{SYS.fmtM(Math.round(proj.estimateM * c.price * (SYS.PROCUREMENT[meth] || {}).price))} · {c.active}/{c.capacity} jobs{c.nepotism || c.player ? " · " + c.note : ""}</div></div>
           <button className="sp-btn" disabled={c.full} onClick={() => onAward(proj.id, c.id, meth)} style={{ minHeight: 42, padding: "8px 16px", fontSize: 15 }}>{c.full ? "Fully booked" : "Award contract"}</button>
         </div>
+        {(() => { const cv = SYS.contractCover(proj, c, meth); return <div style={{ fontSize: 14, marginTop: 6, color: cv.covered ? "#0b6b42" : "#a3271c", fontWeight: 700 }}>Contract sum {SYS.fmtM(cv.sum)}: {cv.over <= 0 ? "within your budget" : cv.covered ? SYS.fmtM(cv.over) + " over, covered by the 10% contingency" : SYS.fmtM(cv.over) + " over your budget. The money runs out before the work is done unless you add funding."}</div>; })()}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px", marginTop: 8 }}>{bar("Reliable", c.reliability)}{bar("Quality", c.quality)}{bar("Speed", c.speed)}{bar("Integrity", c.integrity)}</div>
         <Brief label="About this firm">{c.note}{c.ties ? " Ties: " + c.ties + "." : ""} Also does: {c.sectors.filter(x => x !== proj.sector).map(x => SYS.SECTORS[x].toLowerCase()).slice(0, 3).join(", ") || "nothing else"}.</Brief>
       </div>)}</div>
@@ -4281,12 +4282,12 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
         ? <Actions><button className="sp-btn quiet" onClick={() => onAction(p.id, "abandon")}>Defer indefinitely</button><button className="sp-btn" onClick={() => onAction(p.id, "fit")}>Fit the scope to the budget</button></Actions>
         : <Actions><button className="sp-btn" onClick={() => onOpenStep(p)}>{n.button}</button></Actions>)}
       <Brief>
-        <div>Committed, not yet spent: {SYS.fmtM(SYS.committedM(p))} · Still needed to finish: {SYS.fmtM(SYS.remainingM(p))}{p.loanLeftM > 0 ? " · Loan money in hand: " + SYS.fmtM(p.loanLeftM) : ""}.</div>
+        <div>Committed, not yet spent: {SYS.fmtM(SYS.committedM(p))} · {SYS.toFinishM(p) > 0 ? "Short of finishing by: " + SYS.fmtM(SYS.toFinishM(p)) : "Enough approved to finish"}{p.loanLeftM > 0 ? " · Loan money in hand: " + SYS.fmtM(p.loanLeftM) : ""}.</div>
         {p.facility && <div>Working: {p.equipped && p.staffed ? "equipped and staffed" : p.equipped ? "equipped, no staff" : "not equipped"}.</div>}
         {(p.events || []).slice(-3).map((ev, i) => <div key={i} style={{ color: "#9a5b12" }}>• {ev}</div>)}
         {(p.decisions || []).length > 0 && <div style={{ marginTop: 4 }}>Record: {p.decisions.slice(-4).map(x => "Year " + x.year + ": " + x.text).join(" · ")}</div>}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
-          {(p.status === "stalled" || p.status === "in_progress") && SYS.remainingM(p) > SYS.committedM(p) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.remainingM(p) - SYS.committedM(p))}</button>}
+          {(p.status === "stalled" || p.status === "in_progress") && SYS.toFinishM(p) > 0 && <button className="sp-btn ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.toFinishM(p))}</button>}
           {["stalled", "in_progress", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</button>}
           {(p.status === "stalled" || p.status === "in_progress") && <button className="sp-btn ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</button>}
           {p.status === "in_progress" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</button>}
@@ -5976,7 +5977,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const awardProject = (id, cid, mth) => {
     const p = (projects || []).find(x => x.id === id), C = SYS.contractorById(cid), M = SYS.PROCUREMENT[mth] || SYS.PROCUREMENT.open; if (!p || !C) return;
     const est = Math.round(p.estimateM * M.price);
-    setProjects(prev => prev.map(x => x.id === id ? { ...x, contractorId: cid, contractor: C.name, method: M.nm, estimateM: est, baseCost: est / 1000, status: "in_progress", startTurn: turn, decisions: [...(x.decisions || []), { year: turn, text: "Awarded to " + C.name + " by " + M.nm.toLowerCase() + (est !== p.estimateM ? " (" + SYS.fmtM(est) + ")" : "") + "." }] } : x));
+    // The contract sum (the contractor's rate on the tendered work) is what must be paid to finish.
+    // Up to 10% over the approved budget comes from its contingency; more stays a shortfall.
+    const cov = SYS.contractCover(p, C, mth);
+    setProjects(prev => prev.map(x => x.id === id ? { ...x, contractorId: cid, contractor: C.name, method: M.nm, estimateM: est, baseCost: est / 1000, approvedM: Math.max(x.approvedM, cov.approvedM), contractM: cov.sum, status: "in_progress", startTurn: turn, decisions: [...(x.decisions || []), { year: turn, text: "Awarded to " + C.name + " by " + M.nm.toLowerCase() + ": contract sum " + SYS.fmtM(cov.sum) + (cov.over > 0 ? (cov.covered ? ", " + SYS.fmtM(cov.over) + " of it from the budget's contingency" : ", " + SYS.fmtM(cov.over) + " more than the budget: the money will run out before the work is done unless you add funding") : "") + "." }] } : x));
     // Your own company: a kickback into your political war chest, corruption
     // that climbs with every deal, and the EFCC opening a file from the second.
     const selfDeal = C.player && C.mine, nSelf = (stc.selfDeals || 0) + (selfDeal ? 1 : 0);
@@ -6000,7 +6004,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const projAction = (id, act) => decide(() => {
     const p = (projects || []).find(x => x.id === id); if (!p) return;
     let n = p, text = "", tone = "neutral";
-    if (act === "fund") { const add = SYS.remainingM(p) - SYS.committedM(p); n = SYS.addFunding(p, add, turn); text = "Added " + SYS.fmtM(add) + ". The money still has to be released from the budget or borrowed."; }
+    if (act === "fund") { const add = SYS.toFinishM(p, s.cor || 0); n = SYS.addFunding(p, add, turn); text = "Added " + SYS.fmtM(add) + ". The money still has to be released from the budget or borrowed."; }
     else if (act === "fit") { const r = SYS.fitScope(p, roomM(p.sector) + ((p.alloc || {})[turn] || 0), turn); if (!r.ok) return { icon: "🚧", title: "It still does not fit", text: r.why, tone: "bad" }; n = r.p; text = r.factor < 1 ? "Scope cut to " + Math.round(r.factor * 100) + "% (" + SYS.fmtM(n.estimateM) + ") so the budget line pays for it without a loan. Next: award the contract." : "The budget line can pay for it without a loan. Next: award the contract."; setLastCon({ turn, icon: "✂️", text: p.title + ": " + text }); }
     else if (act === "reduce") { n = SYS.reduceScope(p, Math.max(.3, (p.approvedM - 0) / Math.max(1, p.estimateM)), turn); text = "The scope now fits the money approved. " + SYS.fmtM(p.spentM) + " already spent stays spent."; }
     else if (act === "replace") { const alt = SYS.eligible(p.type, projects).filter(c => c.id !== p.contractorId && !c.full && !c.nepotism).sort((a, b) => b.reliability - a.reliability)[0]; if (!alt) return { icon: "🚧", title: "No one free", text: "No other qualified contractor has capacity this year.", tone: "bad" }; n = SYS.replaceContractor(p, alt.id, turn); text = alt.name + " takes over. The handover adds " + SYS.fmtM(n.estimateM - p.estimateM) + "; nothing already paid is paid again."; }

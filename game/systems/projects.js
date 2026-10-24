@@ -125,6 +125,19 @@ export const makeProject = ({ id, title, type, qty, lga, ministryId, need, appro
     baseCost: e.buildM / 1000, // older code reads ₦B
   };
 };
+/* The contract sum: the work at the tender's price, times the contractor's rate.
+   Budgets carry a 10% contingency, so a contract up to 10% above what was
+   approved is covered when it is awarded; anything more stays a shortfall
+   (expensive or padded contracts run out of money before the work is done). */
+export const CONTINGENCY = .1;
+export const contractSum = (p, C, method) => Math.round(p.estimateM * ((PROCUREMENT[method] || PROCUREMENT.open).price) * ((C && C.price) || 1));
+export const contractCover = (p, C, method) => {
+  const sum = contractSum(p, C, method), over = sum - p.approvedM;
+  return { sum, over: Math.max(0, over), covered: over <= p.approvedM * CONTINGENCY, approvedM: over > 0 && over <= p.approvedM * CONTINGENCY ? sum : p.approvedM };
+};
+// The money still needed to finish: the work left at this contractor's rate (a crooked
+// one pads it), less what is approved and unspent.
+export const toFinishM = (p, cor = 0) => { const C = contractorById(p.contractorId); const rate = C ? C.price * (C.integrity < .5 ? 1 + (1 - C.integrity) * .25 + cor * .15 : 1) : 1; return Math.max(0, Math.round(remainingM(p) * rate - Math.max(0, p.approvedM - p.spentM))); };
 export const committedM = (p) => Math.max(0, p.approvedM - p.spentM);
 export const remainingM = (p) => Math.max(0, p.estimateM - p.builtM);
 
@@ -143,22 +156,29 @@ export const tickProject = (p, year, ctx = {}) => {
   // disbursed for this project (p.loanLeftM) is used first.
   if (ctx.cashM != null) avail = Math.min(avail, Math.max(0, ctx.cashM) + (p.loanLeftM || 0));
   const toBuild = remainingM(p);
-  // What the contractor would do this year with enough money:
-  const pace = (p.estimateM / p.years) * C.speed * (1 + (ctx.boost || 0)) * (.75 + r() * .5) * (r() < C.reliability ? 1 : .55);
-  const leak = (1 - C.integrity) * .25 + (ctx.cor || 0) * .15; // money that buys nothing
-  const price = C.price * (1 + leak);
+  // What the contractor would do this year with enough money. A good firm keeps
+  // close to plan (speed .8 → on schedule); slow or unreliable ones fall behind.
+  const pace = (p.estimateM / p.years) * (.6 + .5 * C.speed) * (1 + (ctx.boost || 0)) * (.8 + r() * .4) * (r() < C.reliability ? 1 : .55);
+  // Skimming. An honest firm (integrity .5 and up) skims by building worse, not by
+  // over-billing, so a project funded at its contract sum always has the money to finish.
+  // A crooked one pads the bill: money that buys nothing, and the budget runs dry.
+  const leak = (1 - C.integrity) * .25 + (ctx.cor || 0) * .15;
+  const crooked = C.integrity < .5;
+  const price = C.price * (1 + (crooked ? leak : 0));
   const affordable = avail / price;
   const value = Math.max(0, Math.min(toBuild, pace, affordable));
   const pay = Math.round(value * price);
-  let quality = C.quality - (ctx.cor || 0) * .2 + (ctx.oversight || 0) * .08;
-  if (affordable < pace * .7) { quality -= .12; events.push("Year " + year + ": not enough money released; the contractor cut corners to keep going."); }
+  let quality = C.quality - (ctx.cor || 0) * .2 + (ctx.oversight || 0) * .08 - (crooked ? 0 : leak * .4);
+  // Short of money only if it held back work the contractor could have done (not in a last, small year).
+  if (affordable < Math.min(pace, toBuild) * .7) { quality -= .12; events.push("Year " + year + ": not enough money released; the contractor cut corners to keep going."); }
   if (r() > C.reliability + .1) events.push("Year " + year + ": " + C.name + " missed its milestones.");
   quality = Math.max(.15, Math.min(.98, quality));
   const builtM = p.builtM + Math.round(value);
   const prevQ = p.quality == null ? quality : p.quality;
   const q = p.builtM + value > 0 ? (prevQ * p.builtM + quality * value) / (p.builtM + value) : quality;
   let status = "in_progress";
-  if (builtM >= p.estimateM - 1) status = p.facility && !(p.equipped && p.staffed) ? "built" : "delivered";
+  // Within 2% of the end counts as done: the last snags are cleared at handover.
+  if (builtM >= p.estimateM * .98 - 1) status = p.facility && !(p.equipped && p.staffed) ? "built" : "delivered";
   else if (p.approvedM - (p.spentM + pay) < 1 && builtM < p.estimateM - 1) { status = "stalled"; events.push("Year " + year + ": the approved money is spent and " + fmtM(p.estimateM - builtM) + " of work is not done. The contractor has left the site."); }
   else if (value < 1) { status = "stalled"; events.push("Year " + year + ": no money released this year; work stopped."); }
   // Money borrowed for this project is spent first; the rest comes from ctx.cashM (the state's bank).
