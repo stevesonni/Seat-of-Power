@@ -2557,6 +2557,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
       </EntranceSheet>}
       {sheet === "menu" && <EntranceSheet title="Menu" onClose={() => setSheet(null)}>
         <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ fontSize: DS.t.meta, color: UI.sub, textAlign: "center" }}>The governorship is free to play. Everything with a price is an optional extra.</div>
           {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
@@ -8807,8 +8808,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           )}
           {gEnd === "defeated" && (
             <Cd style={{ borderColor: CL.org + "44" }}>
-              <p style={{ color: CL.td, fontSize: TS(36), margin: "0 0 29px" }}>You lost re-election. No second term, no Senate, no presidency.</p>
-              <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire as One-Term Governor</Bt>
+              <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 14px", fontSize: TS(50), fontWeight: 600 }}>What Next?</h3>
+              <p style={{ color: CL.td, fontSize: TS(36), margin: "0 0 22px" }}>You lost re-election. Your political life is not over.</p>
+              <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+                <Bt onClick={() => onEnd("comeback", s)}>🔁 The comeback: run again in four years</Bt>
+                <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for the Senate</Bt>
+                <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
+              </div>
             </Cd>
           )}
           {gEnd === "stepped_down" && (
@@ -8830,7 +8836,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })}>🇳🇬 ENTER PRESIDENTIAL RACE →</Bt>
             </Cd>
           )}
-          {(gEnd === "impeached" || gEnd === "bankrupt" || gEnd === "nullified") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
+          {gEnd === "nullified" && <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 36 }}><Bt onClick={() => onEnd("comeback", s)}>🔁 The comeback: run again in four years</Bt><Bt v="secondary" onClick={() => onEnd("restart", s)}>Play again</Bt></div>}
+          {(gEnd === "impeached" || gEnd === "bankrupt") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
 
           {/* REPORT CARD and SUCCESSION */}
           <Cd style={{ marginTop: 43, textAlign: "left", maxWidth: 900, marginLeft: "auto", marginRight: "auto" }}>
@@ -11977,7 +11984,7 @@ const AsoRock = ({ setup, stats, onExit }) => {
 
   // ── The gate: inside a Vatar world the run is a purchase ──
   const locked = VATAR && window.SOP_canBuy && window.SOP_canBuy() && !(ents.presidential_run > 0);
-  const buy = () => { setBusy(true); window.SOP_buy("presidential_run").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("presidential_run").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); }); };
 
   // ── Starting a run ──
   const PARTY_IDS = MAIN_PARTY_IDS.filter(id => PARTIES.find(p => p.id === id));
@@ -12425,7 +12432,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   // A lesson goes into the next result card's "How it really works" box and into the notebook.
   const learnRow = (k) => { const t = senLearnText(k); if (t && !lessons.current.includes(t)) { senNote(k); lessons.current.push(t); } return []; };
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_senator > 0;
-  const buy = () => { setBusy(true); window.SOP_buy("career_senator").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("career_senator").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
 
   // ── Starting ──
   const who = rec ? { name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, district: rec.district }
@@ -12747,7 +12754,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_chairman > 0;
-  const buy = () => { setBusy(true); window.SOP_buy("career_chairman").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("career_chairman").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
   const lgaNm = (G) => G.lga || "your local government";
 
   // ── Starting: how you got the ticket, then the council election ──
@@ -13039,7 +13046,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_ambassador > 0;
-  const buy = () => { setBusy(true); window.SOP_buy("career_ambassador").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || e.code !== "cancelled") card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("career_ambassador").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
   const P = (G) => SYS.POSTINGS[G.post];
 
   const begin = (postId, k) => {
@@ -13286,6 +13293,14 @@ function App() {
   const [finalStats, setFinalStats] = useState(null);
   const [loadedSave, setLoadedSave] = useState(null);
   const rst = () => { setScr("title"); setSetup(null); setFinalStats(null); setLoadedSave(null); };
+  // After a defeat: four years in opposition, then the same politician back on the ballot in the same state.
+  const comeback = () => {
+    const stName = String((setup && setup.state) || (profile && profile.state) || "your state").replace(/_/g, " ");
+    seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {}
+    setStartProfile(profile ? { ...profile, state: (setup && setup.state) || profile.state } : null); setStartMode(null); setSetup(null); setLoadedSave(null); setScr("setup");
+    try { window.SOP_outcome && window.SOP_outcome({ icon: "🔁", title: "Four years in opposition", text: "You spent them in " + stName + ", holding the new government to account. Now the primaries are open again, and your name is on the ballot.", tone: "good",
+      learn: "There is no limit on returning: a governor who lost may run again. The Constitution only limits anyone to two terms as governor in total (S.182(1)(b))." }); } catch (e) {}
+  };
 
   // The politician profile on this device, used by the entrance and setup.
   const [profile, setProfile] = useState(null);
@@ -13432,7 +13447,7 @@ function App() {
               <b style={{ fontFamily: F.m }}>{e.score}</b></div>)}</div>}
         {board.you && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 10 }}>You: #{board.you.rank} of {board.players}, best score {board.you.score}.</div>}
       </EntranceSheet>}
-      {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
+      {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(); else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} />}
       {scr === "ambassador" && <AmbassadorCareer profile={profile} onExit={rst} />}
       {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}

@@ -70,10 +70,19 @@
     return ready.then(function (on) { if (on) return window.Vatar.submitScore(Math.max(0, Math.round(n))); }).catch(function () {});
   };
   window.SOP_canBuy = function () { return hasSdk; };
+  // A purchase that does not happen always says so (nothing silent): nothing was charged,
+  // and the governorship stays free. A player who cancels just closes the sheet.
   window.SOP_buy = function (productId) {
     return ready.then(function (on) {
       if (!on) { var e = new Error("offline"); e.code = "offline"; throw e; }
       return window.Vatar.purchase(productId).then(claim);
+    }).catch(function (e) {
+      var code = String((e && (e.code || e.message)) || "");
+      if (!/cancel/i.test(code)) {
+        if (e) e.shown = true;
+        try { window.SOP_outcome && window.SOP_outcome({ icon: "🛒", title: "No purchase made", text: code === "offline" ? "Purchases work inside Lagos Life. Nothing was charged, and the governorship stays free to play." : "Payments for this aren't open yet, or the payment didn't go through. Nothing was charged. The governorship stays free to play.", tone: "bad" }); } catch (x) {}
+      }
+      throw e;
     });
   };
   // The weekly challenge: attempts and the board live on our server, against the player's id.
