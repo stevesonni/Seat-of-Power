@@ -1869,7 +1869,7 @@ const ShareCard = ({ img, name, line1, line2, grade }) => React.createElement("d
 const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi";
 // A picture for each decision (Lovable's decision packs, in ./art/decisions/). Decisions that
 // are the same moment share one. Add a pack's ids here as it arrives.
-const DEC_ART = new Set(["afdb", "agro_processing", "child_rights", "china_infra", "chinese_steel", "dangote_cement", "data_centre", "diaspora_houston", "edu_compulsory", "env_protect", "fertilizer", "fintech_hub", "fiscal_resp", "foi", "garment_factory", "ge_power", "harvard", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "hotel_resort", "jud_budget", "jud_corrupt", "jud_land", "jud_mining", "jud_policy", "jud_security", "korea_skills", "land_reform", "m_blogger_bribe", "m_fake_news", "m_hashtag_fail", "m_influencer_visit", "m_newspaper_expose", "m_newspaper_praise", "m_radio_angry", "m_radio_praise", "m_tv_documentary", "m_viral_good", "market_mod", "mining_co", "mit", "oil_refinery", "open_grazing", "pension", "pharma_plant", "poultry_farm", "procurement_law", "shopping_mall", "solar_farm", "sweden_pm", "tenancy", "uae_invest", "uk_trade", "un_sdg", "university", "us_pres", "vapp", "world_bank", "youth_employ"]);
+const DEC_ART = new Set(["abandoned_audit", "afdb", "agro_processing", "anti_cor", "asuu", "cct", "child_rights", "china_infra", "chinese_steel", "cholera", "close_schools", "comm_pol", "cs_audit", "cs_digital", "cs_replace", "cs_retire", "cs_training", "curfew", "dangote_cement", "data_centre", "diaspora_houston", "digi_gov", "edu_compulsory", "emerg_edu", "emerg_health", "env_protect", "farm_sub", "fertilizer", "fg_efcc", "fg_faac_cut", "fg_grant", "fg_loan_block", "fg_military", "fg_party_pressure", "fg_road", "fintech_hub", "fiscal_resp", "flood", "foi", "four_day", "free_csec", "free_edu", "garment_factory", "ge_power", "gf_appointment", "gf_assembly", "gf_contract", "gf_land", "gf_money", "gf_revenue", "harvard", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "health_ins", "herder", "hiring_freeze", "hotel_resort", "housing", "ind_park", "irrigation", "jud_budget", "jud_corrupt", "jud_land", "jud_mining", "jud_policy", "jud_security", "kidnap", "korea_skills", "land", "land_digitise", "land_reform", "m_blogger_bribe", "m_fake_news", "m_hashtag_fail", "m_influencer_visit", "m_newspaper_expose", "m_newspaper_praise", "m_radio_angry", "m_radio_praise", "m_tv_documentary", "m_viral_good", "market_fire", "market_mod", "mega_airport", "mega_hospital", "min_wage", "mining_co", "mit", "oil_refinery", "oil_spill", "okada", "okada_kit", "open_grazing", "outreach", "pension", "pharma_plant", "phc", "poultry_farm", "procurement_law", "rail", "religious2", "revoke_land", "roads", "rural_elec", "sanitation", "school_feed", "school_voucher", "sh_bank_crisis", "sh_endsars", "sh_flood", "sh_naira_crash", "sh_oil_crash", "sh_pandemic", "sh_subsidy", "sh_terror", "shopping_mall", "skills", "smear", "solar_farm", "street_trading", "strike", "sweden_pm", "teachers", "tech_hub", "tenancy", "uae_invest", "uk_trade", "un_sdg", "uni", "university", "us_pres", "vapp", "water", "whistle", "world_bank", "youth_employ"]);
 const DEC_ALIAS = { hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
 const DecPic = ({ id, h }) => { const src = decArt(id); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
@@ -9474,7 +9474,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "dilemma" && !!curD}>
-          {curD && (() => { const [bg, who] = dilemmaArt(curD.id, sd.zone); return <SceneArt bg={bg} who={who} alt={who === "labour-leader" ? cast.labour.name : who === "speaker" ? cast.speaker.name : who === "reporter" ? cast.reporter.name : who === "opposition-candidate-alt" ? "The opposition spokesman" : ""} h={TALL() ? 220 : 260} />; })()}
+          {curD && (() => { if (decArt(curD.id)) return <DecPic id={curD.id} />; const [bg, who] = dilemmaArt(curD.id, sd.zone); return <SceneArt bg={bg} who={who} alt={who === "labour-leader" ? cast.labour.name : who === "speaker" ? cast.speaker.name : who === "reporter" ? cast.reporter.name : who === "opposition-candidate-alt" ? "The opposition spokesman" : ""} h={TALL() ? 220 : 260} />; })()}
           {curD && <DecisionCard
             kicker="Dilemma"
             kickerColor={CL.org}
@@ -9601,7 +9601,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             return <Cd style={{ borderColor: CL.org + "44" }}>
             <AdvBubble text={ADV.godfather} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <div style={{ margin: "0 auto 22px", maxWidth: 520, borderRadius: 22, overflow: "hidden", background: "#13161c url(./art/backgrounds/veranda-night.webp) center/cover", display: "flex", justifyContent: "center", alignItems: "flex-end", height: 300 }}>
+              <div style={{ margin: "0 auto 22px", maxWidth: 520, borderRadius: 22, overflow: "hidden", background: "#13161c url(" + (decArt(godfatherDemand.id) || "./art/backgrounds/veranda-night.webp") + ") center/cover", display: "flex", justifyContent: "center", alignItems: "flex-end", height: 300 }}>
                 <img src={"./art/characters/" + (godfatherRel >= 60 ? "godfather-pleased" : godfatherRel < 35 ? "godfather-angry" : gf.aggression > 60 ? "godfather-worried" : "godfather") + ".webp"} alt={gf.nm} style={{ height: 290, width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
               </div>
               <Bg text={gf.title} color={CL.org} />
@@ -9823,7 +9823,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "shock" && !!curShock}>
           {curShock && <Cd style={{ borderColor: CL.red, background: "#fff8f8" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              {SHOCK_ART[curShock.id] ? <SceneArt bg={SHOCK_ART[curShock.id][0]} who={SHOCK_ART[curShock.id][1]} obj={SHOCK_ART[curShock.id][2]} h={TALL() ? 200 : 240} /> : <div style={{ fontSize: TS(116), marginBottom: 14 }}>{curShock.icon}</div>}
+              {decArt(curShock.id) ? <DecPic id={curShock.id} /> : SHOCK_ART[curShock.id] ? <SceneArt bg={SHOCK_ART[curShock.id][0]} who={SHOCK_ART[curShock.id][1]} obj={SHOCK_ART[curShock.id][2]} h={TALL() ? 200 : 240} /> : <div style={{ fontSize: TS(116), marginBottom: 14 }}>{curShock.icon}</div>}
               <div style={{ background: CL.red, color: "#fff", display: "inline-block", padding: "10px 43px", borderRadius: 8, fontSize: TS(34), fontWeight: 700, fontFamily: F.m, letterSpacing: 5, marginBottom: 22 }}>⚡ SHOCK EVENT</div>
               <h3 style={{ fontFamily: F.d, color: CL.red, margin: "22px 0", fontSize: TS(65), fontWeight: 700 }}>{curShock.title}</h3>
               <More text={curShock.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
@@ -9883,7 +9883,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "federal" && !!curFgEvent}>
           {curFgEvent && <Cd style={{ borderColor: curFgEvent.type === "reward" ? CL.grn + "44" : CL.red + "44" }}>
             <div style={{ textAlign: "center", marginBottom: 29 }}>
-              <SceneArt bg="abuja-federal-office" who={curFgEvent.id === "fg_efcc" ? "efcc-investigator" : null} alt={curFgEvent.id === "fg_efcc" ? cast.efcc.name : ""} h={TALL() ? 200 : 240} />
+              {decArt(curFgEvent.id) ? <DecPic id={curFgEvent.id} /> : <SceneArt bg="abuja-federal-office" who={curFgEvent.id === "fg_efcc" ? "efcc-investigator" : null} alt={curFgEvent.id === "fg_efcc" ? cast.efcc.name : ""} h={TALL() ? 200 : 240} />}
               <Bg text="Federal Government" color={curFgEvent.type === "reward" ? CL.grn : CL.red} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(58), fontWeight: 600 }}>{curFgEvent.title}</h3>
               <More text={curFgEvent.id === "fg_efcc" ? efccCause().trim() + " " + curFgEvent.desc : curFgEvent.desc} style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, textAlign: "left", marginBottom: 22 }} />
@@ -11749,6 +11749,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 return <Cd key={ref.id} onClick={done ? undefined : () => {
                   if (!spendB(ref.cost, ref.nm || "The reform")) return;
                   setCSReformsDone(p => [...p, ref.id]);
+                  try { window.SOP_outcome && window.SOP_outcome({ icon: "🏛️", img: decArt(ref.id) || undefined, title: (ref.nm || "The reform") + ": done", text: ref.d, tone: "neutral" }); } catch (e) {}
                   // Apply reform effects
                   if (ref.id === "cs_audit") { addL("🔍 CIVIL SERVICE AUDIT: Performance of all permanent secretaries now visible. Some are shaking.", "political"); }
                   if (ref.id === "cs_retire") {
@@ -11784,6 +11785,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                     addL("⚠️ SA " + cast.adviser.name + ": \"Your Excellency, replacing ALL permanent secretaries at once WILL trigger the NIC. Under S.254C, you cannot avoid their jurisdiction. The unions are already with their lawyers.\"", "crisis");
                   }
                 }} style={{ padding: 24, opacity: done ? .4 : 1 }}>
+                  <DecPic id={ref.id} />
                   <div style={{ fontWeight: 600, fontSize: TS(36), color: done ? CL.td : CL.txt }}>{done ? "✅ " : ""}{ref.nm}</div>
                   <div style={{ fontSize: TS(31), color: CL.td, lineHeight: 1.3 }}>{ref.d}</div>
                   <div style={{ display: "flex", gap: 7, marginTop: 10 }}>

@@ -42,7 +42,7 @@ The governor's bills and the bills the House sends up.
 - `hb_almajiri`: young almajiri boys in a bright new classroom with exercise books, a mallam and a teacher together.
 - `hb_land_use`: a valuation officer measuring a city house; the owner frowning at the gate.
 
-## Pack 9: programmes (28)
+## Pack 9: programmes (28): delivered and in the game
 - `school_feed`: pupils at long tables eating jollof and eggs in a school canteen.
 - `comm_pol`: volunteer safety corps in reflective vests patrolling a lit street with residents.
 - `farm_sub`: farmers collecting bags of fertiliser and seed at a distribution point.
@@ -74,7 +74,7 @@ The governor's bills and the bills the House sends up.
 - `okada_kit`: okada riders exchanging their motorcycles for new tricycles (keke) at a depot.
 - `abandoned_audit`: engineers inspecting an abandoned, overgrown federal building project.
 
-## Pack 10: executive orders and civil-service reforms (16)
+## Pack 10: executive orders and civil-service reforms (16): delivered and in the game
 - `sanitation`: residents sweeping and clearing gutters on a quiet Saturday morning street.
 - `curfew`: an empty street at dusk with a police checkpoint and soldiers.
 - `okada`: a city road with no motorcycles, riders gathered angrily at the roadside.
@@ -92,7 +92,7 @@ The governor's bills and the bills the House sends up.
 - `cs_digital`: civil servants using biometric scanners at a ministry entrance.
 - `cs_replace`: the governor's loyalists being sworn in as permanent secretaries.
 
-## Pack 11: crises and pressure (33)
+## Pack 11: crises and pressure (33): delivered and in the game
 - `fg_faac_cut`: a state finance commissioner staring at a much thinner allocation statement.
 - `fg_efcc`: anti-corruption agents in vests entering a state ministry with boxes.
 - `fg_military`: an army convoy rolling into the state capital.
