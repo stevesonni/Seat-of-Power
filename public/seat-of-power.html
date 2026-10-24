@@ -160,13 +160,13 @@
     .sop-flight .fl-cloud::after { width: 40%; height: 92%; left: 50%; top: -36%; }
     .sop-flight .fl-plane { position: absolute; width: 56%; max-width: 620px; min-width: 260px; left: -60%; top: 70%; animation: flPlaneOut 4.2s cubic-bezier(.4,.05,.45,1) forwards; filter: drop-shadow(0 14px 18px rgba(10,40,80,.28)); }
     .sop-flight.home .fl-plane { animation-name: flPlaneHome; }
-    @media (max-aspect-ratio: 1/1) { .sop-flight .fl-plane { width: 84%; } .sop-flight .fl-sign { width: 94%; height: 34%; } .sop-flight .fl-board { font-size: 24px; } }
+    @media (max-aspect-ratio: 1/1) { .sop-flight .fl-plane { width: 84%; } .sop-flight .fl-sign { left: 1%; width: 78%; height: 32%; } .sop-flight .fl-board { font-size: 24px; } }
     .sop-flight .fl-bob { animation: flBob 1.3s ease-in-out infinite alternate; }
     .sop-flight .fl-plane svg { display: block; width: 100%; height: auto; }
     .sop-flight.home .fl-plane svg { transform: scaleX(-1); }
     .sop-flight.home .fl-plane svg text { transform: scaleX(-1); transform-box: fill-box; transform-origin: center; }
     /* The road sign: a green post, the destination board pointing right, home pointing left. */
-    .sop-flight .fl-sign { position: absolute; left: 50%; bottom: 0; width: 46%; max-width: 440px; min-width: 300px; height: 44%; transform: translateX(-50%); z-index: 2; pointer-events: none; }
+    .sop-flight .fl-sign { position: absolute; left: 3%; bottom: 0; width: 40%; max-width: 420px; min-width: 280px; height: 42%; z-index: 2; pointer-events: none; }
     .sop-flight .fl-post { position: absolute; left: 50%; bottom: 0; width: 7%; height: 100%; transform: translateX(-50%); border-radius: 6px 6px 0 0; background: linear-gradient(90deg, #0a5a33, #12864e 45%, #0b6b3d 70%, #064527); box-shadow: 6px 0 14px rgba(0,0,0,.25); }
     .sop-flight .fl-post::after { content: ""; position: absolute; left: -90%; right: -90%; bottom: -6px; height: 22px; border-radius: 50%; background: radial-gradient(ellipse at center, #3f8a3a 0 55%, transparent 70%); }
     .sop-flight .fl-board { position: absolute; height: 24%; min-height: 54px; display: flex; align-items: center; color: #fff; font: 900 30px/1 "Plus Jakarta Sans", sans-serif; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap;
