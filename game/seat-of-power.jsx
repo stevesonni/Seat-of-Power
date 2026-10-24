@@ -2290,6 +2290,28 @@ const ANCHORS = { m: { first: "Ibrahim", last: "Danjuma" }, f: { first: "Funmi",
 // ─── NEWS DESK CUTSCENE (iCivics-style two-anchor broadcast) ───
 // A screen behind the desk, an anchor at each end, the line being read in
 // a bubble pointing at whoever is speaking, and their names on the bar.
+// One of the four numbers in the top strip: an icon, the value, a thin meter,
+// and a short flash with the change when it moves (green good, red bad).
+const StatPill = ({ label, value, color, icon, pct, raw, invert, dark }) => {
+  const prev = React.useRef(raw), [d, setD] = useState(null);
+  useEffect(() => {
+    const p = prev.current; prev.current = raw;
+    if (p == null || raw == null || Math.abs(raw - p) < (label === "In the bank" ? .05 : .5)) return;
+    const up = raw > p; setD({ up, good: invert ? !up : up, txt: label === "In the bank" ? (up ? "+" : "−") + naira(Math.abs(raw - p)) : (up ? "+" : "−") + Math.round(Math.abs(raw - p)), k: Date.now() });
+    const t = setTimeout(() => setD(null), 1800); return () => clearTimeout(t);
+  }, [raw]);
+  const tall = TALL(), ink = dark ? "#f3f7ef" : CL.txt;
+  return <span style={{ position: "relative", display: "grid", gridTemplateColumns: tall ? "1fr" : "auto 1fr", alignItems: "center", columnGap: 10, minWidth: 0, textAlign: "left" }}>
+    {!tall && <span style={{ gridRow: "span 2", width: 46, height: 46, borderRadius: "50%", background: dark ? "rgba(255,255,255,.1)" : CL.bg, display: "grid", placeItems: "center" }}><Ico n={icon} s={32} /></span>}
+    <b style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0 }}>{tall && <Ico n={icon} s={17} />}<span key={d ? d.k : 0} className={d ? "sop-bump" : ""} style={{ fontFamily: F.m, fontSize: tall ? TS(22) : TS(38), lineHeight: 1.05, whiteSpace: "nowrap", color: d ? (d.good ? "#2fbf71" : "#ff6b5e") : ink, overflow: "hidden", textOverflow: "ellipsis" }}>{value}</span></b>
+    <span style={{ display: "grid", gap: 3, minWidth: 0 }}>
+      {pct != null ? <span style={{ height: tall ? 4 : 5, borderRadius: 3, background: dark ? "rgba(255,255,255,.15)" : CL.bdr, overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.max(4, Math.min(100, pct)) + "%", background: color || "#2fa866", transition: "width .6s ease" }} /></span> : null}
+      <span style={{ fontSize: tall ? TS(14) : TS(21), opacity: .75, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: pct == null && color ? color : undefined }}>{tall && label === "In the bank" ? "Bank" : label}</span>
+    </span>
+    {d && <span className="sop-delta" style={{ position: "absolute", right: 0, top: tall ? -12 : -18, fontSize: tall ? TS(15) : TS(22), fontWeight: 800, color: "#fff", background: d.good ? "#2fa866" : "#e0574c", borderRadius: 999, padding: "1px 7px", pointerEvents: "none" }}>{d.txt}</span>}
+  </span>;
+};
+
 const AnchorDesk = ({ lines, onDone }) => {
   useMode("public");
   // The anchors have the screen to themselves: pop-ups wait for them.
@@ -6346,7 +6368,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Show result screen before continuing to next event
   // Accepts: { icon, title, narrative, effects: [{icon, text, value, good, bad}], tone, nextFn }
   const showResult = (cfg) => {
-    if (cosAuto.current && cosAuto.current.pressed) cfg = { ...cfg, by: cosAuto.current.c.name, chose: cosAuto.current.label };
+    if (cosAuto.current && cosAuto.current.pressed) { cosAuto.current.shown = true; cfg = { ...cfg, by: cosAuto.current.c.name, chose: cosAuto.current.label, byOk: cosAuto.current.r.ok }; }
     try { window.SOP_sound && window.SOP_sound(cfg.tone === "good" ? "good" : cfg.tone === "bad" ? "bad" : "neutral"); } catch (e) {}
     setEventResult(cfg);
     setPhase("event_result");
@@ -7803,6 +7825,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The Chief of Staff at work: once the card is open, they pick an option
   // (highlighted, with a banner naming the choice), press it, and the card's
   // own result follows. Then a short note says who chose what and how it went.
+  // A tab change fades the new page in (opacity only, so fixed overlays inside stay put).
+  const paneRef = React.useRef(null);
+  useEffect(() => { const el = paneRef.current; if (!el) return; el.classList.remove("sop-fade-in"); void el.offsetWidth; el.classList.add("sop-fade-in"); }, [nav]);
   const cosAuto = React.useRef(null);
   useEffect(() => {
     const A = cosAuto.current; if (!A || A.pressed) return;
@@ -7836,7 +7861,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         addL("🗝️ " + nm + " decided " + A.title.replace(/^Your agenda: /, "your agenda") + ": " + lab + ". " + (A.r.ok ? "Carried out well." : "Carried out badly."), A.r.ok ? "info" : "political");
         try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "cos_decision", actor: nm, gravity: 1, evidence: 2, decision: A.title + ": " + lab, note: A.r.text, meta: { ok: A.r.ok } }); } catch (e) {}
         const how = A.r.ok ? "It was carried out well." : A.r.fx.app ? "It was carried out badly. " + A.r.text.split(". ").slice(1).join(". ") : "";
-        try { window.SOP_outcome && window.SOP_outcome({ img: "./art/characters/" + (A.c.img || "chief-of-staff-veteran") + ".webp", title: nm.split(" ").slice(0, 2).join(" ") + " chose: " + lab, text: how + (A.r.crooked ? " A contract in it went to a friend of " + nm.split(" ").slice(-1)[0] + "." : "") + (A.r.later ? " It will come back next year." : ""), tone: A.r.ok ? "neutral" : "bad", rows: cosRows(A.r) }); } catch (e) {}
+        // The result card already names the choice; a note follows only when there is more to say.
+        if (!(A.shown && A.r.ok && !A.r.crooked && !A.r.later)) try { window.SOP_outcome && window.SOP_outcome({ img: "./art/characters/" + (A.c.img || "chief-of-staff-veteran") + ".webp", title: nm.split(" ").slice(0, 2).join(" ") + " chose: " + lab, text: how + (A.r.crooked ? " A contract in it went to a friend of " + nm.split(" ").slice(-1)[0] + "." : "") + (A.r.later ? " It will come back next year." : ""), tone: A.r.ok ? "neutral" : "bad", rows: cosRows(A.r) }); } catch (e) {}
         cosAuto.current = null;
       }, 1500);
     }, 700);
@@ -8286,16 +8312,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The four numbers that matter, always in view. Tapping opens the State sheet.
   const tone = (v, good, warn) => v >= good ? "#2fa866" : v >= warn ? "#d9a21b" : "#e0574c";
   const STRIP = [
-    ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40), "icon-approval"],
-    ["In the bank", naira(s.cash || 0), (s.cash || 0) > .05 ? null : "#e0574c", "icon-bank"],
-    ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30), "icon-party"],
-    ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55), "icon-corruption"],
+    ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40), "icon-approval", s.app],
+    ["In the bank", naira(s.cash || 0), (s.cash || 0) > .05 ? null : "#e0574c", "icon-bank", null, s.cash || 0],
+    ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30), "icon-party", s.pStab],
+    ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55), "icon-corruption", (s.cor || 0) * 100, null, true],
   ];
-  const statusStrip = (dark) => <button onClick={() => { setSosOpen(true); setMenuOpen(false); }} aria-label="Open the State sheet" style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, background: dark ? "transparent" : CL.card, border: dark ? 0 : "1px solid " + CL.bdr, borderRadius: 16, padding: dark ? 0 : "12px 10px", cursor: "pointer", color: dark ? "#f3f7ef" : CL.txt, fontFamily: F.b }}>
-    {STRIP.map(([l, v, c, ic]) => <span key={l} style={{ display: "grid", justifyItems: "center", gap: 2, minWidth: 0 }}>
-      <b style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: F.m, fontSize: TALL() ? TS(24) : TS(40), lineHeight: 1.1, whiteSpace: "nowrap", position: "relative" }}><Ico n={ic} s={TALL() ? 20 : 30} />{c && <span style={{ position: "absolute", left: TALL() ? 14 : 22, top: 0, width: TALL() ? 8 : 10, height: TALL() ? 8 : 10, borderRadius: "50%", background: c, boxShadow: "0 0 0 2px #fff" }} />}{v}</b>
-      <span style={{ fontSize: TALL() ? TS(16) : TS(24), opacity: .75, whiteSpace: "nowrap" }}>{l}</span>
-    </span>)}
+  const statusStrip = (dark) => <button onClick={() => { setSosOpen(true); setMenuOpen(false); }} aria-label="Open the State sheet" style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: TALL() ? 6 : 10, background: dark ? "transparent" : CL.card, border: dark ? 0 : "1px solid " + CL.bdr, borderRadius: 18, padding: dark ? 0 : "10px 12px", cursor: "pointer", color: dark ? "#f3f7ef" : CL.txt, fontFamily: F.b }}>
+    {STRIP.map(([l, v, c, ic, pct, raw, inv]) => <StatPill key={l} label={l} value={v} color={c} icon={ic} pct={pct} raw={raw != null ? raw : pct} invert={inv} dark={dark} />)}
   </button>;
 
   // Who represents the state abroad when the governor stays home. A commissioner
@@ -8474,6 +8497,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>}
         {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); else setMailOpen(true); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
         {curScreen.id === "desk" && mail.length > 0 && phase !== "mail" && <button onClick={() => setMailOpen(true)} aria-label={"Mail: " + mail.length} style={{ position: "fixed", right: 16, bottom: TALL() ? 104 : 24, zIndex: 65, display: "flex", alignItems: "center", gap: 6, background: CL.gold, color: "#1a2e05", border: 0, borderRadius: 999, padding: "6px 16px 6px 8px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), boxShadow: "0 8px 20px rgba(0,0,0,.25)", cursor: "pointer", fontFamily: F.b }}><img src="./art/objects/mailbox-tray.webp" alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />📬 {mail.length}</button>}
+        <div ref={paneRef}>
         {nav === "hub" && <div style={{ maxWidth: TALL() ? 900 : 1440, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
           <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} />
           {TALL() && <div style={{ fontSize: TS(18), color: CL.td, textAlign: "center", marginTop: 10 }}>Turn your phone sideways for the full compound.</div>}
@@ -8872,25 +8896,27 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "event_result" && !!eventResult}>
-          {eventResult && <Cd style={{ borderColor: eventResult.tone === "good" ? CL.grn + "44" : eventResult.tone === "bad" ? CL.red + "44" : CL.bdr }}>
-            <div style={{ textAlign: "center", marginBottom: 29 }}>
-              {eventResult.img ? <img src={eventResult.img} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, marginBottom: 14 }} /> : <div style={{ fontSize: TS(113), marginBottom: 14 }}>{eventResult.icon}</div>}
-              {eventResult.by && <div style={{ display: "inline-block", background: "#12301f", color: "#fff", borderRadius: 999, padding: "4px 14px", fontSize: TS(30), fontWeight: 800, marginBottom: 8 }}>🗝️ {eventResult.by} chose: {eventResult.chose}</div>}
-              <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(62), fontWeight: 600 }}>{eventResult.title}</h3>
+          {eventResult && (() => { const tn = eventResult.tone === "good" ? CL.grn : eventResult.tone === "bad" ? CL.red : "#c08a1e"; const tall = TALL(); return <div className="ds-card sop-step" style={{ padding: 0, overflow: "hidden", borderRadius: tall ? 26 : 30, borderColor: tn + "55", maxWidth: 820, margin: "0 auto" }}>
+            {/* The result of a decision: a tone-coloured head, what happened, and what it changed. */}
+            <div style={{ position: "relative", background: eventResult.img ? "#0c2116" : "linear-gradient(160deg," + tn + "26 0%," + tn + "08 70%)", textAlign: "center", padding: eventResult.img ? 0 : (tall ? "22px 18px 14px" : "30px 28px 18px") }}>
+              {eventResult.img ? <img src={eventResult.img} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover" }} /> : <div className="sop-pop" style={{ width: tall ? 86 : 110, height: tall ? 86 : 110, margin: "0 auto", borderRadius: "50%", background: "#fff", boxShadow: "0 10px 26px " + tn + "40, inset 0 0 0 4px " + tn + "30", display: "grid", placeItems: "center", fontSize: tall ? 44 : 56 }}>{eventResult.icon}</div>}
+              <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 5, background: tn }} />
             </div>
-            {eventResult.narrative && <More text={eventResult.narrative} style={{ fontSize: TS(38), color: CL.tm, lineHeight: 1.5, marginBottom: 29, textAlign: "center", fontStyle: "italic" }} />}
-            {eventResult.effects && eventResult.effects.length > 0 && <div style={{ marginBottom: 36 }}>
-              <div style={{ fontSize: TS(29), fontFamily: F.m, color: CL.td, marginBottom: 14, letterSpacing: 2 }}>CONSEQUENCES</div>
-              {eventResult.effects.slice(0, 4).map((e, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 22, padding: "14px 0", borderBottom: "1px solid " + CL.bdr + "40" }}>
-                  <span style={{ fontSize: TS(48), width: 72, textAlign: "center" }}>{e.icon}</span>
-                  <span style={{ flex: 1, fontSize: TS(36), color: CL.tm }}>{e.text}</span>
-                  <span style={{ fontSize: TS(36), fontFamily: F.m, fontWeight: 600, color: e.good ? CL.grn : e.bad ? CL.red : CL.tm }}>{e.value}</span>
-                </div>
-              ))}
-            </div>}
-            <Bt onClick={() => { const fn = eventResult.nextFn; setEventResult(null); if (fn) fn(); else nextEvent(); }}>CONTINUE →</Bt>
-          </Cd>}
+            <div style={{ padding: tall ? "16px 18px 18px" : "22px 30px 26px", textAlign: "center" }}>
+              {eventResult.by && <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#12301f", color: "#fff", borderRadius: 999, padding: "5px 14px", fontSize: tall ? TS(16) : TS(24), fontWeight: 800, marginBottom: 10 }}>🗝️ {eventResult.by} chose: {eventResult.chose}{eventResult.byOk === false ? " · badly done" : ""}</div>}
+              <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: tall ? TS(28) : TS(50), fontWeight: 700, lineHeight: 1.2, margin: "0 0 8px" }}>{eventResult.title}</h3>
+              {eventResult.narrative && <More text={eventResult.narrative} style={{ fontSize: tall ? TS(20) : TS(30), color: CL.tm, lineHeight: 1.5, margin: "0 0 14px" }} />}
+              {eventResult.effects && eventResult.effects.length > 0 && <div style={{ display: "grid", gap: 8, margin: "4px 0 18px", textAlign: "left" }}>
+                {eventResult.effects.slice(0, 4).map((e, i) => { const c = e.good ? CL.grn : e.bad ? CL.red : CL.tm; return (
+                  <div key={i} className="sop-step" style={{ animationDelay: (0.08 * i + 0.1) + "s", animationFillMode: "both", display: "flex", alignItems: "center", gap: 12, padding: tall ? "9px 12px" : "12px 16px", borderRadius: 14, background: c + "0f", borderLeft: "5px solid " + c }}>
+                    <span style={{ fontSize: tall ? 22 : 30, width: tall ? 30 : 40, textAlign: "center" }}>{e.icon}</span>
+                    <span style={{ flex: 1, fontSize: tall ? TS(18) : TS(28), color: CL.txt, lineHeight: 1.3 }}>{e.text}</span>
+                    {e.value != null && e.value !== "" && <span style={{ fontSize: tall ? TS(18) : TS(28), fontFamily: F.m, fontWeight: 800, color: c, whiteSpace: "nowrap" }}>{e.value}</span>}
+                  </div>); })}
+              </div>}
+              <Bt onClick={() => { const fn = eventResult.nextFn; setEventResult(null); if (fn) fn(); else nextEvent(); }} style={{ width: "100%" }}>CONTINUE →</Bt>
+            </div>
+          </div>; })()}
         </OL>
 
         <OL show={phase === "flagship" && !!FLAGSHIP[setup?.agenda]}>
@@ -8907,7 +8933,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               addL(FG.i + " Flagship " + FG.nm + ": " + opt.log, opt.delivered ? "policy" : "political");
               try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda } }); } catch (e) {}
               nextEvent();
-              paper(opt.delivered ? govShort + " Delivers: " + deliv.split(",")[0].replace(/^the /, "The ").replace(/^(\w)/, c => c.toUpperCase()) : govShort + " Misses " + FG.nm + " Target", opt.delivered ? (opt.cor ? "Finished on time, but the work is thin" : FG.nm + ", year " + year) : "Due this year: " + deliv.split(",")[0], opt.delivered, !opt.delivered ? "./art/scenes/news-protest.webp" : FLAGSHIP_ART[setup.agenda] ? "./art/backgrounds/" + FLAGSHIP_ART[setup.agenda][0] + ".webp" : undefined);
+              paper(opt.delivered ? govShort + " Delivers: " + deliv.split(/,| \(/)[0].replace(/^the /, "The ").replace(/^(\w)/, c => c.toUpperCase()) : govShort + " Misses " + FG.nm + " Target", opt.delivered ? (opt.cor ? "Finished on time, but the work is thin" : FG.nm + ", year " + year) : "Due this year: " + deliv.split(/,| \(/)[0], opt.delivered, !opt.delivered ? "./art/scenes/news-protest.webp" : FLAGSHIP_ART[setup.agenda] ? "./art/backgrounds/" + FLAGSHIP_ART[setup.agenda][0] + ".webp" : undefined);
               return null;
             });
             const opts = [
@@ -11017,39 +11043,22 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
           </div>
         </div>}
 
-        {nav === "econ" && <div>
-          <Cd style={{ marginBottom: 29 }}>
-            <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>📊 State Economy</h3>
-            <div style={{ display: "flex", gap: 29, flexWrap: "wrap", marginBottom: 29 }}>
-              <div style={{ background: CL.grn + "10", borderRadius: 13, padding: "22px 36px", flex: "1 1 120px" }}>
-                <div style={{ fontSize: TS(29), color: CL.td, fontFamily: F.m }}>STATE GDP</div>
-                <div style={{ fontSize: TS(58), fontWeight: 700, color: CL.grn, fontFamily: F.m }}>{naira(s.gdp || 0)}</div>
-              </div>
-              <div style={{ background: CL.blu + "10", borderRadius: 13, padding: "22px 36px", flex: "1 1 120px" }}>
-                <div style={{ fontSize: TS(29), color: CL.td, fontFamily: F.m }}>TOTAL JOBS</div>
-                <div style={{ fontSize: TS(58), fontWeight: 700, color: CL.blu, fontFamily: F.m }}>{((s.totalJobs || 0) / 1000).toFixed(0)}K</div>
-              </div>
-              <div style={{ background: CL.gold + "10", borderRadius: 13, padding: "22px 36px", flex: "1 1 120px" }}>
-                <div style={{ fontSize: TS(29), color: CL.td, fontFamily: F.m }}>IGR (FROM ECONOMY)</div>
-                <div style={{ fontSize: TS(58), fontWeight: 700, color: CL.gold, fontFamily: F.m }}>{naira(s.igr)}</div>
-              </div>
+        {nav === "econ" && <div style={{ display: "grid", gap: TALL() ? 14 : 22 }}>
+          {/* The economy at a glance: three numbers on a dark banner, then one tile per sector. */}
+          <div style={{ borderRadius: TALL() ? 24 : 28, padding: TALL() ? "18px 18px 16px" : "26px 32px", color: "#fff", background: "radial-gradient(120% 140% at 0% 0%, #1f7a4d 0%, #12301f 60%, #0c2116 100%)", boxShadow: "0 14px 34px rgba(12,33,22,.28)", position: "relative", overflow: "hidden" }}>
+            <div style={{ fontSize: TALL() ? TS(16) : TS(22), letterSpacing: 2, textTransform: "uppercase", opacity: .7, fontWeight: 800 }}>The economy of {stName}</div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: TALL() ? 8 : 18, marginTop: TALL() ? 10 : 14 }}>
+              {[["GDP", naira(s.gdp || 0), "#9ff0c4"], ["Jobs", ((s.totalJobs || 0) / 1000).toFixed(0) + "K", "#bfe0ff"], ["Own revenue", naira(s.igr), "#ffe08a"]].map(([l, v, c]) => <div key={l} style={{ background: "rgba(255,255,255,.07)", border: "1px solid rgba(255,255,255,.12)", borderRadius: 16, padding: TALL() ? "10px 10px" : "14px 18px" }}>
+                <div style={{ fontFamily: F.m, fontWeight: 800, fontSize: TALL() ? TS(26) : TS(46), color: c, whiteSpace: "nowrap" }}>{v}</div>
+                <div style={{ fontSize: TALL() ? TS(15) : TS(22), opacity: .8 }}>{l}</div>
+              </div>)}
             </div>
-            <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.4, marginBottom: 22 }}>
-              💡 IGR is now derived from your economic sectors. Grow sectors through budget allocation, policies, infrastructure, education, and security. Corruption and insecurity drag ALL sectors down.
+            <div style={{ marginTop: TALL() ? 12 : 16, fontSize: TALL() ? TS(18) : TS(26), opacity: .9, lineHeight: 1.4 }}>
+              {(s.invJobs || 0) > 0 ? "🏭 " + (s.invJobs || 0).toLocaleString() + " jobs from investors and projects you brought in, paying " + naira(s.invIGR || 0) + " a year in taxes." : "🏭 Approve an investor or finish a project: their jobs and taxes show up here."}
             </div>
-          </Cd>
-          <Cd style={{ marginBottom: 29 }}>
-            <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 10px", fontSize: TALL() ? TS(28) : TS(46), fontWeight: 700 }}>Investment you brought in</h3>
-            <p style={{ color: CL.tm, fontSize: TALL() ? TS(20) : TS(31), lineHeight: 1.5, margin: "0 0 14px" }}>
-              {(s.invJobs || 0) > 0
-                ? (s.invJobs || 0).toLocaleString() + " people work in firms and finished projects you brought in. Their wages lift your approval by up to 2 points every year, and the firms pay " + naira(s.invIGR || 0) + " in taxes into your budget pot every year."
-                : "Approve a private investor or finish a capital project and the jobs and taxes show up here. Jobs lift approval every year; the firms' taxes go into your budget pot every year."}
-            </p>
-            {investorsApproved.map(id => { const inv = INVESTORS.find(x => x.id === id); return inv ? <div key={id} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "8px 0", borderTop: "1px solid " + CL.bdr, fontSize: TALL() ? TS(20) : TS(31) }}>
-              <span style={{ color: CL.txt, fontWeight: 700 }}>{inv.nm}</span><span style={{ color: CL.tm, fontFamily: F.m, whiteSpace: "nowrap" }}>{inv.jobs.toLocaleString()} jobs · {naira(inv.igrBoost)}</span>
-            </div> : null; })}
-          </Cd>
-          <div style={{ display: "grid", gap: 22 }}>
+            {investorsApproved.length > 0 && <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>{investorsApproved.map(id => { const inv = INVESTORS.find(x => x.id === id); return inv ? <span key={id} style={{ background: "rgba(255,255,255,.12)", borderRadius: 999, padding: "4px 12px", fontSize: TALL() ? TS(15) : TS(21), fontWeight: 700 }}>{inv.nm} · {inv.jobs.toLocaleString()} jobs</span> : null; })}</div>}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(auto-fill,minmax(300px,1fr))", gap: TALL() ? 10 : 18 }}>
             {[
               { k: "agriculture", i: "🌾", nm: "Agriculture", driver: "Agric budget, health, infrastructure" },
               { k: "manufacturing", i: "🏭", nm: "Manufacturing", driver: "Infrastructure budget, literacy, security" },
@@ -11062,22 +11071,18 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             ].map(sec => {
               const e = s.econ?.[sec.k];
               if (!e) return null;
-              const out = (e.out || 0);
-              const jobs = e.jobs || 0;
-              const taxRate = sd.econ[sec.k]?.tax || .05;
-              const revenue = out * sd.pop * 2 * taxRate;
-              return <Cd key={sec.k} style={{ padding: 29 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                  <div><span style={{ fontSize: TS(50), marginRight: 14 }}>{sec.i}</span><span style={{ fontWeight: 600, fontSize: TS(43), color: CL.txt }}>{sec.nm}</span></div>
-                  <span style={{ fontFamily: F.m, fontSize: TS(43), color: out > .3 ? CL.grn : out > .15 ? CL.org : CL.red }}>{(out * 100).toFixed(0)}%</span>
+              const out = (e.out || 0), jobs = e.jobs || 0;
+              const revenue = out * sd.pop * 2 * (sd.econ[sec.k]?.tax || .05);
+              const col = out > .3 ? CL.grn : out > .15 ? CL.org : CL.red;
+              return <div key={sec.k} title={"Driven by: " + sec.driver} className="ds-card" style={{ padding: TALL() ? "12px 12px" : "18px 20px", borderRadius: 20, display: "grid", gap: 6 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: TALL() ? 34 : 46, height: TALL() ? 34 : 46, borderRadius: 12, background: col + "16", display: "grid", placeItems: "center", fontSize: TALL() ? 18 : 24 }}>{sec.i}</span>
+                  <b style={{ flex: 1, minWidth: 0, fontSize: TALL() ? TS(19) : TS(30), color: CL.txt, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{sec.nm}</b>
+                  <span style={{ fontFamily: F.m, fontWeight: 800, fontSize: TALL() ? TS(20) : TS(32), color: col }}>{(out * 100).toFixed(0)}%</span>
                 </div>
-                <SB label="Output" value={out} color={out > .3 ? CL.grn : out > .15 ? CL.org : CL.red} />
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: TS(31), color: CL.td, marginTop: 7 }}>
-                  <span>Jobs: {(jobs / 1000).toFixed(0)}K</span>
-                  <span>Tax revenue: {naira(revenue)}</span>
-                </div>
-                <div style={{ fontSize: TS(29), color: CL.tm, marginTop: 7 }}>Driven by: {sec.driver}</div>
-              </Cd>;
+                <div style={{ height: 6, borderRadius: 3, background: CL.bdr, overflow: "hidden" }}><div style={{ height: "100%", width: Math.max(3, Math.min(100, out * 100)) + "%", background: col, transition: "width .6s" }} /></div>
+                <div style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.td, display: "flex", justifyContent: "space-between", gap: 6 }}><span>{(jobs / 1000).toFixed(0)}K jobs</span><span>{naira(revenue)} tax</span></div>
+              </div>;
             })}
           </div>
         </div>}
@@ -11221,30 +11226,31 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
         {nav === "bio" && <WikiArticle w={buildWiki(false)} onShare={(k) => shareWiki(buildWiki(false), k)} />}
-        {nav === "cast" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(420px,1fr))", gap: 22 }}>
-          {Object.values(cast).map(c => {
-            const rec = (window.SOP_CAST ? window.SOP_CAST.history(c.id) : []).slice(-3).reverse();
-            return <Cd key={c.id} style={{ padding: 29 }}>
-              <div style={{ display: "flex", gap: 18, alignItems: "flex-end", marginBottom: 14 }}>
-                {castArt(c, sd.zone, depGov?.lo) && <img src={castArt(c, sd.zone, depGov?.lo)} alt={c.name} loading="lazy" style={{ width: 120, height: 140, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: CL.grn + "14", flexShrink: 0 }} />}
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: F.m, fontSize: TS(21), letterSpacing: 3, color: CL.grn, textTransform: "uppercase" }}>{c.role}</div>
-                  <div style={{ fontFamily: F.d, fontSize: TS(42), fontWeight: 700, color: CL.txt, margin: "6px 0 2px" }}>{c.name}</div>
-                  <div style={{ fontSize: TS(24), color: CL.td }}>{c.title}</div>
-                </div>
+        {nav === "cast" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap: TALL() ? 10 : 18 }}>
+          {/* The people in your story, as character cards: portrait on a coloured plinth, name, and the last thing between you. */}
+          {Object.values(cast).map((c, ci) => {
+            const rec = (window.SOP_CAST ? window.SOP_CAST.history(c.id) : []).slice(-2).reverse();
+            const art = castArt(c, sd.zone, depGov?.lo), hue = ["#1f7a4d", "#7a4a1f", "#5b2a86", "#1f4f8f", "#7a1f2b", "#1b6f7a", "#b35c00"][ci % 7];
+            return <div key={c.id} className="ds-card" style={{ padding: 0, overflow: "hidden", borderRadius: TALL() ? 20 : 24, display: "flex", flexDirection: "column" }}>
+              <div style={{ position: "relative", height: TALL() ? 150 : 210, background: "radial-gradient(90% 80% at 50% 100%, " + hue + "55 0%, " + hue + "18 55%, transparent 100%), linear-gradient(180deg," + CL.bg + "," + hue + "22)", display: "flex", justifyContent: "center", alignItems: "flex-end" }}>
+                {art && <img src={art} alt={c.name} loading="lazy" style={{ height: "96%", width: "auto", maxWidth: "100%", objectFit: "contain", objectPosition: "bottom", filter: "drop-shadow(0 8px 12px rgba(0,0,0,.25))" }} />}
+                <span style={{ position: "absolute", left: 8, top: 8, background: hue, color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: TALL() ? TS(13) : TS(18), fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", maxWidth: "88%", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.role}</span>
               </div>
-              {rec.length ? rec.map(e => <div key={e.id} style={{ fontSize: TS(24), color: CL.tm, lineHeight: 1.45, padding: "8px 0", borderTop: "1px solid " + CL.bdr }}>
-                <b style={{ color: CL.txt }}>Turn {e.t}</b> · {e.decision || e.note || e.kind.replace(/_/g, " ")}
-              </div>) : <div style={{ fontSize: TS(24), color: CL.td, fontStyle: "italic", borderTop: "1px solid " + CL.bdr, paddingTop: 8 }}>Nothing between you yet.</div>}
-              {c.id === "adviser" && (saOffice.record || []).slice(-2).reverse().map((e, i) => <div key={"sar" + i} style={{ fontSize: TS(22), color: e.kind === "praise" ? CL.grn : CL.red, marginTop: 8 }}>{e.kind === "praise" ? "🏅 " : "⚠️ "}Year {e.t}: {e.text}</div>)}
-              {c.id === "adviser" && <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
-                <Bt v="ghost" onClick={fireAdviser} style={{ color: CL.red, borderColor: CL.red + "66", fontSize: TS(24) }}>{saOffice.adviser ? "Fire adviser" : "Appoint an adviser"}</Bt>
-              </div>}
-              {c.id === "deputy" && <div style={{ fontSize: TS(21), color: CL.td, marginTop: 12 }}>A deputy governor is elected with you and cannot be fired; only the House can remove them (Section 188).</div>}
-            </Cd>;
+              <div style={{ padding: TALL() ? "10px 12px 12px" : "14px 18px 16px", display: "grid", gap: 4, flex: 1, alignContent: "start" }}>
+                <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(19) : TS(30), color: CL.txt, lineHeight: 1.2 }}>{c.name}</b>
+                <span style={{ fontSize: TALL() ? TS(15) : TS(21), color: CL.td }}>{c.title}</span>
+                {rec.length ? rec.map(e => <div key={e.id} style={{ fontSize: TALL() ? TS(15) : TS(21), color: CL.tm, lineHeight: 1.35, paddingTop: 6, borderTop: "1px solid " + CL.bdr }}>
+                  <b style={{ color: CL.txt }}>Year {e.t}</b> · {briefly(e.decision || e.note || e.kind.replace(/_/g, " "), 70)}
+                </div>) : <span style={{ fontSize: TALL() ? TS(14) : TS(20), color: CL.td, opacity: .8 }}>No dealings yet</span>}
+                {c.id === "adviser" && (saOffice.record || []).slice(-1).map((e, i) => <div key={"sar" + i} style={{ fontSize: TALL() ? TS(15) : TS(21), color: e.kind === "praise" ? CL.grn : CL.red }}>{e.kind === "praise" ? "🏅 " : "⚠️ "}Year {e.t}: {briefly(e.text, 60)}</div>)}
+                {c.id === "adviser" && <button onClick={fireAdviser} style={{ justifySelf: "start", marginTop: 6, background: "transparent", border: "1px solid " + CL.red + "66", color: CL.red, borderRadius: 999, padding: "6px 14px", fontSize: TALL() ? TS(15) : TS(21), fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>{saOffice.adviser ? "Fire adviser" : "Appoint an adviser"}</button>}
+                {c.id === "deputy" && <span style={{ fontSize: TALL() ? TS(13) : TS(18), color: CL.td }}>Elected with you; only the House can remove them (S.188).</span>}
+              </div>
+            </div>;
           })}
         </div>}
         {nav === "log" && <Cd><h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>📰 News</h3>{logs.length === 0 ? <div style={{ color: CL.td, fontSize: TS(34) }}>No news.</div> : logs.map((e, i) => { const tc = { policy: CL.grn, crisis: CL.red, political: CL.org, dilemma: CL.pur, success: CL.teal, scandal: CL.red, flagship: CL.org, "const": CL.red }; return <div key={i} style={{ padding: "10px 0", borderBottom: "1px solid " + CL.bdr, display: "flex", gap: 19 }}><Bg text={"T" + e.t} color={CL.td} /><span style={{ color: tc[e.tp] || CL.tm, fontSize: TS(34) }}>{e.tx}</span></div>; })}</Cd>}
+        </div>
       </div>
     </div>
   );

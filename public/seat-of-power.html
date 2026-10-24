@@ -163,6 +163,30 @@
       .sop-fade-in, .sop-slide-up, .sop-step, .sop-sheet { animation: none; }
       #sop-stage button:active, #sop-stage .ds-card:active { transform: none; }
     }
+    /* ---- Game feel: numbers that move, options that answer the finger ---- */
+    @keyframes sopBump { 0% { transform: scale(1); } 30% { transform: scale(1.22); } 100% { transform: scale(1); } }
+    @keyframes sopDelta { 0% { opacity: 0; transform: translateY(6px); } 15% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
+    @keyframes sopRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes sopShine { from { background-position: -200% 0; } to { background-position: 200% 0; } }
+    .sop-bump { display: inline-block; animation: sopBump .5s cubic-bezier(.2,1.4,.4,1); transition: color .6s; }
+    .sop-delta { animation: sopDelta 1.8s ease-out both; }
+    .ds-option { position: relative; overflow: hidden; animation: sopRise .34s cubic-bezier(.2,.8,.2,1) both; }
+    .ds-option:nth-child(2) { animation-delay: .06s; } .ds-option:nth-child(3) { animation-delay: .12s; } .ds-option:nth-child(4) { animation-delay: .18s; }
+    .ds-option::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 5px; border-radius: 0 5px 5px 0; background: var(--accent); opacity: 0; transition: opacity .18s, top .18s, bottom .18s; }
+    .ds-option::after { content: "›"; position: absolute; right: 18px; top: 50%; transform: translateY(-50%); font: 800 30px 'Plus Jakarta Sans', sans-serif; color: var(--ink-dim); opacity: .45; transition: transform .18s, opacity .18s, color .18s; }
+    .ds-option > * { padding-right: 26px; }
+    @media (hover: hover) {
+      .ds-option:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(20,40,25,.12); background: linear-gradient(90deg, rgba(11,122,75,.05), transparent 60%), var(--sf-card); }
+      .ds-option:hover::before { opacity: 1; top: 8px; bottom: 8px; }
+      .ds-option:hover::after { opacity: 1; color: var(--accent); transform: translate(4px, -50%); }
+    }
+    .ds-option:active::before { opacity: 1; }
+    .ds-card { transition: box-shadow .2s ease, transform .2s ease; }
+    @media (hover: hover) { #sop-stage .ds-card[style*="cursor: pointer"]:hover { box-shadow: 0 10px 26px rgba(20,40,25,.12); transform: translateY(-1px); } }
+    .sop-tabpane { animation: sopRise .28s cubic-bezier(.2,.8,.2,1); }
+    .sop-shine { background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.35) 50%, transparent 70%) no-repeat; background-size: 200% 100%; animation: sopShine 2.6s ease-in-out infinite; }
+    @media (prefers-reduced-motion: reduce) { .ds-option, .sop-tabpane, .sop-bump, .sop-delta, .sop-shine { animation: none !important; } }
+    .sp-still .ds-option, .sp-still .sop-tabpane, .sp-still .sop-bump, .sp-still .sop-shine { animation: none !important; }
     .ds-chiprow { display: flex; gap: var(--s-2); flex-wrap: wrap; margin-top: var(--s-3); }
     .ds-chip {
       display: inline-block; padding: 6px 20px; border-radius: var(--r-pill);
