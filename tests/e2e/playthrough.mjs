@@ -20,6 +20,7 @@ async function firstTerm(test) {
     return /End of First Term/.test(t);
   }, { max: 900 });
   check(r.ok, "reached the end of the first term");
+  if (!r.ok) { console.log("  last clicks: " + r.clicks.slice(-20).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 900)); }
   const d = await save(g);
   check(!d.gold, "no goldfields while the storyline is switched off");
   check(seen.years.join(",").startsWith("1,2,3,4") || seen.years.length >= 3, "four annual chapters seen: " + seen.years.join(","));

@@ -277,7 +277,7 @@ http.createServer(async (req, res) => {
     fs.stat(f, (err, st) => {
       if (err || !st.isFile()) return send(res, 404, "Not found", TYPES[".txt"]);
       const ext = path.extname(f).toLowerCase();
-      res.writeHead(200, { ...baseHeaders, "Content-Type": TYPES[ext] || "application/octet-stream", "Content-Length": st.size, "Cache-Control": ext === ".webp" || ext === ".png" || ext === ".jpg" ? "public, max-age=86400" : "no-cache" });
+      res.writeHead(200, { ...baseHeaders, "Content-Type": TYPES[ext] || "application/octet-stream", "Content-Length": st.size, "Cache-Control": ext === ".webp" || ext === ".png" || ext === ".jpg" || ext === ".mp3" ? "public, max-age=86400" : "no-cache" });
       if (req.method === "HEAD") return res.end();
       fs.createReadStream(f).pipe(res);
     });

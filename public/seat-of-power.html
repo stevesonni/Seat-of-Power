@@ -338,9 +338,27 @@
       };
       window.SOP_sound = function (kind) { if (!on) return; try { (KINDS[kind] || KINDS.tap)(); } catch (e) {} };
       window.SOP_soundOn = function (v) {
-        if (typeof v === 'boolean') { on = v; try { localStorage.setItem('sop_sound', v ? 'on' : 'off'); } catch (e) {} if (v) window.SOP_sound('good'); }
+        if (typeof v === 'boolean') { on = v; try { localStorage.setItem('sop_sound', v ? 'on' : 'off'); } catch (e) {} if (v) window.SOP_sound('good'); music(); }
         return on;
       };
+      /* Background music: one quiet loop, under everything. Starts on the first
+         tap (browsers block autoplay), stops with Sound off and while Vatar pauses
+         the game. Volume 0–1, kept per device; the default is low. */
+      var bgm = null, vol = 0.15;
+      try { var sv = localStorage.getItem('sop_music_vol'); if (sv != null && !isNaN(+sv)) vol = Math.max(0, Math.min(1, +sv)); } catch (e) {}
+      function music() {
+        try {
+          var want = on && vol > 0 && !window.SOP_paused && document.visibilityState !== 'hidden';
+          if (!bgm) { if (!want) return; bgm = new Audio('./audio/bg-music.mp3'); bgm.loop = true; bgm.preload = 'auto'; }
+          bgm.volume = vol * 0.6; // the scale tops out well below full volume
+          if (want) { var p = bgm.play(); if (p && p.catch) p.catch(function () {}); } else bgm.pause();
+        } catch (e) {}
+      }
+      window.SOP_musicVol = function (v) { if (typeof v === 'number') { vol = Math.max(0, Math.min(1, v)); try { localStorage.setItem('sop_music_vol', String(vol)); } catch (e) {} music(); } return vol; };
+      window.SOP_musicSync = music;
+      document.addEventListener('pointerdown', function first() { document.removeEventListener('pointerdown', first, true); music(); }, true);
+      document.addEventListener('visibilitychange', music);
+      setInterval(function () { if (bgm && window.SOP_paused && !bgm.paused) bgm.pause(); else if (bgm && !window.SOP_paused && bgm.paused && on && vol > 0 && document.visibilityState !== 'hidden') music(); }, 1500);
       document.addEventListener('pointerdown', function (e) {
         var t = e.target, b = t && t.closest && t.closest('button, [role="button"], a');
         if (!b && t && t.nodeType === 1) { for (var el = t, i = 0; el && i < 4; el = el.parentElement, i++) { if (getComputedStyle(el).cursor === 'pointer') { b = el; break; } } }

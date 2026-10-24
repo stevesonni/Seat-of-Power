@@ -2203,6 +2203,16 @@ const SCENARIOS = [
   { pack: "scenario_election", id: "godfather_candidate", icon: "🎩", nm: "The Godfather's Candidate", d: "He chose you, paid for everything, and the party did as he said. He expects contracts in your first month.", start: { cor: .12, pStab: 6, app: -4 } },
 ].map(x => ({ pack: "scenario_pack", ...x }));
 const scenarioStart = (setup) => { const m = setup && setup.mode; return m && m.kind === "scenario" ? (SCENARIOS.find(x => x.id === m.id) || {}).start || {} : {}; };
+// Background music volume (the loop itself lives in the page shell).
+const MusicSlider = () => {
+  const [v, setV] = useState(() => { try { return window.SOP_musicVol ? window.SOP_musicVol() : .15; } catch (e) { return .15; } });
+  return <label style={{ display: "grid", gridTemplateColumns: "48px 1fr", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px" }}>
+    <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 26 }}>🎵</span>
+    <span><b style={{ display: "block", fontSize: DS.t.body }}>Music {v === 0 ? "off" : Math.round(v * 100) + "%"}</b>
+      <input type="range" min="0" max="100" step="5" value={Math.round(v * 100)} onChange={(e) => { const x = +e.target.value / 100; setV(x); try { window.SOP_musicVol && window.SOP_musicVol(x); } catch (er) {} }} aria-label="Music volume" style={{ width: "100%", accentColor: UI.green || "#0b6b42" }} /></span>
+  </label>;
+};
+
 // ── THE DAILY DECISION AND THE STREAK ──
 // One dilemma a day for everyone (SYS.dailyFor), how other governors chose
 // (our server), and a streak of days played. A year of governing also counts.
@@ -2419,6 +2429,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onChallenge, onScen
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{sub}</span></span>
             {dot ? <span style={{ display: "flex", alignItems: "center", gap: 4, background: "#e9b949", color: UI.ink, borderRadius: 999, padding: "3px 10px 3px 4px", fontSize: DS.t.meta, fontWeight: 800 }}><Ico n="icon-new" s={20} />NEW</span> : <span style={{ color: UI.dim }}>›</span>}
           </button>)}
+          <MusicSlider />
         </div>
       </EntranceSheet>}
       {sheet === "scenarios" && <EntranceSheet title="Scenarios" onClose={() => setSheet(null)}>
@@ -3134,7 +3145,11 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         </div>;
         // The ticket as a campaign billboard over a state-capital street.
         const P = PARTIES.find(p => p.id === party) || { nm: party, c: "#1a6d2e" }, pc = P.c || "#1a6d2e", tall = TALL();
-        const fig = (src, who) => <img src={src} alt={who} style={{ height: "100%", width: "auto", maxWidth: "34%", objectFit: "contain", objectPosition: "bottom", display: "block", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.35))" }} />;
+        // Each figure wears its own name plate across the chest, never over a face.
+        const fig = (src, who, role) => <div style={{ position: "relative", height: "100%", maxWidth: "48%", display: "flex", alignItems: "flex-end" }}>
+          <img src={src} alt={who} style={{ height: "100%", width: "auto", maxWidth: "100%", objectFit: "contain", objectPosition: "bottom", display: "block", filter: "drop-shadow(0 4px 6px rgba(0,0,0,.35))" }} />
+          <div style={{ position: "absolute", left: "50%", bottom: tall ? 4 : 8, transform: "translateX(-50%)", whiteSpace: "nowrap", textAlign: "center", background: "rgba(255,255,255,.94)", borderLeft: "3px solid " + pc, borderRadius: 4, padding: tall ? "1px 5px" : "2px 8px", fontFamily: F.b, fontSize: tall ? 10 : 12, fontWeight: 800, color: "#12301f", lineHeight: 1.2, boxShadow: "0 2px 4px rgba(0,0,0,.2)" }}>{(who || "").split(" ").pop()}<div style={{ fontWeight: 600, fontSize: tall ? 8 : 10, opacity: .75, textTransform: "uppercase", letterSpacing: .5 }}>{role}</div></div>
+        </div>;
         return <div style={{ position: "relative", borderRadius: 24, overflow: "hidden", aspectRatio: "16 / 10", background: "#d8c9ad url(./art/scenes/billboard-street.webp) center / 100% 100% no-repeat", boxShadow: "0 14px 30px rgba(0,0,0,.18)" }}>
           {/* the board */}
           {/* printed on the board's blank face (x 10.4%–89.8%, y 6.4%–51%) */}
@@ -3149,10 +3164,9 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
                 <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 6, background: "#fff", borderRadius: 6, padding: tall ? "3px 10px" : "4px 12px", fontFamily: F.b, fontWeight: 900, fontSize: tall ? 18 : 22, color: "#b3261e" }}><span style={{ color: pc }}>☑</span> VOTE</div>
               </div>
               <div style={{ position: "absolute", right: 0, bottom: 0, height: "100%", width: "52%", display: "flex", justifyContent: "flex-end", alignItems: "flex-end", gap: 2 }}>
-                {fig(AVATAR_IMGS[avatar], nm)}
-                {fig(depImg, depGov?.nm || "")}
+                {fig(AVATAR_IMGS[avatar], nm, "Governor")}
+                {fig(depImg, depGov?.nm || "", "Deputy")}
               </div>
-              <div style={{ position: "absolute", right: tall ? 6 : 12, top: tall ? 6 : 10, textAlign: "right", fontFamily: F.b, fontSize: tall ? 12 : 13, fontWeight: 800, color: "#12301f", lineHeight: 1.25, background: "rgba(255,255,255,.85)", borderRadius: 6, padding: "2px 6px" }}>{nm}<div style={{ fontWeight: 600, opacity: .75 }}>for Governor</div>{depGov?.nm}<div style={{ fontWeight: 600, opacity: .75 }}>for Deputy</div></div>
               {/* matte vinyl sheen */}
               <div style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, rgba(255,255,255,.18) 0%, rgba(255,255,255,0) 35%, rgba(0,0,0,.08) 100%)", pointerEvents: "none" }} />
             </div>
@@ -7363,9 +7377,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The godfather gets the road: a running road project is taken from its
   // contractor and given to his company at an inflated price. His loyalists in
   // the House come over to you; an investor who watched will write next year.
-  const gfRoadGrab = (gfName) => {
+  // He asks for whatever is being built: a road, the intra-state rail, a hospital.
+  const gfTarget = () => { const live = (projects || []).filter(p => !["delivered", "abandoned", "cancelled"].includes(p.status) && !p.nepotism); return live.find(p => p.status === "in_progress" && p.contractor) || live.find(p => p.contractor) || live[0] || null; };
+  const gfFrame = (dem) => {
+    if (!dem || dem.id !== "gf_contract") return dem;
+    const t = gfTarget();
+    if (!t) return { ...dem, d: "The next big contract this state awards goes to my company. No bidding.", acceptLog: "Promised him the next big contract, no bidding." };
+    const cost = SYS.fmtM(t.estimateM || (t.baseCost || 3) * 1000);
+    return { ...dem, projId: t.id, d: "I can see the " + t.title + (t.contractor ? " being handled by " + t.contractor : "") + ". I want it awarded to my company. No bidding.", acceptLog: "Handed the " + cost + " " + t.title + " to his company, no bidding." };
+  };
+  const gfRoadGrab = (gfName, projId) => {
     const co = gfName.split(" ").pop() + " Holdings Ltd", fx = [];
-    const road = (projects || []).find(p => (p.type === "road" || p.type === "bridge" || /road/i.test(p.title || "")) && !["delivered", "abandoned"].includes(p.status));
+    const road = (projId && (projects || []).find(p => p.id === projId && !["delivered", "abandoned", "cancelled"].includes(p.status))) || gfTarget();
     if (road) {
       const old = road.contractor, est = Math.round((road.estimateM || road.baseCost * 1000 || 3000) * 1.4);
       setProjects(prev => prev.map(x => x.id === road.id ? { ...x, contractorId: "gf_co", contractor: co, estimateM: est, baseCost: est / 1000, quality: Math.max(.2, (x.quality == null ? .7 : x.quality) - .15), nepotism: true, status: x.status === "in_progress" ? "in_progress" : x.status, decisions: [...(x.decisions || []), { year: turn, text: (old ? old + " was removed; " : "") + "the contract went to " + co + ", your godfather's company, with no bidding. New price " + SYS.fmtM(est) + "." }] } : x));
@@ -7373,13 +7396,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       fx.push({ icon: "🚧", text: road.title + " handed to " + co + (old ? " (" + old + " removed)" : ""), value: "+40% cost", bad: true });
       fx.push({ icon: "📉", text: "The papers call it a no-bid handover", value: "−3 approval", bad: true });
       setS(p => ({ ...p, app: cl100(p.app - 3), cor: cl(p.cor + .02) }));
-    } else fx.push({ icon: "🚧", text: co + " will expect the next road contract", bad: true });
+    } else fx.push({ icon: "🚧", text: co + " will expect the next big contract", bad: true });
     // His loyalists in the House now vote with you.
     setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 3) } }) : p);
     fx.push({ icon: "🏛️", text: "Three lawmakers loyal to him now vote with you", value: "House +3", good: true });
     // Someone was watching.
     const invId = investorsApproved[investorsApproved.length - 1], inv = invId ? INVESTORS.find(x => x.id === invId) : null;
-    setStc(p => ({ ...p, gfRoadPull: { turn: turn + 1, nm: inv ? inv.co : "Jade River Infrastructure Co.", igr: inv ? Math.round(inv.igrBoost * .6 * 10) / 10 : .4, jobs: inv ? Math.round(inv.jobs * .6) : 0 } }));
+    setStc(p => ({ ...p, gfRoadPull: { turn: turn + 1, what: road ? road.title : "a state contract", nm: inv ? inv.co : "Jade River Infrastructure Co.", igr: inv ? Math.round(inv.igrBoost * .6 * 10) / 10 : .4, jobs: inv ? Math.round(inv.jobs * .6) : 0 } }));
     return fx;
   };
   // The godfather's nephew: a ministry made for him, which wastes money every year.
@@ -7775,7 +7798,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const gfNow = scLast.current?.gf, gfStory = (scPending.current || []).some(c => c.key.startsWith("gf_"));
     if (lv !== "easy" && godfatherPower > 20 && turn > 1 && gfNow !== "dead" && gfNow !== "opposition" && !gfStory) {
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
-      const dem = pickGfDemand(unseen, rE);
+      const dem = gfFrame(pickGfDemand(unseen, rE));
       if (dem) { setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); q.push("godfather"); }
     }
 
@@ -7914,7 +7937,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (next === "godfather" && !godfatherDemand) {
       const rE = rng(turn * 888 + state.length * 41);
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
-      const dem = pickGfDemand(unseen, rE);
+      const dem = gfFrame(pickGfDemand(unseen, rE));
       if (dem) { setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); }
     }
     if (next === "house_bill" && !pendingHouseBill) {
@@ -8053,8 +8076,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (pull) {
       setStc(p => ({ ...p, gfRoadPull: null }));
       setS(p => ({ ...p, app: cl100(p.app - 3), igr: Math.max(0, (p.igr || 0) - pull.igr), invIGR: Math.max(0, (p.invIGR || 0) - pull.igr), invJobs: Math.max(0, (p.invJobs || 0) - pull.jobs), totalJobs: Math.max(0, (p.totalJobs || 0) - pull.jobs) }));
-      addL("🏭 " + pull.nm + " pulled its investment after the no-bid road contract" + (pull.jobs ? ": " + pull.jobs.toLocaleString() + " jobs gone" : "") + ". Approval −3.", "crisis");
-      setTimeout(() => postMail([letterOf("investor_pull", { key: "investor_pull_" + turn, live: true, kind: "investment", stakes: 1, lines: [{ ok: false, line: "We watched a ₦3B road go to a politician's company with no bidding." }, { ok: false, line: "We cannot explain that risk to our board. We are pulling out" + (pull.jobs ? " and " + pull.jobs.toLocaleString() + " jobs go with us" : "") + "." }, { ok: false, line: "Revenue −₦" + pull.igr + "B a year; approval −3." }], tip: ["The Managing Director, " + pull.nm, "./art/characters/investor-foreign.webp", pull.nm + " is pulling out", "We cannot invest where contracts are handed out."] })]), 300);
+      addL("🏭 " + pull.nm + " pulled its investment after the no-bid " + (pull.what || "contract") + " handover" + (pull.jobs ? ": " + pull.jobs.toLocaleString() + " jobs gone" : "") + ". Approval −3.", "crisis");
+      setTimeout(() => postMail([letterOf("investor_pull", { key: "investor_pull_" + turn, live: true, kind: "investment", stakes: 1, lines: [{ ok: false, line: "We watched the " + (pull.what || "contract") + " go to a politician's company with no bidding." }, { ok: false, line: "We cannot explain that risk to our board. We are pulling out" + (pull.jobs ? " and " + pull.jobs.toLocaleString() + " jobs go with us" : "") + "." }, { ok: false, line: "Revenue −₦" + pull.igr + "B a year; approval −3." }], tip: ["The Managing Director, " + pull.nm, "./art/characters/investor-foreign.webp", pull.nm + " is pulling out", "We cannot invest where contracts are handed out."] })]), 300);
     }
     awayRef.current = false; // a new year: the governor is home
     const stall = (projects || []).filter(p => p.status === "stalled").slice(0, 2).map(p => "stall:" + p.id);
@@ -8765,6 +8788,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["📊 Standing", () => { try { window.SOP_POLITICS && window.SOP_POLITICS.openPanel(); } catch (e) {} }],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
+    ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .15; return v === 0 ? "off" : v <= .2 ? "low" : v <= .5 ? "medium" : "high"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .15 : v <= .2 ? .4 : v <= .5 ? .8 : 0); setMenuOpen(false); } catch (e) {} }],
     ["Tell us what to improve", () => { try { window.SOP_feedbackForm({ where: nav, year: absYear, state: stName }); } catch (e) {} }, "icon-ask-sa"],
     ["Aa Text size", () => { try { const t = window.SOP_textScale(); window.SOP_textScale(t >= 1.3 ? 1 : t >= 1.15 ? 1.3 : 1.15); } catch (e) {} }],
     [(soundOn ? "Sound: on" : "Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }, "icon-sound"],
@@ -9557,7 +9581,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 });
                 setGodfatherRel(r2 => Math.min(100, r2 + 15));
                 recordGfDemand(godfatherDemand, true, gf.nm); track(godfatherDemand.id, "gave in");
-                const roadFx = godfatherDemand.id === "gf_contract" ? gfRoadGrab(gf.nm) : [];
+                const roadFx = godfatherDemand.id === "gf_contract" ? gfRoadGrab(gf.nm, godfatherDemand.projId) : [];
                 const nephew = godfatherDemand.id === "gf_appointment";
                 addL("🎩 " + gf.nm + ": " + godfatherDemand.acceptLog + " He's satisfied — for now.", "political");
                 showResult({ icon: "🎩", title: gf.nm + " — Appeased", narrative: gf.nm.split(" ").pop() + " nods slowly. \"Good. You understand how this works.\" He leaves Government House with what he came for. Your party is stable. But your integrity — and your EFCC file — just got heavier.", effects: [
@@ -10383,8 +10407,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <AdvBubble text={ADV.reelection} saName={cast.adviser.name} />
             <div style={{ textAlign: "center", marginBottom: 29 }}>
               {/* The re-election billboard: your face on the frame, over the rally street. */}
-              {(() => { const P0 = PARTIES.find(x => x.id === setup?.party) || { nm: setup?.party || "", c: "#1a6d2e" }, pc0 = P0.c || "#1a6d2e", tall = TALL(); return <div style={{ position: "relative", borderRadius: 22, overflow: "hidden", aspectRatio: "16 / 10", background: "url(./art/backgrounds/rally.webp) center 75% / cover", marginBottom: 14 }}>
-                <div style={{ position: "absolute", left: "11.5%", right: "11.5%", top: "7.1%", height: "39.2%", overflow: "hidden", background: "linear-gradient(115deg, " + pc0 + " 0%, " + pc0 + " 60%, #fff 60.2%)" }}>
+              {(() => { const P0 = PARTIES.find(x => x.id === setup?.party) || { nm: setup?.party || "", c: "#1a6d2e" }, pc0 = P0.c || "#1a6d2e", tall = TALL(); return <div style={{ position: "relative", borderRadius: 22, overflow: "hidden", aspectRatio: "16 / 10", background: "#d8c9ad url(./art/scenes/billboard-street.webp) center / 100% 100% no-repeat", marginBottom: 14 }}>
+                <div style={{ position: "absolute", left: "10.6%", right: "10.4%", top: "6.8%", height: "43.8%", overflow: "hidden", background: "linear-gradient(115deg, " + pc0 + " 0%, " + pc0 + " 60%, #fff 60.2%)" }}>
                   <div style={{ position: "absolute", left: tall ? 8 : 14, top: tall ? 6 : 10, bottom: tall ? 6 : 10, width: "58%", color: "#fff", display: "flex", flexDirection: "column", justifyContent: "space-between", textAlign: "left" }}>
                     <div style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? 12 : 15, letterSpacing: 1, textTransform: "uppercase", opacity: .9 }}>{P0.nm} · {stName} {(setup?.startYear || 2027) + 4}</div>
                     <div style={{ fontFamily: F.d, fontWeight: 900, fontSize: tall ? 26 : 40, lineHeight: 1 }}>4 MORE YEARS</div>
@@ -10392,7 +10416,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </div>
                   <img src={AVATAR_IMGS[setup?.avatar] || HERO_MALE} alt="" style={{ position: "absolute", right: "3%", bottom: 0, height: "100%", width: "auto", objectFit: "contain", objectPosition: "bottom" }} />
                 </div>
-                <img src="./art/objects/billboard-frame.webp" alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
                 <img src={"./art/characters/" + (s.pStab >= 65 ? "party-chairman-pleased" : s.pStab < 40 ? "party-chairman-angry" : "party-chairman") + ".webp"} alt="The party chairman" style={{ position: "absolute", left: 10, bottom: 0, height: "42%", width: "auto", filter: "drop-shadow(0 6px 10px rgba(0,0,0,.35))" }} />
               </div>; })()}
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(72), fontWeight: 600, margin: "0 0 14px" }}>End of First Term</h3>

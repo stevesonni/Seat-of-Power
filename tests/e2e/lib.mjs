@@ -82,21 +82,25 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false 
     const t = await g.txt();
     if (until(t)) return { ok: true, clicks };
     let hit = null;
-    for (const re of [...prefer, ...PRIO]) { hit = await g.click(re); if (hit) break; }
-    if (!hit) hit = await g.page.evaluate((skipSrc) => {
+    // A shortcut that keeps coming back (say "Not now" on the same visitor) is a loop: decide instead.
+    const recent = clicks.slice(-12), looping = (re) => recent.filter(c => re.test(c)).length >= 3;
+    for (const re of [...prefer, ...PRIO]) { if (looping(re)) continue; hit = await g.click(re); if (hit) break; }
+    // Buttons pressed 3+ times in the last 12 clicks are a loop: try something else, or leave.
+    const stuck = [...new Set(recent.filter(c => recent.filter(x => x === c).length >= 3).map(c => c.replace(/^(btn|card) /, "")))];
+    if (!hit) hit = await g.page.evaluate(([skipSrc, stuck]) => {
       const skip = new RegExp(skipSrc);
       const vis = (e) => e.offsetParent !== null && !e.disabled;
       // Where the decision is: the topmost full-screen sheet if one is open, else this year's task.
       const sheets = [...document.querySelectorAll("div")].filter(d => { const cs = getComputedStyle(d); return cs.position === "fixed" && d.offsetHeight > innerHeight * .5 && d.querySelector("button, div"); });
       const scope = sheets[sheets.length - 1] || document.getElementById("sop-task") || null;
       if (!scope) return null;
-      const okText = (e) => { const t = e.textContent.trim().replace(/\s+/g, " "); return t.length > 1 && !skip.test(t); };
+      const okText = (e) => { const t = e.textContent.trim().replace(/\s+/g, " "); return t.length > 1 && !skip.test(t) && !stuck.some(x => t.startsWith(x)); };
       const bs = [...scope.querySelectorAll("button")].filter(b => vis(b) && okText(b));
       if (bs.length) { bs[0].click(); return "btn " + bs[0].textContent.trim().slice(0, 50); }
       const cards = [...scope.querySelectorAll("div, li, [role=button]")].filter(e => vis(e) && getComputedStyle(e).cursor === "pointer" && okText(e) && e.textContent.length < 400 && ![...e.querySelectorAll("div,li")].some(c => getComputedStyle(c).cursor === "pointer"));
       if (cards.length) { cards[0].click(); return "card " + cards[0].textContent.trim().slice(0, 50); }
       return null;
-    }, SKIP.source);
+    }, [SKIP.source, stuck]);
     if (!hit) { if (!(await g.click(/^(Govern|Today)$/))) { await g.click(/^Desk$/); await g.wait(200); await g.click(/^(Govern|Today)$/); } await g.wait(250); hit = "→ Govern"; }
     clicks.push(hit); if (log) console.log(i, hit);
     await g.wait(300);
