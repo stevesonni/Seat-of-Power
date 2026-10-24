@@ -11389,21 +11389,39 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   {row("relief", "🇳🇬 Ask Abuja to write off 80% of the debt", "A long shot: about " + Math.round(reliefOdds() * 100) + "% now. Better with good federal relations, clean books and revenue reforms. Success costs you federal goodwill and a debt of loyalty to the President.", !debtDone("relief") && (s.debt || 0) >= 6, (s.debt || 0) < 6 ? "Only worth asking when debt is ₦6B or more." : null, askRelief)}
                   {row("defer", "🏦 Push repayments to the next administration", "Moves 60% of the debt off your books for now. " + (termNow === 1 ? "If you are re-elected, it comes back at the start of your second term." : "Your successor inherits it, and so does your Wikipedia page."), !debtDone("defer") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to restructure." : null, deferDebt)}
                   {row("notes", "📜 Pay contractors in promissory notes at a discount", "Cuts about 12% of the debt. Contractors slow down on every site, and the party's contractor-financiers sulk (party −2).", !debtDone("notes") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to discount." : null, discountDebt)}
-                  <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.m, color: CL.txt, marginTop: 10 }}>Reforms that raise money <span style={{ fontFamily: F.b, fontWeight: 800, fontSize: fz.s, color: left > 0 ? CL.grn : CL.td }}>· {left > 0 ? left + " of 2 left this year" : "none left this year"}</span></div>
+                  {/* Reforms that raise money: a header with progress and this year's two slots. */}
+                  <div style={{ marginTop: 14, borderRadius: 20, padding: TALL() ? "14px 14px" : "18px 22px", background: "linear-gradient(135deg,#0f5a35,#12301f)", color: "#fff", display: "grid", gridTemplateColumns: "1fr auto", gap: 10, alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontFamily: F.d, fontWeight: 800, fontSize: TALL() ? TS(24) : TS(38) }}>Reforms that raise money</div>
+                      <div style={{ fontSize: fz.s, opacity: .85 }}>{done} of {REVENUE_MEASURES.length} done · each one grows what the state collects for years</div>
+                      <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,.18)", overflow: "hidden", marginTop: 8 }}><div style={{ height: "100%", width: (done / REVENUE_MEASURES.length * 100) + "%", background: "linear-gradient(90deg,#9ff0c4,#e9b949)", transition: "width .6s" }} /></div>
+                    </div>
+                    <div style={{ textAlign: "center" }}>
+                      <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>{[0, 1].map(i => <span key={i} style={{ width: TALL() ? 22 : 30, height: TALL() ? 22 : 30, borderRadius: "50%", background: i < left ? "#e9b949" : "rgba(255,255,255,.15)", border: "2px solid " + (i < left ? "#ffe08a" : "rgba(255,255,255,.3)"), boxShadow: i < left ? "0 0 10px rgba(233,185,73,.6)" : "none" }} />)}</div>
+                      <div style={{ fontSize: TALL() ? TS(13) : TS(19), opacity: .85, marginTop: 4, fontWeight: 700 }}>{left > 0 ? left + " left this year" : "none left this year"}</div>
+                    </div>
+                  </div>
                 </div>;
               })()}
-              <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(380px,1fr))", gap: 10 }}>{REVENUE_MEASURES.map(m => {
+              <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(400px,1fr))", gap: TALL() ? 10 : 14 }}>{REVENUE_MEASURES.slice().sort((a, b) => (used[a.id] != null) - (used[b.id] != null)).map(m => {
                 const on = used[m.id] != null, why = !on && m.req ? m.req(c) : null, can = !on && !why && left > 0;
-                return <div key={m.id} style={{ border: "1px solid " + (on ? CL.grn + "55" : CL.bdr), borderRadius: 14, padding: TALL() ? "10px 12px" : "14px 16px", background: on ? CL.grn + "08" : "transparent" }}>
-                  <div style={{ display: "flex", gap: 10, alignItems: "baseline", justifyContent: "space-between" }}>
-                    <b style={{ fontSize: fz.m, color: CL.txt, display: "flex", gap: 8, alignItems: "center" }}>{m.img ? <img src={"./art/objects/" + m.img + ".webp"} alt="" style={{ width: TALL() ? 34 : 44, height: TALL() ? 34 : 44, objectFit: "contain", flexShrink: 0 }} /> : m.icon} <span>{m.t}</span></b>
-                    {on ? <span style={{ color: CL.grn, fontWeight: 800, fontSize: fz.s, whiteSpace: "nowrap" }}>✓ Done</span>
-                      : <button disabled={!can} onClick={() => adoptRevenue(m)} style={{ flexShrink: 0, border: 0, borderRadius: 999, background: can ? CL.grn : CL.bdr, color: can ? "#fff" : CL.td, padding: "8px 16px", minHeight: 40, fontWeight: 800, fontSize: fz.s, cursor: can ? "pointer" : "not-allowed" }}>Adopt</button>}
+                const tint = on ? CL.grn : why ? "#8a8f88" : "#c08a1e";
+                return <div key={m.id} className="ds-card" style={{ position: "relative", padding: 0, overflow: "hidden", borderRadius: 20, borderColor: on ? CL.grn + "66" : CL.bdr, opacity: on ? .92 : 1, display: "flex", flexDirection: "column" }}>
+                  {on && <div style={{ position: "absolute", top: 12, right: -34, transform: "rotate(35deg)", background: CL.grn, color: "#fff", fontWeight: 900, fontSize: TALL() ? TS(13) : TS(18), padding: "3px 40px", letterSpacing: 1 }}>DONE</div>}
+                  <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", padding: TALL() ? "12px 14px 8px" : "16px 18px 10px" }}>
+                    <span style={{ width: TALL() ? 56 : 72, height: TALL() ? 56 : 72, borderRadius: 18, background: "radial-gradient(circle at 35% 30%, #fff, " + tint + "22)", border: "1px solid " + tint + "33", display: "grid", placeItems: "center", flexShrink: 0 }}>{m.img ? <img src={"./art/objects/" + m.img + ".webp"} alt="" style={{ width: "80%", height: "80%", objectFit: "contain", filter: why ? "grayscale(.8)" : "none" }} /> : <span style={{ fontSize: 30 }}>{m.icon}</span>}</span>
+                    <b style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.25, paddingRight: on ? 36 : 0 }}>{m.t}</b>
                   </div>
-                  <More text={m.what} max={90} style={{ fontSize: fz.s, color: CL.tm, margin: "4px 0" }} />
-                  <div style={{ fontSize: fz.s, color: CL.grn }}>＋ {m.gain(c)}</div>
-                  <div style={{ fontSize: fz.s, color: CL.org }}>− {m.cost}</div>
-                  {why && <div style={{ fontSize: fz.s, color: CL.red }}>{why}</div>}
+                  <div style={{ padding: TALL() ? "0 14px" : "0 18px" }}><More text={m.what} max={90} style={{ fontSize: fz.s, color: CL.tm, margin: "0 0 8px" }} /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: TALL() ? "0 14px" : "0 18px" }}>
+                    <div style={{ background: CL.grn + "10", border: "1px solid " + CL.grn + "33", borderRadius: 14, padding: "8px 10px" }}><div style={{ fontSize: TALL() ? TS(13) : TS(18), fontWeight: 900, color: CL.grn, letterSpacing: .5, textTransform: "uppercase" }}>▲ You gain</div><div style={{ fontSize: fz.s, color: CL.txt, lineHeight: 1.35 }}>{m.gain(c)}</div></div>
+                    <div style={{ background: CL.org + "10", border: "1px solid " + CL.org + "33", borderRadius: 14, padding: "8px 10px" }}><div style={{ fontSize: TALL() ? TS(13) : TS(18), fontWeight: 900, color: CL.org, letterSpacing: .5, textTransform: "uppercase" }}>▼ It costs</div><div style={{ fontSize: fz.s, color: CL.txt, lineHeight: 1.35 }}>{m.cost}</div></div>
+                  </div>
+                  <div style={{ marginTop: "auto", padding: TALL() ? "10px 14px 14px" : "14px 18px 18px" }}>
+                    {on ? <div style={{ textAlign: "center", fontWeight: 800, color: CL.grn, fontSize: fz.s }}>✓ Working since {absYear - turn + used[m.id]}</div>
+                      : why ? <div style={{ display: "flex", gap: 8, alignItems: "center", background: CL.bg, borderRadius: 12, padding: "8px 12px", fontSize: fz.s, color: CL.td }}><span>🔒</span><span>{why}</span></div>
+                      : <button disabled={!can} onClick={() => adoptRevenue(m)} style={{ width: "100%", minHeight: TALL() ? 50 : 58, border: 0, borderRadius: 999, background: can ? "linear-gradient(180deg,#1b7a4c,#0f5a35)" : CL.bdr, color: can ? "#fff" : CL.td, fontWeight: 900, fontSize: fz.m, cursor: can ? "pointer" : "not-allowed", boxShadow: can ? "0 4px 0 #0a3d24" : "none", fontFamily: F.b }}>{can ? "Adopt this reform" : "No slots left this year"}</button>}
+                  </div>
                 </div>;
               })}</div>
             </div>
