@@ -2544,7 +2544,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
           <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{dailyDone ? "Today's decision: done" : "Today's decision #" + st.today}</b><span style={{ fontSize: DS.t.meta, opacity: .85 }}>{dailyDone ? "See how other governors chose · new one tomorrow" : "60 seconds · " + (st.streak ? "keep your " + st.streak + "-day streak" : "start a streak")}</span></span>
           <Flame n={st.streak} lit={st.streak > 0} />
         </button>
-        <PillBtn onClick={() => { if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
+        <PillBtn onClick={async () => { if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nA new game replaces it once you take office. To keep playing it, press Continue instead.", "Start a new game", "Keep my career"))) return; if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
@@ -4656,7 +4656,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [bud, setBud] = useState(ld?.bud || { education: 15, health: 12, infrastructure: 18, security: 12, agriculture: 10, administration: 8, salaries: 18, debt: 7 });
   const [pol, setPol] = useState(ld?.pol || []);
   const [logs, setLogs] = useState(ld?.logs || []);
-  const [phase, setPhase] = useState(ld ? "budget" : "budget");
+  // A saved game resumes where it was left, if that is a place the year can resume from.
+  const RESUMABLE = ["budget", "mail", "policy"];
+  const [phase, setPhase] = useState(ld && RESUMABLE.includes(ld.resume) ? ld.resume : "budget");
+  const resumeRef = React.useRef(ld && RESUMABLE.includes(ld.resume) ? ld.resume : "budget");
+  if (RESUMABLE.includes(phase)) resumeRef.current = phase;
   const [nav, setNav] = useState("hub");
   const [hubSheet, setHubSheet] = useState(null);
   const navMemory = React.useRef({}); // last sub-tab opened on each screen
@@ -4834,7 +4838,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { civic = window.SOP_CIVIC?.getCorruption ? window.SOP_CIVIC.getCorruption() : null; } catch (e) {}
     try { politics = window.SOP_POLITICS?.serialize ? window.SOP_POLITICS.serialize() : null; } catch (e) {}
     return {
-      sv: SAVE_VERSION, savedAt: Date.now(), ledger, civic, politics, gold, goldShown: goldShown.current, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current, lastCon,
+      sv: SAVE_VERSION, savedAt: Date.now(), resume: resumeRef.current, ledger, civic, politics, gold, goldShown: goldShown.current, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current, lastCon,
       turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc, reportAt: reportRef.current ? reportRef.current.t : null, reportSnap: reportRef.current ? reportRef.current.snap : null,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
@@ -5237,7 +5241,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const adoptRevenue = (m) => decide(() => {
     track("reform", m.t);
     const c = { s, stc, turn };
-    if ((stc.rev || {})[m.id] != null || revThisTurn() >= 2 || (m.req && m.req(c))) return;
+    // Never a dead button: say why a reform cannot go ahead.
+    if ((stc.rev || {})[m.id] != null) return { icon: m.icon, title: "Already in place", text: m.t + " was adopted in " + ((setup?.startYear || 2027) + stc.rev[m.id] - 1) + ". It is still paying.", tone: "neutral" };
+    if (revThisTurn() >= 2) return { icon: "🗓️", title: "Two reforms this year already", text: "The civil service can carry two revenue reforms a year. " + m.t + " can start next year.", tone: "neutral" };
+    const why = m.req && m.req(c); if (why) return { icon: m.icon, title: "Not yet: " + m.t, text: why, tone: "bad" };
     if (!takeAgenda("reform", m.nm, "rev:" + m.id)) return;
     const a = m.adopt(c);
     scFx(a.fx || {});
@@ -6407,7 +6414,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
     // Year 1: the treasury is empty; the fastest money is the payroll.
     const ghost = REVENUE_MEASURES.find(x => x.id === "payroll");
-    if (turn === 1 && ghost && !(stc.rev || {}).payroll && ministries && ministries.length >= 4) {
+    if (turn === 1 && ghost && !(stc.rev || {}).payroll && revThisTurn() < 2 && agendaLeftNow > 0 && ministries && ministries.length >= 4) {
       const g = Math.max(.3, Math.round((s.faac || 10) * .55 * (.03 + (s.cor || 0) * .1) * 10) / 10);
       return { urgent: true, icon: "🪪", title: "Governor, your predecessor left the treasury empty" + ((stc.oldDebt || {}).total ? " and " + naira(stc.oldDebt.total) + " of debt" : "") + ". Purge ghost workers from the payroll now: it frees about " + naira(g) + " a year", body: "A biometric audit checks every worker on the payroll against BVN and fingerprints. Names that collect salaries but do not exist come off. The unions will protest (approval −1), and a few real workers may be wrongly removed. It uses one of this year's major actions.", actionLabel: "Purge ghost workers", action: () => adoptRevenue(ghost) };
     }
@@ -8111,7 +8118,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [mailOpen, setMailOpen] = useState(false);
   const [mailPing, setMailPing] = useState(null);
   const [letterOpen, setLetterOpen] = useState(null);
-  const mailOn = React.useRef(ld?.phase === "mail");
+  const mailOn = React.useRef((ld?.resume || ld?.phase) === "mail");
   const cosNow = cosOffice.cos;
   const mailRef = React.useRef(mail); mailRef.current = mail;
   const COS_ACTING = { id: "acting", name: "The Deputy Chief of Staff", tag: "Acting", img: "permanent-secretary", comp: 40, loyalty: 50, greed: 20, good: [], bad: [], file: "Keeping the seat warm until you appoint someone." };
@@ -8144,6 +8151,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: ((extra && extra.key) || key) + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
   const budgetMin = () => (ministries || []).find(m => m.id === "budget");
   // Who wrote it, what it is about, in one line. Read when shown, so it sees the latest state.
+  /* Autosave through the year, not only at its turn: a couple of seconds after
+     anything lasting changes, while the player is somewhere the game can
+     resume from; and at once when the phone hides the game or closes it. */
+  const saveNow = React.useRef(null);
+  saveNow.current = () => { try { if (!gEnd && RESUMABLE.includes(phase)) return window.storage?.set("sop_save", JSON.stringify(buildSnapshot())); } catch (e) {} };
+  useEffect(() => { const t = setTimeout(() => saveNow.current(), 2000); return () => clearTimeout(t); }, [phase, s, ministries, projects, stc, pol, needs, mail, cases, loans, bud, cab]);
+  useEffect(() => {
+    const away = (e) => { if (document.visibilityState === "hidden" || (e && e.type === "pagehide")) { const p = saveNow.current(); if (p && p.then) p.then(() => window.SOP_storageFlush && window.SOP_storageFlush()); } };
+    document.addEventListener("visibilitychange", away); window.addEventListener("pagehide", away);
+    return () => { document.removeEventListener("visibilitychange", away); window.removeEventListener("pagehide", away); };
+  }, []);
   const letterView = (l) => {
     const sa = cast.adviser.name, k = l.key;
     const sc = k.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === k) : null;
@@ -8622,7 +8640,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const presRec = () => ({ name: pName, avatar: setup?.avatar, state, party, district: setup?.homeDistrict != null ? setup.homeDistrict : null, honours: stc.honours || [], fund: personalFund,
       terms: turn > 4 ? 2 : 1, resigned: gEnd === "pres_bid", title: rcTitle, flagship: FLAGSHIP[setup?.agenda]?.nm || null, deputy: depGov?.nm || null, slogan: setup?.slogan || null,
       met: rc.met, failed: rc.failed, kept: rc.kept, broken: rc.broken, debt: Math.round((s.debt || 0) * 10) / 10, arrears: rc.arrearsMax, efcc: (s.cor || 0) > .45, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won") });
-    const canP = ov > 52 && s.app > 42 && (gEnd === "complete" || gEnd === "stepped_down");
+    // Anyone who leaves office whole may run; the record decides how the race starts (AsoRock).
+    const canP = gEnd === "complete" || gEnd === "stepped_down", weakP = ov <= 52 || s.app <= 42;
     const canFctm = ov > 65 && s.app > 55 && s.cor < 0.25 && (gEnd === "complete" || gEnd === "stepped_down");
     const pa = PARTIES.find(p => p.id === party);
     const termsServed = gEnd === "defeated" || gEnd === "stepped_down" || gEnd === "pres_bid" ? "1 term (4 years)" : gEnd === "impeached" || gEnd === "bankrupt" || gEnd === "nullified" ? "Partial term" : "2 terms (8 years)";
@@ -8791,7 +8810,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 {!NAT && <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Senate</Bt>}
                 {!NAT && <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 President</Bt>}
               </div>
-              {!NAT && !canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
+              {!NAT && weakP && <div style={{ color: CL.org, fontSize: TS(29), marginTop: 14 }}>You can run, but your record (score {Math.round(ov)}, approval {Math.round(s.app)}%) starts you behind in the race.</div>}
               {!NAT && canFctm && (
                 <div style={{ marginTop: 43, padding: 36, background: "linear-gradient(135deg," + CL.gold + "18," + CL.grn + "12)", border: "2px solid " + CL.gold, borderRadius: 17 }}>
                   <div style={{ fontSize: TS(79), textAlign: "center", marginBottom: 14 }}>📜✨</div>
@@ -8828,7 +8847,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 {!NAT && <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Run for Senate</Bt>}
                 {!NAT && <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 Run for President</Bt>}
               </div>
-              {!NAT && !canP && <div style={{ color: CL.red, fontSize: TS(29), marginTop: 14 }}>Need 52+ score and 42%+ approval for presidency.</div>}
+              {!NAT && weakP && <div style={{ color: CL.org, fontSize: TS(29), marginTop: 14 }}>You can run, but your record (score {Math.round(ov)}, approval {Math.round(s.app)}%) starts you behind in the race.</div>}
             </Cd>
           )}
           {gEnd === "pres_bid" && (

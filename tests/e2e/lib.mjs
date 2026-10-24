@@ -48,7 +48,7 @@ export async function createPolitician(g, state = "Ogun") {
   return true;
 }
 export async function campaign(g, { adviser = /Prof\. Bola Adekunle/ } = {}) {
-  await g.click(/^New game$/); await g.wait(600);
+  await g.click(/^New game$/); await g.wait(600); if (await g.click(/^Start a new game$/)) await g.wait(600);
   await createPolitician(g);
   await g.click(/Quick start/); await g.wait(900);
   await g.page.evaluate((src) => { const rx = new RegExp(src); const t = [...document.querySelectorAll("button")].find(b => rx.test(b.textContent)); t && t.click(); }, adviser.source); await g.wait(300);

@@ -25,7 +25,9 @@
   };
   function call(path, body) {
     return window.Vatar.session().then(function (r) {
-      return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ session: r.session }, body || {})) });
+      var payload = JSON.stringify(Object.assign({ session: r.session }, body || {}));
+      // keepalive lets a save finish after the app is closed (browsers allow it up to 64 KB).
+      return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: payload.length < 60000 });
     }).then(function (x) { return x.json().then(function (j) { if (!x.ok) { var e = new Error(j.error || "http_" + x.status); e.code = j.error; throw e; } return j; }); });
   }
   function setEnts(e) { window.SOP_ENTS = e || {}; try { window.dispatchEvent(new CustomEvent("sop-ents", { detail: window.SOP_ENTS })); } catch (x) {} }
@@ -51,12 +53,16 @@
   }
   // Send waiting saves now (before a reload, say).
   window.SOP_storageFlush = function () { clearTimeout(timer); return ready.then(function (on) { if (on) return flush(); }); };
+  function savedAt(v) { try { var j = JSON.parse(v); return j && typeof j === "object" && +j.savedAt || 0; } catch (e) { return 0; } }
   window.storage = {
-    get: function (k) { return ready.then(function (on) { if (on) return cache[k] != null && cache[k] !== "" ? { value: cache[k] } : null; return local.get(k); }); },
+    // The newer of the cloud copy and this phone's copy: a save that never
+    // reached the server (closed too fast, no network) is not lost.
+    get: function (k) { return ready.then(function (on) { if (!on) return local.get(k); var c = cache[k] != null && cache[k] !== "" ? cache[k] : null, l = local.get(k); l = l && l.value; if (!c) return l ? { value: l } : null; if (l && l !== c && savedAt(l) > savedAt(c)) { dirty[k] = l; cache[k] = l; clearTimeout(timer); timer = setTimeout(flush, 1200); return { value: l }; } return { value: c }; }); },
     set: function (k, v) { return ready.then(function (on) { local.set(k, v); if (!on) return; cache[k] = v; dirty[k] = v; clearTimeout(timer); timer = setTimeout(flush, 1200); }); }
   };
   // Leaving the page: send anything still waiting.
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flush(); });
+  window.addEventListener("pagehide", function () { flush(); });
 
   // No sound while Vatar has the game paused (the phone went to the background, or its pay sheet is open).
   if (hasSdk) {
