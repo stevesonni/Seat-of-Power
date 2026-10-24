@@ -2426,7 +2426,7 @@ const CompanySheet = ({ onClose }) => {
         {chk && chk.ok && <div style={{ marginBottom: 12 }}><div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 6 }}>How other governors will see it</div>{tile({ name: chk.name, sector: sec }, true)}</div>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginBottom: 10, lineHeight: 1.4 }}>Invent your own name. Names of real companies, banks, brands or politicians, and rude names, are taken down.</div>
         {err && <div style={{ color: "#a3271c", fontSize: DS.t.meta, marginBottom: 8 }}>{err}</div>}
-        <PillBtn disabled={busy || !chk || !chk.ok || !online} onClick={go} style={{ width: "100%" }}>{busy ? "Registering…" : renaming ? "Register the new name · free" : "Register my company · ₦1,500"}</PillBtn>
+        <PillBtn disabled={busy || !chk || !chk.ok || !online} onClick={go} style={{ width: "100%" }}>{busy ? "Registering…" : renaming ? "Register the new name · free" : "Register my company · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500")}</PillBtn>
         {!online && <div style={{ fontSize: DS.t.meta, color: UI.sub, marginTop: 6, textAlign: "center" }}>Companies are registered in the Lagos Life app.</div>}
       </>}
       {(d.list || []).filter(c => !mine || c.id !== mine.id).length > 0 && <div style={{ marginTop: 18 }}>
@@ -2563,7 +2563,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
             ["icon-politician", "Careers", "LGA Chairman, Governor, Senator, Ambassador, and the road to Aso Rock", () => setSheet("careers")],
             ["icon-state", "Your career map", "States governed, badges and time played", () => setSheet("career")],
-            ["seal-projects", "Your company", "Register a contractor every player sees · ₦1,500", () => setSheet("company")],
+            ["seal-projects", "Your company", "Register a contractor every player sees · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500"), () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],

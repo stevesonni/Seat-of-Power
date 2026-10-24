@@ -26,12 +26,14 @@ const PORT = +process.env.PORT || 8080;
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
-// FREE_CAREERS=1 (Railway Variables): every career unlocks for everyone, for
-// while Vatar has not yet approved the products. Remove it to bring back the
-// paywall; nothing a player bought is touched either way.
+// FREE_CAREERS=1 (Railway Variables): while Vatar has not yet approved the products,
+// every extra is free: one-off unlocks (careers, scenarios, frames, outfits) are open,
+// pay-per-use items (Second Chance, Streak Freeze, challenge retries) can be used
+// without a credit, and each player may register one company. Remove it to bring back
+// the prices; nothing a player bought is touched either way.
 const FREE_CAREERS = process.env.FREE_CAREERS === "1";
-const CAREERS = ["career_senator", "career_chairman", "career_ambassador", "presidential_run"];
-const entsOut = (ents) => FREE_CAREERS ? { ...(ents || {}), ...Object.fromEntries(CAREERS.map(k => [k, Math.max(1, (ents || {})[k] || 0)])) } : (ents || {});
+const FREE_USE = ["second_chance", "streak_freeze", "challenge_retry"]; // shown as one credit, never used up
+const entsOut = (ents) => FREE_CAREERS ? { ...(ents || {}), ...Object.fromEntries(Object.keys(PRODUCTS).filter(k => PRODUCTS[k] === "oneoff" || FREE_USE.includes(k) || k === "company_registration").map(k => [k, Math.max(1, (ents || {})[k] || 0)])) } : (ents || {});
 const PRODUCTS = { career_ambassador: "oneoff", career_chairman: "oneoff", career_senator: "oneoff", company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
 // The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
 const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
@@ -156,13 +158,15 @@ const api = {
   }),
   // Spend one credit of a consumable (Second Chance).
   "/api/use": async (b, id) => withP(id, (p) => {
-    const k = String(b.product || ""); if (PRODUCTS[k] !== "consumable" || !(p.ents[k] > 0)) return { ok: false };
+    const k = String(b.product || "");
+    if (FREE_CAREERS && FREE_USE.includes(k) && !(p.ents[k] > 0)) return { ok: true, ents: entsOut(p.ents) };
+    if (PRODUCTS[k] !== "consumable" || !(p.ents[k] > 0)) return { ok: false };
     p.ents[k] -= 1; writeP(id, p); return { ok: true, ents: entsOut(p.ents) };
   }),
   // Weekly challenge: the first attempt each week is free; another uses one challenge_retry.
   "/api/challenge/start": async (b, id) => withP(id, (p) => {
     const w = weekNow(); p.ch = p.ch || {}; const used = p.ch[w] || 0;
-    if (used >= 1) { if (!(p.ents.challenge_retry > 0)) return { ok: false, need: "challenge_retry", week: w, attempts: used }; p.ents.challenge_retry -= 1; }
+    if (used >= 1 && !FREE_CAREERS) { if (!(p.ents.challenge_retry > 0)) return { ok: false, need: "challenge_retry", week: w, attempts: used }; p.ents.challenge_retry -= 1; }
     p.ch = Object.fromEntries(Object.entries({ ...p.ch, [w]: used + 1 }).filter(([k]) => +k >= w - 3));
     writeP(id, p); return { ok: true, week: w, attempts: used + 1, ents: entsOut(p.ents) };
   }),
@@ -239,7 +243,7 @@ const api = {
     if (!COMPANY_SECTORS.includes(sector)) return { ok: false, error: "bad_sector" };
     const C = cosNow(), mine = myCo(id), low = chk.name.toLowerCase();
     if (Object.values(C).some(c => c !== mine && c.name.toLowerCase() === low)) return { ok: false, error: "taken", why: "Another player already registered that name." };
-    const free = mine && mine.hidden;
+    const free = (mine && mine.hidden) || (FREE_CAREERS && !mine); // while extras are free: one company per player
     if (!free) { if (!(p.ents.company_registration > 0)) return { ok: false, need: "company_registration" }; p.ents.company_registration -= 1; writeP(id, p); }
     const co = mine || { id: "pc_" + crypto.randomBytes(6).toString("base64url"), owner: id, at: Date.now(), hiredBy: {}, earnM: 0, paidM: 0 };
     Object.assign(co, { name: chk.name, sector, hidden: false, renamedAt: mine ? Date.now() : undefined });
@@ -389,4 +393,4 @@ http.createServer(async (req, res) => {
     console.error("[server]", e);
     if (!res.headersSent) send(res, 500, { error: "error" });
   }
-}).listen(PORT, () => console.log((FREE_CAREERS ? "[careers free] " : "") + "Seat of Power (Vatar edition) on :" + PORT + " · data in " + DATA + (SECRET ? "" : " · VATAR_SECRET not set: saves fall back to the device")));
+}).listen(PORT, () => console.log((FREE_CAREERS ? "[extras free] " : "") + "Seat of Power (Vatar edition) on :" + PORT + " · data in " + DATA + (SECRET ? "" : " · VATAR_SECRET not set: saves fall back to the device")));
