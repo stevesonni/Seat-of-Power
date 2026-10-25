@@ -14951,5 +14951,26 @@ function App() {
   );
 }
 
+/* Crash reporting: an error in the page becomes a request the server logs
+   (GET /__err/<message>), so a crash on a player's phone is never invisible. */
+const reportErr = (kind, msg, stack) => { try { const ua = (navigator.userAgent.match(/(iPhone OS [\d_]+|Android [\d.]+|Version\/[\d.]+|Chrome\/\d+)/g) || []).join(" "); const m = (kind + ": " + String(msg || "").slice(0, 160) + " @ " + String(stack || "").split("\n").slice(0, 2).join(" | ").slice(0, 200) + " [" + ua + "]").replace(/[\/?#]/g, " "); const key = "sop_err_" + m.length; if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); new Image().src = "/__err/" + encodeURIComponent(m); } catch (e) {} };
+window.addEventListener("error", (e) => reportErr("error", e.message, e.error && e.error.stack || (e.filename + ":" + e.lineno)));
+window.addEventListener("unhandledrejection", (e) => reportErr("promise", e.reason && (e.reason.message || e.reason), e.reason && e.reason.stack));
+// If a screen ever fails to draw, the player gets a way back instead of a blank page.
+class SafeApp extends React.Component {
+  constructor(p) { super(p); this.state = { err: null }; }
+  static getDerivedStateFromError(err) { return { err }; }
+  componentDidCatch(err, info) { reportErr("render", err && err.message, (err && err.stack || "") + " " + (info && info.componentStack || "").split("\n").slice(0, 3).join(" ")); }
+  render() {
+    if (!this.state.err) return React.createElement(App);
+    const B = (label, fn, main) => React.createElement("button", { onClick: fn, style: { display: "block", width: "100%", margin: "10px 0 0", minHeight: 52, borderRadius: 999, border: main ? 0 : "1px solid #c9bfa5", background: main ? "#14532d" : "#fff", color: main ? "#fff" : "#14532d", fontWeight: 800, fontSize: 18, cursor: "pointer" } }, label);
+    return React.createElement("div", { style: { minHeight: "100vh", display: "grid", placeItems: "center", background: "#f6f1e6", padding: 20, fontFamily: "system-ui, sans-serif" } },
+      React.createElement("div", { style: { maxWidth: 420, width: "100%", background: "#fff", borderRadius: 20, padding: 24, border: "1px solid #e4dccb", textAlign: "center" } },
+        React.createElement("div", { style: { fontSize: 44 } }, "🏛️"),
+        React.createElement("h2", { style: { margin: "6px 0", color: "#14532d" } }, "Something went wrong"),
+        React.createElement("p", { style: { color: "#5b6b55", lineHeight: 1.5 } }, "Your game is saved. Reload to go back to the title, then Continue."),
+        B("Reload", () => location.reload(), true)));
+  }
+}
 const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(React.createElement(App));
+root.render(React.createElement(SafeApp));
