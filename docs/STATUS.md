@@ -2,6 +2,34 @@
 
 
 
+
+## Easier to start, clearer to follow (from a first-time player's review) (25 Oct, latest)
+- **The basics:**
+  - How to play opens five picture cards: you are in charge; how a year works; three things to watch; how you win and lose; you don't need to know politics.
+  - The old text is "The full guide" behind them, with plain headings.
+  - The title screen says: "No politics needed: you learn as you play."
+- **Glossary** (`game/systems/glossary.js`):
+  - Every abbreviation (FAAC, IGR, NLC, ASUU, INEC, EFCC, LGA, MoU and the rest) and every piece of political slang (security vote, ghost workers, japa, omo onile, the national cake, Ways and Means) is underlined where it appears.
+  - A tap shows the full name and one line of meaning.
+  - It is drawn with the browser's highlight feature, so the page is never rewritten; buttons are left alone.
+- **The journey:**
+  - A slim strip on the Desk (Elected, years 1–4, Re-election, years 5–8, Legacy) shows where you are.
+  - The end of each year says it is saved and a good place to take a break.
+  - The owner asked for no in-year checklist and no time estimate, so there are none.
+- **Pace** (setup): Relaxed, Standard or Intense. A first game defaults to Relaxed.
+  - Relaxed: fewer decisions each year, half the site crises and japa risk, and no random strikes.
+  - Intense: one more decision each year and more crises.
+- **Systems arrive gradually:**
+  - Year 1 is the budget, the needs and the letters.
+  - Tours, the Aso Rock visit, state visits and invitations abroad open in year 2.
+  - ASUU can strike from year 3.
+  - The adviser introduces each one the year it opens ("New this year…").
+  - The test switch `early` opens everything at once for the browser tests.
+- **The film** (`public/explainer.html`, about 90 seconds):
+  - It opens with "Have you ever wondered if you have what it takes to govern?", told through the game's own art with captions.
+  - It plays once on a first visit (skippable) and from the menu ("Watch the film").
+  - It is recorded to MP4 in 16:9 (YouTube) and 9:16 (WhatsApp status, Reels, Shorts).
+
 ## Strikes, the roundtable, and building in Nigeria (25 Oct, latest)
 - **Labour** (`game/systems/labour.js`). Union names are real; every person is fictional.
   - **The NLC:**

@@ -7,7 +7,7 @@ import { serve } from "./serve.mjs";
 const srv = await serve();
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
-const g = await open(srv.port, { save: YEAR1 });
+const g = await open(srv.port, { save: YEAR1, test: { early: true } });
 const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/visit-" + n + ".png" });
 await g.click(/^Continue/); await g.wait(1800);
 const r = await playUntil(g, t => /Visit the President at Aso Rock/.test(t), { max: 60 });

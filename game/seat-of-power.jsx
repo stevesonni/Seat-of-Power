@@ -2799,6 +2799,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["seal-projects", "Your company", "Register a contractor every player sees · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500"), () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "The basics in under a minute", () => { setSheet(null); onHelp(); }],
+            ["icon-new", "Watch the film", "Do you have what it takes to govern? 90 seconds", () => { setSheet(null); try { window.dispatchEvent(new CustomEvent("sop-intro")); } catch (e) {} }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
             ["icon-sound", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
           ].concat(profile ? [["icon-politician", "Start afresh", "Delete your politician and records, and begin again", () => { setSheet(null); startAfresh(); }]] : []).map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
@@ -3175,6 +3176,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   const [anchorsShown, setAnchorsShown] = useState(false);
   // First game: recommended picks, a Quick start, and the party's veterans on election day.
   const [firstRun, setFirstRun] = useState(!(profile?.games || []).length);
+  const [pace0, setPace] = useState(null); const pace = pace0 || (firstRun ? "relaxed" : "standard"); // a first game starts Relaxed
   useEffect(() => { if (!firstRun) return; Promise.resolve(window.storage && window.storage.get(PLAYED_KEY)).then(r => { if (r && r.value) setFirstRun(false); }).catch(() => {}); }, []);
   const [quick, setQuick] = useState(false); // Quick start running: waits for the deputies of the chosen state
   const [quickUsed, setQuickUsed] = useState(false);
@@ -3293,6 +3295,14 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         medium: "Medium: the standard game. Approval drains every year, crises are regular, and the House turns on you below 30%.",
         hard: "Hard: approval drains fast, corruption and insecurity cost more, the opposition hits harder in campaigns, and impeachment starts below 38%.",
       }[level] || ""}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <Seg items={[["relaxed", "Relaxed"], ["standard", "Standard"], ["intense", "Intense"]]} value={pace} onChange={setPace} style={{ margin: "0 0 4px" }} />
+      </div>
+      <div style={{ fontSize: DS.t.meta, color: UI.sub, margin: "0 0 10px", lineHeight: 1.4 }}>{{
+        relaxed: "Relaxed: fewer decisions each year, gentler surprises, and no strikes unless you provoke them. Best for a first game.",
+        standard: "Standard: the full game, every pressure of office.",
+        intense: "Intense: more decisions each year and trouble more often. For when you know the job.",
+      }[pace]}</div>
       <Seg items={[["all", "All Nigeria"], ...Object.entries(ZONES)]} value={zoneKey} onChange={k => setZf(k === "all" ? null : k)} />
       <div style={{ display: TALL() ? "block" : "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18, alignItems: "start" }}>
         <div style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 28, padding: TALL() ? 10 : 16 }}>
@@ -4014,7 +4024,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
           {election && <div style={{ fontSize: TS(32), color: CL.tm, margin: "0 0 30px" }}>{Number(election.votes || 0).toLocaleString()} votes · {election.zonesWon} of 3 districts · won by {election.marginPct}%</div>}
           <AdvBubble text={ADV.govHouse(nm, st, saName, FLAGSHIP[agenda])} saName={saName} />
           <div style={{ marginTop: 58 }}>
-              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} track("state", st); track("party", party); track("agenda", agenda); track("adviser", saName); track("level", level); track("deputy", accepted ? "party's pick (unity)" : "own pick"); track("runs_at_home", profile && profile.origin === st ? "yes" : "no"); track("quick_start", quickUsed ? "used" : "not used"); if (legacy) track("honour_carried", legacy); onDone({ legacy, nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, homeLga: homeLga || (lgaCluster(getLGAs(st), homeDistrict == null ? 1 : homeDistrict)[0] || null), partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null, ...(mode && mode.kind === "comeback" ? { comeback: { team: mode.team || null, terms: 1 }, startYear: (mode.startYear || 2027) + 4 } : {}) }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
+              <Bt onClick={() => { try { window.storage && window.storage.set(PLAYED_KEY, "1"); } catch (e) {} track("state", st); track("party", party); track("agenda", agenda); track("adviser", saName); track("level", level); track("deputy", accepted ? "party's pick (unity)" : "own pick"); track("runs_at_home", profile && profile.origin === st ? "yes" : "no"); track("quick_start", quickUsed ? "used" : "not used"); if (legacy) track("honour_carried", legacy); onDone({ legacy, nm: nm.trim(), firstNm: firstNm.trim(), lastNm: lastNm.trim(), party, state: st, depGov, avatar, agenda, slogan, saName, partyAccepted: accepted, startingStab, gfDebt, gfLoans, favours, gfMandates: [...gfMandates, ...partyMandates], homeDistrict: homeDistrict == null ? 1 : homeDistrict, homeLga: homeLga || (lgaCluster(getLGAs(st), homeDistrict == null ? 1 : homeDistrict)[0] || null), partyDeal: accepted ? "accepted" : partyDeal, partyPromise: !accepted && deal && deal.promise ? deal.promise : null, level, pace, warChestRemaining: warChest, election, customParty: customParty && customParty.id === party ? customParty : null, ...(mode && mode.kind === "comeback" ? { comeback: { team: mode.team || null, terms: 1 }, startYear: (mode.startYear || 2027) + 4 } : {}) }); }} style={{ padding: "50px 127px", fontSize: TS(53) }}>
               BEGIN YOUR TENURE →
             </Bt>
           </div>
@@ -4925,6 +4935,7 @@ const Inauguration = ({ name, vp, onDone }) => {
    slang get a dotted underline, drawn with the browser's highlight feature
    so the page itself is never rewritten; a tap on one shows its full name
    and what it means. Buttons are left alone, so they always do their job. */
+/* global CSS, NodeFilter, Highlight, MutationObserver */
 const installGlossary = () => {
   if (typeof document === "undefined" || window.__sopGlossary) return; window.__sopGlossary = true;
   const RX = SYS.glossaryRegex(), SKIP = /^(BUTTON|INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|NOSCRIPT)$/;
@@ -4970,7 +4981,7 @@ const installGlossary = () => {
     try { window.SOP_track && window.SOP_track("glossary", term); } catch (x) {}
     void had;
   }, true);
-  addEventListener("scroll", close, true);
+  window.addEventListener("scroll", close, true);
 };
 const presidentialScreen = () => {
   const W = SYS.presidentWords, ART = SYS.VILLA_ART;
@@ -5307,6 +5318,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      bank is empty is the rest borrowed, and only while lenders will lend.
      Past that the state is broke: the thing does not happen, and says why. */
   const lvl = setup?.level || "medium";
+  const PACE = setup?.pace || "standard"; // Relaxed / Standard / Intense: how much happens each year
+  // Systems arrive gradually: year 1 is the budget, the state's needs and the letters; the rest opens later.
+  const opens = (yr) => turn >= yr || !!(window.SOP_TEST && window.SOP_TEST.early);
   const moneyRef = React.useRef(s); moneyRef.current = s;
   const spendB = (costB, what, opt = {}) => {
     const cost = Math.max(0, +costB || 0); if (!cost) return { ok: true, fromBankB: 0, borrowedB: 0 };
@@ -6486,7 +6500,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const L = { ...(next.labour || {}), strikes: { ...((next.labour || {}).strikes || {}) } }, started = [], rev = Math.max(NAT ? 200 : 5, (s.igr || 0) + (s.faac || 0));
       if (window.SOP_TEST && window.SOP_TEST.labour && !L.test) { L.test = true; L.ult = SYS.ultimatum(NAT ? "vat" : "levy", NAT, turn - 1); if (window.SOP_TEST.labour === "asuu") { L.strikes.asuu = SYS.startStrike("asuu", null, turn); L.had = { asuu: true }; } }
       if (L.ult && L.ult.turn < turn) { L.strikes.nlc = SYS.startStrike("nlc", L.ult.cause, turn); L.ult = null; started.push("nlc"); }
-      if (!L.strikes.asuu && !(window.SOP_TEST && window.SOP_TEST.noStrikes) && SYS.asuuStrikes({ turn, edu: (bud && bud.education) || 15, had: !!(L.had && L.had.asuu) }, rE)) { L.strikes.asuu = SYS.startStrike("asuu", null, turn); L.had = { ...(L.had || {}), asuu: true }; started.push("asuu"); }
+      if (!L.strikes.asuu && PACE !== "relaxed" && !(window.SOP_TEST && window.SOP_TEST.noStrikes) && SYS.asuuStrikes({ turn, edu: (bud && bud.education) || 15, had: !!(L.had && L.had.asuu) }, rE)) { L.strikes.asuu = SYS.startStrike("asuu", null, turn); L.had = { ...(L.had || {}), asuu: true }; started.push("asuu"); }
       const lab = [];
       Object.keys(L.strikes).forEach(id => {
         let st = L.strikes[id]; const U = SYS.UNIONS[id];
@@ -7058,7 +7072,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (p.status !== "in_progress") return;
       // Japa: a contractor may take the mobilisation fee and flee (SYS.japaRisk), early in the work.
       if (!p.japaChecked && (p.progress || 0) < 40 && p.startTurn != null && p.startTurn < turn) {
-        if (Math.random() < SYS.japaRisk({ cor: s.cor || 0, soleSource: /direct/i.test(p.method || "") })) {
+        if (Math.random() < SYS.japaRisk({ cor: s.cor || 0, soleSource: /direct/i.test(p.method || "") }) * (PACE === "relaxed" ? .5 : 1)) {
           const to = SYS.JAPA_TO[hashStr(p.id) % SYS.JAPA_TO.length], lossM = Math.round((p.contractM || p.estimateM || 0) * .15);
           next[p.id] = { ...p, status: "stalled", japaChecked: true, decisions: [...(p.decisions || []), { year: turn, text: "The contractor took the mobilisation fee (" + SYS.fmtM(lossM) + ") and fled to " + to + "." }] };
           setStc(st => ({ ...st, chains: [...(st.chains || []), { id: "japa_" + p.id, kind: "japa", due: turn + 1, projId: p.id, firm: p.contractor || "The contractor", to, lossM }] }));
@@ -8204,7 +8218,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       (pol || []).forEach(p => {
         if (p.blocked || p.crisisChecked || (p.t || 1) < 3 || p.tl - 1 > Math.floor(p.t / 2)) return;
         const where = chainPlace(p);
-        if (Math.random() < SYS.siteCrisisRisk({ sec: n.sec, paidBefore: !!stc.paidOff })) crises.push({ id: p.id, nm: p.nm, ...where });
+        if (Math.random() < SYS.siteCrisisRisk({ sec: n.sec, paidBefore: !!stc.paidOff }) * (PACE === "relaxed" ? .5 : PACE === "intense" ? 1.2 : 1)) crises.push({ id: p.id, nm: p.nm, ...where });
       });
       // Programmes that run on into next year pay next year's share now, from the bank;
       // if the bank is empty and lenders won't lend, the programme pauses for a year.
@@ -9058,9 +9072,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const lv = setup?.level || "medium";
     // The President's year is fuller: the national deck comes first; a summons to Abuja or a "federal matter" means nothing in Aso Rock.
     if (NAT) { const own = q.filter(k => !(k === "federal" || k === "abuja")); q.length = 0; own.forEach(k => q.push(k)); }
+    // The first year is for learning the job: no invitations abroad yet.
+    if (!opens(2)) { const keep = q.filter(k => !(k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding")); q.length = 0; keep.forEach(k => q.push(k)); }
     // The airports are shut (an NLC strike with NUATE out): no trips abroad, no investors flying in.
     if (groundedRef.current) { const gone = q.filter(k => k === "intl_invite" || k === "investor" || k === "netherlands" || k === "wedding"); if (gone.length) { const keep = q.filter(k => !gone.includes(k)); q.length = 0; keep.forEach(k => q.push(k)); addL("✈️ The airports are shut by the strike: " + gone.length + (gone.length === 1 ? " trip or visit" : " trips and visits") + " cancelled this year.", "crisis"); } }
-    const cap = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
+    const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
+    const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
@@ -9643,6 +9660,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const anchors = (m, f) => { if (silentRef.current) return; try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
   const anchorEl = anchorNews ? <AnchorDesk lines={anchorNews} onDone={() => setAnchorNews(null)} /> : null;
   const present = (text, mood = "urgent", fn, ok, alt) => { try { const nm = cast.adviser.name; window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(nm, mood) || saPortrait(nm), name: nm + " · Special Adviser", text, urgent: mood === "urgent", fn, ok, alt } }); } catch (e) {} };
+  /* New this year: each system the adviser introduces the first year it
+     opens, in a line or two, so a new player is never met by everything at once. */
+  const INTROS = [
+    { id: "tours", ok: () => !NAT && opens(2), t: "New this year, Your Excellency: you can tour your local governments. Meet a council chairman or hold a town hall; what they ask for comes to your Desk." },
+    { id: "asorock", ok: () => !NAT && opens(2), t: "You can also fly to Abuja once a year and see the President at Aso Rock with one request. The better your standing with Abuja, the likelier a yes." },
+    { id: "statevisit", ok: () => NAT && opens(2), t: "New this year, Your Excellency: you can visit any state, announced or by surprise. What the people ask for comes to your Desk." },
+    { id: "trips", ok: () => opens(2), t: "Invitations from abroad start arriving this year. Going yourself costs the time you would spend at home; sending someone costs less, and impresses less." },
+    { id: "labour", ok: () => opens(3), t: "From now on the unions are watching. Raise taxes and the labour congress answers; starve the universities and the lecturers may strike. You will meet them at the roundtable." },
+  ];
+  useEffect(() => {
+    if (needSetup || gEnd || turn < 2 || (stc.introTurn || 0) >= turn || (window.SOP_TEST && window.SOP_TEST.early)) return;
+    const seen = stc.intro || [], due = INTROS.filter(x => !seen.includes(x.id) && x.ok()).slice(0, 2);
+    setStc(p => ({ ...p, introTurn: turn, intro: [...(p.intro || []), ...due.map(x => x.id)] }));
+    due.forEach((x, k) => setTimeout(() => present(x.t, "neutral", null, "Got it"), 1800 + k * 300));
+  }, [turn, needSetup]);
   // The anchors cover the moments people talk about.
   const anchored = React.useRef({});
   useEffect(() => {
@@ -10508,7 +10540,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {saBrief.urgent && !/^Balance the Appropriation|^Allegation in /.test(saBrief.title) && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaDeferred(d => [...d.filter(x => x.endsWith("|" + turn)), saBrief.title + "|" + turn])} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </div>}
 
-        {nav === "gov" && !needSetup && !NAT && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+        {nav === "gov" && !needSetup && !NAT && opens(2) && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="icon-visit-president" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit the President at Aso Rock</b>
             <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Once a year: fly to Abuja with one request. Your standing with Abuja: {Math.round(fgRelation)}/100.</div></div>
@@ -10527,7 +10559,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
         {nav === "gov" && !needSetup && LabourDesk()}
         <OL show={!!table}>{table && RoundTable()}</OL>
-        {nav === "gov" && !needSetup && !NAT && lgaToursLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+        {nav === "gov" && !needSetup && !NAT && opens(2) && lgaToursLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="icon-lga-tour" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Tour a local government</b>
             <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Meet the chairman or hold a town hall; what they ask for comes to your Desk. {lgaToursLeft()} {lgaToursLeft() === 1 ? "tour" : "tours"} left this year.</div></div>
@@ -10547,7 +10579,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setLgaTour(null)} style={{ width: "100%" }}>Not now</Bt></div>
           </Cd>}
         </OL>
-        {nav === "gov" && !needSetup && NAT && stateVisitsLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+        {nav === "gov" && !needSetup && NAT && opens(2) && stateVisitsLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="trip-jet" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit a state</b>
             <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Any state, announced or by surprise. {stateVisitsLeft()} {stateVisitsLeft() === 1 ? "visit" : "visits"} left this year.</div></div>
@@ -14705,6 +14737,23 @@ function App() {
   const [setup, setSetup] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   useEffect(() => { try { installGlossary(); } catch (e) {} }, []);
+  // The explainer film (public/explainer.html): once on a first visit, skippable, and from the menu any time.
+  const [intro, setIntro] = useState(() => { try { return !window.SOP_TEST && !localStorage.getItem("sop_intro_seen"); } catch (e) { return false; } });
+  useEffect(() => {
+    const done = (e) => { if (e && e.data && e.data.type === "sop-explainer-done") { setIntro(false); try { localStorage.setItem("sop_intro_seen", "1"); } catch (x) {} } };
+    const open = () => setIntro(true);
+    window.addEventListener("message", done); window.addEventListener("sop-intro", open);
+    return () => { window.removeEventListener("message", done); window.removeEventListener("sop-intro", open); };
+  }, []);
+  // On the page root, outside the zoomed stage, so it fills the real screen.
+  useEffect(() => {
+    if (!intro) return;
+    const f = document.createElement("iframe");
+    f.title = "The Seat of Power: what it takes to govern"; f.src = "./explainer.html?embed=1"; f.allow = "autoplay";
+    f.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;border:0;z-index:2147483600;background:#000";
+    document.documentElement.appendChild(f);
+    return () => f.remove();
+  }, [intro]);
   const [finalStats, setFinalStats] = useState(null);
   const [loadedSave, setLoadedSave] = useState(null);
   const rst = () => { setScr("title"); setSetup(null); setFinalStats(null); setLoadedSave(null); };

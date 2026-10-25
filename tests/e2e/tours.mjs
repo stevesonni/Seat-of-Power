@@ -11,7 +11,7 @@ const OUT = process.env.SHOTS || "/tmp";
 
 // ── The governor's LGA tour.
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
-let g = await open(srv.port, { save: YEAR1, seed: 7 });
+let g = await open(srv.port, { save: YEAR1, seed: 7, test: { early: true } });
 await g.click(/^Continue/); await g.wait(1800);
 await playUntil(g, t => /Tour a local government/.test(t), { max: 60, prefer: [/^Tell the communities first/] });
 check(/Tour a local government/.test(await g.txt()), "the Desk offers an LGA tour");
@@ -43,7 +43,7 @@ const won = { v: 1, seed: 99, name: "Ada Okafor", avatar: "agbada", state: "Enug
   opp: { name: "Musa Bello", party: "UCP", partyNm: "Unity Congress", zone: "NW", state: "Kano" }, rivals: [], del: {}, primaryRound: 3, ious: [], step: "sworn", zones,
   week: 6, log: [], pledges: ["SE"], agents: true, debated: true, lastHit: null, mate: { name: "Ibrahim Danladi", zone: "NC", kind: "partyman" }, scandal: false, k: 1, over: false,
   res: { nat: 53.4, statesWon: 21, s25: 30 }, outcome: "won" };
-g = await open(srv.port, { save: { sop_profile: profile, sop_pres: JSON.stringify(won) }, seed: 5 });
+g = await open(srv.port, { save: { sop_profile: profile, sop_pres: JSON.stringify(won) }, seed: 5, test: { early: true } });
 await g.click(/Road to Aso Rock/); await g.wait(900);
 await g.click(/Take the oath of office/); await g.wait(1500);
 await g.click(/^✋ Take the oath$/); await g.wait(600);

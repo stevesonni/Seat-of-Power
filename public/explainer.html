@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Seat of Power: what it takes to govern</title>
+<style>
+  :root { --gold: #e9b949; --green: #1f7a46; --ink: #fff; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-family: "Fraunces", Georgia, "Times New Roman", serif; }
+  #stage { position: fixed; inset: 0; background: #000; }
+  .scene { position: absolute; inset: 0; opacity: 0; transition: opacity 1.1s ease; }
+  .scene.on { opacity: 1; }
+  .scene .bg { position: absolute; inset: -6%; background-size: cover; background-position: center; will-change: transform; }
+  .scene.on .bg { animation: kb var(--dur) linear forwards; }
+  @keyframes kb { from { transform: scale(var(--s0)) translate(var(--x0), var(--y0)); } to { transform: scale(var(--s1)) translate(var(--x1), var(--y1)); } }
+  .scene .shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.1) 40%, rgba(0,0,0,.78) 100%); }
+  .cap { position: absolute; left: 6%; right: 6%; bottom: 11%; color: var(--ink); text-align: center; text-shadow: 0 3px 18px rgba(0,0,0,.85); }
+  .cap .l { display: block; font-size: clamp(26px, 4.6vw, 64px); line-height: 1.15; font-weight: 700; opacity: 0; transform: translateY(18px); transition: opacity .9s ease, transform .9s ease; }
+  .cap .l.small { font-size: clamp(18px, 2.6vw, 34px); font-weight: 500; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; margin-top: .5em; color: #f3ead2; }
+  .cap .l.show { opacity: 1; transform: none; }
+  .cap .l em { color: var(--gold); font-style: normal; }
+  #end { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; background: radial-gradient(circle at 50% 40%, #12402a, #06130c 70%); opacity: 0; transition: opacity 1.2s ease; color: #fff; }
+  #end.on { opacity: 1; }
+  #end img { width: min(70vw, 620px); filter: drop-shadow(0 10px 30px rgba(0,0,0,.6)); }
+  #end .t { font-family: system-ui, sans-serif; font-size: clamp(18px, 2.4vw, 30px); color: #f3ead2; margin-top: 18px; letter-spacing: .02em; }
+  #end .cta { display: inline-block; margin-top: 22px; background: var(--gold); color: #2b1d05; font-family: system-ui, sans-serif; font-weight: 800; font-size: clamp(18px, 2.4vw, 30px); padding: 14px 30px; border-radius: 999px; box-shadow: 0 6px 0 #a97d12; }
+  #end .url { font-family: system-ui, sans-serif; font-size: clamp(14px, 1.8vw, 22px); color: #c9d8cc; margin-top: 16px; }
+  #bar { position: fixed; left: 0; bottom: 0; height: 4px; width: 0; background: var(--gold); z-index: 5; }
+  #skip { position: fixed; top: max(14px, env(safe-area-inset-top)); right: 14px; z-index: 6; border: 1px solid rgba(255,255,255,.5); background: rgba(0,0,0,.45); color: #fff; font: 600 16px system-ui, sans-serif; padding: 10px 18px; border-radius: 999px; cursor: pointer; }
+  #play { position: fixed; inset: 0; z-index: 7; display: none; place-items: center; background: rgba(0,0,0,.55); color: #fff; font: 700 22px system-ui, sans-serif; cursor: pointer; border: 0; }
+  .rec #skip, .rec #play { display: none !important; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="end">
+  <div>
+    <img src="./art/brand/title-logo.webp" alt="The Seat of Power">
+    <div class="t">No politics degree needed. You learn as you play.</div>
+    <div class="cta">Play free now</div>
+    <div class="url">game-production-4446.up.railway.app</div>
+  </div>
+</div>
+<div id="bar"></div>
+<button id="skip" type="button">Skip ›</button>
+<button id="play" type="button">▶ Play</button>
+<script>
+/* The explainer: a story, not a manual. Each scene is a picture from the game
+   with a slow camera move and a line or two. ?record=1 hides the controls
+   (for recording to a video file); ?embed=1 tells the game when it is done. */
+(function () {
+  var Q = new URLSearchParams(location.search), REC = Q.has("record"), EMBED = Q.has("embed");
+  if (REC) document.documentElement.classList.add("rec");
+  var A = function (p) { return "./art/" + p + ".webp"; };
+  var S = [
+    { bg: "scenes/inauguration-eagle-square", lines: ["Have you ever wondered", "if you have what it takes <em>to govern</em>?"], d: 6.5, m: [1.08, 1.0, "0%", "2%", "0%", "-1%"] },
+    { bg: "scenes/camp-mega-rally", lines: ["To stand before a crowd of thousands…", "and ask for their vote?"], d: 6, m: [1.0, 1.1, "-2%", "0%", "2%", "-1%"] },
+    { bg: "backgrounds/government-house", lines: ["In <em>The Seat of Power</em>,", "you are the Governor of a Nigerian state."], d: 6.5, m: [1.12, 1.02, "0%", "0%", "0%", "0%"] },
+    { bg: "backgrounds/governor-office", lines: ["Every year, the budget lands on your desk.", { s: "Roads or hospitals? Salaries or schools? There is never enough." }], d: 7, m: [1.0, 1.1, "0%", "0%", "-2%", "1%"] },
+    { bg: "scenes/camp-youth-town-hall", lines: ["The people tell you what they need.", { s: "And they remember what you promised." }], d: 6.5, m: [1.04, 1.12, "1%", "0%", "-1%", "-1%"] },
+    { bg: "scenes/midnight-visitor", lines: ["The godfathers come at midnight.", { s: "“Everybody eats from the national cake, Your Excellency.”" }], d: 7, m: [1.1, 1.0, "0%", "1%", "0%", "-1%"] },
+    { bg: "scenes/labour-roundtable", lines: ["The unions want what is in the bank.", { s: "All of it." }], d: 6, m: [1.0, 1.1, "0%", "0%", "0%", "1%"] },
+    { bg: "scenes/kidnap-camp-empty", lines: ["And trouble never waits its turn.", { s: "Bandits. Floods. Strikes. A contractor who flees with the money." }], d: 7, m: [1.1, 1.02, "-1%", "0%", "1%", "0%"] },
+    { bg: "scenes/ribbon-cut", lines: ["Deliver,", "and they will cheer your name."], d: 6, m: [1.0, 1.12, "0%", "0%", "0%", "-2%"] },
+    { bg: "backgrounds/assembly-chamber", lines: ["Fail them,", "and the House will come for you."], d: 6, m: [1.12, 1.0, "0%", "0%", "0%", "1%"] },
+    { bg: "scenes/aso-rock-arrival", lines: ["Win a second term.", "Then set your sights on <em>Aso Rock</em>."], d: 7, m: [1.0, 1.1, "2%", "0%", "-1%", "0%"] },
+    { bg: "scenes/career-ladder", lines: ["Councils. A state. The Senate. The nation.", { s: "Every choice is yours. So is every consequence." }], d: 7.5, m: [1.08, 1.0, "0%", "0%", "0%", "0%"] },
+  ];
+  var stage = document.getElementById("stage"), bar = document.getElementById("bar"), end = document.getElementById("end");
+  var total = S.reduce(function (a, x) { return a + x.d; }, 0) + 6, t0 = 0, timers = [], done = false;
+  S.forEach(function (x, i) {
+    var el = document.createElement("div"); el.className = "scene"; el.id = "s" + i;
+    var bg = document.createElement("div"); bg.className = "bg"; bg.style.backgroundImage = "url(" + A(x.bg) + ")";
+    el.style.setProperty("--dur", (x.d + 1.2) + "s"); el.style.setProperty("--s0", x.m[0]); el.style.setProperty("--s1", x.m[1]);
+    el.style.setProperty("--x0", x.m[2]); el.style.setProperty("--y0", x.m[3]); el.style.setProperty("--x1", x.m[4]); el.style.setProperty("--y1", x.m[5]);
+    var sh = document.createElement("div"); sh.className = "shade";
+    var cap = document.createElement("div"); cap.className = "cap";
+    x.lines.forEach(function (l) { var s = document.createElement("span"); s.className = "l" + (typeof l === "object" ? " small" : ""); s.innerHTML = typeof l === "object" ? l.s : l; cap.appendChild(s); });
+    el.appendChild(bg); el.appendChild(sh); el.appendChild(cap); stage.appendChild(el);
+  });
+  // Preload every picture before the clock starts.
+  var load = function () { return Promise.all(S.map(function (x) { return new Promise(function (r) { var im = new Image(); im.onload = im.onerror = r; im.src = A(x.bg); }); }).concat([new Promise(function (r) { var im = new Image(); im.onload = im.onerror = r; im.src = "./art/brand/title-logo.webp"; })])); };
+  var finish = function () { if (done) return; done = true; timers.forEach(clearTimeout); try { parent && parent !== window && parent.postMessage({ type: "sop-explainer-done" }, "*"); } catch (e) {} window.__explainerDone = true; };
+  var run = function () {
+    t0 = performance.now(); var at = 0;
+    S.forEach(function (x, i) {
+      timers.push(setTimeout(function () {
+        if (i) document.getElementById("s" + (i - 1)).classList.remove("on");
+        var el = document.getElementById("s" + i); el.classList.add("on");
+        [].forEach.call(el.querySelectorAll(".l"), function (l, k) { timers.push(setTimeout(function () { l.classList.add("show"); }, 500 + k * 1100)); });
+      }, at * 1000));
+      at += x.d;
+    });
+    timers.push(setTimeout(function () { document.getElementById("s" + (S.length - 1)).classList.remove("on"); end.classList.add("on"); }, at * 1000));
+    timers.push(setTimeout(finish, (at + 6) * 1000));
+    (function tick() { if (done) { bar.style.width = "100%"; return; } bar.style.width = Math.min(100, (performance.now() - t0) / (total * 10)) + "%"; requestAnimationFrame(tick); })();
+  };
+  document.getElementById("skip").onclick = finish;
+  load().then(function () { window.__explainerReady = true; if (REC || EMBED || Q.has("autoplay")) run(); else { var p = document.getElementById("play"); p.style.display = "grid"; p.onclick = function () { p.style.display = "none"; run(); }; } });
+  window.__explainerLength = total;
+})();
+</script>
+</body>
+</html>

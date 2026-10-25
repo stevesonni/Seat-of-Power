@@ -11,7 +11,7 @@ const won = { v: 1, seed: 99, name: "Ada Okafor", avatar: "agbada", state: "Enug
   opp: { name: "Musa Bello", party: "UCP", partyNm: "Unity Congress", zone: "NW", state: "Kano" }, rivals: [], del: {}, primaryRound: 3, ious: ["a ministry for the North-Central caucus"], step: "sworn", zones,
   week: 6, log: [], pledges: ["SE"], agents: true, debated: true, lastHit: null, mate: { name: "Ibrahim Danladi", zone: "NC", kind: "partyman" }, scandal: false, k: 1, over: false,
   res: { nat: 53.4, statesWon: 21, s25: 30 }, outcome: "won" };
-const g = await open(srv.port, { save: { sop_profile: profile, sop_pres: JSON.stringify(won) }, seed: 5});
+const g = await open(srv.port, { save: { sop_profile: profile, sop_pres: JSON.stringify(won) }, seed: 5, test: { early: true } });
 const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/pres-" + n + ".png" });
 
 check(!!(await g.click(/Road to Aso Rock/)), "the title offers the presidential run"); await g.wait(900);

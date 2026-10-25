@@ -161,5 +161,5 @@ export const mouDue = (st, { cash = 0 } = {}) => {
   return { paid: false, st: { ...st, mou: null, on: true, trust: st.trust - 20, start: st.start } };
 };
 
-// Should ASUU strike this year? Once per game unless an MoU fails; more likely when education is starved.
-export const asuuStrikes = ({ turn, edu = 15, had = false }, r = Math.random) => !had && turn >= 2 && r() < (edu < 14 ? .6 : .35);
+// Should ASUU strike this year? From the third year, once per game unless an MoU fails; more likely when education is starved.
+export const asuuStrikes = ({ turn, edu = 15, had = false }, r = Math.random) => !had && turn >= 3 && r() < (edu < 14 ? .6 : .35);
