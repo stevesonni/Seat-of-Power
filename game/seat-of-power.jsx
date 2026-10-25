@@ -6120,7 +6120,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The shortfall follows the oil price swing logged at the end of the year,
     // so the FAAC card never contradicts an "oil rally" headline.
     const sw = faacSwingRef.current;
-    const f = turn === 1 ? 1 : sw < -.05 ? Math.max(.62, 1 + sw * 1.2) : sw > .05 ? 1 : lv === "hard" ? .82 + r() * .22 : lv === "easy" ? .92 + r() * .14 : .86 + r() * .18;
+    const f0 = turn === 1 ? 1 : sw < -.05 ? Math.max(.62, 1 + sw * 1.2) : sw > .05 ? 1 : lv === "hard" ? .82 + r() * .22 : lv === "easy" ? .92 + r() * .14 : .86 + r() * .18;
+    // A Fiscal Responsibility Law (sent from an earlier shortfall) keeps a savings fund: it covers part of the gap.
+    if (next.rainyBill && !next.rainyLaw && next.rainyBill < turn) { const H = scHouse(); if (H.loyal / Math.max(1, H.seats) >= .5 || r() < .4) { next.rainyLaw = turn; notes.push(["📜 The Fiscal Responsibility Law passed: good years now fill a savings fund for bad ones.", "success"]); scWiki("Governorship", "Signed a Fiscal Responsibility Law creating a savings fund for lean years."); } else { next.rainyBill = null; notes.push(["📜 The House threw out the Fiscal Responsibility Bill.", "political"]); } }
+    const f = next.rainyLaw && f0 < 1 ? Math.min(1, f0 + (1 - f0) * .5) : f0;
     const pct = Math.round(f * 100), short = Math.max(.2, Math.round((s.faac || 10) * (1 - f) * 10) / 10), mw = monthWage();
     if (f < .95 || A > 0) {
       const owe = f < .85 ? 3 : f < .95 ? 2 : 0;
@@ -6137,9 +6140,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (f >= .95) opts.push({ label: "Pay one month of arrears", note: "A gesture. The unions want it all.", chips: fxChips({ debt: mw }), run: () => { scFx({ debt: mw }); setStc(p => ({ ...p, arrears: Math.max(0, p.arrears - 1) })); addL("🧾 Paid one month of salary arrears.", "policy"); } });
         if (f >= .95) opts.push({ label: "Keep owing them", note: "The arrears stay. So does the anger.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); addL("🧾 Salary arrears left unpaid another year.", "political"); } });
       }
-      cards.push({ key: "faac", kicker: "FAAC day", color: CL.gold, art: A > 0 ? ["state-secretariat", null, "salary-slip"] : ["state-secretariat", "civil-servant"],
-        title: f < .95 ? "The allocation came in at " + pct + "%" : "The allocation is in. Workers are still owed",
-        brief: f < .95 ? (sw < -.05 ? "Oil prices fell and FAAC shrank with them. " : "Abuja deducted old loans at source. ") + "You are ₦" + short + "B short of this year's wage bill." + (A ? " Workers are already owed " + A + " months." : "") : "FAAC came in at " + pct + "% of budget. Workers are still owed " + A + " month" + (A === 1 ? "" : "s") + " from earlier.",
+      // FAAC day remembers: how the last shortfall was met decides how this one reads, and what else is on the table.
+      const fh = next.faacHist || [], lastF = fh[fh.length - 1];
+      const LASTF = { borrow: ["The Debt Management Office has written", "Last year you borrowed to pay salaries. The Debt Management Office warns the state is close to its borrowing limit, and the banks want a higher rate. "],
+        hold: ["Contractors have downed tools", "Last year you held contractor payments. The contractors' association has gone to court, and the stalled sites are overgrown. "],
+        owe: ["The unions remember last year", "Last year you paid part and owed the rest. The unions have the months written on their banners. "],
+        bank: ["The bank is thinner this year", "Last year the bank covered the gap. It will not cover many more. "] };
+      const mem = f < .95 && lastF && LASTF[lastF] ? LASTF[lastF] : null;
+      opts.forEach(o => { const id = /^Pay salaries in full from the bank/.test(o.label) ? "bank" : /^Borrow/.test(o.label) ? "borrow" : /hold contractor/.test(o.label) ? "hold" : /owe workers/.test(o.label) ? "owe" : null; if (!id) return; const run0 = o.run; o.run = () => { const res = run0(); setStc(p => ({ ...p, faacHist: [...(p.faacHist || []), id] })); return res; }; });
+      if (f < .95 && fh.length && !next.rainyBill && !next.rainyLaw) opts.push({ label: "📜 Also send a Fiscal Responsibility Bill: save in good years for bad ones", note: "Nothing changes this year. If the House passes it, every later shortfall is cushioned by a savings fund.", chips: [{ text: "📜 Bill", color: CL.blu }].concat(fxChips({ app: -1 })), run: () => { scFx({ app: -1 }); setStc(p => ({ ...p, rainyBill: turn, arrears: p.arrears + owe, faacHist: [...(p.faacHist || []), "bill"] })); addL("📜 Sent a Fiscal Responsibility Bill to the House; workers are owed " + owe + " more months meanwhile.", "political"); return { icon: "📜", title: "The bill goes to the House", text: "The House votes next year. This year, workers are owed " + owe + " more months.", tone: "neutral" }; } });
+      cards.push({ key: "faac", kicker: "FAAC day" + (fh.length ? " · year " + (fh.length + 1) : ""), color: CL.gold, art: A > 0 ? ["state-secretariat", null, "salary-slip"] : ["state-secretariat", "civil-servant"],
+        title: mem ? mem[0] + ": the allocation came in at " + pct + "%" : f < .95 ? "The allocation came in at " + pct + "%" : "The allocation is in. Workers are still owed",
+        brief: (mem ? mem[1] : "") + (f < .95 ? (next.rainyLaw ? "The savings fund covered half of the gap. " : sw < -.05 ? "Oil prices fell and FAAC shrank with them. " : "Abuja deducted old loans at source. ") + "You are ₦" + short + "B short of this year's wage bill." + (A ? " Workers are already owed " + A + " months." : "") : "FAAC came in at " + pct + "% of budget. Workers are still owed " + A + " month" + (A === 1 ? "" : "s") + " from earlier."),
         stakes: "At 3 months owed the NLC issues an ultimatum. At 5 it shuts the state down." + (REVM().some(m => !(next.rev || {})[m.id]) ? " Revenue reforms on the Desk can close gaps like this for good." : ""), options: opts });
     } else notes.push(["📦 FAAC came in at " + pct + "% of budget. Salaries paid on the 25th.", "info"]);
 
