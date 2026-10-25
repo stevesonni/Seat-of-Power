@@ -2115,13 +2115,14 @@ const DocCard = ({ D, options, onPick }) => { const tall = TALL(), war = /WAR/.t
   return <div style={{ maxWidth: 600, margin: "0 auto 14px", background: "#fbf8f1", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.18)", border: "1px solid #e4dccb" }}>
     <div style={{ height: 14, background: (war ? "#c0392b" : "#1f7a4d") + " radial-gradient(circle, rgba(0,0,0,.25) 1.5px, transparent 2px) 0 0/18px 14px" }} />
     <div style={{ background: (war ? "#c0392b" : "#1f7a4d") + "22", textAlign: "center", fontWeight: 800, letterSpacing: 1, padding: "8px 0", fontSize: tall ? 16 : 19 }}>{D.kicker}</div>
-    <div style={{ padding: tall ? "14px 18px" : "20px 30px", fontFamily: "Georgia, 'Times New Roman', serif", color: "#2f2a22" }}>
+    <div style={{ position: "relative", padding: tall ? "14px 18px" : "20px 30px", fontFamily: "Georgia, 'Times New Roman', serif", color: "#2f2a22" }}>
       <div style={{ textAlign: "center", fontWeight: 800, fontSize: tall ? 19 : 24, marginBottom: 10 }}>{D.title}</div>
       <div style={{ fontSize: tall ? 17 : 20, lineHeight: 1.55 }}>{D.body}</div>
-      <div style={{ marginTop: 18, borderTop: "1px solid #2f2a22", width: "70%", marginLeft: "auto", paddingTop: 4, textAlign: "right", fontSize: tall ? 14 : 16, color: "#6b6357" }}>{D.sign}</div>
+      <div style={{ marginTop: D.stamp ? 34 : 18, borderTop: "1px solid #2f2a22", width: D.stamp ? "55%" : "70%", marginLeft: "auto", paddingTop: 4, textAlign: "right", fontSize: tall ? 14 : 16, color: "#6b6357" }}>{D.sign}</div>
+      {D.stamp && <div aria-label={"Stamped " + D.stamp} style={{ position: "absolute", bottom: tall ? 8 : 12, left: tall ? 12 : 26, transform: "rotate(-10deg)", border: "4px double #b3261e", color: "#b3261e", borderRadius: 8, padding: tall ? "2px 10px" : "4px 16px", fontFamily: "Impact, 'Arial Black', sans-serif", fontWeight: 900, fontSize: tall ? 24 : 34, letterSpacing: 3, opacity: .9, background: "rgba(255,255,255,.35)", pointerEvents: "none", mixBlendMode: "multiply" }}>{D.stamp}</div>}
     </div>
     <div style={{ background: "#e9e6df", padding: tall ? "12px" : "16px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-      {options.map((o, i) => { const neg = /^Veto/.test(o.label); return <button key={i} onClick={() => onPick(o, i)} style={{ border: 0, borderRadius: 14, padding: "12px 14px", minHeight: 56, fontWeight: 800, fontSize: tall ? 16 : 19, color: "#fff", background: neg ? "#c0392b" : "#2e7d32", boxShadow: "0 4px 0 rgba(0,0,0,.2)", cursor: "pointer", textAlign: "center" }}>
+      {options.map((o, i) => { const neg = /^(Veto|Refuse)/.test(o.label); return <button key={i} onClick={() => onPick(o, i)} style={{ border: 0, borderRadius: 14, padding: "12px 14px", minHeight: 56, fontWeight: 800, fontSize: tall ? 16 : 19, color: "#fff", background: neg ? "#c0392b" : "#2e7d32", boxShadow: "0 4px 0 rgba(0,0,0,.2)", cursor: "pointer", textAlign: "center" }}>
         {neg ? "✋ " : "✍️ "}{o.label}{(o.chips || []).length ? <span style={{ display: "block", fontWeight: 600, fontSize: tall ? 13 : 15, opacity: .9, marginTop: 2 }}>{o.chips.slice(0, 3).map(c => c.text).join(" · ")}</span> : null}
       </button>; })}
     </div>
@@ -5736,7 +5737,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, alarm: c.alarm, advice: c.advice, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
     letter: c.kind === "letter" && c.letter ? SYS.TRIP_LETTERS[c.letter] : undefined,
     military: c.kind === "mission" ? { d: c.d, need: c.need } : undefined,
-    doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign } : undefined,
+    doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign, stamp: c.stamp } : undefined,
     kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.kind === "mission" ? "A mission from Defence Headquarters" : c.t, brief: c.d,
     options: c.opts.map(o => { const cost = o.cost || 0, app = (o.fx && o.fx.app || 0) - (c.spill || 0) - (c.fatigue || 0);
       return { label: o.l, fid: o.id, note: o.note, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : []), run: () => {
@@ -5754,7 +5755,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const mood = wrong ? "urgent" : app < 0 || c.fatigue ? "worried" : o.say ? "pleased" : "neutral";
         if (o.ally) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/us-president-pleased.webp", name: "The President of the United States", text: o.ally } }); } catch (e) {} }, 600);
         else if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-" + mood + ".webp", name: chief, text: line, urgent: wrong } }); } catch (e) {} }, 600);
-        if (o.id === "assent" && c.id === "bk3" && NEWS_BK.war) anchors(NEWS_BK.war[0], NEWS_BK.war[1]);
+        if (((o.id === "assent" && c.id === "bk3") || (o.id === "comply" && c.id === "bk3o")) && NEWS_BK.war) anchors(NEWS_BK.war[0], NEWS_BK.war[1]);
         addL("🌍 Bakunda: " + (c.kind === "mission" ? "a mission" : c.t.replace(/⁠/g, "")) + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue || wrong ? "crisis" : "policy");
         if (B1.done && !(B0 || {}).done && B1.treaty === "enacted") setTimeout(() => anchors(NEWS_BK.treaty[0], NEWS_BK.treaty[1]), 300);
         if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }

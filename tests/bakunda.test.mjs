@@ -106,3 +106,13 @@ test("the Special Boat Service: the Navy's commandos have their own missions", (
   const m = bakundaCards({ ...bakundaInit("s"), stage: 3, atWar: 1, sits: BAKUNDA_MISSIONS.filter(x => x.need !== "sbs").map(x => x.id) }, 4).find(c => c.kind === "mission");
   assert.equal(m.need, "sbs"); assert.ok(m.opts.some(o => o.id === "sbs" && o.paper[2]));
 });
+test("veto the war and the National Assembly overrides you: a document stamped OVERRIDDEN", () => {
+  let B = { ...bakundaInit("o1"), stage: 2 };
+  B = pick(B, card(B, 3, "bk3"), "veto"); assert.equal(B.override, "pending");
+  const o = card(B, 4, "bk3o"); assert.equal(o.kind, "document"); assert.equal(o.stamp, "OVERRIDDEN"); assert.ok(o.news && o.alarm && o.advice);
+  assert.equal(bakundaCards(B, 4).filter(c => c.kind !== "tip" && !c.id.startsWith("bkd_")).length, 2, "the override and one more decision");
+  o.opts.forEach(x => assert.ok(x.paper && x.paper[0], x.id));
+  const war = pick(B, o, "comply"); assert.equal(war.atWar, 1); assert.equal(war.resolution, "overridden");
+  assert.ok(bakundaCards(war, 5).some(c => c.kind === "mission"), "missions follow");
+  const defy = pick(B, o, "defy"); assert.equal(defy.atWar, 0); assert.ok(!bakundaCards(defy, 5).some(c => c.id === "bk3o"), "the override comes once");
+});

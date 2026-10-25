@@ -100,6 +100,7 @@ const NEWS = {
   bk3: ["The junta has signed a pact with Ostrava. The National Assembly is meeting in joint session.", "On the table: a resolution sanctioning war. It now goes to the President."],
   war: ["The nation's worst fears have come true: the National Assembly has sanctioned war on the Axis.", "The President must now lead as Commander-in-Chief."],
   weary: ["The conflict with Bakunda continues.", "At least the President is working hard to keep it under control."],
+  override: ["Breaking news: the National Assembly has overridden the President's veto. The resolution for war against the Axis stands.", "Two-thirds of both Houses voted. All eyes are now on the Villa."],
   peace: ["The war is over! Bakunda has surrendered.", "The peace treaty was signed in Geneva. Now the National Assembly must enact it."],
 };
 
@@ -143,13 +144,23 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     sign: "The President of the Federal Republic of Nigeria", paperImg: "axis-summit",
     opts: [{ id: "assent", l: "Assent: declare war", fx: { app: 2, sec: .01 }, npc: { army: 4 }, set: { stage: 3, atWar: 1, resolution: "passed" }, paper: ["NIGERIA DECLARES WAR ON THE BAKUNDA AXIS", "The National Assembly's resolution signed", false],
         say: "Your Excellency, there have been major developments. Watch your mail for missions from Defence Headquarters, and act as Commander-in-Chief." },
-      { id: "veto", l: "Veto: sanctions and talks only", fx: { app: -2 }, npc: { army: -6, nass: -3 }, set: { stage: 3, atWar: 0, resolution: "vetoed" }, paper: ["PRESIDENT VETOES WAR RESOLUTION", "Sanctions and diplomacy against the Bakunda Axis", false], paperImg: "axis-summit", say: "No war, then. Diplomacy alone will be slow, Your Excellency. The Axis will read it as hesitation." }] });
+      { id: "veto", l: "Veto: sanctions and talks only", fx: { app: -2 }, npc: { army: -6, nass: -3 }, set: { stage: 3, atWar: 0, resolution: "vetoed", override: "pending" }, paper: ["PRESIDENT VETOES WAR RESOLUTION", "Senators vow to override", false], paperImg: "axis-summit", say: "No war, then, for now. But the Assembly will not take this lying down, Your Excellency. They have the votes to override you." }] });
     decide({ id: "bk3b", kind: "card", kicker: "Bakunda · Lake Chad", t: "Ostravan warships on Lake Chad", scene: "navy-patrol", learn: "forces",
       d: "Two Ostravan gunboats have docked at Bakunda's lake port. The Chief of the Naval Staff wants the Special Boat Service to shadow them.",
       advice: "Let the SBS watch them. If they move on our shore, we will know first.",
       opts: [{ id: "sbs", l: "Send the SBS to shadow them", cost: 5, fx: { app: 1, sec: .01 }, npc: { army: 2 }, add: { progress: 8 }, paper: ["SBS COMMANDOS SHADOW OSTRAVAN GUNBOATS", "The Navy watches the Axis on Lake Chad", true], paperImg: "navy-patrol", say: "The SBS are in the water. Nothing moves on that lake now without us knowing." },
         { id: "air", l: "Watch from the air only", cost: 2, fx: { app: 0 }, add: { progress: 3 }, paper: ["AIR FORCE WATCHES LAKE CHAD FROM ABOVE", "Ostrava's gunboats stay in port", true], paperImg: "air-strike", say: "We will see them from above. We will not hear them." }] });
   }
+  // A vetoed war resolution comes back stamped OVERRIDDEN: two-thirds of both Houses.
+  if (B.stage === 3 && B.override === "pending") decide({ id: "bk3o", kind: "document", stamp: "OVERRIDDEN", kicker: "WAR · VETO OVERRIDDEN", t: "The National Assembly overrides the President's veto", news: NEWS.override, learn: "war",
+    alarm: "there has been a grave development: the National Assembly has overridden your veto. The resolution for war stands, and it is on its way to you",
+    advice: "The Assembly has spoken, Your Excellency. The troops are ready. Lead them, and the country will follow you.",
+    d: "The National Assembly, in joint session, by a two-thirds majority of the Senate and of the House of Representatives, overrides the President's veto of its resolution sanctioning war with the Bakunda–Ostrava Axis. The resolution stands. The President, as Commander-in-Chief, is directed to employ the armed forces to bring the conflict to a successful end.",
+    sign: "The Senate President and the Speaker, for the National Assembly", paperImg: "axis-summit",
+    opts: [{ id: "comply", l: "Comply: lead the war as Commander-in-Chief", fx: { app: 1, sec: .01 }, npc: { army: 4, nass: 4 }, set: { atWar: 1, resolution: "overridden", override: "done" }, paper: ["ASSEMBLY OVERRIDES PRESIDENT: NIGERIA AT WAR", "Two-thirds of both Houses vote; the President takes command", false], paperImg: "axis-summit",
+        say: "Then we fight, Your Excellency. Watch your mail for missions from Defence Headquarters." },
+      { id: "defy", l: "Refuse to deploy the troops", fx: { app: -4 }, npc: { army: -6, nass: -12 }, set: { override: "defied" }, paper: ["PRESIDENT DEFIES THE NATIONAL ASSEMBLY", "Impeachment talk in both Houses as the troops stay home", false], paperImg: "axis-summit",
+        say: "The troops stay in barracks. The Assembly is talking about impeachment, Your Excellency." }] });
   if (B.stage === 3 && B.progress < 100) {
     const r = seeded("bakunda", B.seed || "b", turn);
     const left = BAKUNDA_MISSIONS.filter(m => !B.sits.includes(m.id));
@@ -171,7 +182,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     } else if (turn >= 4) {
       // No war: two kinds of pressure short of it.
       const deck = BAKUNDA_PRESSURE.filter(x => !B.press.includes(x.id)), picks = [];
-      while (picks.length < 2 && deck.length) picks.push(deck.splice(Math.floor(r() * deck.length), 1)[0]);
+      while (picks.length < (B.override === "pending" ? 1 : 2) && deck.length) picks.push(deck.splice(Math.floor(r() * deck.length), 1)[0]);
       picks.forEach(x => decide({ id: "bkp_" + x.id, kind: "card", kicker: "Bakunda · Pressure", t: x.t, d: x.d, scene: x.id === "smuggle" ? "navy-patrol" : "axis-summit", learn: "ecowas", advice: x.advice,
         alarm: "there has been a grave development: the Axis is testing us, and we must answer short of war",
         opts: x.opts.map(o => ({ ...o, push: { press: x.id } })) }));
@@ -216,4 +227,4 @@ export const bakundaAfter = (B, o) => {
   Object.entries(o.push || {}).forEach(([k, v]) => { n[k] = [...(n[k] || []), v]; });
   return n;
 };
-export const bakundaLegacy = (B) => !B ? null : B.done ? "Led Nigeria through the war against the Bakunda–Ostrava Axis to the peace treaty the National Assembly enacted." : B.stage >= 3 && B.resolution === "passed" ? "Took Nigeria to war against the Bakunda–Ostrava Axis; the conflict was unresolved when the term ended." : B.stage >= 3 ? "Answered the Bakunda–Ostrava Axis with sanctions and diplomacy; the conflict was unresolved when the term ended." : null;
+export const bakundaLegacy = (B) => !B ? null : B.done ? "Led Nigeria through the war against the Bakunda–Ostrava Axis to the peace treaty the National Assembly enacted." : B.stage >= 3 && B.resolution === "overridden" ? "Vetoed the war against the Bakunda–Ostrava Axis, was overridden by the National Assembly, and led Nigeria into it; the conflict was unresolved when the term ended." : B.stage >= 3 && B.resolution === "passed" ? "Took Nigeria to war against the Bakunda–Ostrava Axis; the conflict was unresolved when the term ended." : B.stage >= 3 ? "Answered the Bakunda–Ostrava Axis with sanctions and diplomacy; the conflict was unresolved when the term ended." : null;
