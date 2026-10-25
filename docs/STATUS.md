@@ -38,6 +38,11 @@
   - Every security front and every governor's state crisis has two.
   - A new game draws one at random; the openings not drawn never turn up later.
 - **The agenda changes from game to game:** every year of every agenda has a second possible problem (40 for the first terms, 4 for the second), and a new game draws which one comes each year. Build, Build, Build might open with the land along the route, or with a market in the way.
+- **The daily decision: 60 dilemmas** (30 new: cholera, a building collapse, a market fire, an okada ban, SUVs for commissioners, a journalist arrested, pensioners at the gate, a jailbreak and more). Days already played keep their dilemma; none comes back within sixty days.
+- **The war's middle varies:**
+  - Each game draws a version of the readiness question, the junta's first hostile act, the Axis build-up and the ending (surrender, Voko flees, or his officers arrest him); the UN letter follows the ending.
+  - War weariness changes every year it lasts.
+  - Defence Headquarters has 18 missions, up from 10.
 - **The Bakunda war opens three ways:** a disputed election, a president who vanished, or a third term. The country is drawn each game.
 - **Tests:** tests/storylines.test.mjs plays 400 random terms per storyline and fails on any repeated card. The president e2e checks the "Last year you…" line on screen; the playthrough e2e checks the flagship story.
 

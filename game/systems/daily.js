@@ -162,10 +162,175 @@ const D = [
       { label: "Upgrade the settlement instead", fx: { app: 3, cash: -0.4, party: 0 }, out: "Water, drains and titles. The planners are sulking." } ] },
 ];
 
+
+// More dilemmas (added after the first 30-day cycle). Days 31 onward run
+// through these first, then the whole deck, so no day already played changes.
+const D2 = [
+  { id: "cholera", icon: "🦠", title: "Cholera in the riverside wards", brief: "Forty cases and three deaths in a week. The wells are next to the latrines, and the market is still open.", bg: "rural-health-centre", who: "doctor",
+    options: [
+      { label: "Close the market and truck in clean water", fx: { app: 2, cash: -0.5, party: -1 }, out: "The cases fall within ten days. The traders lost a week's money and say so." },
+      { label: "Open treatment tents, keep the market open", fx: { app: 1, cash: -0.3, party: 0 }, out: "Fewer deaths, more cases. It drags on for a month." },
+      { label: "Ask the federal disease centre to take over", fx: { app: -2, cash: 0, party: 0 }, out: "They come in five days. The papers count the funerals in between." } ] },
+  { id: "collapse", icon: "🏚️", title: "A five-storey building collapses", brief: "A building under construction fell on its workers at dawn. The developer had no approval; the planning officer who looked away is your appointee.", bg: "project-site-stalled", who: "contractor",
+    options: [
+      { label: "Lead the rescue, then sack the officer", fx: { app: 4, cash: -0.2, party: -1 }, out: "Eleven pulled out alive. The officer is gone; his godfather is not pleased." },
+      { label: "Rescue now, a panel of inquiry later", fx: { app: 1, cash: -0.2, party: 0 }, out: "The rescue works. The panel reports in a year." },
+      { label: "Blame the developer alone", fx: { app: -2, cash: 0, party: 1 }, out: "The developer is arrested. Everyone knows how he got away with it." } ] },
+  { id: "marketfire", icon: "🔥", title: "The main market is burning", brief: "Fire tore through three thousand stalls overnight. The fire service arrived without water. Traders have lost everything.", bg: "shuttered-market", who: "market-trader",
+    options: [
+      { label: "A relief fund for every trader, paid this week", fx: { app: 4, cash: -0.8, party: 0 }, out: "Paid by phone, verified by the market union. The traders cheer you on the ashes." },
+      { label: "Rebuild the market as a modern one", fx: { app: 1, cash: -0.6, party: 1 }, out: "A grand plan. The stalls will cost more than the traders can pay." },
+      { label: "Promise an investigation", fx: { app: -3, cash: 0, party: 0 }, out: "The traders wanted help, not a panel." } ] },
+  { id: "okada", icon: "🏍️", title: "Ban okada in the capital?", brief: "Your commissioner wants okada banned for safety: two hundred deaths last year. Forty thousand young men earn a living on them.", bg: "busy-market-street", who: "okada-rider",
+    options: [
+      { label: "Ban them, with loans to switch to tricycles", fx: { app: 1, cash: -0.4, party: 0 }, out: "Safer roads. Half the riders got loans; the rest are angry." },
+      { label: "Ban them only on the highways", fx: { app: 2, cash: 0, party: 0 }, out: "Fewer deaths, few protests. A sensible middle." },
+      { label: "No ban: register and license them", fx: { app: 1, cash: 0.1, party: 1 }, out: "Licence fees, helmets, numbers. The deaths fall a little." } ] },
+  { id: "cars", icon: "🚙", title: "New SUVs for your commissioners?", brief: "The commissioners' cars are old, and they say it embarrasses the state in Abuja. Forty new SUVs would cost ₦1.2B.", bg: "governor-office", who: "commissioner-male-suit",
+    options: [
+      { label: "Refuse: they can drive what they have", fx: { app: 3, cash: 0, party: -2 }, out: "The commissioners sulk. The public cheers." },
+      { label: "Buy them, quietly", fx: { app: -3, cash: -1.2, party: 2 }, out: "A photo of forty new SUVs leaks within a week." },
+      { label: "Buy buses for the civil servants instead", fx: { app: 4, cash: -0.8, party: -1 }, out: "Staff buses on every route. The commissioners grumble in their old cars." } ] },
+  { id: "journalist", icon: "📰", title: "A journalist is arrested over a post", brief: "Police arrested a journalist for a post accusing your Chief of Staff of fraud. Press freedom groups are calling.", bg: "tv-studio", who: "reporter",
+    options: [
+      { label: "Order his release and apologise", fx: { app: 3, cash: 0, party: -1 }, out: "Released within the hour. Your Chief of Staff is furious; the press is not." },
+      { label: "Let the court decide", fx: { app: -2, cash: 0, party: 1 }, out: "He spends two weeks in a cell. The story spreads further." },
+      { label: "Release him, and investigate the claim", fx: { app: 4, cash: 0, party: -2 }, out: "The claim had something in it. Your Chief of Staff resigns." } ] },
+  { id: "tanker", icon: "🛢️", title: "A tanker explodes on the bridge", brief: "A fuel tanker lost its brakes and exploded on the main bridge. Twenty dead. The bridge is cracked and closed.", bg: "rural-road-mud", who: "contractor",
+    options: [
+      { label: "Pay the families, close the bridge for repairs", fx: { app: 3, cash: -0.7, party: 0 }, out: "Repairs take four months. Traffic chokes, but nobody dies on it." },
+      { label: "Ban tankers from the city by day", fx: { app: 2, cash: 0, party: 0 }, out: "Tankers move at night. Fuel gets a little dearer." },
+      { label: "Reopen it after a quick inspection", fx: { app: -2, cash: -0.1, party: 1 }, out: "It is open. The engineers who signed it off are nervous." } ] },
+  { id: "pension", icon: "👴", title: "Pensioners march on Government House", brief: "Retired teachers and nurses are owed eighteen months of pension. Two collapsed in the sun at the gate.", bg: "street-protest", who: "civil-servant",
+    options: [
+      { label: "Pay six months now, the rest by a schedule", fx: { app: 3, cash: -0.9, party: 0 }, out: "The march ends. They will be back on the schedule's dates." },
+      { label: "Pay all of it", fx: { app: 5, cash: -2.0, party: 0 }, out: "Every pensioner paid. The treasury is thin for the rest of the year." },
+      { label: "Verify them first: there are ghost pensioners", fx: { app: -2, cash: 0.2, party: 0 }, out: "The audit finds 900 ghosts. It also takes six months." } ] },
+  { id: "birthday", icon: "🎂", title: "Your party plans your birthday", brief: "The party wants to fill the stadium for your birthday: billboards, musicians, ₦300M. 'The people love you,' they say.", bg: "rally", who: "party-chairman",
+    options: [
+      { label: "Cancel it: give the money to the children's hospital", fx: { app: 4, cash: 0, party: -1 }, out: "The hospital gets a new ward. The musicians are disappointed." },
+      { label: "A small party at home", fx: { app: 1, cash: 0, party: 0 }, out: "Quiet, cheap, unremarkable. Fine." },
+      { label: "Let them throw it", fx: { app: -3, cash: -0.3, party: 3 }, out: "A great party. The billboards are mocked online for a month." } ] },
+  { id: "corper", icon: "🎓", title: "A youth corps member is kidnapped", brief: "A corps member posted to a rural school in your state was taken on her way to class. Her parents are on national television.", bg: "classroom", who: "teacher",
+    options: [
+      { label: "Lead the search, and move corpers out of the riskiest LGAs", fx: { app: 3, cash: -0.3, party: 0 }, out: "Found alive in nine days. Corps members move to safer postings." },
+      { label: "Let the police and her family negotiate", fx: { app: -2, cash: 0, party: 0 }, out: "She comes home after a ransom. The country noticed you were absent." },
+      { label: "Pay for her release quietly", fx: { app: 1, cash: -0.2, party: 0 }, out: "Home in two days. The kidnappers know the state pays." } ] },
+  { id: "toll", icon: "🚧", title: "Protesters block the new toll gate", brief: "A private company built a toll gate on the expressway the state built. Commuters say they are paying twice.", bg: "street-protest", who: "okada-rider",
+    options: [
+      { label: "Suspend the toll until it is reviewed", fx: { app: 4, cash: -0.2, party: -1 }, out: "The gate opens. The company sues." },
+      { label: "Keep it, but free for buses and okada", fx: { app: 2, cash: 0, party: 0 }, out: "The poorest pass free. The protest fades." },
+      { label: "Keep it: the contract is signed", fx: { app: -4, cash: 0.2, party: 1 }, out: "The protest grows. A video of police tear gas goes viral." } ] },
+  { id: "vaccine", icon: "💉", title: "Rumours turn parents against polio drops", brief: "A preacher says the polio vaccine makes children sterile. Vaccinators were chased out of two villages.", bg: "rural-health-centre", who: "health-worker",
+    options: [
+      { label: "Vaccinate your own grandchild on television", fx: { app: 3, cash: -0.05, party: 0 }, out: "The clip runs everywhere. The villages open their doors." },
+      { label: "Bring the emirs and pastors on side", fx: { app: 2, cash: -0.1, party: 0 }, out: "Slower, but it lasts. The preacher is quiet now." },
+      { label: "Arrest the preacher", fx: { app: -1, cash: 0, party: 0 }, out: "He becomes a martyr. The rumour spreads." } ] },
+  { id: "club", icon: "⚽", title: "The state football club is broke", brief: "The players have not been paid for five months and threaten to forfeit the league. The fans are angry at you.", bg: "rally", who: "youth-group-cheering",
+    options: [
+      { label: "Pay them, then privatise the club", fx: { app: 2, cash: -0.4, party: 0 }, out: "Paid, and sold to a businessman who promises a stadium." },
+      { label: "Pay them and keep it", fx: { app: 3, cash: -0.5, party: 1 }, out: "The fans cheer. The club will be broke again next year." },
+      { label: "Let it fold: there are bigger needs", fx: { app: -3, cash: 0, party: 0 }, out: "The club folds. The fans boo you at the next match you attend." } ] },
+  { id: "jailbreak", icon: "🔓", title: "Gunmen free 300 inmates from the prison", brief: "Gunmen attacked the state's medium-security prison at night. Three hundred inmates escaped, some of them kidnappers.", bg: "detention-visiting-room", who: "police-commissioner",
+    options: [
+      { label: "A manhunt, and rewards for information", fx: { app: 2, cash: -0.3, party: 0 }, out: "A hundred and sixty back in a week. The rest are gone." },
+      { label: "Blame the federal prisons service", fx: { app: -1, cash: 0, party: 0 }, out: "True, and nobody cares whose prison it was." },
+      { label: "A curfew until they are caught", fx: { app: -2, cash: 0, party: 0 }, out: "Quiet streets, angry traders, half the escapees found." } ] },
+  { id: "streettraders", icon: "🛒", title: "Clear the street traders?", brief: "Street traders fill the roads of the capital. Your environment commissioner wants them cleared; they say they have nowhere else to sell.", bg: "busy-market-street", who: "market-women-group-angry",
+    options: [
+      { label: "Clear them, and open a new market first", fx: { app: 2, cash: -0.4, party: 0 }, out: "A new market by the motor park. Most traders move." },
+      { label: "Clear them by force", fx: { app: -4, cash: 0, party: 1 }, out: "Clear roads, burned goods, a viral video." },
+      { label: "Leave them", fx: { app: 1, cash: 0, party: 0 }, out: "The traffic stays. So do the votes." } ] },
+  { id: "deputy", icon: "🤝", title: "Your deputy is meeting the opposition", brief: "Your deputy was photographed at a dinner with the opposition's chairman. The party wants you to act.", bg: "back-room", who: "deputy-male",
+    options: [
+      { label: "Call the deputy in and ask", fx: { app: 0, cash: 0, party: 1 }, out: "A family dinner, the deputy says. You are not sure." },
+      { label: "Strip the deputy of every assignment", fx: { app: -1, cash: 0, party: 2 }, out: "Your deputy has nothing to do now, except plot." },
+      { label: "Ignore it", fx: { app: 0, cash: 0, party: -2 }, out: "The party thinks you are weak. Maybe the deputy does too." } ] },
+  { id: "borehole", icon: "🚰", title: "Two hundred boreholes that do not work", brief: "A newspaper visited the boreholes the state paid for last year: two hundred of them are dry holes or never existed.", bg: "village-square", who: "reporter",
+    options: [
+      { label: "Make the contractors fix them or refund", fx: { app: 3, cash: 0.2, party: -1 }, out: "Seventy fixed, some refunds. Two contractors are in court." },
+      { label: "Sack the commissioner", fx: { app: 2, cash: 0, party: -2 }, out: "A head rolls. The dry holes stay dry." },
+      { label: "Call the report 'fake news'", fx: { app: -4, cash: 0, party: 1 }, out: "The paper prints photographs of every one." } ] },
+  { id: "census", icon: "📋", title: "The census counters were attacked", brief: "Census officials were chased out of three LGAs by youths who say the count will be rigged against them. The federal deadline is in a month.", bg: "lga-secretariat", who: "civil-servant",
+    options: [
+      { label: "Bring community leaders with the counters", fx: { app: 2, cash: -0.1, party: 0 }, out: "The count resumes, escorted by elders." },
+      { label: "Send police with the counters", fx: { app: -1, cash: 0, party: 0 }, out: "Counted, under guard. Some families hid." },
+      { label: "Let those LGAs be estimated", fx: { app: -2, cash: 0, party: 0 }, out: "Estimated low. Less federal money for them, for ten years." } ] },
+  { id: "gasexplosion", icon: "💥", title: "A gas plant explodes in a neighbourhood", brief: "A cooking-gas refilling plant exploded in a residential street. Nine dead. It had a permit it should never have got.", bg: "flooded-community", who: "police-commissioner",
+    options: [
+      { label: "Close every gas plant in a residential area", fx: { app: 3, cash: 0, party: -1 }, out: "Sixty plants closed. Gas is dearer for a month." },
+      { label: "Inspect them all within a month", fx: { app: 2, cash: -0.1, party: 0 }, out: "Twelve closed, the rest fixed." },
+      { label: "Punish this one owner", fx: { app: -1, cash: 0, party: 0 }, out: "One owner jailed. The others wait for the noise to pass." } ] },
+  { id: "bursary", icon: "🎒", title: "Students want their bursaries", brief: "The state's university students have not received bursaries for two years. They have blocked the road to Government House.", bg: "street-protest", who: "student-leader",
+    options: [
+      { label: "Pay this year's, and a schedule for the arrears", fx: { app: 3, cash: -0.5, party: 0 }, out: "The road opens. The schedule is published." },
+      { label: "Replace bursaries with loans", fx: { app: -1, cash: 0.1, party: 0 }, out: "Cheaper for the state. The students are not convinced." },
+      { label: "Send the police to clear the road", fx: { app: -4, cash: 0, party: 1 }, out: "Tear gas at the university gate. A student is hurt." } ] },
+  { id: "examleak", icon: "📄", title: "The exam papers leaked", brief: "The state's common entrance exam papers were on sale the night before. Parents who paid are furious they might have to resit.", bg: "classroom", who: "teacher",
+    options: [
+      { label: "Cancel and set a new exam", fx: { app: 1, cash: -0.1, party: 0 }, out: "A resit in two weeks. Honest families are relieved." },
+      { label: "Let the results stand", fx: { app: -3, cash: 0, party: 0 }, out: "The cheats are in. Everybody knows it." },
+      { label: "Find and prosecute the leakers first", fx: { app: 2, cash: -0.05, party: 0 }, out: "A clerk and a printer charged. The resit goes ahead." } ] },
+  { id: "chief", icon: "👑", title: "Two princes claim the vacant throne", brief: "The old king died. Two ruling houses each crowned their own man yesterday. Both palaces are guarded by armed youths.", bg: "emirs-palace-courtyard", who: "traditional-ruler-oba-obi",
+    options: [
+      { label: "Follow the kingmakers' written list", fx: { app: 1, cash: 0, party: 0 }, out: "The list names one prince. The other house goes to court." },
+      { label: "Recognise the prince from your party's ward", fx: { app: -2, cash: 0, party: 3 }, out: "Your man sits on the throne. Half the town calls him your puppet." },
+      { label: "Leave the throne vacant until the court rules", fx: { app: 0, cash: 0, party: -1 }, out: "No king for a year. The guards stay." } ] },
+  { id: "refuse", icon: "🗑️", title: "Rubbish piles up in the capital", brief: "The refuse contractor has not been paid and stopped collecting. Mountains of rubbish block drains before the rains.", bg: "busy-market-street", who: "contractor",
+    options: [
+      { label: "Pay him and clear it by the weekend", fx: { app: 3, cash: -0.4, party: 0 }, out: "Clean streets by Sunday." },
+      { label: "Sack him and hire many small collectors", fx: { app: 2, cash: -0.3, party: 0 }, out: "Slower to start, cheaper to run." },
+      { label: "A monthly sanitation day instead", fx: { app: -1, cash: 0, party: 0 }, out: "Residents sweep one Saturday a month. The mountains stay." } ] },
+  { id: "investor", icon: "🏭", title: "A factory wants twenty years tax-free", brief: "A fictional company, Delta Steel Works, will build a mill with two thousand jobs, if it pays no state taxes for twenty years.", bg: "governor-office", who: "investor-foreign",
+    options: [
+      { label: "Ten years, with hiring targets", fx: { app: 2, cash: 0, party: 0 }, out: "They agree after a week. The mill breaks ground." },
+      { label: "Twenty years: jobs are jobs", fx: { app: 3, cash: -0.2, party: 1 }, out: "Two thousand jobs. The tax office sighs." },
+      { label: "No: everyone pays", fx: { app: -1, cash: 0, party: 0 }, out: "They build in the next state." } ] },
+  { id: "bridge", icon: "🌉", title: "The only bridge to three LGAs is cracking", brief: "Engineers say the old bridge could fall in the rains. It is the only road to three LGAs and their markets.", bg: "rural-road-mud", who: "contractor",
+    options: [
+      { label: "Close it and build a temporary crossing", fx: { app: 1, cash: -0.6, party: 0 }, out: "A steel crossing in six weeks. Nobody dies." },
+      { label: "Keep it open, ban heavy trucks", fx: { app: 1, cash: 0, party: 0 }, out: "It holds, for now. The trucks go round." },
+      { label: "Wait for the federal ministry", fx: { app: -3, cash: 0, party: 0 }, out: "The ministry is studying it." } ] },
+  { id: "demolition_church", icon: "⛪", title: "A church and a mosque on the road's path", brief: "The new ring road runs through a church and a mosque. Both congregations say they will not move.", bg: "village-square", who: "traditional-ruler-emir",
+    options: [
+      { label: "Re-route the road around both", fx: { app: 3, cash: -0.5, party: 0 }, out: "A longer road. Both congregations thank you." },
+      { label: "Build them new ones first, then demolish", fx: { app: 1, cash: -0.4, party: 0 }, out: "New buildings, grudging moves." },
+      { label: "Demolish both: the law is the law", fx: { app: -5, cash: 0, party: 0 }, out: "Two congregations united against you." } ] },
+  { id: "diaspora", icon: "✈️", title: "A diaspora doctor wants to come home", brief: "A famous surgeon in London will return to run the state hospital, if the state pays a London salary and lets her hire her own team.", bg: "hospital-ward", who: "doctor",
+    options: [
+      { label: "Agree to everything", fx: { app: 3, cash: -0.3, party: -1 }, out: "She arrives in a month. Local doctors resent her pay." },
+      { label: "Pay a top local salary, her own team", fx: { app: 1, cash: -0.1, party: 0 }, out: "She thinks about it, and stays in London." },
+      { label: "Make her a visiting consultant", fx: { app: 2, cash: -0.1, party: 0 }, out: "She comes four times a year. It helps." } ] },
+  { id: "power_tariff", icon: "💡", title: "The electricity company doubles its tariff", brief: "The power distribution company doubled its tariff overnight. Bills arrive for power nobody got. Residents are tearing down meters.", bg: "street-protest", who: "manufacturers-rep",
+    options: [
+      { label: "Take them on: no bills without meters", fx: { app: 4, cash: 0, party: 0 }, out: "The regulator backs you. Estimated bills are suspended." },
+      { label: "Subsidise the poorest homes' bills", fx: { app: 2, cash: -0.5, party: 0 }, out: "Relief for some. The company pockets it." },
+      { label: "It is federal: stay out", fx: { app: -3, cash: 0, party: 0 }, out: "Residents protest at your gate anyway." } ] },
+  { id: "lgchair", icon: "🏛️", title: "An LG chairman refuses to hand over", brief: "The chairman of a local government lost the council election but refuses to leave the secretariat. His thugs have the keys.", bg: "lga-secretariat", who: "lg-chairman",
+    options: [
+      { label: "Send the police to enforce the result", fx: { app: 2, cash: 0, party: -1 }, out: "He leaves under escort. The new chairman takes the keys." },
+      { label: "Negotiate a soft landing for him", fx: { app: 0, cash: -0.1, party: 1 }, out: "A board appointment, and he goes quietly." },
+      { label: "Let the courts decide", fx: { app: -2, cash: 0, party: 0 }, out: "The council has two chairmen for six months." } ] },
+  { id: "hospitaldeath", icon: "🏥", title: "A woman dies at the hospital gate", brief: "A woman in labour died at the gate of the state hospital because her family could not pay the deposit. The video is everywhere.", bg: "hospital-ward", who: "nurse",
+    options: [
+      { label: "Ban deposits for emergencies, today", fx: { app: 4, cash: -0.3, party: 0 }, out: "No more deposits for emergencies. The hospitals want the money from somewhere." },
+      { label: "Suspend the staff on duty", fx: { app: 1, cash: 0, party: 0 }, out: "The nurses say they followed the rules you made." },
+      { label: "Send condolences", fx: { app: -4, cash: 0, party: 0 }, out: "Condolences. The video keeps playing." } ] },
+];
+
 // A fixed shuffled order, so neighbouring days differ.
-const ORDER = (() => { const a = D.map((_, i) => i); let x = 2463534242; for (let i = a.length - 1; i > 0; i--) { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; })();
-export const DAILY = D;
-export const dailyFor = (n) => D[ORDER[(n - 1) % D.length]];
+const shuffle = (n, x0) => { const a = Array.from({ length: n }, (_, i) => i); let x = x0; for (let i = a.length - 1; i > 0; i--) { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; const j = x % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const ORDER = shuffle(D.length, 2463534242);
+const ORDER2 = shuffle(D2.length, 1013904223);
+export const DAILY = [...D, ...D2];
+// Days 1–30: the first deck, as it was. Then the new dilemmas, then the whole deck in turn.
+export const dailyFor = (n) => {
+  if (n <= D.length) return D[ORDER[n - 1]];
+  const k = n - D.length - 1;
+  if (k < D2.length) return D2[ORDER2[k]];
+  const all = DAILY.length, i = (k - D2.length) % all;
+  return i < D.length ? D[ORDER[i]] : D2[ORDER2[i - D.length]]; // the oldest first, so nothing comes back soon
+};
 
 // Spoiler-free share text: three coloured squares for approval, money and party.
 const sq = (v) => (v > 0 ? "🟩" : v < 0 ? "🟥" : "⬜");

@@ -24,3 +24,10 @@ test("streaks count days in a row; a freeze saves one missed day", () => {
   assert.equal(streakOf([7, 8], 10, 1).streak, 3, "a freeze covers yesterday");
   assert.equal(streakOf([1, 2, 3, 9], 9).best, 3);
 });
+
+test("days already played keep their dilemma; a new one never comes back within sixty days", () => {
+  assert.equal(DAILY.length, 60);
+  const first = Array.from({ length: 30 }, (_, i) => dailyFor(i + 1).id);
+  assert.deepEqual(first.slice(0, 2), [dailyFor(1).id, dailyFor(2).id]);
+  for (let n = 1; n <= 400; n++) { const id = dailyFor(n).id; for (let m = n + 1; m < n + 60 && m <= 400; m++) assert.notEqual(dailyFor(m).id, id, "day " + n + " and day " + m); }
+});

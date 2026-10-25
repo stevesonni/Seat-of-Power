@@ -64,3 +64,14 @@ test("the war does not begin the same way, or with the same country, every game"
     assert.match(c1.t, /Kasongo/); assert.match(c2.t, /General Kalembe/); assert.ok(!/Voko|Bakunda/.test(c1.d + c2.d));
   });
 });
+
+test("the middle of the war is told differently in different games, and weariness changes each year", async () => {
+  const { BK_VARY } = await import("../game/systems/bakunda.js");
+  const titles = new Set();
+  for (const v of ["00000", "11111", "22222"]) { const B = { ...bakundaInit("s", () => 0), vary: v }; titles.add(bakundaCards(B, 1).find(c => c.id === "bk1b").t); }
+  assert.equal(titles.size, 3);
+  const B = { ...bakundaInit("s", () => 0), stage: 3, atWar: 2, vary: "00000" };
+  const w2 = bakundaCards(B, 6).find(c => c.id === "bk6"), w3 = bakundaCards({ ...B, atWar: 3 }, 7).find(c => c.id === "bk6");
+  assert.ok(w2 && w3 && w2.t !== w3.t, "a different weariness each year");
+  assert.equal(Object.keys(BK_VARY).length, 5);
+});

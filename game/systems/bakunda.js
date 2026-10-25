@@ -56,6 +56,14 @@ export const BAKUNDA_MISSIONS = [
   { id: "convoy", need: "army", d: "Ostravan arms convoys are rolling down the Saharan highway into Bakunda. The generals want a land force astride the road.", win: ["ARMS ROUTE CUT", "The Army holds the Saharan highway"] },
   { id: "ally", need: "army", d: "Bakunda has invaded the Republic of Sabelle, our ECOWAS ally to the north-west. It is a land war, and Sabelle asks for our troops.", win: ["NIGERIA STANDS BY ITS ALLY", "Our troops answer Sabelle's call"] },
   { id: "hackers", need: "air", d: "Junta hackers have broken into our military communications. The generals suggest an air strike on their cyber headquarters.", win: ["JUNTA HACKERS SILENCED", "Air Force hits the cyber headquarters"] },
+  { id: "island", need: "sbs", d: "Axis saboteurs who blew up a gas pipeline near the border are hiding on a river island, waiting for a boat out.", win: ["PIPELINE SABOTEURS CAPTURED", "SBS commandos take the river island at dawn"] },
+  { id: "radar", need: "air", d: "An Axis radar station on a mountain top inside Bakunda guides their drones onto our troops.", win: ["AXIS RADAR KNOCKED OUT", "Air Force strike blinds the junta's drones"] },
+  { id: "pontoon", need: "air", d: "Junta engineers are building a pontoon bridge across the border river at night, to move tanks into Borno.", win: ["JUNTA'S BRIDGE DESTROYED", "The Air Force sinks the pontoon before the tanks cross"] },
+  { id: "camp", need: "army", d: "Junta raiders are attacking a refugee camp inside Nigeria to drag back the families who fled them.", win: ["REFUGEE CAMP DEFENDED", "The Army drives off the junta's raiders"] },
+  { id: "mines", need: "navy", d: "The Axis has laid mines in the Lake Chad shipping lanes. Two fishing boats have already been blown up.", win: ["LAKE CHAD CLEARED OF MINES", "Navy minesweepers reopen the shipping lanes"] },
+  { id: "pows", need: "sbs", d: "Twelve captured Nigerian soldiers are held in an old river fort inside Bakunda. The junta plans to parade them on television.", win: ["OUR SOLDIERS COME HOME", "SBS commandos free the prisoners from the river fort"] },
+  { id: "depot", need: "air", d: "A fuel depot at a desert oasis keeps the junta's tanks moving. It is three hundred kilometres from our nearest base.", win: ["JUNTA FUEL DEPOT ABLAZE", "The Air Force cuts the tanks' fuel at the oasis"] },
+  { id: "market", need: "army", d: "Junta troops have dug in around the market of a border town, using the traders as cover.", win: ["BORDER TOWN LIBERATED", "The Army clears the market house by house"] },
 ];
 
 /* Diplomacy while the war goes on: each letter (game/systems/trips.js) and
@@ -258,7 +266,36 @@ export const BK_OPEN = [
     news1: ["In world news: protests rage in Bakunda's capital over a third term for its President.", "Abuja calls for restraint. The region is nervous."],
     body: ["The President has rewritten the constitution to stay a third term. The protests grow every night, and his police shoot to kill.", "The army is watching the streets and the palace. I recommend a cautious statement; if you want eyes on the ground, send an envoy now."] },
 ];
-export const bakundaInit = (seed, r = Math.random) => ({ seed: String(seed), country: Object.keys(BAKUNDA_COUNTRIES)[Math.floor(r() * 4) % 4], open: Math.floor(r() * BK_OPEN.length) % BK_OPEN.length, stage: 0, warned: false, progress: 0, atWar: 0, resolution: null, sits: [], dipl: [], treaty: null, done: false, washington: null, tipped: false });
+/* The middle of the war varies too: each game draws a version of the
+   readiness question, the junta's first insult, the Axis build-up, the war
+   weariness and the junta's end. Same choices and stakes; a different story. */
+export const BK_VARY = {
+  bk1b: [
+    { t: "Raise readiness on the northern border?", d: "If Bakunda falls apart, our northern states are first in line: refugees, raiders, worse. The army chief asks to move troops north now." },
+    { t: "Bakundan troops seen near our border", d: "Villagers in Yobe report Bakundan army trucks a few kilometres from the border, and a drone over a market. The army chief asks to move troops north now." },
+    { t: "The first refugees are already crossing", d: "Families from Bakunda are crossing into Yobe with whatever they can carry, ahead of whatever is coming. The army chief asks to move troops north now, and the camps want money." } ],
+  bk2b: [
+    { t: "The junta expels our ambassador", d: "General Voko has given Nigeria's ambassador 48 hours to leave, and his soldiers have taken the embassy's cars." },
+    { t: "The junta seizes Nigerian businesses", d: "General Voko has 'nationalised' three Nigerian banks and a cement factory in Bakunda, and arrested their managers as 'economic saboteurs'." },
+    { t: "Junta soldiers fire on Nigerian trucks", d: "Bakundan soldiers fired on a convoy of Nigerian traders' trucks at the border, killing two drivers. The junta says they were smuggling weapons." } ],
+  bk3b: [
+    { t: "Ostravan warships on Lake Chad", d: "Two Ostravan gunboats have docked at Bakunda's lake port. The Chief of the Naval Staff wants the Special Boat Service to shadow them." },
+    { t: "Ostravan gunboats patrol the lake at night", d: "Ostravan gunboats are patrolling Lake Chad without lights, close to our fishing towns. The Chief of the Naval Staff wants the Special Boat Service to shadow them." },
+    { t: "An Ostravan arms ship heads up the river", d: "An Ostravan cargo ship is moving up the river towards Bakunda's lake port, low in the water. The Chief of the Naval Staff wants the Special Boat Service to shadow it." } ],
+  bk6: [
+    { t: "“The people are tired of it”", d: "The war rages on. Funerals in the barracks towns, prices up in the north. Your army chief: “The people want to see us win it as soon as possible.”" },
+    { t: "A soldier's mother writes to you", d: "A letter from a mother in Kaduna whose son died at the front is read on every radio station: 'Tell me what he died for.' Your army chief: “The country needs to hear you.”" },
+    { t: "Food prices double in the north", d: "The war has closed the northern trade routes; food prices in Kano and Maiduguri have doubled. Your army chief: “Win it soon, or the home front breaks before the enemy does.”" } ],
+  bk7: [
+    { t: "Bakunda surrenders", alarm: "grave news, and good: the junta has suffered defeat after defeat, and General Voko has offered to surrender", body: null },
+    { t: "General Voko flees into exile", alarm: "grave news, and good: General Voko has fled Bakunda by night, and his officers have asked for terms",
+      body: ["General Voko has fled Bakunda by night, with what is left of the treasury. His officers have asked for terms.", "They will sign a peace treaty and withdraw their troops, and Ostrava will go home.", "The United Nations offers to host the signing in Geneva. Please make sure Nigeria is represented."] },
+    { t: "Voko's own officers turn on him", alarm: "grave news, and good: General Voko's own officers have arrested him, and they want peace",
+      body: ["General Voko has been arrested by his own officers, who blame him for the defeats.", "The new military council will sign a peace treaty, withdraw its troops and hand over to civilians. Ostrava is going home.", "The United Nations offers to host the signing in Geneva. Please make sure Nigeria is represented."] } ],
+};
+// This game's version of a beat; shift turns it each year (war weariness changes every year it lasts).
+const vary = (B, k, shift = 0) => { const L = BK_VARY[k], d = Number(String((B && B.vary) || "00000").charAt(Object.keys(BK_VARY).indexOf(k))) || 0; return L[(d + shift) % L.length]; };
+export const bakundaInit = (seed, r = Math.random) => ({ seed: String(seed), vary: Object.keys(BK_VARY).map(() => Math.floor(r() * 3) % 3).join(""), country: Object.keys(BAKUNDA_COUNTRIES)[Math.floor(r() * 4) % 4], open: Math.floor(r() * BK_OPEN.length) % BK_OPEN.length, stage: 0, warned: false, progress: 0, atWar: 0, resolution: null, sits: [], dipl: [], treaty: null, done: false, washington: null, tipped: false });
 
 // News for the anchors at each beat: [his line, her line].
 const NEWS = {
@@ -287,8 +324,8 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     d: O1.bk1[1],
     opts: [{ id: "statement", l: "Issue a statement calling for calm", img: "scenes/national-broadcast", fx: { app: 0 }, set: { stage: 1, warned: false }, paper: ["ABUJA CALLS FOR CALM IN BAKUNDA", "The President urges restraint after the disputed election", true], paperImg: "national-broadcast" },
       { id: "envoy", l: "Send a special envoy now", cost: 4, fx: { app: 1 }, npc: { army: 2 }, set: { stage: 1, warned: true }, paper: ["PRESIDENT SENDS SPECIAL ENVOY TO BAKUNDA", "Abuja moves early as unrest spreads", true], paperImg: "bakunda-coup", say: "The envoy is on the ground. Whatever happens next, we will not be surprised." }] });
-    decide({ id: "bk1b", kind: "card", kicker: "Bakunda · Readiness", t: "Raise readiness on the northern border?", scene: "army-convoy", learn: "deploy",
-      d: "If Bakunda falls apart, our northern states are first in line: refugees, raiders, worse. The army chief asks to move troops north now.",
+    decide({ id: "bk1b", kind: "card", kicker: "Bakunda · Readiness", t: vary(B, "bk1b").t, scene: "army-convoy", learn: "deploy",
+      d: vary(B, "bk1b").d,
       advice: "Moving early costs money. Moving late costs lives. I would move now, Your Excellency.",
       opts: [{ id: "ready", l: "Raise readiness: move troops north", cost: 6, fx: { app: 1, sec: .01 }, npc: { army: 3 }, set: { ready: true }, paper: ["TROOPS MOVE NORTH AS BAKUNDA BOILS", "The President orders the border on alert", true], paperImg: "army-convoy", say: "The troops are moving. If it comes, we will be ready." },
         { id: "calm", l: "Keep things normal: no alarm", fx: { app: 0 }, npc: { army: -2 }, set: { ready: false }, paper: ["“NO CAUSE FOR ALARM”, SAYS ABUJA", "The President keeps troops in barracks", false], say: "As you wish. I hope we are not caught out." }] });
@@ -301,8 +338,8 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
       { id: "sanctions", l: "Lead ECOWAS to suspend Bakunda and impose sanctions", cost: 2, fx: { app: 1 }, npc: { nass: 3 }, img: "characters/general-voko-angry", set: { stage: 2 }, paper: ["ECOWAS SUSPENDS BAKUNDA AT NIGERIA'S URGING", "Sanctions on General Voko's junta", true], paperImg: "ecowas-summit" },
       { id: "border", l: "Close our northern border", cost: 3, fx: { app: B.warned ? -1 : -3, sec: .01 }, img: "scenes/refugees-border", set: { stage: 2 }, paper: ["NIGERIA SHUTS NORTHERN BORDER", "Families already across fill the camps", false], paperImg: "refugees-border", say: "The border is closed, but the families already across are in our camps now." }],
     spill: B.warned ? 0 : B.ready ? 1 : 3 });
-    decide({ id: "bk2b", kind: "card", kicker: "Bakunda · The embassy", t: "The junta expels our ambassador", scene: "bakunda-coup", learn: "foreign",
-      d: "General Voko has given Nigeria's ambassador 48 hours to leave, and his soldiers have taken the embassy's cars.",
+    decide({ id: "bk2b", kind: "card", kicker: "Bakunda · The junta strikes first", t: vary(B, "bk2b").t, scene: "bakunda-coup", learn: "foreign",
+      d: vary(B, "bk2b").d,
       advice: "Answer in kind, and hit their money. A junta respects only strength.",
       opts: [{ id: "expel", l: "Expel their envoy and freeze the junta's accounts", fx: { app: 2 }, npc: { army: 2 }, add: { progress: 3 }, img: "characters/general-voko-angry", paper: ["NIGERIA EXPELS BAKUNDA'S ENVOY", "The junta's accounts frozen in retaliation", true], paperImg: "bakunda-coup", say: "Good. Now they know we are not afraid of them." },
         { id: "channel", l: "Keep a quiet channel open through Chad", fx: { app: -1 }, npc: { army: -2 }, add: { progress: 1 }, img: "characters/general-voko-pleased", paper: ["ABUJA STAYS QUIET AS AMBASSADOR IS EXPELLED", "The President keeps a back channel open", false], paperImg: "bakunda-coup", say: "A channel may help later. Today it looks like weakness." }] });
@@ -314,8 +351,8 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     opts: [{ id: "assent", l: "Assent: declare war", fx: { app: 2, sec: .01 }, npc: { army: 4 }, set: { stage: 3, atWar: 1, resolution: "passed" }, img: "scenes/bakunda-war-room", paperImg: "bakunda-war-room", paper: ["NIGERIA DECLARES WAR ON THE BAKUNDA AXIS", "The National Assembly's resolution signed", false],
         say: "Your Excellency, there have been major developments. Watch your mail for missions from Defence Headquarters, and act as Commander-in-Chief." },
       { id: "veto", l: "Veto: sanctions and talks only", fx: { app: -2 }, npc: { army: -6, nass: -3 }, set: { stage: 3, atWar: 0, resolution: "vetoed", override: "pending" }, paper: ["PRESIDENT VETOES WAR RESOLUTION", "Senators vow to override", false], paperImg: "axis-summit", say: "No war, then, for now. But the Assembly will not take this lying down, Your Excellency. They have the votes to override you." }] });
-    decide({ id: "bk3b", kind: "card", kicker: "Bakunda · Lake Chad", t: "Ostravan warships on Lake Chad", scene: "navy-patrol", learn: "forces",
-      d: "Two Ostravan gunboats have docked at Bakunda's lake port. The Chief of the Naval Staff wants the Special Boat Service to shadow them.",
+    decide({ id: "bk3b", kind: "card", kicker: "Bakunda · Lake Chad", t: vary(B, "bk3b").t, scene: "navy-patrol", learn: "forces",
+      d: vary(B, "bk3b").d,
       advice: "Let the SBS watch them. If they move on our shore, we will know first.",
       opts: [{ id: "sbs", l: "Send the SBS to shadow them", cost: 5, fx: { app: 1, sec: .01 }, npc: { army: 2 }, add: { progress: 8 }, img: "scenes/sbs-raid", paper: ["SBS COMMANDOS SHADOW OSTRAVAN GUNBOATS", "The Navy watches the Axis on Lake Chad", true], paperImg: "sbs-raid", say: "The SBS are in the water. Nothing moves on that lake now without us knowing." },
         { id: "air", l: "Watch from the air only", cost: 2, fx: { app: 0 }, add: { progress: 3 }, paper: ["AIR FORCE WATCHES LAKE CHAD FROM ABOVE", "Ostrava's gunboats stay in port", true], paperImg: "air-strike", say: "We will see them from above. We will not hear them." }] });
@@ -344,8 +381,8 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
           paper: k === m.need ? [m.win[0], m.win[1], true] : ["THE WRONG FORCE FOR THE GROUND", "Our " + (F.full || F.nm) + " could not reach the enemy · the junta holds", false],
           say: k === m.need ? "The right force for that ground, Your Excellency" + (B.marines ? ", and the US Marines were beside us" : "") + ". The Axis did not expect it." : "We are committed, but the " + (F.full || F.nm) + " is wrong for that ground. It stalls us." }))
           .concat([{ id: "stay", l: "Don't get involved", fx: { app: -2 }, npc: { army: -4 }, push: { sits: m.id }, add: { atWar: i === 0 ? 1 : 0 }, paper: ["NIGERIA STANDS ASIDE", "The Axis presses on", false], say: "We stood back, Your Excellency. The Axis will not." }]) }));
-      if (B.atWar >= 2) decide({ id: "bk6", kind: "card", kicker: "The war · year " + B.atWar, t: "“The people are tired of it”", scene: "war-weariness", learn: "war", advice: "A clear word from you steadies the country. A push costs money and lives, but shortens the war.",
-      d: "The war rages on. Funerals in the barracks towns, prices up in the north. Your army chief: “The people want to see us win it as soon as possible.”", fatigue: 1 + B.atWar,
+      if (B.atWar >= 2) decide({ id: "bk6", kind: "card", kicker: "The war · year " + B.atWar, t: vary(B, "bk6", B.atWar).t, scene: "war-weariness", learn: "war", advice: "A clear word from you steadies the country. A push costs money and lives, but shortens the war.",
+      d: vary(B, "bk6", B.atWar).d, fatigue: 1 + B.atWar,
       opts: [{ id: "address", l: "Address the nation: why we fight", img: "scenes/national-broadcast", fx: { app: 2 }, set: {}, paper: ["“WE FIGHT FOR PEACE”: PRESIDENT ADDRESSES THE NATION", "War-weary Nigerians hear the case for the war", true], paperImg: "national-broadcast" },
         { id: "push", l: "Order a decisive push", cost: 30, fx: { app: -1 }, npc: { army: 4 }, add: { progress: 10 }, img: "scenes/bakunda-war-room", paper: ["PRESIDENT ORDERS DECISIVE PUSH ON THE AXIS", "Troops press on every front", true], paperImg: "bakunda-war-room", say: "We will press them on every front, Your Excellency." }]  });
     } else if (turn >= 4) {
@@ -360,7 +397,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     if (B.atWar >= 1 && turn >= 4 && !B.tipped) out.push({ id: "bk_tip", kind: "tip", t: "Keep a sharp eye out for diplomacy letters in your mail, Your Excellency. Working with allies will end this war sooner, and better for us.", set: { tipped: true } });
   }
   // The junta surrenders: the signing in Geneva is the year's trip.
-  if (B.stage === 3 && B.progress >= 100) out.push({ id: "bk7", kind: "letter", letter: "bk_surrender", kicker: "Peace", t: "Bakunda surrenders", news: NEWS.peace, learn: "treaty", alarm: "grave news, and good: the junta has suffered defeat after defeat, and General Voko has offered to surrender",
+  if (B.stage === 3 && B.progress >= 100) out.push({ id: "bk7", kind: "letter", letter: "bk_surrender", letterBody: vary(B, "bk7").body || undefined, kicker: "Peace", t: vary(B, "bk7").t, news: NEWS.peace, learn: "treaty", alarm: vary(B, "bk7").alarm,
     opts: [{ id: "go", l: "Attend in person", cost: 5, fx: { app: 4 }, set: { stage: 4 }, flight: true, dest: "signing", paper: ["BAKUNDA SURRENDERS!", "The UN hosts the signing of the peace treaty in Geneva", true], paperImg: "peace-signing", img: "scenes/peace-signing" },
       { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 1 }, set: { stage: 4 }, paper: ["BAKUNDA SURRENDERS!", "Nigeria's Foreign Minister signs the treaty in Geneva", true], paperImg: "peace-signing", img: "characters/general-voko" }] });
   // The peace treaty goes to the National Assembly.
