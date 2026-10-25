@@ -74,3 +74,7 @@ test("old saves (the earlier storyline) still play", () => {
   const old = { stage: 3, warned: true, terrain: "air", force: "air", progress: 40, atWar: 1, summits: 1, senate: null, treaty: null, done: false, washington: null };
   assert.ok(bakundaCards(old, 5).length > 0);
 });
+test("every Bakunda decision makes the front page", () => {
+  const states = [[bakundaInit("p"), 1], [{ ...bakundaInit("p"), stage: 1 }, 2], [{ ...bakundaInit("p"), stage: 2 }, 3], [{ ...bakundaInit("p"), stage: 3, atWar: 2 }, 5], [{ ...bakundaInit("p"), stage: 3, progress: 100 }, 6], [{ ...bakundaInit("p"), stage: 4 }, 7], [{ ...bakundaInit("p"), stage: 4, treaty: "stalled" }, 7]];
+  for (const [B, t] of states) for (const c of bakundaCards(B, t, { nass: 20 })) for (const o of c.opts || []) assert.ok(o.paper && o.paper[0], c.id + " / " + o.id);
+});

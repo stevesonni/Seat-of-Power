@@ -1791,11 +1791,15 @@ const Fold = ({ title, summary, children, open: startOpen = false }) => {
 // background alone.
 // An icon from the icon pack (public/art/icons), sized to sit in a line of text.
 const Ico = ({ n, s = 22, style }) => React.createElement("img", { src: "./art/icons/" + n + ".webp", alt: "", "aria-hidden": "true", style: { width: s, height: s, objectFit: "contain", verticalAlign: "middle", flexShrink: 0, ...(style || {}) } });
-const SceneArt = ({ bg, scene, who, obj, alt, h = 230 }) => React.createElement("div", {
+/* Backgrounds that already have people in them: a portrait or object laid
+   over these looks like a stranger standing in the room, so they show alone,
+   like a scene. Portraits only stand in empty rooms. */
+const POPULATED_BG = new Set(["airport-arrivals", "assembly-chamber-wide", "burial-ceremony", "busy-market-street", "classroom", "collation-board-lga", "constituency-office", "consular-hall", "embassy-exterior", "emirs-palace-courtyard", "evacuation-airport", "federal-executive-council", "flooded-community", "foreign-ministry-meeting", "hospital-ward", "lga-secretariat", "party-convention-hall", "polling-unit", "project-ribbon-cutting", "project-site-cleared", "project-site-halfway", "rally", "rural-health-centre", "rural-road-mud", "senate-hearing-room", "situation-room", "state-banquet", "state-secretariat", "street-protest", "village-square"]);
+const SceneArt = ({ bg, scene, who: who0, obj: obj0, alt, h = 230 }) => { const crowd = !scene && POPULATED_BG.has(bg), who = crowd ? null : who0, obj = crowd ? null : obj0; return React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
     background: "#1d2a22 url(./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp) center/cover" } },
   scene ? null : who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
-    : obj ? React.createElement("img", { src: "./art/objects/" + obj + ".webp", alt: alt || "", style: { height: Math.round(h * .68), width: "auto", objectFit: "contain", marginBottom: Math.round(h * .12), filter: "drop-shadow(0 10px 18px rgba(0,0,0,.35))" } }) : null);
+    : obj ? React.createElement("img", { src: "./art/objects/" + obj + ".webp", alt: alt || "", style: { height: Math.round(h * .68), width: "auto", objectFit: "contain", marginBottom: Math.round(h * .12), filter: "drop-shadow(0 10px 18px rgba(0,0,0,.35))" } }) : null); };
 
 // ── Campaign screens (first election and re-election) ──
 // A scoreboard (you against the opponent), three zones to win and short move cards.
@@ -5675,6 +5679,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   /* A trip abroad: the adviser speaks first, then the pilot welcomes you at
      the Presidential Air Fleet, then the flight. */
+  const nsaName = "Gen. " + gNAs(rng(state.length * 517 + pName.length * 13), "NE", NATION, false) + " (rtd.)"; // his portrait is a man
   const pilotName = "Group Captain " + gNAs(rng(state.length * 313 + pName.length * 7), "NC", NATION, false); // the pilot's portrait is a man
   const presTrip = (dest, purpose) => {
     const sa = cast.adviser.name;
@@ -5709,7 +5714,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       } }; }) };
   };
   // The National Security Council: the two worst fronts, a crackdown or talks for each (SYS.frontsCard).
-  const frontsCardFor = (c) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: ["situation-room", "national-security-adviser", null, null], title: c.t, brief: c.d,
+  const frontsCardFor = (c) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: ["situation-room", null, null, null], title: c.t, brief: c.d,
     options: c.opts.map(o => ({ label: o.l, chips: fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }).concat([{ text: naira(o.cost), color: CL.org }]), run: () => {
       scFx({ app: (o.fx || {}).app || 0, cor: (o.fx || {}).cor || 0, debt: o.cost });
       setS(p => { const zm = { ...(p.zoneMood || {}) }; Object.entries(o.zones || {}).forEach(([z, v]) => { const i = NATION_ZONE_IDS.indexOf(z); if (i >= 0) zm[i] = Math.max(-25, Math.min(25, (zm[i] || 0) + v)); }); return { ...p, zoneMood: zm }; });
@@ -8653,6 +8658,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!add.length) return;
     setMail(m => [...m, ...add]);
     pingMail(add.length, add[0].key);
+    // The Security Council's letter: the National Security Adviser comes in person, by name.
+    const ns = add.find(l => String(l.key).startsWith("sc#pres_nsc"));
+    if (ns && NAT) { const hot = Object.values(stc.fronts || {}).some(v => v >= 70); setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/national-security-adviser" + (hot ? "-angry" : "") + ".webp", name: nsaName + " · National Security Adviser", text: hot ? "Your Excellency, a front is out of control and it is costing the country. The National Security Council is waiting for you." : "Your Excellency, the National Security Council has met. Two fronts need your decision: it is in your mail.", urgent: hot, ok: "Open the letter", fn: () => { setMailOpen(true); setLetterOpen(ns.id); } } }); } catch (e) {} }, 500); }
     // Bakunda: the Chief of Army Staff comes in person to say an urgent letter is waiting.
     const bk = add.find(l => String(l.key).startsWith("sc#pres_bk"));
     if (bk && NAT) { const c = scPending.current.find(x => "sc#" + x.key === bk.key); if (c && c.news) anchors(c.news[0], c.news[1]); setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (c && c.from) || "Chief of Army Staff", text: "Your Excellency, an urgent matter on Bakunda has just reached your desk" + (c && c.title ? ": " + String(c.title).replace(/\u2060/g, "") : "") + ". Please open it now.", urgent: true, ok: "Open the letter", fn: () => { setMailOpen(true); setLetterOpen(bk.id); } } }); } catch (e) {} }, 400); }

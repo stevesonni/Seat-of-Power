@@ -82,13 +82,13 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
   const B = { sits: [], dipl: [], ...B0 }, out = [], nass = ctx.nass == null ? 50 : ctx.nass;
   if (B.stage === 0 && turn >= 1) out.push({ id: "bk1", kind: "letter", letter: "bk1", kicker: "Bakunda · A cable", t: "Unrest boils over in the Republic of Bakunda", news: NEWS.bk1, learn: "foreign",
     d: "The ambassador's cable: instability after a contested election. A cautious statement, or an envoy now?",
-    opts: [{ id: "statement", l: "Issue a statement calling for calm", img: "scenes/national-broadcast", fx: { app: 0 }, set: { stage: 1, warned: false } },
-      { id: "envoy", l: "Send a special envoy now", cost: 4, fx: { app: 1 }, npc: { army: 2 }, set: { stage: 1, warned: true }, say: "The envoy is on the ground. Whatever happens next, we will not be surprised." }] });
+    opts: [{ id: "statement", l: "Issue a statement calling for calm", img: "scenes/national-broadcast", fx: { app: 0 }, set: { stage: 1, warned: false }, paper: ["ABUJA CALLS FOR CALM IN BAKUNDA", "The President urges restraint after the disputed election", true], paperImg: "national-broadcast" },
+      { id: "envoy", l: "Send a special envoy now", cost: 4, fx: { app: 1 }, npc: { army: 2 }, set: { stage: 1, warned: true }, paper: ["PRESIDENT SENDS SPECIAL ENVOY TO BAKUNDA", "Abuja moves early as unrest spreads", true], paperImg: "bakunda-coup", say: "The envoy is on the ground. Whatever happens next, we will not be surprised." }] });
   if (B.stage === 1 && turn >= 2) out.push({ id: "bk2", kind: "card", kicker: "🔴 Urgent · Coup in Bakunda", t: "General Voko seizes power in Bakunda", scene: "bakunda-coup", news: NEWS.bk2, learn: "ecowas",
     d: "The President of Bakunda is overthrown, the constitution suspended and the borders sealed. Nigerian traders and students are stranded" + (B.warned ? "; your envoy already has a list of every Nigerian there." : ", and refugees are crossing into our northern states."),
-    opts: [{ id: "airlift", l: "Airlift the stranded Nigerians home", cost: 12, fx: { app: B.warned ? 4 : 3 }, img: "scenes/airlift-evacuation", set: { stage: 2 }, say: "The jets are wheels up. Every Nigerian who wants to come home will come home.", flight: true },
-      { id: "sanctions", l: "Lead ECOWAS to suspend Bakunda and impose sanctions", cost: 2, fx: { app: 1 }, npc: { nass: 3 }, img: "characters/general-voko-angry", set: { stage: 2 } },
-      { id: "border", l: "Close our northern border", cost: 3, fx: { app: B.warned ? -1 : -3, sec: .01 }, img: "scenes/refugees-border", set: { stage: 2 }, say: "The border is closed, but the families already across are in our camps now." }],
+    opts: [{ id: "airlift", l: "Airlift the stranded Nigerians home", cost: 12, fx: { app: B.warned ? 4 : 3 }, img: "scenes/airlift-evacuation", set: { stage: 2 }, paper: ["OPERATION HOMECOMING: NIGERIANS FLOWN OUT OF BAKUNDA", "Air Force jets bring stranded citizens home", true], paperImg: "airlift-evacuation", say: "The jets are wheels up. Every Nigerian who wants to come home will come home.", flight: true },
+      { id: "sanctions", l: "Lead ECOWAS to suspend Bakunda and impose sanctions", cost: 2, fx: { app: 1 }, npc: { nass: 3 }, img: "characters/general-voko-angry", set: { stage: 2 }, paper: ["ECOWAS SUSPENDS BAKUNDA AT NIGERIA'S URGING", "Sanctions on General Voko's junta", true], paperImg: "ecowas-summit" },
+      { id: "border", l: "Close our northern border", cost: 3, fx: { app: B.warned ? -1 : -3, sec: .01 }, img: "scenes/refugees-border", set: { stage: 2 }, paper: ["NIGERIA SHUTS NORTHERN BORDER", "Families already across fill the camps", false], paperImg: "refugees-border", say: "The border is closed, but the families already across are in our camps now." }],
     spill: B.warned ? 0 : 3 });
   // The National Assembly's resolution: assent, or veto and rely on sanctions and talks.
   if (B.stage === 2 && turn >= 3) out.push({ id: "bk3", kind: "document", kicker: "WAR", t: "Resolution of the National Assembly: a state of war with the Bakunda–Ostrava Axis", news: NEWS.bk3, learn: "war",
@@ -96,7 +96,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     sign: "The President of the Federal Republic of Nigeria", paperImg: "axis-summit",
     opts: [{ id: "assent", l: "Assent: declare war", fx: { app: 2, sec: .01 }, npc: { army: 4 }, set: { stage: 3, atWar: 1, resolution: "passed" }, paper: ["NIGERIA DECLARES WAR ON THE BAKUNDA AXIS", "The National Assembly's resolution signed", false],
         say: "Your Excellency, there have been major developments. Watch your mail for missions from Defence Headquarters, and act as Commander-in-Chief." },
-      { id: "veto", l: "Veto: sanctions and talks only", fx: { app: -2 }, npc: { army: -6, nass: -3 }, set: { stage: 3, atWar: 0, resolution: "vetoed" }, say: "No war, then. Diplomacy alone will be slow, Your Excellency. The Axis will read it as hesitation." }] });
+      { id: "veto", l: "Veto: sanctions and talks only", fx: { app: -2 }, npc: { army: -6, nass: -3 }, set: { stage: 3, atWar: 0, resolution: "vetoed" }, paper: ["PRESIDENT VETOES WAR RESOLUTION", "Sanctions and diplomacy against the Bakunda Axis", false], paperImg: "axis-summit", say: "No war, then. Diplomacy alone will be slow, Your Excellency. The Axis will read it as hesitation." }] });
   if (B.stage === 3 && B.progress < 100) {
     const r = seeded("bakunda", B.seed || "b", turn);
     // Missions from Defence Headquarters: two a year while at war.
@@ -117,15 +117,15 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
       out.push({ id: "bkd_" + D.id, kind: "letter", letter: D.letter, kicker: "The world stage · Bakunda", t: D.t, learn: D.id === "washington" ? "ally" : "summit",
         opts: [{ id: "go", l: "Attend in person", cost: 6, fx: { app: 2 }, push: { dipl: D.id }, add: { progress: go }, set: D.id === "washington" ? { washington: "went" } : {}, flight: true, dest: D.id, paper: [D.win[0], D.win[1], true], paperImg: D.scene, img: D.scene ? "scenes/" + D.scene : null,
             ally: D.id === "washington" ? "The United States will share what its satellites see, and send equipment. Nigeria leads; we stand with you." : null },
-          { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 0 }, push: { dipl: D.id }, add: { progress: send }, set: D.id === "washington" ? { washington: "sent" } : {} }] });
+          { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 0 }, push: { dipl: D.id }, add: { progress: send }, set: D.id === "washington" ? { washington: "sent" } : {}, paper: ["FOREIGN MINISTER REPRESENTS NIGERIA: " + D.t.replace(/^(An |A |The )/, "").toUpperCase(), "The President stays home; allies note the absence", false], paperImg: D.scene }] });
     }
     // The army chief's tip, once: allies matter.
     if (B.atWar >= 1 && turn >= 4 && !B.tipped) out.push({ id: "bk_tip", kind: "tip", t: "Keep a sharp eye out for diplomacy letters in your mail, Your Excellency. Working with allies will end this war sooner, and better for us.", set: { tipped: true } });
     // War weariness, from the second year of war.
     if (B.atWar >= 2) out.push({ id: "bk6", kind: "card", kicker: "The war · year " + B.atWar, t: "“The people are tired of it”", scene: "war-weariness", news: NEWS.weary, learn: "war",
       d: "The war rages on. Funerals in the barracks towns, prices up in the north. Your army chief: “The people want to see us win it as soon as possible.”", fatigue: 1 + B.atWar,
-      opts: [{ id: "address", l: "Address the nation: why we fight", img: "scenes/national-broadcast", fx: { app: 2 }, set: {} },
-        { id: "push", l: "Order a decisive push", cost: 30, fx: { app: -1 }, npc: { army: 4 }, add: { progress: 10 }, say: "We will press them on every front, Your Excellency." }] });
+      opts: [{ id: "address", l: "Address the nation: why we fight", img: "scenes/national-broadcast", fx: { app: 2 }, set: {}, paper: ["“WE FIGHT FOR PEACE”: PRESIDENT ADDRESSES THE NATION", "War-weary Nigerians hear the case for the war", true], paperImg: "national-broadcast" },
+        { id: "push", l: "Order a decisive push", cost: 30, fx: { app: -1 }, npc: { army: 4 }, add: { progress: 10 }, paper: ["PRESIDENT ORDERS DECISIVE PUSH ON THE AXIS", "Troops press on every front", true], paperImg: "army-convoy", say: "We will press them on every front, Your Excellency." }] });
   }
   // The junta surrenders: the signing in Geneva.
   if (B.stage === 3 && B.progress >= 100) out.push({ id: "bk7", kind: "letter", letter: "bk_surrender", kicker: "Peace", t: "Bakunda surrenders", news: NEWS.peace, learn: "treaty",
@@ -136,7 +136,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     d: "This treaty marks the official end of the state of war between Nigeria and the Bakunda–Ostrava Axis. All further acts of military force, on the ground, in the air or on the water, are prohibited. The junta hands over to a transitional government, and Ostrava withdraws. From this day the parties pledge to keep the peace of West Africa.",
     sign: "For the consent of the National Assembly (S.12)", paperImg: "treaty-vote",
     opts: [{ id: "senate", l: "Send it to the National Assembly", fx: { app: 4 }, npc: { nass: 4 }, set: { treaty: nass >= 35 ? "enacted" : "stalled", done: nass >= 35 },
-        paper: nass >= 35 ? ["REGIONAL WAR ENDS: ABUJA'S PEACE IS LAW", "The National Assembly enacts the treaty", true] : null, img: nass >= 35 ? "scenes/treaty-vote" : "objects/peace-accord",
+        paper: nass >= 35 ? ["REGIONAL WAR ENDS: ABUJA'S PEACE IS LAW", "The National Assembly enacts the treaty", true] : ["PEACE TREATY STALLS IN THE SENATE", "Senators bargain while troops wait on the border", false], img: nass >= 35 ? "scenes/treaty-vote" : "objects/peace-accord",
         say: nass >= 35 ? "What a relief! The war is finally over. You really came through, Your Excellency." : "The Senate is sitting on it. They want to be courted." },
       { id: "court", l: "Win the Senate over first, then send it", cost: 20, fx: { app: 3 }, npc: { nass: 10 }, set: { treaty: "enacted", done: true }, img: "scenes/treaty-vote",
         paper: ["REGIONAL WAR ENDS: ABUJA'S PEACE IS LAW", "The National Assembly enacts the treaty", true], say: "What a relief! The war is finally over. You really came through, Your Excellency." }] });
