@@ -27,10 +27,15 @@ export const KINDS = {
 const SPECIAL = new Set(["_stall", "_court", "_wait"]);
 const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 
-export const storyStart = (def, seed = "") => ({ id: def.id, beat: def.start, seed: String(seed), heat: def.heat0 == null ? 55 : def.heat0, weak: 0, seen: [], hist: [], laws: [], orders: [], closed: false, pendingBill: null, court: null, news: null });
+/* Where a storyline opens. A storyline can have several openings (starts):
+   a new game draws one, so the same crisis does not begin the same way
+   every time it is played. Stored once, so a reload keeps it. */
+export const storyStart = (def, seed = "", r = Math.random) => { const b0 = def.starts ? def.starts[Math.floor(r() * def.starts.length) % def.starts.length] : def.start;
+  // The openings not drawn are spent: they never turn up later as a "next development".
+  return { id: def.id, beat: b0, seed: String(seed), heat: def.heat0 == null ? 55 : def.heat0, weak: 0, seen: (def.starts || []).filter(b => b !== b0), hist: [], laws: [], orders: [], closed: false, pendingBill: null, court: null, news: null }; };
 
 // The first beat in the storyline's order that has not been shown, or null.
-const nextFree = (def, S) => (def.order || Object.keys(def.beats)).find(b => !S.seen.includes(b) && b !== def.boil && def.beats[b] && !def.beats[b].endOnly) || null;
+const nextFree = (def, S) => (def.order || Object.keys(def.beats)).find(b => !S.seen.includes(b) && b !== def.boil && def.beats[b] && !def.beats[b].endOnly && !def.beats[b].startOnly) || null;
 
 /* Between years: a bill's vote, a court's ruling on an order, the heat
    rising, a boil-over after too many weak answers, and never the same beat
@@ -126,6 +131,7 @@ export const storyCheck = (def) => {
     if (!KINDS[o.kind]) bad.push(id + "." + o.id + " has no kind");
   }));
   if (!def.beats[def.start]) bad.push("no start");
+  (def.starts || []).forEach(b => { if (!def.beats[b]) bad.push("no start " + b); });
   if (def.boil && !def.beats[def.boil]) bad.push("no boil");
   return bad;
 };
@@ -137,7 +143,7 @@ const BL = (id, l, nm, pass, fail, x) => ({ id, kind: "bill", l, bill: { nm, pas
 const OR = (id, l, nm, next, risk, struck, x) => ({ id, kind: "order", l, next, order: { nm, risk, struck }, cost: 1, ...x });
 const A = (id, l, x) => ({ id, kind: "act", l, ...x });
 
-export const FUEL = { id: "fuel", nm: "The fuel crisis", who: "petroleum-minister", bg: "villa-office", start: "queues", boil: "nupeng", heat0: 55, drift: 4, scale: 1, learn: "subsidy",
+export const FUEL = { id: "fuel", nm: "The fuel crisis", who: "petroleum-minister", bg: "villa-office", start: "queues", starts: ["queues", "inferno", "refinery_fire"], boil: "nupeng", heat0: 55, drift: 4, scale: 1, learn: "subsidy",
   legacy: "Ended the fuel queues: Nigeria refines its own petrol.", faded: "The fuel crisis faded from the front pages without being solved.",
   order: ["queues", "subsidy_bill", "cap_holds", "new_importers", "atlas", "scarcity", "refined"],
   beats: {
@@ -146,6 +152,16 @@ export const FUEL = { id: "fuel", nm: "The fuel crisis", who: "petroleum-ministe
         BL("dereg", "Send a Downstream Deregulation Bill to the National Assembly", "Downstream Petroleum (Deregulation) Bill", "dereg_law", "lobby", { heat: -2, past: "sent a Downstream Deregulation Bill to the National Assembly", say: "The bill is with the Senate. The importers' lobby is already calling senators." }),
         OR("cap", "Executive order: cap the pump price and seize hoarded stock", "the Pump Price Order", "cap_holds", .6, "court_cap", { fx: { app: 3 }, heat: -4, past: "capped the pump price by executive order", say: "The regulator seized twelve depots of hoarded petrol. Pumps open at your price, for now." }),
         A("blame", "Blame the marketers and arrest a few depot owners", { fx: { app: 1 }, heat: 6, weak: true, next: "scarcity", past: "blamed the marketers and arrested a few depot owners", say: "Six depot owners are in cells. The tankers still are not moving." })] },
+    inferno: { t: "A tanker inferno, and empty pumps", startOnly: true, scene: "fuel-queue", who: "labour-leader", d: "A petrol tanker overturned and exploded on the Lagos–Ibadan expressway: fifty-two dead. The tanker drivers say they will not load another litre until the roads are fixed, and the pumps are already running dry.",
+      opts: [P("roads", "Emergency repairs on the tanker routes, and the drivers' safety demands met", { cost: 70, fx: { app: 3 }, heat: -8, next: "subsidy_bill", past: "repaired the tanker routes and met the drivers' safety demands", say: "The drivers are loading again. The road crews work through the night." }),
+        BL("rail", "A Rail Freight Bill: move fuel by rail, not road", "Rail Freight (Petroleum Products) Bill", "new_importers", "scarcity", { past: "sent a Rail Freight Bill to move fuel by rail", say: "If it passes, the tankers come off the worst roads for good." }),
+        OR("old", "Executive order: ban unsafe old tankers from the highways", "the Tanker Safety Order", "scarcity", .3, "nupeng", { fx: { app: 2 }, heat: 2, past: "banned unsafe old tankers by order", say: "A third of the tanker fleet is off the road. So is a third of the fuel." }),
+        A("blame", "Blame reckless drivers", { weak: true, heat: 6, next: "nupeng", past: "blamed the tanker drivers for the inferno", say: "The drivers' union heard you." })] },
+    refinery_fire: { t: "The rehabilitated refinery catches fire", startOnly: true, who: "petroleum-minister", scene: "fuel-queue", d: "The Port Harcourt refinery, rehabilitated for $1.5 billion and opened with a ribbon three months ago, is on fire. The queues are back by evening, and the repair contractor has stopped answering calls.",
+      opts: [OR("audit", "Executive order: a forensic audit of the rehabilitation contract", "the Refinery Audit Order", "new_importers", .3, "cartel", { fx: { app: 3, cor: -.01 }, heat: -2, past: "ordered a forensic audit of the refinery contract", say: "The auditors are in. The contractor's lawyers are too." }),
+        P("import", "Import to cover the gap while it burns", { cost: 90, fx: { app: 2 }, heat: -6, next: "subsidy_bill", past: "imported fuel to cover the burned refinery", say: "Cargoes are coming. At the subsidised price." }),
+        BL("concession", "A bill to concession the state refineries to private operators", "State Refineries (Concession) Bill", "atlas", "lobby", { past: "sent a bill to concession the state refineries", say: "If it passes, the refineries leave the state's hands." }),
+        A("repair", "Another repair contract, fast", { cost: 60, fx: { cor: .04 }, weak: true, heat: 4, next: "scarcity", past: "signed yet another refinery repair contract", say: "A new contractor. The old one's friends." })] },
     subsidy_bill: { t: "The subsidy bill has doubled", who: "finance-minister", bg: "finance-ministry-office", d: "Petrol is now cheaper here than anywhere in West Africa, so it leaves at night in jerrycans and tankers. The subsidy cost twice what was budgeted, and the Finance Minister cannot pay contractors.",
       opts: [P("again", "Pay it again: the queues must not return", { cost: 120, fx: { app: 2 }, heat: -3, weak: true, next: "smuggling", past: "paid the subsidy a second time", say: "Paid. The smugglers thank you." }),
         OR("border", "Executive order: close the land borders to petrol tankers", "the Border Fuel Order", "border_trade", .35, "smuggling", { fx: { app: -1 }, heat: -6, past: "closed the land borders to petrol tankers by executive order", say: "The borders are shut to tankers. Customs say the smugglers are already looking for bush paths." }),
@@ -224,7 +240,7 @@ export const FUEL = { id: "fuel", nm: "The fuel crisis", who: "petroleum-ministe
         OR("export", "Order the first cargo of refined petrol exported", "the Export Order", "refined", 0, "refined", { close: true, fx: { app: 4, igr: 10 }, past: "ended the fuel crisis", say: "A Nigerian tanker leaves Lagos for Dakar, full of Nigerian petrol. The crisis is over." })] },
   } };
 
-export const INSURGENCY = { id: "insurgency", nm: "The insurgency in the North-East", who: "national-security-adviser", bg: "situation-room", start: "base", boil: "capital", heat0: 55, drift: 4, scale: 1, learn: "armed",
+export const INSURGENCY = { id: "insurgency", nm: "The insurgency in the North-East", who: "national-security-adviser", bg: "situation-room", start: "base", starts: ["base", "girls", "drones"], boil: "capital", heat0: 55, drift: 4, scale: 1, learn: "armed",
   legacy: "Broke the insurgency in the North-East.", faded: "The insurgency ground on, never defeated and never decisive.",
   order: ["base", "splinter", "highway", "spread", "vigilantes", "returns", "dwindle"],
   beats: {
@@ -234,6 +250,16 @@ export const INSURGENCY = { id: "insurgency", nm: "The insurgency in the North-E
         OR("bikes", "Executive order: ban motorcycles and shut the cattle markets in three states", "the Borno Movement Order", "hunger", .3, "spread", { fx: { app: -2 }, heat: -6, past: "banned motorcycles and shut cattle markets in three states by order", say: "No motorcycles, no cattle markets. The fighters cannot move, and neither can the farmers." }),
         A("talk", "Open back-channel talks through local leaders", { npc: { army: -5 }, heat: -3, next: "ceasefire", past: "opened back-channel talks with the insurgents", say: "The elders have carried your message into the forest." }),
         A("statement", "A strong statement from the Villa", { heat: 4, weak: true, next: "spread", past: "answered the overrun base with a statement", say: "Strong words. The insurgents were not listening." })] },
+    girls: { t: "Two hundred schoolgirls are taken", startOnly: true, who: "teacher", bg: "classroom", d: "Gunmen stormed a girls' boarding school in Yobe at night and took two hundred pupils. Their parents are at the gates of the state government house, and the world is watching you.",
+      opts: [P("rescue", "Order a rescue mission and fly to the parents", { cost: 60, odds: .55, npc: { army: 3 }, win: { fx: { app: 6, sec: 3 }, heat: -10, next: "splinter", past: "rescued the schoolgirls", say: "Every girl is home. The commander who planned it is dead." }, lose: { fx: { app: -2 }, heat: 2, next: "highway", past: "ordered a rescue that freed only half the girls", say: "Ninety girls are home. The rest were moved before the troops arrived." } }),
+        A("ransom", "Let negotiators pay, quietly", { cost: 30, fx: { app: 2, cor: .02 }, weak: true, next: "highway", past: "let negotiators pay for the schoolgirls", say: "The girls are home. The kidnappers have a price list." }),
+        BL("ransom_law", "An Anti-Kidnapping Bill: paying a ransom becomes a crime", "Kidnapping and Ransom (Prohibition) Bill", "ransom_ban", "highway", { past: "sent a bill to make ransom payments a crime while the girls were held", say: "The parents are horrified. The law would end the trade." }),
+        OR("emergency", "Declare a state of emergency in the state", "the Emergency Proclamation", "hunger", .35, "spread", { npc: { gov: -10 }, heat: -4, past: "declared a state of emergency after the abduction", say: "Emergency rule. The governor is furious; the army has a free hand." })] },
+    drones: { t: "Insurgents strike with armed drones", startOnly: true, who: "chief-of-army-staff", scene: "air-strike", d: "Insurgents attacked a brigade headquarters with armed drones bought abroad. Twelve soldiers dead. The army says it has nothing to stop them, and the drones were paid for in dollars.",
+      opts: [P("jam", "Buy jammers and counter-drone systems", { cost: 70, fx: { sec: 4 }, npc: { army: 6 }, heat: -8, next: "splinter", past: "bought counter-drone systems for the army", say: "The next drone fell out of the sky. Its pilot was found in a week." }),
+        BL("finance", "A Terrorism Financing Amendment Bill: follow the dollars", "Terrorism Financing (Amendment) Bill", "sponsors", "spread", { past: "sent a Terrorism Financing Bill to follow the drone money", say: "The dollars came from somewhere. The bill would find out." }),
+        OR("imports", "Executive order: licence every drone sold in Nigeria", "the Drone Licensing Order", "spread", .3, "spread", { heat: -2, past: "required a licence for every drone sold in Nigeria", say: "Licensed. The insurgents never bought theirs here." }),
+        A("statement", "A strong statement from the Villa", { weak: true, heat: 5, next: "spread", past: "answered the drone attack with a statement", say: "Strong words. The drones keep flying." })] },
     splinter: { t: "A splinter group has formed", who: "defence-minister", d: "The Minister of Defence reports the offensive worked: the old commander is dead. But his deputy, a man called Ameer Bulama, has split away with three hundred fighters, and they have turned to kidnapping on the highways for money.",
       opts: [P("hunt", "Special forces and a bounty on Bulama", { cost: 50, odds: .5, npc: { army: 3 }, win: { next: "returns", heat: -12, past: "had special forces kill Ameer Bulama", say: "Bulama is dead. His men are surrendering in twos and threes." }, lose: { next: "highway", heat: -2, past: "sent special forces after Ameer Bulama, who escaped", say: "He was warned. He is on the highways now." } }),
         BL("ransom", "An Anti-Kidnapping Bill: paying a ransom becomes a crime", "Kidnapping and Ransom (Prohibition) Bill", "ransom_ban", "highway", { past: "sent a bill to make paying ransom a crime", say: "Starve them of ransom and kidnapping stops paying. Families are horrified." }),
@@ -306,7 +332,7 @@ export const INSURGENCY = { id: "insurgency", nm: "The insurgency in the North-E
         OR("over", "Proclaim the emergency over", "the End of Emergency Proclamation", "dwindle", 0, "dwindle", { close: true, fx: { app: 4 }, past: "declared the insurgency over", say: "The emergency is lifted. The North-East is at peace." })] },
   } };
 
-export const NAIRA = { id: "naira", nm: "The naira crisis", who: "cbn-governor", bg: "finance-ministry-office", start: "fall", boil: "riots", heat0: 55, drift: 4, scale: 1, learn: "cbn",
+export const NAIRA = { id: "naira", nm: "The naira crisis", who: "cbn-governor", bg: "finance-ministry-office", start: "fall", starts: ["fall", "oilcrash", "junk"], boil: "riots", heat0: 55, drift: 4, scale: 1, learn: "cbn",
   legacy: "Steadied the naira after its worst crisis.", faded: "The naira drifted on, never quite collapsing and never recovering.",
   order: ["fall", "inflation", "reserves", "smuggle", "crunch", "remit", "steady"],
   beats: {
@@ -315,6 +341,16 @@ export const NAIRA = { id: "naira", nm: "The naira crisis", who: "cbn-governor",
         P("defend", "Spend the reserves defending the naira", { cost: 0, fx: { app: 3 }, npc: { cbn: -8 }, heat: -4, next: "reserves", past: "spent the reserves defending the naira", say: "The Central Bank sells dollars. The naira holds, at a price." }),
         BL("cbnact", "A Central Bank Act amendment: an inflation target, and no lending to government", "Central Bank of Nigeria (Amendment) Bill", "steady", "ways", { past: "sent a Central Bank Act amendment to the Assembly", say: "If it passes, no President can print money again, including you." }),
         OR("ban", "Executive order: no foreign exchange for 43 imported items", "the Forex Restriction Order", "smuggle", .3, "smuggle", { fx: { app: 1 }, heat: -2, past: "banned foreign exchange for 43 imported items", say: "Toothpicks to rice: 43 items cut off from dollars. The smugglers are delighted." })] },
+    oilcrash: { t: "Oil falls to $40 a barrel", startOnly: true, who: "finance-minister", d: "The oil price has halved in four months. Federal revenue falls with it, the naira slides, and the Finance Minister says the budget you signed in January is fiction.",
+      opts: [P("cut", "Cut capital spending and freeze new hiring", { cost: -40, fx: { app: -3 }, npc: { cbn: 6 }, heat: -6, next: "crunch", past: "cut spending when oil crashed", say: "Projects pause. The books balance, just." }),
+        A("print", "Borrow from the Central Bank to fill the hole", { cost: -80, npc: { cbn: -10 }, heat: 6, weak: true, next: "ways", past: "borrowed from the Central Bank when oil crashed", say: "The hole is filled with new money." }),
+        BL("savings", "A sovereign savings rule: save the windfalls, spend in the crashes", "Fiscal Responsibility (Savings Rule) Amendment Bill", "steady", "imf", { past: "sent a sovereign savings rule to the Assembly", say: "Next time, if it passes, there will be savings to spend." }),
+        OR("overheads", "Executive order: halve every ministry's overheads", "the Overheads Order", "debt", .2, "riots", { cost: -30, fx: { app: 1 }, past: "halved ministries' overheads by order", say: "No more foreign trips, no new cars. The civil service sulks." })] },
+    junk: { t: "Nigeria's credit rating is cut to junk", startOnly: true, who: "cbn-governor", d: "Two rating agencies have cut Nigeria to junk. Foreign investors are selling naira bonds, the dollars are leaving, and the street rate jumped 15% in a week.",
+      opts: [A("float", "Back the Central Bank: one rate, let it float", { fx: { app: -5, igr: 25 }, npc: { cbn: 8 }, heat: -6, next: "inflation", past: "let the naira float after the downgrade", say: "One rate. The bonds stop falling." }),
+        P("defend", "Spend the reserves to steady the naira", { fx: { app: 2 }, npc: { cbn: -8 }, heat: -4, next: "reserves", past: "spent the reserves after the downgrade", say: "The naira holds, at a price." }),
+        BL("cbnact", "A Central Bank Act amendment: an inflation target and real independence", "Central Bank of Nigeria (Amendment) Bill", "steady", "ways", { past: "sent a Central Bank independence bill after the downgrade", say: "The agencies said this is what they want to see." }),
+        OR("capital", "Executive order: hold foreign investors' money for 90 days", "the Capital Controls Order", "smuggle", .3, "riots", { heat: -2, past: "imposed capital controls after the downgrade", say: "The money cannot leave. The next investor will not come." })] },
     inflation: { t: "Inflation passes 30%", scene: "market-inflation", d: "Bread, rice and transport cost a third more than last year. The float has drawn investors back, but at the market a mother of four buys half of what she used to.",
       opts: [P("food", "Food support for the poorest ten million homes", { cost: 50, fx: { app: 3 }, heat: -4, next: "remit", past: "paid food support to the poorest ten million homes", say: "Transfers by phone. Fraudsters registered ghost families in two states." }),
         A("rates", "Back the Central Bank raising interest rates", { fx: { app: -2 }, npc: { cbn: 8 }, heat: -6, next: "crunch", past: "backed the Central Bank's interest rate rise", say: "Rates up four points. Inflation will slow. So will business." }),
@@ -565,11 +601,15 @@ export const AGENDA_IDS = Object.keys(AG);
    turn for the worse. zones: the mood of each region. */
 const FP = (id, l, x) => ({ id, kind: "programme", l, ...x }), FB = (id, l, nm, pass, fail, x) => ({ id, kind: "bill", l, bill: { nm, pass, fail }, cost: 2, sev: -4, ...x }), FO = (id, l, nm, next, risk, struck, x) => ({ id, kind: "order", l, next, order: { nm, risk, struck }, cost: 2, ...x }), FA = (id, l, x) => ({ id, kind: "act", l, ...x });
 export const FRONT_STORIES = {
-  ne: { id: "front_ne", nm: "North-East", drift: 0, boilAt: 99, start: "lake", order: ["lake", "faction", "returnees", "harvest", "quiet"], beats: {
+  ne: { id: "front_ne", nm: "North-East", drift: 0, boilAt: 99, starts: ["lake", "farmers"], start: "lake", order: ["lake", "faction", "returnees", "harvest", "quiet"], beats: {
     lake: { t: "The Lake Chad islands", who: "national-security-adviser", scene: "creeks-gunboat", ignored: "faction", d: "Insurgents have moved onto the reed islands of Lake Chad, where tanks cannot follow. They raid fishing towns and tax the fish trade.",
       opts: [FP("boats", "Gunboats and a riverine battalion for the lake", { cost: 45, sev: -16, zones: { NE: 1 }, npc: { army: 4 }, next: "faction", past: "sent gunboats and a riverine battalion onto Lake Chad", say: "The islands are being cleared one by one." }),
         FB("basin", "A Lake Chad Basin Security Bill: a joint force with the neighbours", "Lake Chad Basin (Joint Force) Bill", "returnees", "faction", { past: "sent a bill for a joint Lake Chad force", say: "Chad, Niger and Cameroon are ready to sign if the Assembly is." }),
         FO("fish", "Executive order: ban fishing and the fish trade on the lake", "the Lake Chad Fishing Order", "harvest", .3, "faction", { cost: 0, sev: -8, zones: { NE: -2 }, fx: { app: -1 }, past: "banned fishing on Lake Chad by order", say: "The insurgents lose their tax. So do forty thousand fishermen." })] },
+    farmers: { t: "Forty rice farmers killed in their fields", startOnly: true, who: "village-head", bg: "northern-farmland", ignored: "harvest", d: "Insurgents killed forty rice farmers who had gone back to their fields outside Monguno. They had been told it was safe.",
+      opts: [FP("escort", "Soldiers in the fields at planting and harvest", { cost: 40, sev: -14, zones: { NE: 2 }, next: "harvest", past: "put soldiers in the fields after the massacre", say: "The farmers plant under guard." }),
+        FB("compensation", "A Farmers' Protection and Compensation Bill", "Farmers' Protection and Compensation Bill", "returnees", "faction", { past: "sent a farmers' protection bill after the massacre", say: "If it passes, the families are paid by law." }),
+        FO("zones", "Executive order: farming only in army-cleared zones", "the Farming Zones Order", "faction", .2, "faction", { cost: 0, sev: -8, zones: { NE: -2 }, past: "allowed farming only in cleared zones", say: "Safer fields, fewer of them." })] },
     faction: { t: "A new faction on the lake", who: "defence-minister", ignored: "returnees", d: "The Minister of Defence reports the pressure split the insurgents. A new faction is courting the fishing towns with food and 'justice', and it is winning recruits the old one never could.",
       opts: [FP("hearts", "Food, clinics and police posts in the fishing towns", { cost: 35, sev: -12, zones: { NE: 3 }, next: "returnees", past: "sent food, clinics and police into the fishing towns", say: "The new faction's food is not the only food any more." }),
         FO("informers", "Executive order: a reward fund for informants", "the Informant Rewards Order", "returnees", .2, "harvest", { cost: 5, sev: -10, past: "set up a reward fund for informants", say: "The first tips arrived in a week." }),
@@ -586,11 +626,15 @@ export const FRONT_STORIES = {
       opts: [FP("hold", "Keep the troops, and hand over slowly to the police", { cost: 30, sev: -12, zones: { NE: 2 }, close: true, past: "kept the North-East quiet", say: "A slow handover. The quiet holds." }),
         FA("move", "Move two brigades to where they are needed more", { sev: -4, close: true, past: "moved troops out of a quieter North-East", say: "Two brigades leave. The governors are nervous." })] },
   } },
-  nw: { id: "front_nw", nm: "North-West", drift: 0, boilAt: 99, start: "villages", order: ["villages", "forest", "amnesty", "gold", "herders", "settled"], beats: {
+  nw: { id: "front_nw", nm: "North-West", drift: 0, boilAt: 99, starts: ["villages", "train"], start: "villages", order: ["villages", "forest", "amnesty", "gold", "herders", "settled"], beats: {
     villages: { t: "Bandits empty the villages", who: "village-head", bg: "northern-farmland", scene: "kidnap-camp-empty", ignored: "forest", d: "Bandits on motorcycles raid a village a week in the North-West, kidnap for ransom and 'tax' the farmers. Whole districts are empty.",
       opts: [FP("operation", "A military operation in the forests", { cost: 40, sev: -16, zones: { NW: -1, NC: 2 }, npc: { army: 3 }, next: "forest", past: "sent the army into the bandits' forests", say: "The forests are burning. The bandits scattered." }),
         FO("network", "Executive order: shut mobile networks in the worst LGAs", "the Telecoms Shutdown Order", "amnesty", .35, "forest", { cost: 0, sev: -10, fx: { app: -2 }, past: "shut mobile networks in the bandits' LGAs", say: "No phones, no ransom calls. No business either." }),
         FA("talks", "Let the governors negotiate with the bandit leaders", { cost: 10, sev: -6, zones: { NW: 2, NC: -2 }, next: "amnesty", past: "let the governors talk to the bandit leaders", say: "Talks under a tree. The bandits want money and amnesty." })] },
+    train: { t: "Bandits bomb the Abuja–Kaduna train", startOnly: true, who: "defence-minister", scene: "kidnap-camp-empty", ignored: "forest", d: "Bandits blew up the line and stopped the Abuja–Kaduna train at night. Eight dead, sixty passengers marched into the forest. Their families have formed a WhatsApp group and are talking to the press.",
+      opts: [FP("rescue", "A rescue operation, and soldiers on every train", { cost: 45, sev: -14, npc: { army: 3 }, next: "forest", past: "sent the army after the train kidnappers", say: "Twenty freed in the first raid. Soldiers ride every train." }),
+        FA("negotiate", "Let a cleric negotiate their release", { cost: 10, sev: -6, next: "amnesty", past: "let a cleric negotiate for the train passengers", say: "The cleric goes into the forest with a list." }),
+        FO("suspend", "Executive order: suspend the train until the line is secured", "the Rail Suspension Order", "gold", .1, "forest", { cost: 0, sev: -8, fx: { app: -2 }, past: "suspended the Abuja–Kaduna train", say: "No train. The road is worse." })] },
     forest: { t: "A warlord in the forest reserve", who: "defence-minister", bg: "northern-farmland", ignored: "gold", d: "The operation broke the gangs, and one leader, Kachalla Dan Sule, gathered the survivors in a forest reserve. He now runs it like a state: courts, taxes, a hundred motorcycles.",
       opts: [FP("siege", "Encircle the forest and starve him out", { cost: 45, sev: -14, npc: { army: 3 }, next: "gold", past: "laid siege to Dan Sule's forest", say: "The ring is closing." }),
         FO("bounty", "Executive order: ₦500M on Dan Sule's head", "the Bounty Order", "settled", .1, "gold", { cost: 5, sev: -10, past: "put a bounty on Kachalla Dan Sule", say: "His own men are counting the money." }),
@@ -611,11 +655,15 @@ export const FRONT_STORIES = {
       opts: [FP("keep", "Keep the rangers and the pressure on", { cost: 25, sev: -10, close: true, past: "steadied the North-West", say: "The forests stay empty." }),
         FA("scale", "Scale down and move the money elsewhere", { sev: -2, close: true, past: "scaled down in the North-West", say: "Scaled down. The emirs are watching the forests." })] },
   } },
-  se: { id: "front_se", nm: "South-East", drift: 0, boilAt: 99, start: "mondays", order: ["mondays", "gunmen", "dialogue", "trial", "markets"], beats: {
+  se: { id: "front_se", nm: "South-East", drift: 0, boilAt: 99, starts: ["mondays", "reprisal"], start: "mondays", order: ["mondays", "gunmen", "dialogue", "trial", "markets"], beats: {
     mondays: { t: "Mondays at home", who: "traditional-ruler-oba-obi", scene: "sit-at-home-street", ignored: "gunmen", d: "Separatists order everyone in the South-East to stay home every Monday. Those who open their shops are burned out. The region loses a day of trade every week.",
       opts: [FP("troops", "Deploy troops to break the sit-at-home", { cost: 30, sev: -14, zones: { SE: -4 }, fx: { app: -1 }, next: "gunmen", past: "deployed troops to break the sit-at-home", say: "The markets open under guard." }),
         FA("elders", "Talk to the elders and the churches", { cost: 10, sev: -8, zones: { SE: 4 }, next: "dialogue", past: "opened talks through the South-East's elders", say: "The elders will carry the message." }),
         FO("protect", "Executive order: compensate every trader burned out on a Monday", "the Traders' Protection Order", "dialogue", .1, "gunmen", { cost: 15, sev: -10, zones: { SE: 2 }, past: "compensated traders burned out for opening on Mondays", say: "Shops open on Monday. The enforcers are outnumbered." })] },
+    reprisal: { t: "Soldiers burn a town after an ambush", startOnly: true, who: "traditional-ruler-oba-obi", scene: "sit-at-home-street", ignored: "gunmen", d: "Two soldiers were killed on video by 'unknown gunmen'. Troops raided the nearest town that night and burned forty houses. The South-East is in uproar.",
+      opts: [FA("inquiry", "An independent inquiry, and pay for the houses", { cost: 15, sev: -10, zones: { SE: 5 }, npc: { army: -4 }, next: "dialogue", past: "ordered an inquiry into the burned town and paid for the houses", say: "The army is unhappy. The town is rebuilding." }),
+        FP("intel", "Hunt the killers with intelligence, not reprisals", { cost: 30, sev: -12, next: "gunmen", past: "hunted the soldiers' killers through intelligence", say: "Three arrested. No more towns burned." }),
+        FA("back", "Back the army", { weak: true, sev: -4, zones: { SE: -5 }, npc: { army: 4 }, next: "gunmen", past: "backed the army over the burned town", say: "The army is pleased. The South-East is not." })] },
     gunmen: { t: "'Unknown gunmen'", who: "police-commissioner", scene: "sit-at-home-street", ignored: "trial", d: "Since the troops came, 'unknown gunmen' have killed thirty police officers and burned eleven stations. The police no longer go out at night.",
       opts: [FP("intel", "Intelligence-led raids, not roadblocks", { cost: 35, sev: -12, next: "trial", past: "switched to intelligence-led raids in the South-East", say: "Fewer roadblocks, more arrests of the right people." }),
         FB("police", "A State Police amendment for the South-East's governors", "Constitution (State Police) Amendment Bill", "dialogue", "trial", { npc: { gov: 6 }, past: "backed state police for the South-East", say: "The governors want it badly." }),
@@ -632,11 +680,15 @@ export const FRONT_STORIES = {
       opts: [FP("park", "Build the industrial park and the roads to it", { cost: 35, sev: -10, zones: { SE: 5 }, close: true, past: "brought trade back to the South-East", say: "Diggers on site. The Monday sit-at-homes are history." }),
         FA("leave", "Declare victory and move on", { close: true, sev: -2, past: "declared the sit-at-homes over", say: "Over, you say. The elders hope so." })] },
   } },
-  ss: { id: "front_ss", nm: "Niger Delta", drift: 0, boilAt: 99, start: "tapping", order: ["tapping", "refineries", "contract", "trust", "output"], beats: {
+  ss: { id: "front_ss", nm: "Niger Delta", drift: 0, boilAt: 99, starts: ["tapping", "wellhead"], start: "tapping", order: ["tapping", "refineries", "contract", "trust", "output"], beats: {
     tapping: { t: "The pipelines are bleeding", who: "oil-community-leader", bg: "oil-creek-spill", ignored: "refineries", d: "Thieves tap the pipelines and fill barges every night. Oil output has fallen to its lowest in a decade, and the Federation Account shrinks with it.",
       opts: [FP("navy", "Send the Navy and the army into the creeks", { cost: 35, sev: -15, zones: { SS: -3 }, npc: { army: 2 }, next: "refineries", past: "sent the Navy into the creeks", say: "Illegal refineries burn every night now." }),
         FO("surveil", "Executive order: surveillance contracts for the communities", "the Pipeline Surveillance Order", "contract", .2, "refineries", { cost: 30, sev: -11, zones: { SS: 3 }, fx: { cor: .01 }, past: "gave pipeline surveillance contracts to the communities", say: "The communities guard the pipes now, for pay." }),
         FB("metering", "A Petroleum Metering Bill: every barrel measured", "Crude Oil Metering Bill", "contract", "refineries", { past: "sent a crude oil metering bill to the Assembly", say: "If it passes, every barrel stolen is a barrel counted." })] },
+    wellhead: { t: "A wellhead has burned for a month", startOnly: true, who: "oil-community-leader", bg: "oil-creek-spill", ignored: "trust", d: "A wellhead blowout in the creeks has burned for a month. The company says sabotage; the community says the wellhead was old and never fixed. Soot falls on the villages like black rain.",
+      opts: [FP("cap", "Fly in specialists to cap it, and care for the villages", { cost: 35, sev: -12, zones: { SS: 4 }, next: "trust", past: "had the burning wellhead capped and cared for the villages", say: "Capped in nine days. The clinics are full of coughing children." }),
+        FB("liability", "A bill: oil companies pay for every spill, sabotage or not", "Oil Spill (Strict Liability) Bill", "trust", "refineries", { past: "sent a strict liability bill for oil spills", say: "The companies are lobbying hard against it." }),
+        FO("shut", "Executive order: shut the company's field until it is safe", "the Field Shutdown Order", "trust", .4, "refineries", { cost: 0, sev: -8, zones: { SS: 3 }, past: "shut the oil field until the wellhead was safe", say: "The field is shut. So is a slice of the Federation Account." })] },
     refineries: { t: "The illegal refineries", who: "oil-community-leader", bg: "illegal-refinery-night", ignored: "contract", d: "Burning the illegal refineries has poisoned the creeks with soot; children are coughing and fish are dying. The young men who ran them have nothing else.",
       opts: [FP("modular", "License the operators into modular refineries", { cost: 30, sev: -12, zones: { SS: 4 }, next: "contract", past: "licensed the illegal refiners into modular refineries", say: "Outlaws become operators. The soot is clearing." }),
         FB("cleanup", "A Niger Delta Clean-up Bill", "Niger Delta Environmental Restoration Bill", "trust", "contract", { past: "sent a Niger Delta clean-up bill to the Assembly", say: "A clean-up fund, if it passes." }),

@@ -11,10 +11,16 @@ const P = (id, l, x) => ({ id, kind: "programme", l, ...x });
 const B = (id, l, nm, pass, fail, x) => ({ id, kind: "bill", l, bill: { nm, pass, fail }, cost: .1, ...x });
 const O = (id, l, nm, next, risk, struck, x) => ({ id, kind: "order", l, next, order: { nm, risk, struck }, cost: .05, ...x });
 const A = (id, l, x) => ({ id, kind: "act", l, ...x });
-const story = (id, nm, beats, boil, extra = {}) => ({ id: "state_" + id, nm, start: "a", boil, heat0: 50, drift: 0, scale: .05, beats, ...extra });
+// Two openings each: a new game draws one, so the same crisis does not begin the same way twice.
+const story = (id, nm, beats, boil, extra = {}) => ({ id: "state_" + id, nm, start: "a", starts: beats.a2 ? ["a", "a2"] : undefined, boil, heat0: 50, drift: 0, scale: .05, beats, ...extra });
 
 export const STATE_STORIES = {
   oil_spill: story("oil_spill", "The oil spill", {
+    a2: { t: "Fishermen of {l} storm a flow station", startOnly: true, who: "oil-community-leader", bg: "waterfront-settlement", d: "Fishermen from {l} took over a flow station at dawn. They say the creek has been dying for two years from small leaks nobody reports, and they will not leave until somebody sees.",
+      opts: [P("survey", "Send state scientists to test the creek, and publish the results", { cost: .6, fx: { app: 2, hp: .01 }, dz: 2, next: "b", past: "sent scientists to test the creek at {l}", say: "The tests are damning. The fishermen go home with the report in their hands." }),
+        B("polluter", "An Oil Spills Bill: every leak reported within a day", "Oil Spills (Polluter Pays) Bill", "c", "d", { past: "sent an Oil Spills Bill to the House", say: "Every leak reported, if it passes." }),
+        O("permit", "Executive order: suspend the company's operations in the state", "the Operations Suspension Order", "c", .6, "d", { fx: { app: 2 }, dz: 2, past: "suspended the oil company's operations by order", say: "The company's barges are stopped at the state line." }),
+        A("police", "Send the police to clear the station", { weak: true, fx: { app: -2, sec: .01 }, dz: -3, next: "d", past: "had police clear the fishermen from the flow station", say: "Cleared. Three more stations are taken next week." })] },
     a: { t: "Oil spill poisons the creeks near {l}", who: "oil-community-leader", bg: "oil-creek-spill", d: "A ruptured pipeline has coated the fishing grounds near {l} in crude. Fishermen have no catch, the water smells of diesel, and youths have seized a flow station demanding compensation.",
       opts: [P("cleanup", "Sue the oil company and fund the clean-up yourself", { cost: 1.5, fx: { app: 3, hp: .01 }, dz: 3, next: "b", past: "sued the oil company and paid for the clean-up near {l}", say: "The clean-up begins. The community sees you on their side." }),
         B("polluter", "An Oil Spills Bill: polluters pay within ninety days", "Oil Spills (Polluter Pays) Bill", "c", "d", { past: "sent an Oil Spills Bill to the House", say: "If the House passes it, every spill is paid for in ninety days." }),
@@ -38,6 +44,11 @@ export const STATE_STORIES = {
   }, "d"),
 
   illegal_refinery: story("illegal_refinery", "The illegal refineries", {
+    a2: { t: "Soot falls on {l} like black rain", startOnly: true, who: "doctor", bg: "illegal-refinery-night", d: "For a month, black soot has fallen on {l}: on the washing, the water tanks, children's lungs. The source is a ring of illegal refineries in the creeks, and everyone knows who protects them.",
+      opts: [A("name", "Shut the camps and name the protectors", { fx: { app: 4, pStab: -6, cor: -.03 }, dz: 2, next: "b", past: "shut the soot-making camps and named their protectors", say: "The names are out. Some are in your party." }),
+        P("license", "Train the operators as licensed refiners", { cost: 1.2, fx: { app: 2 }, dz: 3, next: "c", past: "started training the camp operators as licensed refiners", say: "Two hundred operators signed up." }),
+        P("clinic", "Free chest clinics and water tanks for {l}", { cost: .5, fx: { app: 2, hp: .01 }, next: "d", past: "set up chest clinics in {l}", say: "The coughing children are seen. The camps keep burning." }),
+        A("quiet", "Say the soot is from the oil companies", { weak: true, fx: { app: -2 }, next: "f", past: "blamed the soot on the oil companies", say: "The companies publish satellite pictures of the camps." })] },
     a: { t: "Illegal refinery explodes near {l}", who: "police-commissioner", bg: "illegal-refinery-night", d: "An illegal 'kpofire' refinery outside {l} exploded overnight. Dozens are dead. Everyone knows who protects these camps, and some of them are in your party.",
       opts: [A("name", "Shut every camp and name the protectors", { fx: { app: 4, pStab: -6, cor: -.03 }, dz: 2, next: "b", past: "shut the illegal refineries and named their protectors", say: "The names are out. Your party chairman's cousin is on the list." }),
         P("license", "Train the operators as licensed modular refiners", { cost: 1.2, fx: { app: 2 }, dz: 3, next: "c", past: "started training the refinery operators as licensed refiners", say: "Two hundred former operators signed up on the first day." }),
@@ -65,6 +76,11 @@ export const STATE_STORIES = {
   }, "f"),
 
   bandits_tax: story("bandits_tax", "The bandits' tax", {
+    a2: { t: "Bandits kidnap the farmers of {l} on the road to market", startOnly: true, who: "village-head", bg: "northern-farmland", d: "Bandits stopped a market lorry near {l} and took twenty-three farmers. The ransom note asks for money and motorcycles. The other villages have stopped going to market.",
+      opts: [P("guards", "Fund community guards on the market roads", { cost: 1, fx: { sec: .03, app: 2 }, dz: 2, next: "b", past: "funded guards on the market roads around {l}", say: "Guards on every market road by Friday." }),
+        A("emir", "Let the emir talk to the bandit leader", { cost: .3, next: "c", past: "let the emir talk to the kidnappers", say: "The emir has sent word into the forest." }),
+        O("markets", "Executive order: close the weekly markets and ban motorcycles", "the {l} Security Order", "d", .3, "f", { fx: { sec: .02, app: -2 }, dz: -2, past: "closed the markets and banned motorcycles around {l}", say: "No markets, no motorcycles." }),
+        A("pay", "Let the families pay", { weak: true, fx: { app: -2 }, dz: -2, next: "f", past: "let the families pay the kidnappers", say: "They pay. The price rises." })] },
     a: { t: "Bandits impose a 'harvest tax' on villages near {l}", who: "village-head", bg: "northern-farmland", d: "Bandits have told the farmers around {l} to pay a third of their harvest or lose it all. Two village heads who refused were taken last week.",
       opts: [P("guards", "Fund, train and arm community guards", { cost: 1, fx: { sec: .03, app: 2 }, dz: 2, next: "b", past: "funded and armed community guards around {l}", say: "Five hundred guards on the farm roads by the harvest." }),
         A("emir", "Let the emir negotiate with the bandit leaders", { cost: .3, fx: { app: 1 }, next: "c", past: "let the emir negotiate with the bandits", say: "The emir has sent word into the forest." }),
@@ -92,6 +108,10 @@ export const STATE_STORIES = {
   }, "f"),
 
   school_abduction: story("school_abduction", "The school abduction", {
+    a2: { t: "Gunmen attack a school in {l}; the guards ran", startOnly: true, who: "teacher", bg: "classroom", d: "Gunmen fired on a secondary school in {l} at night. The pupils fled into the bush; the two guards ran first. Eleven pupils are missing, and parents are pulling their children out.",
+      opts: [P("rescue", "A search with soldiers and hunters, and go to the parents", { cost: .8, odds: .65, fx: { app: 2 }, win: { next: "b", past: "led a search that found the missing pupils", say: "All eleven are found, hungry and alive." }, lose: { next: "c", past: "led a search in which two pupils were found dead", say: "Nine are found. Two were not alive." } }),
+        O("close", "Executive order: close the rural boarding schools", "the Boarding Schools Order", "f", .2, "d", { fx: { app: -1 }, past: "closed the rural boarding schools", say: "Closed. Thousands at home." }),
+        A("blame", "Blame the guards and the principal", { weak: true, fx: { app: -1 }, next: "d", past: "blamed the school's guards and principal", say: "Sacked. The gunmen are still out there." })] },
     a: { t: "Gunmen abduct 80 pupils from a school in {l}", who: "teacher", bg: "classroom", d: "Gunmen stormed the boarding school in {l} at night and marched 80 pupils into the forest. The parents are at the gates of Government House.",
       opts: [P("rescue", "A rescue operation with the army, and go to the parents yourself", { cost: 1, odds: .6, fx: { app: 3 }, win: { next: "b", past: "led a rescue that brought the pupils home", say: "All but four are home tonight. The parents wept at the gate." }, lose: { next: "c", past: "ordered a rescue in which pupils died", say: "Two pupils died in the crossfire. The rest are home." } }),
         A("ransom", "Let negotiators pay, quietly", { cost: .8, fx: { cor: .02 }, weak: true, next: "d", past: "let negotiators pay the kidnappers", say: "The pupils are home. The kidnappers have a price list now." }),
@@ -118,6 +138,10 @@ export const STATE_STORIES = {
   }, "f"),
 
   insurgent_attack: story("insurgent_attack", "The insurgents", {
+    a2: { t: "Insurgents burn the market at {l}", startOnly: true, who: "soldier", bg: "idp-camp", d: "Insurgents rode into the Monday market at {l} on motorcycles and set it alight. Thirty dead. Traders say the army post a kilometre away did not move.",
+      opts: [P("cjtf", "Fund the civilian task force and the families", { cost: 1.2, fx: { app: 2, sec: .02 }, dz: 2, next: "b", past: "funded the civilian task force and the market families", say: "The task force guards the rebuilt market." }),
+        O("relocate", "Executive order: move the market inside the garrison", "the Market Relocation Order", "d", .3, "c", { fx: { sec: .02, app: -2 }, past: "moved the market inside the garrison", say: "Safe, small, and far from the farms." }),
+        A("blame", "Blame the army and demand an inquiry", { weak: true, fx: { app: -1 }, next: "c", past: "blamed the army for the burned market", say: "The army blames you back." })] },
     a: { t: "Insurgents overrun a garrison town near {l}", who: "soldier", bg: "idp-camp", d: "Insurgents took the garrison town near {l} at dawn. Twelve thousand people have fled to the state capital; the army says it will retake the town 'shortly'.",
       opts: [P("cjtf", "Fund the civilian task force and the camps", { cost: 1.2, fx: { app: 2, sec: .02 }, dz: 2, next: "b", past: "funded the civilian task force and the displaced people's camps", say: "The camps are fed. The task force guides the army back in." }),
         O("relocate", "Executive order: move the villages into the garrison towns", "the Relocation Order", "d", .3, "c", { fx: { sec: .02, app: -2 }, dz: -2, past: "moved the villages into the garrison towns", say: "The villages move inside the trenches. The farms are left behind." }),
@@ -140,6 +164,11 @@ export const STATE_STORIES = {
   }, "c"),
 
   farmer_herder: story("farmer_herder", "Farmers and herders", {
+    a2: { t: "Cattle rustlers start a war near {l}", startOnly: true, who: "village-head", bg: "village-square", d: "Two hundred cattle were stolen near {l}. The herders say farmers took them; the farmers say rustlers did. Both sides have buried their dead this week.",
+      opts: [P("peace", "A peace committee, and a cattle-branding registry", { cost: .8, fx: { app: 2 }, dz: 3, next: "b", past: "set up a peace committee and a cattle registry near {l}", say: "Branded cattle, a committee, and fewer accusations." }),
+        B("law", "An Anti-Open Grazing Bill, with ranches", "Open Grazing (Prohibition) and Ranches Bill", "c", "d", { past: "sent an Anti-Open Grazing Bill to the House", say: "A law with ranches, if it passes." }),
+        O("grazing", "Executive order: ban open grazing", "the Open Grazing Order", "c", .4, "d", { fx: { app: 2 }, past: "banned open grazing by order", say: "Banned. The herders' lawyers are busy." }),
+        A("blame", "Blame outsiders", { weak: true, dz: -2, next: "d", past: "blamed outsiders for the cattle war", say: "Both sides blame each other more." })] },
     a: { t: "Overnight attack on farming villages near {l}", who: "traditional-ruler-oba-obi", bg: "northern-farmland", d: "Gunmen attacked three farming villages near {l} overnight; twenty-two dead. The farmers blame herders; the herders say their cattle were stolen first.",
       opts: [P("peace", "Compensation and a peace committee of both communities", { cost: .8, fx: { app: 2 }, dz: 3, next: "b", past: "set up a peace committee of farmers and herders", say: "Both sides sit at the same table, for now." }),
         O("grazing", "Executive order: ban open grazing", "the Open Grazing Order", "c", .4, "d", { fx: { app: 2 }, dz: 1, past: "banned open grazing by order", say: "Banned. The herders' association is in court by Friday." }),
@@ -163,6 +192,10 @@ export const STATE_STORIES = {
   }, "d"),
 
   flood: story("flood", "The flood", {
+    a2: { t: "A dam upstream opens its gates; {l} is warned too late", startOnly: true, who: "market-trader", bg: "flooded-community", d: "A dam in the neighbouring country released water without warning. The state's emergency agency got the letter after the water reached {l}. Farms and the main market are under water.",
+      opts: [P("relief", "Boats, relief camps and seed for the farmers", { cost: 1, fx: { app: 3 }, dz: 3, next: "b", past: "sent boats, camps and seed to {l}", say: "Boats by noon, camps by night." }),
+        B("agency", "A State Emergency Management Agency Bill with a warning system", "State Emergency Management Agency Bill", "c", "d", { past: "sent a State Emergency Management Agency Bill to the House", say: "Sirens and text warnings, if it passes." }),
+        A("abuja", "Wait for federal relief", { weak: true, fx: { app: -3 }, dz: -3, next: "d", past: "waited for federal relief after the dam flood", say: "Federal relief is 'on its way'." })] },
     a: { t: "The river overflows: {l} under water", who: "market-trader", bg: "flooded-community", d: "The river burst its banks overnight. Half of {l} is under water; families are on their roofs and the main road is cut.",
       opts: [P("relief", "Relief camps, food and boats, now", { cost: 1, fx: { app: 3 }, dz: 3, next: "b", past: "set up relief camps and sent boats to {l}", say: "Boats on the water by noon. The camps are open." }),
         O("demolish", "Executive order: clear the houses built on the floodplain", "the Floodplain Order", "c", .4, "d", { fx: { app: -2, infra: .01 }, dz: -3, past: "ordered the houses on the floodplain cleared", say: "Bulldozers follow the water out. The families are furious." }),
@@ -186,6 +219,10 @@ export const STATE_STORIES = {
   }, "d"),
 
   sit_at_home: story("sit_at_home", "The sit-at-home", {
+    a2: { t: "Enforcers shoot a trader who opened in {l}", startOnly: true, who: "market-trader", bg: "shuttered-market", d: "A trader in {l} opened his shop on a sit-at-home Monday. Enforcers shot him in front of it. The market has been closed every day since.",
+      opts: [P("losses", "Pay his family, protect the market, and open it yourself", { cost: .8, fx: { app: 3 }, dz: 2, next: "b", past: "reopened the market at {l} under guard after the shooting", say: "You walked the market on Monday. Some shops opened behind you." }),
+        A("elders", "Ask the elders and churches to condemn it", { cost: .2, fx: { app: 1 }, dz: 3, next: "c", past: "asked the elders to condemn the shooting", say: "The bishop spoke on Sunday." }),
+        A("quiet", "Stay quiet", { weak: true, fx: { app: -3 }, next: "f", past: "stayed quiet after the trader was shot", say: "The enforcers took it as permission." })] },
     a: { t: "Monday sit-at-home empties {l}", who: "market-trader", bg: "shuttered-market", d: "Separatist enforcers have ordered every Monday a sit-at-home in {l}. Shops that open are burned; the market is empty one day in five, and the state's revenue is falling.",
       opts: [P("losses", "Pay traders' losses and open the markets under guard", { cost: .8, fx: { app: 2 }, dz: 2, next: "b", past: "paid traders' losses and opened the markets under guard", say: "Shops open on Monday with police at the gates." }),
         A("elders", "Talk to the elders and the churches", { cost: .2, fx: { app: 1 }, dz: 3, next: "c", past: "opened talks through the elders and churches", say: "The elders will carry the message." }),
@@ -211,6 +248,10 @@ export const STATE_STORIES = {
   }, "f"),
 
   almajiri: story("almajiri", "The almajiri children", {
+    a2: { t: "Almajiri boys rescued from a chained 'school' in {l}", startOnly: true, who: "police-commissioner", bg: "busy-market-street", d: "Police found three hundred boys in chains at a so-called Qur'anic school in {l}. Some had been there for years. The country is horrified, and asking how many more there are.",
+      opts: [P("care", "Care for the boys, find their families, and inspect every school", { cost: 1, fx: { app: 3 }, next: "b", past: "cared for the chained boys and ordered every Qur'anic school inspected", say: "The boys are fed and safe. Inspectors go out on Monday." }),
+        B("law", "An Almajiri Education Bill: every school registered", "Almajiri Education and Child Begging Bill", "c", "f", { past: "sent an Almajiri Education Bill to the House", say: "No unregistered school, if it passes." }),
+        O("close", "Executive order: close every unregistered school", "the Qur'anic Schools Order", "d", .2, "f", { fx: { app: 1 }, past: "closed every unregistered Qur'anic school", say: "Closed. Thousands of boys are on the streets." })] },
     a: { t: "Almajiri children begging on every street in {l}", who: "young-voter-student", bg: "busy-market-street", d: "Thousands of almajiri boys, sent by their parents to Qur'anic teachers, beg on the streets of {l} for food. Some are five years old.",
       opts: [P("integrate", "Add meals, teachers and maths to the Qur'anic schools", { cost: 1, fx: { app: 2, lit: .01 }, next: "b", past: "brought meals and teachers into the Qur'anic schools", say: "Hot meals and maths lessons in sixty schools." }),
         B("law", "An Almajiri Education Bill: no child begs on the street", "Almajiri Education and Child Begging Bill", "c", "f", { past: "sent an Almajiri Education Bill to the House", say: "If it passes, a child on the street is the state's responsibility." }),
@@ -236,6 +277,10 @@ export const STATE_STORIES = {
   }, "f"),
 
   demolition: story("demolition", "The waterfront", {
+    a2: { t: "A fire sweeps the waterfront at {l}", startOnly: true, who: "market-trader", bg: "waterfront-settlement", d: "A fire swept through the waterfront settlement at {l} overnight. Two thousand homes are gone. Residents say the fire was set; developers have already called about the land.",
+      opts: [P("rebuild", "Rebuild for the residents, with water and fire lanes", { cost: 1.2, fx: { app: 3 }, dz: 3, next: "b", past: "rebuilt the burned waterfront for its residents", say: "The residents are rebuilding, with fire lanes." }),
+        B("tenure", "A Land Tenure Bill: the residents get titles", "Informal Settlements (Tenure) Bill", "c", "d", { past: "sent a Land Tenure Bill for the burned waterfront", say: "If it passes, the land stays theirs." }),
+        O("clear", "Executive order: the burned land is the state's", "the Waterfront Acquisition Order", "d", .5, "c", { fx: { app: -3, igr: .5 }, dz: -4, past: "took over the burned waterfront by order", say: "The state owns it now. The residents say that is why it burned." })] },
     a: { t: "Developers want the waterfront at {l} cleared", who: "investor-nigerian", bg: "waterfront-settlement", d: "Developers offer billions to build luxury flats on the waterfront at {l}. Thirty thousand people live there, many for three generations, without titles.",
       opts: [P("resettle", "Resettle them first, then build", { cost: 1.2, fx: { app: 2 }, dz: 2, next: "b", past: "resettled the waterfront families before any building", say: "A new estate is planned before a single house falls." }),
         B("tenure", "A Land Tenure Bill: titles for long-settled communities", "Informal Settlements (Tenure) Bill", "c", "d", { past: "sent a Land Tenure Bill for the waterfront communities", say: "Titles for those who have lived there for decades, if it passes." }),
@@ -258,6 +303,10 @@ export const STATE_STORIES = {
   }, "d"),
 
   cult_clash: story("cult_clash", "The cult wars", {
+    a2: { t: "A student is killed in a cult initiation at {l}", startOnly: true, who: "police-commissioner", bg: "veranda-night", d: "A nineteen-year-old student died in a cult initiation near the polytechnic at {l}. His mother is on the radio every morning; the cult's sponsors include a ward chairman.",
+      opts: [O("ban", "Executive order: ban the cults and arrest their sponsors", "the Secret Cults Order", "b", .2, "f", { fx: { app: 3, pStab: -4 }, past: "banned the cults after the student's death", say: "Arrests, including the ward chairman's driver." }),
+        P("campus", "Campus security, counsellors and a way out for members", { cost: .6, fx: { app: 2 }, next: "c", past: "funded campus security and an exit for cult members", say: "Forty members renounced the cult on the first day." }),
+        A("look", "Leave it to the police", { weak: true, fx: { app: -2 }, next: "f", past: "left the student's death to the police", say: "The police found nothing." })] },
     a: { t: "Cult gangs clash in {l} ahead of party primaries", who: "police-commissioner", bg: "veranda-night", d: "Two cult gangs fought through the night in {l}: nine dead. Both have been hired by aspirants in the coming party primaries, some in your own party.",
       opts: [O("ban", "Executive order: ban the cults and arrest their sponsors", "the Secret Cults Order", "b", .2, "f", { fx: { app: 3, pStab: -4 }, past: "banned the cults and went after their sponsors", say: "Twelve arrests, including an aspirant's aide." }),
         P("youth", "Jobs and sport for the young men they recruit", { cost: .8, fx: { app: 2 }, dz: 2, next: "c", past: "funded jobs and sport for young men in {l}", say: "A league, a skills centre, two hundred jobs." }),
@@ -279,6 +328,10 @@ export const STATE_STORIES = {
   }, "f"),
 
   erosion: story("erosion", "The erosion", {
+    a2: { t: "A school at {l} is cut in two by a gully", startOnly: true, who: "teacher", bg: "gully-erosion", d: "A gully opened through the playground of the secondary school at {l} after one night's rain. The classrooms on the far side are now unreachable, and the gully is growing.",
+      opts: [P("control", "Erosion control: drains, terraces and trees", { cost: 1.4, fx: { app: 2, infra: .01 }, next: "b", past: "started erosion control at the {l} school", say: "Engineers on site. The pupils learn in tents." }),
+        A("world", "Apply for World Bank erosion funds", { cost: .1, next: "c", past: "applied for World Bank erosion funds", say: "Applied. It will take a year." }),
+        A("move", "Move the school and leave the gully", { cost: .5, weak: true, next: "d", past: "moved the school away from the gully", say: "The school moved. The gully did too." })] },
     a: { t: "Gully erosion swallows houses in {l}", who: "contractor", bg: "gully-erosion", d: "A gully a hundred metres deep is eating {l}. Six houses fell in last week; the road to the market is next.",
       opts: [P("control", "An erosion control project: drains, terraces and trees", { cost: 1.4, fx: { app: 2, infra: .01 }, dz: 2, next: "b", past: "started an erosion control project at {l}", say: "Engineers on site. The drains go in first." }),
         A("world", "Apply for World Bank erosion funds", { cost: .1, next: "c", past: "applied for World Bank erosion funds", say: "The application is in. It will take a year." }),
@@ -301,6 +354,10 @@ export const STATE_STORIES = {
   }, "d"),
 
   mining: story("mining", "The lead poisoning", {
+    a2: { t: "Children in {l} are going blind and falling sick", startOnly: true, who: "doctor", bg: "artisanal-gold-pits", d: "A clinic near {l} has seen forty children with convulsions this month. Their mothers crush gold ore at home. The doctors say it is lead.",
+      opts: [P("treat", "Treat the children and clean the homes", { cost: 1.2, fx: { app: 3, hp: .02 }, next: "b", past: "treated the children and cleaned the homes near {l}", say: "Treatment starts. The homes are scrubbed." }),
+        B("law", "A Safe Mining Bill: no ore processing at home", "Artisanal Mining (Safety) Bill", "b", "d", { past: "sent a Safe Mining Bill to the House", say: "No more ore in the kitchens, if it passes." }),
+        A("deny", "Wait for more tests", { weak: true, fx: { app: -2 }, next: "d", past: "waited for more tests on the sick children", say: "The tests came back. So did more sick children." })] },
     a: { t: "Illegal miners poison children with lead in {l}", who: "doctor", bg: "artisanal-gold-pits", d: "Children in villages near {l} are dying of lead poisoning: their parents crush gold ore at home, and the dust is everywhere. Doctors have counted twenty-eight deaths.",
       opts: [P("treat", "Treat the children and clean the villages", { cost: 1.2, fx: { app: 3, hp: .02 }, next: "b", past: "treated the poisoned children and cleaned the villages", say: "Treatment and the clean-up begin." }),
         O("ban", "Executive order: ban mining around {l}", "the Mining Ban Order", "c", .3, "d", { fx: { app: 1, agr: -.01 }, dz: -2, past: "banned mining around {l}", say: "Banned. The miners' families have no other income." }),
@@ -322,6 +379,10 @@ export const STATE_STORIES = {
   }, "d"),
 
   land_clash: story("land_clash", "The land war", {
+    a2: { t: "A survey peg starts a war near {l}", startOnly: true, who: "traditional-ruler-oba-obi", bg: "emirs-palace-courtyard", d: "Government surveyors put a peg in a farm near {l} for a new road. Two towns each said the farm was theirs, and by evening their young men were fighting. Six dead.",
+      opts: [P("boundary", "A boundary commission and compensation", { cost: .8, fx: { app: 2 }, dz: 2, next: "b", past: "set up a boundary commission after the survey fight", say: "Surveyors and elders from both towns walk the line." }),
+        B("law", "A Boundary Disputes Bill: binding arbitration", "Boundary Disputes (Arbitration) Bill", "b", "d", { past: "sent a Boundary Disputes Bill to the House", say: "Binding arbitration, if it passes." }),
+        A("police", "Send the police and move the road", { weak: true, cost: .2, next: "d", past: "moved the road and sent the police", say: "The road moved. The quarrel did not." })] },
     a: { t: "Two towns near {l} go to war over farmland", who: "traditional-ruler-oba-obi", bg: "emirs-palace-courtyard", d: "Two neighbouring towns near {l} have fought over the same farmland for forty years. Last night it turned bloody: eleven dead, a market burned.",
       opts: [P("boundary", "A boundary commission and compensation for both towns", { cost: .8, fx: { app: 2 }, dz: 2, next: "b", past: "set up a boundary commission between the two towns", say: "Surveyors and elders from both towns walk the line together." }),
         O("seize", "Executive order: the state takes the disputed land", "the Disputed Land Order", "c", .4, "d", { fx: { app: -1 }, dz: -2, past: "took over the disputed farmland by order", say: "The land is the state's now. Both towns are angry." }),

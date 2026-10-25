@@ -42,7 +42,7 @@ test("no card repeats in a term, whatever the player picks", () => {
 });
 
 test("the queues are back, and what you did decides what comes next", () => {
-  const d = PRES_STORIES.fuel; let S = storyTurn(d, storyStart(d, "q"), 1, {}, () => .99);
+  const d = PRES_STORIES.fuel; let S = storyTurn(d, storyStart(d, "q", () => 0), 1, {}, () => .99);
   let c = storyCard(d, S, { nat: true }); assert.equal(T(c.t), "The queues are back");
   // Concession: Atlas and its terms. A subsidy: the bill doubles. An order: the cap, and maybe the court.
   const after = (oid) => { const R = storyAfter(d, S, c.opts.find(o => o.id === oid), 1, {}, () => .99); const k = storyCard(d, storyTurn(d, R.S, 2, { house: 90 }, () => .99), { nat: true }); return { t: T(k.t), d: T(k.d) }; };
@@ -60,7 +60,7 @@ test("the queues are back, and what you did decides what comes next", () => {
 });
 
 test("three weak answers and it boils over: NUPENG parks the tankers", () => {
-  const d = PRES_STORIES.fuel; let S = storyTurn(d, storyStart(d, "w"), 1, {}, () => .99);
+  const d = PRES_STORIES.fuel; let S = storyTurn(d, storyStart(d, "w", () => 0), 1, {}, () => .99);
   // Weak, weak, weak: each weak answer adds one, a good one takes one back.
   S = { ...S, weak: 2 }; S = storyAfter(d, S, storyCard(d, S, {}).opts.find(o => o.id === "blame"), 1, {}, () => .99).S;
   assert.equal(S.weak, 3);
@@ -70,13 +70,13 @@ test("three weak answers and it boils over: NUPENG parks the tankers", () => {
 });
 
 test("the insurgency answered by force splits: a new faction", () => {
-  const d = PRES_STORIES.insurgency; let S = storyTurn(d, storyStart(d, "i"), 1, {}, () => .99);
+  const d = PRES_STORIES.insurgency; let S = storyTurn(d, storyStart(d, "i", () => 0), 1, {}, () => .99);
   S = storyAfter(d, S, storyCard(d, S, {}).opts.find(o => o.id === "surge"), 1, {}, () => .99).S;
   assert.equal(T(storyCard(d, storyTurn(d, S, 2, {}, () => .99), {}).t), "A splinter group has formed");
 });
 
 test("the agenda changes every year, and corner-cutting comes back", () => {
-  const d = agendaStory("infrastructure"); let S = storyTurn(d, storyStart(d, "a"), 1, {}, () => .99);
+  const d = agendaStory("infrastructure"); let S = storyTurn(d, storyStart(d, "a", () => 0), 1, {}, () => .99);
   assert.equal(storyCard(d, S, {}).t, "The land along the route");
   S = storyAfter(d, S, storyCard(d, S, {}).opts.find(o => o.id === "corners"), 1, {}, () => .99).S;
   const c2 = storyCard(d, storyTurn(d, S, 2, {}, () => .99), {});
@@ -106,9 +106,18 @@ test("a governor's crisis is a story in its LGA, not a one-off", () => {
     assert.ok(kinds.has("bill") || kinds.has("order"), d.id + " can be answered by law or order");
     assert.ok(Object.keys(d.beats).length >= 5, d.id);
   });
-  const d = STATE_STORIES.flood; let S = storyTurn(d, storyStart(d, "f"), 2, {}, () => .99);
+  const d = STATE_STORIES.flood; let S = storyTurn(d, storyStart(d, "f", () => 0), 2, {}, () => .99);
   const c1 = placeText(storyCard(d, S, {}), "Lokoja"); assert.equal(c1.t, "The river overflows: Lokoja under water");
   S = storyAfter(d, S, c1.opts.find(o => o.id === "relief"), 2, {}, () => .99).S;
   const c2 = placeText(storyCard(d, storyTurn(d, S, 3, {}, () => .99), {}), "Lokoja");
   assert.equal(c2.t, "Cholera in the flood camps"); assert.match(c2.d, /^Last year you set up relief camps and sent boats to Lokoja/);
+});
+
+test("a crisis does not open the same way in every game", () => {
+  [...Object.values(PRES_STORIES), ...Object.values(FRONT_STORIES), ...Object.values(STATE_STORIES)].forEach(d => {
+    assert.ok((d.starts || []).length >= 2, d.id + " has several openings");
+    const opens = new Set(); for (let i = 0; i < 40; i++) opens.add(storyStart(d, "g", seeded(i + 3)).beat);
+    assert.equal(opens.size, d.starts.length, d.id);
+    const S = storyStart(d, "g", () => 0); assert.ok(d.starts.filter(b => b !== S.beat).every(b => S.seen.includes(b)), d.id + ": the other openings never come back mid-story");
+  });
 });

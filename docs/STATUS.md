@@ -31,6 +31,12 @@
   - Each year an open crisis brings its next development, decided by last year's answer. Examples: relief camps lead to cholera in the camps; paying a ransom makes your schools a market; naming the refineries' protectors means the protectors strike back.
   - Bills go to the House of Assembly; orders can be struck down by a State High Court.
   - A second crisis can open while one runs, and a closed one never returns.
+- **Different openings in each game:** fuel, insurgency and the naira have three openings each.
+  - Fuel: the queues; a tanker inferno; the rehabilitated refinery on fire.
+  - Insurgency: an overrun base; two hundred schoolgirls taken; armed drones.
+  - Naira: the fall through ₦2,000; oil at $40; a junk rating.
+  - Every security front and every governor's state crisis has two.
+  - A new game draws one at random; the openings not drawn never turn up later.
 - **Tests:** tests/storylines.test.mjs plays 400 random terms per storyline and fails on any repeated card. The president e2e checks the "Last year you…" line on screen; the playthrough e2e checks the flagship story.
 
 ## Fresh trouble every game: the war, the strikes, the wiki (25 Oct)
