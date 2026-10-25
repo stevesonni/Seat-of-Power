@@ -51,7 +51,7 @@
    (for recording to a video file); ?embed=1 tells the game when it is done. */
 (function () {
   var Q = new URLSearchParams(location.search), REC = Q.has("record"), EMBED = Q.has("embed");
-  if (REC) document.documentElement.classList.add("rec");
+  if (REC || EMBED) document.documentElement.classList.add("rec"); // embedded, the game draws its own Skip button
   var A = function (p) { return "./art/" + p + ".webp"; };
   var S = [
     { bg: "scenes/inauguration-eagle-square", lines: ["Have you ever wondered", "if you have what it takes <em>to govern</em>?"], d: 6.5, m: [1.08, 1.0, "0%", "2%", "0%", "-1%"] },

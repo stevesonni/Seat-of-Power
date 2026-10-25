@@ -14756,14 +14756,22 @@ function App() {
     window.addEventListener("message", done); window.addEventListener("sop-intro", open);
     return () => { window.removeEventListener("message", done); window.removeEventListener("sop-intro", open); };
   }, []);
-  // On the page root, outside the zoomed stage, so it fills the real screen.
+  // On the page root, outside the zoomed stage, so it fills the real screen. The game's own
+  // Skip button sits above it, and if the film has not started within six seconds it is removed:
+  // the film must never stand between a player and the game.
   useEffect(() => {
     if (!intro) return;
+    const close = () => { setIntro(false); try { localStorage.setItem("sop_intro_seen", "1"); } catch (x) {} };
     const f = document.createElement("iframe");
     f.title = "The Seat of Power: what it takes to govern"; f.src = "./explainer.html?embed=1"; f.allow = "autoplay";
     f.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;border:0;z-index:2147483600;background:#000";
-    document.documentElement.appendChild(f);
-    return () => f.remove();
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = "Skip ›"; b.setAttribute("aria-label", "Skip the film");
+    b.style.cssText = "position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;z-index:2147483601;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.55);color:#fff;font:600 16px system-ui,sans-serif;padding:10px 18px;border-radius:999px;cursor:pointer";
+    b.onclick = close;
+    document.documentElement.appendChild(f); document.documentElement.appendChild(b);
+    const guard = setTimeout(() => { let ok = false; try { ok = !!(f.contentWindow && f.contentWindow.__explainerReady); } catch (e) {} if (!ok) close(); }, 6000);
+    return () => { clearTimeout(guard); f.remove(); b.remove(); };
   }, [intro]);
   const [finalStats, setFinalStats] = useState(null);
   const [loadedSave, setLoadedSave] = useState(null);

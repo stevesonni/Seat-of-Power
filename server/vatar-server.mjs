@@ -102,7 +102,8 @@ fs.mkdirSync(path.join(DATA, "players"), { recursive: true });
 fs.mkdirSync(path.join(DATA, "hall-days"), { recursive: true });
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".txt": "text/plain; charset=utf-8" };
-const baseHeaders = { "Content-Security-Policy": "frame-ancestors " + FRAMERS, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
+// 'self': the game shows its own film (explainer.html) in a frame on its own page.
+const baseHeaders = { "Content-Security-Policy": "frame-ancestors 'self' " + FRAMERS, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
 
 // The page, marked as the Vatar edition. Read once; restart to pick up a new build.
 let page = null;
