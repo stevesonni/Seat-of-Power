@@ -5921,7 +5921,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Assembly's documents, and plain cards (SYS.bakundaCards).
   const BKC = () => SYS.bkCountry(stc.bakunda); // this game's country: Bakunda, Kasongo, Angova or Saharia
   const BK_DEST = { ecowas: "Accra", chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
-  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, alarm: c.alarm, advice: c.advice, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
+  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, alarm: c.alarm, war: c.war || c.kind === "mission" || /^bk(2|3|3o|6)$/.test(c.id), advice: c.advice, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
     letter: c.kind === "letter" && c.letter ? SYS.bkNames(SYS.TRIP_LETTERS[c.letter], stc.bakunda) : undefined,
     military: c.kind === "mission" ? { d: c.d, need: c.need } : undefined,
     doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign, stamp: c.stamp } : undefined,
@@ -5929,6 +5929,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     options: c.opts.map(o => { const cost = o.cost || 0, app = (o.fx && o.fx.app || 0) - (c.spill || 0) - (c.fatigue || 0);
       return { label: o.l, fid: o.id, note: o.note, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : [], o.grant ? [{ text: "+" + naira(o.grant) + " from the US", color: CL.grn }] : []), run: () => {
         scFx({ app, sec: (o.fx && o.fx.sec || 0) - (c.spill ? .02 : 0), cor: o.fx && o.fx.cor, debt: cost > 0 ? cost : 0 });
+        if (o.sfx) { try { window.SOP_sound && window.SOP_sound(o.sfx); } catch (e) {} }
         if (o.grant) { setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + o.grant) * 100) / 100 })); addL("🇺🇸 The United States pledged " + naira(o.grant) + " for the war against the Axis" + (o.set && o.set.marines ? ", and US Marines stand with our forces." : "."), "success"); }
         const B0 = stc.bakunda, B1 = SYS.bakundaAfter(B0, o);
         setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, bakunda: SYS.bakundaAfter(p.bakunda || B0, o) }; });
@@ -5951,9 +5952,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the " + BKC().nm + "–Ostrava Axis." : "Vetoed the resolution for war and answered the " + BKC().nm + "–Ostrava Axis with sanctions and diplomacy.");
         else if (c.id === "bk2") scWiki("Presidency", "Responded to General " + BKC().gen + "'s coup in " + BKC().nm + ": " + o.l.toLowerCase() + ".");
         track("bakunda_" + (c.kind === "mission" ? "mission" : c.id), o.id + (c.kind === "mission" ? (wrong ? ":wrong" : ":right") : ""));
-        const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id === "bk6";
-        return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
-          tone: B1.done ? "good" : wrong || app < 0 ? "bad" : "neutral", rows: prog ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }].concat(o.grant ? [{ l: "From the United States", v: "+" + naira(o.grant), good: true }] : [], o.set && o.set.marines ? [{ l: "US Marines", v: "With our forces", good: true }] : []) : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
+        const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id.startsWith("bkg_") || c.id === "bk6";
+        return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (o.result ? o.result + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
+          tone: B1.done ? "good" : wrong || app < 0 || o.soft ? "bad" : o.hit ? "good" : "neutral", rows: prog ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }].concat(o.grant ? [{ l: "From the United States", v: "+" + naira(o.grant), good: true }] : [], o.set && o.set.marines ? [{ l: "US Marines", v: "With our forces", good: true }] : []) : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
       } }; }) });
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;
@@ -6536,6 +6537,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (id === "asuu" && T.protest) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/student-leader-angry.webp", bg: "./art/scenes/endasuu-protest.webp", name: "Adaeze Okonkwo-Bala, President of the National Association of Students", text: "We have sat at home for a year, Your Excellency. Our mates abroad are graduating. End this strike, or we will shut every road in " + (NAT ? "Abuja" : "the state") + ". #EndASUUStrike.", urgent: true, ok: "Convene the roundtable", fn: () => setTable({ id }), alt: "Later" } }); } catch (e) {} }, 900);
         if (started.includes(id)) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/" + U.img(NAT) + "-angry.webp", bg: "./art/" + (T.bg || U.bg) + ".webp", name: U.leader(NAT), text: id === "asuu" ? "The universities are shut from today, indefinitely. Our demands are on your table. We will not be fobbed off with promises." : "You ignored our ultimatum. From today every worker stays at home, and each year you refuse to talk, another union joins us.", urgent: true, ok: "Convene the roundtable", fn: () => setTable({ id }), alt: "Later" } }); } catch (e) {} }, 600);
         scWiki("Controversies", U.short + ": " + T.t.charAt(0).toLowerCase() + T.t.slice(1) + " in " + ((setup?.startYear || 2027) + turn - 1) + ".");
+        // A twist: the same strike never runs the same way twice (SYS.strikeTwist).
+        const tw = !started.includes(id) || id === "nlc" ? SYS.strikeTwist(st, { turn, seed: state + ":" + pName }, window.SOP_TEST && window.SOP_TEST.twist ? () => 0 : undefined) : null;
+        if (tw) { st = { ...st, twistT: turn }; cards.push(twistCardFor(id, tw)); }
         L.strikes[id] = st;
       });
       lab.forEach(([t, k]) => notes.push([t, k]));
@@ -7707,6 +7711,27 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("↩️ You reversed " + SYS.CAUSES[cause] + " after the labour talks.", "political");
     }
   };
+  const A_ = (st) => st.id === "asuu";
+  // A strike's twist as a desk card: who speaks, what happened, the options (rolled when chosen).
+  const twistCardFor = (id, tw) => { const U = SYS.UNIONS[id], art = (m) => "./art/characters/" + tw.who[0] + (m ? "-" + m : "") + ".webp";
+    return { key: "lab_tw_" + id + "_" + tw.id + "_" + turn, kicker: "✊ " + U.short + " strike · a new turn", color: CL.red, from: tw.who[1], img: art(""),
+      art: [NAT ? "villa-office" : "governor-office", null, "red-union-cap", tw.bg.replace(/^scenes\//, "")], title: tw.t, brief: tw.d,
+      options: tw.opts.map(o => { const D = SYS.demandOf(strikeOf(id) || { id }, labourCtx()), est = o.cost != null ? o.cost : o.costPct ? Math.round(D * o.costPct * 10) / 10 : 0;
+        return { label: o.l, chips: fxChips({ app: (o.fx || {}).app }).concat(est > 0 ? [{ text: naira(est), color: CL.org }] : [], o.odds != null ? [{ text: "A gamble", color: CL.org }] : []), run: () => {
+          const st0 = strikeOf(id); if (!st0) return { icon: "✊", title: "It is over", text: "The strike ended before this came to a head.", tone: "neutral" };
+          const R = SYS.twistAfter(st0, tw, o, { ...labourCtx(), turn });
+          if (R.spend && !spendB(R.spend, U.short + ": " + o.l, { force: true })) return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for this.", tone: "bad" };
+          if (R.fx) scFx(R.fx);
+          setStc(p => ({ ...p, labour: { ...(p.labour || {}), strikes: { ...((p.labour || {}).strikes || {}), [id]: R.st } } }));
+          addL((R.end ? "🤝 " : "✊ ") + U.short + ": " + tw.t.charAt(0).toLowerCase() + tw.t.slice(1) + ". You chose: " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + "." + (R.end ? " The strike is over." : ""), R.end ? "success" : (R.fx.app || 0) < 0 ? "crisis" : "political");
+          if (R.end) scWiki("Governorship", "Ended the " + U.short + " strike: " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".");
+          else if ((R.fx.app || 0) <= -4) scWiki("Controversies", R.paper ? R.paper[0].charAt(0) + R.paper[0].slice(1).toLowerCase() + "." : tw.t + ".");
+          if (R.paper) setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + tw.bg + ".webp"), 300);
+          track("strike_twist_" + tw.id, o.id + (R.won == null ? "" : R.won ? ":won" : ":lost"));
+          const speaker = R.end ? U.leader(NAT) : tw.who[1], face = R.end ? "./art/characters/" + U.img(NAT) + "-pleased.webp" : /^(judge|governors-forum-chair|traditional-ruler-emir|market-women-group-angry)$/.test(tw.who[0]) ? art("") : art(R.mood === "pleased" ? "pleased" : R.mood === "angry" ? "angry" : "");
+          return { icon: R.end ? "🤝" : "✊", img: face, title: o.l, text: (speaker ? speaker + ": " : "") + "“" + R.say + "”", tone: R.end || (R.paper && R.paper[2]) ? "good" : (R.fx.app || 0) < 0 || R.won === false ? "bad" : "neutral",
+            rows: [{ l: U.short + " strike", v: R.end ? "Over" : "Goes on", good: R.end }].concat(R.st.cut ? [{ l: "Their demand", v: "−" + Math.round(R.st.cut * 100) + "%", good: true }] : []) };
+        } }; }) }; };
   const tableAct = (id, opt) => {
     const st = strikeOf(id); if (!st) return; const U = SYS.UNIONS[st.id], ctx = labourCtx();
     if (opt.disabled) return;
@@ -7730,19 +7755,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       else L.strikes[id] = R.st;
       return { ...p, labour: L, chains: R.later ? [...(p.chains || []), ...R.later] : p.chains };
     });
-    addL("🤝 Roundtable with the " + U.short + ": " + opt.l.charAt(0).toLowerCase() + opt.l.slice(1) + ". " + (R.end ? "The strike is over." : R.suspend ? "The strike is suspended." : "No deal."), R.end || R.suspend ? "success" : "political");
-    if (R.end || R.suspend) scWiki(R.tone === "bad" ? "Controversies" : "Governorship", "Ended " + (id === "asuu" ? "the ASUU strike" : "the NLC strike") + ": " + opt.l.charAt(0).toLowerCase() + opt.l.slice(1) + ".");
+    const crack = opt.id === "force" && !A_(st); // arresting the leaders: an escalation, never a win
+    addL((crack ? "🚨 " : "🤝 ") + "Roundtable with the " + U.short + ": " + opt.l.charAt(0).toLowerCase() + opt.l.slice(1) + ". " + (R.escalated ? "Every union has walked out in solidarity." : R.freed ? "A court freed them; the strike goes on." : R.end ? (crack ? "The strike is broken, and has gone underground." : "The strike is over.") : R.suspend ? "The strike is suspended." : "No deal."), crack ? "crisis" : R.end || R.suspend ? "success" : "political");
+    if (crack) scWiki("Controversies", (NAT ? "Ordered soldiers into the grid control rooms and" : "Sent the police in and") + " had the NLC's leaders arrested" + (R.escalated ? "; every union came out in solidarity." : R.freed ? "; a court freed them and called the arrests unlawful." : "; the strike went underground."));
+    if ((R.end || R.suspend) && !crack) scWiki(R.tone === "bad" ? "Controversies" : "Governorship", "Ended " + (id === "asuu" ? "the ASUU strike" : "the NLC strike") + ": " + opt.l.charAt(0).toLowerCase() + opt.l.slice(1) + ".");
     try {
       window.SOP_outcome({ present: { img: "./art/characters/" + U.img(NAT) + (R.tone === "good" ? "-pleased" : R.tone === "bad" ? "-angry" : "") + ".webp", bg: "./art/" + U.table + ".webp", name: U.leader(NAT), text: R.say, urgent: R.tone === "bad", ok: "Continue" } });
       if (opt.id === "mou" && R.suspend) window.SOP_outcome({ icon: "📝", img: "./art/objects/mou-document.webp", title: "The MoU is signed", text: "30% paid today; " + naira(R.st.mou.owed) + " falls due next year. Miss it and they are back out.", tone: "neutral" });
       if (opt.id === "print") window.SOP_outcome({ icon: "🖨️", img: "./art/objects/printed-naira.webp", title: "The Central Bank prints it", text: "Ways and Means: " + naira(SYS.demandOf(st, ctx)) + " created overnight. The bank balance is untouched; the bill comes later, as inflation.", tone: "neutral" });
       const lmN = labourMin();
-      if (lmN && (R.end || R.suspend)) window.SOP_outcome({ present: { img: labourMinArt("pleased"), bg: "./art/" + U.table + ".webp", name: "Hon. " + lmN.minister + " · " + (NAT ? "Minister" : "Commissioner") + " of Labour", text: R.tone === "bad" ? "It is over, Your Excellency, but the workers will remember how it ended." : "We have a deal, Your Excellency. Their members are going back to work.", ok: "Continue" } });
+      if (lmN && crack) window.SOP_outcome({ present: { img: labourMinArt("angry"), bg: "./art/scenes/" + (NAT ? "soldiers-substation" : "nlc-march") + ".webp", name: "Hon. " + lmN.minister + " · " + (NAT ? "Minister" : "Commissioner") + " of Labour", text: R.escalated ? "Your Excellency, this has blown up. Every union is out in solidarity, and the embassies are calling. We will be years repairing this." : R.freed ? "The court threw it out, Your Excellency, and called the arrests unlawful. The unions will not trust a word we say now." : "It is quiet, Your Excellency, but it is the quiet before sabotage. The workers will remember how it ended.", urgent: true, ok: "Continue" } });
+      else if (lmN && (R.end || R.suspend)) window.SOP_outcome({ present: { img: labourMinArt("pleased"), bg: "./art/" + U.table + ".webp", name: "Hon. " + lmN.minister + " · " + (NAT ? "Minister" : "Commissioner") + " of Labour", text: R.tone === "bad" ? "It is over, Your Excellency, but the workers will remember how it ended." : "We have a deal, Your Excellency. Their members are going back to work.", ok: "Continue" } });
       else if (lmN && !(R.end || R.suspend)) window.SOP_outcome({ present: { img: labourMinArt("angry"), bg: "./art/" + U.table + ".webp", name: "Hon. " + lmN.minister + " · " + (NAT ? "Minister" : "Commissioner") + " of Labour", text: "They walked out, Your Excellency. Every week this drags on costs us more than the deal would.", ok: "Continue" } });
       if (!labourMin() && !(R.end || R.suspend)) present("Your Excellency, we have no " + (NAT ? "Minister" : "Commissioner") + " of Labour. Your Chief of Staff negotiates, and the unions take it as disrespect. A good minister would find middle ground.", "worried", () => { const cat = MIN_CAT().find(c => c.id === "labour"); if (cat) { goTab("min"); setTimeout(() => openNewMinistry(cat), 60); } }, "Create the ministry", "Not now");
     } catch (e) {}
     if (R.end && st.id === "asuu") setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/student-leader-pleased.webp", bg: "./art/scenes/empty-lecture-hall.webp", name: "Adaeze Okonkwo-Bala, President of the National Association of Students", text: "The gates are open! Thank you, Your Excellency. We are going back to class.", ok: "Continue" } }); } catch (e) {} }, 700);
-    if ((R.end || R.suspend) && st.id === "nlc" && st.stage >= 2) setTimeout(() => postMail([letterOf("man_relief_" + turn, { key: "man_relief_" + turn, live: true, kind: "investment", stakes: 1, lines: [{ ok: true, line: "The grid is back and the diesel queues are gone. Our members are calling their workers back to the factories." }], tip: ["The Manufacturers' Association of Nigeria", "./art/characters/manufacturers-rep-pleased.webp", "The factories are reopening", "After the strike"] })]), 1500);
+    if ((R.end || R.suspend) && !crack && st.id === "nlc" && st.stage >= 2) setTimeout(() => postMail([letterOf("man_relief_" + turn, { key: "man_relief_" + turn, live: true, kind: "investment", stakes: 1, lines: [{ ok: true, line: "The grid is back and the diesel queues are gone. Our members are calling their workers back to the factories." }], tip: ["The Manufacturers' Association of Nigeria", "./art/characters/manufacturers-rep-pleased.webp", "The factories are reopening", "After the strike"] })]), 1500);
     const pImg = opt.id === "print" ? "scenes/cbn-printing-press" : opt.id === "force" ? (st.id === "asuu" ? "scenes/empty-lecture-hall" : "scenes/soldiers-substation") : opt.id === "divert" ? "backgrounds/project-site-stalled" : R.end || R.suspend ? U.table : U.bg;
     if (R.paper) setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + pImg + ".webp"), 300);
   };
@@ -9100,7 +9128,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (groundedRef.current) { const gone = q.filter(k => k === "intl_invite" || k === "investor" || k === "netherlands" || k === "wedding"); if (gone.length) { const keep = q.filter(k => !gone.includes(k)); q.length = 0; keep.forEach(k => q.push(k)); addL("✈️ The airports are shut by the strike: " + gone.length + (gone.length === 1 ? " trip or visit" : " trips and visits") + " cancelled this year.", "crisis"); } }
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
-    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
@@ -9394,7 +9422,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // then the mail lands, under its red seal, marked URGENT: BAKUNDA.
     const bks = add.filter(l => String(l.key).startsWith("sc#pres_bk"));
     if (bks.length && NAT) {
-      const cs = bks.map(l => scPending.current.find(x => "sc#" + x.key === l.key)).filter(Boolean), lead = cs.find(c => c.alarm) || cs[0], news = cs.find(c => c.news);
+      const cs = bks.map(l => scPending.current.find(x => "sc#" + x.key === l.key)).filter(Boolean), lead = cs.find(c => c.alarm && /_bkg_/.test(c.key)) || cs.find(c => c.alarm) || cs[0], news = cs.find(c => c.news);
+      // War news: the music gives way to the war theme.
+      if (cs.some(c => c.war)) { try { window.SOP_warTheme && window.SOP_warTheme(); } catch (e) {} }
       setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (lead && lead.from) || "Chief of Army Staff", text: "Your Excellency, " + ((lead && lead.alarm) || "there has been a grave development on " + BKC().nm) + ". You will receive " + (bks.length === 1 ? "a letter" : bks.length + " letters") + " shortly, marked URGENT: " + BKC().nm.toUpperCase() + ".", urgent: true, ok: "Continue",
         fn: () => { if (news && news.news) anchors(news.news[0], news.news[1]); setTimeout(() => pingMail(bks.length, bks[0].key), 600); } } }); } catch (e) {} }, 400);
     }

@@ -3,7 +3,34 @@
 
 
 
-## Easier to start, clearer to follow (from a first-time player's review) (25 Oct, latest)
+## Fresh trouble every game: the war, the strikes, the wiki (25 Oct, latest)
+
+- **The junta's moves** (game/systems/bakunda.js, `BAKUNDA_GAMBITS`): eight scenarios that can come in any year after the coup, in any order, war or no war, until the peace is law.
+  - The eight: missiles on the border; a bomb cell at home; Ostrava's mercenaries; a Nigerian tycoon funding the junta; Tessara, the junta's friend; stolen crude; a cyber attack; a murder plot against an exile in Abuja.
+  - Each has two openings: caught planning, or already done.
+  - Hard answers hit General Voko and his backers. Results are rolled, so a strike can find an empty site.
+  - Soft answers embolden the junta: its next move comes sooner and lands harder.
+  - A move takes the place of the year's lesser decision, so the year still holds two decisions and one trip.
+- **Sound:**
+  - Missile strikes (and Air Force missions) play `audio/sfx/missile.mp3`.
+  - When war news reaches the President, the music gives way to `audio/war-theme.mp3` once.
+- **Arresting the NLC's leaders is an escalation, never a win.** The outcome is rolled:
+  - 55%: every union walks out in solidarity;
+  - 25%: a court frees them and calls the arrests unlawful;
+  - 20%: the strike breaks and goes underground into sabotage.
+  - Next year the world condemns the arrests: drop the charges, or charge them with treason.
+  - Nobody applauds: no "we have a deal", and no factories-reopening letter.
+- **Strike twists** (labour.js, `TWISTS`, `strikeTwist`, `twistAfter`): most years a running strike takes a new turn, from a pool, never repeated.
+  - ASUU (8): #EndASUUStrike blockade; CONUA breaks ranks; the industrial court; the brain drain; religious mediators; the revitalisation audit; reopening with part-time staff; school-leavers with nowhere to go.
+  - NLC (5, plus the arrest aftermath): the TUC breaks ranks; the court; the market women; a share of the bill; palliatives.
+- **The wiki reads like a Wikipedia biography:**
+  - the ordinal and dates in the lead;
+  - the governorship told by subject, with dated sentences;
+  - approval taken from a named pollster;
+  - a Legacy section with a ranking;
+  - the infobox in Wikipedia's order, with a Personal details block.
+
+## Easier to start, clearer to follow (from a first-time player's review) (25 Oct)
 - **The basics:**
   - How to play opens five picture cards: you are in charge; how a year works; three things to watch; how you win and lose; you don't need to know politics.
   - The old text is "The full guide" behind them, with plain headings.

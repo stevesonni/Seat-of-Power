@@ -54,7 +54,7 @@ await g.browser.close();
 
 // ── A governor: the NLC and ASUU together.
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
-g = await open(srv.port, { save: YEAR1, seed: 7, test: { labour: "asuu" } });
+g = await open(srv.port, { save: YEAR1, seed: 7, test: { labour: "asuu", twist: true } });
 await g.click(/^Continue/); await g.wait(1800);
 const r2 = await playUntil(g, t0 => /ASUU strike · year/.test(t0) && /NLC strike · year 1/.test(t0), { max: 120, prefer: [/^Later$/, /^Tell the communities first/] });
 check(r2.ok, "the governor's Desk: the NLC and ASUU both out");
@@ -69,5 +69,24 @@ check(!/print it/.test(t), "a governor has no printing press");
 check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /Sign an MoU/.test(x.textContent)); return !!(b && b.disabled); }), "no MoU in the first year");
 check(await optClick(g, /^Concede UTAS/), "make an offer"); await g.wait(800);
 heard = ""; await close(g); check(/insult/i.test(heard), "ASUU calls the first offer an insult");
+// Arresting the NLC's leaders: an escalation, never a win.
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].filter(x => /Convene the roundtable/.test(x.textContent)); const a = b.find(x => /NLC/.test(x.closest("div[style*='border-radius: 16px']")?.textContent || "")) || b[0]; a && a.click(); }); await g.wait(600);
+check(/A huge escalation/.test(await g.txt()), "the arrest option warns it is an escalation");
+check(await optClick(g, /arrest the leaders/), "arrest the NLC leaders"); await g.wait(900);
+heard = ""; await close(g); await g.wait(2600);
+sv = await saved(g); const nl = sv.stc.labour.strikes.nlc;
+check(nl && nl.arrested, "the arrest is on the record");
+check(!/We have a deal|The factories are reopening/.test(heard), "nobody applauds the arrest");
+check(nl.trust < 10 && (nl.on ? nl.stage >= 1 : nl.underground >= 2), "the arrest escalates: trust collapses, the strike goes on or underground (" + JSON.stringify({ on: nl.on, stage: nl.stage, under: nl.underground, trust: nl.trust }) + ")");
 check(!g.errors.length, "no page errors (governor) " + g.errors.join(" | "));
+await g.browser.close();
+
+// ── A strike never runs the same way twice: next year it takes a new turn (a twist card).
+g = await open(srv.port, { save: YEAR1, seed: 7, test: { labour: "asuu", twist: true } });
+await g.click(/^Continue/); await g.wait(1800);
+let twisted = false, seenTwist = false;
+await playUntil(g, t0 => { if (/strike · a new turn/.test(t0)) seenTwist = true; return twisted; }, { max: 260, prefer: [/^Later$/, /^Tell the communities first/],
+  onStep: async () => { const v = await saved(g); twisted = Object.values(((v.stc || {}).labour || {}).strikes || {}).some(x => (x.twists || []).length); } });
+{ const v = await saved(g); check(seenTwist && twisted, "a strike takes a new turn the next year, and it is answered" + (twisted ? "" : " " + JSON.stringify({ seenTwist, turn: v.turn, lab: v.stc && v.stc.labour, last: v.stc && v.stc.lastTurn }) + " | " + (await g.txt()).slice(0, 300))); }
+check(!g.errors.length, "no page errors (twist) " + g.errors.join(" | "));
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

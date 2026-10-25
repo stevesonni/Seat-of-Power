@@ -345,7 +345,7 @@
        plays one; SOP_soundOn() reads or sets the switch for effects and music
        (remembered on this device). */
     (function () {
-      var on = true, SFX = { gavel: 1, notify: 1, cheer: 1, takeoff: 1, landing: 1 }, cache = {};
+      var on = true, SFX = { gavel: 1, notify: 1, cheer: 1, takeoff: 1, landing: 1, missile: 1 }, cache = {};
       try { on = localStorage.getItem('sop_sound') !== 'off'; } catch (e) {}
       window.SOP_sound = function (kind) {
         if (!on || !SFX[kind]) return null;
@@ -358,11 +358,22 @@
       /* Background music: one quiet loop, under everything. Starts on the first
          tap (browsers block autoplay), stops with Sound off and while Vatar pauses
          the game. Volume 0–1, kept per device; the default is 30%. */
-      var bgm = null, vol = 0.3;
+      var bgm = null, vol = 0.3, war = null, warOn = false;
+      /* The war theme: when war news reaches the President, the music gives
+         way to it once (46 seconds), then comes back. */
+      window.SOP_warTheme = function () {
+        if (!on) return;
+        try {
+          if (!war) { war = new Audio('./audio/war-theme.mp3'); war.onended = function () { warOn = false; music(); }; }
+          warOn = true; if (bgm) bgm.pause();
+          war.currentTime = 0; war.volume = Math.min(1, Math.max(0.35, vol + 0.25)); var p = war.play(); if (p && p.catch) p.catch(function () { warOn = false; music(); });
+        } catch (e) { warOn = false; }
+      };
       try { var sv = localStorage.getItem('sop_music_vol'); if (sv != null && !isNaN(+sv) && +sv !== 0.15) vol = Math.max(0, Math.min(1, +sv)); } catch (e) {} // 0.15 was the old default
       function music() {
         try {
-          var want = on && vol > 0 && !window.SOP_paused && document.visibilityState !== 'hidden';
+          var want = on && vol > 0 && !warOn && !window.SOP_paused && document.visibilityState !== 'hidden';
+          if (war && warOn) { if (!on || window.SOP_paused || document.visibilityState === 'hidden') war.pause(); else if (war.paused) { var wp = war.play(); if (wp && wp.catch) wp.catch(function () {}); } }
           if (!bgm) { if (!want) return; bgm = new Audio('./audio/bg-music.mp3'); bgm.loop = true; bgm.preload = 'auto'; }
           bgm.volume = vol;
           if (want) { var p = bgm.play(); if (p && p.catch) p.catch(function () {}); } else bgm.pause();

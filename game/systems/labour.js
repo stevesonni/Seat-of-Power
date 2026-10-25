@@ -84,7 +84,7 @@ export const escalate = (st, turn) => st.id === "nlc" && st.lastSession < turn -
 
 /* The demand: everything in the bank, or what is owed if that is more. rev is
    a year's revenue (₦B). */
-export const demandOf = (st, { cash = 0, rev = 20 } = {}) => Math.round(Math.max(cash || 0, rev * (st.id === "asuu" ? .15 : .12)) * 10) / 10;
+export const demandOf = (st, { cash = 0, rev = 20 } = {}) => Math.round(Math.max(cash || 0, rev * (st.id === "asuu" ? .15 : .12)) * (1 - Math.min(.5, st.cut || 0)) * 10) / 10;
 
 /* The chance they take an offer that is not everything. ctx: { cor (0–1),
    minister: the Labour minister's performance (0–100) or null, turn }. */
@@ -109,7 +109,7 @@ export const roundtable = (st, ctx) => {
       : { id: "offer", l: (st.cause && CAUSES[st.cause] ? "Reverse " + CAUSES[st.cause] + " and pay half" : "Pay half") + " (₦" + Math.round(D * 5) / 10 + "B)", note: "Chance they take it: " + Math.round(odds * 100) + "%.", cost: Math.round(D * 5) / 10, odds, reverse: !!st.cause },
     { id: "refuse", l: "Tell them the money is not there", note: "They walk out. The strike hardens.", cost: 0 },
     A ? { id: "force", l: "No work, no pay: stop the lecturers' salaries", note: "Saves money; the strike goes on, and the best lecturers leave the country.", cost: 0 }
-      : { id: "force", l: nat ? "Send soldiers into the control rooms; arrest the leaders" : "Send the police in; arrest the leaders", note: "The strike breaks, then goes underground: sabotage for years, and the world condemns you.", cost: 0 },
+      : { id: "force", l: nat ? "Send soldiers into the control rooms; arrest the leaders" : "Send the police in; arrest the leaders", note: "A huge escalation: every union may walk out in solidarity, a court may free them, and the world will condemn you.", cost: 0 },
   ];
   (ctx.divert || []).slice(0, 2).forEach(w => o.push({ id: "divert", w, l: "Cancel " + w.nm + " to pay them", note: "The strike ends. The contractor sues, investors there leave, and " + (w.place || "that region") + " turns against you.", cost: 0 }));
   if (nat) o.push({ id: "print", l: "Order the Central Bank to print it (Ways and Means)", note: "The strike ends and the bank is untouched. Inflation follows in two years.", cost: 0 });
@@ -143,8 +143,16 @@ export const resolve = (st, opt, ctx, r = Math.random) => {
   if (opt.id === "force") {
     if (A) return { st: { ...base, trust: base.trust - 25, nowork: true }, fx: { app: -3, lit: -.01 }, save: Math.round(D * 1) / 10, say: "No work, no pay? Then no work. And our best people will be in Canada by Christmas.", tone: "bad",
       paper: ["GOVERNMENT STOPS LECTURERS' SALARIES", "ASUU digs in; academics queue for visas", false] };
-    return { st: { ...base, on: false, over: "force", underground: 2 }, end: true, fx: { app: -5, infra: -.02 }, say: "You can arrest us. You cannot arrest the workers. They will remember this.", tone: "bad",
-      paper: [nat ? "SOLDIERS SEIZE GRID CONTROL ROOMS; NLC LEADERS ARRESTED" : "POLICE ARREST NLC LEADERS; STRIKE BROKEN", "Rights groups and foreign embassies condemn the crackdown", false] };
+    /* Arresting the leaders is an escalation, never a win. Usually every
+       union comes out in solidarity; sometimes a court frees them within the
+       week; only rarely does the strike break, and then it goes underground. */
+    const roll = r(), arrested = { ...base, arrested: turn, trust: base.trust - 30 };
+    if (roll < .55) return { st: { ...arrested, on: true, stage: 3 }, escalated: true, fx: { app: -7, sec: -.02 }, say: "Arrest me and ten more take my place. From midnight every union in " + (nat ? "Nigeria" : "this state") + " is out. Everything stops.", tone: "bad",
+      paper: [nat ? "NLC LEADERS ARRESTED; UNIONS SHUT DOWN THE COUNTRY" : "NLC LEADERS ARRESTED; THE WHOLE STATE STOPS", nat ? "Aviation, power and oil workers walk out in solidarity; the ILO condemns the arrests" : "Teachers and health workers join in solidarity; rights groups condemn the arrests", false] };
+    if (roll < .8) return { st: { ...arrested, on: true, trust: base.trust - 35 }, fx: { app: -5 }, say: "The court has freed us, and the whole country saw you try to jail workers for asking to be paid. The strike goes on.", tone: "bad", freed: true,
+      paper: ["COURT ORDERS RELEASE OF NLC LEADERS", "Judge calls the arrests unlawful; the strike goes on, angrier", false] };
+    return { st: { ...arrested, on: false, over: "force", underground: 3 }, end: true, fx: { app: -6, infra: -.02 }, say: "You can arrest us. You cannot arrest the workers. They will remember this.", tone: "bad",
+      paper: [nat ? "SOLDIERS SEIZE GRID CONTROL ROOMS; NLC LEADERS ARRESTED" : "POLICE ARREST NLC LEADERS; STRIKE DRIVEN UNDERGROUND", "Rights groups and foreign embassies condemn the crackdown; sabotage feared", false] };
   }
   if (opt.id === "divert") return { st: { ...base, on: false, over: "divert" }, end: true, cancel: opt.w, fx: { app: 2 }, say: "The money is found. We are going back to work.", tone: "neutral",
     paper: [String(opt.w && opt.w.nm || "PROJECT").replace(/^⭐\s*/, "").toUpperCase() + " CANCELLED TO END STRIKE", "The contractor heads to court", false] };
@@ -163,3 +171,90 @@ export const mouDue = (st, { cash = 0 } = {}) => {
 
 // Should ASUU strike this year? From the third year, once per game unless an MoU fails; more likely when education is starved.
 export const asuuStrikes = ({ turn, edu = 15, had = false }, r = Math.random) => !had && turn >= 3 && r() < (edu < 14 ? .6 : .35);
+
+/* Twists: the same strike never runs the same way twice. Each year a strike
+   is on, one development from its pool (seeded, never repeated in a game):
+   students in the streets, a breakaway union, a court, an exodus, mediators,
+   an audit... Options can roll (a court can order them back, or they can
+   defy it). An option: cost (₦B, or costPct of the demand), fx, trust,
+   stage (unions joining or leaving), cut (lowers the demand), end, odds with
+   win/lose. who: [art, name] of the person who speaks. */
+const STU = ["student-leader", "Adaeze Okonkwo-Bala, President of the National Association of Students"];
+const LAB_MIN = ["labour-minister", "The Labour " + "Ministry"];
+export const TWISTS = {
+  asuu: [
+    { id: "students", t: "#EndASUUStrike: students block the expressway", d: "Thousands of students have blocked the main expressway with burning tyres. Their placards name you, not the lecturers.", who: STU, bg: "scenes/endasuu-protest",
+      opts: [{ id: "meet", l: "Meet the students and promise them a timeline", fx: { app: 1 }, say: "You came out to us. We will hold you to that timeline, Your Excellency.", mood: "pleased", paper: ["PRESIDENT MEETS PROTESTING STUDENTS", "Expressway reopens after a promise of a timeline", true] },
+        { id: "police", l: "Send the police to clear the road", odds: .5, win: { fx: { app: -2 }, say: "Tear gas and batons. We will be back, and there will be more of us.", paper: ["POLICE CLEAR #ENDASUUSTRIKE BLOCKADE", "Tear gas on the expressway", false] },
+          lose: { fx: { app: -7, sec: -.01 }, trust: -10, say: "A student is dead. Shot on the expressway for asking to go back to class. Nigeria will not forget his name.", paper: ["STUDENT KILLED AS POLICE BREAK UP PROTEST", "Nationwide outrage; ASUU vows never to call off the strike", false] } },
+        { id: "bus", l: "Fund buses home and a monthly stipend", costPct: .08, fx: { app: 2 }, say: "The stipend helps. It does not give us our degrees back.", mood: "neutral", paper: ["STRANDED STUDENTS GET STIPEND", "A sweetener while the campuses stay shut", true] }] },
+    { id: "conua", t: "A breakaway union offers to go back to work", d: "CONUA, the Congress of University Academics, a smaller union, says its members will return if the government registers it and pays its allowances.", who: ["asuu-president", "The ASUU President"], bg: "scenes/empty-lecture-hall",
+      opts: [{ id: "register", l: "Register CONUA and pay its members: some campuses reopen", costPct: .15, fx: { app: 2 }, trust: -15, cut: .1, say: "You have paid strike-breakers. Every lecturer in this union now knows you will never negotiate in good faith.", mood: "angry", paper: ["CONUA LECTURERS RETURN; ASUU CRIES BETRAYAL", "Some lecture halls reopen as the union splits", true] },
+        { id: "one", l: "Refuse: one dispute, one table", trust: 5, fx: { app: -1 }, say: "At least you did not try to break us. That is noted.", mood: "neutral", paper: ["GOVERNMENT SNUBS BREAKAWAY UNION", "The campuses stay shut", false] }] },
+    { id: "court", t: "Take ASUU to the National Industrial Court?", d: "The Labour Ministry can refer the dispute to the National Industrial Court and ask for an order sending the lecturers back to work.", who: ["judge", "The National Industrial Court"], bg: "scenes/news-court-steps",
+      opts: [{ id: "sue", l: "Refer the dispute to the court", odds: .55, win: { end: true, fx: { app: 2 }, trust: -10, say: "The court orders the lecturers back to work. ASUU obeys, under protest, and promises the fight is not over.", paper: ["COURT ORDERS ASUU BACK TO WORK", "Lecturers return under protest; campuses reopen", true] },
+          lose: { trust: -12, fx: { app: -1 }, say: "ASUU has appealed, and until the appeal is heard the strike goes on. They are angrier than before.", paper: ["ASUU APPEALS COURT ORDER, STAYS OUT", "The strike survives the courtroom", false] } },
+        { id: "talk", l: "Keep it out of court and keep talking", trust: 6, say: "No court. Good. Bring us an offer worth reading.", mood: "neutral", paper: ["NO COURT, MORE TALKS", "Government keeps the ASUU dispute at the table", false] }] },
+    { id: "exodus", t: "Three hundred lecturers leave for Britain and Canada", d: "A professor of medicine resigned on live television this morning. Three hundred lecturers have left this year; whole departments are empty.", who: ["asuu-president", "The ASUU President"], bg: "scenes/japa-departure",
+      opts: [{ id: "retain", l: "A retention allowance for medicine, science and engineering", costPct: .2, trust: 10, fx: { app: 1, lit: .005 }, say: "That is the first serious thing this government has done for the universities. It is not the end of the strike.", mood: "pleased", paper: ["RETENTION ALLOWANCE FOR SCIENTISTS AND DOCTORS", "A bid to stop the brain drain", true] },
+        { id: "go", l: "Let them go: there are other lecturers", fx: { app: -2, lit: -.02 }, trust: -5, say: "Other lecturers? Who will train them? You are emptying the universities for a generation.", mood: "angry", paper: ["“LET THEM GO”: BRAIN DRAIN DEEPENS", "Departments empty as lecturers japa", false] }] },
+    { id: "mediators", t: "Religious leaders offer to mediate", d: "The Christian Association of Nigeria and the Supreme Council for Islamic Affairs offer to bring both sides together in private.", who: ["traditional-ruler-emir", "The mediators"], bg: "scenes/labour-roundtable",
+      opts: [{ id: "accept", l: "Accept the mediators", trust: 15, odds: .4, win: { end: true, fx: { app: 3 }, say: "Under the clerics' eye both sides gave ground. The lecturers go back next week, on a timetable for the rest.", paper: ["CLERICS BROKER END TO ASUU STRIKE", "Lecturers to return after secret talks", true] },
+          lose: { fx: { app: 1 }, say: "The talks did not end it, but the union trusts the table more now. The next offer will land better.", paper: ["MEDIATION FAILS, BUT TALKS WARMER", "Both sides praise the clerics", true] } },
+        { id: "decline", l: "Decline: government does its own talking", trust: -5, fx: { app: -1 }, say: "You turned away the clerics. That tells us everything.", mood: "angry", paper: ["GOVERNMENT TURNS DOWN MEDIATORS", "Religious leaders “disappointed”", false] }] },
+    { id: "audit", t: "An audit of the last revitalisation money", d: "An audit has found that a third of the last revitalisation fund was spent on vice-chancellors' cars, guest houses and contracts to relatives.", who: ["asuu-president", "The ASUU President"], bg: "scenes/news-court-steps",
+      opts: [{ id: "publish", l: "Publish the audit", cut: .25, trust: -10, fx: { app: 2, cor: -.01 }, say: "You are trying to shame us with the vice-chancellors' sins. We did not buy those cars.", mood: "angry", paper: ["AUDIT: UNIVERSITY FUNDS SPENT ON CARS AND GUEST HOUSES", "Public sympathy shifts; ASUU on the defensive", true] },
+        { id: "table", l: "Keep it quiet and use it at the table", cut: .15, say: "We have seen the figures. Perhaps the fund can come with an audit clause.", mood: "neutral", paper: ["ASUU TALKS RESUME QUIETLY", "Both sides agree to tighter auditing", true] }] },
+    { id: "vcs", t: "Vice-chancellors want to reopen with part-time lecturers", d: "Several vice-chancellors ask permission to reopen with part-time and retired lecturers, so final-year students can graduate.", who: ["asuu-president", "The ASUU President"], bg: "scenes/campus-shut",
+      opts: [{ id: "reopen", l: "Reopen with part-time lecturers", costPct: .05, odds: .5, win: { fx: { app: 2 }, trust: -15, say: "Strike-breakers in our lecture halls. You will pay for this at the table.", paper: ["SOME CAMPUSES REOPEN WITH PART-TIME STAFF", "Final-year students sit exams", true] },
+          lose: { fx: { app: -3 }, trust: -15, say: "Classes with no lecturers, exams with no marks. Even the students are laughing at you.", paper: ["“GHOST CLASSES”: REOPENING FIASCO", "Part-time lecturers fail to show", false] } },
+        { id: "shut", l: "Keep the campuses shut until there is a deal", trust: 4, fx: { app: -1 }, say: "Good. No half-measures.", mood: "neutral", paper: ["CAMPUSES STAY SHUT", "No reopening without a deal", false] }] },
+    { id: "jamb", t: "A year of school-leavers with nowhere to go", d: "A million school-leavers passed their entrance exams and have no university to go to. Their parents are furious.", who: STU, bg: "scenes/campus-shut",
+      opts: [{ id: "poly", l: "Open more places at polytechnics and colleges", costPct: .1, fx: { app: 2, lit: .005 }, say: "Something at least. Polytechnics will take some of them.", mood: "neutral", paper: ["POLYTECHNICS OPEN EXTRA PLACES", "School-leavers get a lifeline", true] },
+        { id: "wait", l: "Let them wait for the universities", fx: { app: -3, sec: -.01 }, say: "A million young people at home doing nothing. Do you know what idle hands do in this country?", mood: "angry", paper: ["A MILLION SCHOOL-LEAVERS STRANDED", "No place, no plan", false] }] },
+  ],
+  nlc: [
+    { id: "tuc", t: "The TUC offers to break ranks", d: "The Trade Union Congress says its members will return to work if their own allowances are paid, leaving the NLC on its own.", who: ["labour-leader", "The NLC leader"], bg: "scenes/nlc-march",
+      opts: [{ id: "pay", l: "Pay the TUC's members: they go back", costPct: .15, stage: -1, trust: -10, fx: { app: 1 }, say: "You bought the TUC. Fine. We are still out, and we remember who divides workers.", mood: "angry", paper: ["TUC SUSPENDS STRIKE; NLC FIGHTS ON", "One union down as the government pays", true] },
+        { id: "no", l: "Refuse: one deal for all the workers", trust: 6, say: "One deal for all. That is how it should be. Come back with it.", mood: "neutral", paper: ["GOVERNMENT REJECTS SEPARATE TUC DEAL", "Unions stay united", false] }] },
+    { id: "court", t: "Ask the National Industrial Court to stop the strike?", d: "Your lawyers say the National Industrial Court could order the strike suspended while the dispute is heard.", who: ["judge", "The National Industrial Court"], bg: "scenes/news-court-steps",
+      opts: [{ id: "sue", l: "Go to court", odds: .55, win: { end: true, fx: { app: 1 }, trust: -8, say: "The court has ordered the strike suspended. The NLC complies, under protest.", paper: ["COURT SUSPENDS NLC STRIKE", "Workers return pending the case", true] },
+          lose: { trust: -12, fx: { app: -2 }, say: "The NLC defied the order and the judge has gone quiet. The strike goes on, and now it is about pride.", paper: ["NLC DEFIES COURT ORDER", "“No court can force a worker to work hungry”", false] } },
+        { id: "talk", l: "Keep it at the table", trust: 5, say: "Better. Courts do not feed families.", mood: "neutral", paper: ["NO COURT ACTION AGAINST NLC", "Talks to continue", false] }] },
+    { id: "market", t: "Market women turn on the strikers", d: "Market women and transport unions say the strike is starving them. Some want to reopen the markets by force.", who: ["market-women-group-angry", "The market women's leader"], bg: "scenes/market-inflation",
+      opts: [{ id: "guard", l: "Reopen the markets under police guard", trust: -10, fx: { app: 2 }, say: "Police guarding scabs. You set worker against worker.", mood: "angry", paper: ["MARKETS REOPEN UNDER GUARD", "Traders defy the strike", true] },
+        { id: "neutral", l: "Stay out of it", fx: { app: -1 }, say: "You leave the market women to suffer. They will say so at the polls.", mood: "neutral", paper: ["MARKETS STAY SHUT", "Traders count their losses", false] }] },
+    { id: "share", t: "A share of the bill is offered", d: "The governors (or, in the state, the local government chairmen) offer to carry part of the workers' demand, for favours later.", who: ["governors-forum-chair", "The Governors' Forum chairman"], bg: "scenes/governors-forum",
+      opts: [{ id: "take", l: "Accept: they carry 30% of the demand", cut: .3, fx: { pStab: -3 }, say: "We will carry it. Remember us when the allocations are shared.", mood: "pleased", paper: ["GOVERNORS OFFER TO SHARE STRIKE BILL", "A deal for favours later", true] },
+        { id: "decline", l: "Decline: no favours owed", say: "Suit yourself.", mood: "neutral", paper: ["PRESIDENCY DECLINES GOVERNORS' OFFER", "Abuja will carry the bill alone", false] }] },
+    { id: "palliative", t: "Offer palliatives instead of the demand?", d: "Your economic team proposes buses, food and a temporary wage award: cheaper than the demand, and visible.", who: LAB_MIN, bg: "scenes/labour-roundtable",
+      opts: [{ id: "offer", l: "Announce palliatives", costPct: .2, odds: .45, win: { end: true, fx: { app: 3 }, say: "The palliatives are real and the workers can see them. The NLC suspends the strike.", paper: ["NLC SUSPENDS STRIKE OVER PALLIATIVES", "Buses, food and a wage award", true] },
+          lose: { trust: 5, fx: { app: 1 }, say: "The workers took the buses and the food, and stayed out. The NLC calls it a down payment.", paper: ["NLC: “PALLIATIVES ARE NOT A WAGE”", "The strike goes on", false] } },
+        { id: "no", l: "Hold the line", trust: -4, say: "Then nothing changes.", mood: "angry", paper: ["NO PALLIATIVES AS STRIKE DRAGS ON", "Government holds firm", false] }] },
+    { id: "jailed", only: "arrested", t: "The world condemns the arrests", d: "The ILO, foreign embassies and the bar association condemn the arrest of the NLC's leaders. The unions will not talk while their leaders are in court.", who: ["labour-leader", "The NLC leader"], bg: "scenes/news-court-steps",
+      opts: [{ id: "release", l: "Drop the charges and invite them back to the table", trust: 15, fx: { app: 1 }, say: "You have dropped the charges. We will come to the table, but we have not forgotten.", mood: "neutral", paper: ["CHARGES AGAINST NLC LEADERS DROPPED", "Talks to resume", true] },
+        { id: "treason", l: "Charge them with treasonable felony", stage: 1, trust: -20, fx: { app: -4 }, say: "Treason? For a strike? You have made us martyrs.", mood: "angry", paper: ["NLC LEADERS CHARGED WITH TREASON", "The ILO threatens to blacklist Nigeria", false] }] },
+  ],
+};
+// This year's twist for a running strike, or null. Seeded; one per strike a year; never repeated.
+export const strikeTwist = (st, { turn, seed = "" } = {}, r) => {
+  if (!st || !st.on || (st.twistT || 0) >= turn) return null;
+  const used = st.twists || [], pool = (TWISTS[st.id] || []).filter(x => !used.includes(x.id) && (!x.only || st[x.only]));
+  if (!pool.length) return null;
+  const rr = r || seededTwist(seed + "|" + st.id + "|" + turn);
+  const jailed = pool.find(x => x.only === "arrested");
+  if (!jailed && rr() > .8) return null; // most years
+  return jailed || pool[Math.floor(rr() * pool.length)];
+};
+const seededTwist = (k) => { let h = 2166136261; for (let i = 0; i < k.length; i++) { h ^= k.charCodeAt(i); h = Math.imul(h, 16777619); } let x = h >>> 0 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
+// The answer to a twist: the strike's new state and what happens. r rolls the odds.
+export const twistAfter = (st, tw, opt, ctx = {}, r = Math.random) => {
+  const won = opt.odds == null ? null : r() < opt.odds, R = won == null ? opt : { ...opt, ...(won ? opt.win : opt.lose) };
+  const D = demandOf(st, ctx), cost = R.cost != null ? R.cost : R.costPct ? Math.round(D * R.costPct * 10) / 10 : 0;
+  let n = { ...st, twists: [...(st.twists || []), tw.id], twistT: ctx.turn, trust: (st.trust || 0) + (R.trust || 0) };
+  if (R.cut) n.cut = Math.min(.5, (n.cut || 0) + R.cut);
+  if (R.stage) n.stage = Math.max(1, Math.min(3, (n.stage || 1) + R.stage));
+  if (tw.id === "jailed" && opt.id === "release") n.arrested = null;
+  if (R.end) n = { ...n, on: false, over: "twist_" + tw.id };
+  return { st: n, won, end: !!R.end, spend: cost, fx: R.fx || {}, say: R.say, mood: R.mood || (won === false ? "angry" : won ? "pleased" : null), paper: R.paper };
+};

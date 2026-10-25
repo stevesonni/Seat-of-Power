@@ -15,12 +15,13 @@ test("the iCivics way: news, the coup, the Assembly's resolution, missions, dipl
   B = pick(B, c3, "assent"); assert.equal(B.atWar, 1); assert.equal(B.resolution, "passed");
   // Year 4: two missions from Defence Headquarters, a diplomacy letter and the army chief's tip.
   let y = bakundaCards({ ...B, dipl: [] }, 4);
-  assert.equal(y.filter(c => c.kind === "mission").length, 2);
+  assert.equal(y.filter(c => c.kind === "mission" || c.id.startsWith("bkg_")).length, 2); // a junta move can take a mission's place
   assert.ok(y.some(c => c.id.startsWith("bkd_") && c.kind === "letter"));
   assert.ok(y.some(c => c.kind === "tip"));
   for (let turn = 4; turn <= 8 && B.progress < 100; turn++) {
     for (const c of bakundaCards(B, turn)) {
       if (c.kind === "mission") B = pick(B, c, c.need);
+      else if (c.id.startsWith("bkg_")) B = pick(B, c, c.opts.find(o => !o.soft).id);
       else if (c.id.startsWith("bkd_")) B = pick(B, c, "go");
       else if (c.kind === "tip") B = bakundaAfter(B, c);
       else if (c.id === "bk6") B = pick(B, c, "address");

@@ -37,8 +37,8 @@ test("paying everything ends it, and the bill comes next year; printing brings i
   assert.ok(P.end); assert.equal(P.spend, 450); assert.equal(P.later[0].kind, "labour_broke"); assert.equal(P.later[0].due, 3);
   const W = L.resolve(st, { id: "print" }, ctx);
   assert.ok(W.end); assert.ok(!W.spend); assert.equal(W.later[0].kind, "labour_print"); assert.equal(W.later[0].due, 4);
-  const F = L.resolve(st, { id: "force" }, ctx);
-  assert.ok(F.end); assert.equal(F.st.underground, 2);
+  const F = L.resolve(st, { id: "force" }, ctx, () => .95); // the rare case: the strike breaks and goes underground
+  assert.ok(F.end); assert.equal(F.st.underground, 3);
   const R = L.resolve(st, { id: "refuse" }, ctx);
   assert.ok(!R.end); assert.equal(R.st.trust, st.trust - 10); assert.ok(R.st.on);
 });
