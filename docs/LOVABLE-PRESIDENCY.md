@@ -229,6 +229,8 @@ Every trip now arrives as a letter (the iCivics way) with two big buttons at the
 
 # Pack 20: Commander-in-Chief (Bakunda) and the anti-graft chairmen
 
+> **Delivered: Pack 20**, all 9 pictures: the red wax seal on every URGENT: BAKUNDA letter, the SBS on its force tile and its wins, the war room on the declaration of war, the override and the decisive push, and the EFCC and ICPC chairmen on their letters (neutral), on sign-off (pleased) and on a refusal (angry).
+
 Bakunda is now the President's war: every year, two decisions and one trip until it is resolved. The Chief of Army Staff tells the President in person first, then the letter lands under its own seal, marked **URGENT: BAKUNDA 🚨**. The Navy's **Special Boat Service (SBS)**, its commandos, is now a fourth force beside the Army, the Navy and the Air Force. Allegations against ministers and commissioners now come as letters from the EFCC and ICPC chairmen. One zip, files named exactly; everything fictional (no real faces, no real seals or crests).
 
 ## Icon (`icons/`), 256×256, transparent

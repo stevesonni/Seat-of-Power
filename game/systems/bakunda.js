@@ -39,8 +39,8 @@ export const BAKUNDA_FORCES = {
   army: { nm: "Army", l: "Deploy the Army", d: "The Army takes and holds ground: borders, roads, villages. Slow and the most costly, but nothing else can keep land.", cost: 40, scene: "army-convoy", icon: "🪖" },
   navy: { nm: "Navy", l: "Deploy the Navy", d: "The Navy rules the lakes and rivers: patrols, blockades, cutting supplies by water. Of no use far inland.", cost: 25, scene: "navy-patrol", icon: "⚓" },
   air: { nm: "Air Force", l: "Deploy the Air Force", d: "The Air Force strikes fast and far: mountain camps, command posts deep in Bakunda. It cannot hold ground.", cost: 30, scene: "air-strike", icon: "✈️" },
-  // The Navy's Special Boat Service: commandos from the water. (Its picture: scenes/sbs-raid, when delivered.)
-  sbs: { nm: "SBS", full: "Special Boat Service", l: "Send in the Special Boat Service", d: "The SBS are the Navy's commandos: small teams that strike from the water by night. Rescues, raids on boats and islands. Too few to hold ground or fight a battle.", cost: 15, scene: null, icon: "🔱" },
+  // The Navy's Special Boat Service: commandos from the water.
+  sbs: { nm: "SBS", full: "Special Boat Service", l: "Send in the Special Boat Service", d: "The SBS are the Navy's commandos: small teams that strike from the water by night. Rescues, raids on boats and islands. Too few to hold ground or fight a battle.", cost: 15, scene: "sbs-raid", icon: "🔱" },
 };
 
 /* Missions from Defence Headquarters: the threat, the ground, the force it
@@ -78,7 +78,7 @@ export const BAKUNDA_PRESSURE = [
     opts: [{ id: "cut", l: "Cut the power line", add: { progress: 14 }, fx: { app: -1 }, paper: ["LIGHTS OUT IN KASSARA CITY", "Nigeria cuts the junta's power", true] },
       { id: "keep", l: "Keep selling: we need the money", cost: -2, fx: { app: -1 }, paper: ["NIGERIA STILL POWERS THE JUNTA", "Business as usual on the northern line", false] }] },
   { id: "smuggle", t: "Fuel smugglers on Lake Chad", d: "Junta smugglers move our fuel across Lake Chad by night to keep the Axis running.", advice: "This is work for the Special Boat Service. Customs alone will not stop them.",
-    opts: [{ id: "sbs", l: "Send the SBS to stop them", cost: 8, add: { progress: 15 }, fx: { app: 2, sec: .01 }, paper: ["SBS SEIZES JUNTA FUEL BOATS", "Night raids on Lake Chad cut the Axis supply", true] },
+    opts: [{ id: "sbs", l: "Send the SBS to stop them", cost: 8, add: { progress: 15 }, fx: { app: 2, sec: .01 }, img: "scenes/sbs-raid", paper: ["SBS SEIZES JUNTA FUEL BOATS", "Night raids on Lake Chad cut the Axis supply", true], paperImg: "sbs-raid" },
       { id: "customs", l: "Leave it to Customs", cost: 1, add: { progress: 3 }, paper: ["SMUGGLING GOES ON ACROSS LAKE CHAD", "Customs patrols overwhelmed", false] }] },
   { id: "radio", t: "Bakunda's democrats ask for a voice", d: "Bakunda's exiled democrats want a radio station on our side of the border to reach their people.", advice: "A free voice is cheaper than a battalion. The junta will be furious.",
     opts: [{ id: "fund", l: "Fund the radio station", cost: 2, add: { progress: 10 }, fx: { app: 1 }, paper: ["RADIO FREE BAKUNDA ON AIR FROM NIGERIA", "The junta's people hear the other side", true] },
@@ -142,13 +142,13 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     decide({ id: "bk3", kind: "document", kicker: "WAR", t: "Resolution of the National Assembly: a state of war with the Bakunda–Ostrava Axis", news: NEWS.bk3, learn: "war", alarm: "there has been a grave development: the junta has signed a pact with Ostrava, and the National Assembly has passed a resolution for war. It is on its way to you", advice: B.ready ? "The troops are already north and ready. If you sign, we move within the week." : "If you sign, we go to war. The men are willing. Make sure the country is.",
     d: "The National Assembly, in joint session, finds that the junta of Bakunda, in pact with Ostrava, threatens the territory of Nigeria and the peace of West Africa. Under Section 5(4)(a) it sanctions a declaration of war, and authorises the President, as Commander-in-Chief, to direct the armed forces to bring the conflict to a successful end.",
     sign: "The President of the Federal Republic of Nigeria", paperImg: "axis-summit",
-    opts: [{ id: "assent", l: "Assent: declare war", fx: { app: 2, sec: .01 }, npc: { army: 4 }, set: { stage: 3, atWar: 1, resolution: "passed" }, paper: ["NIGERIA DECLARES WAR ON THE BAKUNDA AXIS", "The National Assembly's resolution signed", false],
+    opts: [{ id: "assent", l: "Assent: declare war", fx: { app: 2, sec: .01 }, npc: { army: 4 }, set: { stage: 3, atWar: 1, resolution: "passed" }, img: "scenes/bakunda-war-room", paperImg: "bakunda-war-room", paper: ["NIGERIA DECLARES WAR ON THE BAKUNDA AXIS", "The National Assembly's resolution signed", false],
         say: "Your Excellency, there have been major developments. Watch your mail for missions from Defence Headquarters, and act as Commander-in-Chief." },
       { id: "veto", l: "Veto: sanctions and talks only", fx: { app: -2 }, npc: { army: -6, nass: -3 }, set: { stage: 3, atWar: 0, resolution: "vetoed", override: "pending" }, paper: ["PRESIDENT VETOES WAR RESOLUTION", "Senators vow to override", false], paperImg: "axis-summit", say: "No war, then, for now. But the Assembly will not take this lying down, Your Excellency. They have the votes to override you." }] });
     decide({ id: "bk3b", kind: "card", kicker: "Bakunda · Lake Chad", t: "Ostravan warships on Lake Chad", scene: "navy-patrol", learn: "forces",
       d: "Two Ostravan gunboats have docked at Bakunda's lake port. The Chief of the Naval Staff wants the Special Boat Service to shadow them.",
       advice: "Let the SBS watch them. If they move on our shore, we will know first.",
-      opts: [{ id: "sbs", l: "Send the SBS to shadow them", cost: 5, fx: { app: 1, sec: .01 }, npc: { army: 2 }, add: { progress: 8 }, paper: ["SBS COMMANDOS SHADOW OSTRAVAN GUNBOATS", "The Navy watches the Axis on Lake Chad", true], paperImg: "navy-patrol", say: "The SBS are in the water. Nothing moves on that lake now without us knowing." },
+      opts: [{ id: "sbs", l: "Send the SBS to shadow them", cost: 5, fx: { app: 1, sec: .01 }, npc: { army: 2 }, add: { progress: 8 }, img: "scenes/sbs-raid", paper: ["SBS COMMANDOS SHADOW OSTRAVAN GUNBOATS", "The Navy watches the Axis on Lake Chad", true], paperImg: "sbs-raid", say: "The SBS are in the water. Nothing moves on that lake now without us knowing." },
         { id: "air", l: "Watch from the air only", cost: 2, fx: { app: 0 }, add: { progress: 3 }, paper: ["AIR FORCE WATCHES LAKE CHAD FROM ABOVE", "Ostrava's gunboats stay in port", true], paperImg: "air-strike", say: "We will see them from above. We will not hear them." }] });
   }
   // A vetoed war resolution comes back stamped OVERRIDDEN: two-thirds of both Houses.
@@ -157,7 +157,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     advice: "The Assembly has spoken, Your Excellency. The troops are ready. Lead them, and the country will follow you.",
     d: "The National Assembly, in joint session, by a two-thirds majority of the Senate and of the House of Representatives, overrides the President's veto of its resolution sanctioning war with the Bakunda–Ostrava Axis. The resolution stands. The President, as Commander-in-Chief, is directed to employ the armed forces to bring the conflict to a successful end.",
     sign: "The Senate President and the Speaker, for the National Assembly", paperImg: "axis-summit",
-    opts: [{ id: "comply", l: "Comply: lead the war as Commander-in-Chief", fx: { app: 1, sec: .01 }, npc: { army: 4, nass: 4 }, set: { atWar: 1, resolution: "overridden", override: "done" }, paper: ["ASSEMBLY OVERRIDES PRESIDENT: NIGERIA AT WAR", "Two-thirds of both Houses vote; the President takes command", false], paperImg: "axis-summit",
+    opts: [{ id: "comply", l: "Comply: lead the war as Commander-in-Chief", fx: { app: 1, sec: .01 }, npc: { army: 4, nass: 4 }, set: { atWar: 1, resolution: "overridden", override: "done" }, img: "scenes/bakunda-war-room", paper: ["ASSEMBLY OVERRIDES PRESIDENT: NIGERIA AT WAR", "Two-thirds of both Houses vote; the President takes command", false], paperImg: "bakunda-war-room",
         say: "Then we fight, Your Excellency. Watch your mail for missions from Defence Headquarters." },
       { id: "defy", l: "Refuse to deploy the troops", fx: { app: -4 }, npc: { army: -6, nass: -12 }, set: { override: "defied" }, paper: ["PRESIDENT DEFIES THE NATIONAL ASSEMBLY", "Impeachment talk in both Houses as the troops stay home", false], paperImg: "axis-summit",
         say: "The troops stay in barracks. The Assembly is talking about impeachment, Your Excellency." }] });
@@ -178,7 +178,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
       if (B.atWar >= 2) decide({ id: "bk6", kind: "card", kicker: "The war · year " + B.atWar, t: "“The people are tired of it”", scene: "war-weariness", learn: "war", advice: "A clear word from you steadies the country. A push costs money and lives, but shortens the war.",
       d: "The war rages on. Funerals in the barracks towns, prices up in the north. Your army chief: “The people want to see us win it as soon as possible.”", fatigue: 1 + B.atWar,
       opts: [{ id: "address", l: "Address the nation: why we fight", img: "scenes/national-broadcast", fx: { app: 2 }, set: {}, paper: ["“WE FIGHT FOR PEACE”: PRESIDENT ADDRESSES THE NATION", "War-weary Nigerians hear the case for the war", true], paperImg: "national-broadcast" },
-        { id: "push", l: "Order a decisive push", cost: 30, fx: { app: -1 }, npc: { army: 4 }, add: { progress: 10 }, paper: ["PRESIDENT ORDERS DECISIVE PUSH ON THE AXIS", "Troops press on every front", true], paperImg: "army-convoy", say: "We will press them on every front, Your Excellency." }]  });
+        { id: "push", l: "Order a decisive push", cost: 30, fx: { app: -1 }, npc: { army: 4 }, add: { progress: 10 }, img: "scenes/bakunda-war-room", paper: ["PRESIDENT ORDERS DECISIVE PUSH ON THE AXIS", "Troops press on every front", true], paperImg: "bakunda-war-room", say: "We will press them on every front, Your Excellency." }]  });
     } else if (turn >= 4) {
       // No war: two kinds of pressure short of it.
       const deck = BAKUNDA_PRESSURE.filter(x => !B.press.includes(x.id)), picks = [];

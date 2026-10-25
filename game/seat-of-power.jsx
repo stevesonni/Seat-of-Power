@@ -1794,7 +1794,7 @@ const Ico = ({ n, s = 22, style }) => React.createElement("img", { src: "./art/i
 /* Backgrounds that already have people in them: a portrait or object laid
    over these looks like a stranger standing in the room, so they show alone,
    like a scene. Portraits only stand in empty rooms. */
-const POPULATED_BG = new Set(["airport-arrivals", "assembly-chamber-wide", "burial-ceremony", "busy-market-street", "classroom", "collation-board-lga", "constituency-office", "consular-hall", "embassy-exterior", "emirs-palace-courtyard", "evacuation-airport", "federal-executive-council", "flooded-community", "foreign-ministry-meeting", "hospital-ward", "lga-secretariat", "party-convention-hall", "polling-unit", "project-ribbon-cutting", "project-site-cleared", "project-site-halfway", "rally", "rural-health-centre", "rural-road-mud", "senate-hearing-room", "situation-room", "state-banquet", "state-secretariat", "street-protest", "village-square"]);
+const POPULATED_BG = new Set(["bakunda-war-room", "sbs-raid", "airport-arrivals", "assembly-chamber-wide", "burial-ceremony", "busy-market-street", "classroom", "collation-board-lga", "constituency-office", "consular-hall", "embassy-exterior", "emirs-palace-courtyard", "evacuation-airport", "federal-executive-council", "flooded-community", "foreign-ministry-meeting", "hospital-ward", "lga-secretariat", "party-convention-hall", "polling-unit", "project-ribbon-cutting", "project-site-cleared", "project-site-halfway", "rally", "rural-health-centre", "rural-road-mud", "senate-hearing-room", "situation-room", "state-banquet", "state-secretariat", "street-protest", "village-square"]);
 const SceneArt = ({ bg, scene, who: who0, obj: obj0, alt, h = 230 }) => { const crowd = !scene && POPULATED_BG.has(bg), who = crowd ? null : who0, obj = crowd ? null : obj0; return React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
     background: "#1d2a22 url(./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp) center/cover" } },
@@ -6344,7 +6344,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       scWiki("Governorship", "Authorised the " + A.nm + " to investigate Hon. " + c.officer + " over the " + c.ministryName + " payment.");
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "agency_signed", actor: NAT ? "president" : "governor", target: c.officer, gravity: 2, evidence: 0, decision: "Signed off the " + A.nm + " probe", note: c.what }); } catch (e) {}
       paper(A.nm + " PROBES " + c.ministryName.toUpperCase() + " PAYMENT", (NAT ? "President" : "Governor") + " signs off investigation of Hon. " + c.officer, true);
-      announce({ icon: "⚖️", img: c.agency === "efcc" ? "./art/characters/efcc-investigator.webp" : undefined, title: "The " + A.nm + " is on it", text: "You signed. The " + A.nm + " will investigate Hon. " + c.officer + " and report to " + (stc.hos ? stc.hos.name + ", your Head of Service" : "your Head of Service") + ". The findings, and a recommendation, come in next year's brief.", tone: "good",
+      announce({ icon: "⚖️", img: "./art/characters/" + c.agency + "-chairman-pleased.webp", title: "The " + A.nm + " is on it", text: "You signed. The " + A.nm + " will investigate Hon. " + c.officer + " and report to " + (stc.hos ? stc.hos.name + ", your Head of Service" : "your Head of Service") + ". The findings, and a recommendation, come in next year's brief.", tone: "good",
         learn: "The " + A.full + " investigates " + A.what + " under " + A.law + ". It does not need a governor's permission in law; signing off is a promise of the state's full cooperation." }, before);
     } else {
       const r = SYS.agencyDecline(c, turn);
@@ -6353,7 +6353,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("🙈 Declined the " + A.nm + "'s request to investigate Hon. " + c.officer + ".", "political");
       scWiki("Controversies", "Declined to support the " + A.nm + " investigation of Hon. " + c.officer + " (" + c.ministryName + ").");
       paper((NAT ? "PRESIDENT" : "GOVERNOR") + " SHIELDS " + c.ministryName.toUpperCase() + " " + (NAT ? "MINISTER" : "COMMISSIONER"), "The " + A.nm + " request goes unsigned", false);
-      announce({ icon: "🙈", title: "You declined", text: "Hon. " + c.officer + " stays, and the papers have the story. If the petition was true, it will come back.", tone: "bad" }, before);
+      announce({ icon: "🙈", img: "./art/characters/" + c.agency + "-chairman-angry.webp", title: "You declined", text: "Hon. " + c.officer + " stays, and the papers have the story. If the petition was true, it will come back.", tone: "bad" }, before);
     }
   };
   // Agency findings waiting for the Head of Service's brief, with the replacement they would name.
@@ -8757,7 +8757,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }[k];
     const sm = l.secr ? (ministries || []).find(m => m.id === l.ministryId) : null;
     const agc = l.secr && l.secr.agency ? cases.find(c => c.id === l.secr.agency) : null, agL = agc && SYS.agencyLetter(agc, NAT ? "minister" : "commissioner");
-    if (agL) return { from: agL.signed, img: agc.agency === "efcc" ? "./art/characters/efcc-investigator.webp" : "./art/characters/permanent-secretary.webp", title: agL.title, line: agc.what, body: agL.body, full: agL.body, office: SYS.AGENCIES[agc.agency].full };
+    if (agL) return { from: agL.signed, img: "./art/characters/" + agc.agency + "-chairman.webp", title: agL.title, line: agc.what, body: agL.body, full: agL.body, office: SYS.AGENCIES[agc.agency].full };
     const v = V ? V() : l.secr && l.secr.hosBrief && stc.hos ? [stc.hos.name + ", Head of Service", "./art/characters/" + stc.hos.img + ".webp", l.title0, l.line0]
       : l.secr && l.secr.hosAppoint ? [cast.adviser.name + " · Special Adviser", saPortrait(cast.adviser.name), l.title0, l.line0]
       : l.secr ? [sm ? (sm.acting ? "" : "Hon. ") + sm.minister + ", " + sm.name : "The State Secretariat", sm ? commissionerArt(sm.minister, sm.perf, sm.id) : "./art/characters/permanent-secretary.webp", (sm ? sm.name + ": " : "") + l.title0, String(l.line0 || "").replace(/^./, c => c.toUpperCase())] : l.tip ? l.tip : sc ? [sc.from || sa, sc.img ? sc.img : saPortrait(sa), sc.title || "A matter of state", (sc.text || sc.desc || "").split(". ")[0]]
@@ -9015,7 +9015,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   }, [gEnd]);
   useEffect(() => { if (impSurv && !anchored.current.imp) { anchored.current.imp = 1; anchors(govShort + " survives the impeachment vote!", "The House blinked. The governor walks out stronger."); } }, [impSurv]);
   // ── The mailbox on screen ──
-  const SEAL_ART = { agenda: "seal-agenda", budget: "seal-budget", gold: "seal-gold", crisis: "seal-crisis", godfather: "seal-godfather", party: "seal-party", house: "seal-house", courts: "seal-courts", federal: "seal-abuja", community: "seal-community", press: "seal-press", travel: "seal-invitation", investment: "seal-investor", projects: "seal-projects", intel: "seal-intel", briefing: "seal-briefing" };
+  const SEAL_ART = { bakunda: "seal-bakunda", agenda: "seal-agenda", budget: "seal-budget", gold: "seal-gold", crisis: "seal-crisis", godfather: "seal-godfather", party: "seal-party", house: "seal-house", courts: "seal-courts", federal: "seal-abuja", community: "seal-community", press: "seal-press", travel: "seal-invitation", investment: "seal-investor", projects: "seal-projects", intel: "seal-intel", briefing: "seal-briefing" };
   const Seal = ({ kind, size = 44 }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; if (SEAL_ART[kind]) return <Ico n={SEAL_ART[kind]} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />; return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
   const mailboxView = (inline) => {
     const fz = TALL() ? { s: TS(19), m: TS(23), l: TS(30) } : { s: TS(28), m: TS(34), l: TS(48) };
