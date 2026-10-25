@@ -229,3 +229,58 @@ export const reviewCommitments = (list, year, kept) => {
   });
   return { list: next, due };
 };
+
+/* The anti-graft agencies. An allegation against a commissioner or minister
+   no longer needs the governor to investigate it: the EFCC (money crimes,
+   large sums) or the ICPC (abuse of office, smaller sums) writes asking for
+   sign-off. Once signed, the agency investigates; its findings go to the Head
+   of Service, whose brief recommends a replacement or a public clearing. */
+export const AGENCIES = {
+  efcc: { nm: "EFCC", full: "Economic and Financial Crimes Commission", law: "the EFCC (Establishment) Act 2004", what: "financial crimes" },
+  icpc: { nm: "ICPC", full: "Independent Corrupt Practices and Other Related Offences Commission", law: "the Corrupt Practices and Other Related Offences Act 2000", what: "corruption by public officers" },
+};
+export const AGENCY_METHOD = { nm: "", costM: 0, rel: .9, finds: 3 };
+export const agencyFor = (c) => (c.amountM || 0) >= 1000 ? "efcc" : "icpc";
+export const agencyLetter = (c, office = "commissioner") => {
+  const A = AGENCIES[c.agency || agencyFor(c)];
+  return {
+    title: A.nm + ": a petition against Hon. " + c.officer,
+    body: "We have received a petition that the " + c.ministryName + " ministry, under Hon. " + c.officer + ", " + c.what.charAt(0).toLowerCase() + c.what.slice(1) + ". Under " + A.law + ", we ask your sign-off to investigate the " + office + ". We will report our findings to your Head of Service.",
+    signed: "Chairman, " + A.full,
+  };
+};
+export const agencyAuthorise = (c, year) => ({ ...c, agency: c.agency || agencyFor(c), authorised: year, stage: "evidence",
+  history: [...c.history, { year, text: "Signed off the " + AGENCIES[c.agency || agencyFor(c)].nm + " investigation." }] });
+export const agencyDecline = (c, year) => {
+  const r = decideCase({ ...c, history: [...c.history, { year, text: "Declined the " + AGENCIES[c.agency || agencyFor(c)].nm + "'s request to investigate." }] }, "bury", year);
+  // Refusing an anti-graft agency is news now, and worse if the file was real.
+  const later = c.truth === "misconduct" ? [{ year: year + 1, text: "The " + AGENCIES[c.agency || agencyFor(c)].nm + " leaks the petition you refused to sign. “What is being hidden?”", fx: { app: -4, cor: .02 } }] : [];
+  return { c: { ...r.c, later: [...(r.c.later || []), ...later] }, fx: { ...r.fx, app: r.fx.app - 2 } };
+};
+/* A year after sign-off: the agency's findings. Reliable, not perfect.
+   verdict "replace" when the evidence holds up, "clear" when it does not. */
+export const agencyFindings = (c, year) => {
+  if (!c.authorised || c.report || c.authorised >= year) return c;
+  const A = AGENCIES[c.agency];
+  const M = { ...AGENCY_METHOD, nm: "The " + A.nm };
+  let n = c;
+  const r = seeded("case", c.id, "agency");
+  for (let i = 0; i < M.finds; i++) {
+    const x = r();
+    const pool = x < M.rel ? TRACES[c.truth] : x < M.rel + (1 - M.rel) * .6 ? NOISE : TRACES[Object.keys(TRACES).filter(k => k !== c.truth)[Math.floor(r() * 3)]];
+    const have = new Set(n.evidence.map(e => e.id)), cand = pool.filter(e => !have.has(e.id));
+    if (cand.length) n = { ...n, evidence: [...n.evidence, { ...cand[Math.floor(r() * cand.length)], by: M.nm, year }] };
+  }
+  const grade = gradeOf({ ...n, source: "agency" });
+  const verdict = grade === "documented" || grade === "substantiated" ? "replace" : "clear";
+  const found = n.evidence.filter(e => e.by === M.nm).map(e => e.label.charAt(0).toLowerCase() + e.label.slice(1));
+  return { ...n, grade, stage: "findings", report: { year, verdict, found },
+    history: [...n.history, { year, text: "The " + A.nm + " reported: " + (found.join("; ") || "nothing of substance") + "." }] };
+};
+// The Head of Service's line on an agency report, in the brief.
+export const hosAgencyLine = (c, replacement) => {
+  const A = AGENCIES[c.agency], R = c.report;
+  return R.verdict === "replace"
+    ? "The " + A.nm + " found against Hon. " + c.officer + " (" + c.ministryName + "): " + (R.found[0] || "the money cannot be accounted for") + ". I recommend you replace them" + (replacement ? " with " + replacement + "." : ".")
+    : "The " + A.nm + " found no case against Hon. " + c.officer + " (" + c.ministryName + "). I recommend we clear them publicly.";
+};

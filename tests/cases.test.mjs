@@ -65,3 +65,18 @@ test("not delivering a promised file is evidence, not proof", () => {
   let broken = 0; for (let i = 0; i < 200; i++) { const c = { ...base("k" + i), truth: "misconduct" }; const o = commitmentOutcome(c, 20); if (!o.kept) { broken++; assert.ok(o.evidence.w > 0 && o.evidence.w < 3); } }
   assert.ok(broken > 0);
 });
+
+test("the EFCC or ICPC writes for sign-off; findings go to the Head of Service a year later", async () => {
+  const C = await import("../game/systems/cases.js");
+  const mk = (id, hon, amt) => { const c = C.openCase({ id, year: 2, ministryId: "works", ministryName: "Works", officer: "Ade Bello", hon, amountM: amt }); return { ...c, agency: C.agencyFor(c) }; };
+  assert.equal(mk("a1", 50, 1500).agency, "efcc"); assert.equal(mk("a2", 50, 400).agency, "icpc");
+  const L = C.agencyLetter(mk("a1", 50, 1500)); assert.match(L.body, /sign-off/); assert.match(L.signed, /Economic and Financial Crimes Commission/);
+  let c = C.agencyAuthorise(mk("a3", 50, 800), 2); assert.equal(c.stage, "evidence");
+  assert.equal(C.agencyFindings(c, 2), c, "nothing in the same year");
+  c = C.agencyFindings(c, 3); assert.equal(c.stage, "findings"); assert.ok(["replace", "clear"].includes(c.report.verdict));
+  assert.match(C.hosAgencyLine(c, "Hon. New"), c.report.verdict === "replace" ? /replace them with Hon\. New/ : /clear them publicly/);
+  // Mostly right: the guilty are mostly found out, the innocent mostly cleared.
+  let hit = 0, n = 0; for (let i = 0; i < 200; i++) { const x = C.agencyFindings(C.agencyAuthorise(mk("b" + i, 50, 800), 1), 2); if (x.truth === "misconduct" || x.truth === "false") { n++; hit += (x.truth === "misconduct") === (x.report.verdict === "replace"); } }
+  assert.ok(hit / n > .75, hit + "/" + n);
+  const d = C.agencyDecline(mk("a4", 10, 800), 2); assert.ok(d.fx.app < 0); assert.equal(d.c.stage, "decided");
+});
