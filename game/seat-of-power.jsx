@@ -10443,13 +10443,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setStateVisit(null)} style={{ width: "100%" }}>Not now</Bt></div>
           </Cd>}
         </OL>
-        {nav === "gov" && !needSetup && NAT && stc.fronts && <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", margin: "0 0 12px" }}>
-          <b style={{ display: "block", fontSize: TALL() ? TS(18) : TS(26), marginBottom: 6 }}>🛡️ Security fronts</b>
-          {Object.entries(SYS.FRONTS).map(([k, F0]) => { const v = Math.round(stc.fronts[k] || 0), col = v >= 70 ? CL.red : v >= 50 ? CL.org : CL.grn; return <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr 46px", gap: 8, alignItems: "center", margin: "4px 0" }}>
-            <div><div style={{ fontSize: TALL() ? TS(15) : TS(21), color: CL.tm }}>{F0.nm}</div><div style={{ height: 7, borderRadius: 4, background: CL.bdr, overflow: "hidden" }}><div style={{ width: v + "%", height: "100%", background: col }} /></div></div>
-            <b style={{ color: col, textAlign: "right", fontSize: TALL() ? TS(16) : TS(22) }}>{v}</b></div>; })}
-          <div style={{ fontSize: TALL() ? TS(14) : TS(19), color: CL.td, marginTop: 4 }}>Above 70 a front costs the country every year. The National Security Council asks you about the two worst.</div>
-        </div>}
         {nav === "gov" && !needSetup && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
           const bIdx = balanceIssue();
