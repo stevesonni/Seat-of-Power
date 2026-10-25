@@ -2244,8 +2244,38 @@ const CivicPanel = ({ children, style: st }) => React.createElement("div", {
 
 
 // ─── HOW TO PLAY & CIVIC EDUCATION ───
+// The Basics: five cards, under a minute. The full guide is one tap behind them.
+const BASICS = [
+  { art: "backgrounds/government-house", icon: "icon-office-governor", t: "You are in charge", c: "You run a Nigerian state. First you win the election; then you govern for four years. Do well and the people give you a second term, and one day you may run for President." },
+  { art: "backgrounds/governor-office", icon: "icon-desk", t: "How a year works", c: "Each year you set the budget, answer what the state needs, and open your letters: each one is a decision. Then you end the year and see what your choices did." },
+  { art: "scenes/camp-youth-town-hall", icons: ["icon-approval", "icon-bank", "icon-party"], t: "Three things to watch", c: "Approval: do the people like you? The bank: can you pay for what you promised? The party: will they stand with you? Keep all three healthy." },
+  { art: "scenes/ribbon-cut", icon: "icon-ok", t: "How you win, how you lose", c: "Deliver what you promise and win elections. Lose the people and the party at the same time, and the House can impeach you. Run out of money, and nothing gets built." },
+  { art: "backgrounds/assembly-chamber", icon: "icon-ask-sa", t: "You don't need to know politics", c: "You learn as you play. Everything is explained the first time it appears, and any underlined word has a meaning one tap away. Your Special Adviser is always beside you." },
+];
+// The full guide's old headings, in plain words.
+const GUIDE_TITLE = { "📊 Economic Production Engine": "💹 How the economy grows", "📰 Media & Information Warfare": "📰 The media", "🇳🇬 Federal–State Power Struggle": "🇳🇬 Abuja and the states", "⚡ Shock Events": "⚡ Sudden shocks", "🏛️ Civil Service & Bureaucracy": "🏛️ The civil service", "⚖️ Judiciary System": "⚖️ The courts", "🔗 Trust Network & Cascades": "🤝 Who trusts you, and why it spreads", "📖 Narrative Engine": "📖 How your story is told", "🔍 Hidden Threats & Investigations": "🔍 Hidden threats", "⏰ Time Delays": "⏰ Things take time", "💳 Debt Management": "💳 Debt", "🚔 EFCC & Post-Office": "🚔 After office: the anti-graft agencies", "🏆 Scoring & Endings": "🏆 How you are scored" };
 const HowToPlay = ({ show, onClose }) => {
+  const [full, setFull] = useState(false), [i, setI] = useState(0);
+  useEffect(() => { if (show) { setFull(false); setI(0); } }, [show]);
   if (!show) return null;
+  if (!full) { const B = BASICS[i], last = i === BASICS.length - 1, tall = TALL();
+    return <OL show={true}><div role="dialog" aria-label="The basics" style={{ background: CL.card, borderRadius: 22, overflow: "hidden", border: "1px solid " + CL.bdr, maxWidth: 760, margin: "0 auto" }}>
+      <div style={{ height: tall ? 190 : 300, background: "url(./art/" + B.art + ".webp) center/cover", position: "relative" }}>
+        <button onClick={onClose} aria-label="Close" style={{ position: "absolute", top: 10, right: 10, width: 44, height: 44, borderRadius: 22, border: 0, background: "rgba(0,0,0,.45)", color: "#fff", fontSize: 22, cursor: "pointer" }}>✕</button>
+        <div style={{ position: "absolute", left: 16, bottom: 12, background: "rgba(0,0,0,.5)", color: "#fff", borderRadius: 999, padding: "4px 12px", fontSize: tall ? TS(15) : TS(20), fontWeight: 700 }}>The basics · {i + 1} of {BASICS.length}</div>
+      </div>
+      <div style={{ padding: tall ? "18px 18px 20px" : "30px 40px 34px" }}>
+        <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>{(B.icons || [B.icon]).map(n => <Ico key={n} n={n} s={tall ? 40 : 56} />)}</div>
+        <h2 style={{ fontFamily: F.d, color: CL.txt, fontSize: tall ? TS(34) : TS(48), margin: "0 0 8px" }}>{B.t}</h2>
+        <p style={{ color: CL.tm, fontSize: tall ? TS(22) : TS(28), lineHeight: 1.5, margin: "0 0 18px" }}>{B.c}</p>
+        <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 14 }}>{BASICS.map((_, k) => <button key={k} aria-label={"Card " + (k + 1)} onClick={() => setI(k)} style={{ width: k === i ? 22 : 10, height: 10, borderRadius: 5, border: 0, background: k === i ? CL.grn : CL.bdr, cursor: "pointer", padding: 0, minHeight: 0 }} />)}</div>
+        <div style={{ display: "grid", gridTemplateColumns: i ? "1fr 2fr" : "1fr", gap: 10 }}>
+          {i > 0 && <Bt v="ghost" onClick={() => setI(i - 1)}>Back</Bt>}
+          <Bt onClick={() => last ? onClose() : setI(i + 1)}>{last ? "Start playing" : "Next"}</Bt>
+        </div>
+        <button onClick={() => setFull(true)} style={{ display: "block", margin: "14px auto 0", background: "none", border: 0, color: CL.grn, fontWeight: 700, textDecoration: "underline", cursor: "pointer", fontSize: tall ? TS(16) : TS(22), fontFamily: F.b }}>Read the full guide</button>
+      </div>
+    </div></OL>; }
   const sections = [
     { t: "🎮 How to Play", c: "You are the Executive Governor of a Nigerian state. Before governing, you must fund your campaign, buy a party ticket, choose your deputy, and WIN an election — none of it is automatic.\n\nOnce in Government House, you govern for up to 8 year turns (2 terms of 4 years). Each turn brings: budget allocation, policies, projects, dilemmas, media events, federal government dynamics, shock events, court challenges, investor proposals, godfather demands, and hidden threats.\n\nImpeachment requires BOTH low approval (<30%) AND low party stability (<40%). Bankruptcy (revenue < ₦2B) ends your tenure immediately. Defying the Supreme Court is near-certain impeachment." },
     { t: "💰 Campaign Finance & The Godfather", c: "You start with ₦800M in personal funds — your war chest. Party tickets cost money: NRA ₦500M (the deepest campaign money), PFP, YDM, UCP and WPN cost less. The ticket is deducted from your war chest.\n\nIf you can't afford a ticket, the Godfather offers a loan — but you start governance with +5% corruption per billion borrowed. He WILL demand repayment through contracts, land, and positions.\n\nThe campaign runs four weeks. Each week you see one poll line per senatorial zone, your money and your campaign days (6 a week), and three moves, each with its cost in money and days and the zone it affects. Every move costs money, time or both. The opponent strikes back every week. The result screen shows how each zone moved and which of your moves moved it." },
@@ -2271,7 +2301,7 @@ const HowToPlay = ({ show, onClose }) => {
     <OL show={true}>
       <div style={{ background: CL.card, borderRadius: 21, maxHeight: 1150, overflow: "auto", border: "1px solid " + CL.bdr }}>
         <div style={{ position: "sticky", top: 1, background: CL.grn, color: "#fff", padding: "36px 58px", display: "flex", justifyContent: "space-between", alignItems: "center", borderRadius: "36px 36px 0 0" }}>
-          <span style={{ fontFamily: F.d, fontSize: TS(65), fontWeight: 600 }}>📖 How to Play & Civic Education</span>
+          <span style={{ fontFamily: F.d, fontSize: TS(65), fontWeight: 600 }}>📖 The full guide</span>
           <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#fff", fontSize: TS(65), cursor: "pointer" }}>✕</button>
         </div>
         <div style={{ padding: "43px 58px" }}>
@@ -2285,7 +2315,7 @@ const HowToPlay = ({ show, onClose }) => {
           </div>
           {sections.map((s2, i) => (
             <div key={i} style={{ marginBottom: 50 }}>
-              <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(53), fontWeight: 600, margin: "0 0 14px" }}>{s2.t}</h3>
+              <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(53), fontWeight: 600, margin: "0 0 14px" }}>{GUIDE_TITLE[s2.t] || s2.t}</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), fontFamily: F.b, lineHeight: 1.6, margin: 1, whiteSpace: "pre-line" }}>{s2.c}</p>
             </div>
           ))}
@@ -2724,6 +2754,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
       <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: tall ? "0 20px" : "0 40px" }}>
         <img src={TITLE_LOGO} alt="The Seat of Power" onClick={() => { taps.current = (taps.current || 0) + 1; if (taps.current === 7) { try { localStorage.setItem("sop_preview", "1"); } catch (e) {} setPreview(true); try { window.SOP_toast && window.SOP_toast("Presidency preview unlocked: open Careers", "ok"); } catch (e) {} } }} style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
         <div style={{ marginTop: tall ? 8 : 12, fontSize: DS.t.label, letterSpacing: 2, textTransform: "uppercase", color: UI.sub, fontWeight: 700, textAlign: "center" }}>Campaign · Govern · Survive</div>
+        <div style={{ marginTop: 4, fontSize: DS.t.meta, color: UI.sub, textAlign: "center" }}>No politics needed: you learn as you play.</div>
       </div>
       <TitleLineup ids={lineup} tall={tall} />
       <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
@@ -2767,7 +2798,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["icon-state", "Your career map", "States governed, badges, trips and time played", () => setSheet("career")],
             ["seal-projects", "Your company", "Register a contractor every player sees · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500"), () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
-            ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
+            ["icon-help", "How to play", "The basics in under a minute", () => { setSheet(null); onHelp(); }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
             ["icon-sound", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
           ].concat(profile ? [["icon-politician", "Start afresh", "Delete your politician and records, and begin again", () => { setSheet(null); startAfresh(); }]] : []).map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
@@ -4890,6 +4921,57 @@ const Inauguration = ({ name, vp, onDone }) => {
    president's words (SYS.presidentWords) and the governor's rooms become the
    Villa's (SYS.VILLA_ART). One observer over the page covers the game, the
    result cards and the dialogs alike. Returns the clean-up. */
+/* The glossary on every screen (SYS.GLOSSARY). Abbreviations and political
+   slang get a dotted underline, drawn with the browser's highlight feature
+   so the page itself is never rewritten; a tap on one shows its full name
+   and what it means. Buttons are left alone, so they always do their job. */
+const installGlossary = () => {
+  if (typeof document === "undefined" || window.__sopGlossary) return; window.__sopGlossary = true;
+  const RX = SYS.glossaryRegex(), SKIP = /^(BUTTON|INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|NOSCRIPT)$/;
+  const skipped = (n) => { for (let e = n.parentElement; e; e = e.parentElement) { if (SKIP.test(e.nodeName) || e.getAttribute("data-noterm") != null || e.isContentEditable) return true; if (e === document.body) return false; } return true; };
+  const st = document.createElement("style");
+  st.textContent = "::highlight(sop-term){text-decoration:underline dotted 2px;text-decoration-color:#1f7a46;text-underline-offset:3px;background-color:rgba(31,122,70,.07)}" +
+    ".sop-gloss{position:fixed;z-index:2147483000;max-width:min(340px,90vw);background:#fffdf7;color:#1d2a22;border:1px solid #d9cfb4;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:12px 14px;font:17px/1.45 system-ui,sans-serif}" +
+    ".sop-gloss b{display:block;font-size:18px;color:#14532d;margin-bottom:2px}.sop-gloss i{display:block;font-style:normal;color:#5b6b55;font-size:15px;margin-bottom:6px}";
+  document.head.appendChild(st);
+  const can = typeof CSS !== "undefined" && CSS.highlights && typeof Highlight !== "undefined";
+  let t = null;
+  const paint = () => { t = null; if (!can) return;
+    const ranges = [], w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) { const v = n.nodeValue; if (!v || v.length < 2 || !/[A-Za-z]/.test(v) || skipped(n)) continue; RX.lastIndex = 0; let m;
+      while ((m = RX.exec(v))) { const s0 = m.index + m[1].length, r = document.createRange(); r.setStart(n, s0); r.setEnd(n, s0 + m[2].length); ranges.push(r); if (ranges.length > 600) break; } }
+    CSS.highlights.set("sop-term", new Highlight(...ranges)); };
+  new MutationObserver(() => { if (!t) t = setTimeout(paint, 350); }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  paint();
+  let pop = null;
+  const close = () => { if (pop) { pop.remove(); pop = null; } };
+  // The word under a tap, if it is in the glossary.
+  const termAt = (x, y) => {
+    const cr = document.caretRangeFromPoint ? document.caretRangeFromPoint(x, y) : (document.caretPositionFromPoint && (() => { const p = document.caretPositionFromPoint(x, y); if (!p) return null; const r = document.createRange(); r.setStart(p.offsetNode, p.offset); return r; })());
+    if (!cr || !cr.startContainer || cr.startContainer.nodeType !== 3 || skipped(cr.startContainer)) return null;
+    const v = cr.startContainer.nodeValue, i = cr.startOffset; RX.lastIndex = 0; let m;
+    while ((m = RX.exec(v))) { const s0 = m.index + m[1].length; if (i >= s0 && i <= s0 + m[2].length) return m[2]; }
+    return null; };
+  document.addEventListener("click", (e) => {
+    if (pop && pop.contains(e.target)) return;
+    const had = !!pop; close();
+    if (!e.isTrusted || (e.clientX === 0 && e.clientY === 0)) return; // scripted clicks never open it
+    const term = termAt(e.clientX, e.clientY); if (!term) return;
+    const G = SYS.explain(term); if (!G) return;
+    e.stopPropagation(); e.preventDefault();
+    pop = document.createElement("div"); pop.className = "sop-gloss"; pop.setAttribute("role", "tooltip");
+    const b = document.createElement("b"), i = document.createElement("i"), d = document.createElement("div");
+    b.textContent = term; i.textContent = G[0]; d.textContent = G[1];
+    if (G[0].toLowerCase() !== term.toLowerCase()) pop.append(b, i, d); else pop.append(b, d);
+    document.body.appendChild(pop);
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, e.clientX - w / 2)) + "px";
+    pop.style.top = (e.clientY + 18 + h > innerHeight ? Math.max(8, e.clientY - h - 14) : e.clientY + 18) + "px";
+    try { window.SOP_track && window.SOP_track("glossary", term); } catch (x) {}
+    void had;
+  }, true);
+  addEventListener("scroll", close, true);
+};
 const presidentialScreen = () => {
   const W = SYS.presidentWords, ART = SYS.VILLA_ART;
   const img = (el) => {
@@ -14601,6 +14683,7 @@ function App() {
   const [level, setLevel] = useState("medium");
   const [setup, setSetup] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
+  useEffect(() => { try { installGlossary(); } catch (e) {} }, []);
   const [finalStats, setFinalStats] = useState(null);
   const [loadedSave, setLoadedSave] = useState(null);
   const rst = () => { setScr("title"); setSetup(null); setFinalStats(null); setLoadedSave(null); };

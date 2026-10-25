@@ -38,3 +38,4 @@ export * from "./rivalry.js";
 export * from "./visits.js";
 export * from "./chains.js";
 export * from "./labour.js";
+export * from "./glossary.js";
