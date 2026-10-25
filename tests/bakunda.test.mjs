@@ -64,6 +64,7 @@ test("a cool Senate stalls the treaty until you deal or go public", () => {
 test("every card teaches the law behind it, and every diplomacy letter exists", () => {
   let B = bakundaInit("s6"); for (const t of [1, 2, 3]) { const c = bakundaCards(B, t)[0]; assert.ok(BAKUNDA_LEARN[c.learn], c.id); B = bakundaAfter(B, c.opts[0]); }
   BAKUNDA_DIPLOMACY.forEach(d => assert.ok(TRIP_LETTERS[d.letter], d.id));
+  BAKUNDA_DIPLOMACY.forEach(d => assert.ok(!/Abuja/.test(TRIP_LETTERS[d.letter].where), d.id + " is abroad, so going in person flies the jet"));
 });
 test("Washington: going in person makes the Oval Office front page", () => {
   const B = { ...bakundaInit("s7"), stage: 3, atWar: 1, progress: 30, dipl: ["ecowas", "chad", "london", "geneva"], sits: [] };

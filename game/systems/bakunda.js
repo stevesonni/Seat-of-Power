@@ -54,7 +54,7 @@ export const BAKUNDA_MISSIONS = [
 /* Diplomacy while the war goes on: each letter (game/systems/trips.js) and
    its front page if the President goes in person. */
 export const BAKUNDA_DIPLOMACY = [
-  { id: "ecowas", letter: "bk4_abuja", t: "An ECOWAS extraordinary summit in Abuja", scene: "ecowas-summit", win: ["WEST AFRICA UNITES AGAINST THE AXIS", "ECOWAS leaders back Nigeria's lead"] },
+  { id: "ecowas", letter: "bk4_accra", t: "An ECOWAS extraordinary summit in Accra", scene: "ecowas-summit", win: ["WEST AFRICA UNITES AGAINST THE AXIS", "ECOWAS leaders back Nigeria's lead"] },
   { id: "chad", letter: "bk_chad", t: "The Lake Chad neighbours meet in N'Djamena", scene: "ecowas-summit", win: ["LAKE CHAD NEIGHBOURS UNITE OVER THREAT", "A new joint defence plan for the basin"] },
   { id: "london", letter: "bk_london", t: "An invitation to London", scene: null, win: ["LEADERS MEET IN LONDON", "Bakunda discussed; the UK offers support"] },
   { id: "geneva", letter: "bk4_geneva", t: "The UN calls the world to Geneva", scene: "geneva-conference", win: ["NATIONS UNITE AGAINST THE AXIS", "Pressure mounts with Nigeria's leadership"] },

@@ -5728,7 +5728,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     } })) });
   // The Bakunda war's cards: letters, Defence Headquarters missions, the
   // Assembly's documents, and plain cards (SYS.bakundaCards).
-  const BK_DEST = { chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
+  const BK_DEST = { ecowas: "Accra", chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
   const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
     letter: c.kind === "letter" && c.letter ? SYS.TRIP_LETTERS[c.letter] : undefined,
     military: c.kind === "mission" ? { d: c.d, need: c.need } : undefined,

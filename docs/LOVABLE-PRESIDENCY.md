@@ -53,7 +53,7 @@ The list under the map shows a small picture of each place. These are for the Pr
 
 # Pack 16: the Bakunda war
 
-The presidency now has a war storyline across the term: unrest in the Republic of **Bakunda** (Nigeria's fictional northern neighbour), **General Voko**'s coup, his "Axis" pact with **Ostrava**, Nigeria's Army, Air Force or Navy sent against it, summits in Abuja and Geneva, a visit to **Washington**, war weariness, and a peace accord the National Assembly must enact. Everything below is fictional: no real leaders, no real flags, crests or seals (Bakunda's colours: maroon and sand; Ostrava's: slate grey and white).
+The presidency now has a war storyline across the term: unrest in the Republic of **Bakunda** (Nigeria's fictional northern neighbour), **General Voko**'s coup, his "Axis" pact with **Ostrava**, Nigeria's Army, Air Force or Navy sent against it, summits in Accra and Geneva, a visit to **Washington**, war weariness, and a peace accord the National Assembly must enact. Everything below is fictional: no real leaders, no real flags, crests or seals (Bakunda's colours: maroon and sand; Ostrava's: slate grey and white).
 
 ## Characters (`characters/`), standing, transparent background, about 700 px tall
 - `chief-of-army-staff-full-neutral`, `-full-pleased`, `-full-worried`, `-full-urgent`: the **same** Chief of Army Staff as `chief-of-army-staff`, full length, in four moods. He presents every Bakunda moment (like the adviser's full-length poses).
@@ -72,7 +72,7 @@ The presidency now has a war storyline across the term: unrest in the Republic o
 - `army-convoy`: Nigerian mechanised infantry (armoured vehicles) on a border road.
 - `air-strike`: two jets over rugged highland camps.
 - `navy-patrol`: Nigerian gunboats on a wide lake at dusk, a supply boat stopped.
-- `ecowas-summit`: West African heads of state around a round table in Abuja.
+- `ecowas-summit`: West African heads of state around a round table (the extraordinary summit in Accra).
 - `geneva-conference`: a long conference table in a European hall, delegations with headphones.
 - `war-weariness`: a barracks town at dusk: a funeral, a mother holding a soldier's photograph.
 - `peace-signing`: the accord signed at a long table, Voko's envoy and the Nigerian President, flags behind.
