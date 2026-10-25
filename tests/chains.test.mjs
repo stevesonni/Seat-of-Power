@@ -49,3 +49,26 @@ test("the polytechnic conversion bill: a letter from where it became a universit
   const b = C.polyUniChain({ place: "Kogi", nat: true, turn: 4 });
   assert.equal(b.kind, "payoff"); assert.equal(b.due, 4); assert.match(b.title, /polytechnic in Kogi is a university/); assert.match(b.line, /HND/);
 });
+
+test("every zone has its own trouble on the site, and risky answers can go wrong", () => {
+  const T = (z) => C.siteCrisis({ nm: "⭐ The Coastal Highway", place: "X", zone: z, nat: true });
+  assert.match(T("NW").title, /kidnapped three foreign engineers/); assert.ok(T("NW").opts.some(o => o.id === "local" && o.delay === 2));
+  assert.match(T("NE").title, /Insurgents/); assert.match(T("NC").title, /herders/);
+  assert.match(T("SE").d, /sit-at-home/); assert.ok(T("SE").opts.some(o => /never on Mondays/.test(o.l)));
+  assert.match(T("SS").title, /Ex-militants/); assert.ok(T("SS").opts.some(o => /surveillance contracts/.test(o.l)));
+  assert.match(T("SW").title, /Omo onile/); assert.ok(T("SW").opts.some(o => /deve/.test(o.l)));
+  assert.ok(!/the The /.test(T("SS").title), "no doubled article");
+  const rescue = T("NW").opts.find(o => o.id === "clear");
+  assert.ok(C.crisisOutcome(rescue, () => 0).failed); assert.match(C.crisisOutcome(rescue, () => 0).line, /killed/);
+  assert.ok(!C.crisisOutcome(rescue, () => .99).failed);
+  assert.ok(C.siteCrisis({ nm: "⭐ A second bridge over the Niger", place: "X", zone: "SE", nat: false }).opts.every(o => !o.cost || o.cost < 2), "a governor's costs are smaller");
+});
+
+test("starting a big programme: the legislature, the cabal and the palace each have a say", () => {
+  const all = C.startBeats({ id: "f_anchor", nm: "⭐ Farm corridors", place: "Kano", zone: "NW", sector: "agriculture", nat: true, turn: 2, houseRatio: .4, blessed: false });
+  assert.deepEqual(all.map(b => b.kind).sort(), ["cabal", "nass", "palace"]); assert.ok(all.every(b => b.due === 3));
+  const calm = C.startBeats({ id: "f_coastal", nm: "⭐ The Coastal Highway", place: "Bayelsa", zone: "SS", sector: "infrastructure", nat: true, turn: 2, houseRatio: .7 });
+  assert.deepEqual(calm.map(b => b.kind), ["cabal"]);
+  assert.ok(!C.startBeats({ id: "x", nm: "⭐ X", place: "Kano", zone: "NW", sector: "agriculture", turn: 2, houseRatio: .7, blessed: true }).some(b => b.kind === "palace"), "the palace's blessing opens the land");
+  assert.ok(C.japaRisk({ cor: .6, soleSource: true }) > C.japaRisk({ cor: .2 }));
+});

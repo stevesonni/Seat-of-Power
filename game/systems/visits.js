@@ -48,7 +48,7 @@ export const STATE_VISIT_PURPOSES = [
   { id: "town", l: "A town hall with the people", d: "Hear them out in the open square, cameras rolling." },
   { id: "inspect", l: "A surprise inspection of federal projects", d: "Nobody is told. See what the contractors are really doing." },
   { id: "security", l: "Visit the troops and the displaced", d: "Stand with the soldiers and the families in the camps." },
-  { id: "rulers", l: "Meet the governor and the traditional rulers", d: "Palace protocol, a closed-door meeting, the politics." },
+  { id: "rulers", l: "Meet the governor and the traditional rulers", d: "Palace protocol and a closed-door meeting. Their blessing opens the land for big projects across the zone." },
 ];
 export const stateVisitOutcome = (purposeId, ctx = {}, r = Math.random) => {
   const S = String(ctx.state || "the state"), U = S.toUpperCase(), issue = ctx.issue || "jobs";

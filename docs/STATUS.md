@@ -1,6 +1,48 @@
 # Seat of Power — status (4 Oct)
 
 
+
+## Strikes, the roundtable, and building in Nigeria (25 Oct, latest)
+- **Labour** (`game/systems/labour.js`). Union names are real; every person is fictional.
+  - **The NLC:**
+    - Raising VAT (President) or a market levy or Land Use Charge (governor) brings the NLC's 14-day ultimatum, as a banner on the Desk: reverse it, or meet them.
+    - Ignore it past the year's end and the strike starts.
+    - Each year with no talks another union joins.
+      - President: NUATE grounds the airports (no trips abroad, no investor visits), then NUEE pulls the grid (revenue −15%, jobs, a manufacturers' letter), then NUPENG stops the tankers.
+      - Governor: the secretariat, then NUT, then JOHESU.
+    - Every year the strike runs it costs approval, revenue and stats.
+  - **ASUU:**
+    - May strike from year 2, likelier when education is underfunded.
+    - The universities shut, youth unrest rises, and #EndASUUStrike comes in the second year.
+    - University chains freeze while the strike is on.
+    - Its demands are impossible: the revitalisation fund, UTAS instead of IPPIS, earned allowances.
+    - The first offer is "an insult", and it signs no MoU in the first year.
+  - **The roundtable** (two sessions a year): the bank and their demand side by side, the demand being everything in the bank or what is owed if that is more. The options:
+    - pay everything (next year: unpaid police and soldiers, an emergency loan);
+    - an MoU, 30% now (miss next year's instalment and they are back out);
+    - a concession (odds depend on trust, corruption, the Labour minister's skill and time);
+    - refuse;
+    - force (sabotage afterwards);
+    - cancel a running programme or project to pay them;
+    - President only: Ways and Means (inflation and a naira crash two years later).
+  - A new Labour ministry exists for both offices; without one, the Chief of Staff negotiates and the odds fall.
+- **Building in Nigeria** (`chains.js`):
+  - **Halfway crises differ by zone:**
+    - NW: bandits kidnap foreign engineers (ransom, a rescue that can fail, or local contractors with a 2-year delay).
+    - NE: insurgents (the army, or vigilantes paid from the security vote).
+    - NC: herders and farmers (the army, or the palace with compensation).
+    - SE: the Monday sit-at-home (no Monday work, an army escort, or a community deal).
+    - SS: ex-militants (surveillance contracts or the JTF).
+    - SW: omo onile and "deve" (pay, the police, or the Oba).
+  - **Every ⭐ programme** also brings:
+    - the cabal's "national cake" contract ask (refuse it and a media campaign follows);
+    - when the legislature is not with you, a 10% "oversight" demand that stalls the work;
+    - for northern farm or South-West works without the palace's blessing, blocked land.
+    - A state visit to the royal fathers gives that blessing for the zone.
+  - **Japa:** a contractor may take the mobilisation fee and flee to London, Toronto, Houston or Dubai (likelier with direct awards and corruption). Report them to the EFCC and Interpol, re-award, or abandon.
+- Art brief: Pack 24 in docs/LOVABLE-PRESIDENCY.md.
+- Tests: tests/labour.test.mjs, more in chains.test.mjs; e2e labour.mjs.
+
 ## Consequences that follow you, and visits that become work (25 Oct, latest)
 - **Consequence chains** (`game/systems/chains.js`). Each chain is tied to the place where its programme, bill or order ran, in either office:
   - **A finished programme:**

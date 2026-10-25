@@ -28,6 +28,7 @@ export const FED_MINISTRIES = [
   { id: "nigerdelta", name: "Niger Delta Development", icon: "🌊", key: "app", cost: 6, staff: 800, unlock: [], why: "The oil-producing communities. Neglect them and the pipelines are cut." },
   { id: "tourism", name: "Arts, Culture & Tourism", icon: "🎭", key: "igr", cost: 4, staff: 500, unlock: ["tourist"], why: "Nollywood, festivals and the national heritage sites." },
   { id: "env", name: "Environment", icon: "🌳", key: "hp", cost: 4, staff: 900, unlock: ["landfill"], why: "Erosion, desertification and oil spills." },
+  { id: "labour", name: "Labour & Employment", icon: "👷", key: "app", cost: 5, staff: 700, unlock: [], why: "Sits across the table from the NLC, ASUU and every union. A skilled minister shortens strikes; without one, your Chief of Staff negotiates and the unions take offence." },
   // Part of the first cabinet; here so a President without one can create it.
   { id: "sec", name: "Defence", icon: "🎖️", key: "sec", cost: 10, staff: 2200, unlock: [], why: "Funds the armed forces and runs their procurement: jets, drones, ships. The service chiefs command; the ministry buys." },
 ];
@@ -227,7 +228,7 @@ export const FED_CREDITORS = [
 /* Who answers a President's decision in person (Pack 18 portraits): the
    labour leader, an oil-community chief. on: sign (a bill or an order),
    veto, adopt (a revenue measure or relief). */
-const LABOUR = "Comrade Musa Adebayo-Okon, President of the National Labour Union", DELTA = "Chief Tamuno Ebiware, for the oil-producing communities";
+const LABOUR = "Comrade Musa Adebayo-Okon, President of the Nigeria Labour Congress", DELTA = "Chief Tamuno Ebiware, for the oil-producing communities";
 export const FED_VOICES = {
   f_min_wage: { on: "sign", img: "labour-leader-pleased", name: LABOUR, text: "Your Excellency, the workers of Nigeria thank you. A living wage, in law. We will remember it." },
   f_eo_merge: { on: "sign", img: "labour-leader-angry", name: LABOUR, text: "Thousands of our members lose their jobs with one signature. We will not take this lying down." },

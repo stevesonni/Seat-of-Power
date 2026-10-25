@@ -102,16 +102,77 @@ export const canRunAgain = (done, id, place) => !((done || {})[id] || []).includ
 /* Halfway on big works: an armed group stops the site. The group by zone. */
 export const GROUPS = { NW: "bandits", NE: "insurgents", NC: "armed herders", SW: "land-grabbing thugs", SE: "unknown gunmen", SS: "militants" };
 export const siteCrisisRisk = ({ sec = .5, paidBefore = false } = {}) => Math.max(.15, Math.min(.85, .9 - sec + (paidBefore ? .25 : 0)));
+// "⭐ The Coastal Highway" → "Coastal Highway", to read after "the".
+export const bare = (nm) => String(nm || "").replace(/^⭐\s*/, "").replace(/^(The|A|An)\s+/, "");
 export const siteCrisis = ({ nm, place, zone, nat = false }) => {
-  const g = GROUPS[zone] || "armed men";
-  return { title: "Armed " + g + " have stopped work on the " + nm.replace(/^⭐\s*/, ""), group: g,
-    d: "Half the work on the " + nm.replace(/^⭐\s*/, "") + " near " + place + " is done. Now " + g + " have seized the site and kidnapped two engineers. The contractor has pulled out the rest of the crew.",
-    opts: [
-      { id: "clear", l: "Clear them out: send in the " + (nat ? "army" : "police and the security corps"), cost: nat ? 8 : 1, fx: { app: 1, sec: .01 }, zone: -2, resume: true, line: "The site is cleared after a week of fighting; the engineers are freed. Work resumes, but the villages around the site are angry about the raids.", paper: ["TROOPS RETAKE " + nm.replace(/^⭐\s*/, "").toUpperCase() + " SITE", "Engineers freed; work resumes", true] },
-      { id: "pay", l: "Negotiate: pay them to leave", cost: nat ? 12 : 1.5, fx: { app: -1, cor: .01 }, zone: 1, resume: true, paid: true, line: "The money changes hands quietly and the engineers walk free. Work resumes. Everyone with a gun in the region now knows what your sites are worth.", paper: ["ENGINEERS FREED: WAS A RANSOM PAID?", "Work resumes on the " + nm.replace(/^⭐\s*/, ""), false] },
-      { id: "wait", l: "Leave it for now", cost: 0, fx: { app: -2 }, zone: -1, resume: false, line: "The site stays shut and the contractor's equipment rusts. The project is stalled until you act.", paper: ["THE " + nm.replace(/^⭐\s*/, "").toUpperCase() + " IS STALLED", "Armed men hold the site", false] },
-    ] };
+  const N = bare(nm), U = N.toUpperCase(), g = GROUPS[zone] || "armed men", k = nat ? 1 : .12; // costs in ₦B: a governor's are smaller
+  const c = (v) => Math.round(v * k * 10) / 10;
+  const wait = { id: "wait", l: "Leave it for now", cost: 0, fx: { app: -2 }, zone: -1, resume: false, line: "The site stays shut and the contractor's equipment rusts. The project is stalled until you act.", paper: ["THE " + U + " IS STALLED", "Armed men hold the site", false] };
+  const Z = {
+    NW: { title: "Bandits have kidnapped three foreign engineers from the " + N, d: "Half the " + N + " near " + place + " is built. Last night bandits raided the camp and took three Chinese engineers into the forest. They want ₦" + (nat ? "2 billion" : "300 million") + ". The contractor has stopped work.",
+      opts: [
+        { id: "pay", l: "Pay the ransom quietly", cost: c(10), fx: { cor: .02 }, zone: 1, resume: true, paid: true, line: "The engineers walk out of the forest a week later. Work resumes. Every gang in the North-West now knows your price.", paper: ["KIDNAPPED ENGINEERS FREED: WAS A RANSOM PAID?", "Work resumes on the " + N, false] },
+        { id: "clear", l: "Launch a military rescue", cost: c(8), fx: { app: 2, sec: .01 }, zone: -1, resume: true, line: "Special forces go in at dawn and bring all three home. The army's name rises; work resumes.", paper: ["SPECIAL FORCES RESCUE KIDNAPPED ENGINEERS", "All three freed; work on the " + N + " resumes", true],
+          fail: { p: .3, fx: { app: -4 }, line: "The rescue goes wrong: two engineers are killed in the crossfire. Beijing protests; the site is secured, but at a terrible price.", paper: ["RESCUE BID ENDS IN TRAGEDY", "Two foreign engineers killed; Beijing protests", false] } },
+        { id: "local", l: "Replace them with Nigerian contractors", cost: 0, fx: { app: 1 }, zone: 0, resume: true, delay: 2, line: "A Nigerian firm takes over. The work restarts, slower: two more years before it is done.", paper: ["LOCAL FIRM TAKES OVER " + U, "Completion pushed back two years", true] },
+        wait] },
+    NE: { title: "Insurgents have raided the " + N + " site", d: "Insurgents overran the camp at the " + N + " near " + place + " at night, burnt the machines and killed two guards. No worker will go back without soldiers.",
+      opts: [
+        { id: "clear", l: "Deploy the army to guard the site", cost: c(12), fx: { app: 1, sec: .01 }, zone: 0, resume: true, line: "A battalion moves in and stays. Work resumes behind sandbags, at the army's pace.", paper: ["ARMY TAKES OVER " + U + " SITE", "Soldiers guard the works around the clock", true] },
+        { id: "pay", l: "Pay the local vigilantes from the security vote", cost: c(4), fx: { cor: .02 }, zone: 1, resume: true, paid: true, line: "The vigilantes take the money and the night watch. Nobody audits the security vote.", paper: ["VIGILANTES GUARD " + U, "Paid from the security vote", false],
+          fail: { p: .25, fx: { app: -3 }, line: "The vigilantes were overrun within a month; the site is shut again.", paper: ["INSURGENTS OVERRUN VIGILANTES AT " + U, "The site is shut again", false], resume: false } },
+        wait] },
+    NC: { title: "Armed herders and farmers are fighting over the " + N + " land", d: "The " + N + " near " + place + " cuts across grazing routes. Farmers and armed herders have clashed at the site; three villages are burning and the crews have fled.",
+      opts: [
+        { id: "clear", l: "Send the army to separate them", cost: c(8), fx: { sec: .01 }, zone: -2, resume: true, line: "The army imposes a curfew and the crews return. Both sides say the soldiers took the other side.", paper: ["CURFEW AS TROOPS END CLASHES AT " + U, "Work resumes under guard", true] },
+        { id: "palace", l: "Ask the royal fathers to broker peace, and pay compensation", cost: c(3), fx: { app: 1 }, zone: 2, resume: true, delay: 1, line: "The palaces bring both sides to one mat. Compensation is paid; the route is redrawn. A year lost, but the peace holds.", paper: ["ROYAL FATHERS BROKER PEACE AT " + U, "Compensation paid; the route redrawn", true] },
+        wait] },
+    SE: { title: "The sit-at-home is stopping the " + N, d: "Every Monday the separatists enforce a sit-at-home; any worker on the " + N + " site near " + place + " on a Monday risks his life. Last Monday \"unknown gunmen\" burnt a bulldozer.",
+      opts: [
+        { id: "local", l: "Work six days, never on Mondays", cost: 0, fx: { app: 1 }, zone: 1, resume: true, delay: 1, line: "The crews never work Mondays. Nobody is hurt; the project loses a year.", paper: ["NO MONDAY WORK ON " + U, "The government bows to the sit-at-home", false] },
+        { id: "clear", l: "Work Mondays under army escort", cost: c(6), fx: { app: 1, sec: .01 }, zone: -1, resume: true, line: "Soldiers stand at the gates every Monday. Work goes on; the sit-at-home is broken here.", paper: ["TROOPS DEFY SIT-AT-HOME ORDER AT " + U, "Monday work resumes under guard", true],
+          fail: { p: .35, fx: { app: -3 }, line: "On the third Monday gunmen attack the escort: four workers are killed. The crews will not come back on Mondays.", paper: ["GUNMEN ATTACK MONDAY CREW AT " + U, "Four workers killed", false], delay: 1 } },
+        { id: "pay", l: "Talk to the community leaders and the youth: jobs and \"settlement\"", cost: c(2), fx: { cor: .01 }, zone: 1, resume: true, paid: true, line: "The youth get jobs on the site and the elders get their envelope. The enforcers look the other way.", paper: ["COMMUNITY DEAL REOPENS " + U, "Local youths hired", true] },
+        wait] },
+    SS: { title: "Ex-militants threaten to blow up the " + N, d: "A message from the creeks: give the boys the surveillance contracts on the " + N + " near " + place + ", or it goes up in smoke. Two pipelines nearby were bombed last year.",
+      opts: [
+        { id: "pay", l: "Give the ex-militants pipeline surveillance contracts", cost: c(8), fx: { cor: .02 }, zone: 2, resume: true, paid: true, line: "The ex-generals sign the contracts and the creeks go quiet. The money is the price of peace, every year.", paper: ["EX-MILITANTS GET SURVEILLANCE DEAL ON " + U, "Peace in the creeks, at a price", false] },
+        { id: "clear", l: "Send in the Joint Task Force", cost: c(8), fx: { sec: .01 }, zone: -2, resume: true, line: "Gunboats patrol the creeks. Work resumes, guarded from the water.", paper: ["JTF SECURES " + U + " SITE", "Gunboats patrol the creeks", true],
+          fail: { p: .3, fx: { app: -3, infra: -.02 }, line: "They made good on the threat: a section was blown up before the JTF arrived. Work resumes after a year of repairs.", paper: ["MILITANTS BOMB " + U, "A year of repairs before work resumes", false], delay: 1 } },
+        wait] },
+    SW: { title: "Omo onile are blocking the " + N, d: "Land grabbers who call themselves the land's \"owners\" have blocked the " + N + " site near " + place + ". They want their \"deve\" fee before a single block is laid, and they have beaten up the surveyor.",
+      opts: [
+        { id: "pay", l: "Pay them their \"deve\"", cost: c(2), fx: { cor: .01 }, zone: 0, resume: true, paid: true, line: "The money is paid; the thugs disappear. Next door, another family of \"owners\" is preparing its own claim.", paper: ["GOVERNMENT PAYS 'DEVE' TO LAND GRABBERS", "Work resumes on the " + N, false] },
+        { id: "clear", l: "Send the police to clear them", cost: c(1), fx: {}, zone: -1, resume: true, line: "The police make arrests; the site reopens. The families go to court.", paper: ["POLICE CLEAR LAND GRABBERS FROM " + U, "Arrests made; work resumes", true] },
+        { id: "palace", l: "Ask the Oba to call them to order", cost: 0, fx: { app: 1 }, zone: 1, resume: true, line: "One word from the palace and the omo onile vanish. The Oba will remember the favour.", paper: ["OBA ORDERS LAND GRABBERS OFF " + U, "The palace backs the project", true],
+          fail: { p: .3, fx: {}, line: "The Oba's word was not enough: the thugs say the palace has no say on their land. The site stays shut.", paper: ["LAND GRABBERS DEFY THE PALACE", "The " + N + " stays shut", false], resume: false } },
+        wait] },
+  };
+  const z = Z[zone] || Z.NC;
+  return { title: z.title, group: g, d: z.d, opts: z.opts };
 };
+// Pick an option's outcome: the risky ones can go wrong.
+export const crisisOutcome = (o, r = Math.random) => o.fail && r() < o.fail.p
+  ? { ...o, fx: { ...o.fx, ...o.fail.fx }, line: o.fail.line, paper: o.fail.paper, resume: o.fail.resume != null ? o.fail.resume : o.resume, delay: o.fail.delay != null ? o.fail.delay : o.delay, failed: true }
+  : o;
+
+/* Getting a big programme moving in Nigeria: the legislature, the cabal,
+   the palace and the contractor. Each is a beat due the year after it starts.
+   ctx: { nat, houseRatio (the share of the legislature with you), blessed
+   (the palace's blessing for that zone), north (a northern zone) }. */
+export const startBeats = ({ id, nm, place, zone, sector, nat = false, turn, houseRatio = .6, blessed = false }) => {
+  const out = [], N = bare(nm);
+  if (houseRatio < .55) out.push({ id: "nass_" + id, kind: "nass", due: turn + 1, polId: id, nm: N, place });
+  out.push({ id: "cabal_" + id, kind: "cabal", due: turn + 1, polId: id, nm: N, place });
+  const north = ["NW", "NE", "NC"].includes(zone);
+  if (!blessed && ((north && sector === "agriculture") || (zone === "SW" && sector === "infrastructure"))) out.push({ id: "palace_" + id, kind: "palace", due: turn + 1, polId: id, nm: N, place, zone, north });
+  return out;
+};
+// Who the cabal's man is, and the TV stations that turn on you (fictional).
+export const CABAL = { nat: "Alhaji Sule Danjuma-Okeke, a retired general with oil blocks", gov: "Chief Adekunle Bamgbose-Eze, the party's biggest financier in the state", tv: "Apex Television and the Daily Sentinel" };
+// The contractor who takes the mobilisation fee and flees: the chance a year, for a project under way.
+export const japaRisk = ({ cor = .3, soleSource = false } = {}) => Math.min(.35, .04 + cor * .15 + (soleSource ? .08 : 0));
+export const JAPA_TO = ["London", "Toronto", "Houston", "Dubai"];
 
 /* The executive order with business at stake: who writes, and the court. */
 export const BUSINESS_ORDERS = ["ease_business", "f_eo_business"];

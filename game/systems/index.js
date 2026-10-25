@@ -37,3 +37,4 @@ export * from "./trips.js";
 export * from "./rivalry.js";
 export * from "./visits.js";
 export * from "./chains.js";
+export * from "./labour.js";

@@ -290,3 +290,64 @@ A new career badge for players who travel a lot in office (ten official trips: a
 1. `badge-junketer`: a round gold medal showing the green-and-white presidential jet climbing over a small globe, with a luggage tag hanging from the rim. A little cheeky, not mocking.
 
 > **Delivered: Pack 23**: the badge is on the career map and in the honours you can carry into a new campaign.
+
+---
+
+# Pack 24: strikes, the roundtable, and getting things built in Nigeria
+
+The game now has real labour crises and the realities of building in Nigeria:
+- **The NLC:** a tax rise brings the NLC's 14-day ultimatum. Ignore it and the strike starts. Each year without talks another union joins: the airports (NUATE), then the grid (NUEE), then fuel (NUPENG).
+- **ASUU:** shuts the universities for up to two years.
+- **The roundtable:** you sit across from the union leaders, who demand everything in the bank.
+- **Big projects:**
+  - a different threat on site in each zone: bandits kidnapping engineers, insurgents, herders, the sit-at-home, ex-militants, omo onile;
+  - the legislature wants its "oversight" share;
+  - the cabal wants the contract;
+  - the palace must bless the land;
+  - contractors can "japa" with the mobilisation fee.
+
+Same style as the rest of the game. Everything fictional: no real faces, no real union logos or banners (red caps and plain red banners are fine), no real banknotes (an invented note design is fine), no real crests; green-white-green is fine. **Never show the player's face**: backs, hands and silhouettes only. One zip, files named exactly.
+
+## Scenes (`scenes/`), 1280×720, no text (placards and boards blank or with illegible scribbles)
+1. `labour-roundtable`: a long polished table in a government conference room. On one side, union leaders in red caps and plain red T-shirts with folders and fists on the table; on the other, ministers in suits. Water bottles, microphones, tension. The player is at the head of the table, seen from behind.
+2. `nlc-march`: thousands of workers marching down a wide city road in red caps, blank placards raised, a lorry with loudspeakers leading.
+3. `airport-grounded`: an empty departure hall, every line on the departure board red, passengers asleep on their luggage, planes parked on the apron outside.
+4. `grid-control-room-dark`: the national grid control room with every screen black, one emergency light, a single engineer's empty chair.
+5. `soldiers-substation`: soldiers in camouflage guarding a power substation at night, a union banner (plain red) torn on the fence.
+6. `endasuu-protest`: university students blocking a highway with blank placards and textbooks held up, a burning tyre, police vans in the distance.
+7. `empty-lecture-hall`: a dusty, empty university lecture theatre, cobwebs on the projector, a chalkboard with an old date.
+8. `cbn-printing-press`: a banknote printing hall: sheets of invented green-and-brown notes rolling off huge presses, a worried official watching.
+9. `market-inflation`: a market woman behind her stall of tomatoes and garri, handwritten price tags crossed out and raised again, customers holding up near-empty bags.
+10. `kidnap-camp-empty`: a construction workers' camp the morning after a raid: overturned chairs, hard hats on the ground, an empty bulldozer, a forest edge behind. No people, no violence shown.
+11. `sit-at-home-street`: a South-East market street on a Monday: every shutter down, the road empty, one goat crossing.
+12. `creeks-gunboat`: a military gunboat patrolling mangrove creeks beside a pipeline, gas flare in the distance.
+13. `omo-onile-site`: young men with sticks blocking a building site's gate, a frightened surveyor holding his tripod, a half-built fence.
+14. `palace-mat`: inside a palace courtyard, a royal father on his throne under an umbrella, chiefs seated around. The player is seen from behind, sitting on the mat before him. Make two versions: `palace-mat-north` (emir's palace) and `palace-mat-south` (oba's palace).
+15. `midnight-visitor`: a dim back room after midnight. A heavy man in an expensive agbada with a leather briefcase leans across a desk. The player is seen from behind.
+16. `committee-room`: a legislative committee room, lawmakers behind name plates (no names) leaning towards a nervous minister with a thick file.
+17. `japa-departure`: an airport departure gate at night: a man in an expensive suit with two big suitcases walking away down the jet bridge, seen from behind.
+
+## Characters (`characters/`), transparent, full length, about 700 px tall, each with `-pleased` and `-angry`
+18. `nlc-president`: a stocky man in his fifties, red cap, red-and-white union T-shirt under a jacket, a whistle on a cord, fist raised when angry.
+19. `asuu-president`: a professor in his sixties, grey beard, glasses, a tweed jacket over a shirt and tie, a sheaf of papers.
+20. `labour-minister`: a calm woman in her fifties in a smart Ankara skirt suit with a folder. A man version too: `labour-minister-male`, in a dark suit.
+21. `student-leader`: a young woman in jeans and a campus T-shirt with a megaphone.
+22. `manufacturers-rep`: a factory owner in his sixties in a suit, holding a diesel invoice.
+23. `ex-militant-general`: a former Niger Delta militant leader turned businessman: a white flowing shirt, gold chains, a walking stick, sunglasses.
+24. `omo-onile-leader`: a tough man in his forties in a Yoruba buba with a stick and a document roll.
+25. `cabal-chief`: a retired general turned oil baron in his seventies: a rich agbada, a cap, prayer beads, a cold smile.
+26. `contractor-japa`: a smooth contractor in his forties in a shiny suit, holding a cheque and a passport.
+
+## Objects (`objects/`), transparent, about 1000 px
+27. `mou-document`: a signed memorandum of understanding on a desk, with a red wax seal and two pens.
+28. `red-union-cap`: a red cap with a plain white star.
+29. `mobilisation-cheque`: an oversized government cheque marked with an invented crest (no real bank name).
+30. `diesel-jerrycan`: a yellow 25-litre jerrycan with a price tag.
+31. `printed-naira`: a stack of invented green-and-brown banknotes in a wrapper (no real currency design).
+
+## Icons (`icons/`), 256×256, transparent, round with a thin gold rim, readable at 60 px
+32. `icon-roundtable`: two hands shaking across a table, a red cap on one side.
+33. `icon-strike`: a raised fist in front of a padlocked gate.
+34. `icon-lga-tour`: a jeep on a red-earth road towards a small council building.
+35. `icon-councils`: a council table with a green-white-green flag (the Federal Executive Council).
+36. `icon-labour-ministry`: a hard hat over a handshake.
