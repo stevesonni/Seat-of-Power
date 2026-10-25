@@ -146,3 +146,14 @@ test("not always Bakunda: Kasongo, Angova and Saharia too, same story, its own c
   assert.match(M.bakundaLegacy({ ...bakundaInit("x"), country: "kasongo", done: true }), /Kasongo–Ostrava/);
   assert.equal(M.bkCountry({ stage: 3 }).nm, "Bakunda", "old saves stay Bakunda");
 });
+test("each country has its own general: Voko for Bakunda, Kalembe, Dravo and Tazrit for the others", async () => {
+  const M = await import("../game/systems/bakunda.js");
+  assert.equal(M.BAKUNDA_COUNTRIES.bakunda.gen, "Voko");
+  for (const k of ["kasongo", "angova", "saharia"]) {
+    const C = M.BAKUNDA_COUNTRIES[k], B = { ...bakundaInit("x"), country: k, stage: 1 };
+    const c = bakundaCards(B, 2)[0], txt = JSON.stringify(c).replace(/\u2060/g, "") + JSON.stringify(M.bkNames(TRIP_LETTERS.bk_surrender, B));
+    assert.ok(txt.includes("General " + C.gen) && !/Voko|VOKO/.test(txt), k + ": General " + C.gen);
+    assert.ok(!/general-voko/.test(txt), k + ": never Voko's face");
+  }
+  assert.equal(new Set(Object.values(M.BAKUNDA_COUNTRIES).map(C => C.gen)).size, 4);
+});

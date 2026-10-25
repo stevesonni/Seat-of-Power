@@ -95,17 +95,19 @@ export const BAKUNDA_PRESSURE = [
    people and capital differ. The text is written with "Bakunda"; bkName
    swaps it for this game's country. All four are fictional. */
 export const BAKUNDA_COUNTRIES = {
-  bakunda: { nm: "Bakunda", adj: "Bakundan", cap: "Kassara City" },
-  kasongo: { nm: "Kasongo", adj: "Kasongan", cap: "Port Lukeni" },
-  angova: { nm: "Angova", adj: "Angovan", cap: "Novara" },
-  saharia: { nm: "Saharia", adj: "Saharian", cap: "Tamzar" },
+  // gen: the junta's general; art: his portrait (null until Lovable paints him: the coup scene stands in).
+  bakunda: { nm: "Bakunda", adj: "Bakundan", cap: "Kassara City", gen: "Voko", art: "general-voko" },
+  kasongo: { nm: "Kasongo", adj: "Kasongan", cap: "Port Lukeni", gen: "Kalembe", art: null },
+  angova: { nm: "Angova", adj: "Angovan", cap: "Novara", gen: "Dravo", art: null },
+  saharia: { nm: "Saharia", adj: "Saharian", cap: "Tamzar", gen: "Tazrit", art: null },
 };
 const hash = (x) => { let h = 7; for (const ch of String(x)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
 export const bkCountry = (B) => BAKUNDA_COUNTRIES[(B && B.country) || "bakunda"] || BAKUNDA_COUNTRIES.bakunda;
 export const bkName = (text, B) => {
   if (typeof text !== "string" || !text) return text;
   const C = bkCountry(B); if (C.nm === "Bakunda") return text;
-  return text.replace(/Kassara City/g, C.cap).replace(/BAKUNDAN/g, C.adj.toUpperCase()).replace(/BAKUNDA/g, C.nm.toUpperCase()).replace(/Bakundan/g, C.adj).replace(/Bakunda/g, C.nm);
+  if (/^characters\/general-voko/.test(text)) return C.art ? text.replace("general-voko", C.art) : "scenes/bakunda-coup";
+  return text.replace(/Kassara City/g, C.cap).replace(/VOKO/g, C.gen.toUpperCase()).replace(/Voko/g, C.gen).replace(/BAKUNDAN/g, C.adj.toUpperCase()).replace(/BAKUNDA/g, C.nm.toUpperCase()).replace(/Bakundan/g, C.adj).replace(/Bakunda/g, C.nm);
 };
 // Every string in a card, a letter or an option, renamed (ids, keys and picture names are lower-case and untouched).
 export const bkNames = (x, B) => typeof x === "string" ? bkName(x, B) : Array.isArray(x) ? x.map(v => bkNames(v, B)) : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, v]) => [k, bkNames(v, B)])) : x;

@@ -243,3 +243,15 @@ Bakunda is now the President's war: every year, two decisions and one trip until
 ## Characters (`characters/`), transparent, full length, about 700 px tall, each with `-pleased` and `-angry`
 4. `efcc-chairman`: the EFCC chairman: a man in his fifties in a dark suit and a white shirt, holding a thick case file; a plain green-and-white lanyard (no logo).
 5. `icpc-chairman`: the ICPC chairman: a woman in her fifties in a dark skirt suit and glasses, holding a petition folder; plain lanyard (no logo).
+
+---
+
+# Pack 21: the other juntas' generals
+
+The war country now changes from game to game: Bakunda (General Voko), Kasongo, Angova or Saharia. Each junta has its own general, and each needs a portrait in the same style as `characters/general-voko`. All fictional, no real faces, no real insignia or flags. Transparent background, full length, about 700 px tall, each with `-pleased` and `-angry`. One zip, files named exactly:
+
+1. `general-kalembe` (Kasongo): a heavy-set general in his sixties, dark green dress uniform, a chest of invented medals, a gold-braided peaked cap, a carved walking stick.
+2. `general-dravo` (Angova): a lean general in his forties, sand-coloured combat uniform with sleeves rolled, red beret, aviator sunglasses pushed up on his head.
+3. `general-tazrit` (Saharia): a tall desert general in his fifties, khaki uniform with a pale blue tagelmust scarf wound loosely around his neck and shoulders, a neat grey beard.
+
+Until they arrive, the coup scene stands in for them; Voko's face is never used for another general.

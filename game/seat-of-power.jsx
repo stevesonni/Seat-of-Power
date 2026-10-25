@@ -5777,7 +5777,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (B1.done && !(B0 || {}).done && B1.treaty === "enacted") setTimeout(() => anchors(NEWS_BK.treaty[0], NEWS_BK.treaty[1]), 300);
         if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
         else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the " + BKC().nm + "–Ostrava Axis." : "Vetoed the resolution for war and answered the " + BKC().nm + "–Ostrava Axis with sanctions and diplomacy.");
-        else if (c.id === "bk2") scWiki("Presidency", "Responded to General Voko's coup in " + BKC().nm + ": " + o.l.toLowerCase() + ".");
+        else if (c.id === "bk2") scWiki("Presidency", "Responded to General " + BKC().gen + "'s coup in " + BKC().nm + ": " + o.l.toLowerCase() + ".");
         track("bakunda_" + (c.kind === "mission" ? "mission" : c.id), o.id + (c.kind === "mission" ? (wrong ? ":wrong" : ":right") : ""));
         const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id === "bk6";
         return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
