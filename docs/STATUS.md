@@ -1,8 +1,36 @@
 # Seat of Power — status (4 Oct)
 
 
-
-
+## Consequences that follow you, and visits that become work (25 Oct, latest)
+- **Consequence chains** (`game/systems/chains.js`). Each chain is tied to the place where its programme, bill or order ran, in either office:
+  - **A finished programme:**
+    - a year later, the Commissioner or Minister writes about what changed in that place (Plateau's farm loans → a bumper tomato harvest);
+    - the year after, an investor offers to build there (Lusitana of Portugal → a tomato processing plant).
+    - The programme runs again only in another place that needs it.
+  - **Big works at the halfway mark:** armed groups may stop the site (the Coastal Highway). Clear them out, pay them (they come back) or leave it stalled.
+  - **The Ease of Doing Business order:**
+    - the trade letter about new firms;
+    - then the court strikes the order down and an investor threatens to leave;
+    - the appeal succeeds only if corruption is under 50%.
+  - **The Electoral Act / State Electoral Law:**
+    - cleaner elections, with smaller swings;
+    - fewer petitions;
+    - no rigging options in council elections.
+  - **A chain beat crowded out of a busy year** comes back the next year; it is never lost.
+- **The President's councils.** The President convenes the Federal Executive Council and the National Security Council (`fedCouncils`); the Traditional Rulers Council is the governor's only.
+  - The Councils tab offers an FEC retreat on delivery and an emergency Security Council session (₦20B), each once a year.
+  - Older saves are treated as already convened.
+- **Education:**
+  - federal colleges refurbished;
+  - a new federal university (programme);
+  - the Federal Polytechnic (Conversion to University) bill;
+  - a new state university for governors.
+  - A university's chain is the first matriculation, then a research investor.
+- **Bills can answer needs, like orders:** the polytechnic bill answers schools, the state police amendment security, and the Electricity Act power.
+- **Visits become work:**
+  - The President's state visits (a town hall, the troops, the royal fathers): the people ask for something in person, and it lands on the Desk as a need for that state.
+  - Governors tour LGAs twice a year: meet the chairman or hold a town hall (it can turn rough when approval is low). The request becomes a need for that LGA.
+- Tests: tests/chains.test.mjs and visits.test.mjs; e2e chains.mjs, chains-gov.mjs and tours.mjs.
 
 ## Strain: the inherited debt, interest and repayments (18 Oct, latest)
 - **A new game owes the last government's debt.** It is about a year's revenue (`SYS.inheritedDebtB`; almost ₦20B for Ogun). The adviser's first line names it.

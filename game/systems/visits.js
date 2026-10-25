@@ -65,3 +65,48 @@ export const stateVisitOutcome = (purposeId, ctx = {}, r = Math.random) => {
   return { title: "At the palace in " + S, line: "The traditional rulers receive you in full regalia; the governor sits beside you. Behind closed doors they ask for roads, and for respect.", fx: { pStab: 2 }, zone: 2,
     paper: ["PRESIDENT RECEIVED BY " + U + " ROYAL FATHERS", "A closed-door meeting with the governor and the traditional rulers", true], img: ctx.north ? "backgrounds/emirs-palace-courtyard" : "backgrounds/government-house" };
 };
+
+/* What the people ask for when you visit (a state for the President, an LGA
+   for the governor): the worst thing there, weighted by how bad it is.
+   stats: { sec, infra, hp, lit, agr } (0–1, higher is better) and
+   { unemp, pov } (0–1, higher is worse). avoid: need kinds already open
+   there. Returns a need kind the Desk understands. */
+const ASK_OF = [["sec", "security", 1], ["infra", "road", 1], ["hp", "clinic", 1], ["lit", "school", 1], ["agr", "farm", 1], ["unemp", "youth", -1], ["pov", "poverty", -1]];
+export const visitRequest = (stats = {}, r = Math.random, avoid = []) => {
+  const pool = ASK_OF.filter(([, k]) => !avoid.includes(k)).map(([s, k, dir]) => { const v = stats[s] == null ? .5 : stats[s]; return { k, w: Math.max(.05, dir > 0 ? 1 - v : v) ** 2 }; });
+  if (!pool.length) return null;
+  let x = r() * pool.reduce((a, b) => a + b.w, 0);
+  for (const p of pool) { x -= p.w; if (x <= 0) return p.k; }
+  return pool[pool.length - 1].k;
+};
+// How the people put it, by need kind ({P} is the place).
+export const ASK_LINE = {
+  security: "“Bandits come at night. We want soldiers and police here, not promises.”",
+  road: "“Our road is a death trap. Fix the road and we will fix the rest ourselves.”",
+  clinic: "“Our women die in childbirth. Give us a hospital that works.”",
+  school: "“Our children have no school worth the name, and no university near them.”",
+  farm: "“We cannot afford fertiliser. Help us plant, and we will feed the country.”",
+  youth: "“Our graduates sit at home. Give the young people jobs.”",
+  poverty: "“Families here eat once a day. Help the poorest.”",
+};
+
+/* The governor's LGA tour: up to two a year. Meet the council chairman in
+   the secretariat, or hold a town hall in the square. Either way the people
+   ask for something, and the request lands on the Desk as a need for that
+   LGA. ctx: { lga, app (0–100), chairman (name), ask (need kind) }. */
+export const LGA_TOURS_A_YEAR = 2;
+export const LGA_TOUR_PURPOSES = [
+  { id: "chairman", l: "Meet the council chairman", d: "A closed-door briefing at the secretariat: what the council needs from Government House." },
+  { id: "townhall", l: "Hold a town hall", d: "The open square, the cameras and anyone who wants the microphone." },
+];
+export const lgaTourOutcome = (purposeId, ctx = {}, r = Math.random) => {
+  const L = String(ctx.lga || "the LGA"), ask = ctx.ask || "road", say = ASK_LINE[ask] || ASK_LINE.road, chair = ctx.chairman || "The chairman";
+  if (purposeId === "chairman") return { title: "At the " + L + " council secretariat", img: "backgrounds/lga-secretariat", who: "characters/lg-chairman", line: chair + " walks you through the council's books, then makes the ask: " + say, fx: { pStab: 1 }, zone: 1,
+    paper: ["GOVERNOR MEETS " + L.toUpperCase() + " COUNCIL", "The chairman's request goes to Government House", true] };
+  const hostile = (ctx.app == null ? 50 : ctx.app) < 40 && r() < .6;
+  return hostile
+    ? { title: "A rough town hall in " + L, img: "scenes/town-hall-appeal", who: "characters/youth-group-angry", line: "Heckling from the back before you finish your first sentence. When it calms down, one voice carries: " + say, fx: { app: -1 }, zone: 1, rough: true,
+      paper: ["GOVERNOR HECKLED IN " + L.toUpperCase(), "Angry residents demand action", false] }
+    : { title: "A town hall in " + L, img: "scenes/camp-youth-town-hall", who: "characters/market-women-group-cheering", line: "The square is full. The market women speak first, then the youth leaders. One request comes up again and again: " + say, fx: { app: 2 }, zone: 2,
+      paper: ["GOVERNOR IN " + L.toUpperCase() + ": “I HEAR YOU”", "A town hall in the square draws thousands", true] };
+};

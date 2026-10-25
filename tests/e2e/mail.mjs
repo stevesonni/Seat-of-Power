@@ -11,7 +11,7 @@ const srv = await serve(), port = srv.port;
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const okay = async (g) => { for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)( →)?$/); i++) await g.wait(300); };
-const firstLetter = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("#sop-task button")].find(x => x.offsetParent && /(❗|›)$/.test(x.textContent.trim()) && !/no ministry to fix it|A request to see you|A file on /.test(x.textContent)); if (!b) return false; b.click(); return b.textContent.trim().slice(0, 60); });
+const firstLetter = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("#sop-task button")].find(x => x.offsetParent && /(❗|›)$/.test(x.textContent.trim()) && !/no ministry to fix it|A request to see you|A file on |Appoint a Head of Service|Head of Service.s annual brief|EFCC:|ICPC:/.test(x.textContent)); if (!b) return false; b.click(); return b.textContent.trim().slice(0, 60); });
 
 const g = await open(port, { save: YEAR1 });
 await g.click(/^Continue/); await g.wait(1800);
@@ -43,6 +43,7 @@ for (let i = 0; i < 8; i++) {
 check(handed >= 1, "handed " + handed + " letters to the Chief of Staff");
 for (let i = 0; i < 10 && !/The tray is clear/.test(await g.txt()); i++) { await okay(g); await g.wait(500); }
 t = await g.txt();
+if (!/The tray is clear/.test(t)) { console.log("  screen:", t.slice(0, 1400).replace(/\n/g, " · "), "| handed", handed); await g.page.screenshot({ path: "/tmp/claude-0/-home-user-Seat-of-Power/6d547f60-c541-5156-9aeb-8af4391cce86/scratchpad/audit/mailfail.png" }); }
 check(/The tray is clear/.test(t), "with the tray clear, the year can move on");
 await g.click(/^The tray is clear/); await g.wait(1500); await okay(g);
 t = await g.txt();

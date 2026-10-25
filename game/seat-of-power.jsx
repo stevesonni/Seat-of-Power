@@ -791,7 +791,7 @@ const NEED_TYPES = [
     fail: (l) => "Three women died in childbirth at the " + l + " general hospital this month. Nurses march on Government House.",
     abandon: (l) => "The new wing at the " + l + " hospital is an empty shell. The builders were never paid.",
     win: (l) => "The " + l + " hospital has doctors, blood and light again. Births there are safe." },
-  { k: "school", icon: "🏫", stat: "lit", sector: "education", fix: ["free_edu", "school_feed", "school_voucher", "uni", "teachers"],
+  { k: "school", icon: "🏫", stat: "lit", sector: "education", fix: ["free_edu", "school_feed", "school_voucher", "uni", "new_uni", "teachers"],
     title: (l) => "Pupils in " + l + " sit on the floor",
     why: (l) => "Roofs are gone, there are no desks, and teachers have not been paid for two months. Attendance has halved.",
     ask: "Fund free education, school feeding or a school voucher.",
@@ -1455,6 +1455,7 @@ const POLICIES = [
   { id: "rail", nm: "⭐ Intra-State Rail Line", s: "infrastructure", c: 18, t: 4, fx: { infra: .18, app: 15 }, d: "Light rail connecting 3 major cities. Transformational.", cr: .20, ecoSec: "trade", ecoBoost: .10, jobsAdd: 8000, compDesc: "Light rail system operational — 3 cities connected" },
   { id: "ind_park", nm: "⭐ Industrial Park", s: "infrastructure", c: 12, t: 3, fx: { infra: .10, app: 8 }, d: "200-hectare industrial zone with power & roads.", cr: .12, ecoSec: "manufacturing", ecoBoost: .08, jobsAdd: 20000, compDesc: "Industrial park attracting 20+ manufacturers — 20K jobs" },
   { id: "mega_hospital", nm: "⭐ State Teaching Hospital", s: "health", c: 8, t: 3, fx: { hp: .10, app: 10 }, d: "500-bed specialist hospital. MRI, dialysis, cancer.", cr: .10, ecoSec: "services", ecoBoost: .03, jobsAdd: 2000, compDesc: "500-bed teaching hospital — specialist care available" },
+  { id: "new_uni", nm: "⭐ Establish a new state university", s: "education", c: 9, t: 3, fx: { lit: .07, app: 8 }, d: "A second state university in the zone that has none: faculties, hostels, a library.", cr: .08, ecoSec: "services", ecoBoost: .03, jobsAdd: 3500, compDesc: "A new state university, its first students enrolled" },
   { id: "uni", nm: "⭐ State University Upgrade", s: "education", c: 7, t: 3, fx: { lit: .06, app: 7 }, d: "New faculties, hostels, labs, library.", cr: .08, ecoSec: "services", ecoBoost: .03, jobsAdd: 3000, compDesc: "State university transformed — 15 new faculties" },
   // ─── NEW: NIGERIAN-SPECIFIC POLICIES (harder tradeoffs) ───
   { id: "amotekun", nm: "⭐ Amotekun-style Security Corps", s: "security", c: 6, t: 2, fx: { sec: .07, app: 8 }, d: "Recruit, train and arm 3,000 community guards. Federal Police HQ will protest.", cr: .08, ecoSec: "services", ecoBoost: .01, jobsAdd: 3000, compDesc: "Community security corps deployed across all LGAs" },
@@ -1946,7 +1947,7 @@ const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir
 // A picture for each decision (Lovable's decision packs, in ./art/decisions/). Decisions that
 // are the same moment share one. Add a pack's ids here as it arrives.
 const DEC_ART = new Set(["f_anchor", "f_assets", "f_cash", "f_coastal", "f_customs", "f_disability", "f_electoral", "f_electricity", "f_eo_assets", "f_eo_border", "f_eo_business", "f_eo_curfew", "f_eo_food", "f_eo_lg_funds", "f_eo_local", "f_eo_medical", "f_eo_merge", "f_eo_power", "f_eo_tsa", "f_eo_visa", "f_gas", "f_grid", "f_ippis", "f_jobs_corps", "f_lg_autonomy", "f_mambilla", "f_min_wage", "f_mining", "f_national_id", "f_nhia", "f_not_too_young", "f_oil_theft", "f_pib", "f_poca", "f_police_recruit", "f_primary_health", "f_rail", "f_refinery", "f_school_feed", "f_second_bridge", "f_state_police", "f_state_police_amend", "f_student_loans", "f_tax", "f_vat", "f_whistle", "nb_constituency", "nb_disabilities", "nb_nddc", "nb_peace_corps", "nb_pensions", "nb_social_media", "abandoned_audit", "afdb", "agro_processing", "anti_cor", "asuu", "cct", "child_rights", "china_infra", "chinese_steel", "cholera", "close_schools", "comm_pol", "cs_audit", "cs_digital", "cs_replace", "cs_retire", "cs_training", "curfew", "dangote_cement", "data_centre", "diaspora_houston", "digi_gov", "edu_compulsory", "emerg_edu", "emerg_health", "env_protect", "farm_sub", "fertilizer", "fg_efcc", "fg_faac_cut", "fg_grant", "fg_loan_block", "fg_military", "fg_party_pressure", "fg_road", "fintech_hub", "fiscal_resp", "flood", "foi", "four_day", "free_csec", "free_edu", "garment_factory", "ge_power", "gf_appointment", "gf_assembly", "gf_contract", "gf_land", "gf_money", "gf_revenue", "harvard", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "health_ins", "herder", "hiring_freeze", "hotel_resort", "housing", "ind_park", "irrigation", "jud_budget", "jud_corrupt", "jud_land", "jud_mining", "jud_policy", "jud_security", "kidnap", "korea_skills", "land", "land_digitise", "land_reform", "m_blogger_bribe", "m_fake_news", "m_hashtag_fail", "m_influencer_visit", "m_newspaper_expose", "m_newspaper_praise", "m_radio_angry", "m_radio_praise", "m_tv_documentary", "m_viral_good", "market_fire", "market_mod", "mega_airport", "mega_hospital", "min_wage", "mining_co", "mit", "oil_refinery", "oil_spill", "okada", "okada_kit", "open_grazing", "outreach", "pension", "pharma_plant", "phc", "poultry_farm", "procurement_law", "rail", "religious2", "revoke_land", "roads", "rural_elec", "sanitation", "school_feed", "school_voucher", "sh_bank_crisis", "sh_endsars", "sh_flood", "sh_naira_crash", "sh_oil_crash", "sh_pandemic", "sh_subsidy", "sh_terror", "shopping_mall", "skills", "smear", "solar_farm", "street_trading", "strike", "sweden_pm", "teachers", "tech_hub", "tenancy", "uae_invest", "uk_trade", "un_sdg", "uni", "university", "us_pres", "vapp", "water", "whistle", "world_bank", "youth_employ"]);
-const DEC_ALIAS = { hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
+const DEC_ALIAS = { f_fed_colleges: "free_edu", f_fed_university: "university", f_poly_uni: "uni", new_uni: "university", ease_business: "f_eo_business", electoral_law: "f_electoral", hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
 const DecPic = ({ id, h }) => { const src = decArt(id); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
 const DILEMMA_ART = {
@@ -4008,6 +4009,7 @@ const BILLS = [
   { id: "foi", nm: "Freedom of Information Law", d: "Anyone can request government records within seven days.", fx: { corM: -.02, app: 2 }, sk: { media: 10, party: -3 }, cost: 0 },
   { id: "child_rights", nm: "Child Rights Law", d: "Bans child marriage and street hawking by children. Some clerics object.", fx: { lit: .02, app: 2 }, sk: { religious: -6, youth: 4 }, cost: .3 },
   { id: "pension", nm: "Contributory Pension Law", d: "Moves workers to funded pensions; ends the arrears that pile up on retirees.", fx: { app: 3 }, sk: { unions: 6 }, cost: 1.2 },
+  { id: "electoral_law", nm: "State Electoral Law", d: "Council election results uploaded from every polling unit, in real time; the State Electoral Commission made independent. Rigging gets harder, including for your own party.", fx: { corM: -.02, app: 3 }, sk: { media: 8, party: -5 }, cost: .3 },
   { id: "tenancy", nm: "Tenancy Law", d: "Caps advance rent at one year and stops arbitrary evictions.", fx: { app: 4 }, sk: { business: -5, youth: 6 }, cost: 0 },
 ];
 // Lawful executive orders: quick, cheap, immediate, and each has a price.
@@ -4024,6 +4026,7 @@ const ORDERS = [
   { id: "four_day", i: "📆", nm: "Four-day week for civil servants", d: "Relief from transport costs; services slow down.", fx: { app: 2 }, sk: { unions: 6, business: -3 } },
   { id: "open_grazing_eo", i: "🌾", nm: "Order: no open grazing", d: "Bans cattle on farmland until the House passes a law.", fx: { sec: .03, agr: .01, app: 3 }, sk: { traditional: -3 }, risk: { p: .25, fx: { app: -2, pStab: -2 }, log: "Herders' groups went to court and Abuja criticised the order." } },
   { id: "revoke_land", i: "📃", nm: "Revoke your predecessor's land allocations", d: "Takes back plots handed to cronies. Popular, and it will be challenged.", fx: { app: 3, corM: -.01 }, sk: { traditional: -5, business: -3 }, risk: { p: .35, fx: { app: -2 }, log: "The former allottees won an injunction; some plots are back in court." } },
+  { id: "ease_business", i: "📈", nm: "Ease of doing business order", d: "Every state agency must decide permits in 30 days, or they are approved by default.", fx: { app: 1 }, rev: .3, sk: { business: 8 } },
   { id: "close_schools", i: "🔒", nm: "Close schools in bandit-hit areas", d: "Keeps children safe; they fall behind.", fx: { sec: .02, lit: -.02, app: -1 }, sk: { religious: 2 }, need: "security" },
 ];
 // Plain names for effect chips.
@@ -5068,6 +5071,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [projects, setProjects] = useState(ld?.projects || []);
   const [procLog, setProcLog] = useState(ld?.procLog || []);
   const [council, setCouncil] = useState(ld?.council || null);
+  // The President's councils: the Federal Executive Council (ministers) and the National Security Council (service chiefs). The Traditional Council is the governor's.
+  const [fedCouncils, setFedCouncils] = useState(ld?.fedCouncils || (ld && (ld.council || (ld.ministries || []).length) ? { fec: 1, nsc: 1 } : null)); // saves from before the councils: already sitting
   const [wikiEvents, setWikiEvents] = useState(ld?.wikiEvents || []);
   const [nepotismCount, setNepotismCount] = useState(ld?.nepotismCount || 0);
   const [pendingProc, setPendingProc] = useState(null); // procurement decision modal
@@ -5170,7 +5175,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
       houseBillsSeen, investorsSeen, investorsApproved, godfatherSeen, mediaSeen,
-      ministries, projects, procLog, council, wikiEvents, nepotismCount, saMemory, saOffice, gEnd, setup,
+      ministries, projects, procLog, council, fedCouncils, wikiEvents, nepotismCount, saMemory, saOffice, gEnd, setup,
       cast, cosOffice, mail: (mail || []).filter(l => l.live),
     };
   };
@@ -5402,7 +5407,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const actCount = (pol || []).length + (projects || []).length;
   const actPrev = React.useRef(actCount);
   useEffect(() => { if (actCount > actPrev.current) lastActTurn.current = turn; actPrev.current = actCount; }, [actCount]);
-  const needSetup = !ministries || !ministries.length || !council;
+  const councilsOk = NAT ? !!(fedCouncils && fedCouncils.fec && fedCouncils.nsc) : !!council;
+  const needSetup = !ministries || !ministries.length || !councilsOk;
   const activeNeeds = needs.filter(n => n.status === "open" || n.status === "started" || n.status === "stalled");
   // The Desk shows only what still needs you: work already under way steps aside.
   const deskNeeds = activeNeeds.filter(n => n.status !== "started"), workingNeeds = activeNeeds.filter(n => n.status === "started");
@@ -5544,6 +5550,51 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (dz && zone != null) { const zm = { ...(p.zoneMood || {}) }; zm[zone] = Math.max(-25, Math.min(25, (zm[zone] || 0) + dz)); n.zoneMood = zm; }
     return n;
   });
+  // The President's two councils. Convened once; each can be called once a year after that.
+  const conveneFEC = () => {
+    if (!ministries || !ministries.length) { goTab("min"); return; }
+    setFedCouncils(c => ({ ...(c || {}), fec: turn, fecYear: turn })); scFx({ pStab: 2 });
+    addL("🏛️ You chaired the first Federal Executive Council: " + ministries.length + " ministers around the table.", "policy");
+    try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/federal-executive-council.webp", icon: "🏛️", title: "The Federal Executive Council sits", text: "Every Wednesday, your ministers meet under you in the Council Chamber. From now on the FEC approves federal contracts and programmes.", tone: "good", rows: [{ l: "Ministers", v: String(ministries.length), good: true }, { l: "Party stability", v: "+2", good: true }] }); } catch (e) {}
+  };
+  const conveneNSC = () => {
+    setFedCouncils(c => ({ ...(c || {}), nsc: turn, nscYear: turn })); scFx({ sec: .005 });
+    addL("🛡️ You convened the National Security Council: the service chiefs, the police, the DSS and " + nsaName + ".", "policy");
+    try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/national-security-adviser.webp", bg: "./art/backgrounds/situation-room.webp", name: nsaName + " · National Security Adviser", text: "Your Excellency, the Security Council is in session: the Chief of Defence Staff, the three service chiefs, the Inspector-General of Police and the intelligence chiefs. We will bring every front to you here.", ok: "Continue" } }); } catch (e) {}
+  };
+  // Once a year after that: an emergency Security Council, and an FEC retreat on delivery.
+  const nscEmergency = () => {
+    if (!spendB(NAT ? 20 : 1, "Emergency security deployment")) return;
+    setFedCouncils(c => ({ ...(c || {}), nscYear: turn, nscCalls: ((c && c.nscCalls) || 0) + 1 })); scFx({ sec: .02, app: 1 });
+    addL("🛡️ Emergency National Security Council: troops and police redeployed to the worst fronts.", "policy");
+    try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/situation-room.webp", icon: "🛡️", title: "Emergency Security Council", text: "The chiefs leave with orders: troops and police redeployed to the worst fronts, the intelligence agencies told to share what they have.", tone: "good", rows: [{ l: "Security", v: "+2%", good: true }, { l: "Cost", v: naira(20), good: false }] }); } catch (e) {}
+  };
+  const fecRetreat = () => {
+    const weak = (ministries || []).filter(m => (m.perf == null ? 50 : m.perf) < 45).length;
+    setFedCouncils(c => ({ ...(c || {}), fecYear: turn, retreats: ((c && c.retreats) || 0) + 1 })); scFx({ pStab: 1, app: 1 });
+    addL("🏛️ FEC retreat: every minister presented their delivery scorecard" + (weak ? "; " + weak + " fell short." : "."), "policy");
+    try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/federal-executive-council.webp", icon: "📋", title: "The FEC retreat", text: "Two days, every minister with a scorecard: what was promised, what was delivered." + (weak ? " " + weak + (weak === 1 ? " ministry is" : " ministries are") + " behind. The Head of Service will name them in the cabinet report." : " The cabinet is on track."), tone: weak ? "neutral" : "good" }); } catch (e) {}
+  };
+  const FedCouncilsPanel = () => {
+    const C = fedCouncils || {}, big = !TALL();
+    const card = (art, t, d, on, members, act, actL, used) => <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, overflow: "hidden", margin: "0 0 14px" }}>
+      <div style={{ height: big ? 220 : 130, background: "url(./art/backgrounds/" + art + ".webp) center/cover" }} />
+      <div style={{ padding: big ? "18px 22px" : "12px 14px" }}>
+        <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: big ? TS(40) : TS(26), color: CL.txt }}>{t}</div>
+        <div style={{ fontSize: big ? TS(26) : TS(18), color: CL.td, margin: "4px 0 10px", lineHeight: 1.4 }}>{d}</div>
+        <div style={{ fontSize: big ? TS(24) : TS(17), color: CL.txt, margin: "0 0 12px" }}>{members}</div>
+        {on ? (used ? <div style={{ fontSize: big ? TS(24) : TS(17), color: CL.grn, fontWeight: 700 }}>✓ Sitting. Met this year.</div> : <Bt onClick={act[1]}>{act[0]}</Bt>) : <Bt onClick={act[2]}>{actL}</Bt>}
+      </div>
+    </div>;
+    return <div style={{ maxWidth: big ? 1100 : 900, margin: "0 auto", padding: big ? "24px 0" : "8px 0" }}>
+      {card("federal-executive-council", "The Federal Executive Council", "Your ministers, every Wednesday in the Council Chamber. It approves federal contracts and programmes.", !!C.fec,
+        (ministries || []).length ? (ministries || []).slice(0, 8).map(m => (m.icon || "🏛️") + " " + m.name).join(" · ") + ((ministries || []).length > 8 ? " · and more" : "") : "No ministers yet: appoint them first.",
+        ["Hold an FEC retreat on delivery", fecRetreat, conveneFEC], "Chair the first FEC", C.fecYear === turn)}
+      {card("situation-room", "The National Security Council", "The Chief of Defence Staff, the service chiefs, the Inspector-General of Police and the intelligence chiefs, with " + nsaName + ".", !!C.nsc,
+        "It sends you its decisions on the fronts every year. In an emergency you can call it yourself: troops and police redeployed, at a cost.",
+        ["Call an emergency session (" + naira(20) + ")", nscEmergency, conveneNSC], "Convene the Security Council", C.nscYear === turn)}
+    </div>;
+  };
   const fxChips = (fx = {}, dz = 0) => [
     ...(fx.app ? [{ text: "Approval " + sgnN(fx.app), color: fx.app > 0 ? CL.grn : CL.red }] : []),
     ...(dz ? [{ text: "Zone " + sgnN(dz), color: dz > 0 ? CL.grn : CL.red }] : []),
@@ -5952,10 +6003,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const names = (l, k = 4) => l.slice(0, k).map(x => x.lga).join(", ") + (l.length > k ? " and " + (l.length - k) + " more" : "");
       const oppZof = (l) => [...new Set(l.map(x => x.zone))];
       const result = (won, lostL, how) => ({ icon: "🗳️", title: "You won " + won + " of " + N + " councils", text: lostL.length ? "Opposition chairmen now run " + names(lostL) + ". " + how : how, tone: lostL.length > N / 2 ? "bad" : "good" });
+      const lgOpts = (o) => next.electoral ? o.filter(x => !/^(Make sure we win|Intervene where)/.test(x.label)) : o;
       cards.push({ key: "lg_election", kicker: "Council elections", color: CL.blu, art: ["polling-unit", "electoral-commissioner"],
-        title: "Council polls: " + N + " local governments",
+        title: "Council polls: " + N + " local governments" + (next.electoral ? " (under your Electoral Law)" : ""),
         brief: "A free vote would give you about " + vote.won.length + " of " + N + " councils" + (vote.close.length ? "; " + vote.close.length + " more are close." : ".") + " Your SIEC chairman is your appointee. Opposition chairmen can block your work in their councils.",
-        options: [
+        options: lgOpts([
           { label: "Free and fair: let the chips fall", chips: fxChips({ app: 3, pStab: -Math.round(vote.lost.length / 3) }), run: () => {
             scFx({ app: 3, pStab: -Math.round(vote.lost.length / 3) }); oppZof(vote.lost).forEach(z => scFx({}, z, -2));
             setStc(p => ({ ...p, lg: { mode: "free", oppZones: oppZof(vote.lost), oppLGAs: vote.lost.map(x => x.lga), turn } }));
@@ -5984,7 +6036,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             addL("🗳️ Council elections postponed. Caretaker committees of loyalists now run the councils.", "political");
             scWiki("Controversies", "Ran the local governments through unelected caretaker committees.");
           } },
-        ]) });
+        ])) });
     } else if (next.lg && (next.lg.oppLGAs || []).length && turn > (next.lg.turn || 0) && !asked["lg_thorn_" + turn] && r() < .7) {
       asked["lg_thorn_" + turn] = turn;
       const lga = next.lg.oppLGAs[Math.floor(r() * next.lg.oppLGAs.length)];
@@ -6101,7 +6153,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Election petitions: a narrow win gets challenged. Tribunal, Court of
     // Appeal, then the Supreme Court; your corruption feeds their evidence.
     const startPet = (term, margin, opp, oppParty) => {
-      const filed = margin < 2 || r() < (margin < 5 ? .7 : 0);
+      // Close races go to court often, not always: players were "always at the tribunal".
+      const filed = r() < (margin < 2 ? .8 : margin < 5 ? .4 : 0) * SYS.electoralEffects(!!next.electoral).petition; // fewer petitions under your Electoral Act
       if (!filed) return;
       next.petition = { term, stage: NAT ? 1 : 0, margin, opp, oppParty, start: turn, lostBelow: false };
       notes.push(["⚖️ " + opp + " (" + oppParty + ") is challenging your " + (term === 1 ? "election" : "re-election") + " in court. Your margin: " + margin + "%.", "crisis"]);
@@ -6207,6 +6260,71 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (cold.length) notes.push(["👑 " + cold.map(x => x.name).slice(0, 2).join(" and ") + (cold.length > 2 ? " and others" : "") + " are cold towards you; their districts follow their lead.", "political"]);
     }
 
+    // Consequence chains (SYS.chains): what programmes, orders and big works set in motion, due this year.
+    {
+      if (window.SOP_TEST && window.SOP_TEST.chains && !next.testChains) { // test-only (tests/e2e/chains.mjs): one of each beat, due now
+        next.testChains = true;
+        const pc = SYS.programmeChain({ id: "f_anchor", nm: "Farmers' loans against the harvest", place: "Plateau", zone: "NC", needKind: "farm", nat: NAT, turn });
+        next.chains = [...(next.chains || []), pc[0], { ...pc[1], due: turn }, { id: "crisis_t", kind: "crisis", due: turn, polId: "f_coastal", nm: "⭐ The Coastal Highway", place: "Bayelsa", zone: "SS" }, { ...SYS.orderChain({ id: "f_eo_business", nat: NAT, turn })[1], due: turn }];
+      }
+      const dueB = (next.chains || []).filter(b => !b.done && b.due <= turn);
+      if (dueB.length) next.chains = (next.chains || []).map(b => dueB.includes(b) ? { ...b, done: true } : b);
+      const notesL = [];
+      dueB.forEach(b => {
+        if (b.kind === "payoff") {
+          dApp += 1;
+          notesL.push(letterOf("chain_" + b.id, { key: "chain_" + b.id, live: true, kind: "briefing", stakes: 1, lines: [{ ok: true, line: b.line }, { ok: true, line: "The " + String(b.prog).replace(/^⭐\s*/, "") + " did this. People in " + b.place + " are saying so." }], tip: [b.from, "./art/characters/" + (NAT ? "permanent-secretary" : "civil-servant") + ".webp", b.title, String(b.prog).replace(/^⭐\s*/, "") + ": what changed in " + b.place] }));
+          scWiki("Governorship", b.line);
+        } else if (b.kind === "eo_trade") {
+          setS(p => ({ ...p, igr: Math.round(((p.igr || 0) + b.igrB) * 100) / 100, invJobs: (p.invJobs || 0) + b.jobs, totalJobs: (p.totalJobs || 0) + b.jobs }));
+          notesL.push(letterOf("chain_" + b.id, { key: "chain_" + b.id, live: true, kind: "investment", stakes: 1, lines: [{ ok: true, line: b.line }, { ok: true, line: b.jobs.toLocaleString() + " jobs; revenue +" + naira(b.igrB) + " a year." }], tip: [b.from, "./art/characters/investor-nigerian.webp", b.title, "Since the Ease of Doing Business order"] }));
+        } else if (b.kind === "investor") {
+          cards.push({ key: "chain_inv_" + b.id, beat: b, kicker: "Investment · " + b.place, color: CL.grn, from: b.head + ", " + b.firm + " " + b.flag, img: "./art/characters/investor-foreign.webp", art: [NAT ? "villa-office" : "governor-office", "investor-foreign", null, null], title: b.title, brief: b.line,
+            options: [true, false].map(w => { const A = SYS.investorAnswer(b, w); return { label: w ? "Welcome them: land and a three-year tax holiday" : "Hold out for better terms", note: w ? b.jobs.toLocaleString() + " jobs; revenue +" + naira(b.igrB) + " a year; the land costs " + naira(A.costB) + "." : "They may go to another " + (NAT ? "country" : "state") + ".", chips: w ? fxChips({ app: 2 }).concat([{ text: naira(A.costB), color: CL.org }]) : fxChips({ app: -1 }), run: () => {
+              if (w && A.costB && !spendB(A.costB, "Land for " + b.firm)) return;
+              if (A.ok) setS(p => ({ ...p, igr: Math.round(((p.igr || 0) + A.igrB) * 100) / 100, invJobs: (p.invJobs || 0) + A.jobs, totalJobs: (p.totalJobs || 0) + A.jobs, app: cl100(p.app + A.app) })); else scFx({ app: A.app });
+              addL((A.ok ? "🏭 " : "🧳 ") + b.firm + " (" + b.country + ") " + (A.ok ? "will build " + b.what + " in " + b.place + ": " + b.jobs.toLocaleString() + " jobs." : "is looking elsewhere."), A.ok ? "success" : "political");
+              scWiki("Governorship", A.ok ? b.firm + " of " + b.country + " invested in " + b.what + " in " + b.place + ", drawn by the " + String(b.prog).replace(/^⭐\s*/, "") + "." : b.firm + " of " + b.country + " passed over " + b.place + " after talks stalled.");
+              setTimeout(() => paper(A.paper[0], A.paper[1], A.paper[2], "./art/backgrounds/" + (A.ok ? "project-ribbon-cutting" : "governor-office") + ".webp"), 200);
+              return { icon: A.ok ? "🏭" : "🧳", img: "./art/characters/investor-foreign.webp", title: A.ok ? b.firm + " is coming to " + b.place : b.firm + " is looking elsewhere", text: A.ok ? b.what.charAt(0).toUpperCase() + b.what.slice(1) + ", because of what the " + String(b.prog).replace(/^⭐\s*/, "") + " did." : "They thanked you for your time.", tone: A.ok ? "good" : "neutral",
+                rows: A.ok ? [{ l: "Jobs", v: "+" + A.jobs.toLocaleString(), good: true }, { l: "Revenue", v: "+" + naira(A.igrB) + "/yr", good: true }] : [] };
+            } }; }) });
+        } else if (b.kind === "crisis") {
+          const C = SYS.siteCrisis({ nm: b.nm, place: b.place, zone: b.zone, nat: NAT });
+          cards.push({ key: "chain_crisis_" + b.polId, beat: b, kicker: "🚨 Site under attack · " + b.place, color: CL.red, art: ["project-site-stalled", null, null, null], title: C.title, brief: C.d,
+            options: C.opts.map(o => ({ label: o.l, chips: fxChips({ app: o.fx.app, cor: o.fx.cor }).concat(o.cost ? [{ text: naira(o.cost), color: CL.org }] : []), run: () => {
+              if (o.cost && !spendB(o.cost, o.l)) return;
+              scFx(o.fx);
+              if (o.resume) setPol(pp => pp.map(x => x.id === b.polId ? { ...x, blocked: false } : x));
+              else setStc(p => ({ ...p, chains: [...(p.chains || []), { ...b, id: b.id + "_again", due: turn + 1, done: false }] })); // it comes back next year
+              if (o.paid) setStc(p => ({ ...p, paidOff: true }));
+              addL((o.resume ? "🛡️ " : "🚧 ") + C.title + ": " + o.l.toLowerCase() + ".", o.resume ? "policy" : "crisis");
+              scWiki(o.id === "clear" ? "Governorship" : "Controversies", C.title + ": " + o.l.toLowerCase() + ". " + o.line);
+              setTimeout(() => paper(o.paper[0], o.paper[1], o.paper[2], "./art/backgrounds/project-site-stalled.webp"), 200);
+              return { icon: o.id === "clear" ? "🛡️" : o.id === "pay" ? "💰" : "🚧", title: o.l, text: o.line, tone: o.id === "clear" ? "good" : o.id === "pay" ? "neutral" : "bad" };
+            } })) });
+        } else if (b.kind === "eo_court") {
+          const inv = "Van der Berg Logistics";
+          cards.push({ key: "chain_court_" + b.id, beat: b, kicker: "The courts", color: CL.pur, art: ["courtroom", "judge", null, null], title: "The court has struck down your Ease of Doing Business order",
+            brief: "A suit by rival interests succeeded: the court says the order oversteps the law. An email from " + inv + ": “The legal uncertainty is too high. We are considering pulling our investment out.”",
+            options: [
+              { label: "Appeal to the higher court", note: "The court will weigh how clean your government is.", chips: [{ text: "Corruption " + Math.round((s.cor || 0) * 100) + "%", color: (s.cor || 0) < .5 ? CL.grn : CL.red }], run: () => {
+                const ok = SYS.appealGranted(s.cor);
+                if (ok) scFx({ app: 2 }); else { scFx({ app: -2 }); setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) - (NAT ? 4 : .3)) * 100) / 100), invJobs: Math.max(0, (p.invJobs || 0) - (NAT ? 12000 : 1500)) })); }
+                addL("⚖️ The appeal on the Ease of Doing Business order was " + (ok ? "granted: the order stands, and the investors stay." : "dismissed: investors are pulling out."), ok ? "success" : "crisis");
+                scWiki(ok ? "Governorship" : "Controversies", "The Ease of Doing Business order was struck down, then " + (ok ? "restored on appeal." : "lost on appeal; investors left."));
+                setTimeout(() => { try { postMail([letterOf("chain_inv_mail_" + b.id, { key: "chain_inv_mail_" + b.id, live: true, kind: "investment", stakes: 1, lines: [{ ok, line: ok ? "The appeal court has restored the order. We are staying, and expanding." : "The appeal failed. We cannot plan under this uncertainty; we are pulling out." }], tip: ["Pieter van der Berg, " + inv + " 🇳🇱", "./art/characters/investor-foreign.webp", ok ? "We are staying" : "We are leaving", "After the appeal ruling"] })]); } catch (e) {} paper(ok ? "APPEAL COURT RESTORES BUSINESS ORDER" : "INVESTORS PULL OUT AFTER APPEAL FAILS", ok ? "Investors say they are staying" : "Jobs and revenue go with them", ok, "./art/backgrounds/courtroom.webp"); }, 300);
+                return { icon: "⚖️", img: "./art/characters/judge.webp", title: ok ? "Appeal granted" : "Appeal dismissed", text: ok ? "The higher court restored the order: a clean government's word holds." : "The court did not trust a government with corruption at " + Math.round((s.cor || 0) * 100) + "%. The investors are leaving.", tone: ok ? "good" : "bad" };
+              } },
+              { label: "Accept the ruling", note: "The investors leave.", chips: fxChips({ app: -1 }), run: () => {
+                scFx({ app: -1 }); setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) - (NAT ? 4 : .3)) * 100) / 100), invJobs: Math.max(0, (p.invJobs || 0) - (NAT ? 12000 : 1500)) }));
+                addL("⚖️ You accepted the ruling against the Ease of Doing Business order. Investors are pulling out.", "political");
+                return { icon: "🧳", title: "The investors are leaving", text: "Without the order, permits are back to months of waiting. " + inv + " is packing up.", tone: "bad" };
+              } }] });
+        }
+      });
+      if (notesL.length) setTimeout(() => postMail(notesL), 700);
+    }
     // The feud with the deputy (SYS.rivalry): one beat a year once you refused their appointments.
     {
       if (window.SOP_TEST && window.SOP_TEST.rival && !next.rival) next.rival = SYS.rivalryStart(0); // test-only (tests/e2e)
@@ -7024,52 +7142,57 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   });
   useEffect(() => { window.SOP_PERSONNEL = { fire: fireMinister, fireCase, newMinistry: () => { setNav("cab"); setNewMin({ pick: true }); }, restructure: () => setSecr({ restructure: {}, from: nav }) }; });
 
-  const getSABrief = () => {
-    if (!saOffice.adviser) return { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) };
+  const getSABrief = (skip = new Set()) => { // skip: briefs deferred with "Later" this year; the next one due shows instead
+    const skipB = (b) => b.urgent && skip.has(b.title);
+    if (!saOffice.adviser) { const b_ = { urgent: true, icon: "🪑", title: "SA desk vacant — appoint a replacement", body: "Executive Command needs a Special Adviser. Open the reserve list and swear in a new SA before the next crisis lands.", actionLabel: "Pick SA", action: () => setSaPickerOpen(true) }; if (!skipB(b_)) return b_; }
     // Year 1: the treasury is empty; the fastest money is the payroll.
     const ghost = REVM().find(x => x.id === "payroll");
     if (turn === 1 && ghost && !(stc.rev || {}).payroll && revThisTurn() < 2 && agendaLeftNow > 0 && ministries && ministries.length >= 4) {
       const g = Math.max(.3, Math.round((s.faac || 10) * .55 * (.03 + (s.cor || 0) * .1) * 10) / 10);
-      return { urgent: true, icon: "🪪", title: "Governor, your predecessor left the treasury empty" + ((stc.oldDebt || {}).total ? " and " + naira(stc.oldDebt.total) + " of debt" : "") + ". Purge ghost workers from the payroll now: it frees about " + naira(g) + " a year", body: "A biometric audit checks every worker on the payroll against BVN and fingerprints. Names that collect salaries but do not exist come off. The unions will protest (approval −1), and a few real workers may be wrongly removed. It uses one of this year's major actions.", actionLabel: "Purge ghost workers", action: () => adoptRevenue(ghost) };
+      { const b_ = { urgent: true, icon: "🪪", title: "Governor, your predecessor left the treasury empty" + ((stc.oldDebt || {}).total ? " and " + naira(stc.oldDebt.total) + " of debt" : "") + ". Purge ghost workers from the payroll now: it frees about " + naira(g) + " a year", body: "A biometric audit checks every worker on the payroll against BVN and fingerprints. Names that collect salaries but do not exist come off. The unions will protest (approval −1), and a few real workers may be wrongly removed. It uses one of this year's major actions.", actionLabel: "Purge ghost workers", action: () => adoptRevenue(ghost) }; if (!skipB(b_)) return b_; }
     }
     // Projects: the adviser says the real next step and the button opens it.
     const dueP = (projects || []).filter(p => p && p.estimateM != null).map(p => ({ p, n: nextOf(p) })).find(x => x.n.due);
-    if (dueP) return { urgent: true, icon: dueP.n.blocked ? "🚧" : "📝", project: dueP.p.id, title: dueP.n.say, body: dueP.n.blocked ? "This is blocked until it is dealt with. Every year it waits, the need it answers gets worse." : "Approval is not a contract: nothing is paid and no one is building until this step is done.", actionLabel: dueP.n.button, action: () => openStep(dueP.p) };
+    if (dueP) { const b_ = { urgent: true, icon: dueP.n.blocked ? "🚧" : "📝", project: dueP.p.id, title: dueP.n.say, body: dueP.n.blocked ? "This is blocked until it is dealt with. Every year it waits, the need it answers gets worse." : "Approval is not a contract: nothing is paid and no one is building until this step is done.", actionLabel: dueP.n.button, action: () => openStep(dueP.p) }; if (!skipB(b_)) return b_; }
     const awaitingContract = (projects || []).find(p => p && p.estimateM == null && (p.status === "awarded_pending" || p.status === "eia_done" || p.status === "bidding") && !p.contractor);
-    if (awaitingContract) return { urgent: true, icon: "📝", title: "Award a contractor for " + ((pendingProc?.title) || awaitingContract?.title || "a pending project"), body: "Procurement is stalled at contractor selection. Open the project, review bidders, and award — sole-source is fast but leaks treasury and lands on your Wikipedia.", actionLabel: "Open Projects", action: () => goTab("prj") };
+    if (awaitingContract) { const b_ = { urgent: true, icon: "📝", title: "Award a contractor for " + ((pendingProc?.title) || awaitingContract?.title || "a pending project"), body: "Procurement is stalled at contractor selection. Open the project, review bidders, and award — sole-source is fast but leaks treasury and lands on your Wikipedia.", actionLabel: "Open Projects", action: () => goTab("prj") }; if (!skipB(b_)) return b_; }
 
-    if (!ministries || ministries.length === 0) return { urgent: true, icon: "🏛️", title: "Convene your ministries first", body: "Executive Command rule: no cabinet, no execution. Create at least Finance, Works, Health and Security before serious governance begins.", actionLabel: "Open Ministries", action: () => goTab("min") };
-    if (ministries.length < 4) return { urgent: true, icon: "🏛️", title: "Your cabinet is under-strength", body: "You have " + ministries.length + " ministr" + (ministries.length === 1 ? "y" : "ies") + ". The House, contractors and crises will overpower a thin Exco.", actionLabel: "Add Ministries", action: () => goTab("min") };
-    if (!council) return { urgent: true, icon: "👑", title: "Convene the Traditional Rulers Council", body: "Rural turnout, land disputes and security intelligence run through the palaces. Meet them before your next big project or campaign push.", actionLabel: "Open Council", action: () => goTab("coun") };
-    if (NAT && stc.defProc && stc.defProc.status === "waiting" && !defenceMin()) return { urgent: true, icon: "🎖️", title: "The army's jets and drones are waiting for a Ministry of Defence", body: "You approved them, but military procurement must go through the Ministry of Defence. Create it and choose the minister to run it.", actionLabel: "Create the Ministry of Defence", action: createDefence };
+    if (!ministries || ministries.length === 0) { const b_ = { urgent: true, icon: "🏛️", title: "Convene your ministries first", body: "Executive Command rule: no cabinet, no execution. Create at least Finance, Works, Health and Security before serious governance begins.", actionLabel: "Open Ministries", action: () => goTab("min") }; if (!skipB(b_)) return b_; }
+    if (ministries.length < 4) { const b_ = { urgent: true, icon: "🏛️", title: "Your cabinet is under-strength", body: "You have " + ministries.length + " ministr" + (ministries.length === 1 ? "y" : "ies") + ". The House, contractors and crises will overpower a thin Exco.", actionLabel: "Add Ministries", action: () => goTab("min") }; if (!skipB(b_)) return b_; }
+    if (NAT && !(fedCouncils && fedCouncils.fec)) { const b_ = { urgent: true, icon: "🏛️", title: "Convene the Federal Executive Council", body: "Your ministers meet every Wednesday under you: the FEC approves federal contracts and programmes. Nothing federal moves until it sits.", actionLabel: "Open the councils", action: () => goTab("coun") }; if (!skipB(b_)) return b_; }
+    if (NAT && !(fedCouncils && fedCouncils.nsc)) { const b_ = { urgent: true, icon: "🛡️", title: "Convene the National Security Council", body: "The service chiefs, the police and the intelligence chiefs, with your National Security Adviser. Every front is decided there.", actionLabel: "Open the councils", action: () => goTab("coun") }; if (!skipB(b_)) return b_; }
+    if (!NAT && !council) { const b_ = { urgent: true, icon: "👑", title: "Convene the Traditional Rulers Council", body: "Rural turnout, land disputes and security intelligence run through the palaces. Meet them before your next big project or campaign push.", actionLabel: "Open Council", action: () => goTab("coun") }; if (!skipB(b_)) return b_; }
+    if (NAT && stc.defProc && stc.defProc.status === "waiting" && !defenceMin()) { const b_ = { urgent: true, icon: "🎖️", title: "The army's jets and drones are waiting for a Ministry of Defence", body: "You approved them, but military procurement must go through the Ministry of Defence. Create it and choose the minister to run it.", actionLabel: "Create the Ministry of Defence", action: createDefence }; if (!skipB(b_)) return b_; }
     const sign = cases.find(c => c.agency && c.stage === "allegation");
-    if (sign) return { urgent: true, icon: "⚖️", title: "The " + SYS.AGENCIES[sign.agency].nm + " asks your sign-off to investigate Hon. " + sign.officer, body: sign.what + " (" + sign.ministryName + "). Sign, and the " + SYS.AGENCIES[sign.agency].nm + " investigates; " + (stc.hos ? stc.hos.name + ", your Head of Service," : "your Head of Service") + " reports the findings in next year's brief.", actionLabel: "Open the letter", action: () => openCaseLetter(sign.id) };
+    if (sign) { const b_ = { urgent: true, icon: "⚖️", title: "The " + SYS.AGENCIES[sign.agency].nm + " asks your sign-off to investigate Hon. " + sign.officer, body: sign.what + " (" + sign.ministryName + "). Sign, and the " + SYS.AGENCIES[sign.agency].nm + " investigates; " + (stc.hos ? stc.hos.name + ", your Head of Service," : "your Head of Service") + " reports the findings in next year's brief.", actionLabel: "Open the letter", action: () => openCaseLetter(sign.id) }; if (!skipB(b_)) return b_; }
     const unmet = cases.find(c => !c.agency && c.stage === "allegation");
-    if (unmet) return { urgent: true, icon: "📁", title: "Allegation in " + unmet.ministryName + ": meet the commissioner", body: SYS.GRADE_NAME[unmet.grade] + ". " + unmet.what + ". Hear them out, then decide whether to investigate. Ignoring it for a year will cost you.", actionLabel: "Open the file", action: () => setSecr({ caseId: unmet.id, from: nav }) };
+    if (unmet) { const b_ = { urgent: true, icon: "📁", title: "Allegation in " + unmet.ministryName + ": meet the commissioner", body: SYS.GRADE_NAME[unmet.grade] + ". " + unmet.what + ". Hear them out, then decide whether to investigate. Ignoring it for a year will cost you.", actionLabel: "Open the file", action: () => setSecr({ caseId: unmet.id, from: nav }) }; if (!skipB(b_)) return b_; }
     const scandal = (ministries || []).find(m => m.flag && m.flag.t >= turn - 1 && (m.flag.kind === "graft" || m.flag.kind === "disloyal"));
-    if (scandal) return { urgent: true, icon: scandal.flag.kind === "graft" ? "💀" : "🗝️", title: "Hon. " + scandal.minister + " (" + scandal.name + "): " + OFFENCE[scandal.flag.kind].label.toLowerCase() + ". Fire or keep them?", body: scandal.flag.text, actionLabel: "Decide", action: () => goTab("cab") };
+    if (scandal) { const b_ = { urgent: true, icon: scandal.flag.kind === "graft" ? "💀" : "🗝️", title: "Hon. " + scandal.minister + " (" + scandal.name + "): " + OFFENCE[scandal.flag.kind].label.toLowerCase() + ". Fire or keep them?", body: scandal.flag.text, actionLabel: "Decide", action: () => goTab("cab") }; if (!skipB(b_)) return b_; }
     const urgentNeed = activeNeeds.slice().sort((a, b) => (b.status === "stalled") - (a.status === "stalled") || a.due - b.due)[0];
     if (urgentNeed && (urgentNeed.status === "stalled" || (urgentNeed.status === "open" && urgentNeed.due <= turn))) {
       const T = needType(urgentNeed);
-      return { urgent: true, icon: T.icon, title: urgentNeed.status === "stalled" ? "Pay the contractors near " + urgentNeed.lga + " before the site is abandoned" : T.title(urgentNeed.lga) + ". Act this year", body: T.why(urgentNeed.lga), actionLabel: "See it", action: () => { goTab("gov"); setNeedOpen(urgentNeed.id); } };
+      { const b_ = { urgent: true, icon: T.icon, title: urgentNeed.status === "stalled" ? "Pay the contractors near " + urgentNeed.lga + " before the site is abandoned" : T.title(urgentNeed.lga) + ". Act this year", body: T.why(urgentNeed.lga), actionLabel: "See it", action: () => { goTab("gov"); setNeedOpen(urgentNeed.id); } }; if (!skipB(b_)) return b_; }
     }
-    if (bs !== 100) return { urgent: true, icon: "💰", title: "Balance the Appropriation Bill", body: "The House will not approve a budget that does not add to 100%. Every unbalanced draft delays salaries, projects and political goodwill.", actionLabel: "Fix Budget", action: () => goTab("gov") };
-    if ((projects || []).length === 0) return { urgent: false, icon: "🏗️", title: "Start a visible flagship project", body: "Pick one project and push it through need assessment, EIA where needed, bidding and award. Voters remember delivered sites, not speeches.", actionLabel: "Open Projects", action: () => goTab("prj") };
+    if (bs !== 100) { const b_ = { urgent: true, icon: "💰", title: "Balance the Appropriation Bill", body: "The House will not approve a budget that does not add to 100%. Every unbalanced draft delays salaries, projects and political goodwill.", actionLabel: "Fix Budget", action: () => goTab("gov") }; if (!skipB(b_)) return b_; }
+    if ((projects || []).length === 0) { const b_ = { urgent: false, icon: "🏗️", title: "Start a visible flagship project", body: "Pick one project and push it through need assessment, EIA where needed, bidding and award. Voters remember delivered sites, not speeches.", actionLabel: "Open Projects", action: () => goTab("prj") }; if (!skipB(b_)) return b_; }
     const risky = (projects || []).find(p => p.status === "suspended" || p.status === "abandoned" || (p.status === "in_progress" && (p.progress || 0) < 25 && turn - (p.startTurn || turn) > 1));
-    if (risky) return { urgent: true, icon: "🚧", title: "Unblock " + (risky.title || risky.name || "a stalled project"), body: "A stalled site becomes an opposition billboard. Visit, terminate, audit or renegotiate before it enters your Wikipedia controversies.", actionLabel: "Open Projects", action: () => goTab("prj") };
-    if (s.cor > .45) return { urgent: true, icon: "🧾", title: "Publish an audit before EFCC does", body: "Corruption above 45% compounds through contracts, cabinet loyalty, press attacks and tribunal credibility.", actionLabel: "Open Wiki Bio", action: () => goTab("bio") };
-    if (s.app < 40) return { urgent: true, icon: "📉", title: "Approval crisis: deliver something now", body: "Below 40% approval, the House blocks bills because members fear losing their seats with you.", actionLabel: "Open Projects", action: () => goTab("prj") };
+    if (risky) { const b_ = { urgent: true, icon: "🚧", title: "Unblock " + (risky.title || risky.name || "a stalled project"), body: "A stalled site becomes an opposition billboard. Visit, terminate, audit or renegotiate before it enters your Wikipedia controversies.", actionLabel: "Open Projects", action: () => goTab("prj") }; if (!skipB(b_)) return b_; }
+    if (s.cor > .45) { const b_ = { urgent: true, icon: "🧾", title: "Publish an audit before EFCC does", body: "Corruption above 45% compounds through contracts, cabinet loyalty, press attacks and tribunal credibility.", actionLabel: "Open Wiki Bio", action: () => goTab("bio") }; if (!skipB(b_)) return b_; }
+    if (s.app < 40) { const b_ = { urgent: true, icon: "📉", title: "Approval crisis: deliver something now", body: "Below 40% approval, the House blocks bills because members fear losing their seats with you.", actionLabel: "Open Projects", action: () => goTab("prj") }; if (!skipB(b_)) return b_; }
     // Nothing urgent: the adviser says what their outlook notices first.
     const lensId = SYS.lensIdOf(saOffice.adviser.name);
-    if (turn > 1) return { urgent: false, icon: "🧭", title: SYS.lensRead(lensId, { s, stalled: (projects || []).filter(p => p.status === "suspended" || p.status === "abandoned").length }).replace(/\.$/, ""), body: "Your adviser's read (" + SYS.SA_LENSES[lensId].nm.toLowerCase() + "). Weigh it against the others: " + SYS.SA_LENSES[lensId].blind, actionLabel: "Open Govern", action: () => goTab("gov") };
+    if (turn > 1) { const b_ = { urgent: false, icon: "🧭", title: SYS.lensRead(lensId, { s, stalled: (projects || []).filter(p => p.status === "suspended" || p.status === "abandoned").length }).replace(/\.$/, ""), body: "Your adviser's read (" + SYS.SA_LENSES[lensId].nm.toLowerCase() + "). Weigh it against the others: " + SYS.SA_LENSES[lensId].blind, actionLabel: "Open Govern", action: () => goTab("gov") }; if (!skipB(b_)) return b_; }
     return { urgent: false, icon: "📥", title: "Inbox clear enough to sponsor a bill", body: "Quiet years are for agenda-setting: table a reform bill, strengthen procurement, or prepare for the next shock.", actionLabel: "Open Govern", action: () => goTab("gov") };
   };
 
-  const saBrief = getSABrief();
-  const [saLater, setSaLater] = useState(null); // "Later" hides this brief until it changes or the year turns
+  const [saLater, setSaLater] = useState(null); // the last brief deferred with "Later" (kept for older code)
+  const [saDeferred, setSaDeferred] = useState([]); // "title|turn" of every brief deferred with "Later"
+  const saBrief = getSABrief(new Set(saDeferred.filter(x => x.endsWith("|" + turn)).map(x => x.slice(0, x.lastIndexOf("|")))));
   const saInbox = [
     { label: "Cabinet", done: !!(ministries && ministries.length >= 4), urgent: !(ministries && ministries.length >= 4), detail: ministries && ministries.length ? ministries.length + " ministries convened" : "No ministries convened", action: () => goTab("min") },
-    { label: "Traditional Council", done: !!council, urgent: !!(ministries && ministries.length >= 4 && !council), detail: council ? "Palace channel active" : "Rural legitimacy not yet secured", action: () => goTab("coun") },
+    NAT ? { label: "FEC and Security Council", done: councilsOk, urgent: !!(ministries && ministries.length >= 4 && !councilsOk), detail: councilsOk ? "Both councils sitting" : "Not yet convened", action: () => goTab("coun") }
+      : { label: "Traditional Council", done: !!council, urgent: !!(ministries && ministries.length >= 4 && !council), detail: council ? "Palace channel active" : "Rural legitimacy not yet secured", action: () => goTab("coun") },
     { label: "Budget", done: bs === 100, urgent: bs !== 100, detail: bs === 100 ? "Appropriation balances" : "Allocated " + bs + "% — House will query it", action: () => goTab("gov") },
     { label: "Projects", done: (projects || []).some(p => p.status === "delivered" || p.status === "in_progress"), urgent: false, detail: (projects || []).length + " project file" + ((projects || []).length === 1 ? "" : "s"), action: () => goTab("prj") },
   ];
@@ -7137,8 +7260,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // If serialization fails, silently skip this snapshot.
     }
   }, [turn, phase, nav, state, party, pName, depGov, setup, s, bud, cab, logs, headline, completedProjects, godfatherRel, godfatherPower, tribunal, curCourt, saOffice.adviser, saBrief]);
+  // Where a programme lands: the need it answered, or (for the President) a state, (for a governor) an LGA.
+  const FED_PLACE = { f_coastal: "Bayelsa", f_rail: "Kaduna", f_gas: "Kogi", f_refinery: "Delta", f_second_bridge: "Anambra", f_mambilla: "Taraba" };
+  const chainPlace = (p) => {
+    const nd = (needs || []).find(n => n.link === p.id && (n.status === "started" || n.status === "met" || n.status === "stalled")) || (needs || []).find(n => n.status === "open" && (needType(n)?.fix || []).includes(p.id));
+    const zoneOfPlace = (pl) => NAT ? ((STATES[String(pl).replace(/ /g, "_")] || {}).zone || "NC") : sd.zone;
+    if (nd) return { place: nd.lga, zone: zoneOfPlace(nd.lga), needKind: nd.k };
+    if (NAT) { const pl = FED_PLACE[p.id] || stateLabel(Object.keys(STATES).filter(k => k !== NATION)[hashStr(p.id + turn) % 36]); return { place: pl, zone: zoneOfPlace(pl), needKind: null }; }
+    const lg = getLGAs(state); return { place: lg.length ? lg[hashStr(p.id + turn) % lg.length] : stName, zone: sd.zone, needKind: null };
+  };
   const enactP = (p) => decide(() => {
     if (pol.find(a => a.id === p.id)) return;
+    // A programme that has already worked in a place runs again only for another place that needs it.
+    const doneHere = (stc.progDone || {})[p.id] || [];
+    if (doneHere.length) {
+      const nd = (needs || []).find(n => n.status === "open" && (needType(n)?.fix || []).includes(p.id) && !doneHere.includes(n.lga));
+      if (!nd) { try { window.SOP_toast && window.SOP_toast(p.nm.replace(/^⭐\s*/, "") + " already delivered in " + doneHere.join(", ") + ". It runs again only where another place needs it.", "warn"); } catch (e) {} return; }
+    }
     // The cost is paid each year the policy runs, not all at once: this year's share now, from the bank.
     const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100;
     if (!canAfford(perH, p.nm.replace(/^⭐\s*/, ""))) return;
@@ -7165,7 +7303,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // and then (d) selects a contractor from the real bidder pool. The resulting
   // proj lives in `projects[]` so it appears in the Projects tab, the sop-v2
   // Projects sheet, and gets Wikipedia entries at each stage.
-  const CAPITAL_IDS = new Set(["roads","mega_airport","mega_hospital","housing","rail","ind_park","tech_hub","uni","rural_elec","water","irrigation","phc"]);
+  const CAPITAL_IDS = new Set(["roads","mega_airport","mega_hospital","housing","rail","ind_park","tech_hub","uni","new_uni","rural_elec","water","irrigation","phc"]);
   const isCapital = (p) => CAPITAL_IDS.has(p.id) || (p.nm||"").startsWith("⭐") || (p.t >= 3);
   const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"road", ind_park:"industrial", tech_hub:"industrial", uni:"school", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam" };
   const EIA_TYPES = new Set(["road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
@@ -7254,11 +7392,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   /* The President's visits to the states (SYS.stateVisitOutcome): up to two a year, any state. */
   const [stateVisit, setStateVisit] = useState(null); // null | { st: the state picked }
+  /* A request heard on a visit lands on the Desk as a need for that place (a
+     state for the President, an LGA for the governor), answered by a
+     programme, a project, a bill or an order like any other. */
+  const visitNeed = (place, zi, stats, seedS, force) => {
+    const open = (needs || []).filter(n => n.lga === place && (n.status === "open" || n.status === "started" || n.status === "stalled")).map(n => n.k);
+    const k = force && !open.includes(force) ? force : SYS.visitRequest(stats, rng(hashStr(seedS)), open);
+    if (!k || !needType({ k })) return null;
+    const n = { id: "need_" + turn + "_" + k + "_v" + (hashStr(seedS) % 1e5), k, lga: place, zone: zi, sev: 1, raised: turn, due: turn + 1, status: "open", link: null, proj: null, stall: 0, visit: true };
+    setNeeds(ns => ns.some(x => x.lga === place && x.k === k && x.status === "open") ? ns : [...ns, n]);
+    return n;
+  };
   const stateVisitsLeft = () => SYS.STATE_VISITS_A_YEAR - ((stc.stateVisits && stc.stateVisits.turn === turn) ? stc.stateVisits.list.length : 0);
   const visitState = (st, purposeId) => {
     setStateVisit(null); if (!NAT || stateVisitsLeft() <= 0 || !STATES[st]) return;
     const S = STATES[st], label = stateLabel(st), zi = NATION_ZONE_IDS.indexOf(S.zone);
     const R = SYS.stateVisitOutcome(purposeId, { state: label, zone: S.zone, sec: S.sec, issue: (S.issues || [])[0], north: NORTH_ZONES.includes(S.zone) }, rng(hashStr("sv" + turn + st + purposeId)));
+    const ask = purposeId === "inspect" ? null : visitNeed(label, zi, { sec: S.sec, infra: S.infra, hp: S.hp, lit: S.lit, agr: S.agr, unemp: S.unemp, pov: S.pov }, "sv" + turn + st + purposeId, purposeId === "security" ? "security" : null);
     setStc(p => { const v = p.stateVisits && p.stateVisits.turn === turn ? p.stateVisits : { turn, list: [] }; return { ...p, stateVisits: { turn, list: [...v.list, st] } }; });
     noteTrip(); track("state_visit", purposeId);
     try {
@@ -7273,10 +7423,32 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       try {
         window.SOP_outcome({ icon: R.found ? "🔎" : "🇳🇬", img: "./art/" + R.img + ".webp", title: R.title, text: R.line, tone: "good",
           rows: [{ l: "The " + ({ NW: "North-West", NE: "North-East", NC: "North-Central", SW: "South-West", SE: "South-East", SS: "South-South" }[S.zone] || S.zone), v: "+" + R.zone, good: true }].concat(R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : [], R.fx.sec ? [{ l: "Security", v: "up", good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], R.fx.cor ? [{ l: "Corruption", v: "down", good: true }] : []) });
+        if (ask) window.SOP_outcome({ present: { img: "./art/characters/" + (purposeId === "rulers" ? (NORTH_ZONES.includes(S.zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi") : "market-women-group-cheering") + ".webp", bg: "./art/" + R.img + ".webp", name: purposeId === "rulers" ? "The royal fathers of " + label : "The people of " + label, text: (SYS.ASK_LINE[ask.k] || "") + " It is on your Desk now: " + needType(ask).title(label) + ".", ok: "Continue" } });
         window.SOP_outcome({ flight: { dir: "home", right: label, left: "Abuja" } });
       } catch (e) {}
       setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + R.img + ".webp"), 300);
     }, 400);
+  };
+  // The governor's LGA tours (SYS.lgaTourOutcome): the chairman or a town hall, and the request becomes a need for that LGA.
+  const [lgaTour, setLgaTour] = useState(null); // null | { lga }
+  const lgaToursLeft = () => SYS.LGA_TOURS_A_YEAR - ((stc.lgaTours && stc.lgaTours.turn === turn) ? stc.lgaTours.list.length : 0);
+  const tourLga = (lga, purposeId) => {
+    setLgaTour(null); if (NAT || lgaToursLeft() <= 0 || !lga) return;
+    const L = getLGAs(state), zi = [0, 1, 2].find(i => lgaCluster(L, i).includes(lga)) ?? 0;
+    const jit = (v, k) => v == null ? .5 : Math.max(0, Math.min(1, v + ((hashStr(lga + k) % 21) - 10) / 100)); // each LGA a little better or worse than the state
+    const chairman = "Hon. " + gNAs(rng(hashStr("lgc" + lga)), sd.zone, state, false);
+    const ask = visitNeed(lga, zi, { sec: jit(s.sec, "s"), infra: jit(s.infra, "i"), hp: jit(s.hp, "h"), lit: jit(s.lit, "l"), agr: jit(s.agr, "a"), unemp: jit(s.unemp, "u"), pov: jit(s.pov, "p") }, "lt" + turn + lga + purposeId);
+    const R = SYS.lgaTourOutcome(purposeId, { lga, app: s.app, chairman, ask: ask && ask.k }, rng(hashStr("lto" + turn + lga)));
+    setStc(p => { const v = p.lgaTours && p.lgaTours.turn === turn ? p.lgaTours : { turn, list: [] }; return { ...p, lgaTours: { turn, list: [...v.list, lga] } }; });
+    scFx(R.fx, zi, R.zone); track("lga_tour", purposeId);
+    addL("🚙 You toured " + lga + ": " + R.title.charAt(0).toLowerCase() + R.title.slice(1) + (ask ? ". Their request: " + needType(ask).title(lga).toLowerCase() + "." : "."), R.rough ? "political" : "success");
+    scWiki("Governorship", "Toured " + lga + " Local Government Area" + (purposeId === "chairman" ? " and met the council chairman, " + chairman + "." : " and held a town hall."));
+    try {
+      window.SOP_outcome({ present: { img: "./art/" + R.who + ".webp", bg: "./art/" + R.img + ".webp", name: purposeId === "chairman" ? chairman + " · Chairman, " + lga + " LGA" : "The people of " + lga, text: R.line, ok: "Continue" } });
+      window.SOP_outcome({ icon: "🚙", img: "./art/" + R.img + ".webp", title: R.title, text: ask ? "The request is on your Desk: " + needType(ask).title(lga) + ". " + (needType(ask).ask || "") : R.line, tone: R.rough ? "bad" : "good",
+        rows: [{ l: ["North", "Central", "South"][zi] + " zone", v: (R.zone > 0 ? "+" : "") + R.zone, good: R.zone > 0 }].concat(R.fx.app ? [{ l: "Approval", v: (R.fx.app > 0 ? "+" : "") + R.fx.app, good: R.fx.app > 0 }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : []) });
+    } catch (e) {}
+    setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + R.img + ".webp"), 300);
   };
   const projDelivered = (p) => {
     // Money approved but not spent comes back to the treasury, by letter from Finance.
@@ -7384,7 +7556,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const fx = { ...o.fx };
     setS(p => { const n = { ...p }; Object.entries(fx).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "pStab") n.pStab = cl100(n.pStab + v); else if (n[k] != null) n[k] = cl(n[k] + v); }); if (o.rev) n.revIGR = (n.revIGR || 0) + o.rev; if (hit) Object.entries(o.risk.fx).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "pStab") n.pStab = cl100(n.pStab + v); }); return n; });
     setSkApp(p => { const n = { ...p }; Object.entries(o.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-    setStc(p => ({ ...p, orders: { ...(p.orders || {}), [o.id]: turn } }));
+    setStc(p => ({ ...p, orders: { ...(p.orders || {}), [o.id]: turn }, chains: SYS.BUSINESS_ORDERS.includes(o.id) ? [...(p.chains || []), ...SYS.orderChain({ id: o.id, nat: NAT, turn })] : p.chains }));
     if (o.need) setNeeds(ns => { const i = ns.findIndex(n => n.status === "open" && n.k === o.need); if (i < 0) return ns; const c = ns.slice(); c[i] = { ...c[i], status: "met", closed: turn }; return c; });
     addL(o.i + " Executive order: " + o.nm + "." + (hit ? " " + o.risk.log : ""), "policy"); fedVoice(o.id, "sign");
     scWiki(hit ? "Controversies" : "Governorship", "Signed an executive order: " + o.nm.toLowerCase() + "." + (hit ? " " + o.risk.log : ""));
@@ -7443,6 +7615,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setBillReject(null);
     if ((bill.cost || 0) > 0 && !spendB(bill.cost, "The " + bill.nm)) return;
     setBillsPassed(p => [...p, bill]);
+    if (bill.id === "f_electoral" || bill.id === "electoral_law") setStc(p => ({ ...p, electoral: turn }));
+    const bn = bill.need && (needs || []).find(n => n.status === "open" && n.k === bill.need);
+    if (bn) { setNeeds(ns => ns.map(n => n.id === bn.id ? { ...n, status: "met", closed: turn } : n)); addL("✅ The " + bill.nm + " answers a need: " + needType(bn).title(bn.lga) + ".", "success"); }
+    if (bill.id === "f_poly_uni") { const w = chainPlace({ id: "f_fed_university" }); setStc(p => ({ ...p, chains: [...(p.chains || []), SYS.polyUniChain({ place: w.place, nat: NAT, turn: turn + 1 })] })); }
     Object.entries(bill.fx || {}).forEach(([k, v]) => {
       setS(p => { const n = { ...p }; if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "lit") n.lit = cl(n.lit + v); else if (k === "hp") n.hp = cl(n.hp + v); return n; });
     });
@@ -7708,6 +7884,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       n.cor = cl(n.cor + (avgPSCor - 30) * .0005); // corrupt civil service adds to state corruption
 
       const completed = [];
+      // Halfway on big works, armed men may stop the site (SYS.siteCrisis): decided before the year is counted.
+      const crises = [];
+      (pol || []).forEach(p => {
+        if (p.blocked || p.crisisChecked || (p.t || 1) < 3 || p.tl - 1 > Math.floor(p.t / 2)) return;
+        const where = chainPlace(p);
+        if (Math.random() < SYS.siteCrisisRisk({ sec: n.sec, paidBefore: !!stc.paidOff })) crises.push({ id: p.id, nm: p.nm, ...where });
+      });
       // Programmes that run on into next year pay next year's share now, from the bank;
       // if the bank is empty and lenders won't lend, the programme pauses for a year.
       const paused = new Set();
@@ -7719,6 +7902,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       });
       setPol(pp => pp.map(p => {
         if (paused.has(p.id)) return p;
+        if (p.blocked) return p; // armed men hold the site: no progress until you act
+        const hitC = crises.find(c => c.id === p.id);
+        if ((p.t || 1) >= 3 && p.tl - 1 <= Math.floor(p.t / 2) && !p.crisisChecked) { if (hitC) return { ...p, tl: p.tl - 1, crisisChecked: true, blocked: true }; p = { ...p, crisisChecked: true }; }
         let newTl = p.tl - 1;
         // CORRUPTION DELAY: civil service corruption + state corruption combined
         const delayChance = (n.cor * .3 + avgPSCor / 100 * .2);
@@ -7730,6 +7916,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         }
         return { ...p, tl: newTl };
       }).filter(p => { if (p.tl <= 0) { completed.push(p); return false; } return true; }));
+      // Each finished programme lands in a place, and the place answers over the next two years (SYS.programmeChain).
+      if (completed.length || crises.length) setStc(st => {
+        const done = { ...(st.progDone || {}) }, add = [];
+        completed.forEach(p => { const w = chainPlace(p); done[p.id] = [...(done[p.id] || []), w.place]; add.push(...SYS.programmeChain({ id: p.id, nm: p.nm, place: w.place, zone: w.zone, needKind: SYS.UNI_IDS.includes(p.id) ? "uni" : w.needKind, sector: p.s, nat: NAT, turn: turn + 1 })); });
+        crises.forEach(c => { add.push({ id: "crisis_" + c.id + "_" + turn, kind: "crisis", due: turn + 1, polId: c.id, nm: c.nm, place: c.place, zone: c.zone }); addL("🚧 Armed men have stopped work on the " + c.nm.replace(/^⭐\s*/, "") + " near " + c.place + ". A report is on its way.", "crisis"); });
+        return { ...st, progDone: done, chains: [...(st.chains || []), ...add.filter(b => !(st.chains || []).some(x => x.id === b.id))] };
+      });
       completed.forEach(p => {
         Object.entries(p.fx).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (n[k] !== undefined) n[k] = cl(n[k] + v); });
         const desc = p.compDesc || p.nm + " fully implemented";
@@ -8551,7 +8744,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The President's year is fuller: the national deck comes first; a summons to Abuja or a "federal matter" means nothing in Aso Rock.
     if (NAT) { const own = q.filter(k => !(k === "federal" || k === "abuja")); q.length = 0; own.forEach(k => q.push(k)); }
     const cap = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
-    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") ? 87 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
@@ -8569,6 +8762,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // A state crisis that did not fit stays in the pool for a later year.
       const back = dropped.filter(x => x.k.startsWith("sc#crisis_")).map(x => x.k.slice(10));
       if (back.length) setStc(p => ({ ...p, crisesSeen: (p.crisesSeen || []).filter(id => !back.includes(id)) }));
+      // A consequence that did not fit this year (investor, site attack, court) comes back next year, never lost.
+      const again = dropped.filter(x => x.k.startsWith("sc#chain_")).map(x => scPending.current.find(c => "sc#" + c.key === x.k)?.beat).filter(Boolean);
+      if (again.length) setStc(p => ({ ...p, chains: [...(p.chains || []), ...again.map(b => ({ ...b, due: turn + 1, done: false }))] }));
       const unask = dropped.filter(x => /^sc#(lg_|gf_)/.test(x.k)).map(x => x.k.slice(3));
       if (unask.length) setStc(p => { const a = { ...(p.asked || {}) }; unask.forEach(k => delete a[k]); return { ...p, asked: a }; });
       dropped.forEach(x => { if (x.k === "dilemma") setCurD(null); if (x.k === "media") setCurMedia(null); if (x.k === "investor") setCurInvestor(null); if (x.k === "shock") setCurShock(null); if (x.k === "federal") setCurFgEvent(null); if (x.k === "godfather") setGodfatherDemand(null); if (x.k === "house_bill") setPendingHouseBill(null); });
@@ -9678,7 +9874,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const SCREENS = [
     { id: "desk", i: "🗂️", img: "icon-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }, { k: "log", l: "News" }] },
     { id: "map", i: "🗺️", img: "icon-state", l: "State", subs: [{ k: "tre", l: "💰 Treasury" }, { k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
-    { id: "people", i: "👥", img: "icon-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: "Council" }, { k: "ppl", l: "Public" }] },
+    { id: "people", i: "👥", img: "icon-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: NAT ? "Councils" : "Council" }, { k: "ppl", l: "Public" }] },
   ];
   const WIKI_SCREEN = { id: "wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] };
   const menuItems = () => [
@@ -9772,7 +9968,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     else if (audiences.length) b.secretariat = { text: audiences.length + (audiences.length === 1 ? " wants to see you" : " want to see you"), tone: "warn" };
     else if (balanceIssue() != null) b.secretariat = { text: "Zonal row", tone: "warn" };
     if (s.sec < .4) b.police = { text: "Insecurity", tone: "bad" };
-    if (!council) b.palace = { text: "Not convened", tone: "warn" };
+    if (!councilsOk) b.palace = { text: "Not convened", tone: "warn" };
     if (s.cor > .55) b.efcc = { text: "Building a file", tone: "bad" };
     else if (s.cor > .45) b.efcc = { text: "Watching you", tone: "warn" };
     if (turn === 4 || turn === MT) b.inec = { text: "Election season", tone: "warn" };
@@ -9967,7 +10163,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
           const steps = [
-            ["Set up your government", "Convene the ministries and the Traditional Council.", !needSetup],
+            ["Set up your government", NAT ? "Appoint the ministers, then convene the FEC and the Security Council." : "Convene the ministries and the Traditional Council.", !needSetup],
             ["Pass the budget", "Pick a split, then take it to the House vote.", stepNow >= 2],
             ["Answer one need", "Tap a card under \u201cWhat the state needs\u201d and start what it asks for.", needs.some(n => n.status === "started" || n.status === "met")],
             ["End the year", "Then your decisions come in, a few at a time.", false],
@@ -9991,7 +10187,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         })()}
         {nav === "gov" && !(phase === "budget" && needSetup) && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 22px", display: "grid", gap: 10 }}>
           {lastCon && lastCon.turn >= turn - 1 && <Consequence icon={lastCon.icon} text={lastCon.text} />}
-          {saBrief.urgent && !/^Balance the Appropriation|^Allegation in /.test(saBrief.title) && saLater !== saBrief.title + "|" + turn && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaLater(saBrief.title + "|" + turn)} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
+          {saBrief.urgent && !/^Balance the Appropriation|^Allegation in /.test(saBrief.title) && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaDeferred(d => [...d.filter(x => x.endsWith("|" + turn)), saBrief.title + "|" + turn])} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </div>}
 
         {nav === "gov" && !needSetup && !NAT && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
@@ -10009,6 +10205,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <span className="ds-chip" style={{ color: p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red, background: (p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red) + "12", marginTop: 6, display: "inline-block" }}>{p >= .55 ? "Likely" : p >= .35 ? "Even chance" : "Unlikely"}</span>
             </button>; })}</div>
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setVisitOpen(false)} style={{ width: "100%" }}>Not this year</Bt></div>
+          </Cd>}
+        </OL>
+        {nav === "gov" && !needSetup && !NAT && lgaToursLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+          <img src="./art/characters/lg-chairman.webp" alt="" style={{ width: TALL() ? 52 : 68, height: TALL() ? 52 : 68, objectFit: "cover", objectPosition: "top", borderRadius: 12 }} />
+          <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Tour a local government</b>
+            <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Meet the chairman or hold a town hall; what they ask for comes to your Desk. {lgaToursLeft()} {lgaToursLeft() === 1 ? "tour" : "tours"} left this year.</div></div>
+          <Bt onClick={() => setLgaTour({ lga: "" })} style={{ whiteSpace: "nowrap" }}>🚙 Plan it</Bt>
+        </div>}
+        <OL show={!!lgaTour}>
+          {lgaTour && <Cd style={{ maxWidth: 760 }}>
+            <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TALL() ? TS(28) : TS(44), margin: "0 0 8px" }}>🚙 Tour a local government</h3>
+            <label style={{ display: "block", fontSize: TALL() ? TS(17) : TS(24), color: CL.td, marginBottom: 6 }} htmlFor="lt-lga">Which LGA?</label>
+            <select id="lt-lga" value={lgaTour.lga} onChange={e => setLgaTour({ lga: e.target.value })} style={{ width: "100%", minHeight: 48, borderRadius: 12, border: "1px solid " + CL.bdr, padding: "8px 12px", fontFamily: F.b, fontSize: TALL() ? TS(19) : TS(26), marginBottom: 12, background: "#fff" }}>
+              <option value="">Choose an LGA…</option>
+              {getLGAs(state).slice().sort().map(l => <option key={l} value={l}>{l}{(stc.lgaTours && stc.lgaTours.turn === turn && stc.lgaTours.list.includes(l)) ? " (toured this year)" : ""}</option>)}
+            </select>
+            {lgaTour.lga && <div style={{ display: "grid", gap: 8 }}>{SYS.LGA_TOUR_PURPOSES.map(pp => <button key={pp.id} className="ds-option" onClick={() => tourLga(lgaTour.lga, pp.id)} style={{ textAlign: "left" }}>
+              <b style={{ display: "block" }}>{pp.l}</b><span className="ds-option-note" style={{ display: "block" }}>{pp.d}</span>
+            </button>)}</div>}
+            <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setLgaTour(null)} style={{ width: "100%" }}>Not now</Bt></div>
           </Cd>}
         </OL>
         {nav === "gov" && !needSetup && NAT && stateVisitsLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
@@ -11599,7 +11815,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const hm2 = setup?.level === "hard";
               const recordBoost = (window.SOP_TEST ? (window.SOP_TEST.reWin ? 40 : window.SOP_TEST.reLose ? -40 : 0) : 0); // the record and the campaign are already in the poll; test-only switch (tests/e2e)
               const eDay = rng(turn * 977 + (state?.length || 5) * 131 + campScore * 7 + campOpp * 13 + campLog.length * 29);
-              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 7 : 4)), opp: cl100(z.opp - recordBoost * 0.35 + (eDay() - 0.5) * (hm2 ? 5 : 3)) }));
+              // Under your Electoral Act, results are uploaded from every polling unit: less noise on the day.
+              const EL = SYS.electoralEffects(!!stc.electoral);
+              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 7 : 4) * EL.jitter), opp: cl100(z.opp - recordBoost * 0.35 + (eDay() - 0.5) * (hm2 ? 5 : 3) * EL.jitter) }));
               const collation = lgaElectionSummary(swayedReZones, 1, 1, state); // party strength is already in the poll
               const won = collation.won;
               const marginPct = (collation.totalYou + collation.totalOpp) > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
@@ -12231,9 +12449,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               return <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
                 <div style={{ fontFamily: F.d, fontSize: fs.l, fontWeight: 700, color: CL.txt, margin: "4px 0 6px", lineHeight: 1.15 }}>Set up your government</div>
                 
-                {row(!!(ministries && ministries.length), 1, "Convene the Executive Council", "They run your programmes.",
+                {row(!!(ministries && ministries.length), 1, NAT ? "Appoint your ministers" : "Convene the Executive Council", NAT ? "The Senate screens them; they run the ministries." : "They run your programmes.",
                   () => { try { window.SOP_REALISM.initMinistries(); } catch (e) { goTab("min"); } }, "Convene the ministries", () => goTab("min"), "Choose them yourself")}
-                {row(!!council, 2, "Convene the Traditional Rulers Council", "The palaces deliver the villages.",
+                {NAT ? <>
+                  {row(!!(fedCouncils && fedCouncils.fec), 2, "Convene the Federal Executive Council", "Your ministers, every Wednesday. It approves federal contracts and programmes.",
+                    conveneFEC, "Chair the first FEC", () => goTab("coun"), "Open the councils")}
+                  {row(!!(fedCouncils && fedCouncils.nsc), 3, "Convene the National Security Council", "The service chiefs and the intelligence chiefs decide every front with you.",
+                    conveneNSC, "Convene the Security Council", () => goTab("coun"), "Open the councils")}
+                </> : row(!!council, 2, "Convene the Traditional Rulers Council", "The palaces deliver the villages.",
                   () => { try { window.SOP_REALISM.conveneCouncil(); } catch (e) { goTab("coun"); } }, "Convene the council", () => goTab("coun"), "Open the council")}
               </Cd>;
             })()}
@@ -12752,7 +12975,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
         {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
-        {nav === "coun" && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
+        {nav === "coun" && NAT && FedCouncilsPanel()}
+        {nav === "coun" && !NAT && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
         {nav === "bio" && <WikiArticle w={buildWiki(false)} onShare={(k) => shareWiki(buildWiki(false), k)} />}
         {nav === "cast" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap: TALL() ? 10 : 18 }}>
           {/* The people in your story, as character cards: portrait on a coloured plinth, name, and the last thing between you. */}

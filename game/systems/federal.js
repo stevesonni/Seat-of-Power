@@ -54,6 +54,7 @@ export const FED_POLICIES = [
   P("f_student_loans", "Student Loans Fund", "education", 25, 1, { lit: .03, app: 4 }, "Interest-free loans for university fees, repaid after national service and two years of work.", .06, "services", .01, 2000, "Student loans for 400,000 undergraduates"),
   P("f_nhia", "Health insurance for the poorest", "health", 35, 1, { hp: .03, app: 5 }, "The federal government pays health insurance premiums for 20 million of the poorest.", .08, "services", .02, 12000, "Health cover for 20 million of the poorest"),
   P("f_ippis", "Biometric federal payroll (no more ghost workers)", "administration", 6, 1, { corM: -.05, app: 2 }, "Every federal worker verified by fingerprint and BVN. Ghost names come off the payroll.", 0, null, 0, 0, "A verified federal payroll"),
+  P("f_fed_colleges", "Refurbish the federal unity colleges", "education", 35, 1, { lit: .03, app: 4 }, "New roofs, labs, dormitories and libraries in the 110 federal government colleges; teachers paid on time.", .1, "services", .01, 6000, "110 federal colleges refurbished"),
   P("f_police_recruit", "Recruit 30,000 police officers", "security", 40, 1, { sec: .05, app: 4 }, "Trained in Kaduna and Ikeja, posted to their own states, paid on time.", .05, null, 0, 30000, "30,000 new police officers on the streets"),
   // Two years
   P("f_jobs_corps", "National Youth Jobs Corps", "education", 60, 2, { lit: .02, app: 7 }, "Two-year paid placements for 500,000 graduates in schools, clinics and farms.", .15, "services", .03, 500000, "500,000 young graduates in paid placements"),
@@ -61,6 +62,7 @@ export const FED_POLICIES = [
   P("f_anchor", "Farmers' loans against the harvest", "agriculture", 50, 2, { agr: .07, app: 5 }, "Seeds and fertiliser on credit for 2 million farmers, repaid in grain to the strategic reserve.", .18, "agriculture", .05, 60000, "Farm loans for 2 million farmers"),
   P("f_state_police", "State police pilot in six states", "security", 45, 2, { sec: .06, app: 3 }, "Six states, one per zone, run their own police under federal standards. Governors cheer; the IGP does not.", .08, null, 0, 18000, "State police running in six states"),
   P("f_national_id", "A national ID for every Nigerian", "administration", 25, 2, { corM: -.03, lit: .01, app: 3 }, "Every citizen enrolled; banks, SIM cards and benefits linked to one number.", .05, "tech", .03, 15000, "100 million Nigerians enrolled"),
+  P("f_fed_university", "⭐ Establish a new federal university", "education", 70, 3, { lit: .05, app: 6 }, "A new federal university where there is none: faculties, hostels, a teaching hospital in time.", .1, "services", .03, 4000, "A new federal university, its first students enrolled"),
   P("f_primary_health", "Revive 10,000 primary health centres", "health", 80, 2, { hp: .07, app: 6 }, "One working clinic per ward: a midwife, drugs, solar power and clean water.", .1, "services", .02, 40000, "10,000 primary health centres working again"),
   // Megaprojects
   P("f_coastal", "⭐ The Coastal Highway", "infrastructure", 260, 4, { infra: .12, app: 10 }, "700 km of highway along the coast from Lagos to Calabar. Ports, resorts and estates follow.", .2, "trade", .07, 80000, "The coastal highway, Lagos to Calabar"),
@@ -72,7 +74,7 @@ export const FED_POLICIES = [
 ];
 // The national needs each federal programme answers.
 const FED_FIX = {
-  road: ["f_coastal", "f_second_bridge", "f_rail"], clinic: ["f_primary_health", "f_nhia"], school: ["f_school_feed", "f_student_loans"],
+  road: ["f_coastal", "f_second_bridge", "f_rail"], clinic: ["f_primary_health", "f_nhia"], school: ["f_school_feed", "f_student_loans", "f_fed_colleges", "f_fed_university"],
   water: ["f_primary_health"], security: ["f_police_recruit", "f_state_police"], farm: ["f_anchor"], power: ["f_grid", "f_mambilla", "f_gas"],
   housing: [], traffic: ["f_rail"], youth: ["f_jobs_corps"], poverty: ["f_cash"], land: [], jobs: ["f_gas", "f_refinery"], digital: ["f_national_id", "f_ippis"],
 };
@@ -100,15 +102,16 @@ export const FED_NEEDS = {
 export const FED_BILLS = [
   { id: "f_electoral", nm: "Electoral Act (Amendment) Bill", d: "Results sent electronically from every polling unit, in real time. Rigging gets harder, including for your own party.", fx: { corM: -.04, app: 5 }, sk: { media: 10, youth: 10, party: -8 }, cost: 2 },
   { id: "f_pib", nm: "Petroleum Industry Bill", d: "Splits the national oil company into a commercial company and a regulator; 3% of oil profits to the host communities.", fx: { corM: -.03, app: 3 }, sk: { business: 10, party: -4 }, cost: 0 },
-  { id: "f_state_police_amend", nm: "Constitution Alteration: state police", d: "Moves police from the Exclusive List so states can have their own. Needs two-thirds of both chambers and 24 State Houses of Assembly.", fx: { sec: .04, app: 4 }, sk: { traditional: 4, party: -5 }, cost: 0 },
+  { id: "f_state_police_amend", nm: "Constitution Alteration: state police", d: "Moves police from the Exclusive List so states can have their own. Needs two-thirds of both chambers and 24 State Houses of Assembly.", fx: { sec: .04, app: 4 }, sk: { traditional: 4, party: -5 }, cost: 0, need: "security" },
   { id: "f_tax", nm: "Tax Reform Bill", d: "One revenue service, fewer taxes, and VAT shared more by where it is consumed. Lagos gains; the north protests.", fx: { app: 2, corM: -.02 }, sk: { business: 10, religious: -4 }, cost: 0 },
   { id: "f_whistle", nm: "Whistleblower Protection Bill", d: "Protection and a reward of up to 5% for reporting stolen public money.", fx: { corM: -.04, app: 3 }, sk: { media: 8, party: -4 }, cost: 0 },
   { id: "f_lg_autonomy", nm: "Local Government Autonomy Bill", d: "Councils get their Federation Account share directly. Governors lose control of it; they will lobby their senators.", fx: { app: 4, corM: -.02 }, sk: { youth: 6, traditional: 4, party: -8 }, cost: 0 },
   { id: "f_min_wage", nm: "National Minimum Wage Act", d: "A new national minimum wage of ₦70,000. Labour is happy; many states say they cannot pay.", fx: { app: 6 }, sk: { unions: 15, business: -6 }, cost: 30 },
   { id: "f_poca", nm: "Proceeds of Crime Bill", d: "Assets that cannot be explained are forfeited, even without a conviction.", fx: { corM: -.05, app: 3 }, sk: { media: 6, party: -6 }, cost: 0 },
-  { id: "f_electricity", nm: "Electricity Act", d: "States may generate, sell and regulate their own power. The national monopoly ends.", fx: { infra: .03, app: 3 }, sk: { business: 8 }, cost: 0 },
+  { id: "f_electricity", nm: "Electricity Act", d: "States may generate, sell and regulate their own power. The national monopoly ends.", fx: { infra: .03, app: 3 }, sk: { business: 8 }, cost: 0, need: "power" },
   { id: "f_mining", nm: "Mining (Enforcement) Bill", d: "Mining marshals and stiff fines for illegal mining that funds bandits.", fx: { sec: .02, app: 2 }, sk: { traditional: -3 }, cost: 4 },
   { id: "f_disability", nm: "Disability Rights Act (enforcement)", d: "Ramps, quotas and penalties: the 2019 law with teeth.", fx: { app: 2, hp: .01 }, sk: { media: 4 }, cost: 2 },
+  { id: "f_poly_uni", nm: "Federal Polytechnic (Conversion to University) Bill", d: "Converts a federal polytechnic into a federal university of technology: degrees at home, and HND holders can top up.", fx: { lit: .02, app: 3 }, sk: { youth: 8, unions: 3 }, cost: 6, need: "school" },
   { id: "f_not_too_young", nm: "Youth in Office Bill", d: "Lowers the age to run for the National Assembly and the presidency.", fx: { app: 3 }, sk: { youth: 12, party: -4 }, cost: 0 },
 ];
 

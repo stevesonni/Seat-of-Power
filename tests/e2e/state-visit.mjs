@@ -27,6 +27,7 @@ await g.click(/^Next: the address$/); await g.wait(500);
 await shot("address");
 const r = await playUntil(g, t => /Visit a state/.test(t) && /visits left this year/.test(t), { max: 120 });
 check(r.ok, "the President's Desk offers a visit to a state");
+for (let i = 0; i < 6 && await g.click(/^(Continue|Okay|Got it|Close)$/); i++) await g.wait(500); // the Security Council and the adviser speak first
 await g.click(/🛬 Plan it/); await g.wait(500);
 await g.page.selectOption("#sv-state", "Ebonyi"); await g.wait(400);
 check(/surprise inspection of federal projects/.test(await g.txt()), "pick Ebonyi, then a purpose");

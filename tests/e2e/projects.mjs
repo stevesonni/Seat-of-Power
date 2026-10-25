@@ -35,7 +35,7 @@ const lendUntilOffer = async (g) => {
 };
 const ROAD = "500km Road Network";
 // Close any outcome card on top, as a player would, before the next click.
-const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|On to the next.*|Not now)$/); i++) await g.wait(350); };
+const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|Not now)$/); i++) await g.wait(350); };
 const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(600); };
 
 // ── Money: with money in the bank, a project is paid from it and nothing is borrowed ──
@@ -153,9 +153,10 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await g.click(/^Continue/); await g.wait(1800);
   let p = await proj(g, ROAD);
   check(p && p.migrated && p.estimateM === 8100 && p.status === "pending_procurement", "8. the old stuck project is repaired on load (" + (p && p.status) + ")");
-  await playUntil(g, t => /Review road procurement/.test(t), { max: 40, prefer: [/^Tell the communities first/, /^Decide later this year$/] });
+  const r8 = await playUntil(g, t => /Review road procurement/.test(t), { max: 40, prefer: [/^Tell the communities first/, /^Decide later this year$/] });
+  if (!r8.ok) console.log("  clicks 8:", r8.clicks.slice(-20).join(" / "));
   await clear(g);
-  check(!!(await g.click(/^Review road procurement$/)), "8. the adviser offers 'Review road procurement' for the old project");
+  { const ok8 = !!(await g.click(/^Review road procurement$/)); if (!ok8) console.log("  cover 8:", await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Review road procurement/.test(x.textContent)); if (!b) return "no button"; b.scrollIntoView({ block: "center" }); const r = b.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return JSON.stringify([b.textContent, r.top, r.height, el && el.tagName, el && el.className, el && (el.textContent || "").slice(0, 80), el && el.closest("[style]") && el.closest("[style]").getAttribute("style").slice(0, 160)]); })); check(ok8, "8. the adviser offers 'Review road procurement' for the old project"); }
   await g.wait(400);
   check(/Award the contract/.test(await g.txt()), "8. it opens procurement with bidders, not an empty list");
   await g.click(/^Award contract$/); await g.wait(1200);
