@@ -6201,6 +6201,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (cold.length) notes.push(["👑 " + cold.map(x => x.name).slice(0, 2).join(" and ") + (cold.length > 2 ? " and others" : "") + " are cold towards you; their districts follow their lead.", "political"]);
     }
 
+    // The feud with the deputy (SYS.rivalry): one beat a year once you refused their appointments.
+    {
+      if (window.SOP_TEST && window.SOP_TEST.rival && !next.rival) next.rival = SYS.rivalryStart(0); // test-only (tests/e2e)
+      const RC = next.rival && SYS.rivalryCard(next.rival, turn, { office: NAT ? "president" : "governor", dep: (depGov && depGov.nm) || "the deputy" });
+      if (RC) {
+        const dn = (depGov && depGov.nm) || "the deputy", fem = FEMALE_FIRST.includes(String(dn).split(" ")[0]);
+        const face = (mood) => NAT ? "./art/characters/vice-president" + (fem ? "-female" : "") + (mood ? "-" + mood : "") + ".webp" : deputyArt(fem, sd.zone, mood === "angry" ? 20 : mood === "pleased" ? 80 : 50);
+        cards.push({ key: "rival_" + turn, kicker: RC.kicker, color: CL.red, from: (NAT ? "Vice-President " : "Deputy Governor ") + dn, img: face("angry"),
+          art: [NAT ? "villa-office" : "governor-office", face("angry").replace(/^.*\//, "").replace(/\.webp$/, ""), null, null], title: RC.t, brief: RC.d,
+          options: RC.opts.map(o => ({ label: o.l, chips: fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }).concat((o.fx || {}).pStab ? [{ text: "Party " + sgnN(o.fx.pStab), color: o.fx.pStab > 0 ? CL.grn : CL.red }] : [], o.cost > 0 ? [{ text: naira(o.cost), color: CL.org }] : []), run: () => {
+            scFx({ ...(o.fx || {}), debt: o.cost > 0 ? o.cost : 0 });
+            if (o.cost < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - o.cost) * 100) / 100 }));
+            const R1 = SYS.rivalryAfter(stc.rival || next.rival, o, turn);
+            setStc(p => ({ ...p, rival: SYS.rivalryAfter(p.rival || next.rival, o, turn) }));
+            addL((o.truce ? "🤝 " : "⚔️ ") + RC.t + ": " + o.l.toLowerCase() + ".", o.truce ? "policy" : "political");
+            if (o.paper) setTimeout(() => paper(o.paper[0], o.paper[1], o.paper[2], "./art/backgrounds/" + (NAT ? "villa-office" : "governor-office") + ".webp"), 200);
+            if (R1.over) scWiki(R1.truce ? "Governorship" : "Controversies", SYS.rivalryLegacy(R1, dn, NAT ? "president" : "governor"));
+            track("rival_" + RC.id, o.id);
+            return { icon: o.truce ? "🤝" : o.end ? "⚖️" : "⚔️", img: face(o.truce ? "pleased" : "angry"), title: o.l, text: o.say, tone: o.truce ? "good" : (o.fx || {}).app < 0 ? "bad" : "neutral",
+              rows: [{ l: "Your " + (NAT ? "Vice-President" : "deputy"), v: o.truce ? "At peace" : R1.over ? "Gone to the opposition" : "Feud deepens", good: !!o.truce }], learn: RC.learnText };
+          } })) });
+      }
+    }
     // The Presidency's national deck (SYS.presidency): the crisis, the power centres, the world stage.
     if (NAT) {
       const P0 = next.pres || presInitNow();
@@ -6835,12 +6858,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const dn = depGov && depGov.nm;
       if (dy && dy.type === "demand") {
         const D = dy.demand;
-        setTimeout(() => window.SOP_confirm("Deputy Governor " + dn + " wants " + D.text + ".\n\nIt was the understanding when you chose them. " + (D.id === "control" ? "Granting it pleases their network in the " + SYS.DISTRICTS[depGov.district] + " district; it also puts money where you cannot watch it." : D.id === "policy" ? "Granting it moves the civil service; the unions and party will feel it." : "Granting it keeps the party machine sweet; their nominees may not be your best people."), "Grant it", "Refuse").then(yes => {
+        setTimeout(() => window.SOP_confirm((NAT ? "Vice-President " : "Deputy Governor ") + dn + " wants " + (NAT ? D.text.replace("commissioner", "ministerial") : D.text) + ".\n\nIt was the understanding when you chose them. " + (D.id === "control" ? "Granting it pleases their network in the " + SYS.DISTRICTS[depGov.district] + " district; it also puts money where you cannot watch it." : D.id === "policy" ? "Granting it moves the civil service; the unions and party will feel it." : "Granting it keeps the party machine sweet; their nominees may not be your best people."), "Grant it", "Refuse").then(yes => {
           if (D.id === "control") setS(p => ({ ...p, cor: cl(p.cor + (yes ? .01 : 0)), zoneMood: { ...(p.zoneMood || {}), [depGov.district]: ((p.zoneMood || {})[depGov.district] || 0) + (yes ? 2 : -2) } }));
           else if (D.id === "policy") { if (yes) { setMinistries(ms => (ms || []).map(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 3) }))); setS(p => ({ ...p, pStab: cl100(p.pStab - 2) })); } else setS(p => ({ ...p, app: cl100(p.app - 1) })); }
           else setS(p => ({ ...p, pStab: cl100(p.pStab + (yes ? 3 : -3)), cor: cl(p.cor + (yes ? .01 : 0)) }));
           setCommits(l => SYS.addCommitment(l, { id: "cm_deputy_demand", who: pName, ministryId: "deputy", action: (yes ? "Granted the deputy " : "Refused the deputy ") + D.text, reviewYear: 99, personal: true, year: turn }).map(x => x.id === "cm_deputy_demand" ? { ...x, status: yes ? "kept" : "broken", byGovernor: true } : x));
-          addL((yes ? "🤝 You granted Deputy Governor " : "🚫 You refused Deputy Governor ") + dn + " " + D.text + ".", "political");
+          addL((yes ? "🤝 You granted " : "🚫 You refused ") + (NAT ? "Vice-President " : "Deputy Governor ") + dn + " " + (NAT ? D.text.replace("commissioner", "ministerial") : D.text) + ".", "political");
+          // Refusing the appointments starts the feud (SYS.rivalry): one beat a year from next year.
+          if (!yes && D.id === "appointments") {
+            setStc(p => p.rival ? p : { ...p, rival: SYS.rivalryStart(turn) });
+            setTimeout(() => { try { window.SOP_outcome({ present: { img: saPose(cast.adviser.name, "worried") || saPortrait(cast.adviser.name), name: cast.adviser.name + " · Special Adviser", text: "Your Excellency, " + dn + " left without a word. Watch your back: a " + (NAT ? "Vice-President" : "deputy") + " with a machine and a grievance does not wait four years.", urgent: true, ok: "Noted" } }); } catch (e) {} }, 600);
+          }
         }), 1200);
       } else if (dy && dy.type === "scandal") {
         dApp -= 2; dCor += .01; notes.push(["📰 " + dy.text, "scandal"]); scWiki("Controversies", dy.text);
@@ -8460,7 +8488,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The President's year is fuller: the national deck comes first; a summons to Abuja or a "federal matter" means nothing in Aso Rock.
     if (NAT) { const own = q.filter(k => !(k === "federal" || k === "abuja")); q.length = 0; own.forEach(k => q.push(k)); }
     const cap = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
-    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
