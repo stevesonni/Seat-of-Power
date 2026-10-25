@@ -498,7 +498,17 @@
           go.onclick = function () { rb.remove(); open = false; try { R.fn && R.fn(); } catch (e) {} setTimeout(next, 120); };
           bub.appendChild(nm); bub.appendChild(tx2); bub.appendChild(go);
           if (R.alt) { var al = document.createElement('button'); al.type = 'button'; al.textContent = R.alt; al.style.cssText = 'display:block;margin:8px auto 0;min-height:44px;border:0;background:none;color:#5b6b61;font:700 17px "Plus Jakarta Sans",sans-serif;cursor:pointer'; al.onclick = function () { rb.remove(); open = false; setTimeout(next, 120); }; bub.appendChild(al); }
+          // Phones held upright: the bubble at the top, the speaker large below it (not squeezed into a corner).
+          if (window.innerWidth < 760 && window.innerHeight > window.innerWidth * 1.15) {
+            var stage = document.createElement('div'); stage.style.cssText = 'position:absolute;left:0;right:0;bottom:0;height:62vh;display:flex;justify-content:center;align-items:flex-end;pointer-events:none';
+            fig.style.position = 'static'; fig.style.height = '100%'; fig.style.maxWidth = '96vw'; fig.style.flex = 'none'; stage.appendChild(fig); fig = stage;
+            bub.style.left = '4%'; bub.style.right = '4%'; bub.style.width = 'auto'; bub.style.top = 'calc(env(safe-area-inset-top, 0px) + 14px)'; bub.style.fontSize = '19px'; bub.style.padding = '16px 18px 14px'; bub.style.zIndex = '1';
+          }
+          // On phones the stage is zoomed down to fit; the speaker is drawn at the phone's own size.
+          var sz = parseFloat((document.getElementById('sop-stage') || {}).style && document.getElementById('sop-stage').style.zoom) || 1; if (sz && sz !== 1) rb.style.zoom = String(1 / sz);
           rb.appendChild(fig); rb.appendChild(bub); document.body.appendChild(rb);
+          // Upright phones: the speaker fills the space under the bubble, never behind it (at least 45% of the screen).
+          if (fig.tagName === 'DIV') try { var bb = bub.getBoundingClientRect(), rr = rb.getBoundingClientRect(), top = Math.min(bb.bottom - rr.top + 8, rr.height * .55); fig.style.height = 'auto'; fig.style.top = Math.round(top) + 'px'; } catch (e) {}
           try { window.SOP_sound && window.SOP_sound(R.urgent ? 'bad' : 'notify'); } catch (e) {}
           setTimeout(function () { go.focus(); }, 30);
           return;
