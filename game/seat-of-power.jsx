@@ -5435,7 +5435,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       fresh.forEach(h => scWiki("Governorship", "Earned the honour \u201c" + h.nm + "\u201d: " + h.d.replace(/\.$/, "").toLowerCase() + "."));
     }
     if (!prev || turn <= 1) return;
-    const last = logs.filter(l => l.t === turn - 1 && ["success", "crisis", "scandal"].includes(l.tp)).slice(-3).map(l => l.tx.replace(/^\S+\s/, "").split(/(?<=\.)\s/)[0]);
+    const last = logs.filter(l => l.t === turn - 1 && ["success", "crisis", "scandal"].includes(l.tp)).slice(-3).map(l => l.tx.replace(/^\S+\s/, "").replace(/\.\s[\s\S]*$/, ".")); // the first sentence (no lookbehind: older Safari cannot parse it)
     const big = (r) => ["Approval", "In the bank", "Party", "Corruption", "Debt"].includes(r.l) || (r.l !== "War chest" && r.l !== "Own revenue" && parseFloat(String(r.v).replace(/[^\d.]/g, "")) >= 3);
     const rows = statRows(prev.snap, snap).filter(big).concat(fresh.map(h => ({ l: h.i + " " + h.nm, v: "", good: true })));
     let text = last.length ? last.join(" ") : "A quiet six months.";
