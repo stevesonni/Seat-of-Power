@@ -23,19 +23,19 @@ export const ROUNDS_A_YEAR = 2;
 
 // The ladder: who joins the strike, year by year. fx are yearly; igrPct and jobsPct cut revenue and jobs.
 const NAT_STAGES = [
-  { id: "nuate", who: "NUATE", t: "NUATE has grounded every flight", d: "Air transport workers have shut the airports. No flights in or out; foreign investors cancel their visits.", bg: "airport-arrivals",
+  { id: "nuate", who: "NUATE", t: "NUATE has grounded every flight", d: "Air transport workers have shut the airports. No flights in or out; foreign investors cancel their visits.", bg: "scenes/airport-grounded", obj: "red-union-cap",
     fx: { app: -2 }, igrPct: -.05, jobsPct: 0, grounded: true, paper: ["AIRPORTS SHUT AS NUATE JOINS NLC STRIKE", "Flights grounded nationwide; investors cancel visits"] },
-  { id: "nuee", who: "NUEE", t: "NUEE has pulled down the national grid", d: "Electricity workers have switched off the grid. Factories run on diesel or shut; the cities are dark and the streets are not safe.", bg: "national-grid-dark",
-    fx: { app: -3, sec: -.02 }, igrPct: -.15, jobsPct: -.08, grounded: true, letter: ["The Manufacturers' Association of Nigeria", "We are spending 200% more on diesel. Our members are laying off workers by the thousand. End this strike."], paper: ["NATIONAL BLACKOUT: NUEE SHUTS THE GRID", "Factories fall silent; diesel prices soar"] },
-  { id: "nupeng", who: "NUPENG", t: "NUPENG has stopped the fuel tankers", d: "Oil workers have parked the tankers. Queues stretch for miles in Lagos and Abuja; a food warehouse was looted overnight.", bg: "fuel-queue",
-    fx: { app: -5, sec: -.02 }, igrPct: -.05, jobsPct: -.03, grounded: true, paper: ["FUEL QUEUES, LOOTING AS NUPENG JOINS STRIKE", "Filling stations dry in Lagos and Abuja"] },
+  { id: "nuee", who: "NUEE", t: "NUEE has pulled down the national grid", d: "Electricity workers have switched off the grid. Factories run on diesel or shut; the cities are dark and the streets are not safe.", bg: "scenes/grid-control-room-dark", obj: "diesel-jerrycan", paperImg: "scenes/national-grid-dark",
+    fx: { app: -3, sec: -.02 }, igrPct: -.15, jobsPct: -.08, grounded: true, letter: ["The Manufacturers' Association of Nigeria", "We are spending 200% more on diesel. Our members are laying off workers by the thousand. End this strike.", "manufacturers-rep-angry"], paper: ["NATIONAL BLACKOUT: NUEE SHUTS THE GRID", "Factories fall silent; diesel prices soar"] },
+  { id: "nupeng", who: "NUPENG", t: "NUPENG has stopped the fuel tankers", d: "Oil workers have parked the tankers. Queues stretch for miles in Lagos and Abuja; a food warehouse was looted overnight.", bg: "scenes/fuel-queue", obj: "diesel-jerrycan",
+    fx: { app: -5, sec: -.02 }, igrPct: -.05, jobsPct: -.03, grounded: true, letter: ["The Manufacturers' Association of Nigeria", "Diesel is now rationed by the jerrycan. Factories that survived the blackout are closing because there is no fuel to run the generators.", "manufacturers-rep"], paper: ["FUEL QUEUES, LOOTING AS NUPENG JOINS STRIKE", "Filling stations dry in Lagos and Abuja"] },
 ];
 const GOV_STAGES = [
-  { id: "secretariat", who: "the civil service", t: "The state secretariat is shut", d: "Civil servants have locked the ministries. No revenue is collected, no files move, no contractor is paid.", bg: "labour-strike",
+  { id: "secretariat", who: "the civil service", t: "The state secretariat is shut", d: "Civil servants have locked the ministries. No revenue is collected, no files move, no contractor is paid.", bg: "scenes/nlc-march", obj: "red-union-cap",
     fx: { app: -2 }, igrPct: -.1, jobsPct: 0, paper: ["NLC SHUTS STATE SECRETARIAT", "Ministries locked; government grinds to a halt"] },
-  { id: "nut", who: "NUT", t: "NUT has shut the public schools", d: "The teachers have joined. Every public school in the state is closed; parents are furious.", bg: "classroom",
+  { id: "nut", who: "NUT", t: "NUT has shut the public schools", d: "The teachers have joined. Every public school in the state is closed; parents are furious.", bg: "backgrounds/classroom", obj: "red-union-cap",
     fx: { app: -2, lit: -.02 }, igrPct: -.03, jobsPct: 0, paper: ["TEACHERS JOIN STRIKE: SCHOOLS SHUT", "NUT backs the NLC; pupils sent home"] },
-  { id: "johesu", who: "JOHESU and the doctors", t: "The hospitals are shut", d: "Health workers and doctors have walked out. Only emergencies are seen, and not all of those.", bg: "labour-strike",
+  { id: "johesu", who: "JOHESU and the doctors", t: "The hospitals are shut", d: "Health workers and doctors have walked out. Only emergencies are seen, and not all of those.", bg: "scenes/labour-strike", obj: "red-union-cap",
     fx: { app: -3, hp: -.03 }, igrPct: -.02, jobsPct: 0, paper: ["HOSPITALS SHUT AS HEALTH WORKERS JOIN STRIKE", "Patients turned away across the state"] },
 ];
 export const stagesFor = (nat) => nat ? NAT_STAGES : GOV_STAGES;
@@ -43,10 +43,10 @@ export const stagesFor = (nat) => nat ? NAT_STAGES : GOV_STAGES;
 export const UNIONS = {
   nlc: { short: "NLC", nm: (nat) => nat ? "the Nigeria Labour Congress" : "the NLC State Council",
     leader: (nat) => nat ? "Comrade Musa Adebayo-Okon, President of the Nigeria Labour Congress" : "Comrade Bassey Etim-Ogar, NLC State Chairman",
-    img: "labour-leader", bg: "labour-strike" },
+    img: (nat) => nat ? "nlc-president" : "labour-leader", bg: "scenes/nlc-march", table: "scenes/labour-roundtable" },
   asuu: { short: "ASUU", nm: (nat) => nat ? "the Academic Staff Union of Universities" : "ASUU at the state university",
     leader: (nat) => nat ? "Prof. Femi Adeyanju-Bello, President of ASUU" : "Dr. Ngozi Okafor-Ude, ASUU branch chairperson",
-    img: "labour-leader", bg: "campus-shut",
+    img: () => "asuu-president", bg: "scenes/empty-lecture-hall", table: "scenes/labour-roundtable",
     demands: ["A revitalisation fund for the universities: everything in the bank", "UTAS, the union's own payroll, instead of IPPIS", "Earned allowances owed for years, paid in full"] },
 };
 
@@ -72,12 +72,12 @@ export const yearlyToll = (st, { nat = false, turn }) => {
     const y = yearsOn(st, turn);
     return { fx: { app: -(2 + y), lit: -.015, sec: -.01 }, igrPct: 0, jobsPct: 0, t: "The universities are shut" + (y ? ": year " + (y + 1) : ""),
       d: "Students are at home. Idle young people drift into online fraud and the streets; parents blame you, louder each month.",
-      protest: y >= 1, paper: y >= 1 ? ["#ENDASUUSTRIKE: STUDENTS BLOCK THE " + (nat ? "AIRPORT ROAD IN ABUJA" : "ROAD TO GOVERNMENT HOUSE"), "A year at home, and no end in sight"] : ["ASUU DECLARES INDEFINITE STRIKE", "Universities shut; students sent home"], bg: "campus-shut" };
+      protest: y >= 1, obj: "red-union-cap", paperImg: y >= 1 ? "scenes/endasuu-protest" : "scenes/campus-shut", paper: y >= 1 ? ["#ENDASUUSTRIKE: STUDENTS BLOCK THE " + (nat ? "AIRPORT ROAD IN ABUJA" : "ROAD TO GOVERNMENT HOUSE"), "A year at home, and no end in sight"] : ["ASUU DECLARES INDEFINITE STRIKE", "Universities shut; students sent home"], bg: y >= 1 ? "scenes/endasuu-protest" : "scenes/empty-lecture-hall" };
   }
   const S = stagesFor(nat), upTo = S.slice(0, st.stage);
   const fx = {}; upTo.forEach(x => Object.entries(x.fx).forEach(([k, v]) => { fx[k] = (fx[k] || 0) + v; }));
   const top = upTo[upTo.length - 1];
-  return { fx, igrPct: upTo.reduce((a, x) => a + x.igrPct, 0), jobsPct: upTo.reduce((a, x) => a + x.jobsPct, 0), grounded: upTo.some(x => x.grounded), t: top.t, d: top.d, letter: top.letter, paper: top.paper, bg: top.bg, who: top.who };
+  return { fx, igrPct: upTo.reduce((a, x) => a + x.igrPct, 0), jobsPct: upTo.reduce((a, x) => a + x.jobsPct, 0), grounded: upTo.some(x => x.grounded), t: top.t, d: top.d, letter: top.letter, paper: top.paper, bg: top.bg, obj: top.obj, paperImg: top.paperImg || top.bg, who: top.who };
 };
 // A year with no talks: the next union joins (the NLC only; ASUU just digs in).
 export const escalate = (st, turn) => st.id === "nlc" && st.lastSession < turn - 1 ? { ...st, stage: Math.min(3, st.stage + 1) } : st;

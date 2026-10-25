@@ -295,6 +295,16 @@ A new career badge for players who travel a lot in office (ten official trips: a
 
 # Pack 24: strikes, the roundtable, and getting things built in Nigeria
 
+> **Delivered: Pack 24**, all 58 files, each in its place:
+> - the roundtable scene opens every negotiation;
+> - the NLC march, the grounded airport, the dark control room and the fuel queue mark each rung of the strike;
+> - the empty lecture hall and the #EndASUUStrike protest mark ASUU's years;
+> - the printing press, market inflation and soldiers at the substation follow those choices;
+> - each zone's site crisis has its scene, and the ex-militant general and the omo onile leader answer in person;
+> - the committee room, the palace mats, the midnight visitor and the japa gate mark the project beats;
+> - every character speaks in pleased and angry moods;
+> - the objects and icons sit on the banners, the roundtable, the LGA tour card and the Councils tab.
+
 The game now has real labour crises and the realities of building in Nigeria:
 - **The NLC:** a tax rise brings the NLC's 14-day ultimatum. Ignore it and the strike starts. Each year without talks another union joins: the airports (NUATE), then the grid (NUEE), then fuel (NUPENG).
 - **ASUU:** shuts the universities for up to two years.

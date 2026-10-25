@@ -6,7 +6,7 @@ import { serve } from "./serve.mjs";
 const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const save = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
-const g = await open(srv.port, { test: { win: true, reLose: true } });
+const g = await open(srv.port, { test: { win: true, reLose: true, noStrikes: true } /* the comeback, not the unions: no random ASUU strike */ });
 check(await campaign(g) === "won", "first election won");
 await takeOffice(g);
 const before = { deputy: null, n: 0, sa: null };

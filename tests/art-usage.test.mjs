@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 60, "60 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit)");
+  assert.equal(icons.length, 65, "65 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -151,4 +151,17 @@ test("the Junketer badge has its art, and every career badge has a picture", asy
   const m = src.match(/const BADGE_ART = (\{[^}]*\})/); assert.ok(m);
   const art = Function("return " + m[1])();
   C.careerBadges([]).forEach(b => { assert.ok(art[b.id], b.id + " has art"); assert.ok(fs.existsSync(path.join(root, "public/art/badges", art[b.id] + ".webp")), art[b.id]); });
+});
+// Pack 24: strikes, the roundtable, and building in Nigeria. Every picture, in every mood, is used.
+test("every Pack 24 picture is used", () => {
+  const scenes = ["labour-roundtable", "nlc-march", "airport-grounded", "grid-control-room-dark", "soldiers-substation", "endasuu-protest", "empty-lecture-hall", "cbn-printing-press", "market-inflation", "kidnap-camp-empty", "sit-at-home-street", "creeks-gunboat", "omo-onile-site", "palace-mat-north", "palace-mat-south", "midnight-visitor", "committee-room", "japa-departure"].map(n => "scenes/" + n);
+  const people = ["nlc-president", "asuu-president", "labour-minister", "labour-minister-male", "student-leader", "manufacturers-rep", "ex-militant-general", "omo-onile-leader", "cabal-chief", "contractor-japa"];
+  const chars = people.flatMap(n => [n, n + "-pleased", n + "-angry"]).map(n => "characters/" + n);
+  const rest = ["mou-document", "red-union-cap", "mobilisation-cheque", "diesel-jerrycan", "printed-naira"].map(n => "objects/" + n).concat(["icon-roundtable", "icon-strike", "icon-lga-tour", "icon-councils", "icon-labour-ministry"].map(n => "icons/" + n));
+  const all = [...scenes, ...chars, ...rest];
+  assert.equal(all.length, 58);
+  all.forEach(f => assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f + " is installed"));
+  // A character's moods are built in code (name + "-pleased"/"-angry"), so the base name and each mood's use is checked.
+  const used = (f) => { const b = path.basename(f); if (src.includes(b)) return true; const m = b.match(/^(.*)-(pleased|angry)$/); return !!m && src.includes(m[1]) && new RegExp('"-' + m[2] + '"|-' + m[2] + '\\.webp|"' + m[2] + '"').test(src); };
+  assert.deepEqual(all.filter(f => !used(f)), []);
 });

@@ -230,10 +230,10 @@ export const FED_CREDITORS = [
    veto, adopt (a revenue measure or relief). */
 const LABOUR = "Comrade Musa Adebayo-Okon, President of the Nigeria Labour Congress", DELTA = "Chief Tamuno Ebiware, for the oil-producing communities";
 export const FED_VOICES = {
-  f_min_wage: { on: "sign", img: "labour-leader-pleased", name: LABOUR, text: "Your Excellency, the workers of Nigeria thank you. A living wage, in law. We will remember it." },
-  f_eo_merge: { on: "sign", img: "labour-leader-angry", name: LABOUR, text: "Thousands of our members lose their jobs with one signature. We will not take this lying down." },
-  f_vat: { on: "adopt", img: "labour-leader-angry", name: LABOUR, text: "Every market woman pays this tax, Your Excellency. If prices rise, we will call our members out." },
-  imf: { on: "adopt", img: "labour-leader-angry", name: LABOUR, text: "The Fund's conditions fall on the poor: the subsidy gone, the naira floating. The unions will march." },
+  f_min_wage: { on: "sign", img: "nlc-president-pleased", name: LABOUR, text: "Your Excellency, the workers of Nigeria thank you. A living wage, in law. We will remember it." },
+  f_eo_merge: { on: "sign", img: "nlc-president-angry", name: LABOUR, text: "Thousands of our members lose their jobs with one signature. We will not take this lying down." },
+  f_vat: { on: "adopt", img: "nlc-president-angry", name: LABOUR, text: "Every market woman pays this tax, Your Excellency. If prices rise, we will call our members out." },
+  imf: { on: "adopt", img: "nlc-president-angry", name: LABOUR, text: "The Fund's conditions fall on the poor: the subsidy gone, the naira floating. The unions will march." },
   f_pib: { on: "sign", img: "oil-community-leader-pleased", name: DELTA, text: "For the first time, our communities have a share of the oil in law. The creeks will be calmer." },
   nb_nddc: { on: "veto", img: "oil-community-leader-angry", name: DELTA, text: "You vetoed the commission our people waited for. The youths in the creeks will hear of it." },
   f_oil_theft: { on: "adopt", img: "oil-community-leader", name: DELTA, text: "We will watch the pipelines with you, if our boys get the surveillance contracts and not outsiders." },
