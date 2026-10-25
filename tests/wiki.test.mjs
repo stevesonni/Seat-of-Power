@@ -27,11 +27,13 @@ const facts = {
 const text = (b) => [...b.lead, ...b.sections.flatMap(s => s.paras || s.subs.flatMap(x => x.paras))].map(p => p.filter(x => typeof x === "string").join("")).join("\n");
 test("the biography tells the term as a story, in good English", () => {
   const b = writeBio(facts), t = text(b);
-  assert.match(t, /served as Governor of Ogun State from 2027 to 2031/);
+  assert.match(t, /served as the \w+ Governor of Ogun State from 2027 to 2031/);
   assert.match(t, /all three senatorial districts/);
-  assert.match(t, /Second year \(2028–29\)|First year \(2027–28\)/.test(b.sections.find(s => s.h === "Governorship").subs.map(x => x.h).join(" ")) ? /./ : /never/);
+  const gov = b.sections.find(s => /^Governorship \(2027–2031\)$/.test(s.h));
+  assert.ok(gov && gov.subs.some(x => x.h === "Inauguration and first hundred days"), "governorship told by subject, Wikipedia-style");
+  assert.ok(b.sections.some(s => s.h === "Legacy"), "a legacy section with historical evaluations");
   assert.match(t, /kept one campaign promise, “no child out of school in South zone” \(2028\)/);
-  assert.match(t, /ignored warnings before a tragedy: three women died in childbirth \(2029\)/);
+  assert.match(t, /ignored warnings before a preventable tragedy: three women died in childbirth \(2029\)/);
   assert.doesNotMatch(t, /\byou\b|\byour\b/i, "no second person");
   assert.doesNotMatch(t, /In \d{4}, [A-Z][a-z]+ed\b/, "no 'In 2030, Kept…'");
   assert.doesNotMatch(t, /this month/);

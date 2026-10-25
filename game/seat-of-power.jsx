@@ -4237,7 +4237,7 @@ const WikiArticle = ({ w, onShare }) => {
       {w.portrait && <tr><td colSpan={2} style={{ textAlign: "center", padding: 8 }}><img src={w.portrait} alt={w.title} style={{ ...frameStyle(), maxWidth: "70%", maxHeight: 300, objectFit: "contain", background: "#eaecf0" }} /><div style={{ fontSize: TS(25), color: "#54595d" }}>{w.title} in {w.startYear}</div></td></tr>}
       <tr><th colSpan={2} style={{ background: "#cee0f2", padding: "6px 8px", textAlign: "center" }}>{w.office}</th></tr>
       <tr><td colSpan={2} style={{ textAlign: "center", padding: "6px 8px", fontWeight: 700 }}>{w.inOffice}</td></tr>
-      {w.rows.map(([k, v]) => <tr key={k}><th style={{ textAlign: "left", verticalAlign: "top", padding: "5px 8px", width: "38%" }}>{k}</th><td style={{ padding: "5px 8px" }}>{v}</td></tr>)}
+      {w.rows.map(([k, v]) => v == null ? <tr key={k}><th colSpan={2} style={{ background: "#cee0f2", padding: "5px 8px", textAlign: "center" }}>{k}</th></tr> : <tr key={k}><th style={{ textAlign: "left", verticalAlign: "top", padding: "5px 8px", width: "38%" }}>{k}</th><td style={{ padding: "5px 8px", whiteSpace: "pre-line" }}>{v}</td></tr>)}
     </tbody>
   </table>;
   return <div style={{ background: "#fff", color: "#202122", border: "1px solid #a7d7f9", padding: tall ? "22px 18px" : "36px 50px", fontFamily: "sans-serif", fontSize: TS(32), lineHeight: 1.6 }}>
@@ -4284,7 +4284,7 @@ const wikiShareCard = async (w, kind) => {
     const bx = 760, bw = 410; g.strokeStyle = "#a2a9b1"; g.fillStyle = "#f8f9fa"; g.fillRect(bx, 70, bw, 560); g.strokeRect(bx, 70, bw, 560);
     if (img) { const ih = 300, iw = img.width * ih / img.height; g.drawImage(img, bx + (bw - Math.min(iw, bw - 20)) / 2, 82, Math.min(iw, bw - 20), ih); }
     g.fillStyle = "#cee0f2"; g.fillRect(bx + 1, 394, bw - 2, 34); g.fillStyle = "#202122"; g.font = "bold 20px " + sans; g.fillText(w.office, bx + 12, 418);
-    let y = 456; g.font = "18px " + sans; w.rows.slice(0, 5).forEach(([k, v]) => { g.font = "bold 18px " + sans; g.fillText(k, bx + 12, y); g.font = "18px " + sans; wrap(v, bx + 150, y, bw - 160, 22, 1); y += 34; });
+    let y = 456; g.font = "18px " + sans; w.rows.filter(r => r[1] != null).slice(0, 5).forEach(([k, v]) => { g.font = "bold 18px " + sans; g.fillText(k, bx + 12, y); g.font = "18px " + sans; wrap(v, bx + 150, y, bw - 160, 22, 1); y += 34; });
     g.fillStyle = "#202122"; g.font = "52px " + serif; wrap(w.title, 30, 120, 700, 58, 2);
     g.fillStyle = "#54595d"; g.font = "20px " + sans; g.fillText("From the game's encyclopedia", 30, 200);
     g.fillStyle = "#202122"; g.font = "24px " + serif; wrap(lead, 30, 250, 700, 34, 10);
@@ -4295,7 +4295,7 @@ const wikiShareCard = async (w, kind) => {
     const bx = 60, by = y + 50, bw = 960; g.fillStyle = "#f8f9fa"; g.fillRect(bx, by, bw, 780); g.strokeStyle = "#a2a9b1"; g.lineWidth = 2; g.strokeRect(bx, by, bw, 780);
     if (img) { const ih = 470, iw = Math.min(img.width * ih / img.height, bw - 40); g.drawImage(img, bx + (bw - iw) / 2, by + 20, iw, ih); }
     g.fillStyle = "#cee0f2"; g.fillRect(bx + 2, by + 506, bw - 4, 56); g.fillStyle = "#202122"; g.font = "bold 34px " + sans; g.fillText(w.office, bx + 24, by + 546);
-    let ry = by + 610; w.rows.slice(0, 4).forEach(([k, v]) => { g.font = "bold 30px " + sans; g.fillText(k, bx + 24, ry); g.font = "30px " + sans; wrap(v, bx + 300, ry, bw - 330, 34, 1); ry += 44; });
+    let ry = by + 610; w.rows.filter(r => r[1] != null).slice(0, 4).forEach(([k, v]) => { g.font = "bold 30px " + sans; g.fillText(k, bx + 24, ry); g.font = "30px " + sans; wrap(v, bx + 300, ry, bw - 330, 34, 1); ry += 44; });
     g.fillStyle = "#202122"; g.font = "38px " + serif; wrap(lead, 60, by + 860, 960, 54, 9);
     g.fillStyle = "#3366cc"; g.font = "bold 34px " + sans; g.fillText(w.link, 60, H - 70);
   }
@@ -8934,6 +8934,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const exit = ended ? (() => { const out = gEnd === "impeached" ? He + " was removed from office by the State House of Assembly under Section 188 of the Constitution." : gEnd === "nullified" ? "The Supreme Court nullified " + his + " election on a petition by " + ((stc.petition && stc.petition.opp) || "the opposition candidate") + ", who was sworn in as governor." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182."; return out; })() : null;
     let owed = 0; if (M) { try { owed = M.owed().length; } catch (e) {} }
     const pj = projects || [], nd = needs || [], debtStart = (stc.oldDebt || {}).total;
+    const ordinal = SYS.governorOrdinal(stName), born = SYS.birthOf(pName, startYear);
+    const bornPlace = (setup?.homeLga ? String(setup.homeLga).replace(/_/g, " ") + ", " : "") + stName + " State, Nigeria";
     const bio = SYS.writeBio({
       female: fem, name: pName, stateName: stName, partyName: pa?.nm, partyId: party, slogan: setup?.slogan, startYear, endYear, turn, ended: !!ended, exit,
       election: setup?.election ? { marginPct: setup.election.marginPct, zonesWon: setup.election.zonesWon, opp: ini(setup.election.opp), oppParty: setup.election.oppParty } : null,
@@ -8947,15 +8949,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       projects: { delivered: pj.filter(p => p.status === "delivered").length, building: pj.filter(p => p.status === "in_progress").length, stalled: pj.filter(p => ["abandoned", "suspended", "stalled"].includes(p.status)).length },
       needs: { met: nd.filter(n => n.status === "met").length, failed: nd.filter(n => n.status === "failed" || n.status === "abandoned").length, open: nd.filter(n => ["open", "started", "stalled"].includes(n.status)).length },
       ministries: (ministries || []).length, bills: billsPassed.length,
+      office: "Governor of " + stName + " State", ordinal, born, bornPlace, capital: sd?.capital || null,
+      laws: billsPassed.map(b => b && b.nm).filter(Boolean),
+      programmes: pols.map(e => String(e.decision || "").replace(/^(Enacted|Started)\s+/, "")).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i),
+      strikes: Object.keys((stc.labour && stc.labour.strikes) || {}).map(k => SYS.UNIONS[k] && SYS.UNIONS[k].short).filter(Boolean),
     });
     const lead = bio.lead, sections = bio.sections, refs = bio.refs;
     const av = AVATARS.find(a => a.id === setup?.avatar);
     const w = {
       title: pName, stub: !final && turn <= 2, startYear,
       portrait: av ? AVATAR_IMGS[av.id] : null,
-      office: "Governor of " + stName + " State",
+      office: SYS.ordN(ordinal) + " Governor of " + stName + " State",
       inOffice: "In office · 29 May " + startYear + " – " + (ended ? (endYear === base + 4 || endYear === base + 8 ? "29 May " + endYear : endYear) : "present"),
-      rows: [["Deputy", depGov?.nm || "—"]].concat((stc.honours || []).length ? [["Honours", (stc.honours || []).map(id => (HONOURS.find(h => h.id === id) || {}).nm).filter(Boolean).join(", ")]] : []).concat([["Preceded by", pre], ["Succeeded by", successor], ["Political party", pa?.nm || party], ["Term", termStr]]).concat(flag ? [["Flagship", flag.nm]] : []).concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
+      // Wikipedia's order: the office, then a "Personal details" block. A row
+      // with no value is a header.
+      rows: [["Deputy", depGov?.nm || "—"], ["Preceded by", pre], ["Succeeded by", successor], ["Term", termStr]]
+        .concat(flag ? [["Flagship", flag.nm]] : [])
+        .concat([["Personal details", null], ["Born", born + "\n" + bornPlace], ["Political party", pa?.nm || party], ["Occupation", "Politician"]])
+        .concat((stc.honours || []).length ? [["Honours", (stc.honours || []).map(id => (HONOURS.find(h => h.id === id) || {}).nm).filter(Boolean).join(", ")]] : [])
+        .concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
       lead, sections, refs,
       cats: ["Governors of " + stName + " State", (pa?.nm || party) + " politicians", "Living people"].concat(gEnd === "impeached" ? ["Impeached Nigerian governors"] : []),
       link: (location.origin + location.pathname).replace(/^https?:\/\//, ""),
