@@ -232,3 +232,25 @@ export const FED_VOICES = {
   nb_nddc: { on: "veto", img: "oil-community-leader-angry", name: DELTA, text: "You vetoed the commission our people waited for. The youths in the creeks will hear of it." },
   f_oil_theft: { on: "adopt", img: "oil-community-leader", name: DELTA, text: "We will watch the pipelines with you, if our boys get the surveillance contracts and not outsiders." },
 };
+
+/* Where the President builds a national project is a North–South fight
+   (a refinery, a railway, a seaport, a pipeline, an airport, a dam or a
+   power plant). zone: the state's zone (NW, NE, NC, SW, SE, SS).
+   - In the South: northern lawmakers say the North is starved and slow the
+     budget (Senate relations fall).
+   - In the North: the Niger Delta says the South makes the money and the
+     North spends it; pipelines are cut and oil revenue falls for a year
+     (less if there is a Ministry of Niger Delta Development to talk to them).
+   - In the Middle Belt: a compromise. Nobody cheers, nobody marches. */
+export const SITED = ["rail", "refinery", "seaport", "pipeline", "airport", "dam", "power"];
+export const siteReaction = (type, zone, { delta = false } = {}) => {
+  if (!SITED.includes(type) || !zone) return null;
+  const south = ["SW", "SE", "SS"].includes(zone), north = ["NW", "NE"].includes(zone);
+  const z = (n, s) => ({ NW: n, NE: n, NC: 0, SW: s, SE: s, SS: s });
+  if (south) return { region: "South", zones: z(-3, 3), nass: -6, faacPct: 0, head: "The North cries foul",
+    text: "Northern senators say the North is being starved of national projects. They will slow the budget, and the northern zones cool on you." };
+  if (north) return { region: "North", zones: z(3, -3), nass: 0, faacPct: delta ? -.04 : -.1, head: "The creeks answer",
+    text: "Niger Delta militants say the South makes the money and the North spends it. Pipelines are cut: oil revenue falls " + (delta ? "4% this year (the Niger Delta ministry calmed some of it)." : "10% this year.") };
+  return { region: "the Middle Belt", zones: { NC: 2 }, nass: 2, faacPct: 0, head: "A compromise site",
+    text: "Building in the Middle Belt is a compromise: nobody cheers, nobody marches." };
+};

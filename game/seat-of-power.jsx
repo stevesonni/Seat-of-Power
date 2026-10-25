@@ -2033,7 +2033,7 @@ const More = ({ text, max = 75, style, className, as = "p" }) => {
    where, the sender's words, who signed it, then the choices as two big
    buttons: go in person, or send someone. L comes from SYS.TRIP_LETTERS. */
 const TRIP_SEND = /^(Send|Decline|Not |No,|Stay|Skip|Virtual|Video)/i;
-const tripIcon = (label, sendImg) => /in person|^Fly|^Go\b|^Attend|^Speak|^Sell|^Host|^The full|^Go,/i.test(label) && !TRIP_SEND.test(label) ? "./art/icons/icon-travel.webp" : TRIP_SEND.test(label) ? sendImg : null;
+const tripIcon = (label, sendImg) => /Vice-President/.test(label) ? "./art/characters/vice-president.webp" : /in person|^Fly|^Go\b|^Attend|^Speak|^Sell|^Host|^The full|^Go,/i.test(label) && !TRIP_SEND.test(label) ? "./art/icons/icon-travel.webp" : TRIP_SEND.test(label) ? sendImg : null;
 const TripLetter = ({ L, salute, options, onPick, sendImg }) => {
   const [kind, col] = SYS.TRIP_KINDS[L.kind] || ["INVITATION", CL.blu], tall = TALL();
   return <div style={{ maxWidth: 600, margin: "0 auto 14px", background: "#fbf8f1", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.18)", border: "1px solid #e4dccb" }}>
@@ -5686,13 +5686,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (f.costB < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - f.costB) * 100) / 100, debt: Math.round(((p.debt || 0) - f.costB) * 10) / 10 }));
         const after = SYS.presAfter(before, it, o, f.sev, turn);
         setStc(p => { const np = SYS.presAfter(p.pres || before, it, o, f.sev, turn); if (it.k === "coup" && !f.bad) np.coupSurvived = true; return { ...p, pres: np }; });
-        if (c.flight && (o.id === "go" || o.id === "invest")) presTrip(c.flight, c.t.replace(/\u2060/g, "").replace(/^A |^The /, "the ").replace(/^./, x => x.toLowerCase()));
+        if (c.flight && !/^(vp|send|minister|decline|stay)$/.test(o.id)) presTrip(c.flight, c.t.replace(/\u2060/g, "").replace(/^A |^The /, "the ").replace(/^./, x => x.toLowerCase()));
         addL((it.k === "crisis" ? "🚨 " : it.k === "world" ? "🌍 " : "🦅 ") + c.t + ": " + o.l.toLowerCase() + "." + (f.bad ? " It went wrong in public." : ""), f.bad ? "crisis" : "policy");
         if (it.k !== "callback") scWiki(f.bad ? "Controversies" : "Presidency", c.t.replace(/\.$/, "") + ": " + o.l.replace(/^./, x => x.toLowerCase()) + (f.bad ? ", which went wrong in public." : "."));
         track("pres_" + (c.id || it.id), o.id);
         const rows = Object.entries(o.npc || {}).map(([k, v]) => ({ l: (after.npcs[k] || {}).name + " (" + SYS.PRES_NPCS[k].short + ")", v: (v > 0 ? "+" : "") + v, good: v > 0 }))
           .concat(it.k === "crisis" ? [{ l: SYS.PRES_CRISES[it.id].nm, v: after.over ? "Over" : after.sev + "/100", good: f.sev < 0 }] : []);
-        const flew = c.flight && (o.id === "go" || o.id === "invest");
+        const flew = c.flight && !/^(vp|send|minister|decline|stay)$/.test(o.id);
         const good = !f.bad && f.fx.app >= 0 && Object.values(o.npc || {}).reduce((a, v) => a + v, 0) >= 0;
         const moodImg = ["inspector-general", "ecowas-envoy", "foreign-head-of-state", "chief-justice"].includes(who) ? "./art/characters/" + who + (good ? "-pleased" : "-angry") + ".webp" : undefined;
         return { icon: it.k === "coup" ? "🎖️" : it.k === "crisis" ? "🚨" : it.k === "world" ? "🌍" : "🦅", img: it.k === "crisis" && it.id === "insurgency" && after.over && !before.over ? "./art/characters/national-security-adviser-pleased.webp" : /^(address|broadcast|speech)/.test(o.id) ? "./art/scenes/national-broadcast.webp" : it.k === "coup" ? "./art/scenes/coup-night.webp" : flew ? "./art/scenes/presidential-jet.webp" : it.id === "banquet" && o.id === "full" ? "./art/scenes/guard-of-honour.webp" : it.k === "world" && bg === "state-banquet" ? "./art/backgrounds/state-banquet.webp" : scene ? "./art/scenes/" + scene + ".webp" : moodImg,
@@ -6511,6 +6511,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setLastCon({ turn, icon: "🖋️", text: proj.title + " approved: " + SYS.fmtM(proj.approvedM) + ". Next: " + (needsLoan ? "find the money." : "award the contract.") });
     addL("🏗️ Approved " + proj.title + " (" + SYS.fmtM(proj.approvedM) + "; the scope costs " + SYS.fmtM(proj.estimateM) + ")." + (note ? " " + note : ""), "policy");
     scWiki(P.choice === "proceed" ? "Controversies" : "Governorship", "Approved " + proj.title + " in " + d.lga + " at " + SYS.fmtM(proj.approvedM) + (P.choice === "proceed" ? ", although the scope was costed at " + SYS.fmtM(proj.estimateM) : "") + ".");
+    // The President's national projects: where they go is a North–South fight (SYS.siteReaction).
+    const SR = NAT && SYS.siteReaction(d.type, (STATES[d.lga] || {}).zone, { delta: (ministries || []).some(m => m.id === "nigerdelta") });
+    if (SR) {
+      setS(p => { const zm = { ...(p.zoneMood || {}) }; Object.entries(SR.zones).forEach(([z, v]) => { const i = NATION_ZONE_IDS.indexOf(z); if (i >= 0 && v) zm[i] = Math.max(-25, Math.min(25, (zm[i] || 0) + v)); }); return { ...p, zoneMood: zm, faac: SR.faacPct ? Math.round((p.faac || 0) * (1 + SR.faacPct) * 10) / 10 : p.faac }; });
+      if (SR.nass) setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P && P.npcs.nass) P.npcs.nass = { ...P.npcs.nass, rel: Math.max(0, Math.min(100, P.npcs.nass.rel + SR.nass)) }; return { ...p, pres: P }; });
+      addL("🧭 " + SR.head + ": " + d.title.trim() + " in " + d.lga + ". " + SR.text, SR.region === "the Middle Belt" ? "political" : "crisis");
+      setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ icon: "🧭", img: SR.region === "North" ? "./art/decisions/oil_spill.webp" : SR.region === "South" ? "./art/backgrounds/senate-chamber.webp" : undefined, title: SR.head, text: d.title.trim() + " goes to " + d.lga + " (" + SR.region + "). " + SR.text, tone: SR.region === "the Middle Belt" ? "neutral" : "bad",
+        rows: Object.entries(SR.zones).filter(([, v]) => v).map(([z, v]) => ({ l: zoneName(NATION_ZONE_IDS.indexOf(z)) + " zone", v: (v > 0 ? "+" : "") + v, good: v > 0 })).concat(SR.nass ? [{ l: "The Senate", v: (SR.nass > 0 ? "+" : "") + SR.nass, good: SR.nass > 0 }] : []).concat(SR.faacPct ? [{ l: "Oil revenue this year", v: Math.round(SR.faacPct * 100) + "%", good: false }] : []),
+        learn: "Federal character (Section 14(3)): the government's affairs must reflect the diversity of Nigeria, so that no section dominates. Where national projects go is read the same way." }); } catch (e) {} }, 900);
+    }
     // The approval is recorded; the dossier shows it, and the adviser names the next step.
     setPflow({ step: "done", kind: "approved", projId: id, fromAt: 0, at: Date.now() });
   };
@@ -8369,7 +8379,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // LAYER 1: Trips. Two or three letters of travel a term: years 2 and 3 of
     // each term always, year 4 half the time. They never get cut for room.
     const yIn = ((turn - 1) % 4) + 1;
-    if (yIn === 2 || yIn === 3 || (yIn === 4 && rE() < .5)) {
+    // (The President's trips are the world stage and the Bakunda letters, not a governor's.)
+    if (!NAT && (yIn === 2 || yIn === 3 || (yIn === 4 && rE() < .5))) {
       if (lv !== "easy" && !netherlandsVisited && turn >= 2 && turn <= 3) q.push("netherlands");
       else if (!abujaVisited && turn >= 3) q.push("abuja");
       else if (lv !== "easy" && !weddingVisited && turn >= 6) q.push("wedding");

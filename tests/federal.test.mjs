@@ -41,3 +41,12 @@ test("the President's debt relief comes from creditors (Paris Club, IMF, the US)
   assert.ok(paris.odds({ cor: .2, reforms: 3, app: 60 }) > paris.odds({ cor: .6, reforms: 0, app: 40 }), "clean books and reforms help");
   assert.ok(paris.why({ cor: .6, reforms: 0 }).length === 2);
 });
+
+test("where a national project goes is a North–South fight", () => {
+  const S = F.siteReaction("refinery", "SS"), N = F.siteReaction("rail", "NW"), M = F.siteReaction("dam", "NC");
+  assert.ok(S.nass < 0 && S.zones.NW < 0 && S.zones.SS > 0, "the South: northern senators slow the budget");
+  assert.ok(N.faacPct < 0 && N.zones.SS < 0 && N.zones.NE > 0, "the North: pipelines cut");
+  assert.ok(F.siteReaction("rail", "NW", { delta: true }).faacPct > N.faacPct, "a Niger Delta ministry softens it");
+  assert.equal(M.region, "the Middle Belt");
+  assert.equal(F.siteReaction("school", "SS"), null, "a school is not a national fight");
+});

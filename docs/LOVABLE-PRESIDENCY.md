@@ -206,3 +206,19 @@ Revenue measures:
 - `assent-pen`: a heavy gold fountain pen on a stand.
 - `national-id-card`: a plain green-and-white ID card (no real design).
 - `federation-account-ledger`: a big ledger book with a calculator.
+
+---
+
+# Pack 19: icons for the trip letters
+
+Every trip now arrives as a letter (the iCivics way) with two big buttons at the bottom: **Attend in person** and **Send someone**. Each button has a small round picture on its left, like iCivics' jet and Secretary of State. Please paint these as **round portrait icons**: 256×256, transparent background, the subject inside a circle with a thin gold rim, in the game's painted style, readable at 60 px. One zip, files named exactly:
+
+## Icons (`icons/`)
+1. `trip-jet`: the green-and-white presidential jet, three-quarter view, climbing, a little sky behind it inside the circle.
+2. `trip-foreign-minister`: head and shoulders of Nigeria's Foreign Minister, **the same person** as `characters/foreign-minister-nigeria`, smiling, facing slightly left.
+3. `trip-vice-president`: head and shoulders of the Vice-President, **the same man** as `characters/vice-president` (agbada and cap).
+4. `trip-deputy-governor`: head and shoulders of a deputy governor in a suit (for the governor's letters).
+5. `trip-envoy`: head and shoulders of a special envoy: a grey-haired diplomat with a briefcase strap on his shoulder.
+
+## Scene (`scenes/`), 1280×720, no text
+6. `defence-headquarters`: the briefing room at Defence Headquarters, Abuja: a big map of the northern border on the wall, officers at a table, green-white-green flag in the corner. The background for the Army Chief's missions ("Deploy troops / Don't get involved").
