@@ -530,6 +530,8 @@
           pic.src = o.img; pic.alt = '';
           pic.style.cssText = wide ? 'display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;margin:-6px 0 14px' : 'display:block;width:150px;height:150px;object-fit:contain;margin:0 auto 10px;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35))';
           if (o.coins && !wide) { var wrap = document.createElement('div'); wrap.style.cssText = 'position:relative;width:150px;height:150px;margin:0 auto 10px'; var burst = document.createElement('img'); burst.src = './art/objects/coins-burst.webp'; burst.alt = ''; burst.className = 'sop-burst'; burst.style.cssText = 'position:absolute;inset:-40px;width:230px;height:230px;object-fit:contain;opacity:.9'; pic.style.margin = '0'; pic.style.position = 'relative'; wrap.appendChild(burst); wrap.appendChild(pic); card.appendChild(wrap); }
+          // A small object over the corner of a scene (say, the ceremonial scissors on a ribbon-cutting).
+          else if (wide && o.badge) { var bw = document.createElement('div'); bw.style.cssText = 'position:relative;margin:-6px 0 14px'; pic.style.margin = '0'; var bd = document.createElement('img'); bd.src = o.badge; bd.alt = ''; bd.style.cssText = 'position:absolute;right:10px;bottom:-18px;width:96px;height:auto;filter:drop-shadow(0 8px 14px rgba(0,0,0,.45))'; bw.appendChild(pic); bw.appendChild(bd); card.appendChild(bw); }
           else card.appendChild(pic);
         } else card.appendChild(ic);
         card.appendChild(h);

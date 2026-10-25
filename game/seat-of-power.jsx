@@ -7230,6 +7230,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, visitYear: turn })); track("visit_president", ask.id);
     try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Abuja", left: stName } }); } catch (e) {}
     const R = SYS.visitOutcome(ask, { fg: fgRelation, app: s.app, cor: s.cor, revB: SYS.revenueB(s) }, rng(hashStr("visit" + turn + pName)));
+    try { window.SOP_outcome && window.SOP_outcome({ icon: "🚘", img: "./art/scenes/aso-rock-arrival.webp", title: "Aso Rock Villa", text: "Your convoy pulls up at the Villa gates. The guards salute; the President is expecting you.", ok: "Go in" }); } catch (e) {}
     setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/the-president.webp", bg: "./art/backgrounds/villa-office.webp", name: "The President · Aso Rock Villa", text: "Governor " + String(pName || "").split(" ").pop() + ", welcome to the Villa. What brings you to Abuja?", ok: "Ask for " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1),
       fn: () => {
         scFx(R.fx); if (R.cashB) setS(x => ({ ...x, cash: Math.round(((x.cash || 0) + R.cashB) * 100) / 100 }));
@@ -7239,10 +7240,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         try {
           window.SOP_outcome({ present: { img: "./art/characters/the-president-" + (R.ok ? "pleased" : "angry") + ".webp", bg: "./art/backgrounds/villa-office.webp", name: "The President · Aso Rock Villa", text: R.line, ok: "Fly home" } });
           window.SOP_outcome({ flight: { dir: "home", right: "Abuja", left: stName } });
-          window.SOP_outcome({ icon: R.ok ? "🤝" : "🧳", img: "./art/backgrounds/villa-office.webp", title: R.ok ? "The President said yes" : "The President made no promise", text: R.line, tone: R.ok ? "good" : "neutral",
+          window.SOP_outcome({ icon: R.ok ? "🤝" : "🧳", img: "./art/scenes/president-meets-governor.webp", title: R.ok ? "The President said yes" : "The President made no promise", text: R.line, tone: R.ok ? "good" : "neutral",
             rows: [{ l: "Standing with Abuja", v: "+" + R.fg, good: true }].concat(R.cashB ? [{ l: "Refund paid", v: "+" + naira(R.cashB), good: true }] : [], R.fx.infra ? [{ l: "Federal road", v: "In the federal budget", good: true }] : [], R.fx.sec ? [{ l: "Security", v: "+" + Math.round(R.fx.sec * 100), good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : []) });
         } catch (e) {}
-        setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/backgrounds/villa-office.webp"), 300);
+        setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/scenes/" + (R.ok ? "president-meets-governor" : "aso-rock-arrival") + ".webp"), 300);
       } } }); } catch (e) {} }, 300);
   };
   const projDelivered = (p) => {
@@ -7269,8 +7270,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     welcomeInvestors(p);
     // The ribbon: the crowd is waiting; you cut it, and the front page credits whoever delivered (SYS.ribbonHeadline).
     const RH = SYS.ribbonHeadline({ contractor: p.contractor, who: (NAT ? "President " : "Governor ") + String(pName || "").split(" ").pop(), what: (SYS.UNIT[p.type] || {}).nm || p.title, leakage: p.leakage || 0 });
-    const ribbonImg = NAT ? "./art/scenes/federal-project-commissioning.webp" : "./art/backgrounds/project-ribbon-cutting.webp";
-    try { window.SOP_outcome({ icon: "✂️", img: ribbonImg, title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" }); } catch (e) {}
+    const RIBBON = { road: "ribbon-road", hospital: "ribbon-hospital", school: "ribbon-school", bridge: "ribbon-bridge", water: "ribbon-water", market: "ribbon-market" };
+    const ribbonImg = RIBBON[p.type] ? "./art/scenes/" + RIBBON[p.type] + ".webp" : NAT ? "./art/scenes/federal-project-commissioning.webp" : "./art/backgrounds/project-ribbon-cutting.webp";
+    try {
+      window.SOP_outcome({ icon: "✂️", img: ribbonImg, badge: "./art/objects/ceremonial-scissors.webp", title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" });
+      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
+    } catch (e) {}
     paper(RH.h, RH.sub, RH.good, ribbonImg);
   };
   // ── FINANCING A PROJECT ──
@@ -9958,7 +9963,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>}
 
         {nav === "gov" && !needSetup && !NAT && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
-          <img src="./art/characters/the-president.webp" alt="The President" style={{ width: TALL() ? 48 : 64, height: TALL() ? 48 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+          <Ico n="icon-visit-president" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit the President at Aso Rock</b>
             <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Once a year: fly to Abuja with one request. Your standing with Abuja: {Math.round(fgRelation)}/100.</div></div>
           <Bt onClick={() => setVisitOpen(true)} style={{ whiteSpace: "nowrap" }}>✈️ Plan it</Bt>

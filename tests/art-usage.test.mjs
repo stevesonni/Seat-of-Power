@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 59, "59 icons (48 + the five office icons + the five trip icons + the Bakunda seal)");
+  assert.equal(icons.length, 60, "60 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -137,4 +137,11 @@ test("every Pack 20 picture is used", () => {
   ["icons/seal-bakunda", "scenes/sbs-raid", "scenes/bakunda-war-room"].forEach(f => { assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f); assert.ok(all.includes(path.basename(f)), f + " is used"); });
   ["efcc", "icpc"].forEach(a => ["", "-pleased", "-angry"].forEach(m => assert.ok(fs.existsSync(path.join(root, "public/art/characters", a + "-chairman" + m + ".webp")), a + m)));
   ["-chairman.webp", "-chairman-pleased.webp", "-chairman-angry.webp"].forEach(t => assert.ok(src.includes('c.agency + "' + t) || src.includes('agc.agency + "' + t), t + " is used for both agencies"));
+});
+// Pack 22: the ribbon-cuttings and the road to Aso Rock.
+test("every Pack 22 picture is used", () => {
+  ["scenes/ribbon-road", "scenes/ribbon-hospital", "scenes/ribbon-school", "scenes/ribbon-bridge", "scenes/ribbon-water", "scenes/ribbon-market", "scenes/ribbon-cut", "scenes/aso-rock-arrival", "scenes/president-meets-governor", "objects/ceremonial-scissors", "icons/icon-visit-president"].forEach(f => {
+    assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f);
+    assert.ok(src.includes(path.basename(f)), f + " is used");
+  });
 });

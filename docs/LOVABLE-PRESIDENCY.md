@@ -260,6 +260,8 @@ The war country now changes from game to game: Bakunda (General Voko), Kasongo, 
 
 # Pack 22: the ribbon and the road to Aso Rock
 
+> **Delivered: Pack 22**, all 11 pictures: the ribbon scene that matches what was built (road, hospital, school, bridge, water scheme, market) with the gold scissors on its corner, then the cut itself; the convoy at the Villa gates, the meeting across the President's desk (the answer and its front page), and the Villa icon on the Desk card.
+
 Two new moments for governors. When a project is finished there is now a ribbon-cutting ceremony, and the front page credits whoever built it ("KESTREL DELIVERS: Governor Sonni unveils new road"). Once a year a governor can fly to Abuja and see the President at Aso Rock with one request. These pictures make both feel real. Everything fictional: no real faces, no real logos or state crests; green-white-green is fine. The governor's face changes from player to player, so **never show the governor's face**: hands, backs and silhouettes only. One zip, files named exactly.
 
 ## Scenes (`scenes/`), 1280×720, no text
