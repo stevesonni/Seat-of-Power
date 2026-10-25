@@ -96,7 +96,7 @@ export const TRIP_LETTERS = {
     body: ["Bakunda is willing to surrender! Its junta has suffered a series of defeats.", "General Voko will sign a peace treaty and withdraw his troops, and Ostrava will go home.", "The United Nations offers to host the signing in Geneva. Please make sure Nigeria is represented."],
     signed: "The Secretary-General of the United Nations" },
   bk5: { kind: "war", who: "The President of the United States", where: "The Oval Office, Washington, D.C.",
-    body: ["Bakunda is first on my agenda.", "I would like to talk with you about sharing intelligence and equipment, and about what each of us can do to end this war.", "Come to Washington, and we will plan it together."],
+    body: ["Bakunda is first on my agenda. The United States stands with Nigeria.", "I am ready to put ₦30 billion behind your fight, and to send a Marine expeditionary unit to stand with your forces.", "Come to Washington in person, and we will sign it together."],
     signed: "The President of the United States" },
 };
 

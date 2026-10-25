@@ -5740,14 +5740,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign, stamp: c.stamp } : undefined,
     kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.kind === "mission" ? "A mission from Defence Headquarters" : c.t, brief: c.d,
     options: c.opts.map(o => { const cost = o.cost || 0, app = (o.fx && o.fx.app || 0) - (c.spill || 0) - (c.fatigue || 0);
-      return { label: o.l, fid: o.id, note: o.note, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : []), run: () => {
+      return { label: o.l, fid: o.id, note: o.note, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : [], o.grant ? [{ text: "+" + naira(o.grant) + " from the US", color: CL.grn }] : []), run: () => {
         scFx({ app, sec: (o.fx && o.fx.sec || 0) - (c.spill ? .02 : 0), cor: o.fx && o.fx.cor, debt: cost > 0 ? cost : 0 });
+        if (o.grant) { setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + o.grant) * 100) / 100 })); addL("🇺🇸 The United States pledged " + naira(o.grant) + " for the war against the Axis" + (o.set && o.set.marines ? ", and US Marines stand with our forces." : "."), "success"); }
         const B0 = stc.bakunda, B1 = SYS.bakundaAfter(B0, o);
         setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, bakunda: SYS.bakundaAfter(p.bakunda || B0, o) }; });
         if (o.flight) {
           if (c.id === "bk2") { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Bakunda", left: "Abuja" } }); window.SOP_outcome({ flight: { dir: "home", right: "Bakunda", left: "Abuja" } }); window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/" + PILOT_ART + "-pleased.webp", bg: "./art/scenes/air-fleet-hangar.webp", name: pilotName + " · Presidential Air Fleet", text: "Your Excellency, the last flight from Bakunda is down. Every Nigerian who wanted to come home is home." } }); } catch (e) {} } // the airlift: the jets go, not you
           else if (BK_DEST[o.dest]) presTrip(BK_DEST[o.dest], o.dest === "washington" ? "the White House meeting on Bakunda" : o.dest === "signing" ? "the signing of the peace treaty" : "the meeting on Bakunda");
         }
+        if (o.news) setTimeout(() => anchors(o.news[0], o.news[1]), 700);
         const pp = o.paper || c.paper, pImg = o.paperImg || c.paperImg || (o.img && /^scenes\//.test(o.img) ? o.img.slice(7) : c.scene); if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], pImg ? "./art/scenes/" + pImg + ".webp" : undefined), 200);
         // On Bakunda it is the Chief of Army Staff who comes to you, not the adviser.
         const army = ((stc.pres || {}).npcs || {}).army, chief = "Gen. " + ((army && army.name) || "the Chief") + " · Chief of Army Staff";
@@ -5764,7 +5766,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         track("bakunda_" + (c.kind === "mission" ? "mission" : c.id), o.id + (c.kind === "mission" ? (wrong ? ":wrong" : ":right") : ""));
         const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id === "bk6";
         return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
-          tone: B1.done ? "good" : wrong || app < 0 ? "bad" : "neutral", rows: prog ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }] : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
+          tone: B1.done ? "good" : wrong || app < 0 ? "bad" : "neutral", rows: prog ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }].concat(o.grant ? [{ l: "From the United States", v: "+" + naira(o.grant), good: true }] : [], o.set && o.set.marines ? [{ l: "US Marines", v: "With our forces", good: true }] : []) : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
       } }; }) });
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;

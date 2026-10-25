@@ -116,3 +116,16 @@ test("veto the war and the National Assembly overrides you: a document stamped O
   assert.ok(bakundaCards(war, 5).some(c => c.kind === "mission"), "missions follow");
   const defy = pick(B, o, "defy"); assert.equal(defy.atWar, 0); assert.ok(!bakundaCards(defy, 5).some(c => c.id === "bk3o"), "the override comes once");
 });
+test("the US President invites you: ₦30B and the Marines in person, ₦10B if you send someone", () => {
+  const B = { ...bakundaInit("us"), stage: 3, atWar: 1, progress: 30, dipl: ["ecowas", "chad", "london"], sits: [] };
+  const c = bakundaCards(B, 4).find(x => x.id.startsWith("bkd_")); assert.equal(c.id, "bkd_washington", "the US comes as soon as the war does, before Geneva");
+  const go = c.opts.find(o => o.id === "go"), send = c.opts.find(o => o.id === "send");
+  assert.equal(go.grant, 30); assert.equal(go.paper[0], "PRESSURE GROWS: US ADDS IMPETUS"); assert.ok(go.news && go.flight);
+  const A = bakundaAfter(B, go); assert.equal(A.marines, true); assert.equal(A.washington, "went");
+  assert.equal(send.grant, 10); assert.ok(!bakundaAfter(B, send).marines);
+  const m = bakundaCards({ ...A, dipl: [...A.dipl, "geneva"] }, 5).find(x => x.kind === "mission"), right = m.opts.find(o => o.id === m.need);
+  const m0 = bakundaCards({ ...B, dipl: [...B.dipl, "washington", "geneva"] }, 5).find(x => x.id === m.id);
+  if (m0) assert.ok(right.add.progress > m0.opts.find(o => o.id === m.need).add.progress, "the Marines add weight");
+  assert.match(right.say, /Marines/);
+  assert.match(TRIP_LETTERS.bk5.body.join(" "), /₦30 billion/);
+});

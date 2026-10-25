@@ -64,8 +64,8 @@ export const BAKUNDA_DIPLOMACY = [
   { id: "ecowas", letter: "bk4_accra", t: "An ECOWAS extraordinary summit in Accra", scene: "ecowas-summit", win: ["WEST AFRICA SPEAKS WITH ONE VOICE ON BAKUNDA", "ECOWAS leaders back Nigeria's lead"] },
   { id: "chad", letter: "bk_chad", t: "The Lake Chad neighbours meet in N'Djamena", scene: "ecowas-summit", win: ["LAKE CHAD NEIGHBOURS UNITE OVER THREAT", "A new joint defence plan for the basin"] },
   { id: "london", letter: "bk_london", t: "An invitation to London", scene: null, win: ["LEADERS MEET IN LONDON", "Bakunda discussed; the UK offers support"] },
+  { id: "washington", letter: "bk5", from: 3, t: "An invitation to the White House", scene: "oval-office", win: ["PRESSURE GROWS: US ADDS IMPETUS", "In the Oval Office, Washington pledges ₦30B and US Marines to Nigeria's fight"] },
   { id: "geneva", letter: "bk4_geneva", t: "The UN calls the world to Geneva", scene: "geneva-conference", win: ["NATIONS UNITE AGAINST THE AXIS", "Pressure mounts with Nigeria's leadership"] },
-  { id: "washington", letter: "bk5", t: "An invitation to the White House", scene: "oval-office", win: ["ABUJA AND WASHINGTON UNITE ON BAKUNDA", "The President meets his US counterpart in the Oval Office"] },
 ];
 
 /* Without a war (the resolution vetoed): two of these a year, pressure
@@ -171,9 +171,9 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
       picks.forEach((m, i) => decide({ id: "bkm_" + m.id, kind: "mission", mission: m.id, need: m.need, kicker: "MILITARY", t: m.d, learn: "forces",
         alarm: "there has been a grave development on the front. Defence Headquarters needs your orders",
         d: m.d, opts: Object.entries(BAKUNDA_FORCES).map(([k, F]) => ({ id: k, l: F.l, note: F.d, cost: F.cost, fx: { app: k === m.need ? 2 : -1, sec: k === m.need ? .01 : 0 }, npc: { army: k === m.need ? 3 : -2 },
-          img: F.scene ? "scenes/" + F.scene : null, push: { sits: m.id }, add: { progress: k === m.need ? 20 : 5, atWar: i === 0 ? 1 : 0 },
+          img: F.scene ? "scenes/" + F.scene : null, push: { sits: m.id }, add: { progress: (k === m.need ? 20 : 5) + (B.marines && k === m.need ? 5 : 0), atWar: i === 0 ? 1 : 0 },
           paper: k === m.need ? [m.win[0], m.win[1], true] : ["THE WRONG FORCE FOR THE GROUND", "Our " + (F.full || F.nm) + " could not reach the enemy · the junta holds", false],
-          say: k === m.need ? "The right force for that ground, Your Excellency. The Axis did not expect it." : "We are committed, but the " + (F.full || F.nm) + " is wrong for that ground. It stalls us." }))
+          say: k === m.need ? "The right force for that ground, Your Excellency" + (B.marines ? ", and the US Marines were beside us" : "") + ". The Axis did not expect it." : "We are committed, but the " + (F.full || F.nm) + " is wrong for that ground. It stalls us." }))
           .concat([{ id: "stay", l: "Don't get involved", fx: { app: -2 }, npc: { army: -4 }, push: { sits: m.id }, add: { atWar: i === 0 ? 1 : 0 }, paper: ["NIGERIA STANDS ASIDE", "The Axis presses on", false], say: "We stood back, Your Excellency. The Axis will not." }]) }));
       if (B.atWar >= 2) decide({ id: "bk6", kind: "card", kicker: "The war · year " + B.atWar, t: "“The people are tired of it”", scene: "war-weariness", learn: "war", advice: "A clear word from you steadies the country. A push costs money and lives, but shortens the war.",
       d: "The war rages on. Funerals in the barracks towns, prices up in the north. Your army chief: “The people want to see us win it as soon as possible.”", fatigue: 1 + B.atWar,
@@ -214,8 +214,10 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     out.push({ id: "bkd_" + D.id, kind: "letter", letter: D.letter, kicker: "The world stage · Bakunda", t: D.t, learn: D.id === "washington" ? "ally" : "summit",
       alarm: "an invitation has come about Bakunda. Our allies want you there in person",
       opts: [{ id: "go", l: "Attend in person", cost: 6, fx: { app: 2 }, push: { dipl: D.id }, add: { progress: go }, set: D.id === "washington" ? { washington: "went" } : {}, flight: true, dest: D.id, paper: [D.win[0], D.win[1], true], paperImg: D.scene, img: D.scene ? "scenes/" + D.scene : null,
-          ally: D.id === "washington" ? "The United States will share what its satellites see, and send equipment. Nigeria leads; we stand with you." : null },
-        { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 0 }, push: { dipl: D.id }, add: { progress: send }, set: D.id === "washington" ? { washington: "sent" } : {}, paper: ["FOREIGN MINISTER REPRESENTS NIGERIA: " + D.t.replace(/^(An |A |The )/, "").toUpperCase(), "The President stays home; allies note the absence", false], paperImg: D.scene }] });
+          ally: D.id === "washington" ? "₦30 billion for the fight, and a Marine expeditionary unit standing with your forces. Nigeria leads; we stand with you." : null,
+          ...(D.id === "washington" ? { grant: 30, set: { washington: "went", marines: true }, news: ["Pressure grows on the Axis: the United States adds its weight behind Nigeria.", "Thirty billion naira and US Marines. The momentum is with the President."] } : {}) },
+        { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 0 }, push: { dipl: D.id }, add: { progress: send }, set: D.id === "washington" ? { washington: "sent" } : {}, paper: ["FOREIGN MINISTER REPRESENTS NIGERIA: " + D.t.replace(/^(An |A |The )/, "").toUpperCase(), "The President stays home; allies note the absence", false], paperImg: D.scene,
+          ...(D.id === "washington" ? { grant: 10, paper: ["US PLEDGES MONEY, BUT NOT ITS MARINES", "Washington sends ₦10B; the President stayed home", false] } : {}) }] });
   }
   return out.map(c => ({ ...c, kicker: keepWord(c.kicker || ""), t: keepWord(c.t), d: c.d ? keepWord(c.d) : c.d }));
 };
