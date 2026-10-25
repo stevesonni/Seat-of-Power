@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import { PRES_STORIES, FRONT_STORIES, AGENDA_IDS, agendaStory, storyStart, storyTurn, storyCard, storyAfter, storyCheck, pastOf } from "../game/systems/storylines.js";
 import { nassCake } from "../game/systems/federal.js";
+import { STATE_STORIES, placeText } from "../game/systems/statestories.js";
 import { rulerMatter, rulerPick } from "../game/systems/rulers.js";
 
-const ALL = [...Object.values(PRES_STORIES), ...Object.values(FRONT_STORIES), ...AGENDA_IDS.map(agendaStory)];
+const ALL = [...Object.values(PRES_STORIES), ...Object.values(FRONT_STORIES), ...AGENDA_IDS.map(agendaStory), ...Object.values(STATE_STORIES)];
 const T = (x) => String(x).replace(/\u2060/g, ""); // the presidency's invisible word guards
 const seeded = (n) => { let x = n * 2654435761 % 4294967296 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
 
@@ -95,4 +96,19 @@ test("a ruler you promised comes back to collect", () => {
   assert.equal(M.kind, "promise"); assert.match(M.brief, /Last year you promised a borehole/);
   const again = rulerMatter({ ...ruler, promise: { ...ruler.promise, times: 1 } }, { turn: 4, lga: "Iseyin" }, () => .1);
   assert.match(again.title, /run out of patience/);
+});
+
+test("a governor's crisis is a story in its LGA, not a one-off", () => {
+  assert.equal(Object.keys(STATE_STORIES).length, 14);
+  Object.values(STATE_STORIES).forEach(d => {
+    const kinds = new Set(Object.values(d.beats).flatMap(b => b.opts.map(o => o.kind)));
+    ["programme", "act"].forEach(k => assert.ok(kinds.has(k), d.id + " " + k));
+    assert.ok(kinds.has("bill") || kinds.has("order"), d.id + " can be answered by law or order");
+    assert.ok(Object.keys(d.beats).length >= 5, d.id);
+  });
+  const d = STATE_STORIES.flood; let S = storyTurn(d, storyStart(d, "f"), 2, {}, () => .99);
+  const c1 = placeText(storyCard(d, S, {}), "Lokoja"); assert.equal(c1.t, "The river overflows: Lokoja under water");
+  S = storyAfter(d, S, c1.opts.find(o => o.id === "relief"), 2, {}, () => .99).S;
+  const c2 = placeText(storyCard(d, storyTurn(d, S, 3, {}, () => .99), {}), "Lokoja");
+  assert.equal(c2.t, "Cholera in the flood camps"); assert.match(c2.d, /^Last year you set up relief camps and sent boats to Lokoja/);
 });

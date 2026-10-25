@@ -52,6 +52,8 @@ if (which === "second" || which === "all") {
   check(r1.ok, "re-elected into Year 5");
   if (!r1.ok) { console.log("  last clicks: " + r1.clicks.slice(-15).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 600)); }
   const y5 = await save(g);
+  { const ss = Object.values((y5.stc || {}).stateStories || {}); console.log("  state stories: " + ss.map(x => (x.S.hist || []).map(h => h.beat + ":" + h.opt).join(">")).join(" | "));
+    check(!ss.length || ss.every(x => new Set(x.S.seen || []).size === (x.S.seen || []).length), "the state's crises are stories that never repeat a beat"); }
   { const fl = (y5.stc || {}).flagStory || {}; check((fl.hist || []).length >= 3 && new Set(fl.seen || []).size === (fl.seen || []).length, "the flagship is a story: a different problem each year (" + (fl.hist || []).map(h => h.beat + ":" + h.opt).join(", ") + ")"); }
   check((y5.cases || []).length >= (before.cases || []).length && (y5.projects || []).length >= (before.projects || []).length, "cases and projects carried into the second term");
   const seen = [];

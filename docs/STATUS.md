@@ -27,6 +27,10 @@
 - **Security fronts:** the National Security Council letter brings the worst front's next development (the Lake Chad islands, then a new faction; Kachalla Dan Sule's forest state; "unknown gunmen"; a former militant guarding the pipes), plus the choice to send the forces to the second front instead.
 - **The national cake remembers:** padding leads to the tracking report, then the anti-graft agency's letter; refusing leads to the Senate getting even, then an override threat.
 - **Traditional rulers remember promises:** "Promise it for next year" comes back next year, then "has run out of patience". A ruler does not bring the same kind of matter twice running.
+- **The governor's state crises are storylines too** (game/systems/statestories.js). All 14 (oil spill, illegal refineries, the bandits' tax, the school abduction, insurgents, farmers and herders, flood, sit-at-home, almajiri, the waterfront, the cult wars, erosion, lead poisoning, the land war) run for several years in one LGA.
+  - Each year an open crisis brings its next development, decided by last year's answer. Examples: relief camps lead to cholera in the camps; paying a ransom makes your schools a market; naming the refineries' protectors means the protectors strike back.
+  - Bills go to the House of Assembly; orders can be struck down by a State High Court.
+  - A second crisis can open while one runs, and a closed one never returns.
 - **Tests:** tests/storylines.test.mjs plays 400 random terms per storyline and fails on any repeated card. The president e2e checks the "Last year you…" line on screen; the playthrough e2e checks the flagship story.
 
 ## Fresh trouble every game: the war, the strikes, the wiki (25 Oct)

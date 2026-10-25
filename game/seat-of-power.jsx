@@ -5948,6 +5948,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               tone: R.closed ? "good" : R.won === false || o.weak || f.app < 0 ? "bad" : "good", rows, learn: def.learn && SYS.PRES_LEARN[def.learn] };
           } }; }) };
   };
+  // A state crisis storyline's beat as a Desk card, in its LGA (SYS.STATE_STORIES).
+  const stateStoryCardFor = (id, T) => {
+    const d = SYS.STATE_STORIES[id], C = STATE_CRISES.find(x => x.id === id) || {}, raw = d && SYS.storyCard(d, T.S, { nat: NAT });
+    if (!raw) return null;
+    const c = SYS.placeText(raw, T.lga), zi = T.zi, yr = (T.S.hist || []).length;
+    return { key: "crisis_" + id + "_" + turn, kicker: stName + " · " + zoneName(zi) + " zone" + (yr ? " · " + d.nm.replace(/^The /, "the ") + ", year " + (yr + 1) : ""), color: CL.red, art: [c.bg || C.bg, c.who || C.who, null, c.scene || null],
+      title: (C.icon ? C.icon + " " : "") + c.t, brief: c.d, stakes: yr ? undefined : "Every option has a price. This one is " + stName + "'s own.",
+      options: c.opts.map(o => { const fx = { ...(o.fx || {}), debt: o.cost || 0 };
+        return { label: o.l, note: o.kind === "bill" ? "Goes to the House: the vote comes next year. If it passes, it lasts." : o.kind === "order" ? "In force today. A State High Court can strike it down next year." : undefined, risk: o.odds != null ? "A gamble: it can go either way." : null,
+          chips: (o.tag ? [{ text: o.tag, color: o.kind === "bill" ? CL.blu : o.kind === "order" ? CL.gold : CL.grn }] : []).concat(fxChips(fx, o.dz)), run: () => {
+            if (o.cost && !spendB(o.cost, d.nm + ": " + o.l)) return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for this. Choose another way.", tone: "bad" };
+            const R = SYS.storyAfter(d, T.S, o, turn, { nat: NAT }, rng(turn * 811 + hashStr(id + o.id)));
+            scFx({ ...(R.fx || {}), debt: 0 }, zi, o.dz || 0);
+            if (R.decree) scFx({ app: -1 });
+            setStc(p => ({ ...p, stateStories: { ...(p.stateStories || {}), [id]: { ...((p.stateStories || {})[id] || T), S: R.S } } }));
+            const past = (R.S.hist[R.S.hist.length - 1] || {}).past || o.l, bad = o.weak || R.won === false;
+            addL((C.icon || "🚨") + " " + T.lga + ": you " + past + "." + (R.closed ? " The matter is closed." : ""), bad ? "crisis" : "policy");
+            scWiki(bad || (R.fx.app || 0) < 0 ? "Controversies" : "Governorship", past.charAt(0).toUpperCase() + past.slice(1) + ".");
+            if (R.decree) scWiki("Controversies", "Was accused of governing by executive order.");
+            try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "state_crisis", actor: "governor", gravity: 2, evidence: 3, decision: o.l, note: c.t, approvalDelta: (R.fx || {}).app || 0, meta: { story: id, beat: T.S.beat, how: o.kind } }); } catch (e) {}
+            track("state_story_" + id + "_" + (T.S.beat || ""), o.id + (R.won == null ? "" : R.won ? ":won" : ":lost"));
+            return { icon: R.closed ? "🕊️" : o.kind === "bill" ? "📜" : o.kind === "order" ? "✍️" : C.icon || "🚨", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: R.say + (R.decree ? " Critics say you govern by decree." : ""), tone: R.closed ? "good" : bad ? "bad" : "good",
+              rows: (o.kind === "bill" ? [{ l: "The bill", v: "Before the House: the vote comes next year", good: true }] : o.kind === "order" ? [{ l: "The order", v: "In force; it can be challenged", good: true }] : []).concat(R.closed ? [{ l: d.nm, v: "Closed", good: true }] : []) };
+          } }; }) };
+  };
   // The National Security Council: the two worst fronts, a crackdown or talks for each (SYS.frontsCard).
   // The worst front's storyline beat, with one option to send the forces to the second front instead.
   const frontsWithStory = (c, FS, F) => {
@@ -6142,26 +6167,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (!next.balanceWarned) { scWiki("Controversies", "Was accused of marginalising " + zoneName(bi) + " Senatorial District in cabinet appointments."); next.balanceWarned = true; }
     }
 
-    // The state's own recurring crises.
-    if (turn >= 2 && r() < (lv === "easy" ? .45 : .7)) {
-      const needTopics = activeNeeds.map(n => NEED_TOPIC[n.k]);
-      const billCovered = Object.entries(BILL_CRISIS).filter(([b]) => houseBillsSeen.includes(b)).map(([, c]) => c);
-      const recent = Object.keys(CRISIS_TOPIC).map(k => CRISIS_TOPIC[k]).filter(tp => topicRecent(tp));
-      const pool = stateCrisesFor(state).filter(c => !next.crisesSeen.includes(c.id) && !billCovered.includes(c.id) && !needTopics.includes(CRISIS_TOPIC[c.id]) && !recent.includes(CRISIS_TOPIC[c.id]));
-      if (pool.length) {
-        const C = pool[Math.floor(r() * pool.length)];
-        const zi = Math.floor(r() * 3), lgas = lgaCluster(getLGAs(state), zi), lga = lgas.length ? lgas[Math.floor(r() * lgas.length)] : stName;
-        next.crisesSeen = [...next.crisesSeen, C.id];
-        next.topicTurn = { ...(next.topicTurn || {}), [CRISIS_TOPIC[C.id]]: turn };
-        cards.push({ key: "crisis_" + C.id, kicker: stName + " · " + zoneName(zi) + " zone", color: CL.red, art: [C.bg, C.who], title: C.icon + " " + C.title(lga), brief: C.d(lga), stakes: "Every option has a price. This one is " + stName + "'s own.",
-          options: C.opts.map(o => ({ label: o.l, note: o.note, risk: o.gamble ? "A gamble: it can go either way." : null, chips: fxChips(o.fx, o.zone), run: () => {
-            scFx(o.fx, zi, o.zone);
-            addL(C.icon + " " + lga + ": you " + o.log + ".", (o.fx.app || 0) >= 0 ? "policy" : "crisis");
-            if (o.wiki) scWiki((o.fx.app || 0) < 0 ? "Controversies" : "Governorship", o.wiki);
-            if (o.gamble) { const ok = Math.random() < o.gamble.p, g = ok ? o.gamble.win : o.gamble.lose; scFx({ app: g.app }, zi, g.zone); addL((ok ? "🎉 " : "💀 ") + g.log, ok ? "success" : "crisis"); if (g.wiki) scWiki("Controversies", g.wiki); }
-            try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "state_crisis", actor: "governor", gravity: 2, evidence: 3, decision: o.l, note: C.title(lga), approvalDelta: o.fx.app || 0 }); } catch (e) {}
-          } })) });
+    // The state's own crises, as storylines (SYS.STATE_STORIES): a crisis is not a one-off. Each year an open one
+    // brings its next development, decided by last year's answer; when it closes, a new one can begin.
+    {
+      const H = scHouse(), house = Math.round(H.loyal / Math.max(1, H.seats) * 100);
+      const ST = { ...(next.stateStories || {}) };
+      Object.entries(ST).forEach(([id, T]) => { const d = SYS.STATE_STORIES[id]; if (d && T.S && !T.S.closed) ST[id] = { ...T, S: SYS.storyTurn(d, T.S, turn, { house }, rE) }; });
+      const open = Object.entries(ST).filter(([id, T]) => SYS.STATE_STORIES[id] && T.S && !T.S.closed && T.S.beat).sort((x, y) => x[1].t0 - y[1].t0);
+      const shown = [];
+      if (open.length) shown.push(open[0][0]);
+      if (turn >= 2 && open.length < 2 && r() < (open.length ? .3 : (lv === "easy" ? .45 : .7))) {
+        const needTopics = activeNeeds.map(n => NEED_TOPIC[n.k]);
+        const billCovered = Object.entries(BILL_CRISIS).filter(([b]) => houseBillsSeen.includes(b)).map(([, c]) => c);
+        const recent = Object.keys(CRISIS_TOPIC).map(k => CRISIS_TOPIC[k]).filter(tp => topicRecent(tp));
+        const pool = stateCrisesFor(state).filter(c => SYS.STATE_STORIES[c.id] && !ST[c.id] && !next.crisesSeen.includes(c.id) && !billCovered.includes(c.id) && !needTopics.includes(CRISIS_TOPIC[c.id]) && !recent.includes(CRISIS_TOPIC[c.id]));
+        if (pool.length) {
+          const C = pool[Math.floor(r() * pool.length)], d = SYS.STATE_STORIES[C.id];
+          const zi = Math.floor(r() * 3), lgas = lgaCluster(getLGAs(state), zi), lga = lgas.length ? lgas[Math.floor(r() * lgas.length)] : stName;
+          ST[C.id] = { S: SYS.storyStart(d, state + ":" + C.id), lga, zi, t0: turn };
+          next.crisesSeen = [...next.crisesSeen, C.id];
+          next.topicTurn = { ...(next.topicTurn || {}), [CRISIS_TOPIC[C.id]]: turn };
+          shown.push(C.id);
+        }
       }
+      next.stateStories = ST;
+      shown.slice(0, 2).forEach(id => { const c = stateStoryCardFor(id, ST[id]); if (c) cards.push(c); });
     }
 
 
