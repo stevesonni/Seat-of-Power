@@ -43,7 +43,7 @@ check(/Re-elected|Voted out|Denied the ticket|Recalled|Defeated/.test(t), "the c
 await shot("end");
 check(seen.has("Elect the Senate President") || /Defeated/.test(t), "the Senate President election is played");
 check(seen.has("A bill from the President") || /Defeated/.test(t), "bills are voted on");
-check(learnSeen, "result cards teach how it really works");
+check(!learnSeen, "no \"How it really works\" boxes");
 const notes = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_notebook") || "[]").length);
 check(notes >= 3 || /Defeated/.test(t), "the Senate notebook fills (" + notes + " notes)");
 const career = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_career") || "[]"));

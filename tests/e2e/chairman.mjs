@@ -53,7 +53,7 @@ check(/Delivery/.test(t) && /Integrity/.test(t) && /Survival/.test(t) && /Your p
 check(/Your term:/.test(t), "the ending tells the story of your actual decisions");
 const rec = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_record") || "null"));
 check(rec && rec.offices.some(o => o.office === "chairman") && rec.people.length >= 3, "the player record keeps the office and the people met");
-check(learnSeen, "result cards teach how it really works");
+check(!learnSeen, "no \"How it really works\" boxes");
 const notes = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_notebook") || "[]").filter(k => k.startsWith("lga:")).length);
 check(notes >= 5, "the chairman's notebook fills (" + notes + " notes)");
 const career = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_career") || "[]"));

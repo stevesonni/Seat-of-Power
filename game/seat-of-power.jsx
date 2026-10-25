@@ -13122,11 +13122,11 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   useEffect(() => { if (g) { try { window.storage.set(SEN_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
-  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_NAT = false; window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
   const fly = (dir, right, left) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, right, left } }); } catch (e) {} };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0, g ? g.step : "");
-  // A lesson goes into the next result card's "How it really works" box and into the notebook.
+  // A lesson goes into the notebook.
   const learnRow = (k) => { const t = senLearnText(k); if (t && !lessons.current.includes(t)) { senNote(k); lessons.current.push(t); } return []; };
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_senator > 0;
   const buy = () => { setBusy(true); window.SOP_buy("career_senator").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
@@ -13256,7 +13256,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   const Opt = ({ ic, l, d, right, onClick, disabled, tone }) => <button onClick={onClick} disabled={disabled} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", width: "100%", padding: tall ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + (tone === "bad" ? "#efc2bc" : CL.bdr), background: disabled ? "#f1ede4" : "#fff", color: CL.txt, cursor: disabled ? "default" : "pointer", opacity: disabled ? .55 : 1, fontFamily: F.b }}>
     <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b>{d && <span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span>}</span>{right ? <span style={{ fontWeight: 800, fontSize: fz.s, color: CL.org, whiteSpace: "nowrap" }}>{right}</span> : <span />}
   </button>;
-  const Learn = ({ k }) => { const t = senLearnText(k); return t ? <div style={{ background: "#eef4fb", border: "1px solid #c9dcf0", borderRadius: 14, padding: "10px 14px", fontSize: fz.s, color: "#1d3a5c", lineHeight: 1.45, margin: "10px 0" }}><b>📘 How it really works · </b>{t}</div> : null; };
+  const Learn = () => null; // no "How it really works" boxes
   const Meter = ({ k, v, bad }) => <div style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 12, padding: tall ? "6px 8px" : "8px 12px", minWidth: 0 }}>
     <div style={{ fontSize: tall ? TS(15) : TS(22), color: CL.td, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k}</div>
     <b style={{ fontSize: fz.m, color: bad ? CL.red : CL.txt }}>{v}</b></div>;
@@ -13446,7 +13446,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   useEffect(() => { if (g) { try { window.storage.set(LGA_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
-  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_NAT = false; window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
   const learn = (k) => { const t = SYS.LGA_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("lga:" + k); lessons.current.push(t); } };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
@@ -13571,7 +13571,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const Opt = ({ ic, l, d, right, onClick, disabled, tone }) => <button onClick={onClick} disabled={disabled} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", width: "100%", padding: tall ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + (tone === "bad" ? "#efc2bc" : CL.bdr), background: disabled ? "#f1ede4" : "#fff", color: CL.txt, cursor: disabled ? "default" : "pointer", opacity: disabled ? .55 : 1, fontFamily: F.b }}>
     <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b>{d && <span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span>}</span>{right ? <span style={{ fontWeight: 800, fontSize: fz.s, color: CL.org, whiteSpace: "nowrap" }}>{right}</span> : <span />}
   </button>;
-  const Learn = ({ k }) => { const t = SYS.LGA_LEARN[k]; return t ? <div style={{ background: "#eef4fb", border: "1px solid #c9dcf0", borderRadius: 14, padding: "10px 14px", fontSize: fz.s, color: "#1d3a5c", lineHeight: 1.45, margin: "10px 0" }}><b>📘 How it really works · </b>{t}</div> : null; };
+  const Learn = () => null; // no "How it really works" boxes
   const Meter = ({ k, v, bad }) => <div style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 12, padding: tall ? "6px 8px" : "8px 12px", minWidth: 0 }}>
     <div style={{ fontSize: tall ? TS(15) : TS(22), color: CL.td, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k}</div><b style={{ fontSize: fz.m, color: bad ? CL.red : CL.txt }}>{v}</b></div>;
   const notesHave = () => senNotes().filter(k => k.startsWith("lga:")).length, notesAll = Object.keys(SYS.LGA_LEARN).length;
@@ -13737,7 +13737,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   useEffect(() => { if (g) { try { window.storage.set(AMB_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
-  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_NAT = false; window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
   const fly = (dir, right, left) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, right, left } }); } catch (e) {} };
   const learn = (k) => { const t = SYS.AMB_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("amb:" + k); lessons.current.push(t); } };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
@@ -13798,7 +13798,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const Opt = ({ ic, l, d, onClick, tone, on }) => <button onClick={onClick} aria-pressed={on} style={{ textAlign: "left", display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", width: "100%", padding: tall ? "12px 14px" : "16px 20px", borderRadius: 16, border: "1.5px solid " + (on ? CL.grn : tone === "bad" ? "#efc2bc" : CL.bdr), background: on ? CL.grn + "10" : "#fff", color: CL.txt, cursor: "pointer", fontFamily: F.b }}>
     <span style={{ fontSize: fz.l }}>{ic}</span><span><b style={{ display: "block", fontSize: fz.m }}>{l}</b>{d && <span style={{ fontSize: fz.s, color: CL.tm }}>{d}</span>}</span>
   </button>;
-  const Learn = ({ k }) => { const t = SYS.AMB_LEARN[k]; return t ? <div style={{ background: "#eef4fb", border: "1px solid #c9dcf0", borderRadius: 14, padding: "10px 14px", fontSize: fz.s, color: "#1d3a5c", lineHeight: 1.45, margin: "10px 0" }}><b>📘 How it really works · </b>{t}</div> : null; };
+  const Learn = () => null; // no "How it really works" boxes
   const Meter = ({ k, v, bad }) => <div style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 12, padding: tall ? "6px 8px" : "8px 12px", minWidth: 0 }}>
     <div style={{ fontSize: tall ? TS(15) : TS(22), color: CL.td, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{k}</div><b style={{ fontSize: fz.m, color: bad ? CL.red : CL.txt }}>{v}</b></div>;
   const notesHave = () => senNotes().filter(k => k.startsWith("amb:")).length, notesAll = Object.keys(SYS.AMB_LEARN).length;

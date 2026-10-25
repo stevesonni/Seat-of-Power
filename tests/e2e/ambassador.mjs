@@ -41,7 +41,7 @@ check(/Promoted|Posting complete|Recalled|Expelled/.test(t), "the posting reache
 await shot("end");
 check(seen.has("from Abuja"), "cables arrive from Abuja");
 check(seen.has("the consular section"), "Nigerians in trouble come to the embassy");
-check(learnSeen, "result cards teach how it really works");
+check(!learnSeen, "no \"How it really works\" boxes");
 const notes = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_notebook") || "[]").filter(k => k.startsWith("amb:")).length);
 check(notes >= 5, "the ambassador's notebook fills (" + notes + " notes)");
 const career = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_career") || "[]"));
