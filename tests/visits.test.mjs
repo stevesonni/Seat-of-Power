@@ -17,3 +17,12 @@ test("the visit to Aso Rock: standing with Abuja decides the answer", () => {
   assert.ok(yes.ok && yes.fx.infra > 0 && yes.paper[2]); assert.ok(!no.ok && !no.fx.infra && no.fg > 0, "even a no is face time");
   const refund = visitOutcome(VISIT_ASKS.find(a => a.id === "refund"), { fg: 90, revB: 50 }, () => 0); assert.ok(refund.cashB >= 1);
 });
+test("the President visits a state: four purposes, each with its own front page", async () => {
+  const V = await import("../game/systems/visits.js");
+  assert.equal(V.STATE_VISIT_PURPOSES.length, 4); assert.equal(V.STATE_VISITS_A_YEAR, 2);
+  for (const p of V.STATE_VISIT_PURPOSES) { const o = V.stateVisitOutcome(p.id, { state: "Ebonyi", zone: "SE", sec: .4, issue: "roads" }, () => .1);
+    assert.ok(o.title && o.line && o.zone > 0 && o.img, p.id); assert.match(o.paper[0], /EBONYI/); }
+  assert.ok(V.stateVisitOutcome("inspect", { state: "Kano" }, () => .1).found);
+  assert.ok(!V.stateVisitOutcome("inspect", { state: "Kano" }, () => .9).found);
+  assert.ok(V.stateVisitOutcome("security", { state: "Borno", sec: .3 }).fx.sec > V.stateVisitOutcome("security", { state: "Lagos", sec: .6 }).fx.sec, "the front matters more");
+});

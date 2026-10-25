@@ -7252,6 +7252,32 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/scenes/" + (R.ok ? "president-meets-governor" : "aso-rock-arrival") + ".webp"), 300);
       } } }); } catch (e) {} }, 300);
   };
+  /* The President's visits to the states (SYS.stateVisitOutcome): up to two a year, any state. */
+  const [stateVisit, setStateVisit] = useState(null); // null | { st: the state picked }
+  const stateVisitsLeft = () => SYS.STATE_VISITS_A_YEAR - ((stc.stateVisits && stc.stateVisits.turn === turn) ? stc.stateVisits.list.length : 0);
+  const visitState = (st, purposeId) => {
+    setStateVisit(null); if (!NAT || stateVisitsLeft() <= 0 || !STATES[st]) return;
+    const S = STATES[st], label = stateLabel(st), zi = NATION_ZONE_IDS.indexOf(S.zone);
+    const R = SYS.stateVisitOutcome(purposeId, { state: label, zone: S.zone, sec: S.sec, issue: (S.issues || [])[0], north: NORTH_ZONES.includes(S.zone) }, rng(hashStr("sv" + turn + st + purposeId)));
+    setStc(p => { const v = p.stateVisits && p.stateVisits.turn === turn ? p.stateVisits : { turn, list: [] }; return { ...p, stateVisits: { turn, list: [...v.list, st] } }; });
+    noteTrip(); track("state_visit", purposeId);
+    try {
+      window.SOP_outcome({ flight: { dir: "out", right: label, left: "Abuja" } });
+      window.SOP_outcome({ icon: "🛬", img: "./art/scenes/presidential-jet.webp", title: "The President lands in " + label, text: purposeId === "inspect" ? "Nobody was told. The motorcade leaves the airport before the governor's people can phone ahead." : "The governor and a crowd meet you on the tarmac; the drummers have been here since dawn.", ok: "Go" });
+    } catch (e) {}
+    setTimeout(() => {
+      scFx(R.fx);
+      if (zi >= 0) setS(p => { const zm = { ...(p.zoneMood || {}) }; zm[zi] = Math.max(-25, Math.min(25, (zm[zi] || 0) + R.zone)); return { ...p, zoneMood: zm }; });
+      addL("🛬 The President visited " + label + ": " + R.title.charAt(0).toLowerCase() + R.title.slice(1) + ".", "success");
+      scWiki("Presidency", "Visited " + label + " State: " + R.title.charAt(0).toLowerCase() + R.title.slice(1) + ". " + R.line);
+      try {
+        window.SOP_outcome({ icon: R.found ? "🔎" : "🇳🇬", img: "./art/" + R.img + ".webp", title: R.title, text: R.line, tone: "good",
+          rows: [{ l: "The " + ({ NW: "North-West", NE: "North-East", NC: "North-Central", SW: "South-West", SE: "South-East", SS: "South-South" }[S.zone] || S.zone), v: "+" + R.zone, good: true }].concat(R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : [], R.fx.sec ? [{ l: "Security", v: "up", good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], R.fx.cor ? [{ l: "Corruption", v: "down", good: true }] : []) });
+        window.SOP_outcome({ flight: { dir: "home", right: label, left: "Abuja" } });
+      } catch (e) {}
+      setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + R.img + ".webp"), 300);
+    }, 400);
+  };
   const projDelivered = (p) => {
     // Money approved but not spent comes back to the treasury, by letter from Finance.
     const leftM = Math.round((p.approvedM || 0) - (p.spentM || 0));
@@ -9983,6 +10009,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <span className="ds-chip" style={{ color: p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red, background: (p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red) + "12", marginTop: 6, display: "inline-block" }}>{p >= .55 ? "Likely" : p >= .35 ? "Even chance" : "Unlikely"}</span>
             </button>; })}</div>
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setVisitOpen(false)} style={{ width: "100%" }}>Not this year</Bt></div>
+          </Cd>}
+        </OL>
+        {nav === "gov" && !needSetup && NAT && stateVisitsLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+          <Ico n="trip-jet" s={TALL() ? 52 : 68} />
+          <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit a state</b>
+            <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Any state, announced or by surprise. {stateVisitsLeft()} {stateVisitsLeft() === 1 ? "visit" : "visits"} left this year.</div></div>
+          <Bt onClick={() => setStateVisit({ st: "" })} style={{ whiteSpace: "nowrap" }}>🛬 Plan it</Bt>
+        </div>}
+        <OL show={!!stateVisit}>
+          {stateVisit && <Cd style={{ maxWidth: 760 }}>
+            <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TALL() ? TS(28) : TS(44), margin: "0 0 8px" }}>🛬 Visit a state</h3>
+            <label style={{ display: "block", fontSize: TALL() ? TS(17) : TS(24), color: CL.td, marginBottom: 6 }} htmlFor="sv-state">Which state?</label>
+            <select id="sv-state" value={stateVisit.st} onChange={e => setStateVisit({ st: e.target.value })} style={{ width: "100%", minHeight: 48, borderRadius: 12, border: "1px solid " + CL.bdr, padding: "8px 12px", fontFamily: F.b, fontSize: TALL() ? TS(19) : TS(26), marginBottom: 12, background: "#fff" }}>
+              <option value="">Choose a state…</option>
+              {Object.keys(STATES).filter(k => k !== NATION && STATES[k] && STATES[k].zone).sort((a, b) => stateLabel(a).localeCompare(stateLabel(b))).map(k => <option key={k} value={k}>{stateLabel(k)}{(stc.stateVisits && stc.stateVisits.turn === turn && stc.stateVisits.list.includes(k)) ? " (visited this year)" : ""}</option>)}
+            </select>
+            {stateVisit.st && <div style={{ display: "grid", gap: 8 }}>{SYS.STATE_VISIT_PURPOSES.map(pp => <button key={pp.id} className="ds-option" onClick={() => visitState(stateVisit.st, pp.id)} style={{ textAlign: "left" }}>
+              <b style={{ display: "block" }}>{pp.l}</b><span className="ds-option-note" style={{ display: "block" }}>{pp.d}</span>
+            </button>)}</div>}
+            <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setStateVisit(null)} style={{ width: "100%" }}>Not now</Bt></div>
           </Cd>}
         </OL>
         {nav === "gov" && !needSetup && NAT && stc.pres && <PowerCentres P={stc.pres} />}
