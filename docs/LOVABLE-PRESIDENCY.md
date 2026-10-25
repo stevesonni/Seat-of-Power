@@ -255,3 +255,26 @@ The war country now changes from game to game: Bakunda (General Voko), Kasongo, 
 3. `general-tazrit` (Saharia): a tall desert general in his fifties, khaki uniform with a pale blue tagelmust scarf wound loosely around his neck and shoulders, a neat grey beard.
 
 > **Delivered: Pack 21**, all 9 portraits: each general on his own country's cards: angry at sanctions and the expulsion, pleased when Abuja keeps a quiet channel, calm at secret talks and the surrender.
+
+---
+
+# Pack 22: the ribbon and the road to Aso Rock
+
+Two new moments for governors. When a project is finished there is now a ribbon-cutting ceremony, and the front page credits whoever built it ("KESTREL DELIVERS: Governor Sonni unveils new road"). Once a year a governor can fly to Abuja and see the President at Aso Rock with one request. These pictures make both feel real. Everything fictional: no real faces, no real logos or state crests; green-white-green is fine. The governor's face changes from player to player, so **never show the governor's face**: hands, backs and silhouettes only. One zip, files named exactly.
+
+## Scenes (`scenes/`), 1280×720, no text
+1. `ribbon-road`: a new dual carriageway at the moment of opening: a green-and-white ribbon across the road, a crowd behind barriers, a brass band, bunting, a red carpet to the ribbon; seen from behind the crowd.
+2. `ribbon-hospital`: the gates of a new general hospital, ribbon across the entrance, nurses in white lining the steps, a crowd waving.
+3. `ribbon-school`: a new two-storey school, pupils in uniform waving small green-white-green flags, ribbon at the gate.
+4. `ribbon-bridge`: a new bridge over a river, ribbon at the near end, canoes on the water, crowd on the bank.
+5. `ribbon-water`: a new water scheme: a tall tank on a tower and a row of taps running, women and children with buckets, ribbon across the taps.
+6. `ribbon-market`: a new modern market with stalls under a long roof, traders cheering, ribbon at the main gate.
+7. `ribbon-cut`: close-up of two hands in agbada sleeves cutting a green ribbon with huge gold ceremonial scissors, confetti in the air, the crowd blurred behind.
+8. `aso-rock-arrival`: a governor's black convoy pulling up at the gates of a grand presidential villa at dusk, guards saluting, flags on the cars (no real crest).
+9. `president-meets-governor`: in a presidential office, the President behind a big desk listening; a governor seen only from behind in the foreground, gesturing.
+
+## Object (`objects/`), transparent, about 1000 px
+10. `ceremonial-scissors`: huge gold ceremonial scissors with a green ribbon bow tied on one handle.
+
+## Icon (`icons/`), 256×256, transparent, round with a thin gold rim, readable at 60 px
+11. `icon-visit-president`: a stylised presidential villa with a dome and a green-white-green flag, for the "Visit the President" card.

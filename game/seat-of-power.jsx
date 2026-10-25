@@ -7223,6 +7223,28 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       learn: "Investors read a state's record before they commit: finished projects, honest contracts, security and public support. Money stolen from a project costs far more in investment that never comes." }); } catch (e) {}
     setTimeout(() => postMail(inv.map(x => letterOf("investor_come", { key: "investor_" + p.id + "_" + x.firm.id, live: true, kind: "investment", stakes: 1, lines: x.lines, tip: [x.firm.head + ", " + x.firm.nm + " " + x.firm.flag, "./art/characters/investor-foreign.webp", x.ok ? p.title + " brought us to " + stName : "We came to see " + p.title, x.ok ? "We are coming to build." : "Not yet."] }))), 900);
   };
+  /* The visit to Aso Rock (SYS.visits): once a year a governor flies to Abuja with one request. */
+  const [visitOpen, setVisitOpen] = useState(false);
+  const visitPresident = (ask) => {
+    setVisitOpen(false); if (NAT || stc.visitYear === turn) return;
+    setStc(p => ({ ...p, visitYear: turn })); track("visit_president", ask.id);
+    try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Abuja", left: stName } }); } catch (e) {}
+    const R = SYS.visitOutcome(ask, { fg: fgRelation, app: s.app, cor: s.cor, revB: SYS.revenueB(s) }, rng(hashStr("visit" + turn + pName)));
+    setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/the-president.webp", bg: "./art/backgrounds/villa-office.webp", name: "The President · Aso Rock Villa", text: "Governor " + String(pName || "").split(" ").pop() + ", welcome to the Villa. What brings you to Abuja?", ok: "Ask for " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1),
+      fn: () => {
+        scFx(R.fx); if (R.cashB) setS(x => ({ ...x, cash: Math.round(((x.cash || 0) + R.cashB) * 100) / 100 }));
+        setFgRelation(f => Math.min(100, f + R.fg));
+        addL((R.ok ? "🇳🇬 Aso Rock: the President granted " : "🇳🇬 Aso Rock: the President would not commit to ") + ask.l.charAt(0).toLowerCase() + ask.l.slice(1) + ".", R.ok ? "success" : "political");
+        scWiki("Governorship", "Visited the President at Aso Rock to ask for " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1) + (R.ok ? "; the President agreed." : "; the President made no promise."));
+        try {
+          window.SOP_outcome({ present: { img: "./art/characters/the-president-" + (R.ok ? "pleased" : "angry") + ".webp", bg: "./art/backgrounds/villa-office.webp", name: "The President · Aso Rock Villa", text: R.line, ok: "Fly home" } });
+          window.SOP_outcome({ flight: { dir: "home", right: "Abuja", left: stName } });
+          window.SOP_outcome({ icon: R.ok ? "🤝" : "🧳", img: "./art/backgrounds/villa-office.webp", title: R.ok ? "The President said yes" : "The President made no promise", text: R.line, tone: R.ok ? "good" : "neutral",
+            rows: [{ l: "Standing with Abuja", v: "+" + R.fg, good: true }].concat(R.cashB ? [{ l: "Refund paid", v: "+" + naira(R.cashB), good: true }] : [], R.fx.infra ? [{ l: "Federal road", v: "In the federal budget", good: true }] : [], R.fx.sec ? [{ l: "Security", v: "+" + Math.round(R.fx.sec * 100), good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : []) });
+        } catch (e) {}
+        setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/backgrounds/villa-office.webp"), 300);
+      } } }); } catch (e) {} }, 300);
+  };
   const projDelivered = (p) => {
     // Money approved but not spent comes back to the treasury, by letter from Finance.
     const leftM = Math.round((p.approvedM || 0) - (p.spentM || 0));
@@ -7245,7 +7267,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     setS(x => ({ ...x, [k]: k === "igr" ? (x.igr || 0) + gain : cl(x[k] + gain) }));
     welcomeInvestors(p);
-    paper(govShort + " Opens " + p.title, p.leakage > .2 ? "Money went missing on the way" : "Built by " + (p.contractor || "the contractor"), !(p.leakage > .2), NAT ? "./art/scenes/federal-project-commissioning.webp" : "./art/backgrounds/project-ribbon-cutting.webp");
+    // The ribbon: the crowd is waiting; you cut it, and the front page credits whoever delivered (SYS.ribbonHeadline).
+    const RH = SYS.ribbonHeadline({ contractor: p.contractor, who: (NAT ? "President " : "Governor ") + String(pName || "").split(" ").pop(), what: (SYS.UNIT[p.type] || {}).nm || p.title, leakage: p.leakage || 0 });
+    const ribbonImg = NAT ? "./art/scenes/federal-project-commissioning.webp" : "./art/backgrounds/project-ribbon-cutting.webp";
+    try { window.SOP_outcome({ icon: "✂️", img: ribbonImg, title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" }); } catch (e) {}
+    paper(RH.h, RH.sub, RH.good, ribbonImg);
   };
   // ── FINANCING A PROJECT ──
   // Every capital project needs money from somewhere. Each source has its own
@@ -9931,6 +9957,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {saBrief.urgent && !/^Balance the Appropriation|^Allegation in /.test(saBrief.title) && saLater !== saBrief.title + "|" + turn && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaLater(saBrief.title + "|" + turn)} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </div>}
 
+        {nav === "gov" && !needSetup && !NAT && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+          <img src="./art/characters/the-president.webp" alt="The President" style={{ width: TALL() ? 48 : 64, height: TALL() ? 48 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+          <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit the President at Aso Rock</b>
+            <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Once a year: fly to Abuja with one request. Your standing with Abuja: {Math.round(fgRelation)}/100.</div></div>
+          <Bt onClick={() => setVisitOpen(true)} style={{ whiteSpace: "nowrap" }}>✈️ Plan it</Bt>
+        </div>}
+        <OL show={visitOpen}>
+          {visitOpen && <Cd style={{ maxWidth: 760 }}>
+            <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TALL() ? TS(28) : TS(44), margin: "0 0 4px" }}>✈️ To Aso Rock</h3>
+            <div style={{ fontSize: TALL() ? TS(17) : TS(24), color: CL.td, marginBottom: 12 }}>One request. The better your standing with Abuja ({Math.round(fgRelation)}/100), the likelier a yes.</div>
+            <div style={{ display: "grid", gap: 8 }}>{SYS.VISIT_ASKS.map(a => { const p = SYS.visitOdds(a, { fg: fgRelation, app: s.app, cor: s.cor }); return <button key={a.id} className="ds-option" onClick={() => visitPresident(a)} style={{ textAlign: "left" }}>
+              <b style={{ display: "block" }}>{a.l}</b><span className="ds-option-note" style={{ display: "block" }}>{a.d}</span>
+              <span className="ds-chip" style={{ color: p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red, background: (p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red) + "12", marginTop: 6, display: "inline-block" }}>{p >= .55 ? "Likely" : p >= .35 ? "Even chance" : "Unlikely"}</span>
+            </button>; })}</div>
+            <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setVisitOpen(false)} style={{ width: "100%" }}>Not this year</Bt></div>
+          </Cd>}
+        </OL>
         {nav === "gov" && !needSetup && NAT && stc.pres && <PowerCentres P={stc.pres} />}
         {nav === "gov" && !needSetup && NAT && stc.fronts && <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", margin: "0 0 12px" }}>
           <b style={{ display: "block", fontSize: TALL() ? TS(18) : TS(26), marginBottom: 6 }}>🛡️ Security fronts</b>
