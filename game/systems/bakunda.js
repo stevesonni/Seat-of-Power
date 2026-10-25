@@ -87,7 +87,7 @@ export const BAKUNDA_PRESSURE = [
     opts: [{ id: "lead", l: "Draft and lead the embargo", cost: 1, add: { progress: 12 }, fx: { app: 1 }, paper: ["UN ARMS EMBARGO ON THE AXIS, LED BY NIGERIA", "Ostrava's weapons cut off", true] },
       { id: "abstain", l: "Let others lead", add: { progress: 2 }, paper: ["NIGERIA SITS OUT UN EMBARGO VOTE", "Allies ask where Abuja stands", false] }] },
   { id: "talks", t: "General Voko offers secret talks", d: "Through Chad, General Voko offers secret talks: he wants to keep his rank if he steps aside.", advice: "Talk, but promise nothing. A general who asks for terms is a general who is losing.",
-    opts: [{ id: "talk", l: "Open secret talks through Chad", add: { progress: 15 }, fx: { app: -1 }, paper: ["SECRET TALKS WITH THE JUNTA, SOURCES SAY", "Abuja tests General Voko's offer", true] },
+    opts: [{ id: "talk", l: "Open secret talks through Chad", img: "characters/general-voko", add: { progress: 15 }, fx: { app: -1 }, paper: ["SECRET TALKS WITH THE JUNTA, SOURCES SAY", "Abuja tests General Voko's offer", true] },
       { id: "refuse", l: "Refuse to talk to a coup leader", add: { progress: 4 }, fx: { app: 1 }, paper: ["“NO TALKS WITH COUP PLOTTERS”", "The President rejects Voko's offer", false] }] },
 ];
 
@@ -95,11 +95,11 @@ export const BAKUNDA_PRESSURE = [
    people and capital differ. The text is written with "Bakunda"; bkName
    swaps it for this game's country. All four are fictional. */
 export const BAKUNDA_COUNTRIES = {
-  // gen: the junta's general; art: his portrait (null until Lovable paints him: the coup scene stands in).
+  // gen: the junta's general; art: his portrait (with -pleased and -angry).
   bakunda: { nm: "Bakunda", adj: "Bakundan", cap: "Kassara City", gen: "Voko", art: "general-voko" },
-  kasongo: { nm: "Kasongo", adj: "Kasongan", cap: "Port Lukeni", gen: "Kalembe", art: null },
-  angova: { nm: "Angova", adj: "Angovan", cap: "Novara", gen: "Dravo", art: null },
-  saharia: { nm: "Saharia", adj: "Saharian", cap: "Tamzar", gen: "Tazrit", art: null },
+  kasongo: { nm: "Kasongo", adj: "Kasongan", cap: "Port Lukeni", gen: "Kalembe", art: "general-kalembe" },
+  angova: { nm: "Angova", adj: "Angovan", cap: "Novara", gen: "Dravo", art: "general-dravo" },
+  saharia: { nm: "Saharia", adj: "Saharian", cap: "Tamzar", gen: "Tazrit", art: "general-tazrit" },
 };
 const hash = (x) => { let h = 7; for (const ch of String(x)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
 export const bkCountry = (B) => BAKUNDA_COUNTRIES[(B && B.country) || "bakunda"] || BAKUNDA_COUNTRIES.bakunda;
@@ -156,8 +156,8 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
     decide({ id: "bk2b", kind: "card", kicker: "Bakunda · The embassy", t: "The junta expels our ambassador", scene: "bakunda-coup", learn: "foreign",
       d: "General Voko has given Nigeria's ambassador 48 hours to leave, and his soldiers have taken the embassy's cars.",
       advice: "Answer in kind, and hit their money. A junta respects only strength.",
-      opts: [{ id: "expel", l: "Expel their envoy and freeze the junta's accounts", fx: { app: 2 }, npc: { army: 2 }, add: { progress: 3 }, paper: ["NIGERIA EXPELS BAKUNDA'S ENVOY", "The junta's accounts frozen in retaliation", true], paperImg: "bakunda-coup", say: "Good. Now they know we are not afraid of them." },
-        { id: "channel", l: "Keep a quiet channel open through Chad", fx: { app: -1 }, npc: { army: -2 }, add: { progress: 1 }, paper: ["ABUJA STAYS QUIET AS AMBASSADOR IS EXPELLED", "The President keeps a back channel open", false], paperImg: "bakunda-coup", say: "A channel may help later. Today it looks like weakness." }] });
+      opts: [{ id: "expel", l: "Expel their envoy and freeze the junta's accounts", fx: { app: 2 }, npc: { army: 2 }, add: { progress: 3 }, img: "characters/general-voko-angry", paper: ["NIGERIA EXPELS BAKUNDA'S ENVOY", "The junta's accounts frozen in retaliation", true], paperImg: "bakunda-coup", say: "Good. Now they know we are not afraid of them." },
+        { id: "channel", l: "Keep a quiet channel open through Chad", fx: { app: -1 }, npc: { army: -2 }, add: { progress: 1 }, img: "characters/general-voko-pleased", paper: ["ABUJA STAYS QUIET AS AMBASSADOR IS EXPELLED", "The President keeps a back channel open", false], paperImg: "bakunda-coup", say: "A channel may help later. Today it looks like weakness." }] });
   }
   if (B.stage === 2 && turn >= 3) {
     decide({ id: "bk3", kind: "document", kicker: "WAR", t: "Resolution of the National Assembly: a state of war with the Bakunda–Ostrava Axis", news: NEWS.bk3, learn: "war", alarm: "there has been a grave development: the junta has signed a pact with Ostrava, and the National Assembly has passed a resolution for war. It is on its way to you", advice: B.ready ? "The troops are already north and ready. If you sign, we move within the week." : "If you sign, we go to war. The men are willing. Make sure the country is.",
@@ -214,7 +214,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
   // The junta surrenders: the signing in Geneva is the year's trip.
   if (B.stage === 3 && B.progress >= 100) out.push({ id: "bk7", kind: "letter", letter: "bk_surrender", kicker: "Peace", t: "Bakunda surrenders", news: NEWS.peace, learn: "treaty", alarm: "grave news, and good: the junta has suffered defeat after defeat, and General Voko has offered to surrender",
     opts: [{ id: "go", l: "Attend in person", cost: 5, fx: { app: 4 }, set: { stage: 4 }, flight: true, dest: "signing", paper: ["BAKUNDA SURRENDERS!", "The UN hosts the signing of the peace treaty in Geneva", true], paperImg: "peace-signing", img: "scenes/peace-signing" },
-      { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 1 }, set: { stage: 4 }, paper: ["BAKUNDA SURRENDERS!", "Nigeria's Foreign Minister signs the treaty in Geneva", true], paperImg: "peace-signing", img: "scenes/peace-signing" }] });
+      { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 1 }, set: { stage: 4 }, paper: ["BAKUNDA SURRENDERS!", "Nigeria's Foreign Minister signs the treaty in Geneva", true], paperImg: "peace-signing", img: "characters/general-voko" }] });
   // The peace treaty goes to the National Assembly.
   if (B.stage === 4 && !B.treaty) decide({ id: "bk8", kind: "document", kicker: "PEACE TREATY", t: "The Peace Treaty with Bakunda and Ostrava", learn: "treaty", alarm: "the peace treaty is signed. It now needs the National Assembly before it is law", advice: nass >= 35 ? "The Senate is with us. Send it." : "The Senate is cool on you. Court them first, or it will stall.",
     d: "This treaty marks the official end of the state of war between Nigeria and the Bakunda–Ostrava Axis. All further acts of military force, on the ground, in the air or on the water, are prohibited. The junta hands over to a transitional government, and Ostrava withdraws. From this day the parties pledge to keep the peace of West Africa.",

@@ -154,6 +154,15 @@ test("each country has its own general: Voko for Bakunda, Kalembe, Dravo and Taz
     const c = bakundaCards(B, 2)[0], txt = JSON.stringify(c).replace(/\u2060/g, "") + JSON.stringify(M.bkNames(TRIP_LETTERS.bk_surrender, B));
     assert.ok(txt.includes("General " + C.gen) && !/Voko|VOKO/.test(txt), k + ": General " + C.gen);
     assert.ok(!/general-voko/.test(txt), k + ": never Voko's face");
+    assert.ok(txt.includes("characters/" + C.art + "-angry"), k + ": his own face, angry at the sanctions");
   }
   assert.equal(new Set(Object.values(M.BAKUNDA_COUNTRIES).map(C => C.gen)).size, 4);
+});
+test("every junta general's portrait, in all three moods, is used and exists", async () => {
+  const fs = await import("node:fs"), M = await import("../game/systems/bakunda.js");
+  const src = fs.readFileSync(new URL("../game/systems/bakunda.js", import.meta.url), "utf8");
+  ["general-voko", "general-voko-pleased", "general-voko-angry"].forEach(f => assert.ok(src.includes('"characters/' + f + '"'), f + " is used"));
+  for (const C of Object.values(M.BAKUNDA_COUNTRIES)) for (const m of ["", "-pleased", "-angry"]) assert.ok(fs.existsSync(new URL("../public/art/characters/" + C.art + m + ".webp", import.meta.url)), C.art + m);
+  const B = { ...bakundaInit("x"), country: "angova", stage: 1 }, b2 = bakundaCards(B, 2), all = JSON.stringify(b2);
+  assert.ok(all.includes("characters/general-dravo-angry") && all.includes("characters/general-dravo-pleased"));
 });

@@ -254,4 +254,4 @@ The war country now changes from game to game: Bakunda (General Voko), Kasongo, 
 2. `general-dravo` (Angova): a lean general in his forties, sand-coloured combat uniform with sleeves rolled, red beret, aviator sunglasses pushed up on his head.
 3. `general-tazrit` (Saharia): a tall desert general in his fifties, khaki uniform with a pale blue tagelmust scarf wound loosely around his neck and shoulders, a neat grey beard.
 
-Until they arrive, the coup scene stands in for them; Voko's face is never used for another general.
+> **Delivered: Pack 21**, all 9 portraits: each general on his own country's cards: angry at sanctions and the expulsion, pleased when Abuja keeps a quiet channel, calm at secret talks and the surrender.
