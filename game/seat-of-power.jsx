@@ -4885,24 +4885,6 @@ const Inauguration = ({ name, vp, onDone }) => {
   </div>;
 };
 
-/* The Villa's dashboard: the five people who matter and the crisis. */
-const PowerCentres = ({ P }) => {
-  const tall = TALL(), C = P.crisis && SYS.PRES_CRISES[P.crisis], tone = (v) => v >= 60 ? "#2fa866" : v >= 35 ? "#d9a21b" : "#e0574c";
-  return <div style={{ maxWidth: tall ? 900 : 1320, margin: tall ? "0 0 14px" : "0 auto 18px", background: "linear-gradient(135deg, #fffaf0, #f7efd9)", border: "2px solid #c9a227", borderRadius: 18, padding: tall ? "12px 14px" : "16px 20px" }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-      <b style={{ fontFamily: F.d, fontSize: tall ? TS(24) : TS(38), color: CL.txt }}>🦅 The power centres</b>
-      {C && <span style={{ fontSize: tall ? TS(16) : TS(24), fontWeight: 800, color: P.over ? CL.grn : tone(100 - P.sev) }}>{P.over ? "✓ " + C.nm + " is over" : "🚨 " + C.nm + ": " + P.sev + "/100"}</span>}
-    </div>
-    <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(5, 1fr)", gap: 8 }}>{Object.entries(P.npcs || {}).map(([k, n]) => <div key={k} style={{ display: "grid", gridTemplateColumns: "40px 1fr", gap: 8, alignItems: "center", background: "#fff", borderRadius: 12, padding: "6px 10px", border: "1px solid " + CL.bdr }}>
-      <span style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", background: "#efe3c6" }}><img src={"./art/characters/" + SYS.NPC_ART[k] + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} /></span>
-      <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: tall ? TS(15) : TS(20), whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{n.name}</b>
-        <span style={{ fontSize: tall ? TS(13) : TS(16), color: CL.td }}>{SYS.PRES_NPCS[k].role}</span>
-        <span style={{ display: "block", height: 5, borderRadius: 3, background: CL.bdr, marginTop: 3, overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: n.rel + "%", background: tone(n.rel) }} /></span></span>
-    </div>)}</div>
-    {(P.commits || []).length > 0 && <div style={{ fontSize: tall ? TS(14) : TS(19), color: CL.td, marginTop: 8 }}>🎯 {P.commits.map(k => SYS.PRES_COMMITS[k].l + " " + Math.min(SYS.COMMIT_NEED, (P.adv || {})[k] || 0) + "/" + SYS.COMMIT_NEED).join(" · ")}</div>}
-  </div>;
-};
-
 /* While the player is president, every line on screen reads in the
    president's words (SYS.presidentWords) and the governor's rooms become the
    Villa's (SYS.VILLA_ART). One observer over the page covers the game, the
@@ -10247,7 +10229,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setStateVisit(null)} style={{ width: "100%" }}>Not now</Bt></div>
           </Cd>}
         </OL>
-        {nav === "gov" && !needSetup && NAT && stc.pres && <PowerCentres P={stc.pres} />}
         {nav === "gov" && !needSetup && NAT && stc.fronts && <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", margin: "0 0 12px" }}>
           <b style={{ display: "block", fontSize: TALL() ? TS(18) : TS(26), marginBottom: 6 }}>🛡️ Security fronts</b>
           {Object.entries(SYS.FRONTS).map(([k, F0]) => { const v = Math.round(stc.fronts[k] || 0), col = v >= 70 ? CL.red : v >= 50 ? CL.org : CL.grn; return <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr 46px", gap: 8, alignItems: "center", margin: "4px 0" }}>
