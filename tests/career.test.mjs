@@ -23,3 +23,10 @@ test("senate records do not count as governorships on the map or for badges", as
   assert.deepEqual(cm(L), {});
   assert.equal(cb(L).filter(b => b.got).length, 0);
 });
+test("the Junketer: ten official trips across your games", async () => {
+  const C = await import("../game/systems/career.js");
+  const j = (trips) => C.careerBadges([], () => null, { trips }).find(b => b.id === "junketer");
+  assert.equal(j(9).got, false); assert.equal(j(C.JUNKET_TRIPS).got, true);
+  assert.ok(C.BADGE_PERKS.junketer && C.BADGE_PERKS.junketer.fx.fg > 0);
+  assert.equal(C.careerBadges([]).find(b => b.id === "junketer").got, false, "older callers without stats still work");
+});

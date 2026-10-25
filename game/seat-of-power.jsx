@@ -2560,6 +2560,9 @@ const StreakSheet = ({ st, onClose }) => {
 
 // Your career: the map of states you have governed, and the badges earned.
 const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", peacemaker: "badge-peacemaker", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
+// Every official trip, across every game (governor and President): the Junketer badge and the career stats.
+const tripsTotal = () => { try { return +localStorage.getItem("sop_trips") || 0; } catch (e) { return 0; } };
+const noteTripTotal = () => { try { localStorage.setItem("sop_trips", String(tripsTotal() + 1)); } catch (e) {} };
 const GRADE_COL = { A: "#1f7a46", B: "#5aa04a", C: "#d9a521", D: "#e07b39", F: "#b3261e" };
 // ── YOUR COMPANY (the company_registration product, ₦1,500) ──
 // A contractor of the player's own, in one sector, that every player sees as
@@ -2629,11 +2632,11 @@ const playTimeText = (sec) => { const m = Math.floor(sec / 60); return m < 60 ? 
 const CareerSheet = ({ onClose }) => {
   const [list, setList] = useState(null), [sel, setSel] = useState(null), playSec = (() => { try { return window.SOP_playTime ? window.SOP_playTime() : 0; } catch (e) { return 0; } })();
   useEffect(() => { (async () => { try { const r = await window.storage.get("sop_career"); setList(r && r.value ? JSON.parse(r.value) : []); } catch (e) { setList([]); } })(); }, []);
-  const L = list || [], m = SYS.careerMap(L), badges = SYS.careerBadges(L, (k) => STATES[k] && STATES[k].zone), got = badges.filter(b => b.got).length;
+  const L = list || [], m = SYS.careerMap(L), trips = tripsTotal(), badges = SYS.careerBadges(L, (k) => STATES[k] && STATES[k].zone, { trips }), got = badges.filter(b => b.got).length;
   const tall = TALL(), cell = tall ? 40 : 58;
   return <EntranceSheet title="Your career" onClose={onClose}>
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
-      {[[Object.keys(m).length + " / 37", "states governed"], [SYS.governorships(L).length, SYS.governorships(L).length === 1 ? "governorship" : "governorships"], [playSec >= 60 ? playTimeText(playSec) : "–", "time played"]].map(([v, l]) => <div key={l} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 14, padding: "8px 10px", textAlign: "center" }}>
+    <div style={{ display: "grid", gridTemplateColumns: tall ? "repeat(2, 1fr)" : "repeat(4, 1fr)", gap: 8, marginBottom: 10 }}>
+      {[[Object.keys(m).length + " / 37", "states governed"], [SYS.governorships(L).length, SYS.governorships(L).length === 1 ? "governorship" : "governorships"], ["✈️ " + trips, trips === 1 ? "trip taken" : "trips taken"], [playSec >= 60 ? playTimeText(playSec) : "–", "time played"]].map(([v, l]) => <div key={l} style={{ background: "#fff", border: "1px solid " + UI.line, borderRadius: 14, padding: "8px 10px", textAlign: "center" }}>
         <b style={{ display: "block", fontFamily: F.d, fontSize: DS.t.title || 22, color: UI.ink, lineHeight: 1.1 }}>{v}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{l}</span>
       </div>)}
     </div>
@@ -2650,7 +2653,8 @@ const CareerSheet = ({ onClose }) => {
     <div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 8 }}>Each badge is an honour: carry one into every new campaign for a head start.</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(" + (tall ? 140 : 180) + "px,1fr))", gap: 8 }}>
       {badges.map(b => <div key={b.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8, alignItems: "center", padding: "8px 10px", borderRadius: 14, background: b.got ? "#fff7df" : "#f3f1ec", border: "1px solid " + (b.got ? "#e9cf8a" : UI.line), opacity: b.got ? 1 : .7 }}>
-        <img src={"./art/badges/" + BADGE_ART[b.id] + ".webp"} alt="" style={{ width: tall ? 40 : 48, height: tall ? 40 : 48, objectFit: "contain", filter: b.got ? "drop-shadow(0 3px 4px rgba(0,0,0,.2))" : "grayscale(1) opacity(.45)" }} />
+        {BADGE_ART[b.id] ? <img src={"./art/badges/" + BADGE_ART[b.id] + ".webp"} alt="" style={{ width: tall ? 40 : 48, height: tall ? 40 : 48, objectFit: "contain", filter: b.got ? "drop-shadow(0 3px 4px rgba(0,0,0,.2))" : "grayscale(1) opacity(.45)" }} />
+          : <span aria-hidden="true" style={{ width: tall ? 40 : 48, height: tall ? 40 : 48, display: "grid", placeItems: "center", fontSize: tall ? 26 : 32, filter: b.got ? "none" : "grayscale(1) opacity(.45)" }}>{b.icon}</span>}
         <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.meta, color: UI.ink }}>{b.name}</b><span style={{ fontSize: 12, color: UI.sub, lineHeight: 1.3 }}>{b.how}</span>{SYS.BADGE_PERKS[b.id] && <span style={{ display: "block", fontSize: 12, fontWeight: 800, color: b.got ? "#0b6b42" : UI.dim, marginTop: 2 }}>{b.got ? "🎁 " : "🔒 "}{SYS.BADGE_PERKS[b.id].text}</span>}</span>
       </div>)}
     </div>
@@ -2758,7 +2762,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
             ["icon-politician", "Careers", "LGA Chairman, Governor, Senator, Ambassador, and the road to Aso Rock", () => setSheet("careers")],
-            ["icon-state", "Your career map", "States governed, badges and time played", () => setSheet("career")],
+            ["icon-state", "Your career map", "States governed, badges, trips and time played", () => setSheet("career")],
             ["seal-projects", "Your company", "Register a contractor every player sees · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500"), () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "Two minutes to learn the basics", () => { setSheet(null); onHelp(); }],
@@ -3094,7 +3098,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   const [homeLga, setHomeLga] = useState(null); // the local government you come from, inside that district
   // Badges earned in earlier careers: carry one honour into this campaign.
   const [earned, setEarned] = useState([]), [legacy, setLegacy] = useState(null);
-  useEffect(() => { (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; const b = SYS.careerBadges(L, (k) => STATES[k] && STATES[k].zone).filter(x => x.got && SYS.BADGE_PERKS[x.id]); setEarned(b); if (b.length) setLegacy(b[b.length - 1].id); } catch (e) {} })(); }, []);
+  useEffect(() => { (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; const b = SYS.careerBadges(L, (k) => STATES[k] && STATES[k].zone, { trips: tripsTotal() }).filter(x => x.got && SYS.BADGE_PERKS[x.id]); setEarned(b); if (b.length) setLegacy(b[b.length - 1].id); } catch (e) {} })(); }, []);
   // Your politician says where they are from: running at home, that is your home district and LGA.
   useEffect(() => { if (!profile || !st) return; if (profile.origin === st && profile.district != null) { setHomeDistrict(profile.district); setHomeLga(profile.lga || null); } else if (homeDistrict == null) setHomeDistrict(1); }, [st]);
   const [partyDeal, setPartyDeal] = useState(null); // how you settled with the party after passing over its candidate
@@ -3537,7 +3541,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       </div>
       {earned.length > 0 && <div style={{ marginTop: 14, background: "#fff7df", border: "1px solid #e9cf8a", borderRadius: 20, padding: "12px 14px" }}>
         <b style={{ display: "block", fontSize: DS.t.label, color: UI.ink }}>🎖️ Your record goes before you: carry one honour</b>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>{earned.map(b => { const on = legacy === b.id; return <button key={b.id} onClick={() => setLegacy(on ? null : b.id)} aria-pressed={on} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px 6px 6px", minHeight: 44, borderRadius: 999, border: "1.5px solid " + (on ? UI.dark : UI.line), background: on ? UI.dark : "#fff", color: on ? "#fff" : UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.meta, cursor: "pointer" }}><img src={"./art/badges/" + BADGE_ART[b.id] + ".webp"} alt="" style={{ width: 30, height: 30 }} />{SYS.BADGE_PERKS[b.id].text}</button>; })}</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>{earned.map(b => { const on = legacy === b.id; return <button key={b.id} onClick={() => setLegacy(on ? null : b.id)} aria-pressed={on} style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px 6px 6px", minHeight: 44, borderRadius: 999, border: "1.5px solid " + (on ? UI.dark : UI.line), background: on ? UI.dark : "#fff", color: on ? "#fff" : UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.meta, cursor: "pointer" }}>{BADGE_ART[b.id] ? <img src={"./art/badges/" + BADGE_ART[b.id] + ".webp"} alt="" style={{ width: 30, height: 30 }} /> : <span aria-hidden="true" style={{ width: 30, height: 30, display: "grid", placeItems: "center", fontSize: 20 }}>{b.icon}</span>}{SYS.BADGE_PERKS[b.id].text}</button>; })}</div>
       </div>}
       {(quickUsed || firstRun) && <div style={{ marginTop: 14, background: "#fff", border: "1px solid " + UI.line, borderRadius: 20, padding: "12px 16px", fontSize: DS.t.label, color: UI.sub, lineHeight: 1.45 }}>
         {quickUsed && <div>⚡ Quick start chose <b style={{ color: UI.ink }}>{FLAGSHIP[agenda]?.nm}</b>, the <b style={{ color: UI.ink }}>{party}</b> and the party's deputy. Tap ‹ to change any of them.</div>}
@@ -5684,8 +5688,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      the Presidential Air Fleet, then the flight. */
   const nsaName = "Gen. " + gNAs(rng(state.length * 517 + pName.length * 13), "NE", NATION, false) + " (rtd.)"; // his portrait is a man
   const pilotName = "Group Captain " + gNAs(rng(state.length * 313 + pName.length * 7), "NC", NATION, false); // the pilot's portrait is a man
+  // An official trip: counted for this term and for the career (the Junketer badge).
+  const noteTrip = () => { noteTripTotal(); setStc(p => ({ ...p, trips: (p.trips || 0) + 1 })); };
   const presTrip = (dest, purpose) => {
-    const sa = cast.adviser.name;
+    const sa = cast.adviser.name; noteTrip();
     try {
       window.SOP_outcome({ present: { img: saPose(sa, "neutral") || saPortrait(sa), name: sa + " · Special Adviser", text: "Your Excellency, " + purpose + " needs you there in person. Take the letter to the Air Fleet if you want to go. Flying takes time, and your mailbox will keep filling while you are away.", ok: "Continue" } });
       window.SOP_outcome({ present: { img: "./art/characters/" + PILOT_ART + ".webp", bg: "./art/scenes/air-fleet-hangar.webp", name: pilotName + " · Presidential Air Fleet", text: "Good day, Your Excellency. You are scheduled to fly to " + dest + ". The jet is fuelled and ready for take-off. Remember that flying takes time, so take care of things before we leave. Shall we go now?", ok: "✈️ Fly now" } });
@@ -7227,7 +7233,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [visitOpen, setVisitOpen] = useState(false);
   const visitPresident = (ask) => {
     setVisitOpen(false); if (NAT || stc.visitYear === turn) return;
-    setStc(p => ({ ...p, visitYear: turn })); track("visit_president", ask.id);
+    setStc(p => ({ ...p, visitYear: turn })); track("visit_president", ask.id); noteTrip();
     try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Abuja", left: stName } }); } catch (e) {}
     const R = SYS.visitOutcome(ask, { fg: fgRelation, app: s.app, cor: s.cor, revB: SYS.revenueB(s) }, rng(hashStr("visit" + turn + pName)));
     try { window.SOP_outcome && window.SOP_outcome({ icon: "🚘", img: "./art/scenes/aso-rock-arrival.webp", title: "Aso Rock Villa", text: "Your convoy pulls up at the Villa gates. The guards salute; the President is expecting you.", ok: "Go in" }); } catch (e) {}
@@ -8997,7 +9003,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Going in person is a flight out (before the front page); coming back, a flight home.
   const fly = (dir, right, left) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, right, left } }); } catch (e) {} };
   const tripTo = React.useRef(null);
-  const goAway = (months = 4, to) => { awayRef.current = months; tripTo.current = to && to !== stName ? to : null; if (tripTo.current) fly("out", to, stName); };
+  const goAway = (months = 4, to) => { awayRef.current = months; tripTo.current = to && to !== stName ? to : null; if (tripTo.current) { fly("out", to, stName); noteTrip(); } };
   useEffect(() => {
     if (phase !== "mail") return;
     if (awayRef.current && !silentRef.current) { silentRef.current = { report: [], months: awayRef.current }; awayRef.current = false; try { document.body.classList.add("sop-silent"); } catch (e) {} }
@@ -9239,7 +9245,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
     setStc(p => ({ ...p, careerSaved: true })); track("ending", SYS.ENDING_NAME[gEnd] || gEnd); track("grade", gr); track("ending_state", state);
-    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), peace: !!(stc.bakunda && stc.bakunda.done && stc.bakunda.treaty === "enacted"), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0) } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
+    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", trips: stc.trips || 0, ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), peace: !!(stc.bakunda && stc.bakunda.done && stc.bakunda.treaty === "enacted"), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0) } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
   // The Secretariat writes: each commissioner asking to see you, and each open
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the

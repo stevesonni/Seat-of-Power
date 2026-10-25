@@ -280,3 +280,13 @@ Two new moments for governors. When a project is finished there is now a ribbon-
 
 ## Icon (`icons/`), 256×256, transparent, round with a thin gold rim, readable at 60 px
 11. `icon-visit-president`: a stylised presidential villa with a dome and a green-white-green flag, for the "Visit the President" card.
+
+---
+
+# Pack 23: the Junketer badge
+
+A new career badge for players who travel a lot in office (ten official trips: abroad, to Aso Rock, to the summits). Same style, size and gold rim as the other badges in `badges/` (for example `badge-peacemaker`), transparent background. One file:
+
+1. `badge-junketer`: a round gold medal showing the green-and-white presidential jet climbing over a small globe, with a luggage tag hanging from the rim. A little cheeky, not mocking.
+
+Until it arrives, the badge shows ✈️.

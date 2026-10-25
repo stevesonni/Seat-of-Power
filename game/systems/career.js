@@ -25,8 +25,9 @@ export const careerMap = (list) => {
   return m;
 };
 
-// Badges: { id, icon, name, how, got }.
-export const careerBadges = (list, zoneOf = () => null) => {
+// Badges: { id, icon, name, how, got }. stats: lifetime counts kept outside the list (trips).
+export const JUNKET_TRIPS = 10;
+export const careerBadges = (list, zoneOf = () => null, stats = {}) => {
   const P = (list || []).filter(c => c.office === "president");
   const L = governorships(list), states = new Set(L.map(c => c.state)), zones = new Set(L.map(c => zoneOf(c.state)).filter(Boolean));
   const B = [
@@ -44,8 +45,9 @@ export const careerBadges = (list, zoneOf = () => null) => {
     ["commander", "🎖️", "Commander-in-Chief", "As President, face down tanks near the Villa", P.some(c => c.coup)],
     ["unifier", "🤝", "Unifier", "Leave the presidency with all six zones behind you", P.some(c => c.allZones && c.ending !== "impeached")],
     ["crisis", "⛓️", "Crisis ended", "As President, end the national crisis", P.some(c => c.crisisOver)],
-    ["peacemaker", "🕊️", "Peacemaker", "As President, end the Bakunda war with a treaty", P.some(c => c.peace)],
+    ["peacemaker", "🕊️", "Peacemaker", "As President, end the regional war with a peace treaty", P.some(c => c.peace)],
     ["fallen", "⚠️", "Fallen", "Be impeached or removed (it happens)", L.some(c => c.ending === "impeached" || c.ending === "nullified")],
+    ["junketer", "✈️", "The Junketer", "Take " + JUNKET_TRIPS + " official trips: abroad, to Aso Rock and to the summits", (stats.trips || 0) >= JUNKET_TRIPS],
   ];
   return B.map(([id, icon, name, how, got]) => ({ id, icon, name, how, got: !!got }));
 };
@@ -70,4 +72,5 @@ export const BADGE_PERKS = {
   ten: { text: "Seasoned: ₦1B in the bank", fx: { cashB: 1 } },
   all: { text: "Elder statesman: approval +5, party +5", fx: { app: 5, pStab: 5 } },
   fallen: { text: "Comeback story: approval +3", fx: { app: 3 } },
+  junketer: { text: "Frequent flyer: federal relations +5", fx: { fg: 5 } },
 };
