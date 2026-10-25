@@ -922,7 +922,7 @@ const MINISTRY_CATALOGUE = [
 const band = (v) => v >= 70 ? "Strong" : v >= 50 ? "Solid" : "Weak";
 // Honours: milestones earned in office. c is a snapshot of the record.
 const HONOURS = [
-  { id: "peacemaker", i: "🕊️", art: "badge-peacemaker", nm: "Peacemaker", d: "Ended the Bakunda war with a treaty the National Assembly enacted.", ok: (c) => !!c.peace },
+  { id: "peacemaker", i: "🕊️", art: "badge-peacemaker", nm: "Peacemaker", d: "Ended a regional war with a peace treaty the National Assembly enacted.", ok: (c) => !!c.peace },
   { id: "ribbon", i: "✂️", nm: "First ribbon", d: "Delivered your first project.", ok: (c) => c.delivered >= 1 },
   { id: "builder", i: "🏗️", nm: "Master builder", d: "Delivered five projects.", ok: (c) => c.delivered >= 5 },
   { id: "listener", i: "👂", nm: "The listener", d: "Answered three community needs.", ok: (c) => c.met >= 3 },
@@ -5710,7 +5710,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const presCardFor = (it) => {
     const P = stc.pres || presInitNow(), c = SYS.presCard(P, it), [bg, who, obj, scene] = SYS.presArt(P, it, c), npc = c.who && (P.npcs || {})[c.who];
     const kicker = it.k === "crisis" ? SYS.PRES_CRISES[it.id].nm : it.k === "world" ? "The world stage" : it.k === "coup" ? "The barracks" : it.k === "callback" ? "It comes back" : npc ? SYS.PRES_NPCS[c.who].role + " · " + npc.name : "The nation";
-    return { key: "pres_" + it.k + "_" + it.id + "_" + turn, letter: it.k === "world" ? SYS.TRIP_LETTERS[c.id || it.id] : undefined, kicker, color: it.k === "crisis" || it.k === "coup" ? CL.red : it.k === "world" ? CL.blu : CL.gold, art: [bg, who, obj, scene], title: c.t, brief: c.d,
+    return { key: "pres_" + it.k + "_" + it.id + "_" + turn, letter: it.k === "world" ? SYS.bkNames(SYS.TRIP_LETTERS[c.id || it.id], stc.bakunda) : undefined, kicker, color: it.k === "crisis" || it.k === "coup" ? CL.red : it.k === "world" ? CL.blu : CL.gold, art: [bg, who, obj, scene], title: SYS.bkName(c.t, stc.bakunda), brief: SYS.bkName(c.d, stc.bakunda),
       options: c.opts.map(o => { const f0 = SYS.presFx({ ...o, risk: 0 }); return { label: o.l, chips: fxChips({ app: f0.fx.app, cor: f0.fx.cor }).concat(f0.costB > 0 ? [{ text: naira(f0.costB), color: CL.org }] : f0.costB < 0 ? [{ text: "Borrow " + naira(-f0.costB), color: CL.org }] : []).concat(o.adv ? [{ text: "🎯 " + SYS.PRES_COMMITS[o.adv].l, color: CL.grn }] : []), run: () => {
         const f = SYS.presFx(o), before = stc.pres || P;
         scFx({ app: f.fx.app, sec: f.fx.sec, cor: f.fx.cor, igr: f.fx.igr, debt: f.costB > 0 ? f.costB : 0 });
@@ -5747,9 +5747,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     } })) });
   // The Bakunda war's cards: letters, Defence Headquarters missions, the
   // Assembly's documents, and plain cards (SYS.bakundaCards).
+  const BKC = () => SYS.bkCountry(stc.bakunda); // this game's country: Bakunda, Kasongo, Angova or Saharia
   const BK_DEST = { ecowas: "Accra", chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
   const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, alarm: c.alarm, advice: c.advice, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
-    letter: c.kind === "letter" && c.letter ? SYS.TRIP_LETTERS[c.letter] : undefined,
+    letter: c.kind === "letter" && c.letter ? SYS.bkNames(SYS.TRIP_LETTERS[c.letter], stc.bakunda) : undefined,
     military: c.kind === "mission" ? { d: c.d, need: c.need } : undefined,
     doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign, stamp: c.stamp } : undefined,
     kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.kind === "mission" ? "A mission from Defence Headquarters" : c.t, brief: c.d,
@@ -5760,8 +5761,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const B0 = stc.bakunda, B1 = SYS.bakundaAfter(B0, o);
         setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, bakunda: SYS.bakundaAfter(p.bakunda || B0, o) }; });
         if (o.flight) {
-          if (c.id === "bk2") { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Bakunda", left: "Abuja" } }); window.SOP_outcome({ flight: { dir: "home", right: "Bakunda", left: "Abuja" } }); window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/" + PILOT_ART + "-pleased.webp", bg: "./art/scenes/air-fleet-hangar.webp", name: pilotName + " · Presidential Air Fleet", text: "Your Excellency, the last flight from Bakunda is down. Every Nigerian who wanted to come home is home." } }); } catch (e) {} } // the airlift: the jets go, not you
-          else if (BK_DEST[o.dest]) presTrip(BK_DEST[o.dest], o.dest === "washington" ? "the White House meeting on Bakunda" : o.dest === "signing" ? "the signing of the peace treaty" : "the meeting on Bakunda");
+          if (c.id === "bk2") { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: BKC().nm, left: "Abuja" } }); window.SOP_outcome({ flight: { dir: "home", right: BKC().nm, left: "Abuja" } }); window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/" + PILOT_ART + "-pleased.webp", bg: "./art/scenes/air-fleet-hangar.webp", name: pilotName + " · Presidential Air Fleet", text: "Your Excellency, the last flight from " + BKC().nm + " is down. Every Nigerian who wanted to come home is home." } }); } catch (e) {} } // the airlift: the jets go, not you
+          else if (BK_DEST[o.dest]) presTrip(BK_DEST[o.dest], o.dest === "washington" ? "the White House meeting on " + BKC().nm : o.dest === "signing" ? "the signing of the peace treaty" : "the meeting on " + BKC().nm);
         }
         if (o.news) setTimeout(() => anchors(o.news[0], o.news[1]), 700);
         const pp = o.paper || c.paper, pImg = o.paperImg || c.paperImg || (o.img && /^scenes\//.test(o.img) ? o.img.slice(7) : c.scene); if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], pImg ? "./art/scenes/" + pImg + ".webp" : undefined), 200);
@@ -5772,11 +5773,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (o.ally) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/us-president-pleased.webp", name: "The President of the United States", text: o.ally } }); } catch (e) {} }, 600);
         else if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-" + mood + ".webp", name: chief, text: line, urgent: wrong } }); } catch (e) {} }, 600);
         if (((o.id === "assent" && c.id === "bk3") || (o.id === "comply" && c.id === "bk3o")) && NEWS_BK.war) anchors(NEWS_BK.war[0], NEWS_BK.war[1]);
-        addL("🌍 Bakunda: " + (c.kind === "mission" ? "a mission" : c.t.replace(/⁠/g, "")) + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue || wrong ? "crisis" : "policy");
+        addL("🌍 " + BKC().nm + ": " + (c.kind === "mission" ? "a mission" : c.t.replace(/⁠/g, "")) + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue || wrong ? "crisis" : "policy");
         if (B1.done && !(B0 || {}).done && B1.treaty === "enacted") setTimeout(() => anchors(NEWS_BK.treaty[0], NEWS_BK.treaty[1]), 300);
         if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
-        else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the Bakunda–Ostrava Axis." : "Vetoed the resolution for war and answered the Bakunda–Ostrava Axis with sanctions and diplomacy.");
-        else if (c.id === "bk2") scWiki("Presidency", "Responded to General Voko's coup in Bakunda: " + o.l.toLowerCase() + ".");
+        else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the " + BKC().nm + "–Ostrava Axis." : "Vetoed the resolution for war and answered the " + BKC().nm + "–Ostrava Axis with sanctions and diplomacy.");
+        else if (c.id === "bk2") scWiki("Presidency", "Responded to General Voko's coup in " + BKC().nm + ": " + o.l.toLowerCase() + ".");
         track("bakunda_" + (c.kind === "mission" ? "mission" : c.id), o.id + (c.kind === "mission" ? (wrong ? ":wrong" : ":right") : ""));
         const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id === "bk6";
         return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
@@ -8751,7 +8752,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const bks = add.filter(l => String(l.key).startsWith("sc#pres_bk"));
     if (bks.length && NAT) {
       const cs = bks.map(l => scPending.current.find(x => "sc#" + x.key === l.key)).filter(Boolean), lead = cs.find(c => c.alarm) || cs[0], news = cs.find(c => c.news);
-      setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (lead && lead.from) || "Chief of Army Staff", text: "Your Excellency, " + ((lead && lead.alarm) || "there has been a grave development on Bakunda") + ". You will receive " + (bks.length === 1 ? "a letter" : bks.length + " letters") + " shortly, marked URGENT: BAKUNDA.", urgent: true, ok: "Continue",
+      setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (lead && lead.from) || "Chief of Army Staff", text: "Your Excellency, " + ((lead && lead.alarm) || "there has been a grave development on " + BKC().nm) + ". You will receive " + (bks.length === 1 ? "a letter" : bks.length + " letters") + " shortly, marked URGENT: " + BKC().nm.toUpperCase() + ".", urgent: true, ok: "Continue",
         fn: () => { if (news && news.news) anchors(news.news[0], news.news[1]); setTimeout(() => pingMail(bks.length, bks[0].key), 600); } } }); } catch (e) {} }, 400);
     }
   };
@@ -8810,7 +8811,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       shock: curShock && curShock.desc, judiciary: curCourt && curCourt.desc, media: curMedia && curMedia.desc, dilemma: curD && (curD.d || curD.desc), intl_invite: curInvite && curInvite.what,
       flagship: FGl ? "You promised to " + FGl.goal + ". This year's share is due." : null, gold: gb && gb.text }[k] || (sc && sc.brief) || line;
     const two = (t) => { const m = String(t || "").match(/[\s\S]+?(?:[.!?]+["\u201d]?(?=\s|$)|$)/g) || [""]; const x = (m[0] || "").trim(); return x.length > 150 ? x.slice(0, 148).replace(/\s+\S*$/, "") + "…" : x; };
-    return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: BAKUNDA 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: two(src) };
+    return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: two(src) };
   };
   // The year's matters arrive together after the year closes.
   const postYearMail = (q) => {
@@ -10267,7 +10268,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <OL show={phase === "sc" && scCards.length > 0}>
           {scCards[0] && (() => { const c = scCards[0]; return <>{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
-              <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: BAKUNDA 🚨 · {String(c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
+              <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
             </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
             onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}

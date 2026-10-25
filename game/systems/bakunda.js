@@ -91,7 +91,26 @@ export const BAKUNDA_PRESSURE = [
       { id: "refuse", l: "Refuse to talk to a coup leader", add: { progress: 4 }, fx: { app: 1 }, paper: ["“NO TALKS WITH COUP PLOTTERS”", "The President rejects Voko's offer", false] }] },
 ];
 
-export const bakundaInit = (seed) => ({ seed: String(seed), stage: 0, warned: false, progress: 0, atWar: 0, resolution: null, sits: [], dipl: [], treaty: null, done: false, washington: null, tipped: false });
+/* The country changes from game to game: the story is the same, the name,
+   people and capital differ. The text is written with "Bakunda"; bkName
+   swaps it for this game's country. All four are fictional. */
+export const BAKUNDA_COUNTRIES = {
+  bakunda: { nm: "Bakunda", adj: "Bakundan", cap: "Kassara City" },
+  kasongo: { nm: "Kasongo", adj: "Kasongan", cap: "Port Lukeni" },
+  angova: { nm: "Angova", adj: "Angovan", cap: "Novara" },
+  saharia: { nm: "Saharia", adj: "Saharian", cap: "Tamzar" },
+};
+const hash = (x) => { let h = 7; for (const ch of String(x)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
+export const bkCountry = (B) => BAKUNDA_COUNTRIES[(B && B.country) || "bakunda"] || BAKUNDA_COUNTRIES.bakunda;
+export const bkName = (text, B) => {
+  if (typeof text !== "string" || !text) return text;
+  const C = bkCountry(B); if (C.nm === "Bakunda") return text;
+  return text.replace(/Kassara City/g, C.cap).replace(/BAKUNDAN/g, C.adj.toUpperCase()).replace(/BAKUNDA/g, C.nm.toUpperCase()).replace(/Bakundan/g, C.adj).replace(/Bakunda/g, C.nm);
+};
+// Every string in a card, a letter or an option, renamed (ids, keys and picture names are lower-case and untouched).
+export const bkNames = (x, B) => typeof x === "string" ? bkName(x, B) : Array.isArray(x) ? x.map(v => bkNames(v, B)) : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, v]) => [k, bkNames(v, B)])) : x;
+
+export const bakundaInit = (seed) => ({ seed: String(seed), country: Object.keys(BAKUNDA_COUNTRIES)[hash(seed) % 4], stage: 0, warned: false, progress: 0, atWar: 0, resolution: null, sits: [], dipl: [], treaty: null, done: false, washington: null, tipped: false });
 
 // News for the anchors at each beat: [his line, her line].
 const NEWS = {
@@ -219,7 +238,7 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
         { id: "send", l: "Send the Foreign Minister", cost: 1, fx: { app: 0 }, push: { dipl: D.id }, add: { progress: send }, set: D.id === "washington" ? { washington: "sent" } : {}, paper: ["FOREIGN MINISTER REPRESENTS NIGERIA: " + D.t.replace(/^(An |A |The )/, "").toUpperCase(), "The President stays home; allies note the absence", false], paperImg: D.scene,
           ...(D.id === "washington" ? { grant: 10, paper: ["US PLEDGES MONEY, BUT NOT ITS MARINES", "Washington sends ₦10B; the President stayed home", false] } : {}) }] });
   }
-  return out.map(c => ({ ...c, kicker: keepWord(c.kicker || ""), t: keepWord(c.t), d: c.d ? keepWord(c.d) : c.d }));
+  return out.map(c0 => { const c = bkNames(c0, B); return { ...c, kicker: keepWord(c.kicker || ""), t: keepWord(c.t), d: c.d ? keepWord(c.d) : c.d }; });
 };
 
 // The storyline after a choice.
@@ -229,4 +248,4 @@ export const bakundaAfter = (B, o) => {
   Object.entries(o.push || {}).forEach(([k, v]) => { n[k] = [...(n[k] || []), v]; });
   return n;
 };
-export const bakundaLegacy = (B) => !B ? null : B.done ? "Led Nigeria through the war against the Bakunda–Ostrava Axis to the peace treaty the National Assembly enacted." : B.stage >= 3 && B.resolution === "overridden" ? "Vetoed the war against the Bakunda–Ostrava Axis, was overridden by the National Assembly, and led Nigeria into it; the conflict was unresolved when the term ended." : B.stage >= 3 && B.resolution === "passed" ? "Took Nigeria to war against the Bakunda–Ostrava Axis; the conflict was unresolved when the term ended." : B.stage >= 3 ? "Answered the Bakunda–Ostrava Axis with sanctions and diplomacy; the conflict was unresolved when the term ended." : null;
+export const bakundaLegacy = (B) => bkName(!B ? null : B.done ? "Led Nigeria through the war against the Bakunda–Ostrava Axis to the peace treaty the National Assembly enacted." : B.stage >= 3 && B.resolution === "overridden" ? "Vetoed the war against the Bakunda–Ostrava Axis, was overridden by the National Assembly, and led Nigeria into it; the conflict was unresolved when the term ended." : B.stage >= 3 && B.resolution === "passed" ? "Took Nigeria to war against the Bakunda–Ostrava Axis; the conflict was unresolved when the term ended." : B.stage >= 3 ? "Answered the Bakunda–Ostrava Axis with sanctions and diplomacy; the conflict was unresolved when the term ended." : null, B);

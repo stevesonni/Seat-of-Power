@@ -41,7 +41,7 @@ export const SEALS = {
   projects: { c: "#b35c00", rim: "#ffd3a1", i: "🏗️", nm: "Projects" },
   intel: { c: "#263238", rim: "#90a4ae", i: "🕵️", nm: "Intelligence" },
   briefing: { c: "#4e5d4f", rim: "#cfd8cf", i: "🗂️", nm: "Briefing" },
-  bakunda: { c: "#8e0c0c", rim: "#e0453a", i: "🚨", nm: "URGENT: BAKUNDA" }, // the red wax seal
+  bakunda: { c: "#8e0c0c", rim: "#e0453a", i: "🚨", nm: "URGENT: the war" }, // the red wax seal on the war's letters
 };
 
 // What kind of letter each year event is, and how much it needs the governor (1–3).

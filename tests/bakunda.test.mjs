@@ -129,3 +129,20 @@ test("the US President invites you: ₦30B and the Marines in person, ₦10B if 
   assert.match(right.say, /Marines/);
   assert.match(TRIP_LETTERS.bk5.body.join(" "), /₦30 billion/);
 });
+test("not always Bakunda: Kasongo, Angova and Saharia too, same story, its own capital", async () => {
+  const M = await import("../game/systems/bakunda.js");
+  const seen = new Set(); for (let i = 0; i < 40; i++) seen.add(bakundaInit("g" + i).country);
+  assert.deepEqual([...seen].sort(), ["angova", "bakunda", "kasongo", "saharia"]);
+  for (const k of Object.keys(M.BAKUNDA_COUNTRIES)) {
+    const C = M.BAKUNDA_COUNTRIES[k], all = [];
+    const walk = (B, turns) => { for (const t of turns) for (const c of bakundaCards(B, t, { nass: 60 })) { all.push(JSON.stringify(c)); if (c.letter) all.push(JSON.stringify(M.bkNames(TRIP_LETTERS[c.letter], B))); } };
+    walk({ ...bakundaInit("x"), country: k }, [1]); walk({ ...bakundaInit("x"), country: k, stage: 1 }, [2]); walk({ ...bakundaInit("x"), country: k, stage: 2 }, [3]);
+    walk({ ...bakundaInit("x"), country: k, stage: 3, atWar: 2 }, [5]); walk({ ...bakundaInit("x"), country: k, stage: 3, progress: 100 }, [6]);
+    const txt = all.join(" ").replace(/⁠/g, "");
+    assert.ok(txt.includes(C.nm) && txt.includes(C.nm.toUpperCase()), k + " is named");
+    if (k !== "bakunda") { assert.ok(!/Bakunda|BAKUNDA|Kassara/.test(txt), k + ": no Bakunda left"); assert.ok(txt.includes(C.cap), k + ": its capital"); }
+    assert.ok(/bakunda-coup/.test(txt), "picture names are untouched");
+  }
+  assert.match(M.bakundaLegacy({ ...bakundaInit("x"), country: "kasongo", done: true }), /Kasongo–Ostrava/);
+  assert.equal(M.bkCountry({ stage: 3 }).nm, "Bakunda", "old saves stay Bakunda");
+});
