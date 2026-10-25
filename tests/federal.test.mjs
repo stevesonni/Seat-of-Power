@@ -64,3 +64,14 @@ test("the national cake: insert, half, or refuse", () => {
   const k = F.nassCake(600); assert.equal(k.ask, 30);
   const [ins, half, ref] = k.opts; assert.ok(ins.nass > 0 && ref.nass < 0 && half.cost === 15 && ref.cost === 0);
 });
+test("the army's jets and drones go to procurement under the Ministry of Defence", async () => {
+  const P = await import("../game/systems/presidency.js");
+  const card = P.PRES_CARDS ? P.PRES_CARDS.find(c => c.id === "jets") : null;
+  if (card) card.opts.filter(o => o.id !== "no").forEach(o => { assert.equal(o.procure, "defence", o.id); assert.ok(!(o.fx || {}).security, "security comes on delivery, not on approval"); });
+  assert.ok(F.FED_MINISTRIES.some(m => m.id === "sec" && /Defence/.test(m.name)), "a President without one can create the Ministry of Defence");
+  const seq = (v) => () => v;
+  const honestTender = F.defenceDelivery({ mode: "tender" }, 90, seq(.6)), crookedTender = F.defenceDelivery({ mode: "tender" }, 10, seq(.6));
+  assert.ok(honestTender.ok && !crookedTender.ok, "the minister's honesty decides the open tender");
+  assert.ok(honestTender.sec > crookedTender.sec && crookedTender.cor > 0);
+  const direct = F.defenceDelivery({ mode: "buy" }, 50, seq(.9)); assert.ok(!direct.ok && direct.cor > 0, "a direct award invites refurbished jets");
+});

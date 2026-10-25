@@ -28,6 +28,8 @@ export const FED_MINISTRIES = [
   { id: "nigerdelta", name: "Niger Delta Development", icon: "🌊", key: "app", cost: 6, staff: 800, unlock: [], why: "The oil-producing communities. Neglect them and the pipelines are cut." },
   { id: "tourism", name: "Arts, Culture & Tourism", icon: "🎭", key: "igr", cost: 4, staff: 500, unlock: ["tourist"], why: "Nollywood, festivals and the national heritage sites." },
   { id: "env", name: "Environment", icon: "🌳", key: "hp", cost: 4, staff: 900, unlock: ["landfill"], why: "Erosion, desertification and oil spills." },
+  // Part of the first cabinet; here so a President without one can create it.
+  { id: "sec", name: "Defence", icon: "🎖️", key: "sec", cost: 10, staff: 2200, unlock: [], why: "Funds the armed forces and runs their procurement: jets, drones, ships. The service chiefs command; the ministry buys." },
 ];
 // The ministry a national need must have before it can be answered.
 export const FED_NEED_MINISTRY = { water: "water", power: "power", housing: "fct", traffic: "transport", youth: "sports", poverty: "humanitarian", land: "fct", jobs: "commerce", digital: "digital" };
@@ -308,4 +310,18 @@ export const nassCake = (revB) => {
     { id: "half", l: "Insert half, and publish every project online", cost: Math.round(ask / 2), fx: { cor: .01 }, nass: -2, pStab: 0, note: "A compromise: members grumble, and the press can check the projects." },
     { id: "refuse", l: "Refuse: no padding in this budget", cost: 0, fx: { app: -2 }, nass: -10, pStab: -4, note: "Members open probes into federal agencies, and scandals leak to the press. The vote gets harder." },
   ] };
+};
+
+/* Military procurement: the army's jets and drones, once approved, are
+   bought by the Ministry of Defence. Without the ministry the order waits.
+   The minister's honesty (0–100) and the route (open tender or direct
+   award) decide what arrives. sec is the gain in security (0–1 scale). */
+export const defenceDelivery = (proc, hon = 50, r = Math.random) => {
+  const x = r();
+  if (proc.mode === "buy") return x < hon / 200
+    ? { ok: true, sec: .025, cor: 0, app: 1, army: 4, title: "The jets and drones are here", line: "The direct award delivered: the aircraft arrived, a little dear, but they fly." }
+    : { ok: false, sec: .015, cor: .02, app: -2, army: 2, title: "Refurbished jets, new prices", line: "The supplier sent refurbished jets at new prices. The ministry signed for them anyway." };
+  return x < .55 + hon / 250
+    ? { ok: true, sec: .03, cor: -.005, app: 2, army: 5, title: "Delivered on time and on budget", line: "Open tender worked: every jet and drone arrived on time, on budget, with spares and training." }
+    : { ok: false, sec: .02, cor: .01, app: -1, army: 2, title: "Late, and lighter than promised", line: "Six months late, with fewer drones than ordered. Money went to 'logistics' the ministry cannot explain." };
 };

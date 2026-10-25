@@ -5694,6 +5694,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Home again once the front page has run.
     setTimeout(() => { try { window.SOP_outcome({ flight: { dir: "home", right: dest, left: "Abuja" } }); } catch (e) {} }, 450);
   };
+  /* Military procurement goes through the Ministry of Defence (SYS.defenceDelivery).
+     Without one, the order waits until the President creates it and appoints a minister. */
+  const defenceMin = () => (ministries || []).find(m => m.id === "sec" && m.minister);
+  const defenceCat = () => SYS.FED_MINISTRIES.find(m => m.id === "sec");
+  const createDefence = () => { const cat = defenceCat(); if (cat) { goTab("min"); setTimeout(() => openNewMinistry(cat), 60); } };
+  const startDefenceProcurement = (o, costB) => {
+    setStc(p => ({ ...p, defProc: { turn, mode: o.id, costB, status: "waiting" } }));
+    const dm = defenceMin(), how = o.id === "tender" ? "an open tender" : "the direct award";
+    setTimeout(() => { try {
+      if (dm) window.SOP_outcome({ present: { img: commissionerArt(dm.minister, 70, "sec"), name: (dm.acting ? "" : "Hon. ") + dm.minister + " · Minister of Defence", text: "Your Excellency, the Ministry of Defence will run the procurement through " + how + ". The service chiefs say what they need; we buy it and see it delivered. I will report when the jets and drones arrive.", ok: "Good" } });
+      else window.SOP_outcome({ present: { img: saPose(cast.adviser.name, "worried") || saPortrait(cast.adviser.name), name: cast.adviser.name + " · Special Adviser", text: "Your Excellency, an order of this size must go through the Ministry of Defence, and we do not have one. Create it and appoint a minister; until then the jets and drones wait.", urgent: true, ok: "Create the Ministry of Defence", fn: createDefence, alt: "Later" } });
+    } catch (e) {} }, 900);
+  };
   const presCardFor = (it) => {
     const P = stc.pres || presInitNow(), c = SYS.presCard(P, it), [bg, who, obj, scene] = SYS.presArt(P, it, c), npc = c.who && (P.npcs || {})[c.who];
     const kicker = it.k === "crisis" ? SYS.PRES_CRISES[it.id].nm : it.k === "world" ? "The world stage" : it.k === "coup" ? "The barracks" : it.k === "callback" ? "It comes back" : npc ? SYS.PRES_NPCS[c.who].role + " · " + npc.name : "The nation";
@@ -5704,6 +5717,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (f.costB < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - f.costB) * 100) / 100, debt: Math.round(((p.debt || 0) - f.costB) * 10) / 10 }));
         const after = SYS.presAfter(before, it, o, f.sev, turn);
         setStc(p => { const np = SYS.presAfter(p.pres || before, it, o, f.sev, turn); if (it.k === "coup" && !f.bad) np.coupSurvived = true; return { ...p, pres: np }; });
+        if (o.procure === "defence") startDefenceProcurement(o, f.costB);
         if (c.flight && !/^(vp|send|minister|decline|stay)$/.test(o.id)) presTrip(c.flight, c.t.replace(/\u2060/g, "").replace(/^A |^The /, "the ").replace(/^./, x => x.toLowerCase()));
         addL((it.k === "crisis" ? "🚨 " : it.k === "world" ? "🌍 " : "🦅 ") + c.t + ": " + o.l.toLowerCase() + "." + (f.bad ? " It went wrong in public." : ""), f.bad ? "crisis" : "policy");
         if (it.k !== "callback") scWiki(f.bad ? "Controversies" : "Presidency", c.t.replace(/\.$/, "") + ": " + o.l.replace(/^./, x => x.toLowerCase()) + (f.bad ? ", which went wrong in public." : "."));
@@ -6190,6 +6204,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (NAT) {
       const P0 = next.pres || presInitNow();
       const dr = SYS.presDrift(P0); next.pres = dr.P;
+      // The army's jets and drones: delivered through the Ministry of Defence, or still waiting for one.
+      if (next.defProc && next.defProc.status === "waiting" && next.defProc.turn < turn) {
+        const dm = defenceMin();
+        if (dm) {
+          const R = SYS.defenceDelivery(next.defProc, traits(dm.minister).hon, rng(hashStr("defproc" + next.defProc.turn + dm.minister)));
+          next.defProc = { ...next.defProc, status: "done", ok: R.ok, by: dm.minister };
+          dApp += R.app; dStat.sec = (dStat.sec || 0) + R.sec; if (R.cor) dStat.cor = (dStat.cor || 0) + R.cor;
+          if (next.pres && next.pres.npcs && next.pres.npcs.army) next.pres = { ...next.pres, npcs: { ...next.pres.npcs, army: { ...next.pres.npcs.army, rel: Math.max(0, Math.min(100, next.pres.npcs.army.rel + R.army)) } } };
+          notes.push([(R.ok ? "✈️ " : "🛩️ ") + "Ministry of Defence: " + R.line, R.ok ? "success" : "political"]);
+          scWiki(R.ok ? "Presidency" : "Controversies", "The army's jets and drones, bought through the Ministry of Defence under Hon. " + dm.minister + ": " + R.line.charAt(0).toLowerCase() + R.line.slice(1));
+          setTimeout(() => { try {
+            window.SOP_outcome({ icon: R.ok ? "✈️" : "🛩️", img: commissionerArt(dm.minister, R.ok ? 85 : 25, "sec"), title: R.title, text: "Hon. " + dm.minister + ", Minister of Defence: " + R.line, tone: R.ok ? "good" : "bad",
+              rows: [{ l: "Security", v: "+" + Math.round(R.sec * 100), good: true }, { l: "Approval", v: (R.app > 0 ? "+" : "") + R.app, good: R.app >= 0 }].concat(R.cor > 0 ? [{ l: "Corruption", v: "+" + Math.round(R.cor * 100) + "%", good: false }] : []) });
+            paper(R.ok ? "NEW JETS AND DRONES FOR THE ARMED FORCES" : "DEFENCE DEAL: LATE AND SHORT", R.ok ? "Delivered through the Ministry of Defence, on time and on budget" : "Questions for the Minister of Defence", R.ok, "./art/scenes/air-strike.webp");
+          } catch (e) {} }, 1600);
+        } else {
+          next.pres = next.pres && next.pres.npcs && next.pres.npcs.army ? { ...next.pres, npcs: { ...next.pres.npcs, army: { ...next.pres.npcs.army, rel: Math.max(0, next.pres.npcs.army.rel - 3) } } } : next.pres;
+          notes.push(["🎖️ The army's jets and drones are still waiting: there is no Ministry of Defence to buy them.", "political"]);
+        }
+      }
       if (dr.fx.app) { dApp += dr.fx.app; next.pres = { ...next.pres }; notes.push(["🚨 " + SYS.PRES_CRISES[P0.crisis].nm + " is out of control: approval " + dr.fx.app + ".", "crisis"]); if (dr.fx.sec) dStat.sec = (dStat.sec || 0) + dr.fx.sec; }
       // The inauguration's commitments are judged at the end of the first term.
       if (turn === 5 && (next.pres.commits || []).length && !next.pres.judged) {
@@ -6197,6 +6231,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         next.pres.commits.forEach(k => { const ok = SYS.commitKept(next.pres, k); dApp += ok ? 3 : -3; notes.push([(ok ? "✅ Commitment kept: " : "💔 Commitment broken: ") + SYS.PRES_COMMITS[k].l + (ok ? " (approval +3)." : " (approval −3)."), ok ? "success" : "crisis"]); scWiki(ok ? "Presidency" : "Controversies", (ok ? "Kept" : "Failed to keep") + " the inaugural commitment: " + SYS.PRES_COMMITS[k].l.toLowerCase() + "."); });
       }
       SYS.presDeck(state + ":" + pName, turn, next.pres).forEach(it => cards.push(presCardFor(it)));
+      if (window.SOP_TEST && window.SOP_TEST.card && !next.testCardDone && (next.testCardDone = true)) cards.push({ ...presCardFor({ k: "card", id: window.SOP_TEST.card }), key: "pres_crisis_test_" + window.SOP_TEST.card }); // test-only (a crisis key, so the yearly cap keeps it) (tests/e2e)
       if (window.SOP_TEST && window.SOP_TEST.world && turn === 1) cards.push({ ...presCardFor({ k: "world", id: window.SOP_TEST.world }), key: "pres_crisis_test_" + window.SOP_TEST.world }); // test-only (tests/e2e): ranked first so it is never dropped
       // Security fronts (SYS.FRONTS): last year's choice cooled one front, the others grew, and above 70 they bite.
       const freshF = !next.fronts; next.fronts = next.fronts || SYS.frontsInit();
@@ -6969,6 +7004,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!ministries || ministries.length === 0) return { urgent: true, icon: "🏛️", title: "Convene your ministries first", body: "Executive Command rule: no cabinet, no execution. Create at least Finance, Works, Health and Security before serious governance begins.", actionLabel: "Open Ministries", action: () => goTab("min") };
     if (ministries.length < 4) return { urgent: true, icon: "🏛️", title: "Your cabinet is under-strength", body: "You have " + ministries.length + " ministr" + (ministries.length === 1 ? "y" : "ies") + ". The House, contractors and crises will overpower a thin Exco.", actionLabel: "Add Ministries", action: () => goTab("min") };
     if (!council) return { urgent: true, icon: "👑", title: "Convene the Traditional Rulers Council", body: "Rural turnout, land disputes and security intelligence run through the palaces. Meet them before your next big project or campaign push.", actionLabel: "Open Council", action: () => goTab("coun") };
+    if (NAT && stc.defProc && stc.defProc.status === "waiting" && !defenceMin()) return { urgent: true, icon: "🎖️", title: "The army's jets and drones are waiting for a Ministry of Defence", body: "You approved them, but military procurement must go through the Ministry of Defence. Create it and choose the minister to run it.", actionLabel: "Create the Ministry of Defence", action: createDefence };
     const sign = cases.find(c => c.agency && c.stage === "allegation");
     if (sign) return { urgent: true, icon: "⚖️", title: "The " + SYS.AGENCIES[sign.agency].nm + " asks your sign-off to investigate Hon. " + sign.officer, body: sign.what + " (" + sign.ministryName + "). Sign, and the " + SYS.AGENCIES[sign.agency].nm + " investigates; " + (stc.hos ? stc.hos.name + ", your Head of Service," : "your Head of Service") + " reports the findings in next year's brief.", actionLabel: "Open the letter", action: () => openCaseLetter(sign.id) };
     const unmet = cases.find(c => !c.agency && c.stage === "allegation");

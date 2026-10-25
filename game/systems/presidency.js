@@ -99,8 +99,9 @@ export const PRES_CARDS = [
       { id: "promise", l: "Promise a fix in the next budget", cost: 0, fx: { nation: -4 } }] },
   // The military
   { id: "jets", who: "army", t: "The army wants new jets and drones", d: "The Chief of Army Staff wants ₦400B of equipment from a foreign supplier, by direct award.", learn: "procure",
-    opts: [{ id: "buy", l: "Approve it, by direct award", cost: 400, fx: { security: 5, cor: .03 }, npc: { army: 12 }, seed: "jets_direct" },
-      { id: "tender", l: "Approve it, through open procurement", cost: 380, fx: { security: 4 }, npc: { army: 2 }, adv: "security" },
+    // Approved, it goes to procurement under the Ministry of Defence; security rises on delivery.
+    opts: [{ id: "buy", l: "Approve it, by direct award", cost: 400, fx: { cor: .03 }, npc: { army: 12 }, seed: "jets_direct", procure: "defence" },
+      { id: "tender", l: "Approve it, through open procurement", cost: 380, fx: {}, npc: { army: 2 }, adv: "security", procure: "defence" },
       { id: "no", l: "Not this year", cost: 0, fx: {}, npc: { army: -10 } }] },
   { id: "barracks", who: "army", t: "Rumours in the barracks", d: "Junior officers complain about pay and promotions. A newspaper says some are 'talking'. The army chief says it is nothing.", learn: "armed", needsLow: "army",
     opts: [{ id: "pay", l: "Raise soldiers' pay and allowances", cost: 150, fx: {}, npc: { army: 12 } },
