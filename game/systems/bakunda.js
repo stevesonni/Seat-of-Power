@@ -242,7 +242,23 @@ export const bkName = (text, B) => {
 // Every string in a card, a letter or an option, renamed (ids, keys and picture names are lower-case and untouched).
 export const bkNames = (x, B) => typeof x === "string" ? bkName(x, B) : Array.isArray(x) ? x.map(v => bkNames(v, B)) : x && typeof x === "object" ? Object.fromEntries(Object.entries(x).map(([k, v]) => [k, bkNames(v, B)])) : x;
 
-export const bakundaInit = (seed) => ({ seed: String(seed), country: Object.keys(BAKUNDA_COUNTRIES)[hash(seed) % 4], stage: 0, warned: false, progress: 0, atWar: 0, resolution: null, sits: [], dipl: [], treaty: null, done: false, washington: null, tipped: false });
+/* How the trouble begins differs from game to game: a disputed election, a
+   president who dies in secret, or a third term that sets the streets alight.
+   It always ends in General Voko's junta; the road there is not the same. */
+export const BK_OPEN = [
+  { bk1: ["Unrest boils over in the Republic of Bakunda", "The ambassador's cable: instability after a contested election. A cautious statement, or an envoy now?", "there has been a grave development: the election in Bakunda has turned violent, and our ambassador has sent an urgent cable"],
+    bk2: ["General Voko seizes power in Bakunda", "The President of Bakunda is overthrown, the constitution suspended and the borders sealed."],
+    news1: ["In world news: trouble is brewing in the Republic of Bakunda after a disputed election.", "Abuja is watching closely. Tough days may lie ahead for the region."], body: null },
+  { bk1: ["Bakunda's President has not been seen for six weeks", "The ambassador's cable: President Ansa Lowe has vanished from public view; the palace says he is 'resting'. The generals meet at night, and the capital is full of rumours. A cautious statement, or an envoy now?", "there has been a grave development: Bakunda's President has not been seen for weeks, and the generals are meeting at night"],
+    bk2: ["General Voko announces the President's death, and takes his place", "General Voko has announced that the President died weeks ago, and has suspended the constitution 'for the transition'. The borders are sealed."],
+    news1: ["In world news: where is the President of Bakunda? Six weeks without a public appearance.", "Abuja says it is following events. Diplomats say the generals are restless."],
+    body: ["The President has not been seen in public for six weeks. The palace says he is resting; the doctors I trust say otherwise.", "The generals meet at night. I recommend a cautious statement, and that we watch closely. If you want eyes on the ground, send an envoy now."] },
+  { bk1: ["Bakunda's President seeks a third term; the streets explode", "The ambassador's cable: the President has changed the constitution to stay for a third term, and protesters fill Kassara City every night. Eleven dead so far. A cautious statement, or an envoy now?", "there has been a grave development: Bakunda's President is forcing a third term, and his police are firing on protesters"],
+    bk2: ["General Voko seizes power 'to restore order'", "After three months of protests, General Voko's soldiers took the palace and arrested the President 'to restore order'. The constitution is suspended and the borders sealed."],
+    news1: ["In world news: protests rage in Bakunda's capital over a third term for its President.", "Abuja calls for restraint. The region is nervous."],
+    body: ["The President has rewritten the constitution to stay a third term. The protests grow every night, and his police shoot to kill.", "The army is watching the streets and the palace. I recommend a cautious statement; if you want eyes on the ground, send an envoy now."] },
+];
+export const bakundaInit = (seed, r = Math.random) => ({ seed: String(seed), country: Object.keys(BAKUNDA_COUNTRIES)[Math.floor(r() * 4) % 4], open: Math.floor(r() * BK_OPEN.length) % BK_OPEN.length, stage: 0, warned: false, progress: 0, atWar: 0, resolution: null, sits: [], dipl: [], treaty: null, done: false, washington: null, tipped: false });
 
 // News for the anchors at each beat: [his line, her line].
 const NEWS = {
@@ -266,8 +282,9 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
   const B = { sits: [], dipl: [], press: [], gam: [], ...B0 }, out = [], nass = ctx.nass == null ? 50 : ctx.nass;
   const decide = (c) => out.push(c);
   if (B.stage === 0 && turn >= 1) {
-    decide({ id: "bk1", kind: "letter", letter: "bk1", kicker: "Bakunda · A cable", t: "Unrest boils over in the Republic of Bakunda", learn: "foreign", alarm: "there has been a grave development: the election in Bakunda has turned violent, and our ambassador has sent an urgent cable", advice: "Send the envoy. If this turns into a coup, I want to know who is where before it does.",
-    d: "The ambassador's cable: instability after a contested election. A cautious statement, or an envoy now?",
+    const O1 = BK_OPEN[B.open || 0] || BK_OPEN[0];
+    decide({ id: "bk1", kind: "letter", letter: "bk1", letterBody: O1.body || undefined, kicker: "Bakunda · A cable", t: O1.bk1[0], learn: "foreign", alarm: O1.bk1[2], news: B.open ? O1.news1 : undefined, advice: "Send the envoy. If this turns into a coup, I want to know who is where before it does.",
+    d: O1.bk1[1],
     opts: [{ id: "statement", l: "Issue a statement calling for calm", img: "scenes/national-broadcast", fx: { app: 0 }, set: { stage: 1, warned: false }, paper: ["ABUJA CALLS FOR CALM IN BAKUNDA", "The President urges restraint after the disputed election", true], paperImg: "national-broadcast" },
       { id: "envoy", l: "Send a special envoy now", cost: 4, fx: { app: 1 }, npc: { army: 2 }, set: { stage: 1, warned: true }, paper: ["PRESIDENT SENDS SPECIAL ENVOY TO BAKUNDA", "Abuja moves early as unrest spreads", true], paperImg: "bakunda-coup", say: "The envoy is on the ground. Whatever happens next, we will not be surprised." }] });
     decide({ id: "bk1b", kind: "card", kicker: "Bakunda · Readiness", t: "Raise readiness on the northern border?", scene: "army-convoy", learn: "deploy",
@@ -277,8 +294,9 @@ export const bakundaCards = (B0, turn, ctx = {}) => {
         { id: "calm", l: "Keep things normal: no alarm", fx: { app: 0 }, npc: { army: -2 }, set: { ready: false }, paper: ["“NO CAUSE FOR ALARM”, SAYS ABUJA", "The President keeps troops in barracks", false], say: "As you wish. I hope we are not caught out." }] });
   }
   if (B.stage === 1 && turn >= 2) {
-    decide({ id: "bk2", kind: "card", kicker: "🔴 Urgent · Coup in Bakunda", t: "General Voko seizes power in Bakunda", scene: "bakunda-coup", news: NEWS.bk2, learn: "ecowas", alarm: "there has been a grave development: General Voko has seized power in Bakunda, and Nigerians are trapped there", advice: "Get our people out first. Everything else can wait a week; they cannot.",
-    d: "The President of Bakunda is overthrown, the constitution suspended and the borders sealed. Nigerian traders and students are stranded" + (B.warned ? "; your envoy already has a list of every Nigerian there." : ", and refugees are crossing into our northern states."),
+    const O2 = BK_OPEN[B.open || 0] || BK_OPEN[0];
+    decide({ id: "bk2", kind: "card", kicker: "🔴 Urgent · Coup in Bakunda", t: O2.bk2[0], scene: "bakunda-coup", news: NEWS.bk2, learn: "ecowas", alarm: "there has been a grave development: General Voko has seized power in Bakunda, and Nigerians are trapped there", advice: "Get our people out first. Everything else can wait a week; they cannot.",
+    d: O2.bk2[1] + " Nigerian traders and students are stranded" + (B.warned ? "; your envoy already has a list of every Nigerian there." : ", and refugees are crossing into our northern states."),
     opts: [{ id: "airlift", l: "Airlift the stranded Nigerians home", cost: 12, fx: { app: B.warned ? 4 : 3 }, img: "scenes/airlift-evacuation", set: { stage: 2 }, paper: ["OPERATION HOMECOMING: NIGERIANS FLOWN OUT OF BAKUNDA", "Air Force jets bring stranded citizens home", true], paperImg: "airlift-evacuation", say: "The jets are wheels up. Every Nigerian who wants to come home will come home.", flight: true },
       { id: "sanctions", l: "Lead ECOWAS to suspend Bakunda and impose sanctions", cost: 2, fx: { app: 1 }, npc: { nass: 3 }, img: "characters/general-voko-angry", set: { stage: 2 }, paper: ["ECOWAS SUSPENDS BAKUNDA AT NIGERIA'S URGING", "Sanctions on General Voko's junta", true], paperImg: "ecowas-summit" },
       { id: "border", l: "Close our northern border", cost: 3, fx: { app: B.warned ? -1 : -3, sec: .01 }, img: "scenes/refugees-border", set: { stage: 2 }, paper: ["NIGERIA SHUTS NORTHERN BORDER", "Families already across fill the camps", false], paperImg: "refugees-border", say: "The border is closed, but the families already across are in our camps now." }],

@@ -6005,7 +6005,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const BKC = () => SYS.bkCountry(stc.bakunda); // this game's country: Bakunda, Kasongo, Angova or Saharia
   const BK_DEST = { ecowas: "Accra", chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
   const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, alarm: c.alarm, war: c.war || c.kind === "mission" || /^bk(2|3|3o|6)$/.test(c.id), advice: c.advice, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
-    letter: c.kind === "letter" && c.letter ? SYS.bkNames(SYS.TRIP_LETTERS[c.letter], stc.bakunda) : undefined,
+    letter: c.kind === "letter" && c.letter ? SYS.bkNames(c.letterBody ? { ...SYS.TRIP_LETTERS[c.letter], body: c.letterBody } : SYS.TRIP_LETTERS[c.letter], stc.bakunda) : undefined,
     military: c.kind === "mission" ? { d: c.d, need: c.need } : undefined,
     doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign, stamp: c.stamp } : undefined,
     kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.kind === "mission" ? "A mission from Defence Headquarters" : c.t, brief: c.d,

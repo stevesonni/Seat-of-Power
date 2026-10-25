@@ -51,3 +51,16 @@ test("ASUU and NLC strikes take a different turn each year, from a pool of twist
   assert.ok(demandOf(R.st, { cash: 100 }) < demandOf(st, { cash: 100 }));
   for (let t = 5; t < 30; t++) { const n = strikeTwist(R.st, { turn: t, seed: "q" }); if (n) assert.notEqual(n.id, "audit"); }
 });
+
+test("the war does not begin the same way, or with the same country, every game", async () => {
+  const { BK_OPEN } = await import("../game/systems/bakunda.js");
+  assert.equal(BK_OPEN.length, 3);
+  const opens = new Set(), lands = new Set();
+  for (let i = 0; i < 60; i++) { const B = bakundaInit("same player", Math.random); opens.add(B.open); lands.add(B.country); }
+  assert.equal(opens.size, 3); assert.ok(lands.size >= 3);
+  BK_OPEN.forEach((o, i) => {
+    const B = { ...bakundaInit("s", () => 0), open: i, country: "kasongo" };
+    const c1 = bakundaCards(B, 1).find(c => c.id === "bk1"), c2 = bakundaCards({ ...B, stage: 1 }, 2).find(c => c.id === "bk2");
+    assert.match(c1.t, /Kasongo/); assert.match(c2.t, /General Kalembe/); assert.ok(!/Voko|Bakunda/.test(c1.d + c2.d));
+  });
+});
