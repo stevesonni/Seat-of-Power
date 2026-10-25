@@ -83,7 +83,7 @@ export const TRIP_LETTERS = {
   bk4_geneva: { kind: "war", who: "The Secretary-General of the United Nations", where: "Geneva, Switzerland",
     body: ["The Axis of Bakunda and Ostrava threatens the peace of a whole region.", "The world's leaders must come together to press them to put down their weapons.", "As the leader of Africa's largest nation, this includes you. The meeting is urgent."],
     signed: "The Secretary-General of the United Nations" },
-  bk1: { kind: "diplomacy", ask: "A cable from:", who: "Nigeria's ambassador to Bakunda", where: "Lamu City, Bakunda",
+  bk1: { kind: "diplomacy", ask: "A cable from:", who: "Nigeria's ambassador to Bakunda", where: "Kassara City, Bakunda",
     body: ["After the disputed election, crowds are in the streets of the capital and the army is restless.", "I recommend a cautious statement calling for calm, and that we watch closely. If you want eyes on the ground, send an envoy now."],
     signed: "Ambassador of the Federal Republic of Nigeria to Bakunda" },
   bk_chad: { kind: "war", who: "The President of Chad", where: "N'Djamena, Chad",

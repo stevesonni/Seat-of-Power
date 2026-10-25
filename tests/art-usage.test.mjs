@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 53, "53 icons (48 + the five office icons)");
+  assert.equal(icons.length, 58, "58 icons (48 + the five office icons + the five trip icons)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -123,4 +123,11 @@ test("every Pack 18 picture is used by the presidency", () => {
       || ["abuja-skyline", "bill-assent", "campus-shut", "executive-order-signing", "federal-project-commissioning", "labour-strike", "port-congestion", "presidential-media-chat", "veto-override", "assent-pen", "executive-order-folder", "federation-account-ledger", "national-id-card"].includes(n));
   assert.equal(fed.length, 95, "95 pictures in Pack 18 (" + fed.length + ")");
   assert.deepEqual(fed.filter(n => !all.includes(n.replace(/-(pleased|angry)$/, "")) && !all.includes(n)), []);
+});
+// Pack 19: the round icons on the trip letters' buttons, and Defence Headquarters.
+test("every Pack 19 picture is used", () => {
+  ["icons/trip-jet", "icons/trip-foreign-minister", "icons/trip-vice-president", "icons/trip-deputy-governor", "icons/trip-envoy", "scenes/defence-headquarters"].forEach(f => {
+    assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f);
+    assert.ok(src.includes(f), f + " is used");
+  });
 });

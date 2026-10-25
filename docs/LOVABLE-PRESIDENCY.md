@@ -211,6 +211,8 @@ Revenue measures:
 
 # Pack 19: icons for the trip letters
 
+> **Delivered: Pack 19**, all 6 pictures: the jet on every "go in person" button, the Foreign Minister, the Vice-President, the deputy governor and the envoy on the "send" buttons, and the Defence Headquarters briefing room on the Army Chief's missions.
+
 Every trip now arrives as a letter (the iCivics way) with two big buttons at the bottom: **Attend in person** and **Send someone**. Each button has a small round picture on its left, like iCivics' jet and Secretary of State. Please paint these as **round portrait icons**: 256×256, transparent background, the subject inside a circle with a thin gold rim, in the game's painted style, readable at 60 px. One zip, files named exactly:
 
 ## Icons (`icons/`)

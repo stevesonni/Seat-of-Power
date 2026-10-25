@@ -2033,7 +2033,9 @@ const More = ({ text, max = 75, style, className, as = "p" }) => {
    where, the sender's words, who signed it, then the choices as two big
    buttons: go in person, or send someone. L comes from SYS.TRIP_LETTERS. */
 const TRIP_SEND = /^(Send|Decline|Not |No,|Stay|Skip|Virtual|Video)/i;
-const tripIcon = (label, sendImg) => /Vice-President/.test(label) ? "./art/characters/vice-president.webp" : /in person|^Fly|^Go\b|^Attend|^Speak|^Sell|^Host|^The full|^Go,/i.test(label) && !TRIP_SEND.test(label) ? "./art/icons/icon-travel.webp" : TRIP_SEND.test(label) ? sendImg : null;
+// Pack 19's round icons: the jet for going in person, and whoever goes in your place.
+const tripIcon = (label, sendImg) => /envoy|delegation/i.test(label) ? "./art/icons/trip-envoy.webp" : /Vice-President/.test(label) ? "./art/icons/trip-vice-president.webp" : /Deputy/i.test(label) ? "./art/icons/trip-deputy-governor.webp"
+  : /in person|^Fly|^Go\b|^Attend|^Speak|^Sell|^Go,|^✈️/i.test(label) && !/Wedding/i.test(label) && !TRIP_SEND.test(label) ? "./art/icons/trip-jet.webp" : TRIP_SEND.test(label) ? sendImg : null;
 const TripLetter = ({ L, salute, options, onPick, sendImg }) => {
   const [kind, col] = SYS.TRIP_KINDS[L.kind] || ["INVITATION", CL.blu], tall = TALL();
   return <div style={{ maxWidth: 600, margin: "0 auto 14px", background: "#fbf8f1", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.18)", border: "1px solid #e4dccb" }}>
@@ -2052,7 +2054,7 @@ const TripLetter = ({ L, salute, options, onPick, sendImg }) => {
     </div>
     {options && options.length ? <div style={{ background: "#e9e6df", padding: tall ? "12px 10px" : "16px 18px", display: "grid", gridTemplateColumns: options.length >= 2 ? "repeat(auto-fit, minmax(" + (tall ? 150 : 210) + "px, 1fr))" : "1fr", gap: 10 }}>
       {options.map((o, i) => { const ic = o.icon !== undefined ? o.icon : tripIcon(o.label, sendImg); return <button key={i} onClick={() => onPick(o, i)} disabled={o.disabled} style={{ display: "grid", gridTemplateColumns: ic ? "auto 1fr" : "1fr", gap: 10, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid #d6d1c6", borderRadius: 16, padding: tall ? "8px 10px" : "10px 14px", boxShadow: "0 4px 0 #cfc9bc", cursor: "pointer", minHeight: 64, opacity: o.disabled ? .45 : 1 }}>
-        {ic && <span style={{ width: tall ? 52 : 62, height: tall ? 52 : 62, borderRadius: "50%", border: "3px solid " + CL.blu, overflow: "hidden", background: "#eef3fb", display: "grid", placeItems: "center" }}><img src={ic} alt="" style={{ width: "100%", height: "100%", objectFit: /objects/.test(ic) ? "contain" : "cover", objectPosition: "top" }} /></span>}
+        {ic && <span style={{ width: tall ? 56 : 66, height: tall ? 56 : 66, borderRadius: "50%", border: /icons\/trip-/.test(ic) ? 0 : "3px solid " + CL.blu, overflow: "hidden", background: /icons\/trip-/.test(ic) ? "transparent" : "#eef3fb", display: "grid", placeItems: "center" }}><img src={ic} alt="" style={{ width: "100%", height: "100%", objectFit: /objects/.test(ic) ? "contain" : "cover", objectPosition: "top" }} /></span>}
         <span style={{ minWidth: 0 }}><b style={{ display: "block", color: CL.blu, fontSize: tall ? 16 : 19, lineHeight: 1.2, fontFamily: F.b }}>{o.label}</b>
           {(o.chips || []).length ? <span style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>{o.chips.slice(0, 3).map((c, j) => <span key={j} className="ds-chip" style={{ color: c.color || CL.tm, background: (c.color || CL.tm) + "12" }}>{c.text}</span>)}</span> : null}</span>
       </button>; })}
@@ -2075,6 +2077,7 @@ const ForcePicker = ({ M, options, onPick }) => {
     <div style={{ padding: tall ? "12px 16px" : "16px 24px", fontSize: tall ? 17 : 20, lineHeight: 1.5, fontFamily: "Georgia, 'Times New Roman', serif", color: "#2f2a22" }}>
       Please visit Defence Headquarters, Abuja, to address this situation. {M.d}
     </div>
+    <img src="./art/scenes/defence-headquarters.webp" alt="The briefing room at Defence Headquarters" style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover" }} />
     <div style={{ background: "#e9e6df", padding: tall ? "12px" : "16px 20px" }}>
       <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", marginBottom: 12 }}>
         <img src={"./art/characters/chief-of-army-staff" + (step === 2 && FF ? "-full-pleased" : "") + ".webp"} alt="Chief of Army Staff" style={{ width: tall ? 64 : 84, height: tall ? 84 : 110, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: "#d8d2c4" }} />
@@ -2119,7 +2122,12 @@ const DocCard = ({ D, options, onPick }) => { const tall = TALL(), war = /WAR/.t
     </div>
   </div>; };
 // The governor's trip screens: each choice a compact button under the letter.
-const TripOpt = ({ onClick, children }) => <button className="trip-opt" onClick={onClick}>{children}</button>;
+const TripOpt = ({ onClick, children }) => {
+  const ref = React.useRef(null), [ic, setIc] = useState(null);
+  useEffect(() => { const t = ref.current && ref.current.querySelector("div"); if (t) setIc(tripIcon(t.textContent.trim().replace(/^[^A-Za-z]+/, ""), /Deputy/i.test(t.textContent) ? "./art/icons/trip-deputy-governor.webp" : null)); }, []);
+  return <button ref={ref} className="trip-opt" onClick={onClick} style={ic ? { display: "grid", gridTemplateColumns: "60px 1fr", gap: 12, alignItems: "center" } : undefined}>
+    {ic && <img src={ic} alt="" style={{ width: 60, height: 60, objectFit: "contain", gridRow: "1 / span 3" }} />}{children}</button>;
+};
 
 const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick, letter, salute, sendImg, military, doc }) => military ? <ForcePicker M={military} options={options} onPick={onPick} /> : doc ? <DocCard D={doc} options={options} onPick={onPick} /> : letter ? <TripLetter L={letter} salute={salute} options={options} onPick={onPick} sendImg={sendImg} /> :
   React.createElement("div", { className: "ds-card ds-stack", style: { borderColor: kickerColor + "66" } },
@@ -10143,7 +10151,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "sc" && scCards.length > 0}>
-          {scCards[0] && (() => { const c = scCards[0]; return <>{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/characters/foreign-minister-nigeria.webp" : deputyArt(FEMALE_FIRST.includes(String(setup?.depGov?.nm || "").split(" ")[0]), sd.zone, setup?.depGov?.lo)} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
+          {scCards[0] && (() => { const c = scCards[0]; return <>{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
             onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
