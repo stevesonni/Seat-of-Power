@@ -5434,6 +5434,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Re-election needs 40% approval (the test-only switch window.SOP_TEST.reWin waives it for the playthroughs).
   const reViable = s.app >= 40 || !!(window.SOP_TEST && window.SOP_TEST.reWin);
   const ORD = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
+  /* The journey: where you are in the whole game, and how much is left.
+     Campaign, four years, the re-election, four more, and your legacy. */
+  const Journey = () => {
+    const tall = TALL(), done = (y) => y < turn, now = (y) => y === turn;
+    const dot = (y) => <span key={y} title={"Year " + y} style={{ width: now(y) ? (tall ? 14 : 18) : (tall ? 9 : 12), height: now(y) ? (tall ? 14 : 18) : (tall ? 9 : 12), borderRadius: "50%", background: done(y) ? CL.grn : now(y) ? CL.gold : CL.bdr, boxShadow: now(y) ? "0 0 0 3px " + CL.gold + "44" : "none", flexShrink: 0 }} />;
+    const stop = (label, on, past) => <span style={{ fontSize: tall ? TS(13) : TS(18), fontWeight: 800, color: on ? CL.gold : past ? CL.grn : CL.td, whiteSpace: "nowrap" }}>{past ? "✓ " : ""}{label}</span>;
+    const line = (past) => <span style={{ flex: 1, minWidth: 6, height: 2, background: past ? CL.grn : CL.bdr }} />;
+    const where = turn <= 4 ? "Year " + turn + " of your first term" : "Year " + (turn - 4) + " of your second term";
+    return <div aria-label={"Your journey: " + where} style={{ maxWidth: tall ? 900 : 1320, margin: tall ? "0 0 10px" : "0 auto 14px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 14, padding: tall ? "8px 10px" : "10px 16px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: tall ? 5 : 8 }}>
+        {stop(NAT ? "Sworn in" : "Elected", false, true)}{line(true)}
+        {[1, 2, 3, 4].map(dot)}{line(turn > 4)}
+        {stop("Re-election", false, turn > 4)}{line(turn > 4)}
+        {[5, 6, 7, 8].map(dot)}{line(false)}
+        {stop("Legacy", false, false)}
+      </div>
+      <div style={{ fontSize: tall ? TS(14) : TS(19), color: CL.tm, marginTop: 4, fontWeight: 700 }}>You are here: {where}.</div>
+    </div>;
+  };
   const yr = (termNum === 1 ? "1st Term" : "2nd Term") + " — Year " + termTurn + " of 4 (" + absYear + ")" + (termNum === 2 ? " · " + ORD[Math.min(8, turn)] + " year in office" : "");
   const setSkApp = (u) => _setSkApp(prev => {
     const next = typeof u === "function" ? u(prev) : u;
@@ -10457,6 +10476,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 16 }}><Bt onClick={() => setHubSheet(null)} style={{ width: "100%" }}>Back to the compound</Bt></div>
           </Cd>; })()}
         </OL>
+        {(nav === "gov" || nav === "hub") && !gEnd && turn >= 1 && Journey()}
         {nav === "gov" && deskSteps()}
         {nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
@@ -12967,6 +12987,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             </Cd>}
             {phase === "end_turn" && !curD && <Cd style={{ textAlign: "center", padding: 58 }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(53), fontWeight: 600, marginBottom: 22 }}>{yr} Complete</h3>
+              {turn < MT && <div style={{ display: "inline-block", background: CL.grn + "12", border: "1px solid " + CL.grn + "44", color: CL.grn, borderRadius: 999, padding: TALL() ? "6px 14px" : "8px 20px", fontSize: TALL() ? TS(16) : TS(24), fontWeight: 700, marginBottom: 16 }}>✓ Saved. A good place to take a break: {turn === 4 ? "the re-election is next" : "Year " + (((turn) % 4) + 1) + (turn < 4 ? " of your first term" : " of your second term")} is waiting when you come back.</div>}
               <Sfx k="turn" />
               {headline && <FrontPage paper={state.replace("_", " ") + " Daily Tribune"} headline={headline} w={TALL() ? 260 : 340} />}
               {stc.teaser && stc.teaser.turn === turn && turn < MT && <div className="sop-step" style={{ position: "relative", margin: "22px auto 6px", maxWidth: 560, textAlign: "left", background: "linear-gradient(180deg,#fbf4e1,#efe0b8)", border: "1px solid #d9c48e", borderRadius: 18, padding: TALL() ? "14px 14px 14px 76px" : "18px 22px 18px 104px", boxShadow: "0 12px 26px rgba(60,40,10,.18)", color: "#2b2117" }}>
