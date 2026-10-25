@@ -4941,7 +4941,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const sd = STATES[state];
   // The presidency: the same engine with Nigeria as the polity (six zones, 37 "areas").
   const NAT = state === NATION, ZN = zonesOf(state), ZIX = ZN.map((_, i) => i);
-  SEAT.nat = NAT; try { window.SOP_NAT = NAT; } catch (e) {} // the presidency shows no "How it really works" boxes
+  SEAT.nat = NAT;
   const SPK = NAT ? "speaker-of-the-house" : "speaker"; // the Speaker who sends you bills
   const MEM = NAT ? Math.round(NASS_SEATS / 40) : 1; // one governor-sized House member is about a dozen in the National Assembly
   useEffect(() => NAT ? presidentialScreen() : undefined, [NAT]);
