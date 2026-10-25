@@ -469,7 +469,7 @@ const AG = {
       ["A guard kills a young herder", "A guard shot a young herder at a checkpoint. Herders' groups want the corps disbanded; farmers say the guards saved their villages.",
         ["An independent inquiry, and compensation for the family", "The inquiry found the guard at fault; he is charged. The herders' leaders accept the compensation."], ["A Corps Complaints Commission Bill", "Security Corps Complaints Commission Bill"], ["Executive order: body cameras for every patrol", "the Body Camera Order"], ["Defend the guard and say nothing", "The herders say they will defend themselves now."]],
       ["The bandits move next door", "Attacks in your state are down by half. The bandits have moved into the neighbouring state, whose governor accuses you of pushing them over the border.",
-        ["A joint task force with the neighbouring state", "Two states, one task force. The bandits have nowhere to run."], ["A Regional Security Compact Bill", "Regional Security Compact Bill"], ["Executive order: share intelligence with the neighbours every day", "the Intelligence Sharing Order"], ["Their problem now", "Their problem. Until they come back."]],
+        ["A joint task force with the neighbouring state", "Two states, one task force. The bandits have nowhere to run."], ["A Regional Security Compact Bill", "Regional Security Compact Bill"], ["Executive order: share intelligence with the neighbours every day", "the Intelligence Sharing Order"], ["Leave it: their problem now", "Their problem. Until they come back."]],
     ] },
   agriculture: { n: "the irrigation scheme", who: "village-head", bg: "northern-farmland", scene: "money-agric-exports",
     defect: ["The cheap canal linings cracked; water is pouring into the bush, not the fields.", "Second-hand pumps bought last year seized up in the dry season; the crop is dying.", "The fence built on the cheap is down, and cattle ate a season's rice."],
@@ -544,6 +544,122 @@ const AG = {
         ["Repair them, and sue the contractor", "Repaired. The contractor is in court."], ["A Building Code Bill", "Building Code Bill"], ["Executive order: inspect every estate", "the Estate Inspection Order"], ["Blame the residents", "The residents blamed you on the radio."]],
     ] },
 };
+
+/* A second problem for each year of the first term, and for the second
+   term's four. A new game draws, year by year, which one comes (v: one digit
+   a year), so the same agenda is not the same story twice. */
+const AG2 = {
+  education: [
+    ["The contractor builds where the chairman lives", "The first rebuilt schools are going up in the LGA chairmen's home wards, not where the survey said. The contractor says he was 'advised'.",
+      ["Move the work to the survey's schools, and publish the list", "The list is online. The chairmen are furious; the riverine villages are not."], ["A bill: every school project chosen by a published needs index", "School Projects (Needs Index) Bill"], ["Executive order: freeze the chairmen's projects", "the School Projects Freeze Order"], ["Let it go: the chairmen deliver votes", "The chairmen are happy. The worst schools wait."]],
+    ["Teachers who cannot teach", "A test of the state's teachers shows a third cannot pass the exams their pupils sit. The union calls the test an insult.",
+      ["Retrain them, with pay rises for those who pass", "Retraining in the long vacation. Most pass the second time."], ["A Teacher Registration Bill: a licence to teach", "Teachers Registration and Licensing Bill"], ["Executive order: those who fail twice leave the classroom", "the Teacher Competence Order"], ["Bury the results", "The results are buried. The pupils are not taught."]],
+    ["The textbooks never arrive", "The textbook contract was paid in full; the books are in a warehouse owned by the contractor's brother, being sold to private schools.",
+      ["Buy new books, delivered straight to the schools", "Books in every rebuilt school by the second term."], ["A School Supplies Procurement Bill", "School Supplies (Procurement) Bill"], ["Executive order: seize the warehouse", "the Warehouse Seizure Order"], ["Ask for the books back, politely", "Some come back. Most do not."]],
+    ["The private schools want the land", "Private school owners want the land beside three rebuilt schools to open 'partner' schools that charge fees. They offer to maintain the public ones in return.",
+      ["Refuse, and build more public classrooms there", "More classrooms. The private schools look elsewhere."], ["A Public-Private Schools Bill with fee limits", "Public-Private Partnership (Schools) Bill"], ["Executive order: no sale of school land", "the School Land Order"], ["Sell them the land", "Sold. The fees are high."]],
+  ],
+  health: [
+    ["The hospital board wants the money instead", "The state hospital board says the health centres are a waste, and that the money should go to a new specialist hospital in the capital.",
+      ["Keep the money in the villages", "The centres keep their money. The board sulks."], ["A Primary Health Care Bill: a fixed share for the villages", "Primary Health Care (Funding) Bill"], ["Executive order: no new capital hospital until every centre is staffed", "the Village First Order"], ["Split it", "Half and half. Neither is finished."]],
+    ["Doctors on strike over allowances", "Resident doctors in the state hospitals are on strike over unpaid allowances. Patients are being sent to the new health centres, which cannot cope.",
+      ["Pay the allowances", "Paid. The doctors are back on Monday."], ["A Health Workers' Remuneration Bill", "Health Workers' Remuneration Bill"], ["Executive order: no work, no pay", "the No Work No Pay Order"], ["Wait them out", "They wait you out too."]],
+    ["Fake drugs in the centres", "Inspectors found fake antimalarials in four of the new centres. A child died after a fake injection.",
+      ["Buy only from certified suppliers, and test every batch", "Tested and certified. The fake suppliers are blacklisted."], ["A Drugs Quality Control Bill", "Drugs Quality Control Bill"], ["Executive order: shut every unlicensed drug market in the state", "the Drug Markets Order"], ["Blame the federal regulator", "The regulator blames you."]],
+    ["The centres are full of cases they cannot treat", "The centres are full: diabetes, high blood pressure, cancer. They were built for coughs and births.",
+      ["Train the nurses and stock the drugs for them", "Trained and stocked. Fewer referrals to the capital."], ["A Referral Hospitals Bill: a hospital in every zone", "Zonal Referral Hospitals Bill"], ["Executive order: free transport for referrals", "the Referral Transport Order"], ["Send them home", "They go home untreated."]],
+  ],
+  infrastructure: [
+    ["The route goes through a market", "The best route for the first trunk road runs through a market of three thousand stalls. The market women say they will lie in front of the bulldozers.",
+      ["Build a new market first, then move them", "A new market, then the road. The market women cut the ribbon themselves."], ["A bill: no demolition without a new site first", "Urban Renewal (Resettlement First) Bill"], ["Executive order: demolish and compensate later", "the Market Demolition Order"], ["Move the road around it", "A kink in the road. More expensive, and slower."]],
+    ["The contractor is a party financier", "The lowest bidder for the second road is a party financier with no road experience. The engineers say his bid is impossible.",
+      ["Award it to the engineers' choice", "The engineers' choice wins. The financier calls the party chairman."], ["A Procurement Bill: a technical score before price", "Public Procurement (Technical Evaluation) Bill"], ["Executive order: disqualify bidders with no experience", "the Contractor Experience Order"], ["Give it to the financier", "He wins. He subcontracts it to a firm that can build it, at half the price."]],
+    ["Bandits on the new road", "The new road has made the villages reachable, for traders and for bandits. Two buses were stopped on it last month.",
+      ["Patrols and lights along the road", "Patrols every ten kilometres. The buses run again."], ["A Highway Security Corps Bill", "Highway Security Corps Bill"], ["Executive order: no travel at night on the new roads", "the Night Travel Order"], ["Leave it to the police", "The police have three vans for the whole road."]],
+    ["The federal government claims your road", "The federal ministry says your new road is on a federal route, and that it will 'take it over'. It wants the credit, and the toll.",
+      ["Agree, if they refund the state", "They refund half. The ribbon is yours."], ["A bill to keep the road under the state", "State Roads (Designation) Bill"], ["Executive order: put state tolls on it now", "the State Tolls Order"], ["Let them have it", "Abuja cuts the ribbon you paid for."]],
+  ],
+  security: [
+    ["The guards are not paid", "The community guards have not been paid for three months; the LGAs kept the money. Some guards are now 'collecting' from travellers.",
+      ["Pay them directly into their bank accounts", "Paid by the state, into the bank. The checkpoints come down."], ["A bill: the guards' pay is a first charge on the budget", "Security Corps (Remuneration) Bill"], ["Executive order: no LGA touches the guards' pay", "the Guards' Pay Order"], ["Let the LGAs sort it out", "The guards sort it out themselves."]],
+    ["The guards and the police fight", "The guards arrested a police officer at a checkpoint; the police arrested ten guards. The commissioner of police says the corps is illegal.",
+      ["Joint patrols and a joint command room", "Joint patrols. The two forces share a radio."], ["A bill defining what the guards can and cannot do", "Security Corps (Powers) Bill"], ["Executive order: the guards hand suspects to the police within a day", "the Suspects Handover Order"], ["Back the guards against the police", "The commissioner writes to Abuja."]],
+    ["The guards recruit from one tribe", "Nine in ten new guards come from one ethnic group. The others say the corps is a militia against them.",
+      ["Recruit by LGA quota", "Every LGA, every community, in the corps."], ["A bill with recruitment quotas by LGA", "Security Corps (Recruitment) Bill"], ["Executive order: freeze recruitment until it is balanced", "the Recruitment Freeze Order"], ["Ignore it", "The others form their own guards."]],
+    ["Kidnapping falls, robbery rises", "Kidnappings fell by half; armed robbery in the towns doubled. The bandits have changed their business.",
+      ["Guards in the towns, and street lights", "Lights and patrols. Robberies fall too."], ["A Neighbourhood Watch Bill", "Neighbourhood Watch Bill"], ["Executive order: a curfew on the worst streets", "the Street Curfew Order"], ["Say crime is down", "It is not, in the towns."]],
+  ],
+  agriculture: [
+    ["The tractors are in a politician's yard", "The scheme's forty tractors were found in a senator's yard, hiring out to whoever pays most.",
+      ["Recover them and run a tractor hire centre for farmers", "Recovered. Farmers book them by phone."], ["A Farm Mechanisation Bill: tractors owned by co-operatives", "Farm Mechanisation (Co-operatives) Bill"], ["Executive order: seize them back", "the Tractor Recovery Order"], ["Buy new ones", "New tractors. The senator keeps the old ones."]],
+    ["Fall armyworm", "Fall armyworm is eating the maize on the scheme. Farmers say the pesticide they got was fake.",
+      ["Real pesticide, and extension workers in every village", "Sprayed in time. Half the harvest is saved."], ["A Pesticides Quality Bill", "Pesticides Quality Control Bill"], ["Executive order: arrest the fake pesticide sellers", "the Fake Inputs Order"], ["Pray for rain", "The worms do not care."]],
+    ["The youths will not farm", "The scheme wants young farmers. The young men say farming is for their fathers, and want city jobs.",
+      ["Start-up packages: land, inputs and a phone app for prices", "Two thousand young farmers sign up."], ["A Youth in Agriculture Bill", "Youth in Agriculture Bill"], ["Executive order: state jobs require a year on the farm scheme", "the Farm Service Order"], ["Hire labourers instead", "Labourers. The youths stay in the city."]],
+    ["The rice mill wants a monopoly", "A big rice mill offers to buy every grain from the scheme, if the state bans other buyers.",
+      ["Let every mill buy, and build a co-operative mill", "Many buyers, a co-operative mill. Prices hold."], ["A bill against exclusive buying deals", "Agricultural Produce (Fair Trading) Bill"], ["Executive order: the mill buys at a published floor price", "the Floor Price Order"], ["Grant the monopoly", "One buyer. One price. Low."]],
+  ],
+  anticorruption: [
+    ["The civil servants go slow", "Since every contract went online, the ministries are 'reviewing' files for months. The contractors say nothing is being approved.",
+      ["Deadlines for every file, and a dashboard", "Every file has a deadline, and the public can see it."], ["A Service Delivery (Timelines) Bill", "Service Delivery (Timelines) Bill"], ["Executive order: any file older than 30 days goes to your desk", "the File Deadlines Order"], ["Let them slow down", "Nothing moves. The old way returns."]],
+    ["Your chief of staff's brother", "The published contracts show your Chief of Staff's brother has won four. The press wants to know if you will act.",
+      ["Cancel and retender them", "Cancelled. Your Chief of Staff is not speaking to you."], ["A Conflict of Interest Bill covering officials' families", "Conflict of Interest (Officials' Families) Bill"], ["Executive order: officials' relatives cannot bid", "the Relatives Order"], ["Say he won fairly", "The press publishes the bids."]],
+    ["The auditor-general is threatened", "The auditor-general found ₦2B missing from the works ministry, and has received death threats.",
+      ["Protect him and publish the report", "Published, with a police escort for its author."], ["An Audit Independence Bill", "Audit Service (Independence) Bill"], ["Executive order: suspend everyone named", "the Audit Suspension Order"], ["Ask him to delay the report", "Delayed. He resigns."]],
+    ["The opposition uses your portal", "The opposition is mining your open contracts for scandals in your own ministries, and finding them.",
+      ["Fix what they find, in public", "Fixed in public. The opposition looks petty."], ["A bill to make the portal permanent", "Open Contracting Bill"], ["Executive order: answer every query in a week", "the Open Contracting Order"], ["Take the portal down for 'maintenance'", "Down for maintenance. Forever."]],
+  ],
+  youth: [
+    ["The trainees want stipends", "The trainees say they cannot attend without money for transport and food. Attendance is half.",
+      ["A transport and food stipend, paid by attendance", "Attendance doubles."], ["A Youth Skills Fund Bill", "Youth Skills Fund Bill"], ["Executive order: free buses for trainees", "the Trainee Transport Order"], ["Refuse a stipend", "Half of them stop coming."]],
+    ["The certificates are worthless", "Employers say the programme's certificates mean nothing; anybody can buy one.",
+      ["Exams set by employers", "Employers set the tests. The certificates mean something now."], ["A Skills Certification Bill", "Skills Certification Bill"], ["Executive order: void every certificate issued without an exam", "the Certificate Order"], ["Print more", "More certificates. Fewer jobs."]],
+    ["The tech hub wants tax holidays", "A tech hub offers to train and hire two thousand young people, for ten years without state taxes.",
+      ["Agree, with hiring targets", "Signed with targets. The first cohort starts in March."], ["A Startup Bill with tax credits for every hire", "Startup (Tax Credits) Bill"], ["Executive order: five years, not ten", "the Tech Hub Order"], ["Refuse", "They go to the next state."]],
+    ["The okada riders want your programme", "Forty thousand okada riders say the programme ignores them. Their union has blocked the main roads.",
+      ["A riders' track: mechanics, logistics and loans", "The riders have a track. The roads open."], ["A Commercial Transport Workers Bill", "Commercial Transport Workers Bill"], ["Executive order: riders get a quota of training places", "the Riders' Quota Order"], ["Clear the roads", "Cleared. They are back tomorrow."]],
+  ],
+  women: [
+    ["The stipend goes to the fathers", "Inspectors found the mothers' stipend is being collected by the fathers, who keep it.",
+      ["Pay to the mothers' own phones, with their faces", "Paid to the mothers, by face. The fathers protest."], ["A bill making the stipend the mother's by law", "Girl-Child Stipend Bill"], ["Executive order: stop payment where fathers collect", "the Stipend Order"], ["Let it be", "The fathers keep it."]],
+    ["Teachers who prey on girls", "A teacher in a scheme school was caught abusing girls. Parents are pulling their daughters out.",
+      ["Prosecute, and put women teachers in every school", "Charged. Women teachers in every girls' class."], ["A Child Protection in Schools Bill", "Child Protection in Schools Bill"], ["Executive order: a sex offender register for teachers", "the Teachers' Register Order"], ["Transfer him quietly", "Transferred. To another girls' school."]],
+    ["Early marriages are rising", "With the scheme paying until fifteen, some families marry their daughters at sixteen.",
+      ["Extend the stipend to the end of secondary school", "Paid to eighteen. The marriages wait."], ["A Child Rights Bill raising the age of marriage", "Child Rights (Domestication) Bill"], ["Executive order: no registrar marries anyone under eighteen", "the Marriage Age Order"], ["Leave it: it is their culture", "It is now your record."]],
+    ["The women's market loan scheme", "The scheme's graduates' mothers want loans to trade. The banks will not lend to them without land titles.",
+      ["A state micro-loan fund for women traders", "Ten thousand loans. Repayment is 96%."], ["A Women's Land Rights Bill", "Women's Land Rights Bill"], ["Executive order: state guarantees for women's loans", "the Loan Guarantee Order"], ["Tell them to ask their husbands", "They ask. The husbands say no."]],
+  ],
+  technology: [
+    ["The telecoms want a tower in every school", "The telecoms will connect every school for free, if they can put a mast on each roof. Parents fear radiation.",
+      ["Agree, and publish the safety tests", "Masts up, tests published. The fears fade."], ["A Telecoms Masts Bill with safety rules", "Telecoms Masts (Safety) Bill"], ["Executive order: masts only on school land, not roofs", "the Masts Order"], ["Refuse", "No masts. No signal."]],
+    ["Hackers take the school records", "Hackers locked the new school records system and want a ransom in crypto.",
+      ["Restore from backups and hire security", "Restored. The backups were there."], ["A State Data Protection Bill", "State Data Protection Bill"], ["Executive order: every system audited for security", "the Cyber Audit Order"], ["Pay them", "Paid. They come back next month."]],
+    ["Children on the wrong websites", "Parents complain the labs' internet shows everything. A video of pupils watching something they should not has gone viral.",
+      ["Filters and supervised lab hours", "Filtered and supervised. The parents calm down."], ["A Child Online Protection Bill", "Child Online Protection Bill"], ["Executive order: labs closed until filtered", "the Lab Closure Order"], ["Shrug", "The parents do not shrug."]],
+    ["The coding graduates have no jobs", "The first coding graduates are looking for work. The local firms want experience.",
+      ["A state apprenticeship with tech firms", "Five hundred apprentices placed."], ["A Digital Economy Bill", "Digital Economy Bill"], ["Executive order: state IT jobs go to the graduates first", "the Digital Jobs Order"], ["Leave it: their problem now", "They leave for Lagos."]],
+  ],
+  housing: [
+    ["Cement is too dear", "Cement prices doubled; the estate is half-built and the contractor wants more money.",
+      ["Pay the variation after review", "Reviewed and paid. Work resumes."], ["A Local Building Materials Bill", "Local Building Materials Bill"], ["Executive order: use local bricks and laterite blocks", "the Local Materials Order"], ["Build smaller houses", "Smaller houses. The same price."]],
+    ["The estate has no water", "The first estate is finished, but there is no water connection; the water board says it was never told.",
+      ["Connect it now, at full cost", "Connected. The residents move in."], ["A bill: no estate without utilities first", "Housing Utilities Bill"], ["Executive order: the water board connects within 30 days", "the Utilities Order"], ["Sell them water tankers", "Tankers every week."]],
+    ["Squatters move into the empty houses", "Squatters moved into the empty houses before the allocation. They say they are homeless; the allottees want them out.",
+      ["Allocate some to the squatters who qualify", "The qualifying squatters stay. The rest are moved with help."], ["A Tenancy Bill", "Tenancy and Recovery of Premises Bill"], ["Executive order: evict them", "the Eviction Order"], ["Let them stay", "The allottees sue."]],
+    ["The landlords' association fights back", "Landlords say cheap state houses are killing rents, and are lobbying the House to stop the next estate.",
+      ["Build the next estate anyway", "The next estate starts. The landlords lose."], ["A Rent Control Bill", "Rent Control Bill"], ["Executive order: publish every landlord's rents", "the Rents Order"], ["Pause the next estate", "Paused. Rents go up."]],
+  ],
+};
+const TERM2B = (n) => [
+  ["The audit you asked for", "The audit of " + n + " is in: good work in most places, waste in some. The commissioner who wasted it is the party's favourite.",
+    ["Fix the waste, and move the commissioner", "Fixed. The commissioner is moved. The party is cross."], ["A bill making the audit yearly", "Programme Audit Bill"], ["Executive order: publish the audit in full", "the Audit Publication Order"], ["Keep it in the drawer", "In the drawer. The waste goes on."]],
+  ["A neighbouring state copies you", "The neighbouring governor has copied " + n + " and claims it as his idea. His version is cheaper and worse.",
+    ["Share yours: a joint programme across both states", "Joint, and better. Both governors take the credit."], ["A bill to protect the programme's standards", "Programme Standards Bill"], ["Executive order: publish your results every quarter", "the Results Order"], ["Attack him in the press", "A press war. Nobody gains."]],
+  ["A donor wants to fund it", "A foreign donor will double the money for " + n + ", if every naira is audited by its own accountants.",
+    ["Accept, with the donor's audit", "Doubled, and audited. The work speeds up."], ["A bill for donor-funded programmes", "Development Partners (Funding) Bill"], ["Executive order: one account for all donor money", "the Donor Funds Order"], ["Refuse: no foreign accountants", "Refused. The money goes elsewhere."]],
+  ["Your successor's camp wants it renamed", "Your party's likely successor wants " + n + " renamed after himself, as the price of keeping it.",
+    ["Let him rename it, if he keeps it", "Renamed. It survives."], ["A bill to fix its name and its funding", "Programme Continuity Bill"], ["Executive order: a five-year plan in its own name", "the Five-Year Plan Order"], ["Refuse, and let it take its chances", "Refused. His camp sulks."]],
+];
 // The second term, for any agenda.
 const TERM2 = (n) => [
   ["Who pays for the upkeep?", "Five years on, " + n + " need upkeep, and there is no budget line for it. The Commissioner warns: 'We build, then we abandon. Every government does it.'",
@@ -555,7 +671,7 @@ const TERM2 = (n) => [
   ["Will it survive you?", "Your successor's camp has promised a 'new agenda'. Without protection, " + n + " could be abandoned like the last government's projects.",
     ["Fund it three years ahead", "Three years of money, locked in."], ["A bill to write the programme into law", "Programme Continuity Bill"], ["Executive order: a five-year plan your successor inherits", "the Five-Year Plan Order"], ["Leave it to the next government", "Left to the next government."]],
 ];
-const PAST = { pay: "paid", follow: "followed", recruit: "recruited", start: "started", hire: "hired", send: "sent", build: "built", rebuild: "rebuilt", make: "made", expand: "expanded", protect: "protected", retender: "retendered", repair: "repaired", fund: "funded", clean: "cleaned", bring: "brought", train: "trained", waive: "waived", let: "let", give: "gave", run: "ran", keep: "kept", sell: "sold", ban: "banned", buy: "bought", defend: "defended", leave: "left", count: "counted", celebrate: "celebrated", recover: "recovered", publish: "published", ask: "asked", drop: "dropped", cut: "cut", tell: "told", patch: "patched", fence: "fenced", wait: "waited", transfer: "transferred", blame: "blamed", write: "wrote", move: "moved", cancel: "cancelled", put: "put", open: "opened", close: "closed", share: "shared", go: "went", accept: "accepted", refuse: "refused", hold: "held", order: "ordered", license: "licensed", lift: "lifted", back: "backed", borrow: "borrowed", spend: "spent", stop: "stopped", free: "freed", enforce: "enforced", absorb: "absorbed", disarm: "disarmed", ignore: "ignored", say: "said", hunt: "hunted", feed: "fed", proclaim: "proclaimed", declare: "declared", modernise: "modernised", lead: "led", celebrate_: "celebrated" };
+const PAST = { pay: "paid", follow: "followed", recruit: "recruited", start: "started", hire: "hired", send: "sent", build: "built", rebuild: "rebuilt", make: "made", expand: "expanded", protect: "protected", retender: "retendered", repair: "repaired", fund: "funded", clean: "cleaned", bring: "brought", train: "trained", waive: "waived", let: "let", give: "gave", run: "ran", keep: "kept", sell: "sold", ban: "banned", buy: "bought", defend: "defended", leave: "left", count: "counted", celebrate: "celebrated", recover: "recovered", publish: "published", ask: "asked", drop: "dropped", cut: "cut", tell: "told", patch: "patched", fence: "fenced", wait: "waited", transfer: "transferred", blame: "blamed", write: "wrote", move: "moved", cancel: "cancelled", put: "put", open: "opened", close: "closed", share: "shared", go: "went", accept: "accepted", refuse: "refused", hold: "held", order: "ordered", license: "licensed", lift: "lifted", back: "backed", borrow: "borrowed", spend: "spent", stop: "stopped", free: "freed", enforce: "enforced", absorb: "absorbed", disarm: "disarmed", ignore: "ignored", say: "said", hunt: "hunted", feed: "fed", proclaim: "proclaimed", declare: "declared", modernise: "modernised", lead: "led", sack: "sacked", pray: "prayed", clear: "cleared", award: "awarded", agree: "agreed", prosecute: "prosecuted", extend: "extended", fix: "fixed", connect: "connected", allocate: "allocated", retrain: "retrained", restore: "restored", split: "split", bury: "buried", attack: "attacked", print: "printed", shrug: "shrugged", recruit_: "recruited", pause: "paused", deadlines: "set deadlines", seize: "seized", grant: "granted", void: "voided", evict: "evicted", stop: "stopped", take: "took", set: "set", talk: "talked", visit: "visited", meet: "met", bring_: "brought" };
 // "Pay the true owners" → "paid the true owners"; a label that starts with a noun → "chose …".
 export const pastOf = (label) => { const s = String(label).replace(/^Executive order:\s*/, ""), m = s.match(/^(\w+)(.*)$/); if (!m) return s; const w = m[1].toLowerCase(); if (!PAST[w]) return "chose " + s.charAt(0).toLowerCase() + s.slice(1); return PAST[w] + m[2].replace(/\b(and|then) (\w+)/g, (x, c, v) => c + " " + (PAST[v.toLowerCase()] || v)); };
 const THIN_O = [["Redo it properly, at the full price", "Executive order: blacklist the contractor and recover the money", "A bill: contractors answer for their own defects for five years", "Patch it and move on"],
@@ -563,10 +679,14 @@ const THIN_O = [["Redo it properly, at the full price", "Executive order: blackl
   ["Bring in new engineers and finish it properly", "Executive order: refer the contractor to the anti-corruption agency", "A bill: jail terms for substandard public works", "Say it is the weather"]];
 const THIN_T = ["The cheap work shows", "Another shortcut comes home", "The press finds the shortcut", "An inspection finds the gap", "The shortcut costs lives", "It falls apart, again", "Corners cut, exposed", "Built to fail"];
 const agendaCache = {};
-export const agendaStory = (agenda) => {
-  if (agendaCache[agenda]) return agendaCache[agenda];
+// A draw of which problem each year brings: eight digits, 0 or 1. Stored with the story.
+export const agendaVariant = (r = Math.random) => Array.from({ length: 8 }, () => (r() < .5 ? "0" : "1")).join("");
+export const agendaStory = (agenda, v = "00000000") => {
+  const key = agenda + ":" + v;
+  if (agendaCache[key]) return agendaCache[key];
   const V = AG[agenda]; if (!V) return null;
-  const years = [...V.y, ...TERM2(V.n)], beats = {};
+  const alt = AG2[agenda] || [], t2a = TERM2(V.n), t2b = TERM2B(V.n);
+  const years = [...V.y.map((Y, i) => (v[i] === "1" && alt[i] ? alt[i] : Y)), ...t2a.map((Y, i) => (v[4 + i] === "1" && t2b[i] ? t2b[i] : Y))], beats = {};
   years.forEach((Y, i) => {
     const k = i + 1, next = k < years.length ? "y" + (k + 1) : null, end = !next;
     const [t, d, pr, bl, or, co] = Y;
@@ -589,7 +709,7 @@ export const agendaStory = (agenda) => {
   });
   const def = { id: "agenda_" + agenda, nm: "The flagship", start: "y1", heat0: 30, drift: 0, scale: .1, boilAt: 99, order: years.map((_, i) => "y" + (i + 1)), beats,
     legacy: "Saw the flagship through both terms.", faded: "The flagship ran out before its time." };
-  agendaCache[agenda] = def;
+  agendaCache[key] = def;
   return def;
 };
 export const AGENDA_IDS = Object.keys(AG);

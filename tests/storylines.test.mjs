@@ -1,12 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { PRES_STORIES, FRONT_STORIES, AGENDA_IDS, agendaStory, storyStart, storyTurn, storyCard, storyAfter, storyCheck, pastOf } from "../game/systems/storylines.js";
+import { PRES_STORIES, FRONT_STORIES, AGENDA_IDS, agendaStory, agendaVariant, storyStart, storyTurn, storyCard, storyAfter, storyCheck, pastOf } from "../game/systems/storylines.js";
 import { nassCake } from "../game/systems/federal.js";
 import { STATE_STORIES, placeText } from "../game/systems/statestories.js";
 import { rulerMatter, rulerPick } from "../game/systems/rulers.js";
 
-const ALL = [...Object.values(PRES_STORIES), ...Object.values(FRONT_STORIES), ...AGENDA_IDS.map(agendaStory), ...Object.values(STATE_STORIES)];
+const ALL = [...Object.values(PRES_STORIES), ...Object.values(FRONT_STORIES), ...AGENDA_IDS.map(a => agendaStory(a)), ...AGENDA_IDS.map(a => agendaStory(a, "11111111")), ...Object.values(STATE_STORIES)];
 const T = (x) => String(x).replace(/\u2060/g, ""); // the presidency's invisible word guards
 const seeded = (n) => { let x = n * 2654435761 % 4294967296 || 1; return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; }; };
 
@@ -120,4 +120,12 @@ test("a crisis does not open the same way in every game", () => {
     assert.equal(opens.size, d.starts.length, d.id);
     const S = storyStart(d, "g", () => 0); assert.ok(d.starts.filter(b => b !== S.beat).every(b => S.seen.includes(b)), d.id + ": the other openings never come back mid-story");
   });
+});
+
+test("the same agenda is not the same story twice: each year has two possible problems", () => {
+  AGENDA_IDS.forEach(a => {
+    const x = agendaStory(a, "00000000"), y = agendaStory(a, "11111111");
+    for (let k = 1; k <= 8; k++) assert.notEqual(x.beats["y" + k].t, y.beats["y" + k].t, a + " year " + k);
+  });
+  const vs = new Set(); for (let i = 0; i < 30; i++) vs.add(agendaVariant()); assert.ok(vs.size > 20);
 });

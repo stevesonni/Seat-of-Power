@@ -37,6 +37,8 @@
   - Naira: the fall through ₦2,000; oil at $40; a junk rating.
   - Every security front and every governor's state crisis has two.
   - A new game draws one at random; the openings not drawn never turn up later.
+- **The agenda changes from game to game:** every year of every agenda has a second possible problem (40 for the first terms, 4 for the second), and a new game draws which one comes each year. Build, Build, Build might open with the land along the route, or with a market in the way.
+- **The Bakunda war opens three ways:** a disputed election, a president who vanished, or a third term. The country is drawn each game.
 - **Tests:** tests/storylines.test.mjs plays 400 random terms per storyline and fails on any repeated card. The president e2e checks the "Last year you…" line on screen; the playthrough e2e checks the flagship story.
 
 ## Fresh trouble every game: the war, the strikes, the wiki (25 Oct)

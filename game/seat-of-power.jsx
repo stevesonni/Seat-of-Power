@@ -6648,9 +6648,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     // The flagship as an eight-year story (SYS.agendaStory): a bill sent last year meets its vote, an order may meet a court.
     {
-      const fd = FLAGSHIP[setup?.agenda] && SYS.agendaStory(setup.agenda);
+      const fv = (next.flagStory && next.flagStory.v) || SYS.agendaVariant(); // which problem each year brings, drawn once a game
+      const fd = FLAGSHIP[setup?.agenda] && SYS.agendaStory(setup.agenda, fv);
       if (fd) {
-        const H = scHouse(), F1 = SYS.storyTurn(fd, next.flagStory || SYS.storyStart(fd, state + ":" + pName), turn, { house: Math.round(H.loyal / Math.max(1, H.seats) * 100), nat: NAT }, rE);
+        const H = scHouse(), F1 = SYS.storyTurn(fd, next.flagStory || { ...SYS.storyStart(fd, state + ":" + pName), v: fv }, turn, { house: Math.round(H.loyal / Math.max(1, H.seats) * 100), nat: NAT }, rE);
         next.flagStory = F1;
         if (F1.news && F1.news.kind === "passed") { dApp += 2; notes.push(["📜 The " + F1.news.nm + " passed: it is law now (approval +2).", "success"]); scWiki("Governorship", "Signed the " + F1.news.nm.replace(/ Bill$/, " Law") + " into law."); }
         if (F1.news && F1.news.kind === "rejected") notes.push(["📜 The House threw out the " + F1.news.nm + " a second time.", "political"]);
@@ -11114,7 +11115,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               return null;
             });
             // The agenda as an eight-year story (SYS.agendaStory): this year's real problem, answered by a programme, a bill or an order.
-            const fd = SYS.agendaStory(setup.agenda), FS = stc.flagStory, sc = fd && FS && SYS.storyCard(fd, FS, { nat: NAT });
+            const fd = SYS.agendaStory(setup.agenda, (stc.flagStory || {}).v), FS = stc.flagStory, sc = fd && FS && SYS.storyCard(fd, FS, { nat: NAT });
             if (sc) {
               const sOpts = sc.opts.map(o => ({ label: o.l, story: o, kind: o.kind, note: o.kind === "bill" ? "Nothing is built this year. If the House passes it, the fix outlasts you." : o.kind === "order" ? "In force today. A court can strike it down next year." : o.weak ? "Cheaper now. It comes back." : "This year's target, done properly.",
                 delivered: !!o.delivered, app: (o.fx || {}).app || 0, cor: (o.fx || {}).cor || 0, debt: Math.max(.1, Math.round(cost * (o.costX || 0) * 10) / 10),
