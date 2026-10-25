@@ -6430,7 +6430,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setSecr(f => ({ view: "dir", from: f && f.from }));
     announce({ icon: "🔀", title: plan.nm, text: plan.mandate + " " + (r.moved.length ? "Moved: " + r.moved.slice(0, 4).join("; ") + (r.moved.length > 4 ? "…" : "") + "." : "") + " It needs time to settle and will not fix the problem by itself.", tone: "neutral" }, before);
   };
-  const appointPicks = (m) => candidates(hashStr(m.id + "_" + turn)).slice(0, 3);
+  const appointPicks = (m) => candidates(hashStr(m.id + "_" + turn), m.id).slice(0, 3);
   const appointFor = (mid, p) => {
     const m = minById(mid); if (!m) return;
     setMinistries(ms => ms.map(x => x.id === mid ? { ...x, minister: p.nm, acting: false, perf: Math.round(40 + (p.comp - 50) * .4), cor: Math.max(8, Math.round((100 - p.hon) * .5)), loyalty: p.loyalty, zone: p.zone, hired: turn, record: [], flag: null } : x));
@@ -6939,11 +6939,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // newMin: { cat, picks: [3 candidates], choice } while you set one up.
   const [newMin, setNewMin] = useState(null);
   const [meetMin, setMeetMin] = useState(null); // ministry id you are meeting
-  const candidates = (seed) => {
-    const r = rng(seed), kinds = [["A technocrat from the private sector", 0, -8], ["A party loyalist who ran your ward campaign", 0, 18], ["A former permanent secretary", 0, 4]];
+  // Who can be put forward. Defence goes only to former military officers or security technocrats.
+  const candidates = (seed, mid) => {
+    const r = rng(seed), kinds = NAT && mid === "sec" ? [["A retired major-general who commanded a division in the North-East", 0, 2], ["A retired Air Vice-Marshal, once Chief of Air Operations", 0, 6], ["A technocrat: a defence and security analyst", 0, -6]]
+      : [["A technocrat from the private sector", 0, -8], ["A party loyalist who ran your ward campaign", 0, 18], ["A former permanent secretary", 0, 4]];
     return kinds.map(([bg, , loy], i) => { const z = i === 0 ? homeZone : (homeZone + i) % ZN.length; const nm = gN(r, sd.zone, setup?.state); const t = traits(nm); return { nm, bg, zone: z, comp: t.comp, hon: t.hon, loyalty: 55 + loy }; });
   };
-  const openNewMinistry = (cat) => setNewMin({ cat, picks: candidates(Date.now() % 99991), choice: 0 });
+  const openNewMinistry = (cat) => setNewMin({ cat, picks: candidates(Date.now() % 99991, cat.id), choice: 0 });
   const createMinistry = () => decide(() => {
     const N = newMin; if (!N) return; const c = N.cat, who = N.picks[N.choice];
     if (!canAfford(c.cost, "The Ministry of " + c.name)) return;
@@ -9460,7 +9462,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     "In recognition of your exemplary service to {state?.replace("_"," ")} — an approval rating of {Math.round(s.app)}%, a corruption index of just {(s.cor*100).toFixed(0)}%, and a legacy grade of {gr} — Mr. President is pleased to offer you the portfolio of Minister of the FCT. Kindly indicate acceptance."
                   </div>
                   <div style={{ display: "flex", gap: 22, justifyContent: "center" }}>
-                    <Bt onClick={() => onEnd("fctm", s)} style={{ background: CL.gold, color: "#111" }}>✅ Accept FCT Portfolio</Bt>
+                    <Bt onClick={() => onEnd("fctm", { ...s, rec: { ...presRec(), fct: true } })} style={{ background: CL.gold, color: "#111" }}>✅ Accept FCT Portfolio</Bt>
                     <Bt v="secondary" onClick={() => onEnd("retire", s)}>Decline (Retire)</Bt>
                   </div>
                 </div>
@@ -13000,13 +13002,13 @@ const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
   // Begin: a governor walks in with their record; anyone else picks a background.
   if (!G) {
     if (rec) {
-      const go = () => begin({ name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, from: "governor", bio: rec, app: stats.app, cor: stats.cor, pStab: stats.pStab, honours: (rec.honours || []).length, chest: Math.max(2, 4 + ((stats.pStab || 50) - 50) / 20 + (rec.fund || 0)) });
+      const go = () => begin({ name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, from: "governor", bio: rec, app: stats.app, cor: stats.cor, pStab: stats.pStab, honours: (rec.honours || []).length, chest: Math.max(2, 4 + ((stats.pStab || 50) - 50) / 20 + (rec.fund || 0) + (rec.fct ? 1 : 0)) }); // Abuja's contacts are worth a war chest
       return <Frame bg="abuja-federal-office" who="party-chairman">
-        <H kick="The presidential run" title="Road to Aso Rock" sub={(rec.resigned ? "Governor " : "Former Governor ") + rec.name + " of " + (rec.state || "").replace(/_/g, " ") + " steps onto the national stage."} />
+        <H kick="The presidential run" title="Road to Aso Rock" sub={(rec.resigned ? "Governor " : "Former Governor ") + rec.name + " of " + (rec.state || "").replace(/_/g, " ") + (rec.fct ? ", then Minister of the FCT," : "") + " steps onto the national stage."} />
         <Cd>
           <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>What you bring with you</div>
           <Stat k="Approval" v={Math.round(stats.app) + "%"} bad={stats.app < 50} /><Stat k="Corruption" v={Math.round(stats.cor * 100) + "%"} bad={stats.cor > .4} /><Stat k="Party" v={Math.round(stats.pStab) + "%"} bad={stats.pStab < 45} /><Stat k="Honours" v={(rec.honours || []).length} />
-          <div style={{ fontSize: fz.m, color: CL.txt, fontWeight: 800, margin: "10px 0 4px" }}>{rec.resigned ? "Governor of " : "Former Governor of "}{(rec.state || "").replace(/_/g, " ")} State · {rec.terms === 2 ? "two terms" : "one term"}{rec.title ? " · \u201c" + rec.title + "\u201d" : ""}</div>
+          <div style={{ fontSize: fz.m, color: CL.txt, fontWeight: 800, margin: "10px 0 4px" }}>{rec.resigned ? "Governor of " : "Former Governor of "}{(rec.state || "").replace(/_/g, " ")} State · {rec.terms === 2 ? "two terms" : "one term"}{rec.fct ? " · then four years as Minister of the FCT" : ""}{rec.title ? " · \u201c" + rec.title + "\u201d" : ""}</div>
           <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.5 }}>
             {rec.flagship ? "Flagship: " + rec.flagship + ". " : ""}Needs answered {rec.met || 0}, ignored {rec.failed || 0}. Promises kept {rec.kept || 0}, broken {rec.broken || 0}.{rec.debt != null ? " Left the state ₦" + rec.debt + "B in debt." : ""}{rec.arrears >= 3 ? " Workers were owed up to " + rec.arrears + " months' salary." : ""}{rec.efcc ? " The EFCC has a file on you." : ""}{rec.impSurv ? " Survived impeachment." : ""}{rec.petitionWon ? " Beat an election petition." : ""}
           </div>
@@ -13916,7 +13918,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   </Frame>);
 };
 
-const EndScr = ({ type, state, onRestart }) => {
+const EndScr = ({ type, state, onRestart, onPresident, onSenate }) => {
   const ms = { retire: { i: "🏡", t: "Elder Statesman", d: "You served " + (state || "").replace("_", " ") + " with dignity. History will remember your tenure." }, senate_w: { i: "🏛️", t: "Distinguished Senator", d: "From Government House to the National Assembly. Your experience serves the nation." }, senate_l: { i: "📖", t: "Defeated", d: "The Senate eluded you. But your governance record in " + (state || "").replace("_", " ") + " endures." }, pres_w: { i: "🇳🇬", t: "Mr. President", d: "From " + (state || "").replace("_", " ") + " to Aso Rock!" }, pres_l: { i: "📖", t: "Chapter Closes", d: "The presidency eluded you." }, fctm: { i: "📜", t: "Honourable Minister of the FCT", d: "Aso Rock has called. You now oversee Abuja — the seat of national power. Roads, planning, satellite towns, the Presidential Villa itself. A rare honour reserved only for governors of proven integrity and results. Your work in " + (state || "").replace("_", " ") + " earned you this portfolio." } };
   const m = ms[type] || ms.retire;
   return (
@@ -13927,11 +13929,21 @@ const EndScr = ({ type, state, onRestart }) => {
         <h2 style={{ fontFamily: F.d, color: type === "pres_w" ? CL.grn : CL.txt, fontSize: TS(98), fontWeight: 700, margin: "0 0 29px" }}>{m.t}</h2>
         <p style={{ color: CL.tm, fontSize: TS(43), lineHeight: 1.6, marginBottom: 58 }}>{m.d}</p>
         {type === "pres_w" && <div style={{ fontSize: TS(34), color: CL.grn, fontFamily: F.m, marginBottom: 43 }}>🏆 GAME COMPLETE 🏆</div>}
-        <Bt onClick={onRestart} style={{ padding: "36px 106px" }}>PLAY AGAIN</Bt>
+        {/* The FCT is a step, not the end: four years running Abuja, then the next race. */}
+        {type === "fctm" && onPresident ? <>
+          <p style={{ color: CL.td, fontSize: TS(36), lineHeight: 1.5, margin: "-22px 0 36px" }}>Four years on, Abuja is building and your name is known in every state. The party is asking what you will run for next.</p>
+          <div style={{ display: "grid", gap: 18, maxWidth: 620, margin: "0 auto" }}>
+            <Bt onClick={onPresident} style={{ padding: "30px 40px" }}>🇳🇬 Run for President</Bt>
+            <Bt v="secondary" onClick={onSenate} style={{ padding: "26px 40px" }}>🏛️ Run for the Senate</Bt>
+            <Bt v="ghost" onClick={onRestart}>🏡 Retire</Bt>
+          </div>
+        </> : <Bt onClick={onRestart} style={{ padding: "36px 106px" }}>PLAY AGAIN</Bt>}
       </div>
     </div>
   );
 };
+
+try { window.SOP_UI = Object.assign(window.SOP_UI || {}, { EndScr: (p) => React.createElement(EndScr, p) }); } catch (e) {}
 
 // ─── APP ───
 // ─── SPECIAL ADVISER (Mascot) ───
@@ -14207,7 +14219,7 @@ function App() {
       {scr === "end_sen_l" && <EndScr type="senate_l" state={setup?.state} onRestart={rst} />}
       {scr === "end_pres_w" && <EndScr type="pres_w" state={setup?.state} onRestart={rst} />}
       {scr === "end_pres_l" && <EndScr type="pres_l" state={setup?.state} onRestart={rst} />}
-      {scr === "end_fctm" && <EndScr type="fctm" state={setup?.state} onRestart={rst} />}
+      {scr === "end_fctm" && <EndScr type="fctm" state={setup?.state} onRestart={rst} onPresident={() => setScr("pres")} onSenate={() => setScr("senate")} />}
     </div>
   );
 }
