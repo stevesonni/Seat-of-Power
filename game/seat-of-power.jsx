@@ -2799,7 +2799,6 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["seal-projects", "Your company", "Register a contractor every player sees · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500"), () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "The basics in under a minute", () => { setSheet(null); onHelp(); }],
-            ["icon-new", "Watch the film", "Do you have what it takes to govern? 90 seconds", () => { setSheet(null); try { window.dispatchEvent(new CustomEvent("sop-intro")); } catch (e) {} }],
             ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
             ["icon-sound", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
           ].concat(profile ? [["icon-politician", "Start afresh", "Delete your politician and records, and begin again", () => { setSheet(null); startAfresh(); }]] : []).map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
@@ -14748,31 +14747,6 @@ function App() {
   const [setup, setSetup] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   useEffect(() => { try { installGlossary(); } catch (e) {} }, []);
-  // The explainer film (public/explainer.html): once on a first visit, skippable, and from the menu any time.
-  const [intro, setIntro] = useState(() => { try { return !window.SOP_TEST && !isSafariLike() && !localStorage.getItem("sop_intro_seen"); } catch (e) { return false; } }); // on iPhones only from the menu, for now
-  useEffect(() => {
-    const done = (e) => { if (e && e.data && e.data.type === "sop-explainer-done") { setIntro(false); try { localStorage.setItem("sop_intro_seen", "1"); } catch (x) {} } };
-    const open = () => setIntro(true);
-    window.addEventListener("message", done); window.addEventListener("sop-intro", open);
-    return () => { window.removeEventListener("message", done); window.removeEventListener("sop-intro", open); };
-  }, []);
-  // On the page root, outside the zoomed stage, so it fills the real screen. The game's own
-  // Skip button sits above it, and if the film has not started within six seconds it is removed:
-  // the film must never stand between a player and the game.
-  useEffect(() => {
-    if (!intro) return;
-    const close = () => { setIntro(false); try { localStorage.setItem("sop_intro_seen", "1"); } catch (x) {} };
-    const f = document.createElement("iframe");
-    f.title = "The Seat of Power: what it takes to govern"; f.src = "./explainer.html?embed=1"; f.allow = "autoplay";
-    f.style.cssText = "position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;border:0;z-index:2147483600;background:#000";
-    const b = document.createElement("button");
-    b.type = "button"; b.textContent = "Skip ›"; b.setAttribute("aria-label", "Skip the film");
-    b.style.cssText = "position:fixed;top:max(14px,env(safe-area-inset-top));right:14px;z-index:2147483601;border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.55);color:#fff;font:600 16px system-ui,sans-serif;padding:10px 18px;border-radius:999px;cursor:pointer";
-    b.onclick = close;
-    document.documentElement.appendChild(f); document.documentElement.appendChild(b);
-    const guard = setTimeout(() => { let ok = false; try { ok = !!(f.contentWindow && f.contentWindow.__explainerReady); } catch (e) {} if (!ok) close(); }, 6000);
-    return () => { clearTimeout(guard); f.remove(); b.remove(); };
-  }, [intro]);
   const [finalStats, setFinalStats] = useState(null);
   const [loadedSave, setLoadedSave] = useState(null);
   const rst = () => { setScr("title"); setSetup(null); setFinalStats(null); setLoadedSave(null); };

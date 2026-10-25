@@ -25,10 +25,9 @@
   - ASUU can strike from year 3.
   - The adviser introduces each one the year it opens ("New this year…").
   - The test switch `early` opens everything at once for the browser tests.
-- **The film** (`public/explainer.html`, about 90 seconds):
+- **The film** (`tools/film/explainer.html`, about 90 seconds):
   - It opens with "Have you ever wondered if you have what it takes to govern?", told through the game's own art with captions.
-  - It plays once on a first visit (skippable) and from the menu ("Watch the film").
-  - It is recorded to MP4 in 16:9 (YouTube) and 9:16 (WhatsApp status, Reels, Shorts).
+  - It is not part of the game or the site (the owner's decision): the source lives in tools/film/ and is recorded to MP4 in 16:9 (YouTube) and 9:16 (WhatsApp status, Reels, Shorts).
 
 ## Strikes, the roundtable, and building in Nigeria (25 Oct, latest)
 - **Labour** (`game/systems/labour.js`). Union names are real; every person is fictional.
