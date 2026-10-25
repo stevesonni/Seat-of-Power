@@ -2059,11 +2059,69 @@ const TripLetter = ({ L, salute, options, onPick, sendImg }) => {
     </div> : null}
   </div>;
 };
-try { window.SOP_UI = Object.assign(window.SOP_UI || {}, { TripLetter }); } catch (e) {} // for the visual checks in tests/e2e
+try { window.SOP_UI = Object.assign(window.SOP_UI || {}, { TripLetter, ForcePicker: (p) => React.createElement(ForcePicker, p), DocCard: (p) => React.createElement(DocCard, p) }); } catch (e) {} // for the visual checks in tests/e2e
+/* A mission from Defence Headquarters (the iCivics Department of Defense):
+   the order, then the army chief: deploy, or stay out; pick a service, read
+   his advice on it, and confirm. */
+const ForcePicker = ({ M, options, onPick }) => {
+  const [step, setStep] = useState(0), [sel, setSel] = useState(null), tall = TALL();
+  const forces = options.filter(o => ["army", "navy", "air"].includes(o.raw.fid)), stay = options.find(o => o.raw.fid === "stay");
+  const FF = sel && SYS.BAKUNDA_FORCES[sel.raw.fid];
+  const box = { maxWidth: 600, margin: "0 auto 14px", background: "#fbf8f1", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.18)", border: "1px solid #e4dccb" };
+  const btn = (bg) => ({ border: 0, borderRadius: 14, padding: "12px 16px", minHeight: 52, fontWeight: 800, fontSize: tall ? 16 : 19, color: "#fff", background: bg, boxShadow: "0 4px 0 rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b });
+  return <div style={box}>
+    <div style={{ height: 14, background: "#4a5b3a radial-gradient(circle, rgba(0,0,0,.25) 1.5px, transparent 2px) 0 0/18px 14px" }} />
+    <div style={{ background: "#4a5b3a22", textAlign: "center", fontWeight: 800, letterSpacing: 1, padding: "8px 0", fontSize: tall ? 16 : 19 }}>MILITARY</div>
+    <div style={{ padding: tall ? "12px 16px" : "16px 24px", fontSize: tall ? 17 : 20, lineHeight: 1.5, fontFamily: "Georgia, 'Times New Roman', serif", color: "#2f2a22" }}>
+      Please visit Defence Headquarters, Abuja, to address this situation. {M.d}
+    </div>
+    <div style={{ background: "#e9e6df", padding: tall ? "12px" : "16px 20px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", marginBottom: 12 }}>
+        <img src={"./art/characters/chief-of-army-staff" + (step === 2 && FF ? "-full-pleased" : "") + ".webp"} alt="Chief of Army Staff" style={{ width: tall ? 64 : 84, height: tall ? 84 : 110, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: "#d8d2c4" }} />
+        <div style={{ background: "#fff", borderRadius: 14, padding: "10px 12px", fontSize: tall ? 16 : 19, lineHeight: 1.4 }}>
+          {step === 0 ? "We've been monitoring the situation, Your Excellency. How would you like to handle it?" : !FF ? "Select a service and I will advise you on its strengths." : FF.d}
+        </div>
+      </div>
+      {step === 0 ? <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <button onClick={() => setStep(1)} style={btn("#2e7d32")}>Deploy troops</button>
+        <button onClick={() => stay && onPick(stay, options.indexOf(stay))} style={btn("#8a8f88")}>Don't get involved</button>
+      </div> : <>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
+          {forces.map(o => { const K = SYS.BAKUNDA_FORCES[o.raw.fid], on = sel === o; return <button key={o.raw.fid} onClick={() => { setSel(o); setStep(2); }} aria-pressed={on} style={{ padding: 0, borderRadius: 14, overflow: "hidden", border: "3px solid " + (on ? CL.blu : "transparent"), background: "#fff", cursor: "pointer", boxShadow: "0 3px 0 #cfc9bc" }}>
+            <img src={"./art/scenes/" + K.scene + ".webp"} alt="" style={{ display: "block", width: "100%", aspectRatio: "4 / 3", objectFit: "cover" }} />
+            <b style={{ display: "block", padding: "6px 4px", fontSize: tall ? 15 : 18, color: CL.txt }}>{K.icon} {K.nm}</b>
+          </button>; })}
+        </div>
+        {sel && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>{(sel.chips || []).map((c, j) => <span key={j} className="ds-chip" style={{ color: c.color || CL.tm, background: (c.color || CL.tm) + "12" }}>{c.text}</span>)}</div>}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <button onClick={() => { setStep(0); setSel(null); }} style={btn("#8a8f88")}>Back</button>
+          <button disabled={!sel} onClick={() => sel && onPick(sel, options.indexOf(sel))} style={{ ...btn(sel ? CL.blu : "#b9c2cc"), cursor: sel ? "pointer" : "not-allowed" }}>Confirm</button>
+        </div>
+      </>}
+    </div>
+  </div>;
+};
+/* A document for the President's hand: the Assembly's resolution or a
+   treaty. The band, the title, the text, who signs, and the choices. */
+const DocCard = ({ D, options, onPick }) => { const tall = TALL(), war = /WAR/.test(D.kicker);
+  return <div style={{ maxWidth: 600, margin: "0 auto 14px", background: "#fbf8f1", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.18)", border: "1px solid #e4dccb" }}>
+    <div style={{ height: 14, background: (war ? "#c0392b" : "#1f7a4d") + " radial-gradient(circle, rgba(0,0,0,.25) 1.5px, transparent 2px) 0 0/18px 14px" }} />
+    <div style={{ background: (war ? "#c0392b" : "#1f7a4d") + "22", textAlign: "center", fontWeight: 800, letterSpacing: 1, padding: "8px 0", fontSize: tall ? 16 : 19 }}>{D.kicker}</div>
+    <div style={{ padding: tall ? "14px 18px" : "20px 30px", fontFamily: "Georgia, 'Times New Roman', serif", color: "#2f2a22" }}>
+      <div style={{ textAlign: "center", fontWeight: 800, fontSize: tall ? 19 : 24, marginBottom: 10 }}>{D.title}</div>
+      <div style={{ fontSize: tall ? 17 : 20, lineHeight: 1.55 }}>{D.body}</div>
+      <div style={{ marginTop: 18, borderTop: "1px solid #2f2a22", width: "70%", marginLeft: "auto", paddingTop: 4, textAlign: "right", fontSize: tall ? 14 : 16, color: "#6b6357" }}>{D.sign}</div>
+    </div>
+    <div style={{ background: "#e9e6df", padding: tall ? "12px" : "16px 20px", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+      {options.map((o, i) => { const neg = /^Veto/.test(o.label); return <button key={i} onClick={() => onPick(o, i)} style={{ border: 0, borderRadius: 14, padding: "12px 14px", minHeight: 56, fontWeight: 800, fontSize: tall ? 16 : 19, color: "#fff", background: neg ? "#c0392b" : "#2e7d32", boxShadow: "0 4px 0 rgba(0,0,0,.2)", cursor: "pointer", textAlign: "center" }}>
+        {neg ? "✋ " : "✍️ "}{o.label}{(o.chips || []).length ? <span style={{ display: "block", fontWeight: 600, fontSize: tall ? 13 : 15, opacity: .9, marginTop: 2 }}>{o.chips.slice(0, 3).map(c => c.text).join(" · ")}</span> : null}
+      </button>; })}
+    </div>
+  </div>; };
 // The governor's trip screens: each choice a compact button under the letter.
 const TripOpt = ({ onClick, children }) => <button className="trip-opt" onClick={onClick}>{children}</button>;
 
-const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick, letter, salute, sendImg }) => letter ? <TripLetter L={letter} salute={salute} options={options} onPick={onPick} sendImg={sendImg} /> :
+const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick, letter, salute, sendImg, military, doc }) => military ? <ForcePicker M={military} options={options} onPick={onPick} /> : doc ? <DocCard D={doc} options={options} onPick={onPick} /> : letter ? <TripLetter L={letter} salute={salute} options={options} onPick={onPick} sendImg={sendImg} /> :
   React.createElement("div", { className: "ds-card ds-stack", style: { borderColor: kickerColor + "66" } },
     aside || null,
     React.createElement("div", { style: { textAlign: "center" } },
@@ -4761,6 +4819,8 @@ const HallBoard = ({ tab: tab0 = "today", note }) => {
 
 // The presidential pilot (Lovable Pack 16 brings his own portrait).
 const PILOT_ART = "presidential-pilot";
+const BAKUNDA_ICON = (k) => ({ army: "🪖", navy: "⚓", air: "✈️" })[k] || "🛑";
+const NEWS_BK = { war: ["The nation's worst fears have come true: the National Assembly has sanctioned war on the Axis.", "The President must now lead as Commander-in-Chief."] };
 /* The inauguration at Eagle Square: the oath before the Chief Justice, three
    commitments the term will be judged by, and the inaugural address. */
 const INAUGURAL = {
@@ -5640,28 +5700,39 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           tone: f.bad ? "bad" : (f.fx.app >= 0 ? "good" : "neutral"), rows, learn: SYS.PRES_LEARN[c.learn] };
       } }; }) };
   };
-  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, letter: c.letter ? SYS.TRIP_LETTERS[c.letter] : undefined, kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.t, brief: c.d,
+  // The Bakunda war's cards: letters, Defence Headquarters missions, the
+  // Assembly's documents, and plain cards (SYS.bakundaCards).
+  const BK_DEST = { chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
+  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
+    letter: c.kind === "letter" && c.letter ? SYS.TRIP_LETTERS[c.letter] : undefined,
+    military: c.kind === "mission" ? { d: c.d, need: c.need } : undefined,
+    doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign } : undefined,
+    kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.kind === "mission" ? "A mission from Defence Headquarters" : c.t, brief: c.d,
     options: c.opts.map(o => { const cost = o.cost || 0, app = (o.fx && o.fx.app || 0) - (c.spill || 0) - (c.fatigue || 0);
-      return { label: o.l, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : []), run: () => {
+      return { label: o.l, fid: o.id, note: o.note, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : []), run: () => {
         scFx({ app, sec: (o.fx && o.fx.sec || 0) - (c.spill ? .02 : 0), cor: o.fx && o.fx.cor, debt: cost > 0 ? cost : 0 });
         const B0 = stc.bakunda, B1 = SYS.bakundaAfter(B0, o);
         setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, bakunda: SYS.bakundaAfter(p.bakunda || B0, o) }; });
-        if (o.flight) { const dest = c.id === "bk5" ? "Washington" : c.id === "bk4" && (B0 || {}).summits ? "Geneva" : "Abuja";
+        if (o.flight) {
           if (c.id === "bk2") { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Bakunda", left: "Abuja" } }); window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/" + PILOT_ART + "-pleased.webp", bg: "./art/scenes/air-fleet-hangar.webp", name: pilotName + " · Presidential Air Fleet", text: "Your Excellency, the last flight from Bakunda is down. Every Nigerian who wanted to come home is home." } }); } catch (e) {} } // the airlift: the jets go, not you
-          else presTrip(dest, c.id === "bk5" ? "the White House meeting on Bakunda" : "the summit on Bakunda"); }
-        const pp = o.paper || c.paper, pImg = o.paperImg || c.paperImg || c.scene; if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], pImg ? "./art/scenes/" + pImg + ".webp" : undefined), 200);
+          else if (BK_DEST[o.dest]) presTrip(BK_DEST[o.dest], o.dest === "washington" ? "the White House meeting on Bakunda" : o.dest === "signing" ? "the signing of the peace treaty" : "the meeting on Bakunda");
+        }
+        const pp = o.paper || c.paper, pImg = o.paperImg || c.paperImg || (o.img && /^scenes\//.test(o.img) ? o.img.slice(7) : c.scene); if (pp) setTimeout(() => paper(pp[0], pp[1], pp[2], pImg ? "./art/scenes/" + pImg + ".webp" : undefined), 200);
         // On Bakunda it is the Chief of Army Staff who comes to you, not the adviser.
         const army = ((stc.pres || {}).npcs || {}).army, chief = "Gen. " + ((army && army.name) || "the Chief") + " · Chief of Army Staff";
-        const line = o.say || (c.stall ? "Mr. President, we are stalling. The force does not fit the ground, and every year costs us more." : null);
-        const mood = c.stall ? "urgent" : app < 0 || c.fatigue ? "worried" : o.say ? "pleased" : "neutral";
+        const wrong = c.kind === "mission" && o.id !== c.need, line = o.say;
+        const mood = wrong ? "urgent" : app < 0 || c.fatigue ? "worried" : o.say ? "pleased" : "neutral";
         if (o.ally) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/us-president-pleased.webp", name: "The President of the United States", text: o.ally } }); } catch (e) {} }, 600);
-        else if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-" + mood + ".webp", name: chief, text: line, urgent: !!c.stall } }); } catch (e) {} }, 600);
-        addL("🌍 Bakunda: " + c.t.replace(/\u2060/g, "") + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue ? "crisis" : "policy");
+        else if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-" + mood + ".webp", name: chief, text: line, urgent: wrong } }); } catch (e) {} }, 600);
+        if (o.id === "assent" && c.id === "bk3" && NEWS_BK.war) anchors(NEWS_BK.war[0], NEWS_BK.war[1]);
+        addL("🌍 Bakunda: " + (c.kind === "mission" ? "a mission" : c.t.replace(/⁠/g, "")) + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue || wrong ? "crisis" : "policy");
         if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
-        else if (c.id === "bk3" || c.id === "bk2") scWiki(c.id === "bk3" ? "Presidency" : "Presidency", c.id === "bk3" ? (o.id === "talk" ? "Answered the Bakunda–Ostrava Axis with sanctions and talks." : "Sent the armed forces against the Bakunda–Ostrava Axis.") : "Responded to General Voko's coup in Bakunda: " + o.l.toLowerCase() + ".");
-        track("bakunda_" + c.id, o.id);
-        return { icon: c.id === "bk7" || c.id === "bk7b" ? "🕊️" : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : c.stall ? "The war is stalling: the wrong force for the ground makes every push count for less, and each extra year costs approval." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
-          tone: B1.done ? "good" : app < 0 ? "bad" : "neutral", rows: c.id === "bk3" || c.id === "bk6" || c.id === "bk4" || c.id === "bk5" ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }] : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
+        else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the Bakunda–Ostrava Axis." : "Vetoed the resolution for war and answered the Bakunda–Ostrava Axis with sanctions and diplomacy.");
+        else if (c.id === "bk2") scWiki("Presidency", "Responded to General Voko's coup in Bakunda: " + o.l.toLowerCase() + ".");
+        track("bakunda_" + (c.kind === "mission" ? "mission" : c.id), o.id + (c.kind === "mission" ? (wrong ? ":wrong" : ":right") : ""));
+        const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id === "bk6";
+        return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
+          tone: B1.done ? "good" : wrong || app < 0 ? "bad" : "neutral", rows: prog ? [{ l: "The campaign against the Axis", v: Math.min(100, B1.progress) + "%", good: B1.progress > ((B0 || {}).progress || 0) }] : [], learn: SYS.BAKUNDA_LEARN[c.learn] };
       } }; }) });
   const statecraftTurn = (q, rE) => {
     if (stc.lastTurn >= turn || needSetup) return;
@@ -6095,7 +6166,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (window.SOP_TEST && window.SOP_TEST.world && turn === 1) cards.push({ ...presCardFor({ k: "world", id: window.SOP_TEST.world }), key: "pres_crisis_test_" + window.SOP_TEST.world }); // test-only (tests/e2e): ranked first so it is never dropped
       // The Bakunda crisis: a war storyline across the term (SYS.bakunda).
       next.bakunda = next.bakunda || SYS.bakundaInit(state + ":" + pName);
-      SYS.bakundaCards(next.bakunda, turn, { nass: ((next.pres.npcs || {}).nass || {}).rel }).forEach(c => cards.push(bakundaCardFor(c)));
+      SYS.bakundaCards(next.bakunda, turn, { nass: ((next.pres.npcs || {}).nass || {}).rel }).forEach(c => {
+        // A tip is the army chief in person, not a letter.
+        if (c.kind === "tip") { next.bakunda = SYS.bakundaAfter(next.bakunda, c); const nm = "Gen. " + ((((next.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff"; setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-neutral.webp", name: nm, text: c.t } }); } catch (e) {} }, 1500); return; }
+        cards.push(bakundaCardFor(c));
+      });
     }
 
     // Apply the year's passive costs.
@@ -8539,7 +8614,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     pingMail(add.length, add[0].key);
     // Bakunda: the Chief of Army Staff comes in person to say an urgent letter is waiting.
     const bk = add.find(l => String(l.key).startsWith("sc#pres_bk"));
-    if (bk && NAT) { const c = scPending.current.find(x => "sc#" + x.key === bk.key); setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (c && c.from) || "Chief of Army Staff", text: "Your Excellency, an urgent matter on Bakunda has just reached your desk" + (c && c.title ? ": " + String(c.title).replace(/\u2060/g, "") : "") + ". Please open it now.", urgent: true, ok: "Open the letter", fn: () => { setMailOpen(true); setLetterOpen(bk.id); } } }); } catch (e) {} }, 400); }
+    if (bk && NAT) { const c = scPending.current.find(x => "sc#" + x.key === bk.key); if (c && c.news) anchors(c.news[0], c.news[1]); setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (c && c.from) || "Chief of Army Staff", text: "Your Excellency, an urgent matter on Bakunda has just reached your desk" + (c && c.title ? ": " + String(c.title).replace(/\u2060/g, "") : "") + ". Please open it now.", urgent: true, ok: "Open the letter", fn: () => { setMailOpen(true); setLetterOpen(bk.id); } } }); } catch (e) {} }, 400); }
   };
   const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: ((extra && extra.key) || key) + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
   const budgetMin = () => (ministries || []).find(m => m.id === "budget");
@@ -10028,7 +10103,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "sc" && scCards.length > 0}>
-          {scCards[0] && (() => { const c = scCards[0]; return <>{!c.letter && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/characters/foreign-minister-nigeria.webp" : deputyArt(FEMALE_FIRST.includes(String(setup?.depGov?.nm || "").split(" ")[0]), sd.zone, setup?.depGov?.lo)} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
+          {scCards[0] && (() => { const c = scCards[0]; return <>{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/characters/foreign-minister-nigeria.webp" : deputyArt(FEMALE_FIRST.includes(String(setup?.depGov?.nm || "").split(" ")[0]), sd.zone, setup?.depGov?.lo)} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
             onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
