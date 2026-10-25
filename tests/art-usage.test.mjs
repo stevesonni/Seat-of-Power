@@ -55,7 +55,7 @@ test("every ready attire look has its picture, and every pack is a server produc
 // Art pack 2: the adviser's full figure, the House, the campaign and the reaction moods.
 test("every adviser pose, House picture, campaign scene and mood is used", () => {
   const files = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.relative(path.join(root, "public/art"), f).replace(/\.webp$/, ""));
-  const pack = files.filter(f => /^characters\/(adviser-.*-full-|speaker-|lawmaker-|party-chairman-|godfather-(pleased|worried|angry)$|deputy-.*-(pleased|worried|angry)$|commissioner-.*-(pleased|worried)$|(market-women|youth|workers)-group-)|^scenes\/(camp-|attack-|party-elders-meeting|town-hall-appeal|back-room-settlement)|^backgrounds\/assembly-chamber-wide|^objects\/(vote-tally-board|constituency-project-sign)/.test(f));
+  const pack = files.filter(f => /^characters\/(adviser-.*-full-|speaker-(?!of-the-house)|lawmaker-|party-chairman-|godfather-(pleased|worried|angry)$|deputy-.*-(pleased|worried|angry)$|commissioner-.*-(pleased|worried)$|(market-women|youth|workers)-group-)|^scenes\/(camp-|attack-|party-elders-meeting|town-hall-appeal|back-room-settlement)|^backgrounds\/assembly-chamber-wide|^objects\/(vote-tally-board|constituency-project-sign)/.test(f));
   assert.equal(pack.length, 83, "83 pictures in the four packs (" + pack.length + ")");
   assert.deepEqual(pack.filter(f => !src.includes(path.basename(f))), []);
   ["deputy-angry", "deputy-pleased", "deputy-worried"].forEach(f => assert.ok(!fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f + ": the old set with the wrong face is gone"));
@@ -112,4 +112,15 @@ test("every decision picture is used by the game", () => {
   assert.ok(ids.length >= 26, "Pack 8 is in (" + ids.length + ")");
   const listed = (jsx.match(/const DEC_ART = new Set\(\[([^\]]*)\]\)/) || [])[1] || "";
   assert.deepEqual(ids.filter(id => !listed.includes('"' + id + '"')), []);
+});
+
+// Pack 18, the Federal Government: every picture is in the game (moods by their base portrait).
+test("every Pack 18 picture is used by the presidency", () => {
+  const sys = fs.readdirSync(path.join(root, "game/systems")).map(f => fs.readFileSync(path.join(root, "game/systems", f), "utf8")).join("\n");
+  const all = src + sys;
+  const fed = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.basename(f, ".webp"))
+    .filter(n => /^(f_|nb_)/.test(n) || /^(fct-minister|finance-minister|petroleum-minister|defence-minister|attorney-general|national-security-adviser|presidential-chief-of-staff|speaker-of-the-house|labour-leader|oil-community-leader)(-pleased|-angry)?$/.test(n)
+      || ["abuja-skyline", "bill-assent", "campus-shut", "executive-order-signing", "federal-project-commissioning", "labour-strike", "port-congestion", "presidential-media-chat", "veto-override", "assent-pen", "executive-order-folder", "federation-account-ledger", "national-id-card"].includes(n));
+  assert.equal(fed.length, 95, "95 pictures in Pack 18 (" + fed.length + ")");
+  assert.deepEqual(fed.filter(n => !all.includes(n.replace(/-(pleased|angry)$/, "")) && !all.includes(n)), []);
 });

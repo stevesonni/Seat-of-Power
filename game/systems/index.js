@@ -33,3 +33,4 @@ export * from "./presidency.js";
 export * from "./campaign.js";
 export * from "./bakunda.js";
 export * from "./federal.js";
+export * from "./trips.js";

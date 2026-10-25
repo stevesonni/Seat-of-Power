@@ -107,6 +107,8 @@ Before every trip abroad, the President's pilot meets them at the Presidential A
 
 # Pack 18: the Federal Government (the big presidency pack)
 
+> **Delivered: Pack 18**, all 95 pictures, each in its place: a picture for every federal programme, bill, executive order, Assembly bill and revenue reform; the ministers (FCT, Finance, Petroleum, Defence, the Attorney-General) as their ministries' portraits; the NSA in the insurgency; the Speaker on the Assembly's bills; the Chief of Staff; the labour leader and the oil-community chief answering your decisions; the assent ceremony, the veto override, the executive-order signing, the commissioning, the press chat, the strike, the shut campus, the port queue and the Abuja skyline; the assent pen, the order folder, the Federation Account ledger and the ID card.
+
 > **Delivered: Pack 17** (the pilot, saluting and pleased, and the Air Fleet hangar). He now meets the President in the hangar before every trip.
 
 The presidency now has its own government: federal ministries (including the FCT Minister), national programmes, bills for the National Assembly, executive orders, the Assembly's own bills, revenue measures and national projects (railways, seaports, refineries, pipelines, airports). Each needs its own picture, so it stops borrowing the governor's. Please send one zip, every file named exactly as listed.
