@@ -2071,7 +2071,7 @@ try { window.SOP_UI = Object.assign(window.SOP_UI || {}, { TripLetter, ForcePick
    his advice on it, and confirm. */
 const ForcePicker = ({ M, options, onPick }) => {
   const [step, setStep] = useState(0), [sel, setSel] = useState(null), tall = TALL();
-  const forces = options.filter(o => ["army", "navy", "air"].includes(o.raw.fid)), stay = options.find(o => o.raw.fid === "stay");
+  const forces = options.filter(o => ["army", "navy", "air", "sbs"].includes(o.raw.fid)), stay = options.find(o => o.raw.fid === "stay");
   const FF = sel && SYS.BAKUNDA_FORCES[sel.raw.fid];
   const box = { maxWidth: 600, margin: "0 auto 14px", background: "#fbf8f1", borderRadius: 14, overflow: "hidden", boxShadow: "0 10px 30px rgba(0,0,0,.18)", border: "1px solid #e4dccb" };
   const btn = (bg) => ({ border: 0, borderRadius: 14, padding: "12px 16px", minHeight: 52, fontWeight: 800, fontSize: tall ? 16 : 19, color: "#fff", background: bg, boxShadow: "0 4px 0 rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b });
@@ -2093,9 +2093,10 @@ const ForcePicker = ({ M, options, onPick }) => {
         <button onClick={() => setStep(1)} style={btn("#2e7d32")}>Deploy troops</button>
         <button onClick={() => stay && onPick(stay, options.indexOf(stay))} style={btn("#8a8f88")}>Don't get involved</button>
       </div> : <>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(" + (tall ? 2 : forces.length) + ", 1fr)", gap: 8, marginBottom: 10 }}>
           {forces.map(o => { const K = SYS.BAKUNDA_FORCES[o.raw.fid], on = sel === o; return <button key={o.raw.fid} onClick={() => { setSel(o); setStep(2); }} aria-pressed={on} style={{ padding: 0, borderRadius: 14, overflow: "hidden", border: "3px solid " + (on ? CL.blu : "transparent"), background: "#fff", cursor: "pointer", boxShadow: "0 3px 0 #cfc9bc" }}>
-            <img src={"./art/scenes/" + K.scene + ".webp"} alt="" style={{ display: "block", width: "100%", aspectRatio: "4 / 3", objectFit: "cover" }} />
+            {K.scene ? <img src={"./art/scenes/" + K.scene + ".webp"} alt="" style={{ display: "block", width: "100%", aspectRatio: "4 / 3", objectFit: "cover" }} />
+              : <div aria-hidden="true" style={{ width: "100%", aspectRatio: "4 / 3", display: "grid", placeItems: "center", background: "linear-gradient(180deg,#0e2a47,#06182b)", fontSize: tall ? 40 : 52 }}>{K.icon}</div>}
             <b style={{ display: "block", padding: "6px 4px", fontSize: tall ? 15 : 18, color: CL.txt }}>{K.icon} {K.nm}</b>
           </button>; })}
         </div>
@@ -4831,8 +4832,9 @@ const HallBoard = ({ tab: tab0 = "today", note }) => {
 
 // The presidential pilot (Lovable Pack 16 brings his own portrait).
 const PILOT_ART = "presidential-pilot";
-const BAKUNDA_ICON = (k) => ({ army: "🪖", navy: "⚓", air: "✈️" })[k] || "🛑";
-const NEWS_BK = { war: ["The nation's worst fears have come true: the National Assembly has sanctioned war on the Axis.", "The President must now lead as Commander-in-Chief."] };
+const BAKUNDA_ICON = (k) => ({ army: "🪖", navy: "⚓", air: "✈️", sbs: "🔱" })[k] || "🛑";
+const NEWS_BK = { war: ["The nation's worst fears have come true: the National Assembly has sanctioned war on the Axis.", "The President must now lead as Commander-in-Chief."],
+  treaty: ["Breaking news: the National Assembly has enacted the peace treaty. The war with the Axis is officially over.", "Our troops are coming home. A historic day for the President, and for the nation."] };
 /* The inauguration at Eagle Square: the oath before the Chief Justice, three
    commitments the term will be judged by, and the inaugural address. */
 const INAUGURAL = {
@@ -4938,7 +4940,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const sd = STATES[state];
   // The presidency: the same engine with Nigeria as the polity (six zones, 37 "areas").
   const NAT = state === NATION, ZN = zonesOf(state), ZIX = ZN.map((_, i) => i);
-  SEAT.nat = NAT;
+  SEAT.nat = NAT; try { window.SOP_NAT = NAT; } catch (e) {} // the presidency shows no "How it really works" boxes
   const SPK = NAT ? "speaker-of-the-house" : "speaker"; // the Speaker who sends you bills
   const MEM = NAT ? Math.round(NASS_SEATS / 40) : 1; // one governor-sized House member is about a dozen in the National Assembly
   useEffect(() => NAT ? presidentialScreen() : undefined, [NAT]);
@@ -5731,7 +5733,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The Bakunda war's cards: letters, Defence Headquarters missions, the
   // Assembly's documents, and plain cards (SYS.bakundaCards).
   const BK_DEST = { ecowas: "Accra", chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
-  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
+  const bakundaCardFor = (c) => ({ key: "pres_bk_" + c.id + "_" + turn, alarm: c.alarm, advice: c.advice, from: "Gen. " + ((((stc.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff", img: "./art/characters/chief-of-army-staff.webp", urgent: true, news: c.news,
     letter: c.kind === "letter" && c.letter ? SYS.TRIP_LETTERS[c.letter] : undefined,
     military: c.kind === "mission" ? { d: c.d, need: c.need } : undefined,
     doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign } : undefined,
@@ -5754,6 +5756,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         else if (line) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-" + mood + ".webp", name: chief, text: line, urgent: wrong } }); } catch (e) {} }, 600);
         if (o.id === "assent" && c.id === "bk3" && NEWS_BK.war) anchors(NEWS_BK.war[0], NEWS_BK.war[1]);
         addL("🌍 Bakunda: " + (c.kind === "mission" ? "a mission" : c.t.replace(/⁠/g, "")) + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue || wrong ? "crisis" : "policy");
+        if (B1.done && !(B0 || {}).done && B1.treaty === "enacted") setTimeout(() => anchors(NEWS_BK.treaty[0], NEWS_BK.treaty[1]), 300);
         if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
         else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the Bakunda–Ostrava Axis." : "Vetoed the resolution for war and answered the Bakunda–Ostrava Axis with sanctions and diplomacy.");
         else if (c.id === "bk2") scWiki("Presidency", "Responded to General Voko's coup in Bakunda: " + o.l.toLowerCase() + ".");
@@ -8414,14 +8417,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const lv = setup?.level || "medium";
     // The President's year is fuller: the national deck comes first; a summons to Abuja or a "federal matter" means nothing in Aso Rock.
     if (NAT) { const own = q.filter(k => !(k === "federal" || k === "abuja")); q.length = 0; own.forEach(k => q.push(k)); }
-    const cap = NAT ? (turn === 1 ? 5 : lv === "easy" ? 6 : lv === "hard" ? 8 : 7) /* one more than before: the Security Council's letter */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
+    const cap = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const keep = ranked.filter(x => !TRIP(x.k)).filter((x, n) => n < cap || x.p >= 100).concat(ranked.filter(x => TRIP(x.k)));
+    const WAR = (k) => k.startsWith("sc#pres_bk"); // the war's two decisions and one trip never crowd out the rest of the year
+    const keep = ranked.filter(x => !TRIP(x.k) && !WAR(x.k)).filter((x, n) => n < cap || x.p >= 100).concat(ranked.filter(x => WAR(x.k)), ranked.filter(x => TRIP(x.k)));
     const dropped = ranked.filter(x => !keep.includes(x));
     q.length = 0; keep.forEach(x => q.push(x.k));
     const scKeys = keep.filter(x => x.k.startsWith("sc#")).map(x => x.k.slice(3));
@@ -8696,13 +8700,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const add = letters.filter(l => !mailRef.current.some(m => m.key === l.key));
     if (!add.length) return;
     setMail(m => [...m, ...add]);
-    pingMail(add.length, add[0].key);
+    const plain = add.filter(l => !(NAT && String(l.key).startsWith("sc#pres_bk")));
+    if (plain.length) pingMail(plain.length, plain[0].key);
     // The Security Council's letter: the National Security Adviser comes in person, by name.
     const ns = add.find(l => String(l.key).startsWith("sc#pres_nsc"));
     if (ns && NAT) { const hot = Object.values(stc.fronts || {}).some(v => v >= 70); setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/national-security-adviser" + (hot ? "-angry" : "") + ".webp", name: nsaName + " · National Security Adviser", text: hot ? "Your Excellency, a front is out of control and it is costing the country. The National Security Council is waiting for you." : "Your Excellency, the National Security Council has met. Two fronts need your decision: it is in your mail.", urgent: hot, ok: "Open the letter", fn: () => { setMailOpen(true); setLetterOpen(ns.id); } } }); } catch (e) {} }, 500); }
-    // Bakunda: the Chief of Army Staff comes in person to say an urgent letter is waiting.
-    const bk = add.find(l => String(l.key).startsWith("sc#pres_bk"));
-    if (bk && NAT) { const c = scPending.current.find(x => "sc#" + x.key === bk.key); if (c && c.news) anchors(c.news[0], c.news[1]); setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (c && c.from) || "Chief of Army Staff", text: "Your Excellency, an urgent matter on Bakunda has just reached your desk" + (c && c.title ? ": " + String(c.title).replace(/\u2060/g, "") : "") + ". Please open it now.", urgent: true, ok: "Open the letter", fn: () => { setMailOpen(true); setLetterOpen(bk.id); } } }); } catch (e) {} }, 400); }
+    // Bakunda: the Chief of Army Staff comes first, in person, with the grave news;
+    // then the mail lands, under its red seal, marked URGENT: BAKUNDA.
+    const bks = add.filter(l => String(l.key).startsWith("sc#pres_bk"));
+    if (bks.length && NAT) {
+      const cs = bks.map(l => scPending.current.find(x => "sc#" + x.key === l.key)).filter(Boolean), lead = cs.find(c => c.alarm) || cs[0], news = cs.find(c => c.news);
+      setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-urgent.webp", name: (lead && lead.from) || "Chief of Army Staff", text: "Your Excellency, " + ((lead && lead.alarm) || "there has been a grave development on Bakunda") + ". You will receive " + (bks.length === 1 ? "a letter" : bks.length + " letters") + " shortly, marked URGENT: BAKUNDA.", urgent: true, ok: "Continue",
+        fn: () => { if (news && news.news) anchors(news.news[0], news.news[1]); setTimeout(() => pingMail(bks.length, bks[0].key), 600); } } }); } catch (e) {} }, 400);
+    }
   };
   const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: ((extra && extra.key) || key) + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
   const budgetMin = () => (ministries || []).find(m => m.id === "budget");
@@ -8759,7 +8769,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       shock: curShock && curShock.desc, judiciary: curCourt && curCourt.desc, media: curMedia && curMedia.desc, dilemma: curD && (curD.d || curD.desc), intl_invite: curInvite && curInvite.what,
       flagship: FGl ? "You promised to " + FGl.goal + ". This year's share is due." : null, gold: gb && gb.text }[k] || (sc && sc.brief) || line;
     const two = (t) => { const m = String(t || "").match(/[\s\S]+?(?:[.!?]+["\u201d]?(?=\s|$)|$)/g) || [""]; const x = (m[0] || "").trim(); return x.length > 150 ? x.slice(0, 148).replace(/\s+\S*$/, "") + "…" : x; };
-    return { from, img, title, line: String(line || "").slice(0, 120), body: two(src) };
+    return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: BAKUNDA 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: two(src) };
   };
   // The year's matters arrive together after the year closes.
   const postYearMail = (q) => {
@@ -9015,7 +9025,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const v = letterView(open), risk = SYS.cosRisk(c, open.kind, open.stakes), riskC = risk === "safe" ? CL.grn : risk === "risky" ? CL.org : CL.red;
       // An opened letter fills the screen as a letter on paper: letterhead,
       // reference and date, "Your Excellency", the matter, a signature and the seal.
-      const OFFICE = { agenda: "Office of the Special Adviser to the Governor", budget: "Ministry of Budget & Economic Planning", gold: "Local Government Secretariat", crisis: "State Security Council", godfather: "Private & Confidential", party: "The Party Secretariat", house: "State House of Assembly", courts: "High Court of Justice", federal: "The Presidency · Abuja", community: open.key.startsWith("sc#ruler") ? "The Palace" : "A Community Delegation", press: "The Newsroom", travel: "Protocol Department, Government House", investment: "Investment Promotion Office", projects: "Ministry of Works & Infrastructure", intel: "Department of State Services · Secret", briefing: "Office of the Secretary to the State Government" };
+      const OFFICE = { bakunda: "Defence Headquarters · Office of the Chief of Army Staff", agenda: "Office of the Special Adviser to the Governor", budget: "Ministry of Budget & Economic Planning", gold: "Local Government Secretariat", crisis: "State Security Council", godfather: "Private & Confidential", party: "The Party Secretariat", house: "State House of Assembly", courts: "High Court of Justice", federal: "The Presidency · Abuja", community: open.key.startsWith("sc#ruler") ? "The Palace" : "A Community Delegation", press: "The Newsroom", travel: "Protocol Department, Government House", investment: "Investment Promotion Office", projects: "Ministry of Works & Infrastructure", intel: "Department of State Services · Secret", briefing: "Office of the Secretary to the State Government" };
       const ref = "GH/" + absYear + "/" + String(100 + (hashStr(open.id) % 900));
       const fromSA = String(v.from || "") === cast.adviser.name;
       const office = v.office || (fromSA ? "Office of the Special Adviser to the Governor" : open.secr ? "The State Secretariat" : (OFFICE[open.kind] || "Government House"));
@@ -10214,7 +10224,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
 
         <OL show={phase === "sc" && scCards.length > 0}>
-          {scCards[0] && (() => { const c = scCards[0]; return <>{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
+          {scCards[0] && (() => { const c = scCards[0]; return <>{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
+              <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
+              <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: BAKUNDA 🚨 · {String(c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
+            </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
             onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
         </OL>
@@ -13109,7 +13122,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   useEffect(() => { if (g) { try { window.storage.set(SEN_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
-  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_NAT = false; window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
   const fly = (dir, right, left) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, right, left } }); } catch (e) {} };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0, g ? g.step : "");
@@ -13433,7 +13446,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   useEffect(() => { if (g) { try { window.storage.set(LGA_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
-  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_NAT = false; window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
   const learn = (k) => { const t = SYS.LGA_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("lga:" + k); lessons.current.push(t); } };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
@@ -13724,7 +13737,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   useEffect(() => { if (g) { try { window.storage.set(AMB_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
-  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
+  const card = (o) => { const learn = lessons.current.join(" "); lessons.current = []; try { window.SOP_NAT = false; window.SOP_outcome && window.SOP_outcome(learn ? { ...o, learn } : o); } catch (e) {} };
   const fly = (dir, right, left) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, right, left } }); } catch (e) {} };
   const learn = (k) => { const t = SYS.AMB_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("amb:" + k); lessons.current.push(t); } };
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };

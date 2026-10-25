@@ -41,11 +41,13 @@ export const SEALS = {
   projects: { c: "#b35c00", rim: "#ffd3a1", i: "🏗️", nm: "Projects" },
   intel: { c: "#263238", rim: "#90a4ae", i: "🕵️", nm: "Intelligence" },
   briefing: { c: "#4e5d4f", rim: "#cfd8cf", i: "🗂️", nm: "Briefing" },
+  bakunda: { c: "#8e0c0c", rim: "#e0453a", i: "🚨", nm: "URGENT: BAKUNDA" }, // the red wax seal
 };
 
 // What kind of letter each year event is, and how much it needs the governor (1–3).
 export const letterKind = (key) => {
   const k = String(key || "");
+  if (k.startsWith("sc#pres_bk")) return ["bakunda", 3];
   if (k === "flagship") return ["agenda", 3];
   if (k === "budget") return ["budget", 3];
   if (k === "gold") return ["gold", 2];

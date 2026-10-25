@@ -224,3 +224,20 @@ Every trip now arrives as a letter (the iCivics way) with two big buttons at the
 
 ## Scene (`scenes/`), 1280×720, no text
 6. `defence-headquarters`: the briefing room at Defence Headquarters, Abuja: a big map of the northern border on the wall, officers at a table, green-white-green flag in the corner. The background for the Army Chief's missions ("Deploy troops / Don't get involved").
+
+---
+
+# Pack 20: Commander-in-Chief (Bakunda) and the anti-graft chairmen
+
+Bakunda is now the President's war: every year, two decisions and one trip until it is resolved. The Chief of Army Staff tells the President in person first, then the letter lands under its own seal, marked **URGENT: BAKUNDA 🚨**. The Navy's **Special Boat Service (SBS)**, its commandos, is now a fourth force beside the Army, the Navy and the Air Force. Allegations against ministers and commissioners now come as letters from the EFCC and ICPC chairmen. One zip, files named exactly; everything fictional (no real faces, no real seals or crests).
+
+## Icon (`icons/`), 256×256, transparent
+1. `seal-bakunda`: a **red wax seal**, deep crimson, pressed and slightly uneven at the edges, with a small siren or star pressed into the wax. It sits on every URGENT: BAKUNDA letter, so it must read at 40 px.
+
+## Scenes (`scenes/`), 1280×720, no text
+2. `sbs-raid`: SBS commandos at night: three black rigid-hull boats low on dark water, men in dark wetsuits and helmets with night-vision goggles, one pointing ahead, a faint glow of a riverside jetty in the distance. Green-white-green patch on a shoulder, nothing else readable. It is the SBS tile on the Army Chief's force picker and the front page when the SBS wins.
+3. `bakunda-war-room`: the President at the head of the National Security Council table at night, generals standing, a screen with a map of Lake Chad and the northern border. For the war years' front pages.
+
+## Characters (`characters/`), transparent, full length, about 700 px tall, each with `-pleased` and `-angry`
+4. `efcc-chairman`: the EFCC chairman: a man in his fifties in a dark suit and a white shirt, holding a thick case file; a plain green-and-white lanyard (no logo).
+5. `icpc-chairman`: the ICPC chairman: a woman in her fifties in a dark skirt suit and glasses, holding a petition folder; plain lanyard (no logo).

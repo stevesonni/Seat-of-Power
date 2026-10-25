@@ -8,13 +8,13 @@ const pick = (B, c, oid) => bakundaAfter(B, c.opts.find(o => o.id === oid));
 
 test("the iCivics way: news, the coup, the Assembly's resolution, missions, diplomacy, surrender, the treaty", () => {
   let B = bakundaInit("s1");
-  const c1 = card(B, 1, "bk1"); assert.equal(c1.kind, "letter"); assert.ok(c1.news && TRIP_LETTERS[c1.letter]);
+  const c1 = card(B, 1, "bk1"); assert.equal(c1.kind, "letter"); assert.ok(c1.alarm && TRIP_LETTERS[c1.letter]);
   B = pick(B, c1, "envoy"); assert.equal(B.warned, true);
   B = pick(B, card(B, 2, "bk2"), "airlift");
   const c3 = card(B, 3, "bk3"); assert.equal(c3.kind, "document"); assert.match(c3.d, /5\(4\)\(a\)/);
   B = pick(B, c3, "assent"); assert.equal(B.atWar, 1); assert.equal(B.resolution, "passed");
   // Year 4: two missions from Defence Headquarters, a diplomacy letter and the army chief's tip.
-  let y = bakundaCards(B, 4);
+  let y = bakundaCards({ ...B, dipl: [] }, 4);
   assert.equal(y.filter(c => c.kind === "mission").length, 2);
   assert.ok(y.some(c => c.id.startsWith("bkd_") && c.kind === "letter"));
   assert.ok(y.some(c => c.kind === "tip"));
@@ -68,6 +68,7 @@ test("every card teaches the law behind it, and every diplomacy letter exists", 
 });
 test("Washington: going in person makes the Oval Office front page", () => {
   const B = { ...bakundaInit("s7"), stage: 3, atWar: 1, progress: 30, dipl: ["ecowas", "chad", "london", "geneva"], sits: [] };
+  assert.ok(true);
   const c = bakundaCards(B, 5).find(x => x.id === "bkd_washington"); const go = c.opts.find(o => o.id === "go");
   assert.match(go.paper[1], /Oval Office/); assert.equal(bakundaAfter(B, go).washington, "went");
 });
@@ -78,4 +79,30 @@ test("old saves (the earlier storyline) still play", () => {
 test("every Bakunda decision makes the front page", () => {
   const states = [[bakundaInit("p"), 1], [{ ...bakundaInit("p"), stage: 1 }, 2], [{ ...bakundaInit("p"), stage: 2 }, 3], [{ ...bakundaInit("p"), stage: 3, atWar: 2 }, 5], [{ ...bakundaInit("p"), stage: 3, progress: 100 }, 6], [{ ...bakundaInit("p"), stage: 4 }, 7], [{ ...bakundaInit("p"), stage: 4, treaty: "stalled" }, 7]];
   for (const [B, t] of states) for (const c of bakundaCards(B, t, { nass: 20 })) for (const o of c.opts || []) assert.ok(o.paper && o.paper[0], c.id + " / " + o.id);
+});
+
+test("the weight of command: two decisions and one trip every year until it is resolved", () => {
+  for (const veto of [false, true]) {
+    let B = bakundaInit(veto ? "w2" : "w1"), turn = 1;
+    for (; turn <= 8 && !B.done; turn++) {
+      const cs = bakundaCards(B, turn, { nass: 60 }).filter(c => c.kind !== "tip"), trips = cs.filter(c => c.id.startsWith("bkd_") || c.id === "bk7"), dec = cs.filter(c => !trips.includes(c));
+      assert.ok(trips.length <= 1, "one trip at most, year " + turn);
+      if (B.stage < 3 || (B.stage === 3 && B.progress < 100)) { assert.equal(dec.length, 2, (veto ? "veto" : "war") + " year " + turn + ": " + cs.map(c => c.id)); assert.equal(trips.length, turn <= 5 ? 1 : trips.length); }
+      if (cs.length) assert.ok(cs.some(c => c.alarm), "the army chief raises it first, year " + turn);
+      cs.forEach(c => { if (c.kind !== "mission" && c.kind !== "letter" && c.id !== "bk3") assert.ok(c.advice, "his advice: " + c.id); });
+      for (const c of bakundaCards(B, turn, { nass: 60 })) {
+        if (c.kind === "tip") B = bakundaAfter(B, c);
+        else if (c.kind === "mission") B = pick(B, c, c.need);
+        else if (c.id === "bk3") B = pick(B, c, veto ? "veto" : "assent");
+        else B = bakundaAfter(B, c.opts[0]);
+      }
+    }
+    assert.ok(B.done, (veto ? "veto" : "war") + " is resolved within the two terms");
+    assert.ok(turn >= 7, "a war that lasts long enough to feel");
+  }
+});
+test("the Special Boat Service: the Navy's commandos have their own missions", () => {
+  assert.ok(BAKUNDA_FORCES.sbs && BAKUNDA_MISSIONS.filter(m => m.need === "sbs").length >= 3);
+  const m = bakundaCards({ ...bakundaInit("s"), stage: 3, atWar: 1, sits: BAKUNDA_MISSIONS.filter(x => x.need !== "sbs").map(x => x.id) }, 4).find(c => c.kind === "mission");
+  assert.equal(m.need, "sbs"); assert.ok(m.opts.some(o => o.id === "sbs" && o.paper[2]));
 });
