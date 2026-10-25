@@ -4936,6 +4936,7 @@ const Inauguration = ({ name, vp, onDone }) => {
    so the page itself is never rewritten; a tap on one shows its full name
    and what it means. Buttons are left alone, so they always do their job. */
 /* global CSS, NodeFilter, Highlight, MutationObserver */
+const isSafariLike = () => { try { const ua = navigator.userAgent || ""; return /iP(hone|ad|od)/.test(ua) || (/Safari\//.test(ua) && !/Chrome|Chromium|CriOS|Android|Edg/.test(ua)) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1); } catch (e) { return false; } };
 const installGlossary = () => {
   if (typeof document === "undefined" || window.__sopGlossary) return; window.__sopGlossary = true;
   const RX = SYS.glossaryRegex(), SKIP = /^(BUTTON|INPUT|TEXTAREA|SELECT|OPTION|SCRIPT|STYLE|NOSCRIPT)$/;
@@ -4945,14 +4946,24 @@ const installGlossary = () => {
     ".sop-gloss{position:fixed;z-index:2147483000;max-width:min(340px,90vw);background:#fffdf7;color:#1d2a22;border:1px solid #d9cfb4;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:12px 14px;font:17px/1.45 system-ui,sans-serif}" +
     ".sop-gloss b{display:block;font-size:18px;color:#14532d;margin-bottom:2px}.sop-gloss i{display:block;font-style:normal;color:#5b6b55;font-size:15px;margin-bottom:6px}";
   document.head.appendChild(st);
-  const can = typeof CSS !== "undefined" && CSS.highlights && typeof Highlight !== "undefined";
-  let t = null;
-  const paint = () => { t = null; if (!can) return;
-    const ranges = [], w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-    for (let n = w.nextNode(); n; n = w.nextNode()) { const v = n.nodeValue; if (!v || v.length < 2 || !/[A-Za-z]/.test(v) || skipped(n)) continue; RX.lastIndex = 0; let m;
-      while ((m = RX.exec(v))) { const s0 = m.index + m[1].length, r = document.createRange(); r.setStart(n, s0); r.setEnd(n, s0 + m[2].length); ranges.push(r); if (ranges.length > 600) break; } }
-    CSS.highlights.set("sop-term", new Highlight(...ranges)); };
-  new MutationObserver(() => { if (!t) t = setTimeout(paint, 350); }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  // Safari (every iPhone browser) gets the tap but not the underlines until they are proven safe there.
+  const can = typeof CSS !== "undefined" && CSS.highlights && typeof Highlight !== "undefined" && !isSafariLike();
+  /* Gentle on phones: at most once a second, only while the page is visible,
+     a hard cap on ranges, and if anything ever goes wrong the underlines
+     switch off for good (the tap still works). */
+  let t = null, off = false, mo = null;
+  const paint = () => { t = null; if (!can || off || document.hidden) return;
+    try {
+      const ranges = [], w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = w.nextNode(); n && ranges.length < 160; n = w.nextNode()) { const v = n.nodeValue; if (!v || v.length < 2 || !/[A-Z]{2}|[a-z]{4}/.test(v) || skipped(n)) continue; RX.lastIndex = 0; let m;
+        while ((m = RX.exec(v)) && ranges.length < 160) { const s0 = m.index + m[1].length, r = document.createRange(); r.setStart(n, s0); r.setEnd(n, s0 + m[2].length); ranges.push(r); } }
+      CSS.highlights.delete("sop-term");
+      if (ranges.length) CSS.highlights.set("sop-term", new Highlight(...ranges));
+    } catch (e) { off = true; try { CSS.highlights.delete("sop-term"); mo && mo.disconnect(); } catch (x) {} }
+  };
+  mo = new MutationObserver(() => { if (!t && !off) t = setTimeout(paint, 1000); });
+  mo.observe(document.body, { childList: true, subtree: true });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && !t) t = setTimeout(paint, 300); });
   paint();
   let pop = null;
   const close = () => { if (pop) { pop.remove(); pop = null; } };
@@ -14738,7 +14749,7 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   useEffect(() => { try { installGlossary(); } catch (e) {} }, []);
   // The explainer film (public/explainer.html): once on a first visit, skippable, and from the menu any time.
-  const [intro, setIntro] = useState(() => { try { return !window.SOP_TEST && !localStorage.getItem("sop_intro_seen"); } catch (e) { return false; } });
+  const [intro, setIntro] = useState(() => { try { return !window.SOP_TEST && !isSafariLike() && !localStorage.getItem("sop_intro_seen"); } catch (e) { return false; } }); // on iPhones only from the menu, for now
   useEffect(() => {
     const done = (e) => { if (e && e.data && e.data.type === "sop-explainer-done") { setIntro(false); try { localStorage.setItem("sop_intro_seen", "1"); } catch (x) {} } };
     const open = () => setIntro(true);

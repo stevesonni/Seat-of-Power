@@ -15,7 +15,7 @@ check(/The basics · 1 of 5/.test(t) && /You are in charge/.test(t), "How to pla
 for (let i = 0; i < 4; i++) { await g.click(/^Next$/); await g.wait(250); }
 t = await g.txt();
 check(/You don't need to know politics/.test(t) && /Start playing/.test(t), "the last card: you learn as you play");
-await g.click(/^Read the full guide$/); await g.wait(800);
+await g.click(/^Read the full guide$/); await g.wait(1800);
 t = await g.txt();
 check(/The full guide/.test(t) && /How the economy grows/.test(t), "the full guide, with plain headings");
 const n = await g.page.evaluate(() => (CSS.highlights && CSS.highlights.get("sop-term")) ? CSS.highlights.get("sop-term").size : -1);
