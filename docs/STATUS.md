@@ -3,7 +3,33 @@
 
 
 
-## Fresh trouble every game: the war, the strikes, the wiki (25 Oct, latest)
+## Storylines that remember: no more "the queues are back" twice (25 Oct, latest)
+
+- **The engine** (game/systems/storylines.js): a recurring matter is a graph of beats, one a year. Every answer is one of four kinds:
+  - a **programme**: money, works now;
+  - a **bill**: passes or stalls next year on the House's mood; a stalled bill comes back as a fight (bargain, go public or drop it), and a second failure is thrown out;
+  - an **executive order**: instant, and a court may strike it down next year (defend it, turn it into a bill, or withdraw it);
+  - an **act**: anything else.
+- **How the story moves:**
+  - A good answer moves the story on to a new problem; a weak one escalates.
+  - Three weak answers (a good one takes one back) boil it over.
+  - No beat repeats, and a solved story closes.
+  - Each card opens with "Last year you…".
+  - Three executive orders bring "rule by decree".
+- **The President's crises:**
+  - Fuel (20 beats): Atlas Petroleum's terms; the price cap in court; the cartel; NUPENG parks the tankers. It hooks into the NLC and NUPENG strikes.
+  - Insurgency (19): a splinter group under Ameer Bulama; the highway; the vigilantes turned warlords; the state police amendment; the bomb in Abuja.
+  - Naira (14): float, defend, the printing press, the IMF (which hooks the NLC), food riots, exports.
+- **The agenda, for all 10 agendas:** eight years, each with its own problem.
+  - Term 1: land, people, the test, the ribbon. Term 2: upkeep, every LGA wants one, capture, will it survive you.
+  - Corner-cutting comes back next year as the cheap work giving way.
+  - A bill builds nothing that year, but passes into law; an order is fast, but can be struck down.
+- **Security fronts:** the National Security Council letter brings the worst front's next development (the Lake Chad islands, then a new faction; Kachalla Dan Sule's forest state; "unknown gunmen"; a former militant guarding the pipes), plus the choice to send the forces to the second front instead.
+- **The national cake remembers:** padding leads to the tracking report, then the anti-graft agency's letter; refusing leads to the Senate getting even, then an override threat.
+- **Traditional rulers remember promises:** "Promise it for next year" comes back next year, then "has run out of patience". A ruler does not bring the same kind of matter twice running.
+- **Tests:** tests/storylines.test.mjs plays 400 random terms per storyline and fails on any repeated card. The president e2e checks the "Last year you…" line on screen; the playthrough e2e checks the flagship story.
+
+## Fresh trouble every game: the war, the strikes, the wiki (25 Oct)
 
 - **The junta's moves** (game/systems/bakunda.js, `BAKUNDA_GAMBITS`): eight scenarios that can come in any year after the coup, in any order, war or no war, until the peace is law.
   - The eight: missiles on the border; a bomb cell at home; Ostrava's mercenaries; a Nigerian tycoon funding the junta; Tessara, the junta's friend; stolen crude; a cyber attack; a murder plot against an exile in Abuja.

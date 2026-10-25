@@ -53,14 +53,14 @@ export const UNIONS = {
 // Why the NLC is angry, in their words.
 export const CAUSES = {
   vat: "the VAT rise from 7.5% to 10%", imf: "the IMF's conditions: the fuel subsidy gone and the naira floating",
-  levy: "the new market levy", property: "the Land Use Charge", wage: "the minimum wage",
+  levy: "the new market levy", property: "the Land Use Charge", wage: "the minimum wage", fuel: "the new petrol price",
 };
 
 /* The 14-day ultimatum: the letter that comes with a tax rise. */
 export const ultimatum = (cause, nat, turn) => ({ id: "nlc", cause, turn,
   title: "14-day ultimatum from " + UNIONS.nlc.nm(nat),
   line: "Reverse " + (CAUSES[cause] || "the new tax") + " within 14 days, or treble the minimum wage. If not, every worker in " + (nat ? "Nigeria" : "the state") + " stays at home from the 15th day, indefinitely.",
-  paper: ["NLC ISSUES 14-DAY ULTIMATUM OVER " + String(cause === "vat" ? "VAT" : cause === "imf" ? "SUBSIDY REMOVAL" : "NEW TAXES").toUpperCase(), "Reverse it or face an indefinite strike"] });
+  paper: ["NLC ISSUES 14-DAY ULTIMATUM OVER " + String(cause === "vat" ? "VAT" : cause === "imf" ? "SUBSIDY REMOVAL" : cause === "fuel" ? "PETROL PRICES" : "NEW TAXES").toUpperCase(), "Reverse it or face an indefinite strike"] });
 
 export const startStrike = (id, cause, turn) => ({ id, cause: cause || null, start: turn, stage: 1, trust: id === "asuu" ? 20 : 35, sessions: 0, rounds: { t: turn, n: 0 }, lastSession: -9, mou: null, on: true, history: [] });
 export const yearsOn = (st, turn) => Math.max(0, turn - st.start);

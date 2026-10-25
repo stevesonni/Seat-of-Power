@@ -5904,16 +5904,74 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           tone: f.bad ? "bad" : (f.fx.app >= 0 ? "good" : "neutral"), rows, learn: SYS.PRES_LEARN[c.learn] };
       } }; }) };
   };
+  /* A storyline's beat as a Desk card (SYS.storylines). Each option says how
+     it is done (programme, bill, executive order); the result follows next
+     year. Hooks reach into labour: an NLC ultimatum, or NUPENG's tankers. */
+  const storyLabour = (lab, h) => {
+    const L = { ...(lab || {}), strikes: { ...((lab || {}).strikes || {}) } }, st = L.strikes.nlc;
+    if (h === "nupeng") { L.strikes.nlc = st && st.on ? { ...st, stage: 3 } : { ...SYS.startStrike("nlc", "fuel", turn), stage: 3 }; setTimeout(() => paper("NUPENG PARKS THE TANKERS", "Not a litre moves; hospitals on their last diesel", false, "./art/scenes/fuel-queue.webp"), 900); }
+    else if (h === "nupeng_end" && st && st.on) L.strikes.nlc = { ...st, on: false, over: "deal" };
+    else if ((h === "nlc_fuel" || h === "nlc_imf") && !L.ult && !(st && st.on)) { L.ult = SYS.ultimatum(h === "nlc_imf" ? "imf" : "fuel", NAT, turn); const pp = L.ult.paper; setTimeout(() => paper(pp[0], pp[1], false, "./art/scenes/nlc-march.webp"), 1200); }
+    return L;
+  };
+  const storyHook = (h) => setStc(p => ({ ...p, labour: storyLabour(p.labour, h) }));
+  const storyFx = (f = {}) => ({ app: f.app || 0, sec: (f.sec || 0) * .006, agr: (f.agr || 0) * .006, cor: f.cor || 0, igr: f.igr || 0, pStab: f.pStab || 0 });
+  const storyCardFor = (def, S) => {
+    const c = SYS.storyCard(def, S, { nat: NAT });
+    if (!c) return null;
+    const first = (S.hist || []).length === 0;
+    return { key: "pres_crisis_story_" + def.id + "_" + turn, kicker: def.nm + (S.hist.length ? " · year " + (S.hist.length + 1) : ""), color: CL.red, art: [c.bg || "situation-room", c.who, null, c.scene], title: c.t, brief: c.d,
+      stakes: first ? "Programmes work now and cost money every year. Bills take a year in the Assembly, but they last. Executive orders are instant and cheap, and a court can strike them down." : undefined,
+      options: c.opts.map(o => { const fx = storyFx(o.fx), cost = o.cost || 0;
+        return { label: o.l, note: SYS.KINDS[o.kind] && SYS.KINDS[o.kind].note || undefined, risk: o.odds != null ? "A gamble: it can go either way." : null,
+          chips: (o.tag ? [{ text: o.tag, color: o.kind === "bill" ? CL.blu : o.kind === "order" ? CL.gold : CL.grn }] : []).concat(fxChips({ app: fx.app, cor: fx.cor }), cost > 0 ? [{ text: naira(cost), color: CL.org }] : cost < 0 ? [{ text: "Borrow " + naira(-cost), color: CL.org }] : []),
+          run: () => {
+            const R = SYS.storyAfter(def, S, o, turn, { nat: NAT }, rng(turn * 977 + hashStr(def.id + o.id)));
+            const f = storyFx(R.fx);
+            scFx({ ...f, debt: R.cost > 0 ? R.cost : 0 });
+            if (R.cost < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - R.cost) * 100) / 100, debt: Math.round(((p.debt || 0) - R.cost) * 10) / 10 }));
+            if (R.decree) scFx({ app: -1 });
+            setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...(p.pres.npcs || {}) } } : p.pres; if (!P) return p;
+              Object.entries(R.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; });
+              return { ...p, pres: { ...P, story: R.S, sev: R.S.heat, over: P.over || R.S.closed } }; });
+            if (R.hook) storyHook(R.hook);
+            const past = (R.S.hist[R.S.hist.length - 1] || {}).past || o.l;
+            addL("🚨 " + def.nm + ": " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + "." + (R.won === false ? " It did not work." : ""), R.won === false || o.weak ? "crisis" : "policy");
+            scWiki(o.weak || R.won === false ? "Controversies" : "Presidency", past.charAt(0).toUpperCase() + past.slice(1) + ".");
+            if (R.closed) { scWiki("Presidency", R.S.legacy || def.legacy); setTimeout(() => paper(def.nm.toUpperCase().replace(/^THE /, "") + " IS OVER", "The country exhales", true), 300); }
+            if (R.decree) scWiki("Controversies", "Was accused of ruling by decree after a string of executive orders.");
+            track("story_" + def.id + "_" + (S.beat || ""), o.id + (R.won == null ? "" : R.won ? ":won" : ":lost"));
+            const rows = [{ l: def.nm, v: R.closed ? "Over" : R.S.heat + "/100", good: R.closed || (R.S.heat < S.heat) }]
+              .concat(o.kind === "bill" ? [{ l: "The bill", v: "Before the Assembly: the vote comes next year", good: true }] : [], R.order ? [{ l: "The order", v: "In force; it can be challenged in court", good: true }] : [], R.decree ? [{ l: "Critics", v: "“Rule by decree”", good: false }] : [])
+              .concat(Object.entries(R.npc || {}).map(([k, v]) => ({ l: ((stc.pres || {}).npcs || {})[k] ? stc.pres.npcs[k].name + " (" + SYS.PRES_NPCS[k].short + ")" : k, v: (v > 0 ? "+" : "") + v, good: v > 0 })));
+            return { icon: R.closed ? "🕊️" : o.kind === "bill" ? "📜" : o.kind === "order" ? "✍️" : o.kind === "programme" ? "💰" : "🚨", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: R.say + (R.decree ? " Critics say you are ruling by decree." : ""),
+              tone: R.closed ? "good" : R.won === false || o.weak || f.app < 0 ? "bad" : "good", rows, learn: def.learn && SYS.PRES_LEARN[def.learn] };
+          } }; }) };
+  };
   // The National Security Council: the two worst fronts, a crackdown or talks for each (SYS.frontsCard).
-  const frontsCardFor = (c) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: ["situation-room", null, null, null], title: c.t, brief: c.d,
-    options: c.opts.map(o => ({ label: o.l, chips: fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }).concat([{ text: naira(o.cost), color: CL.org }]), run: () => {
+  // The worst front's storyline beat, with one option to send the forces to the second front instead.
+  const frontsWithStory = (c, FS, F) => {
+    const [k1, k2] = c.worst || [], d = SYS.FRONT_STORIES[k1], S = (FS || {})[k1], sc = d && S && SYS.storyCard(d, S, { nat: true });
+    if (!sc) return c;
+    const B = d.beats[S.beat] || {};
+    const opts = sc.opts.map(o => ({ id: k1 + ":" + o.id, front: k1, how: o.kind, l: o.l, note: (SYS.KINDS[o.kind] || {}).note || "", say: o.say, cost: o.cost || 0, sev: o.sev || 0, zones: o.zones, npc: o.npc, fx: o.fx, tag: o.tag, storyK: k1, storyOpt: o }));
+    if (k2) { const m = SYS.FRONTS[k2].military; opts.push({ id: k2 + ":military", front: k2, how: "military", ...m, l: "Send the forces to " + SYS.FRONTS[k2].short + " instead", storyK: k1, storyIgnore: true }); }
+    return { ...c, t: d.nm + ": " + sc.t, d: sc.d + (k2 ? " Meanwhile, " + SYS.FRONTS[k2].short + " stands at " + Math.round((F || {})[k2] || 0) + "/100." : ""), opts, who: sc.who, bg: sc.bg, scene: sc.scene, storyS: S, ignored: B.ignored };
+  };
+  const frontsCardFor = (c) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: [c.bg || "situation-room", c.who || null, null, c.scene || null], title: c.t, brief: c.d,
+    options: c.opts.map(o => ({ label: o.l, note: o.storyOpt ? o.note : undefined, chips: (o.tag ? [{ text: o.tag, color: o.how === "bill" ? CL.blu : o.how === "order" ? CL.gold : CL.grn }] : []).concat(fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }), o.cost ? [{ text: naira(o.cost), color: CL.org }] : []), run: () => {
+      if (o.storyK && c.storyS) { const d = SYS.FRONT_STORIES[o.storyK], opt = o.storyIgnore ? { id: "ignored", kind: "act", weak: true, next: c.ignored, past: "left the " + d.nm + " to itself" } : o.storyOpt;
+        const R = SYS.storyAfter(d, c.storyS, opt, turn, { nat: true }, rng(turn * 389 + hashStr(o.id)));
+        setStc(p => ({ ...p, frontStories: { ...(p.frontStories || {}), [o.storyK]: R.S } }));
+        if (R.closed) scWiki("Presidency", "Brought the " + d.nm + " front under control.");
+        if (R.decree) scWiki("Controversies", "Was accused of ruling the security fronts by decree."); }
       scFx({ app: (o.fx || {}).app || 0, cor: (o.fx || {}).cor || 0, debt: o.cost });
       setS(p => { const zm = { ...(p.zoneMood || {}) }; Object.entries(o.zones || {}).forEach(([z, v]) => { const i = NATION_ZONE_IDS.indexOf(z); if (i >= 0) zm[i] = Math.max(-25, Math.min(25, (zm[i] || 0) + v)); }); return { ...p, zoneMood: zm }; });
       setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, frontPick: { front: o.front, sev: o.sev } }; });
       const F0 = (stc.fronts || {})[o.front] || 0;
-      addL("🛡️ " + SYS.FRONTS[o.front].nm + ": " + o.l.split(": ").pop() + ". " + o.note, "policy"); track("front_" + o.front, o.how);
+      addL("🛡️ " + SYS.FRONTS[o.front].nm + ": " + o.l.split(": ").pop() + ". " + (o.say || o.note), "policy"); track("front_" + o.front, o.how);
       scWiki("Presidency", "On " + SYS.FRONTS[o.front].short + ", chose to " + o.l.split(": ").pop().replace(/^./, x => x.toLowerCase()) + ".");
-      return { icon: "🛡️", img: o.img ? "./art/" + o.img + ".webp" : undefined, title: o.l.split(": ").pop(), text: o.note, tone: "neutral",
+      return { icon: "🛡️", img: o.img ? "./art/" + o.img + ".webp" : undefined, title: o.l.split(": ").pop(), text: o.say || o.note, tone: o.storyOpt && o.storyOpt.weak ? "bad" : "neutral",
         rows: [{ l: SYS.FRONTS[o.front].nm.split(":")[0], v: Math.round(F0) + " → " + Math.max(0, Math.round(F0 + o.sev)), good: true }].concat(Object.entries(o.zones || {}).filter(([, v]) => v).map(([z, v]) => ({ l: zoneName(NATION_ZONE_IDS.indexOf(z)) + " zone", v: (v > 0 ? "+" : "") + v, good: v > 0 }))),
         learn: "Section 217: the armed forces defend Nigeria and, when the President orders it, help the police restore order. Section 14(3), federal character: how each region's crisis is handled is read region against region." };
     } })) });
@@ -6364,7 +6422,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           options: M.options.map(o => ({ label: o.label, chips: fxChips({ ...o.fx, debt: o.debt || 0 }, o.dz).slice(0, 2).concat([{ text: who + " " + (o.rel > 0 ? "+" : "") + o.rel, color: o.rel > 0 ? CL.grn : CL.red }]), run: () => {
             if (o.debt && !spendB(o.debt, o.label + " (" + ru.name + ")")) return;
             scFx(o.fx, zone, o.dz);
-            setCouncil(c0 => c0 ? { ...c0, rulers: c0.rulers.map(x => x.id === ru.id ? { ...x, rel: Math.max(0, Math.min(100, x.rel + o.rel)) } : x) } : c0);
+            setCouncil(c0 => c0 ? { ...c0, rulers: c0.rulers.map(x => x.id === ru.id ? { ...x, rel: Math.max(0, Math.min(100, x.rel + o.rel)), kinds: [...(x.kinds || []).slice(-1), M.kind], promise: o.promise ? { ...o.promise, due: turn + 1 } : o.clear ? null : x.promise } : x) } : c0);
             if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, fx: { app: o.later.app }, desc: o.later.desc }]);
             addL("👑 " + ru.name + ": you " + o.log + ".", o.res[2] === "bad" ? "political" : "policy"); track("ruler_" + M.kind, o.label);
             return { icon: "👑", title: o.res[0], text: o.res[1], tone: o.res[2], rows: [{ l: who, v: (o.rel > 0 ? "+" : "") + o.rel, good: o.rel > 0 }].concat(o.dz ? [{ l: ["North", "Central", "South"][zone] + " zone", v: (o.dz > 0 ? "+" : "") + o.dz, good: o.dz > 0 }] : []) };
@@ -6546,6 +6604,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       groundedRef.current = NAT && !!(L.strikes.nlc && L.strikes.nlc.on); // NUATE: no trips, no investor visits this year
       next.labour = L;
     }
+    // The flagship as an eight-year story (SYS.agendaStory): a bill sent last year meets its vote, an order may meet a court.
+    {
+      const fd = FLAGSHIP[setup?.agenda] && SYS.agendaStory(setup.agenda);
+      if (fd) {
+        const H = scHouse(), F1 = SYS.storyTurn(fd, next.flagStory || SYS.storyStart(fd, state + ":" + pName), turn, { house: Math.round(H.loyal / Math.max(1, H.seats) * 100), nat: NAT }, rE);
+        next.flagStory = F1;
+        if (F1.news && F1.news.kind === "passed") { dApp += 2; notes.push(["📜 The " + F1.news.nm + " passed: it is law now (approval +2).", "success"]); scWiki("Governorship", "Signed the " + F1.news.nm.replace(/ Bill$/, " Law") + " into law."); }
+        if (F1.news && F1.news.kind === "rejected") notes.push(["📜 The House threw out the " + F1.news.nm + " a second time.", "political"]);
+      }
+    }
     // The feud with the deputy (SYS.rivalry): one beat a year once you refused their appointments.
     {
       if (window.SOP_TEST && window.SOP_TEST.rival && !next.rival) next.rival = SYS.rivalryStart(0); // test-only (tests/e2e)
@@ -6571,7 +6639,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     // The Presidency's national deck (SYS.presidency): the crisis, the power centres, the world stage.
     if (NAT) {
-      const P0 = next.pres || presInitNow();
+      let P0 = next.pres || presInitNow();
+      // The national crisis is a storyline (SYS.storylines): last year's answer decides this year's beat. Older saves start one now.
+      const sDef = P0.crisis && !P0.over && SYS.PRES_STORIES[P0.crisis];
+      if (sDef) {
+        const S1 = SYS.storyTurn(sDef, P0.story || SYS.storyStart(sDef, state + ":" + pName), turn, { house: ((P0.npcs || {}).nass || {}).rel, nat: true }, rE);
+        P0 = { ...P0, story: S1, over: P0.over || !!S1.closed };
+        const B1 = !S1.closed && sDef.beats[S1.beat];
+        if (B1 && B1.hook) next.labour = storyLabour(next.labour, B1.hook);
+        if (S1.closed) scWiki("Presidency", S1.legacy || sDef.faded);
+      }
       const dr = SYS.presDrift(P0); next.pres = dr.P;
       // The army's jets and drones: delivered through the Ministry of Defence, or still waiting for one.
       if (next.defProc && next.defProc.status === "waiting" && next.defProc.turn < turn) {
@@ -6599,7 +6676,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         next.pres = { ...next.pres, judged: true };
         next.pres.commits.forEach(k => { const ok = SYS.commitKept(next.pres, k); dApp += ok ? 3 : -3; notes.push([(ok ? "✅ Commitment kept: " : "💔 Commitment broken: ") + SYS.PRES_COMMITS[k].l + (ok ? " (approval +3)." : " (approval −3)."), ok ? "success" : "crisis"]); scWiki(ok ? "Presidency" : "Controversies", (ok ? "Kept" : "Failed to keep") + " the inaugural commitment: " + SYS.PRES_COMMITS[k].l.toLowerCase() + "."); });
       }
-      SYS.presDeck(state + ":" + pName, turn, next.pres).forEach(it => cards.push(presCardFor(it)));
+      SYS.presDeck(state + ":" + pName, turn, next.pres).forEach(it => { const c = it.k === "story" ? storyCardFor(SYS.PRES_STORIES[it.id], next.pres.story) : presCardFor(it); if (c) cards.push(c); });
       if (window.SOP_TEST && window.SOP_TEST.card && !next.testCardDone && (next.testCardDone = true)) cards.push({ ...presCardFor({ k: "card", id: window.SOP_TEST.card }), key: "pres_crisis_test_" + window.SOP_TEST.card }); // test-only (a crisis key, so the yearly cap keeps it) (tests/e2e)
       if (window.SOP_TEST && window.SOP_TEST.world && turn === 1) cards.push({ ...presCardFor({ k: "world", id: window.SOP_TEST.world }), key: "pres_crisis_test_" + window.SOP_TEST.world }); // test-only (tests/e2e): ranked first so it is never dropped
       // Security fronts (SYS.FRONTS): last year's choice cooled one front, the others grew, and above 70 they bite.
@@ -6610,7 +6687,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         Y.tolls.forEach(t => { if (t.app) dApp += t.app; if (t.sec) dStat.sec = (dStat.sec || 0) + t.sec; if (t.agr) dStat.agr = (dStat.agr || 0) + t.agr; igrHit += t.igr || 0; faacPct += t.faacPct || 0; notes.push(["🛡️ " + SYS.FRONTS[t.front].nm + ": " + t.why, "crisis"]); });
         if (igrHit || faacPct) setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) + igrHit) * 10) / 10), faac: Math.round((p.faac || 0) * (1 + faacPct) * 10) / 10 }));
       }
-      cards.push(frontsCardFor(SYS.frontsCard(next.fronts)));
+      // Each front is a storyline (SYS.FRONT_STORIES): the worst front's next development, not the same two options every year.
+      next.frontStories = { ...(next.frontStories || {}) };
+      Object.entries(SYS.FRONT_STORIES).forEach(([k, d]) => { next.frontStories[k] = SYS.storyTurn(d, next.frontStories[k] || SYS.storyStart(d, state + ":" + k), turn, { house: ((next.pres.npcs || {}).nass || {}).rel, nat: true }, rE); });
+      cards.push(frontsCardFor(frontsWithStory(SYS.frontsCard(next.fronts), next.frontStories, next.fronts)));
       // The Bakunda crisis: a war storyline across the term (SYS.bakunda).
       next.bakunda = next.bakunda || SYS.bakundaInit(state + ":" + pName);
       SYS.bakundaCards(next.bakunda, turn, { nass: ((next.pres.npcs || {}).nass || {}).rel }).forEach(c => {
@@ -10991,6 +11071,36 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               paper(opt.delivered ? govShort + " Delivers: " + deliv.split(/,| \(/)[0].replace(/^the /, "The ").replace(/^(\w)/, c => c.toUpperCase()) : govShort + " Misses " + FG.nm + " Target", opt.delivered ? (opt.cor ? "Finished on time, but the work is thin" : FG.nm + ", year " + year) : "Due this year: " + deliv.split(/,| \(/)[0], opt.delivered, !opt.delivered ? "./art/scenes/news-protest.webp" : FLAGSHIP_ART[setup.agenda] ? "./art/backgrounds/" + FLAGSHIP_ART[setup.agenda][0] + ".webp" : undefined);
               return null;
             });
+            // The agenda as an eight-year story (SYS.agendaStory): this year's real problem, answered by a programme, a bill or an order.
+            const fd = SYS.agendaStory(setup.agenda), FS = stc.flagStory, sc = fd && FS && SYS.storyCard(fd, FS, { nat: NAT });
+            if (sc) {
+              const sOpts = sc.opts.map(o => ({ label: o.l, story: o, kind: o.kind, note: o.kind === "bill" ? "Nothing is built this year. If the House passes it, the fix outlasts you." : o.kind === "order" ? "In force today. A court can strike it down next year." : o.weak ? "Cheaper now. It comes back." : "This year's target, done properly.",
+                delivered: !!o.delivered, app: (o.fx || {}).app || 0, cor: (o.fx || {}).cor || 0, debt: Math.max(.1, Math.round(cost * (o.costX || 0) * 10) / 10),
+                log: "year " + year + ": " + (o.kind === "bill" ? "sent the " + o.bill.nm + " to the House; nothing built this year" : o.delivered ? deliv + (o.weak ? ", on paper; the work is thin" : ", done") : (o.past || o.l.toLowerCase())) + "." }));
+              const pickS = (opt) => decide(() => {
+                if (opt.debt && !spendB(opt.debt, "The flagship")) return;
+                const R = SYS.storyAfter(fd, FS, opt.story, turn, { nat: NAT }, rng(turn * 613 + hashStr(setup.agenda + opt.story.id)));
+                setStc(p => ({ ...p, flagStory: R.S }));
+                setS(p => ({ ...p, app: cl100(p.app + opt.app - (R.decree ? 1 : 0)), cor: cl(p.cor + (opt.cor || 0)) }));
+                addL(FG.i + " Flagship " + FG.nm + ": " + opt.log, opt.delivered ? "policy" : opt.kind === "bill" ? "political" : "crisis");
+                try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda, how: opt.kind } }); } catch (e) {}
+                if (R.closed) scWiki("Governorship", "Saw " + FG.nm + " through to the end of the second term.");
+                if (R.decree) scWiki("Controversies", "Was accused of governing by executive order.");
+                track("flagship_" + (FS.beat || ""), opt.story.id);
+                nextEvent();
+                const head = opt.kind === "bill" ? govShort + " Sends " + opt.story.bill.nm.replace(/ Bill$/, "") + " Bill To The House" : opt.delivered ? govShort + " Delivers: " + deliv.split(/,| \(/)[0].replace(/^the /, "The ").replace(/^(\w)/, c => c.toUpperCase()) : sc.t;
+                paper(head, opt.kind === "bill" ? FG.nm + ": a law, not a ribbon" : opt.delivered ? (opt.cor ? "Finished on time, but the work is thin" : FG.nm + ", year " + year) : R.say, opt.delivered || opt.kind === "bill", opt.delivered ? (FLAGSHIP_ART[setup.agenda] ? "./art/backgrounds/" + FLAGSHIP_ART[setup.agenda][0] + ".webp" : undefined) : "./art/scenes/news-protest.webp");
+                setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ icon: opt.kind === "bill" ? "📜" : opt.kind === "order" ? "✍️" : FG.i, title: opt.label, text: R.say + (R.decree ? " Critics say you govern by decree." : ""), tone: opt.story.weak ? "bad" : "good",
+                  rows: [{ l: "This year's target", v: opt.delivered ? (opt.cor ? "Met, thinly" : "Met") : opt.kind === "bill" ? "A law in the House" : "Not met", good: opt.delivered && !opt.cor }].concat(opt.kind === "order" ? [{ l: "The order", v: "In force; it can be challenged", good: true }] : []) }); } catch (e) {} }, 500);
+                return null;
+              });
+              const fa0 = FLAGSHIP_ART[setup.agenda] || ["road-construction-site", null];
+              return <><SceneArt bg={sc.bg || fa0[0]} who={sc.who || fa0[1]} scene={sc.scene} h={TALL() ? 200 : 240} /><DecisionCard kicker={"Flagship · " + FG.nm + " · Year " + year} kickerColor={CL.grn}
+                title={FG.i + " " + sc.t}
+                brief={sc.d + " This year's target: " + deliv + "." + (done ? " So far " + done + " of " + (year - 1) + " yearly targets delivered." : "")}
+                options={sOpts.map(o => ({ label: o.label, note: o.note, raw: o, chips: (o.story.tag ? [{ text: o.story.tag, color: o.kind === "bill" ? CL.blu : o.kind === "order" ? CL.gold : CL.grn }] : []).concat([{ text: "Approval " + (o.app > 0 ? "+" : "") + o.app, color: o.app > 0 ? CL.grn : CL.red }], o.debt ? [{ text: "₦" + o.debt + "B", color: CL.txt }] : [], o.cor ? [{ text: "Corruption +" + Math.round(o.cor * 100) + "%", color: CL.red }] : []) }))}
+                onPick={(o) => pickS(o.raw)} /></>;
+            }
             const opts = [
               { label: "Fund it in full", note: "₦" + cost + "B. Done properly.", delivered: true, app: 4, debt: cost, log: "year " + year + ": " + deliv + ", done properly." },
               { label: "Cut corners to finish on time", note: "Half the money, a favoured contractor. It opens, but the work is thin.", delivered: true, app: 2, debt: Math.round(cost * 5) / 10, cor: .04, log: "year " + year + ": " + deliv + ", on paper. Half the money, a favoured contractor; the work is thin." },
@@ -12971,13 +13081,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>;
             })()}
 
-            {phase === "house_vote" && NAT && (stc.cake || {}).turn !== turn && (() => { const K = SYS.nassCake((s.igr || 0) + (s.faac || 0)), sp = ((stc.pres || {}).npcs || {}).nass;
-              return <DecisionCard kicker="The national cake" kickerColor={CL.pur} title={"Members want ₦" + K.ask + "B of constituency projects before they vote"} brief={(sp ? sp.name + ", the Senate President: " : "") + "“Your Excellency, members have constituents too. Put their projects in the Appropriation Bill, and it will pass.” The projects are contracts in their constituencies, often handled by companies close to them."}
+            {phase === "house_vote" && NAT && (stc.cake || {}).turn !== turn && (() => { const K = SYS.nassCake((s.igr || 0) + (s.faac || 0), stc.cakeHist || ((stc.cake || {}).choice ? [stc.cake.choice] : [])), sp = ((stc.pres || {}).npcs || {}).nass;
+              return <DecisionCard kicker="The national cake" kickerColor={CL.pur} title={K.title || "Members want ₦" + K.ask + "B of constituency projects before they vote"} brief={K.brief ? (sp ? sp.name + ", the Senate President, brings it to you. " : "") + K.brief : (sp ? sp.name + ", the Senate President: " : "") + "“Your Excellency, members have constituents too. Put their projects in the Appropriation Bill, and it will pass.” The projects are contracts in their constituencies, often handled by companies close to them."}
                 aside={<img src="./art/characters/senate-president.webp" alt="The Senate President" style={{ display: "block", height: TALL() ? 120 : 160, width: "auto", margin: "0 auto 6px" }} />}
                 options={K.opts.map(o => ({ label: o.l, note: o.note, chips: fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }).concat(o.cost ? [{ text: naira(o.cost), color: CL.org }] : []).concat([{ text: "Senate " + (o.nass > 0 ? "+" : "") + o.nass, color: o.nass > 0 ? CL.grn : CL.red }]), raw: o }))}
                 onPick={(x) => decide(() => { const o = x.raw;
                   scFx({ app: (o.fx || {}).app || 0, cor: (o.fx || {}).cor || 0, pStab: o.pStab || 0, debt: o.cost || 0 });
-                  setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P && P.npcs.nass) P.npcs.nass = { ...P.npcs.nass, rel: Math.max(0, Math.min(100, P.npcs.nass.rel + o.nass)) }; return { ...p, pres: P, cake: { turn, choice: o.id } }; });
+                  setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P && P.npcs.nass) P.npcs.nass = { ...P.npcs.nass, rel: Math.max(0, Math.min(100, P.npcs.nass.rel + o.nass)) }; return { ...p, pres: P, cake: { turn, choice: o.id }, cakeHist: [...(p.cakeHist || []), o.id] }; });
                   addL("🍰 The national cake: " + o.l.toLowerCase() + ". " + o.note, o.id === "insert" ? "scandal" : "political"); track("national_cake", o.id);
                   if (o.id === "insert") scWiki("Controversies", "Inserted ₦" + o.cost + "B of constituency projects into the budget to get it through the National Assembly.");
                   if (o.id === "refuse") setTimeout(() => paper("Senate Probes Federal Agencies After President Refuses 'Padding'", "Members open three investigations", false, "./art/backgrounds/senate-chamber.webp"), 300);

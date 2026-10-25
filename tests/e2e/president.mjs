@@ -27,11 +27,15 @@ await g.click(/^Next: the address$/); await g.wait(500);
 await shot("address");
 check(!!(await g.click(/Deliver the address/)), "the inaugural address is delivered"); await g.wait(1200);
 const seen = new Set();
-const r = await playUntil(g, t0 => { const t = t0.replace(/\u2060/g, ""); for (const k of ["Address to the nation", "Senate President ·", "Chair, Governors' Forum ·", "Chief of Army Staff ·", "Governor of the Central Bank ·", "National Chairman of the party ·", "The world stage", "The insurgency", "The fuel crisis", "The naira crisis"]) if (t.includes(k)) seen.add(k); return /Year 3 of 4/.test(t); }, { max: 900 });
+const r = await playUntil(g, t0 => { const t = t0.replace(/\u2060/g, ""); if (/Last year you /.test(t)) seen.add("recap"); for (const k of ["Address to the nation", "Senate President ·", "Chair, Governors' Forum ·", "Chief of Army Staff ·", "Governor of the Central Bank ·", "National Chairman of the party ·", "The world stage", "The insurgency", "The fuel crisis", "The naira crisis", "The National Security Council", "North-East:", "North-West:", "South-East:", "Niger Delta:"]) if (t.includes(k)) seen.add(k); return /Year 3 of 4/.test(t); }, { max: 900 });
 console.log("  national deck seen: " + [...seen].join(", "));
 check(seen.size >= 3, "the national deck plays: crisis, power centres, the world stage");
+check(seen.has("recap"), "a card opens with what you decided last year");
 const sv = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
 check(sv.stc && sv.stc.inaugurated && sv.stc.pres && (sv.stc.pres.commits || []).length === 3, "the commitments and the power centres are saved");
+{ const st = (sv.stc.pres || {}).story || {}, hist = st.hist || [], fs = sv.stc.frontStories || {};
+  check(hist.length >= 1 && new Set(st.seen || []).size === (st.seen || []).length, "the national crisis is a storyline that moves on (" + hist.map(h => h.beat + ":" + h.opt).join(", ") + ")");
+  check(Object.values(fs).some(x => (x.hist || []).length >= 1), "a security front moved on to its next development"); }
 const t = await g.txt();
 await shot("year2");
 check(r.ok, "the presidency plays into its third year");

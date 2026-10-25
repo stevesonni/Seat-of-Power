@@ -11,6 +11,8 @@ export const rulerZone = (ruler, i) => (i == null ? Number(String(ruler.id).repl
 export const rulerPick = (council, turn) => {
   const rs = (council && !council.dissolved && council.rulers) || [];
   if (!rs.length) return null;
+  const owed = rs.find(r => r.promise && r.promise.due <= turn); // a promise falls due first
+  if (owed) return owed;
   const cold = rs.filter(r => r.rel < 40).sort((a, b) => a.rel - b.rel)[0];
   return cold || rs[(turn * 7) % rs.length];
 };
@@ -20,6 +22,15 @@ export const rulerPick = (council, turn) => {
 // (change in this ruler's relationship), log, and the result card.
 export const rulerMatter = (ruler, ctx, r = Math.random) => {
   const n = ruler.name, lga = ctx.lga || "his domain", comm = ctx.community || ["Oke-Ado", "Igbo-Ora"];
+  // A promise made last year comes back: the matter remembers.
+  if (ruler.promise && ruler.promise.due <= (ctx.turn || 0)) { const w = ruler.promise.what, twice = ruler.promise.times >= 1; return {
+    kind: "promise", title: n + (twice ? " has run out of patience over " : " reminds you of your promise: ") + w,
+    brief: twice ? "Twice you promised " + w + " for " + lga + ", and twice the year passed. His chiefs say the palace will speak at the next festival." : "Last year you promised " + w + " for " + lga + " 'next year'. It is next year. His chiefs are at the gate with the date written down.",
+    options: [
+      { label: "Deliver it now, with a ribbon at the palace", debt: .4, rel: twice ? 15 : 20, dz: 3, fx: { app: 1 }, log: "delivered " + w + " as promised", clear: true, res: ["A promise kept", w.charAt(0).toUpperCase() + w.slice(1) + " for " + lga + ". The palace drummers played for you.", "good"] },
+      { label: "Ask for one more year", rel: twice ? -25 : -12, dz: twice ? -4 : -2, fx: { app: twice ? -2 : 0 }, log: "asked " + n + " for one more year", promise: { what: w, times: (ruler.promise.times || 0) + 1 }, res: ["One more year", twice ? "He laughed in front of his chiefs. The palace will speak against you." : "His chiefs wrote the new date down too.", "bad"] },
+      { label: "Tell him plainly it cannot be done", rel: -18, dz: -2, fx: {}, log: "told " + n + " the promise could not be kept", clear: true, res: ["A promise broken, honestly", "He respects honesty more than excuses, but not much more.", "bad"] },
+    ] }; }
   if (ruler.rel < 40) return {
     kind: "criticism", title: n + " has denounced you in public",
     brief: "At the royal festival, before thousands, " + n + " said Government House has forgotten " + lga + ". The clip is everywhere.",
@@ -45,7 +56,8 @@ export const rulerMatter = (ruler, ctx, r = Math.random) => {
       ] };
   }
   const kinds = ["request", "dispute", "coronation"];
-  const kind = kinds[(ctx.turn + Math.floor(r() * 3)) % 3];
+  let kind = kinds[(ctx.turn + Math.floor(r() * 3)) % 3];
+  if ((ruler.kinds || []).includes(kind)) kind = kinds.find(k => !(ruler.kinds || []).includes(k)) || kind; // a ruler does not bring the same kind of matter twice running
   if (kind === "request") {
     const what = ["a borehole and a health post", "the road to the palace market", "a secondary school for girls", "street lights on the market road"][Math.floor(r() * 4)];
     return {
@@ -53,7 +65,7 @@ export const rulerMatter = (ruler, ctx, r = Math.random) => {
       brief: "A royal delegation brought the request to Government House: " + what + " for " + lga + ". His chiefs are waiting for an answer.",
       options: [
         { label: "Approve it", debt: .3, rel: 20, dz: 3, fx: { app: 1 }, log: "approved " + what + " for " + lga, res: ["Work starts in " + lga, what.charAt(0).toUpperCase() + what.slice(1) + " for " + lga + ". The palace sends its thanks.", "good"] },
-        { label: "Promise it for next year", rel: -5, dz: 0, fx: {}, log: "promised it for next year", res: ["A promise, for now", "His chiefs leave politely. They will remember the date.", "neutral"] },
+        { label: "Promise it for next year", rel: -5, dz: 0, fx: {}, log: "promised it for next year", promise: { what, times: 0 }, res: ["A promise, for now", "His chiefs leave politely. They will remember the date.", "neutral"] },
         { label: "Decline", rel: -15, dz: -2, fx: {}, log: "declined the request", res: ["Request declined", "The delegation leaves without a word. " + lga + " takes it as a slight.", "bad"] },
       ] };
   }

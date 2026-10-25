@@ -307,8 +307,36 @@ export const frontsYear = (S, chosen) => {
    Before the National Assembly passes the President's budget, members want
    constituency projects inserted: contracts in their constituencies, often
    through their own companies. revB: the year's federal revenue (₦B). */
-export const nassCake = (revB) => {
+/* The cake remembers: hist is every earlier year's choice. Last year's
+   answer decides this year's fight, and no year reads like the last. */
+export const nassCake = (revB, hist = []) => {
   const ask = Math.max(10, Math.round((revB || 600) * .05));
+  const last = hist[hist.length - 1], again = hist.filter(x => x === last).length >= 2;
+  const half = Math.round(ask / 2), more = Math.round(ask * 1.3);
+  if (last === "insert" && !again) return { ask, title: "Last year's projects were never built", brief: "A civic budget-tracking group visited last year's constituency projects: six in ten were never started, and the money is gone. Members still want theirs again, ₦" + more + "B this time.", opts: [
+    { id: "insert", l: "Insert them again", cost: more, fx: { cor: .03, app: -2 }, nass: 4, pStab: 2, note: "The budget passes. The tracking group publishes its second report." },
+    { id: "half", l: "Insert only the members whose projects were finished", cost: Math.round(ask * .4), fx: { cor: .005 }, nass: -3, pStab: 0, note: "Members who delivered are rewarded. The rest are furious." },
+    { id: "refuse", l: "Refuse, and publish the tracker's report", cost: 0, fx: { app: 3 }, nass: -12, pStab: -4, note: "The report is on every front page. Members say you are blackmailing them." } ] };
+  if (last === "insert") return { ask, title: "The anti-graft agency asks about the projects", brief: "The anti-graft agency has written to you: three years of constituency projects paid to companies owned by members' relatives. Members want ₦" + more + "B more, and the agency's letter to disappear.", opts: [
+    { id: "insert", l: "Insert them, and let the letter disappear", cost: more, fx: { cor: .05 }, nass: 8, pStab: 3, note: "The budget sails through. The letter is 'under review'." },
+    { id: "half", l: "Insert half, and let the agency do its work", cost: half, fx: { cor: .01, app: 2 }, nass: -6, pStab: -2, note: "Two members are invited for questioning. The others vote, nervously." },
+    { id: "refuse", l: "Refuse, and back the agency in public", cost: 0, fx: { app: 4, cor: -.02 }, nass: -14, pStab: -5, note: "Members open a probe into the agency's chairman." } ] };
+  if (last === "refuse" && !again) return { ask, title: "The Senate gets even", brief: "After last year, the Senate sat on your nominees and opened probes into four agencies. Members say this budget will be 'thoroughly scrutinised'.", opts: [
+    { id: "half", l: "Make peace: insert half, published online", cost: half, fx: { cor: .01 }, nass: 6, pStab: 1, note: "Peace, for a price. The list is online." },
+    { id: "refuse", l: "Go to the people: a televised budget defence", cost: 0, fx: { app: 3 }, nass: -6, pStab: -3, note: "The country watched you defend every line. The Senate watched the country." },
+    { id: "insert", l: "Give them everything this year", cost: ask, fx: { cor: .02 }, nass: 10, pStab: 3, note: "The probes close overnight." } ] };
+  if (last === "refuse") return { ask, title: "Members threaten to override the budget", brief: "For the second year running you refused the projects. Members are counting votes to pass their own version of the budget over your veto.", opts: [
+    { id: "half", l: "Negotiate: a zonal fund every member can see", cost: Math.round(ask * .6), fx: { cor: .01 }, nass: 6, pStab: 2, note: "A fund by zone, every naira published. Members can live with it." },
+    { id: "refuse", l: "Veto their version and dare them", cost: 0, fx: { app: 2 }, nass: -10, pStab: -5, note: "They do not have the numbers, this time." },
+    { id: "insert", l: "Fold: insert the projects", cost: ask, fx: { cor: .02, app: -2 }, nass: 8, pStab: 2, note: "The press calls it a climb-down." } ] };
+  if (last === "half" && !again) return { ask, title: "Members want the full list back, unpublished", brief: "Last year's compromise put every project online, and the press visited them. Members say it embarrassed them: this year, the full list, and nothing published.", opts: [
+    { id: "half", l: "Half again, published again", cost: half, fx: { cor: .01 }, nass: -4, pStab: 0, note: "Same deal. Members grumble louder." },
+    { id: "insert", l: "The full list, unpublished", cost: ask, fx: { cor: .03 }, nass: 6, pStab: 2, note: "The list goes into a drawer." },
+    { id: "refuse", l: "Send a Constituency Projects (Transparency) Bill instead", cost: 1, fx: { app: 2 }, nass: -8, pStab: -2, note: "Members are unlikely to pass a bill against themselves. The public likes it." } ] };
+  if (last === "half") return { ask, title: "The published projects are working", brief: "Three years of published projects: the press found most were built, and some members now campaign on them. A few want to publish more.", opts: [
+    { id: "half", l: "Keep the published deal", cost: half, fx: { cor: .005, app: 2 }, nass: 2, pStab: 1, note: "A habit now. The good members are proud of it." },
+    { id: "refuse", l: "Cut them out entirely", cost: 0, fx: { app: 1 }, nass: -10, pStab: -3, note: "Even the good members are angry now." },
+    { id: "insert", l: "Raise the amount for members who delivered", cost: ask, fx: { cor: .01 }, nass: 8, pStab: 2, note: "Rewarding delivery. The rest are watching." } ] };
   return { ask, opts: [
     { id: "insert", l: "Insert the constituency projects", cost: ask, fx: { cor: .02 }, nass: 6, pStab: 3, note: "The budget sails through. Many of the projects will never be finished." },
     { id: "half", l: "Insert half, and publish every project online", cost: Math.round(ask / 2), fx: { cor: .01 }, nass: -2, pStab: 0, note: "A compromise: members grumble, and the press can check the projects." },

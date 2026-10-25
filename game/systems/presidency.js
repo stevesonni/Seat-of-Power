@@ -6,6 +6,7 @@
    Every roll is seeded, so a reload replays. All people are fictional. */
 import { seeded } from "./rng.js";
 import { keepWord } from "./office.js";
+import { PRES_STORIES, storyStart } from "./storylines.js";
 
 export const PRES_NPCS = {
   nass: { role: "Senate President", art: "senate-president", short: "the Senate" },
@@ -249,7 +250,8 @@ export const presInit = (seed, names = {}, ctx = {}) => {
   const r = seeded(seed, "presinit");
   const crisis = ctx.crisis || CRISIS_PICK[Math.floor(r() * CRISIS_PICK.length)];
   const npcs = {}; Object.keys(PRES_NPCS).forEach(k => { npcs[k] = { name: names[k] || PRES_NPCS[k].role, rel: 45 + Math.floor(r() * 16) }; });
-  return { crisis, sev: PRES_CRISES[crisis].start, over: false, npcs, commits: [], adv: {}, seen: [], seeds: [] };
+  // The crisis is a storyline (SYS.storylines): it remembers each answer and never repeats a card.
+  return { crisis, sev: PRES_CRISES[crisis].start, over: false, npcs, commits: [], adv: {}, seen: [], seeds: [], story: PRES_STORIES[crisis] ? storyStart(PRES_STORIES[crisis], seed) : null };
 };
 
 /* The year's national cards: the crisis, any choice coming back, two from
@@ -257,7 +259,7 @@ export const presInit = (seed, names = {}, ctx = {}) => {
    year, and the barracks or the Senate when relations break down. */
 export const presDeck = (seed, turn, P) => {
   const r = seeded(seed, "presdeck", turn), out = [];
-  if (P.crisis && !P.over) { const C = PRES_CRISES[P.crisis]; out.push({ k: "crisis", id: P.crisis, i: (turn - 1) % C.cards.length }); }
+  if (P.crisis && !P.over) { if (P.story && PRES_STORIES[P.crisis]) { if (!P.story.closed) out.push({ k: "story", id: P.crisis }); } else { const C = PRES_CRISES[P.crisis]; out.push({ k: "crisis", id: P.crisis, i: (turn - 1) % C.cards.length }); } }
   (P.seeds || []).filter(x => x.due <= turn && !x.done).slice(0, 1).forEach(x => out.push({ k: "callback", id: x.key }));
   const seen = P.seen || [], low = Object.entries(P.npcs || {}).sort((a, b) => a[1].rel - b[1].rel)[0];
   const pool = PRES_CARDS.filter(c => c.id !== "budget" && !seen.includes(c.id) && (!c.needsLow || ((P.npcs || {})[c.needsLow] || { rel: 50 }).rel < 40));
@@ -312,6 +314,7 @@ export const presAfter = (P, it, o, sev, turn) => {
 /* Between years: an unattended crisis grows; past 80 it costs the country. */
 export const presDrift = (P) => {
   if (!P.crisis || P.over) return { P, fx: {} };
+  if (P.story) { const sev = P.story.heat; return { P: { ...P, sev }, fx: sev >= 80 ? { app: -4, pStab: -2, sec: -.02 } : {} }; } // the storyline's own heat
   const sev = Math.min(100, P.sev + PRES_CRISES[P.crisis].drift * 2);
   return { P: { ...P, sev }, fx: sev >= 80 ? { app: -4, pStab: -2, sec: -.02 } : {} };
 };

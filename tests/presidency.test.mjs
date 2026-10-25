@@ -10,9 +10,9 @@ test("a presidency starts with a crisis and five named power centres", () => {
 });
 test("each year brings the crisis, two in-tray cards and the world stage every other year", () => {
   const d1 = presDeck("seed1", 1, P0), d2 = presDeck("seed1", 2, P0);
-  assert.equal(d1[0].k, "crisis"); assert.equal(d1.filter(x => x.k === "card").length, 2); assert.ok(d1.some(x => x.k === "world"));
+  assert.equal(d1[0].k, "story"); assert.equal(d1.filter(x => x.k === "card").length, 2); // the crisis is a storyline now (storylines.js) assert.ok(d1.some(x => x.k === "world"));
   assert.ok(!d2.some(x => x.k === "world"));
-  d1.forEach(it => { const c = presCard(P0, it); assert.ok(c && c.t && c.opts.length, JSON.stringify(it)); assert.ok(PRES_LEARN[c.learn], c.learn); assert.equal(presArt(P0, it, c).length, 4); });
+  d1.filter(it => it.k !== "story").forEach(it => { const c = presCard(P0, it); assert.ok(c && c.t && c.opts.length, JSON.stringify(it)); assert.ok(PRES_LEARN[c.learn], c.learn); assert.equal(presArt(P0, it, c).length, 4); });
 });
 test("choices move people and come back the next year", () => {
   const it = { k: "card", id: "efcc" }, o = presCard(P0, it).opts.find(x => x.id === "slow");
@@ -22,7 +22,7 @@ test("choices move people and come back the next year", () => {
   assert.ok(presDeck("seed1", 2, P1).some(x => x.k === "callback" && x.id === "baron_shielded"));
 });
 test("an unattended crisis grows and hurts past 80; dealing with it ends it", () => {
-  let P = { ...P0, sev: 75 }; const d = presDrift(P); assert.ok(d.P.sev >= 80); assert.ok(d.fx.app < 0);
+  let P = { ...P0, story: { ...P0.story, heat: 82 } }; const d = presDrift(P); assert.ok(d.P.sev >= 80); assert.ok(d.fx.app < 0);
   const it = { k: "crisis", id: P0.crisis, i: 0 }, o = presCard(P0, it).opts[0];
   P = presAfter({ ...P0, sev: 12 }, it, { ...o, sev: -14 }, -14, 1); assert.equal(P.over, true);
 });
