@@ -145,3 +145,10 @@ test("every Pack 22 picture is used", () => {
     assert.ok(src.includes(path.basename(f)), f + " is used");
   });
 });
+// Pack 23: the Junketer badge.
+test("the Junketer badge has its art, and every career badge has a picture", async () => {
+  const C = await import("../game/systems/career.js");
+  const m = src.match(/const BADGE_ART = (\{[^}]*\})/); assert.ok(m);
+  const art = Function("return " + m[1])();
+  C.careerBadges([]).forEach(b => { assert.ok(art[b.id], b.id + " has art"); assert.ok(fs.existsSync(path.join(root, "public/art/badges", art[b.id] + ".webp")), art[b.id]); });
+});

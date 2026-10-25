@@ -2559,7 +2559,7 @@ const StreakSheet = ({ st, onClose }) => {
 };
 
 // Your career: the map of states you have governed, and the badges earned.
-const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", peacemaker: "badge-peacemaker", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
+const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", peacemaker: "badge-peacemaker", junketer: "badge-junketer", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 // Every official trip, across every game (governor and President): the Junketer badge and the career stats.
 const tripsTotal = () => { try { return +localStorage.getItem("sop_trips") || 0; } catch (e) { return 0; } };
 const noteTripTotal = () => { try { localStorage.setItem("sop_trips", String(tripsTotal() + 1)); } catch (e) {} };

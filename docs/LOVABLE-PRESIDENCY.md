@@ -289,4 +289,4 @@ A new career badge for players who travel a lot in office (ten official trips: a
 
 1. `badge-junketer`: a round gold medal showing the green-and-white presidential jet climbing over a small globe, with a luggage tag hanging from the rim. A little cheeky, not mocking.
 
-Until it arrives, the badge shows ✈️.
+> **Delivered: Pack 23**: the badge is on the career map and in the honours you can carry into a new campaign.
