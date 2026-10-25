@@ -50,3 +50,17 @@ test("where a national project goes is a North–South fight", () => {
   assert.equal(M.region, "the Middle Belt");
   assert.equal(F.siteReaction("school", "SS"), null, "a school is not a national fight");
 });
+
+test("security fronts: four regional wars, the council's choice, and the toll of neglect", () => {
+  let S = F.frontsInit(); assert.deepEqual(Object.keys(S).sort(), ["ne", "nw", "se", "ss"]);
+  const c = F.frontsCard(S); assert.equal(c.opts.length, 4); assert.ok(c.worst.includes("nw"));
+  const pick = c.opts.find(o => o.front === "nw" && o.how === "military");
+  const y = F.frontsYear(S, pick); assert.ok(y.S.nw < S.nw && y.S.se > S.se);
+  let T = { ne: 69, nw: 10, se: 10, ss: 69 }; const z = F.frontsYear(T, { front: "nw", sev: -10 });
+  assert.deepEqual(z.tolls.map(t => t.front).sort(), ["ne", "ss"]);
+  c.opts.forEach(o => assert.ok(o.note && o.cost > 0, o.id));
+});
+test("the national cake: insert, half, or refuse", () => {
+  const k = F.nassCake(600); assert.equal(k.ask, 30);
+  const [ins, half, ref] = k.opts; assert.ok(ins.nass > 0 && ref.nass < 0 && half.cost === 15 && ref.cost === 0);
+});

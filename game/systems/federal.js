@@ -254,3 +254,58 @@ export const siteReaction = (type, zone, { delta = false } = {}) => {
   return { region: "the Middle Belt", zones: { NC: 2 }, nass: 2, faacPct: 0, head: "A compromise site",
     text: "Building in the Middle Belt is a compromise: nobody cheers, nobody marches." };
 };
+
+/* ── Security fronts: one Commander-in-Chief, four different wars ──
+   Each front has a severity (0–100). Every year the National Security
+   Council puts the two worst on the President's desk: a military crackdown
+   or talks and development. Each choice cools that front, and each angers
+   someone. Fronts left alone grow; above 70 they cost the country. */
+export const FRONTS = {
+  ne: { nm: "North-East: the insurgency", short: "the insurgency in the North-East", zones: ["NE"], start: 55,
+    military: { l: "Air strikes and a ground offensive on the insurgents' camps", cost: 45, sev: -18, zones: { NE: 1 }, npc: { army: 4 }, img: "scenes/air-strike", note: "The camps burn; some villages are caught in the fire." },
+    talks: { l: "Deradicalise defectors and rebuild the towns", cost: 30, sev: -10, zones: { NE: 3 }, npc: { army: -3 }, img: "scenes/idp-return", note: "Families go home; critics say you are rewarding terrorists." },
+    toll: { app: -2, sec: -.02, why: "Insurgents overran another town." } },
+  nw: { nm: "North-West & North-Central: bandits and farmer–herder clashes", short: "banditry and the farmer–herder clashes", zones: ["NW", "NC"], start: 60,
+    military: { l: "Crack down on the bandits and armed herders", cost: 40, sev: -16, zones: { NW: -2, NC: 2 }, npc: { army: 3 }, img: "decisions/f_eo_curfew", note: "Northern groups accuse you of targeting herders." },
+    talks: { l: "Ranches, grazing reserves and peace committees", cost: 35, sev: -10, zones: { NW: 2, NC: -2 }, img: "decisions/herder", note: "Middle Belt groups accuse you of complicity with the killers." },
+    toll: { app: -2, agr: -.02, why: "Kidnappers emptied another village, and farmers left the fields." } },
+  se: { nm: "South-East: separatist sit-at-home orders", short: "the separatist sit-at-homes in the South-East", zones: ["SE"], start: 45,
+    military: { l: "Deploy troops to break the sit-at-home", cost: 30, sev: -14, zones: { SE: -4 }, fx: { app: -1 }, img: "scenes/army-convoy", note: "Markets reopen under guard; human-rights groups protest the arrests." },
+    talks: { l: "Dialogue with community leaders, and projects for the South-East", cost: 25, sev: -9, zones: { SE: 4 }, npc: { army: -2 }, note: "Elders welcome it; the hard core keep calling the sit-at-homes." },
+    toll: { app: -1, igr: -6, why: "Monday sit-at-homes shut the markets of the South-East: trade and taxes are lost." } },
+  ss: { nm: "South-South: oil theft and pipeline vandalism", short: "oil theft in the Niger Delta", zones: ["SS"], start: 50,
+    military: { l: "Send the Navy and the army into the creeks", cost: 35, sev: -15, zones: { SS: -3 }, npc: { army: 2 }, img: "scenes/navy-patrol", note: "Illegal refineries burn; the communities say they are treated as criminals." },
+    talks: { l: "An amnesty, and surveillance contracts for the communities", cost: 30, sev: -11, zones: { SS: 3 }, fx: { cor: .01 }, img: "characters/oil-community-leader-pleased", note: "The pipelines are quiet, and some of the money goes to the wrong pockets." },
+    toll: { faacPct: -.06, why: "Thieves tapped the pipelines: oil output and the Federation Account fell." } },
+};
+export const frontsInit = () => Object.fromEntries(Object.entries(FRONTS).map(([k, f]) => [k, f.start]));
+// The year's council: the two worst fronts, each with its two approaches.
+export const frontsCard = (S) => {
+  const worst = Object.entries(S || {}).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
+  return { id: "nsc", t: "The National Security Council: two fronts need you", worst,
+    d: worst.map(k => FRONTS[k].nm + " (" + Math.round(S[k]) + "/100)").join("; ") + ". The army cannot be everywhere. Choose where, and how.",
+    opts: worst.flatMap(k => ["military", "talks"].map(a => ({ id: k + ":" + a, front: k, how: a, ...FRONTS[k][a], l: FRONTS[k].short.replace(/^./, c => c.toUpperCase()) + ": " + FRONTS[k][a].l.replace(/^./, c => c.toLowerCase()) }))) };
+};
+// After the year: the front you worked on cools; the others grow; above 70 they bite.
+export const frontsYear = (S, chosen) => {
+  const next = { ...S }, tolls = [];
+  Object.keys(FRONTS).forEach(k => {
+    if (chosen && chosen.front === k) next[k] = Math.max(0, next[k] + chosen.sev);
+    else next[k] = Math.min(100, next[k] + 6);
+    if (next[k] >= 70) tolls.push({ front: k, ...FRONTS[k].toll });
+  });
+  return { S: next, tolls };
+};
+
+/* ── The national cake ──
+   Before the National Assembly passes the President's budget, members want
+   constituency projects inserted: contracts in their constituencies, often
+   through their own companies. revB: the year's federal revenue (₦B). */
+export const nassCake = (revB) => {
+  const ask = Math.max(10, Math.round((revB || 600) * .05));
+  return { ask, opts: [
+    { id: "insert", l: "Insert the constituency projects", cost: ask, fx: { cor: .02 }, nass: 6, pStab: 3, note: "The budget sails through. Many of the projects will never be finished." },
+    { id: "half", l: "Insert half, and publish every project online", cost: Math.round(ask / 2), fx: { cor: .01 }, nass: -2, pStab: 0, note: "A compromise: members grumble, and the press can check the projects." },
+    { id: "refuse", l: "Refuse: no padding in this budget", cost: 0, fx: { app: -2 }, nass: -10, pStab: -4, note: "Members open probes into federal agencies, and scandals leak to the press. The vote gets harder." },
+  ] };
+};

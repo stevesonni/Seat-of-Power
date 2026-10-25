@@ -5700,6 +5700,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           tone: f.bad ? "bad" : (f.fx.app >= 0 ? "good" : "neutral"), rows, learn: SYS.PRES_LEARN[c.learn] };
       } }; }) };
   };
+  // The National Security Council: the two worst fronts, a crackdown or talks for each (SYS.frontsCard).
+  const frontsCardFor = (c) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: ["situation-room", "national-security-adviser", null, null], title: c.t, brief: c.d,
+    options: c.opts.map(o => ({ label: o.l, chips: fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }).concat([{ text: naira(o.cost), color: CL.org }]), run: () => {
+      scFx({ app: (o.fx || {}).app || 0, cor: (o.fx || {}).cor || 0, debt: o.cost });
+      setS(p => { const zm = { ...(p.zoneMood || {}) }; Object.entries(o.zones || {}).forEach(([z, v]) => { const i = NATION_ZONE_IDS.indexOf(z); if (i >= 0) zm[i] = Math.max(-25, Math.min(25, (zm[i] || 0) + v)); }); return { ...p, zoneMood: zm }; });
+      setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P) Object.entries(o.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; }); return { ...p, pres: P, frontPick: { front: o.front, sev: o.sev } }; });
+      const F0 = (stc.fronts || {})[o.front] || 0;
+      addL("🛡️ " + SYS.FRONTS[o.front].nm + ": " + o.l.split(": ").pop() + ". " + o.note, "policy"); track("front_" + o.front, o.how);
+      scWiki("Presidency", "On " + SYS.FRONTS[o.front].short + ", chose to " + o.l.split(": ").pop().replace(/^./, x => x.toLowerCase()) + ".");
+      return { icon: "🛡️", img: o.img ? "./art/" + o.img + ".webp" : undefined, title: o.l.split(": ").pop(), text: o.note, tone: "neutral",
+        rows: [{ l: SYS.FRONTS[o.front].nm.split(":")[0], v: Math.round(F0) + " → " + Math.max(0, Math.round(F0 + o.sev)), good: true }].concat(Object.entries(o.zones || {}).filter(([, v]) => v).map(([z, v]) => ({ l: zoneName(NATION_ZONE_IDS.indexOf(z)) + " zone", v: (v > 0 ? "+" : "") + v, good: v > 0 }))),
+        learn: "Section 217: the armed forces defend Nigeria and, when the President orders it, help the police restore order. Section 14(3), federal character: how each region's crisis is handled is read region against region." };
+    } })) });
   // The Bakunda war's cards: letters, Defence Headquarters missions, the
   // Assembly's documents, and plain cards (SYS.bakundaCards).
   const BK_DEST = { chad: "N'Djamena", london: "London", geneva: "Geneva", washington: "Washington", signing: "Geneva" };
@@ -6164,6 +6177,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       SYS.presDeck(state + ":" + pName, turn, next.pres).forEach(it => cards.push(presCardFor(it)));
       if (window.SOP_TEST && window.SOP_TEST.world && turn === 1) cards.push({ ...presCardFor({ k: "world", id: window.SOP_TEST.world }), key: "pres_crisis_test_" + window.SOP_TEST.world }); // test-only (tests/e2e): ranked first so it is never dropped
+      // Security fronts (SYS.FRONTS): last year's choice cooled one front, the others grew, and above 70 they bite.
+      const freshF = !next.fronts; next.fronts = next.fronts || SYS.frontsInit();
+      if (!freshF) {
+        const Y = SYS.frontsYear(next.fronts, next.frontPick); next.fronts = Y.S; next.frontPick = null;
+        let igrHit = 0, faacPct = 0;
+        Y.tolls.forEach(t => { if (t.app) dApp += t.app; if (t.sec) dStat.sec = (dStat.sec || 0) + t.sec; if (t.agr) dStat.agr = (dStat.agr || 0) + t.agr; igrHit += t.igr || 0; faacPct += t.faacPct || 0; notes.push(["🛡️ " + SYS.FRONTS[t.front].nm + ": " + t.why, "crisis"]); });
+        if (igrHit || faacPct) setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) + igrHit) * 10) / 10), faac: Math.round((p.faac || 0) * (1 + faacPct) * 10) / 10 }));
+      }
+      cards.push(frontsCardFor(SYS.frontsCard(next.fronts)));
       // The Bakunda crisis: a war storyline across the term (SYS.bakunda).
       next.bakunda = next.bakunda || SYS.bakundaInit(state + ":" + pName);
       SYS.bakundaCards(next.bakunda, turn, { nass: ((next.pres.npcs || {}).nass || {}).rel }).forEach(c => {
@@ -8340,8 +8362,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const lv = setup?.level || "medium";
     // The President's year is fuller: the national deck comes first; a summons to Abuja or a "federal matter" means nothing in Aso Rock.
     if (NAT) { const own = q.filter(k => !(k === "federal" || k === "abuja")); q.length = 0; own.forEach(k => q.push(k)); }
-    const cap = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
-    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+    const cap = NAT ? (turn === 1 ? 5 : lv === "easy" ? 6 : lv === "hard" ? 8 : 7) /* one more than before: the Security Council's letter */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
+    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
@@ -9759,6 +9781,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>}
 
         {nav === "gov" && !needSetup && NAT && stc.pres && <PowerCentres P={stc.pres} />}
+        {nav === "gov" && !needSetup && NAT && stc.fronts && <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", margin: "0 0 12px" }}>
+          <b style={{ display: "block", fontSize: TALL() ? TS(18) : TS(26), marginBottom: 6 }}>🛡️ Security fronts</b>
+          {Object.entries(SYS.FRONTS).map(([k, F0]) => { const v = Math.round(stc.fronts[k] || 0), col = v >= 70 ? CL.red : v >= 50 ? CL.org : CL.grn; return <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr 46px", gap: 8, alignItems: "center", margin: "4px 0" }}>
+            <div><div style={{ fontSize: TALL() ? TS(15) : TS(21), color: CL.tm }}>{F0.nm}</div><div style={{ height: 7, borderRadius: 4, background: CL.bdr, overflow: "hidden" }}><div style={{ width: v + "%", height: "100%", background: col }} /></div></div>
+            <b style={{ color: col, textAlign: "right", fontSize: TALL() ? TS(16) : TS(22) }}>{v}</b></div>; })}
+          <div style={{ fontSize: TALL() ? TS(14) : TS(19), color: CL.td, marginTop: 4 }}>Above 70 a front costs the country every year. The National Security Council asks you about the two worst.</div>
+        </div>}
         {nav === "gov" && !needSetup && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
           const bIdx = balanceIssue();
@@ -12069,7 +12098,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>;
             })()}
 
-            {phase === "house_vote" && <Cd style={{ borderColor: CL.pur + "44" }}>
+            {phase === "house_vote" && NAT && (stc.cake || {}).turn !== turn && (() => { const K = SYS.nassCake((s.igr || 0) + (s.faac || 0)), sp = ((stc.pres || {}).npcs || {}).nass;
+              return <DecisionCard kicker="The national cake" kickerColor={CL.pur} title={"Members want ₦" + K.ask + "B of constituency projects before they vote"} brief={(sp ? sp.name + ", the Senate President: " : "") + "“Your Excellency, members have constituents too. Put their projects in the Appropriation Bill, and it will pass.” The projects are contracts in their constituencies, often handled by companies close to them."}
+                aside={<img src="./art/characters/senate-president.webp" alt="The Senate President" style={{ display: "block", height: TALL() ? 120 : 160, width: "auto", margin: "0 auto 6px" }} />}
+                options={K.opts.map(o => ({ label: o.l, note: o.note, chips: fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }).concat(o.cost ? [{ text: naira(o.cost), color: CL.org }] : []).concat([{ text: "Senate " + (o.nass > 0 ? "+" : "") + o.nass, color: o.nass > 0 ? CL.grn : CL.red }]), raw: o }))}
+                onPick={(x) => decide(() => { const o = x.raw;
+                  scFx({ app: (o.fx || {}).app || 0, cor: (o.fx || {}).cor || 0, pStab: o.pStab || 0, debt: o.cost || 0 });
+                  setStc(p => { const P = p.pres ? { ...p.pres, npcs: { ...p.pres.npcs } } : p.pres; if (P && P.npcs.nass) P.npcs.nass = { ...P.npcs.nass, rel: Math.max(0, Math.min(100, P.npcs.nass.rel + o.nass)) }; return { ...p, pres: P, cake: { turn, choice: o.id } }; });
+                  addL("🍰 The national cake: " + o.l.toLowerCase() + ". " + o.note, o.id === "insert" ? "scandal" : "political"); track("national_cake", o.id);
+                  if (o.id === "insert") scWiki("Controversies", "Inserted ₦" + o.cost + "B of constituency projects into the budget to get it through the National Assembly.");
+                  if (o.id === "refuse") setTimeout(() => paper("Senate Probes Federal Agencies After President Refuses 'Padding'", "Members open three investigations", false, "./art/backgrounds/senate-chamber.webp"), 300);
+                  return { icon: "🍰", img: o.id === "refuse" ? undefined : "./art/decisions/nb_constituency.webp", title: o.l, text: o.note + " Now the vote.", tone: o.id === "half" ? "neutral" : o.id === "insert" ? "bad" : "neutral",
+                    rows: [{ l: "The Senate", v: (o.nass > 0 ? "+" : "") + o.nass, good: o.nass > 0 }].concat(o.cost ? [{ l: "Added to the budget", v: naira(o.cost), good: false }] : []),
+                    learn: "Section 81: the President lays the Appropriation Bill before the National Assembly, which can amend it. Constituency projects are inserted by members, and paid for by the executive." }; })} />; })()}
+            {phase === "house_vote" && !(NAT && (stc.cake || {}).turn !== turn) && <Cd style={{ borderColor: CL.pur + "44" }}>
               <HouseVote pStab={s.pStab} bud={bud} level={setup?.level} onPass={() => { try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} addL("✅ Appropriation Bill PASSED by House of Assembly", "policy"); try { const top = Object.entries(bud).sort((a, b) => b[1] - a[1])[0]; window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_passed", actor: "House of Assembly", gravity: 1, evidence: 3, decision: "Appropriation bill passed", note: naira(tb) + " budget; largest share to " + top[0] + " (" + top[1] + "%)", financial: tb, meta: { bud: { ...bud }, total: tb } }); } catch (e) {} setPhase("policy"); }}
                 onAmend={(penalty, patch) => { if (patch) setBud(patch); setS(p => ({ ...p, pStab: cl100(p.pStab - penalty) })); addL("🔄 Budget amended per House demands (-" + penalty + " party stability)", "political"); setPhase("budget"); }}
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
