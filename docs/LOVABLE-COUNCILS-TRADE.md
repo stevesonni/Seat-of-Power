@@ -1,5 +1,7 @@
 # Lovable art: the councils, trade and exports
 
+**Delivered 26 Oct (all 35) and installed; where each is used is in public/art/README.md.**
+
 The councils now sit around a table (CouncilTable), and the game has trade (the President) and exports (the governor). Everything below already works with existing pictures or a pressed-wax placeholder. When these files arrive, drop them in at the paths given and they replace the stand-ins.
 
 Style: as the rest of the pack (flat-shaded cartoon, bold outlines). Fictional people only, and no real seals, coats of arms or flags. WebP.

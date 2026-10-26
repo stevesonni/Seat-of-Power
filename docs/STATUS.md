@@ -10,7 +10,8 @@ From player feedback (Chinaza: programmes should depend on money, LGAs should sh
 - **Councils at the table** (CouncilTable in game/seat-of-power.jsx): every council sits around an oval table, the council's wax seal at its centre, you presiding at the head. Each member speaks in turn (one line, tied to the game: the worst front, the reserves, the factories), then the decision.
   - President: the Federal Executive Council (first sitting; a yearly retreat that publishes or keeps the scorecards), the National Security Council (first sitting; an emergency session where you choose the front), and the new Economic Advisory Council.
   - Governor: the State Executive Council and the Traditional Rulers Council when first formed, and the new State Economic Council.
-  - Seals: fec, nsc, eac, exco, rulers, econ (game/systems/chief.js). Pressed wax until Lovable's pictures arrive.
+  - Seals: fec, nsc, eac, exco, rulers, econ (game/systems/chief.js), with Lovable's pictures. Each council has its own chamber; the economic team, Customs, the farmers, the Chief of Defence Staff and the DSS have their own portraits (the first three with moods).
+- **Fixed:** the President's game crashed at the end of the first year ("Something went wrong"): the district-label change made zoneLabel call itself.
 - **Trade** (game/systems/trade.js), for the President:
   - The Economic Advisory Council's first sitting sets the stance: Protect, Open or Targeted. Later sittings show the figures; changing course costs approval.
   - Each year: reserves, the street dollar's premium, a food price index, factories, smuggling and exports move with the stance and with security (bandits empty the farms: protection plus empty farms is the trap). Customs duties and exports pay into the treasury.
@@ -21,7 +22,7 @@ From player feedback (Chinaza: programmes should depend on money, LGAs should sh
   - The state earns money at every year's end, more with good farms and security, less under a ban.
   - Abuja's trade stance (drawn once per game) helps or hurts: protection helps raw farmers but makes processing machines dear; open borders the reverse; border states feel it first.
   - Four storylines: the rejected containers (aflatoxin), the middlemen, the exclusive buyer, containers held at the port.
-- **Tests:** tests/trade.test.mjs; tests/e2e/councils.mjs (the governor's councils at the table, the export plan, the year's earnings); the president e2e convenes the Economic Advisory Council, sets the stance and checks a year of trade.
+- **Tests:** tests/trade.test.mjs; tests/art-usage.test.mjs (all 35 pictures of the pack are used); tests/e2e/councils.mjs (the governor's councils at the table, the export plan, the year's earnings); the president e2e convenes the Economic Advisory Council, sets the stance and checks a year of trade.
 
 ## More decisions, and complaints you can answer (26 Oct)
 From player feedback ("how can a president make just six decisions a year"; "we should be able to click on the public complaints and solve them"). Both offices.

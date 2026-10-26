@@ -29,9 +29,9 @@ check(!!(await g.click(/Deliver the address/)), "the inaugural address is delive
 // The Economic Advisory Council around its table: each member speaks, then its first sitting sets the trade policy.
 await g.page.evaluate(() => window.SOP.councils.eac()); await g.wait(700);
 { const t = await g.txt(); check(/You, presiding/.test(t) && /The Economic Advisory Council/.test(t) && /CBN/.test(t) && /Customs/.test(t), "the Economic Advisory Council sits around the table"); }
-for (let i = 0; i < 8 && await g.click(/^(Next: .*|To the decision) ›$/); i++) await g.wait(200);
+for (let i = 0; i < 10; i++) { const ok = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button")].find(x => /^(Next: .*|To the decision) ›$/.test(x.textContent.trim())); b && b.click(); return !!b; }); if (!ok) break; await g.wait(200); }
 await shot("eac");
-check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /^Targeted/.test(x.textContent.trim())); b && b.click(); return !!b; }), "its first sitting sets the trade policy"); await g.wait(1200);
+check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.ds-option")].find(x => /^Targeted/.test(x.textContent.trim())); b && b.click(); return !!b; }), "its first sitting sets the trade policy"); await g.wait(1200);
 for (let i = 0; i < 3 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(400);
 const seen = new Set();
 const r = await playUntil(g, t0 => { const t = t0.replace(/\u2060/g, ""); if (/You, presiding/.test(t)) seen.add("table"); if (/^Trade · /m.test(t) || /Trade · /.test(t)) seen.add("trade"); if (/Last year you /.test(t)) seen.add("recap"); if (/Answer ›/.test(t)) seen.add("complaints"); if (/Big moves \d+\/\d+/.test(t)) seen.add("bigmoves"); for (const k of ["Address to the nation", "Senate President ·", "Chair, Governors' Forum ·", "Chief of Army Staff ·", "Governor of the Central Bank ·", "National Chairman of the party ·", "The world stage", "The insurgency", "The fuel crisis", "The naira crisis", "The National Security Council", "North-East:", "North-West:", "South-East:", "Niger Delta:"]) if (t.includes(k)) seen.add(k); return /Year 3 of 4/.test(t); }, { max: 900 });

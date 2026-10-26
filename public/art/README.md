@@ -78,3 +78,9 @@ state-seal (invented — use instead of the old national "crest"), title-logo, a
   - **The godfather** reacts to your relationship when he makes a demand.
   - **"The street"** shows market women, youth or workers, cheering or angry.
 - **Removed:** the old `deputy-angry`, `deputy-pleased` and `deputy-worried` (the wrong face).
+
+## Councils, trade and exports pack (35 images)
+- icons/: seal-fec, seal-nsc, seal-eac, seal-exco, seal-rulers, seal-econ — each council's wax seal, beside its name and at the centre of its table (SEAL_ART); icon-trade, icon-reserves, icon-food-prices, icon-exports — the Economic Advisory Council's figures and the governor's export earnings
+- backgrounds/: council-table-federal (FEC, its retreat, the Economic Advisory Council), council-table-security (the National Security Council), council-table-state (the governor's Executive Council and State Economic Council), council-table-palace (the Traditional Rulers Council in the South; the emir's courtyard in the North)
+- characters/: trade-minister (±pleased/angry by exports), customs-comptroller (±pleased/angry by smuggling, or Abuja's stance for a governor), farmers-association-chair (±pleased/angry by the farms' safety) — the economic councils and the trade storylines; exporter (State Economic Council, export storylines); chief-economic-adviser (Economic Advisory Council); chief-of-defence-staff and dss-director-general (National Security Council)
+- scenes/: deep-seaport, dry-port-kano, cargo-rail (building and opening the trade infrastructure; the dry port also for a governor's container depot), export-containers (export plans and buyers), aflatoxin-lab (rejected shipments), border-smuggling (the smugglers' border), bdc-street (the money-changers), factory-closed (the Agbara closure)

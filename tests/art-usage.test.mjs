@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 65, "65 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons)");
+  assert.equal(icons.length, 75, "75 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -163,5 +163,16 @@ test("every Pack 24 picture is used", () => {
   all.forEach(f => assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f + " is installed"));
   // A character's moods are built in code (name + "-pleased"/"-angry"), so the base name and each mood's use is checked.
   const used = (f) => { const b = path.basename(f); if (src.includes(b)) return true; const m = b.match(/^(.*)-(pleased|angry)$/); return !!m && src.includes(m[1]) && new RegExp('"-' + m[2] + '"|-' + m[2] + '\\.webp|"' + m[2] + '"').test(src); };
+  assert.deepEqual(all.filter(f => !used(f)), []);
+});
+// The councils and trade pack: seals, chambers, the economic team, trade and export scenes.
+test("every councils and trade picture is used", () => {
+  const all = ["seal-fec", "seal-nsc", "seal-eac", "seal-exco", "seal-rulers", "seal-econ", "icon-trade", "icon-exports", "icon-reserves", "icon-food-prices"].map(n => "icons/" + n)
+    .concat(["council-table-federal", "council-table-security", "council-table-state", "council-table-palace"].map(n => "backgrounds/" + n))
+    .concat(["deep-seaport", "dry-port-kano", "cargo-rail", "export-containers", "aflatoxin-lab", "border-smuggling", "bdc-street", "factory-closed"].map(n => "scenes/" + n))
+    .concat(["trade-minister", "customs-comptroller", "farmers-association-chair"].flatMap(n => [n, n + "-pleased", n + "-angry"]).concat(["exporter", "chief-economic-adviser", "chief-of-defence-staff", "dss-director-general"]).map(n => "characters/" + n));
+  assert.equal(all.length, 35);
+  all.forEach(f => assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f + " is installed"));
+  const used = (f) => { const b = path.basename(f); if (new RegExp('["/]' + b + '(["\\.]|-pleased|-angry)|"' + b + '"').test(src)) return true; const m = b.match(/^(.*)-(pleased|angry)$/); return !!m && src.includes('"./art/characters/' + m[1] + '" + mood(') && src.includes('"-' + m[2] + '"'); };
   assert.deepEqual(all.filter(f => !used(f)), []);
 });
