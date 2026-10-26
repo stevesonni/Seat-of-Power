@@ -13909,6 +13909,9 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             </div>
           </div>;
         })()}
+        {/* Trade sits where a player looks for it: State → Economy (and under People → Council). */}
+        {nav === "econ" && NAT && FedCouncilsPanel()}
+        {nav === "econ" && !NAT && !needSetup && StateEconPanel()}
         {nav === "econ" && !NAT && !needSetup && NeighboursPanel()}
         {nav === "econ" && <div style={{ display: "grid", gap: TALL() ? 14 : 22 }}>
           {/* The economy at a glance: three numbers on a dark banner, then one tile per sector. */}
