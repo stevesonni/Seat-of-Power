@@ -2133,10 +2133,11 @@ const DocCard = ({ D, options, onPick }) => { const tall = TALL(), war = /WAR/.t
     </div>
   </div>; };
 // The governor's trip screens: each choice a compact button under the letter.
-const TripOpt = ({ onClick, children }) => {
+// fly: where going in person means a flight; during a strike the airport may be shut (window.SOP_airportGate).
+const TripOpt = ({ onClick, children, fly }) => {
   const ref = React.useRef(null), [ic, setIc] = useState(null);
   useEffect(() => { const t = ref.current && ref.current.querySelector("div"); if (t) setIc(tripIcon(t.textContent.trim().replace(/^[^A-Za-z]+/, ""), /Deputy/i.test(t.textContent) ? "./art/icons/trip-deputy-governor.webp" : null)); }, []);
-  return <button ref={ref} className="trip-opt" onClick={onClick} style={ic ? { display: "grid", gridTemplateColumns: "60px 1fr", gap: 12, alignItems: "center" } : undefined}>
+  return <button ref={ref} className="trip-opt" onClick={fly && window.SOP_airportGate ? () => window.SOP_airportGate(fly, onClick) : onClick} style={ic ? { display: "grid", gridTemplateColumns: "60px 1fr", gap: 12, alignItems: "center" } : undefined}>
     {ic && <img src={ic} alt="" style={{ width: 60, height: 60, objectFit: "contain", gridRow: "1 / span 3" }} />}{children}</button>;
 };
 
@@ -2206,7 +2207,7 @@ const CouncilTable = ({ T, onPick, onClose }) => {
   const spk = (P) => P ? <div className="spk"><div className="av"><img src={P.img} alt="" /></div><div><b>{P.name}</b><span>{P.role}</span></div></div> : null;
   return <div className="lv lv-council sop-fade-in" role="dialog" aria-label={T.title} style={{ position: "fixed", inset: 0, zIndex: 9975, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "#000" }}>
     <div className="room" style={{ minHeight: "100%" }}>
-      <img className="bg" src={"./art/backgrounds/" + (T.bg || "council-chamber") + ".webp"} alt="" />
+      <img className="bg" src={T.bgSrc || "./art/backgrounds/" + (T.bg || "council-chamber") + ".webp"} alt="" />
       <div className="crest">{T.seal}<div><h1>{T.title}</h1>{T.sub && <p>{T.sub}</p>}</div></div>
       <div className="stack">
         <div className="decl sop-slide-up">{spk(T.by)}{T.declaration && <q>{T.declaration}</q>}</div>
@@ -6119,6 +6120,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const pilotName = "Group Captain " + gNAs(rng(state.length * 313 + pName.length * 7), "NC", NATION, false); // the pilot's portrait is a man
   // An official trip: counted for this term and for the career (the Junketer badge).
   const noteTrip = () => { noteTripTotal(); setStc(p => ({ ...p, trips: (p.trips || 0) + 1 })); };
+  /* Strikes (SYS.strikeImpact): what the unions have stopped. While the NLC is
+     out the airports are shut: a flight needs another way (the Air Force or a
+     chartered jet, the road) or does not happen. */
+  const strikeNow = () => SYS.strikeImpact(stc.labour, NAT);
+  const groundedNow = () => !!strikeNow().grounded;
+  const strikeRefuse = (what, B) => { try { window.SOP_outcome({ icon: "✊", img: "./art/scenes/nlc-march.webp", title: "It cannot start: the " + B.label + " are on strike", text: what + " needs " + B.who + ", and they have downed tools. Nothing new starts there until the strike is settled at the roundtable.", tone: "bad", rows: [{ l: "Strike", v: B.status === "stop" ? "Work has stopped" : "A go-slow", good: false }] }); } catch (e) {} addL("✊ " + what + " could not start: " + B.who + " are on strike.", "crisis"); };
+  const airportGate = (dest, go) => {
+    if (!dest || !groundedNow()) return go();
+    const U = strikeNow(), domestic = dest === "Abuja" || dest === "Lagos" || !!STATES[dest] || Object.keys(STATES).some(k => stateLabel(k) === dest);
+    const harden = () => setStc(p => { const L = p.labour, n = L && L.strikes && L.strikes.nlc; return n ? { ...p, labour: { ...L, strikes: { ...L.strikes, nlc: { ...n, trust: Math.max(0, (n.trust || 30) - 10) } } } } : p; });
+    const opts = (NAT ? [{ label: "Fly from the Air Force base, with military crews", note: "It works. The NLC will call it strike-breaking.", chips: [{ text: "Approval −1", color: CL.red }, { text: "The strike hardens", color: CL.red }],
+      run: () => { harden(); scFx({ app: -1 }); addL("✈️ You flew to " + dest + " from the Air Force base with military crews. The NLC calls it strike-breaking.", "political"); setTimeout(() => paper("PRESIDENT FLIES OUT FROM AIR FORCE BASE AS STRIKE GROUNDS THE NATION", "“Strike-breaking,” says the NLC", false, "./art/scenes/presidential-jet.webp"), 300); window.SOP_flightPlane = "military"; go(); return null; } }]
+      : [{ label: "Charter a private jet from the private terminal", note: "It costs money, and the papers will notice.", chips: [{ text: naira(.3), color: CL.org }, { text: "Approval −2", color: CL.red }],
+      run: () => { if (!spendB(.3, "A chartered jet")) return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for a charter.", tone: "bad" }; scFx({ app: -2 }); addL("✈️ You chartered a private jet to " + dest + " while the workers strike.", "political"); setTimeout(() => paper("GOVERNOR FLIES PRIVATE JET WHILE WORKERS STRIKE", "The unions: “He has money for jets, not for wages”", false, "./art/scenes/airport-grounded.webp"), 300); window.SOP_flightPlane = "private"; go(); return null; } }])
+      .concat(domestic ? [{ label: "Go by road", note: (NAT ? "A long convoy" : "Hours on the highway") + ": slower, and the highways are not safe.", chips: [{ text: "Risky", color: CL.org }],
+        run: () => { const bad = rng(hashStr(dest + turn + pName))() < .25; if (bad) { scFx({ sec: -.005, app: -1 }); addL("🚙 The convoy to " + dest + " was ambushed on the highway; two orderlies were wounded.", "crisis"); } else addL("🚙 You went to " + dest + " by road: a long, dusty day.", "info"); go();
+          return bad ? { icon: "🚙", img: "./art/scenes/army-convoy.webp", title: "Ambushed on the highway", text: "Gunmen opened fire on the convoy to " + dest + ". Your security beat them off; two orderlies were wounded. You arrived late.", tone: "bad", rows: [{ l: "Approval", v: "−1", good: false }] } : null; } }] : [],
+      [{ label: "Don't go", note: "Back to the letter: choose another answer.", run: () => null }]);
+    setSession({ id: "airport", seal: null, title: NAT ? "The Presidential Air Fleet" : "The airport", sub: "Grounded by the strike", bgSrc: "./art/scenes/airport-grounded.webp",
+      by: { name: NAT ? pilotName : "Captain " + gNAs(rng(state.length * 211 + pName.length), sd.zone, state, false), role: NAT ? "Presidential Air Fleet" : "Government House flight", img: "./art/characters/" + PILOT_ART + ".webp" },
+      declaration: "Your Excellency, you are scheduled to fly to " + dest + ", but " + (U.who.aviation || "the aviation unions") + " have shut the airport. There is no ground staff, no fuel crew and nobody in the control tower.",
+      decision: { title: "How do you get to " + dest + "?", brief: "The strike has grounded every flight.", options: opts } });
+    return null;
+  };
+  window.SOP_airportGate = airportGate;
   const presTrip = (dest, purpose) => {
     const sa = cast.adviser.name; noteTrip();
     try {
@@ -6146,7 +6172,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const P = stc.pres || presInitNow(), c = SYS.presCard(P, it), [bg, who, obj, scene] = SYS.presArt(P, it, c), npc = c.who && (P.npcs || {})[c.who];
     const kicker = it.k === "crisis" ? SYS.PRES_CRISES[it.id].nm : it.k === "world" ? "The world stage" : it.k === "coup" ? "The barracks" : it.k === "callback" ? "It comes back" : npc ? SYS.PRES_NPCS[c.who].role + " · " + npc.name : "The nation";
     return { key: "pres_" + it.k + "_" + it.id + "_" + turn, letter: it.k === "world" ? SYS.bkNames(SYS.TRIP_LETTERS[c.id || it.id], stc.bakunda) : undefined, kicker, color: it.k === "crisis" || it.k === "coup" ? CL.red : it.k === "world" ? CL.blu : CL.gold, art: [bg, who, obj, scene], title: SYS.bkName(c.t, stc.bakunda), brief: SYS.bkName(c.d, stc.bakunda),
-      options: c.opts.map(o => { const f0 = SYS.presFx({ ...o, risk: 0 }); return { label: o.l, chips: fxChips({ app: f0.fx.app, cor: f0.fx.cor }).concat(f0.costB > 0 ? [{ text: naira(f0.costB), color: CL.org }] : f0.costB < 0 ? [{ text: "Borrow " + naira(-f0.costB), color: CL.org }] : []).concat(o.adv ? [{ text: "🎯 " + SYS.PRES_COMMITS[o.adv].l, color: CL.grn }] : []), run: () => {
+      options: c.opts.map(o => { const f0 = SYS.presFx({ ...o, risk: 0 }); return { label: o.l, travel: c.flight && !/^(vp|send|minister|decline|stay)$/.test(o.id) ? c.flight : null, chips: fxChips({ app: f0.fx.app, cor: f0.fx.cor }).concat(f0.costB > 0 ? [{ text: naira(f0.costB), color: CL.org }] : f0.costB < 0 ? [{ text: "Borrow " + naira(-f0.costB), color: CL.org }] : []).concat(o.adv ? [{ text: "🎯 " + SYS.PRES_COMMITS[o.adv].l, color: CL.grn }] : []), run: () => {
         const f = SYS.presFx(o), before = stc.pres || P;
         scFx({ app: f.fx.app, sec: f.fx.sec, cor: f.fx.cor, igr: f.fx.igr, debt: f.costB > 0 ? f.costB : 0 });
         if (f.costB < 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - f.costB) * 100) / 100, debt: Math.round(((p.debt || 0) - f.costB) * 10) / 10 }));
@@ -6482,7 +6508,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     doc: c.kind === "document" ? { kicker: c.kicker, title: c.t, body: c.d, sign: c.sign, stamp: c.stamp } : undefined,
     kicker: c.kicker, color: CL.red, art: [c.bg || "situation-room", c.who || null, c.obj || null, c.scene || null], title: c.kind === "mission" ? "A mission from Defence Headquarters" : c.t, brief: c.d,
     options: c.opts.map(o => { const cost = o.cost || 0, app = (o.fx && o.fx.app || 0) - (c.spill || 0) - (c.fatigue || 0);
-      return { label: o.l, fid: o.id, note: o.note, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : [], o.grant ? [{ text: "+" + naira(o.grant) + " from the US", color: CL.grn }] : []), run: () => {
+      return { label: o.l, fid: o.id, note: o.note, travel: o.flight ? (c.id === "bk2" ? BKC().nm : BK_DEST[o.dest] || null) : null, chips: fxChips({ app, cor: o.fx && o.fx.cor }).concat(cost > 0 ? [{ text: naira(cost), color: CL.org }] : [], o.grant ? [{ text: "+" + naira(o.grant) + " from the US", color: CL.grn }] : []), run: () => {
         scFx({ app, sec: (o.fx && o.fx.sec || 0) - (c.spill ? .02 : 0), cor: o.fx && o.fx.cor, debt: cost > 0 ? cost : 0 });
         if (o.sfx) { try { window.SOP_sound && window.SOP_sound(o.sfx); } catch (e) {} }
         if (o.grant) { setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + o.grant) * 100) / 100 })); addL("🇺🇸 The United States pledged " + naira(o.grant) + " for the war against the Axis" + (o.set && o.set.marines ? ", and US Marines stand with our forces." : "."), "success"); }
@@ -7145,7 +7171,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         L.strikes[id] = st;
       });
       lab.forEach(([t, k]) => notes.push([t, k]));
-      groundedRef.current = NAT && !!(L.strikes.nlc && L.strikes.nlc.on); // NUATE: no trips, no investor visits this year
+      groundedRef.current = !!(L.strikes.nlc && L.strikes.nlc.on); // the airports are shut: no investor visits; trips need another way
+      { const I = SYS.strikeImpact(L, NAT), st = Object.entries(I.status).filter(([, v]) => v === "stop").map(([k]) => SYS.STRIKE_SECTORS[k]), sl = Object.entries(I.status).filter(([, v]) => v === "slow").map(([k]) => SYS.STRIKE_SECTORS[k]);
+        if (I.on) notes.push(["✊ The strike has stopped " + (st.join(", ") || "nothing yet") + (sl.length ? "; " + sl.join(", ") + " are on a go-slow" : "") + ". Nothing new starts there until it is settled.", "crisis"]); }
       next.labour = L;
     }
     // Last year's complaints: the unanswered ones, and the ones answered only with words, cost approval and their zone.
@@ -7653,6 +7681,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const d = F0.draft, P = F0.plan, places = (d.lgas && d.lgas.length ? d.lgas : [d.lga]).filter(Boolean), perf = ((ministries || []).find(m => m.id === d.ministryId) || {}).perf ?? 70;
     const e = SYS.estimate(d.type, d.qty, { places, perf, federal: NAT, second: !!d.second }), placeTxt = places.length > 1 ? places.length + (NAT ? " states" : " local governments") + " (" + places.slice(0, 3).join(", ") + (places.length > 3 ? " and more" : "") + ")" : places[0];
     if (P.choice === "defer") { setPflow(null); addL("🗂️ Deferred " + d.title + ": nothing starts this year.", "info"); return; }
+    { const B = SYS.strikeBlock(strikeNow(), { type: d.type, sector: SYS.TYPE_SECTOR[d.type] }); if (B) { setPflow(null); return strikeRefuse(d.title, B); } }
     let approved = P.approvedM, qty = d.qty, note = null;
     if (P.choice === "increase") approved = e.buildM;
     if (P.choice === "reduce") { qty = Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)); note = "Scope reduced to " + qty + " " + e.unit + "s to fit " + SYS.fmtM(P.approvedM) + "."; }
@@ -7776,7 +7805,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const m = minById(p.ministryId);
       // The bank pays this year's share; if it runs short, lenders may lend the rest; past that, work slows or stops.
       const canM = bankM + SYS.toM(SYS.borrowRoomB({ ...moneyRef.current, debt: (moneyRef.current.debt || 0) + SYS.toB(owedM) }, lvl));
-      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost });
+      const SB = SYS.strikeBlock(SYS.strikeImpact(stc.labour, NAT), { type: p.type, sector: p.sector });
+      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost, ...(SB ? { halt: SB.status === "stop" ? 0 : .5, haltWhy: SB.who + (SB.status === "stop" ? " are on strike" : " are on a go-slow") } : {}) });
       const used = r.cashUsedM || 0, fromBank = Math.min(bankM, used);
       bankM -= fromBank; paidM += fromBank; owedM += used - fromBank;
       next[p.id] = r.p;
@@ -8230,6 +8260,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const EIA_TYPES = new Set(["road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
+    { const B = SYS.strikeBlock(strikeNow(), { s: p.s, id: p.id }); if (B) return strikeRefuse(p.nm.replace(/^⭐\s*/, ""), B); }
     if (!isCapital(p)) return enactP(p);
     // Capital programmes are projects: they go through the one project flow
     // (proposal → budget → money → contractor), prefilled from the programme.
@@ -8290,8 +8321,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   /* The visit to Aso Rock (SYS.visits): once a year a governor flies to Abuja with one request. */
   const [visitOpen, setVisitOpen] = useState(false);
-  const visitPresident = (ask) => {
+  const visitPresident = (ask, flown) => {
     setVisitOpen(false); if (NAT || stc.visitYear === turn) return;
+    if (!flown && groundedNow()) return airportGate("Abuja", () => visitPresident(ask, true));
     setStc(p => ({ ...p, visitYear: turn })); track("visit_president", ask.id); noteTrip();
     try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Abuja", left: stName } }); } catch (e) {}
     const R = SYS.visitOutcome(ask, { fg: fgRelation, app: s.app, cor: s.cor, revB: SYS.revenueB(s) }, rng(hashStr("visit" + turn + pName)));
@@ -8325,8 +8357,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return n;
   };
   const stateVisitsLeft = () => SYS.STATE_VISITS_A_YEAR - ((stc.stateVisits && stc.stateVisits.turn === turn) ? stc.stateVisits.list.length : 0);
-  const visitState = (st, purposeId) => {
+  const visitState = (st, purposeId, flown) => {
     setStateVisit(null); if (!NAT || stateVisitsLeft() <= 0 || !STATES[st]) return;
+    if (!flown && groundedNow()) return airportGate(stateLabel(st), () => visitState(st, purposeId, true));
     const S = STATES[st], label = stateLabel(st), zi = NATION_ZONE_IDS.indexOf(S.zone);
     const R = SYS.stateVisitOutcome(purposeId, { state: label, zone: S.zone, sec: S.sec, issue: (S.issues || [])[0], north: NORTH_ZONES.includes(S.zone) }, rng(hashStr("sv" + turn + st + purposeId)));
     const ask = purposeId === "inspect" ? null : visitNeed(label, zi, { sec: S.sec, infra: S.infra, hp: S.hp, lit: S.lit, agr: S.agr, unemp: S.unemp, pov: S.pov }, "sv" + turn + st + purposeId, purposeId === "security" ? "security" : null);
@@ -9819,7 +9852,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The first year is for learning the job: no invitations abroad yet.
     if (!opens(2)) { const keep = q.filter(k => !(k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding")); q.length = 0; keep.forEach(k => q.push(k)); }
     // The airports are shut (an NLC strike with NUATE out): no trips abroad, no investors flying in.
-    if (groundedRef.current) { const gone = q.filter(k => k === "intl_invite" || k === "investor" || k === "netherlands" || k === "wedding"); if (gone.length) { const keep = q.filter(k => !gone.includes(k)); q.length = 0; keep.forEach(k => q.push(k)); addL("✈️ The airports are shut by the strike: " + gone.length + (gone.length === 1 ? " trip or visit" : " trips and visits") + " cancelled this year.", "crisis"); } }
+    // Invitations still come: going means the Air Force, a charter or the road (airportGate). Investors cannot fly in.
+    if (groundedRef.current) { const gone = q.filter(k => k === "investor"); if (gone.length) { const keep = q.filter(k => !gone.includes(k)); q.length = 0; keep.forEach(k => q.push(k)); addL("✈️ The airports are shut by the strike: the investors' visit is cancelled this year.", "crisis"); } }
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
@@ -11806,14 +11840,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
           return <LvDecision key={c.key} c={{ ...c, options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, disabled: o.disabled, raw: o })) }}
             advice={c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}
-            onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} />; })()}
+            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} />; })()}
         <OL show={phase === "sc" && scCards.length > 0 && !!(scCards[0].letter || scCards[0].military || scCards[0].doc)}>
           {scCards[0] && (() => { const c = scCards[0]; return <>{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
               <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
             </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
-            onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} /></>; })()}
+            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} /></>; })()}
         </OL>
 
         <OL show={phase === "succession_race" && !!stc.race}>
@@ -12475,7 +12509,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.gold + "44" }}>
             <TripLetter L={SYS.TRIP_LETTERS.abuja} salute={SYS.tripSalute(null, { lastName: String(setup?.nm || "").split(" ").pop() })} />
             <div className="trip-opts">
-              <TripOpt onClick={() => {
+              <TripOpt fly={"Abuja"} onClick={() => {
                 setAbujaVisited(true);
                 goAway(2, "Abuja");
                 setS(p => ({ ...p, pStab: cl100(p.pStab + 8), app: cl100(p.app - 3) }));
@@ -12537,7 +12571,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.teal + "44" }}>
             <TripLetter L={SYS.TRIP_LETTERS.netherlands} salute={SYS.tripSalute(null, { lastName: String(setup?.nm || "").split(" ").pop() })} />
             <div className="trip-opts">
-              <TripOpt onClick={() => {
+              <TripOpt fly={"The Hague"} onClick={() => {
                 setNetherlandsVisited(true);
                 goAway(4, "The Hague");
                 const success = Math.random() < .55;
@@ -12635,7 +12669,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.pur + "22" }}>
             <TripLetter L={SYS.TRIP_LETTERS.wedding} salute={SYS.tripSalute(null, { lastName: String(setup?.nm || "").split(" ").pop() })} />
             <div className="trip-opts">
-              <TripOpt onClick={() => {
+              <TripOpt fly={"Lagos"} onClick={() => {
                 if (!spendB(0.2, "The trip to the wedding")) return;
                 setWeddingVisited(true);
                 goAway(1, "Lagos");
@@ -12701,7 +12735,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {curInvite && <Cd style={{ borderColor: CL.blu + "44" }}>
             {decArt(curInvite.id) ? <DecPic id={curInvite.id} /> : null}<TripLetter L={(SYS.TRIP_LETTERS[curInvite.id] || { kind: "diplomacy", who: curInvite.who, where: curInvite.from, body: [curInvite.what], signed: curInvite.who })} salute={SYS.tripSalute(null, { lastName: String(setup?.nm || "").split(" ").pop() })} />
             <div style={{ display: "grid", gap: 29, maxWidth: 840, margin: "0 auto" }}>
-              <TripOpt onClick={() => {
+              <TripOpt fly={String(curInvite.from || "").replace(/^[^,]*,\s*/, "")} onClick={() => {
                 if (!spendB(curInvite.goCost || 0, "The trip")) return;
                 goAway(6, String(curInvite.from || "").replace(/^[^,]*,\s*/, "")); track("trip", "went in person");
                 setS(p => {

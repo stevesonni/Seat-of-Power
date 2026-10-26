@@ -258,3 +258,45 @@ export const twistAfter = (st, tw, opt, ctx = {}, r = Math.random) => {
   if (R.end) n = { ...n, on: false, over: "twist_" + tw.id };
   return { st: n, won, end: !!R.end, spend: cost, fx: R.fx || {}, say: R.say, mood: R.mood || (won === false ? "angry" : won ? "pleased" : null), paper: R.paper };
 };
+
+/* What a strike stops (the owner: "when the unions down tools almost nothing
+   works as planned"). For each sector: "stop" (nothing moves) or "slow" (half
+   pace), and who walked out. A sector the strike touches at all cannot start a
+   new programme or project; work already under way stops or slows. The
+   police and the armed forces cannot strike, so security never stops. While
+   the NLC is out, the airports are shut too (for a governor: the aviation
+   unions join the state council), so every flight needs another way.
+   L: stc.labour. */
+export const STRIKE_SECTORS = { administration: "the civil service", infrastructure: "building sites", education: "schools", university: "universities", health: "hospitals", agriculture: "farm programmes", energy: "power", commerce: "markets and trade", aviation: "airports" };
+export const strikeImpact = (L, nat = false) => {
+  const S = (L && L.strikes) || {}, nlc = S.nlc && S.nlc.on ? S.nlc : null, asuu = !!(S.asuu && S.asuu.on);
+  const status = {}, who = {};
+  const set = (k, v, w) => { if (status[k] === "stop") return; status[k] = v; who[k] = w; };
+  if (nlc) {
+    const g = nlc.stage || 1;
+    set("administration", "stop", nat ? "the federal civil service (NLC)" : "the state civil service (NLC)");
+    set("infrastructure", "stop", "the construction workers' union (NUCECFWW)");
+    set("aviation", "stop", nat ? "NUATE" : "the aviation unions");
+    set("education", g >= 2 ? "stop" : "slow", "the teachers (NUT)");
+    set("health", g >= 3 ? "stop" : "slow", "the health workers (JOHESU)");
+    set("agriculture", "slow", "the agricultural workers' union");
+    set("commerce", "slow", "the market and transport unions");
+    set("energy", nat && g >= 2 ? "stop" : "slow", nat && g >= 2 ? "NUEE" : "the electricity workers");
+    set("university", "slow", "the universities' non-teaching staff (SSANU)");
+  }
+  if (asuu) set("university", "stop", "ASUU");
+  return { on: !!(nlc || asuu), status, who, grounded: !!nlc, stage: nlc ? nlc.stage || 1 : 0 };
+};
+// A programme's sector (POL "s") or a project type, as a strike sector.
+const UNI = /^(uni|new_uni)$|^(university|polytechnic|coe)$/;
+export const strikeSectorOf = ({ s, id, type, sector } = {}) => {
+  if (UNI.test(id || "") || UNI.test(type || "")) return "university";
+  if (type) { const M = { health: "health", education: "education", energy: "energy", security: null }; return sector in M ? M[sector] : "infrastructure"; }
+  return s === "security" ? null : s || null;
+};
+// Is this blocked by the strike? Returns { status, who, label } or null.
+export const strikeBlock = (I, what) => {
+  const k = strikeSectorOf(what); if (!k || !I || !I.on) return null;
+  const v = I.status[k];
+  return v ? { status: v, who: I.who[k], label: STRIKE_SECTORS[k] || k } : null;
+};

@@ -207,6 +207,8 @@ export const siteTrouble = (p, year, r = Math.random) => {
 export const tickProject = (p, year, ctx = {}) => {
   if (p.status !== "in_progress") return { p, events: [] };
   if (p.ticked && p.ticked >= year) return { p, events: [] }; // once a year
+  // A strike (ctx.halt 0 = stopped, .5 = slowed; ctx.haltWhy says who walked out): a stopped site builds nothing and is paid nothing.
+  if (ctx.halt === 0) { const ev = "Year " + year + ": " + (ctx.haltWhy || "the workers are on strike") + "; nothing was built."; return { p: { ...p, ticked: year, events: [...(p.events || []), ev] }, events: [ev], paidM: 0, cashUsedM: 0 }; }
   const C = contractorById(p.contractorId) || CONTRACTORS[0];
   const r = seeded("project", p.id, year);
   const events = [];
@@ -228,7 +230,7 @@ export const tickProject = (p, year, ctx = {}) => {
   const crooked = C.integrity < .5;
   const price = C.price * (1 + (crooked ? leak : 0));
   const affordable = avail / price;
-  const value = Math.max(0, Math.min(toBuild, pace * (site ? site.f : 1), affordable));
+  const value = Math.max(0, Math.min(toBuild, pace * (site ? site.f : 1) * (ctx.halt != null ? ctx.halt : 1), affordable));
   const pay = Math.round(value * price);
   let quality = C.quality - (ctx.cor || 0) * .2 + (ctx.oversight || 0) * .08 - (crooked ? 0 : leak * .4);
   // Short of money only if it held back work the contractor could have done (not in a last, small year).
@@ -236,6 +238,7 @@ export const tickProject = (p, year, ctx = {}) => {
   if (r() > C.reliability + .1) events.push("Year " + year + ": " + C.name + " missed its milestones.");
   // The ground itself: floods on riverine sites; landowners who block a site until they are paid.
   if (site) events.push("Year " + year + ": " + site.text);
+  if (ctx.halt != null && ctx.halt < 1) events.push("Year " + year + ": " + (ctx.haltWhy || "the workers are on strike") + "; work went at half pace.");
   quality = Math.max(.15, Math.min(.98, quality));
   const builtM = p.builtM + Math.round(value);
   const prevQ = p.quality == null ? quality : p.quality;
