@@ -9,7 +9,7 @@ import { serve } from "./serve.mjs";
 const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const OUT = process.env.SHOTS || "/tmp";
-const optClick = (g, re) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button.ds-option")].find(x => new RegExp(src).test(x.textContent) && !x.disabled); b && b.click(); return !!b; }, re.source);
+const optClick = (g, re) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button.ds-option, button.opt")].find(x => new RegExp(src).test(x.textContent) && !x.disabled); b && b.click(); return !!b; }, re.source);
 let heard = "";
 const close = async (g) => { heard += await g.txt(); for (let i = 0; i < 6 && await g.click(/^(Continue|Okay|Got it|Close|Later)$/); i++) { await g.wait(450); heard += await g.txt(); } };
 const saved = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
@@ -66,7 +66,7 @@ t = await g.txt();
 check(/roundtable: ASUU/.test(t), "the ASUU roundtable");
 check(/UTAS, the union's own payroll, instead of IPPIS/.test(t), "the impossible demands are on the table");
 check(!/print it/.test(t), "a governor has no printing press");
-check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /Sign an MoU/.test(x.textContent)); return !!(b && b.disabled); }), "no MoU in the first year");
+check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option, button.opt")].find(x => /Sign an MoU/.test(x.textContent)); return !!(b && b.disabled); }), "no MoU in the first year");
 check(await optClick(g, /^Concede UTAS/), "make an offer"); await g.wait(800);
 heard = ""; await close(g); check(/insult/i.test(heard), "ASUU calls the first offer an insult");
 // Arresting the NLC's leaders: an escalation, never a win.

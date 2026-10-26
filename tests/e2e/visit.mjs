@@ -15,7 +15,7 @@ check(r.ok, "the Desk offers a visit to the President");
 await shot("desk-card"); await g.click(/✈️ Plan it/); await g.wait(600);
 check(/To Aso Rock/.test(await g.txt()) && /Troops for the state/.test(await g.txt()), "four requests, with the odds");
 await shot("pick");
-await g.page.evaluate(() => [...document.querySelectorAll("button.ds-option")].find(b => /federal road/.test(b.textContent)).click()); await g.wait(9000); // the flight out
+await g.page.evaluate(() => [...document.querySelectorAll("button.ds-option, button.opt")].find(b => /federal road/.test(b.textContent)).click()); await g.wait(9000); // the flight out
 for (let i = 0; i < 12 && !/welcome to the Villa/.test(await g.txt()); i++) { if (!(await g.click(/^(Continue|Got it|Okay|Noted|Go in)$/))) await g.page.evaluate(() => { const f = document.querySelector(".sop-flight"); f && f.click(); }); await g.wait(1200); }
 check(/welcome to the Villa/.test(await g.txt()), "the President receives you at the Villa");
 await shot("villa");

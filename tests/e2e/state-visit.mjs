@@ -32,7 +32,7 @@ await g.click(/🛬 Plan it/); await g.wait(500);
 await g.page.selectOption("#sv-state", "Ebonyi"); await g.wait(400);
 check(/surprise inspection of federal projects/.test(await g.txt()), "pick Ebonyi, then a purpose");
 await shot("state-visit-pick");
-await g.page.evaluate(() => [...document.querySelectorAll("button.ds-option")].find(b => /town hall/.test(b.textContent)).click()); await g.wait(1000);
+await g.page.evaluate(() => [...document.querySelectorAll("button.ds-option, button.opt")].find(b => /town hall/.test(b.textContent)).click()); await g.wait(1000);
 for (let i = 0; i < 14 && !/A town hall in Ebonyi/.test(await g.txt()); i++) { if (!(await g.click(/^(Continue|Got it|Okay|Noted|Go)$/))) await g.page.evaluate(() => { const f = document.querySelector(".sop-flight"); f && f.click(); }); await g.wait(1200); }
 check(/A town hall in Ebonyi/.test(await g.txt()), "the town hall in Ebonyi");
 await shot("state-visit-town");

@@ -50,7 +50,7 @@ for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g
 await g.page.evaluate(() => window.SOP.councils.visit()); await g.wait(700);
 { const t = await g.txt(); check(/Which neighbour\?/.test(t) && /Lagos/.test(t) && /Oyo/.test(t), "the mission offers Ogun's real neighbours"); }
 await shot("mission-pick");
-const opt = (re) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button.ds-option")].find(x => new RegExp(src).test(x.textContent) && !x.disabled); b && b.click(); return b ? b.textContent.slice(0, 60) : null; }, re.source);
+const opt = (re) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button.ds-option, button.opt")].find(x => new RegExp(src).test(x.textContent) && !x.disabled); b && b.click(); return b ? b.textContent.slice(0, 60) : null; }, re.source);
 check(!!(await opt(/^Oyo/)), "pick Oyo"); await g.wait(500);
 check(/What will you offer Oyo\?/.test(await g.txt()), "then the deal");
 check(!!(await opt(/Their .* to our markets/)), "a supply pact"); await g.wait(500);

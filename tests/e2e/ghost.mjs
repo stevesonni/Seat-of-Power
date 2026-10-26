@@ -8,10 +8,11 @@ check(await campaign(g) === "won", "campaign won");
 await takeOffice(g);
 const r = await playUntil(g, t => /Purge ghost workers/.test(t), { max: 200, prefer: [] });
 check(r.ok, "the adviser offers the purge");
+for (let i = 0; i < 3 && await g.click(/^Close the session$/); i++) await g.wait(600); // a council in session sits on top until it is closed
 const hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /^Purge ghost workers$/.test(x.textContent.trim()) && x.offsetParent); if (b) { b.scrollIntoView(); b.click(); return true; } return false; });
 check(hit, "the button is there to press");
 await g.wait(1500);
-for (let i = 0; i < 4; i++) { const t0 = await g.txt(); if (/Ghost workers purged|Adopted: Biometric payroll|Two reforms this year|agenda is full|Already in place/.test(t0)) break; await g.click(/^(Continue|Got it|Okay)$/); await g.wait(700); }
+for (let i = 0; i < 4; i++) { const t0 = await g.txt(); if (/Ghost workers purged|Adopted: Biometric payroll|Two reforms this year|agenda is full|Already in place/.test(t0)) break; await g.click(/^(Continue|Got it|Okay|Close the session)$/); await g.wait(700); }
 const t = await g.txt();
 const log = await g.page.evaluate(() => (JSON.parse(localStorage.getItem("sop_save") || "{}").logs || []).slice(0, 5).map(l => l.t || l.text || JSON.stringify(l)).join(" | "));
 console.log("  log:", log.slice(0, 400));

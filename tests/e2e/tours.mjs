@@ -21,7 +21,7 @@ await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")]
 const lga = await g.page.evaluate(() => { const s = document.getElementById("lt-lga"); const v = s && s.options[1] && s.options[1].value; return v || null; });
 check(!!lga, "the tour lists the state's LGAs");
 await g.page.selectOption("#lt-lga", lga); await g.wait(300);
-check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /council chairman/.test(x.textContent)); b && b.click(); return !!b; }), "choose to meet the chairman"); await g.wait(900);
+check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option, button.opt")].find(x => /council chairman/.test(x.textContent)); b && b.click(); return !!b; }), "choose to meet the chairman"); await g.wait(900);
 let t = await g.txt(), heard = false;
 for (let i = 0; i < 6 && !(heard = new RegExp("Chairman, " + lga, "i").test(t)); i++) { await g.click(/^Continue$/); await g.wait(700); t = await g.txt(); }
 check(heard, "the chairman of " + lga + " speaks in person");
@@ -59,7 +59,7 @@ check(!!(pc && pc.fec && pc.nsc), "both councils are sitting");
 for (let i = 0; i < 6 && await g.click(/^(Continue|Okay|Got it|Close)$/); i++) await g.wait(500);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /🛬 Plan it/.test(x.textContent)); b && b.click(); }); await g.wait(500);
 await g.page.selectOption("#sv-state", "Ebonyi").catch(() => {}); await g.wait(300);
-check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /town hall/.test(x.textContent)); b && b.click(); return !!b; }), "a town hall in Ebonyi"); await g.wait(1000);
+check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option, button.opt")].find(x => /town hall/.test(x.textContent)); b && b.click(); return !!b; }), "a town hall in Ebonyi"); await g.wait(1000);
 let all = "";
 for (let i = 0; i < 14 && !/It is on your Desk now/.test(all += await g.txt()); i++) { if (!(await g.click(/^(Continue|Got it|Okay|Noted|Go)$/))) await g.page.evaluate(() => { const f = document.querySelector(".sop-flight"); f && f.click(); }); await g.wait(1200); }
 t = all + await g.txt(); console.log("  seen:", [...new Set((t.match(/[^\n]*(Ebonyi|Desk now|hear)[^\n]*/gi) || []))].slice(0, 12).join(" // "));

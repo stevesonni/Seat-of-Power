@@ -24,7 +24,7 @@ await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")]
 const card = await g.txt();
 check(/A complaint/.test(card) && /What they want: pay the salaries owed/.test(card), "a tap opens the complaint: who, and what would fix it");
 check(/Fix it: pay the salaries owed/.test(card), "the real fix is on the card");
-const picked = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /Answer them on the radio/.test(x.textContent)); b && b.click(); return !!b; }); await g.wait(900);
+const picked = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option, button.opt")].find(x => /Answer them on the radio/.test(x.textContent)); b && b.click(); return !!b; }); await g.wait(900);
 check(picked, "answer it on the radio");
 for (let i = 0; i < 4 && await g.click(/^(Continue|Okay|Got it|Close)$/); i++) await g.wait(400);
 await g.wait(2600);
@@ -34,7 +34,7 @@ check(/✓ Answered/.test(await g.txt()), "the street shows it answered");
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /✓ Answered/.test(x.textContent) && /never pay us/.test(x.textContent)); b && b.scrollIntoView({ block: "center" }); b && b.click(); }); await g.wait(700);
 const again = await g.txt();
 check(/already answered with words/.test(again) && !/Answer them on the radio/.test(again), "words only once: after that, only the fix");
-await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /^Fix it/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option, button.opt")].find(x => /^Fix it/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
 check(/Treasury|treasury|In the bank|bank/.test(await g.txt()), "the fix opens the treasury");
 check(!g.errors.length, "no page errors " + g.errors.join(" | "));
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);
