@@ -35,6 +35,7 @@ const r = await playUntil(g, t0 => { const t = t0.replace(/⁠/g, "");
   if (/Appeal granted|Appeal dismissed|The investors are leaving/.test(t)) seen.add("appeal");
   if (/SURVEILLANCE DEAL|JTF SECURES|MILITANTS BOMB|IS STALLED/.test(t)) seen.add("crisis-paper");
   return seen.size >= 7; }, { max: 420, prefer: [/Lusitana|Ex-militants|struck down your Ease|bumper harvest/, /^✍️ Handle it personally$/, /^Welcome them/, /^Send in the Joint Task Force/, /^Appeal to the higher court/, /^Noted$/] });
+if (!r.ok) console.log("  last clicks: " + r.clicks.slice(-30).join(" | "));
 console.log("  chain beats seen: " + [...seen].join(", ") + " (" + r.clicks.length + " clicks; " + ((await g.txt()).match(/Year \d of 4/) || [""])[0] + ")");
 check(seen.has("harvest"), "the Minister of Agriculture's harvest letter from Plateau");
 check(seen.has("investor"), "Lusitana (Portugal) writes because of the harvest");
