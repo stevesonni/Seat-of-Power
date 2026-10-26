@@ -5609,7 +5609,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskNeeds = activeNeeds.filter(n => n.status !== "started"), workingNeeds = activeNeeds.filter(n => n.status === "started");
   const zoneName = (zi) => (ZN[zi] || "").replace(" Senatorial", "");
   // "Lagos East" for a governor (the real district), "North-West zone" for the President.
-  const zoneLabel = (zi) => NAT ? zoneLabel(zi) : zoneName(zi);
+  const zoneLabel = (zi) => NAT ? zoneName(zi) + " zone" : zoneName(zi);
   // An LGA with its district: "Ikorodu · Lagos East".
   const lgaLabel = (l) => { const i = SYS.districtOf(state, l); return i >= 0 && !NAT ? l + " · " + zoneName(i) : l; };
   const makeNeed = (r, avoid) => {
