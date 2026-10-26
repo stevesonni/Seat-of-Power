@@ -2246,7 +2246,7 @@ const LvDecision = ({ c, onPick, advice }) => {
       </div>
       <section className="sheet">
         {advice}
-        <div className="kicker">{c.kicker}</div>
+        <div className="kicker" style={c.color === "#3a9ad9" ? { color: c.color } : undefined}>{c.kicker}</div>
         <h1 className="h-title">{c.title}</h1>
         {shown && <p className="brief">{shown}{long && <span role="button" tabIndex={0} className="more" onClick={() => setMore(x => !x)} style={{ cursor: "pointer" }}>{more ? "Less" : "More"}</span>}</p>}
         {recall && <div className="recall">↺ <span><b>Last year you</b> {recall}</span></div>}
@@ -6291,9 +6291,39 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     .filter(([k]) => tr[k]).map(([k, l, a, b, good]) => ({ text: l + " " + (tr[k] > 0 ? "+" : "−") + a + Math.abs(tr[k]) + b, color: tr[k] * good > 0 ? CL.grn : CL.red }));
   // Apply an answer's effects now (fx: approval, money, debt, IGR…; tr: the trade figures).
   const econFx = (fx = {}, tr = null) => {
-    scFx({ app: fx.app || 0, pStab: fx.pStab || 0, cor: fx.cor || 0, sec: fx.sec || 0, agr: fx.agr || 0, infra: fx.infra || 0, igr: fx.igr || 0, debt: fx.cost > 0 ? fx.cost : 0 });
+    scFx({ app: fx.app || 0, pStab: fx.pStab || 0, cor: fx.cor || 0, sec: fx.sec || 0, agr: fx.agr || 0, infra: fx.infra || 0, hp: fx.hp || 0, lit: fx.lit || 0, igr: fx.igr || 0, debt: fx.cost > 0 ? fx.cost : 0 });
     if (fx.gain || fx.borrow || fx.debtCut) setS(p => { const cut = Math.min(fx.debtCut || 0, Math.max(0, p.cash || 0)); return { ...p, cash: Math.round(((p.cash || 0) + (fx.gain || 0) + (fx.borrow || 0) - cut) * 100) / 100, debt: Math.max(0, Math.round(((p.debt || 0) + (fx.borrow || 0) - cut) * 10) / 10) }; });
     if (tr && Object.keys(tr).length) setStc(p => ({ ...p, trade: SYS.tradeApply(p.trade || SYS.tradeInit(), tr, turn) }));
+  };
+  /* The President's diplomacy (SYS.diplomacy): sky-blue letters. The UN every
+     year; a head of government's festival every other year. Going closes a
+     deal that acts now and again next year. */
+  const SKY = "#3a9ad9";
+  const dealChips = (d) => fxChips({ app: d.fx.app, cor: d.fx.cor, sec: d.fx.sec, igr: d.fx.igr > 0 ? d.fx.igr : 0, debt: d.fx.cost || 0 })
+    .concat(d.fx.gain ? [{ text: "+" + naira(d.fx.gain) + " now", color: CL.grn }] : [], d.fx.borrow ? [{ text: "Loan " + naira(d.fx.borrow), color: CL.org }] : [], d.fx.debtCut ? [{ text: "Debt −" + naira(d.fx.debtCut), color: CL.grn }] : [],
+      d.fx.hp ? [{ text: "Health +" + Math.round(d.fx.hp * 100), color: CL.grn }] : [], d.fx.lit ? [{ text: "Schools +" + Math.round(d.fx.lit * 100), color: CL.grn }] : [], d.fx.infra ? [{ text: "Infrastructure +" + Math.round(d.fx.infra * 100), color: CL.grn }] : [], d.fx.agr ? [{ text: "Farms +" + Math.round(d.fx.agr * 100), color: CL.grn }] : [],
+      d.jobs ? [{ text: d.jobs.toLocaleString() + " jobs", color: CL.grn }] : [], trChips(d.tr));
+  const closeDeal = (d, where, kind) => {
+    econFx({ ...d.fx, cost: 0 }, d.tr);
+    if (d.jobs) setS(p => ({ ...p, invJobs: (p.invJobs || 0) + d.jobs, totalJobs: (p.totalJobs || 0) + d.jobs }));
+    if (d.later) setStc(p => ({ ...p, diplo: { ...(p.diplo || { used: [], pending: [] }), pending: [...((p.diplo || {}).pending || []), { due: turn + 1, ...d.later }] } }));
+    addL("🕊️ " + where + ": you " + d.past + ".", "success"); scWiki("Presidency", where + ": " + d.past.replace(/^\w/, c => c.toUpperCase()) + ".");
+    return { icon: "🕊️", img: "./art/scenes/" + (kind === "unga" ? "geneva-conference" : "news-signing-ceremony") + ".webp", title: d.l, text: where + ": " + d.past + "." + (d.later ? " It pays off again next year." : ""), tone: "good",
+      rows: [].concat(d.fx.igr ? [{ l: "Revenue", v: "+" + naira(d.fx.igr) + " a year", good: true }] : [], d.jobs ? [{ l: "Jobs", v: d.jobs.toLocaleString(), good: true }] : [], d.fx.gain ? [{ l: "Into the bank", v: naira(d.fx.gain), good: true }] : [], d.fx.borrow ? [{ l: "Loan", v: naira(d.fx.borrow), good: false }] : [], d.fx.debtCut ? [{ l: "Debt", v: "−" + naira(d.fx.debtCut), good: true }] : [], d.fx.app ? [{ l: "Approval", v: sgnN(d.fx.app), good: d.fx.app > 0 }] : [], trChips(d.tr).map(c => ({ l: c.text.replace(/ [+−].*$/, ""), v: c.text.replace(/^.* ([+−])/, "$1"), good: c.color === CL.grn }))) };
+  };
+  const diploCardFor = (kind, X) => {
+    const unga = kind === "unga", city = unga ? "New York" : X.city, where = unga ? "The UN General Assembly" : X.event.replace(/^the /, "The ");
+    const go = (d) => ({ label: (unga ? "Go to New York: " : "Go to " + X.city + ": ") + d.l.charAt(0).toLowerCase() + d.l.slice(1), travel: city, chips: dealChips(d),
+      run: () => { if (d.fx.cost && !spendB(d.fx.cost, "The trip to " + city)) return { icon: "🏦", title: "The bank cannot cover the trip", text: "There is not enough money for the delegation.", tone: "bad" };
+        presTrip(city, unga ? "the UN General Assembly" : X.event); track("dipl_" + (unga ? "unga_" + X.id : X.id), d.id); return closeDeal(d, where, kind); } });
+    const small = SYS.smaller(X.deals[0]);
+    return { key: "dipl_" + (unga ? "unga_" + X.id : X.id) + "_" + turn, kicker: "Diplomacy · " + (unga ? "The UN General Assembly · " + X.t : X.event), color: SKY, from: unga ? "The Secretary-General of the United Nations" : X.host + ", " + X.from,
+      art: ["foreign-ministry-meeting", null, null, unga ? "geneva-conference" : "state-banquet"],
+      title: unga ? "The UN General Assembly: " + X.t.charAt(0).toLowerCase() + X.t.slice(1) : X.host + " invites you to " + X.event,
+      brief: unga ? "Every September the world's leaders speak in New York. This year's theme is " + X.t.charAt(0).toLowerCase() + X.t.slice(1) + ". Go yourself and you can close a deal in the corridors; send the Vice-President and Nigeria is heard, no more." : "An invitation to " + X.event + ", with the government and business leaders around the table. Go and you can close a deal; send the Foreign Minister and you get a smaller one.",
+      options: X.deals.map(go).concat(unga ? [{ label: "Send the Vice-President", chips: fxChips({ app: X.vp.fx.app, debt: X.vp.fx.cost }), run: () => { spendB(X.vp.fx.cost || 0, "The UN delegation", { force: true }); scFx({ app: X.vp.fx.app || 0 }); track("dipl_unga_" + X.id, "vp"); addL("🕊️ The Vice-President spoke for Nigeria at the UN.", "info"); return { icon: "🕊️", title: "The Vice-President goes to New York", text: "Nigeria is heard; nothing is signed.", tone: "neutral" }; } }]
+        : [{ label: "Send the Foreign Minister: " + small.l.charAt(0).toLowerCase() + small.l.slice(1) + ", on a smaller scale", chips: dealChips(small), run: () => { track("dipl_" + X.id, "minister"); return closeDeal({ ...small, past: "sent the Foreign Minister and " + X.deals[0].past.replace(/^\w+ /, m => m) }, where, kind); } },
+          { label: "Decline politely", chips: [{ text: "No cost", color: CL.grn }], run: () => { track("dipl_" + X.id, "decline"); addL("🕊️ You declined the invitation to " + X.event + ".", "info"); return { icon: "🕊️", title: "Declined", text: "A polite letter goes back. The door stays open, a little less wide.", tone: "neutral" }; } }]) };
   };
   const econCardFor = (id, E, ctx, landed) => {
     const iss = SYS.econIssue(id, NAT); if (!iss) return null;
@@ -7346,6 +7376,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (c.kind === "tip") { next.bakunda = SYS.bakundaAfter(next.bakunda, c); const nm = "Gen. " + ((((next.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff"; setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-neutral.webp", name: nm, text: c.t } }); } catch (e) {} }, 1500); return; }
         cards.push(bakundaCardFor(c));
       });
+    }
+
+    // The President's diplomacy (SYS.diplomacy): last year's deals land; the UN every year; an invitation every other year.
+    if (NAT && next.pres) {
+      let Dp = next.diplo || { used: [], pending: [] }; const due = (Dp.pending || []).filter(x => x.due <= turn); Dp = { ...Dp, pending: (Dp.pending || []).filter(x => x.due > turn) };
+      due.forEach(x => { econFx(x.fx || {}, null); if (x.tr && next.trade) next.trade = SYS.tradeApply(next.trade, x.tr, turn); notes.push(["🕊️ " + x.text, "success"]); });
+      cards.push(diploCardFor("unga", SYS.ungaFor(turn, hashStr(state + pName))));
+      if (turn % 2 === 0) { const X = SYS.inviteFor(Dp.used || [], rE); if (X) { Dp = { ...Dp, used: [...(Dp.used || []), X.id] }; cards.push(diploCardFor("invite", X)); } }
+      next.diplo = Dp;
     }
 
     // The President's impeachment (SYS.impeach): the record starts a Senate case; emergency rule has its own price.
@@ -9924,7 +9963,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
-      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") ? 100 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
+      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") ? 100 : k.startsWith("sc#dipl_unga") ? 88 : k.startsWith("sc#dipl_") ? 86 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
@@ -10552,7 +10591,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const v = letterView(open), risk = SYS.cosRisk(c, open.kind, open.stakes), riskC = risk === "safe" ? CL.grn : risk === "risky" ? CL.org : CL.red;
       // An opened letter fills the screen as a letter on paper: letterhead,
       // reference and date, "Your Excellency", the matter, a signature and the seal.
-      const OFFICE = { bakunda: "Defence Headquarters · Office of the Chief of Army Staff", agenda: "Office of the Special Adviser to the Governor", budget: "Ministry of Budget & Economic Planning", gold: "Local Government Secretariat", crisis: "State Security Council", godfather: "Private & Confidential", party: "The Party Secretariat", house: "State House of Assembly", courts: "High Court of Justice", federal: "The Presidency · Abuja", community: open.key.startsWith("sc#ruler") ? "The Palace" : "A Community Delegation", press: "The Newsroom", travel: "Protocol Department, Government House", investment: "Investment Promotion Office", projects: "Ministry of Works & Infrastructure", intel: "Department of State Services · Secret", briefing: "Office of the Secretary to the State Government" };
+      const OFFICE = { bakunda: "Defence Headquarters · Office of the Chief of Army Staff", agenda: "Office of the Special Adviser to the Governor", budget: "Ministry of Budget & Economic Planning", gold: "Local Government Secretariat", crisis: "State Security Council", godfather: "Private & Confidential", party: "The Party Secretariat", house: "State House of Assembly", courts: "High Court of Justice", federal: "The Presidency · Abuja", community: open.key.startsWith("sc#ruler") ? "The Palace" : "A Community Delegation", press: "The Newsroom", diplomacy: "Ministry of Foreign Affairs · Protocol Department", travel: "Protocol Department, Government House", investment: "Investment Promotion Office", projects: "Ministry of Works & Infrastructure", intel: "Department of State Services · Secret", briefing: "Office of the Secretary to the State Government" };
       const ref = "GH/" + absYear + "/" + String(100 + (hashStr(open.id) % 900));
       const fromSA = String(v.from || "") === cast.adviser.name;
       const office = v.office || (fromSA ? "Office of the Special Adviser to the Governor" : open.secr ? "The State Secretariat" : (OFFICE[open.kind] || "Government House"));
@@ -10564,9 +10603,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <div style={{ maxWidth: 720, margin: "0 auto" }}>
         <div className="sop-letter" style={{ position: "relative", borderRadius: tall ? 14 : 18, overflow: "hidden", boxShadow: "0 30px 60px rgba(0,0,0,.45)", background: "#f8f6e6", color: "#2b2117", marginBottom: 14 }}>
           {/* Head: the green band with stars, the office on the pale band below it. */}
-          <div style={{ aspectRatio: "816 / 160", background: "url(./art/objects/letter-head.webp) center / 100% 100% no-repeat", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", paddingTop: "8%", textAlign: "center" }}>
-            <div style={{ fontFamily: F.b, fontWeight: 900, letterSpacing: 1, color: "#0f5a35", fontSize: tall ? TS(21) : TS(34), lineHeight: 1.05, textTransform: "uppercase", padding: "0 12px" }}>{office}</div>
-            <div style={{ fontFamily: F.b, fontWeight: 600, letterSpacing: 1.5, color: "#2f6b48", fontSize: LS.xs, textTransform: "uppercase", marginTop: 2 }}>{stName} State · Ref {ref}</div>
+          {/* Diplomacy is sky blue: the same letterhead, tinted. */}
+          <div style={{ aspectRatio: "816 / 160", background: (open.kind === "diplomacy" ? "linear-gradient(#3a9ad9, #3a9ad9), " : "") + "url(./art/objects/letter-head.webp) center / 100% 100% no-repeat", backgroundBlendMode: open.kind === "diplomacy" ? "color" : undefined, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", paddingTop: "8%", textAlign: "center" }}>
+            <div style={{ fontFamily: F.b, fontWeight: 900, letterSpacing: 1, color: open.kind === "diplomacy" ? "#1d5f8f" : "#0f5a35", fontSize: tall ? TS(21) : TS(34), lineHeight: 1.05, textTransform: "uppercase", padding: "0 12px" }}>{office}</div>
+            <div style={{ fontFamily: F.b, fontWeight: 600, letterSpacing: 1.5, color: open.kind === "diplomacy" ? "#2f6f9f" : "#2f6b48", fontSize: LS.xs, textTransform: "uppercase", marginTop: 2 }}>{NAT ? "Federal Republic of Nigeria" : stName + " State"} · Ref {ref}</div>
           </div>
           {/* Body: cream paper with the envelope watermark. */}
           <div style={{ position: "relative", background: "#f8f6e6 url(./art/objects/letter-mark.webp) center 45% / 44% auto no-repeat", padding: tall ? "18px 20px 16px" : "30px 46px 26px", fontFamily: "Georgia, 'Times New Roman', serif" }}>
@@ -11406,7 +11446,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
         {(nav === "gov" || nav === "hub") && !gEnd && turn >= 1 && Journey()}
         {nav === "gov" && deskSteps()}
-        {nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
+        {/* The first-year guide panel is retired (owner, October 2026): the adviser and the Desk lead the way. */}
+        {false && nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
           const steps = [
             ["Set up your government", NAT ? "Appoint the ministers, then convene the FEC and the Security Council." : "Convene the ministries and the Traditional Council.", !needSetup],

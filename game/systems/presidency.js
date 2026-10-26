@@ -266,7 +266,7 @@ export const presDeck = (seed, turn, P) => {
   const angry = low && low[1].rel < 45 ? pool.find(c => c.who === low[0]) : null;
   if (angry) out.push({ k: "card", id: angry.id });
   while (out.filter(x => x.k === "card").length < 2) { const left = pool.filter(c => !out.some(x => x.id === c.id)); if (!left.length) break; out.push({ k: "card", id: left[Math.floor(r() * left.length)].id }); }
-  if (turn % 2 === 1) { const w = PRES_WORLD.filter(c => !seen.includes(c.id)); if (w.length) out.push({ k: "world", id: w[Math.floor(r() * w.length)].id }); }
+  if (turn % 2 === 1) { const w = PRES_WORLD.filter(c => !seen.includes(c.id) && c.id !== "unga" /* the UN has its own letter every year (SYS.diplomacy) */); if (w.length) out.push({ k: "world", id: w[Math.floor(r() * w.length)].id }); }
   const army = ((P.npcs || {}).army || { rel: 50 }).rel;
   if (army < 25 && (P.sev || 0) >= 60 && !seen.includes("coup")) out.push({ k: "coup", id: "coup" });
   return out;

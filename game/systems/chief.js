@@ -37,6 +37,7 @@ export const SEALS = {
   community: { c: "#7a4a1f", rim: "#f0d2a8", i: "🏘️", nm: "Community" },
   press: { c: "#555", rim: "#ddd", i: "📰", nm: "Press" },
   travel: { c: "#1b6f7a", rim: "#bfe9ee", i: "✈️", nm: "Invitation" },
+  diplomacy: { c: "#3a9ad9", rim: "#d4ecff", i: "🕊️", nm: "Diplomacy" }, // sky blue: the President's invitations and the UN
   investment: { c: "#1b6f7a", rim: "#bfe9ee", i: "💼", nm: "Investor" },
   projects: { c: "#b35c00", rim: "#ffd3a1", i: "🏗️", nm: "Projects" },
   intel: { c: "#263238", rim: "#90a4ae", i: "🕵️", nm: "Intelligence" },
@@ -68,6 +69,7 @@ export const letterKind = (key) => {
   if (k === "dilemma" || k.startsWith("sc#lg") || k.startsWith("sc#ruler")) return ["community", 2];
   if (k.startsWith("stall:")) return ["projects", 2];
   if (k.startsWith("sc#impeach_")) return ["house", 3];
+  if (k.startsWith("sc#dipl_")) return ["diplomacy", 2];
   if (k.startsWith("sc#econ_")) return ["econ", 2];
   if (k.startsWith("sc#export_")) return ["econ", 2];
   if (k.startsWith("sc#inter_")) return ["community", 2];
