@@ -13726,34 +13726,34 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               </>}</div>}
               <Bt onClick={() => { if (!treSeen && turn > 1) { present("Your Excellency, before the year closes the Treasury needs you: what we owe, what comes in, and the reforms that raise more.", "neutral", () => goTab("tre"), "Open the Treasury"); return; } setPhase("end_turn"); endTurn(); }} style={{ width: "100%", marginTop: 22 }}>Done: end the year →</Bt>
             </Cd>}
-            {phase === "end_turn" && !curD && <Cd style={{ textAlign: "center", padding: 58 }}>
-              <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(53), fontWeight: 600, marginBottom: 22 }}>{yr} Complete</h3>
-              {turn < MT && <div style={{ display: "inline-block", background: CL.grn + "12", border: "1px solid " + CL.grn + "44", color: CL.grn, borderRadius: 999, padding: TALL() ? "6px 14px" : "8px 20px", fontSize: TALL() ? TS(16) : TS(24), fontWeight: 700, marginBottom: 16 }}>✓ Saved. A good place to take a break: {turn === 4 ? "the re-election is next" : "Year " + (((turn) % 4) + 1) + (turn < 4 ? " of your first term" : " of your second term")} is waiting when you come back.</div>}
-              <Sfx k="turn" />
-              {headline && <FrontPage paper={state.replace("_", " ") + " Daily Tribune"} headline={headline} w={TALL() ? 260 : 340} />}
-              {stc.teaser && stc.teaser.turn === turn && turn < MT && <div className="sop-step" style={{ position: "relative", margin: "22px auto 6px", maxWidth: 560, textAlign: "left", background: "linear-gradient(180deg,#fbf4e1,#efe0b8)", border: "1px solid #d9c48e", borderRadius: 18, padding: TALL() ? "14px 14px 14px 76px" : "18px 22px 18px 104px", boxShadow: "0 12px 26px rgba(60,40,10,.18)", color: "#2b2117" }}>
-                <img src="./art/objects/letter-sealed-large.webp" alt="" className="sop-pop" style={{ position: "absolute", left: TALL() ? 2 : 6, top: "50%", transform: "translateY(-50%) rotate(-8deg)", width: TALL() ? 70 : 96, height: "auto" }} />
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: F.b, fontSize: TALL() ? TS(14) : TS(20), fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", color: "#a3271c" }}><img src="./art/objects/wax-seal-red.webp" alt="" style={{ width: TALL() ? 18 : 24, height: TALL() ? 18 : 24 }} />Sealed until {absYear + 1}</div>
-                <div style={{ fontFamily: "Georgia, serif", fontSize: TALL() ? TS(16) : TS(24), color: "#5b4a33", marginTop: 2 }}>From: {stc.teaser.from}</div>
-                <div style={{ fontFamily: "Georgia, serif", fontStyle: "italic", fontSize: TALL() ? TS(19) : TS(29), lineHeight: 1.4, marginTop: 4 }}>“{stc.teaser.line}”</div>
-              </div>}
-              {/* Show this turn's key events so players SEE the cabinet/stakeholder/persona feedback */}
-              <div style={{ textAlign: "left", margin: "29px 0", maxWidth: 732, marginLeft: "auto", marginRight: "auto" }}>
-                {logs.filter(l => l.t === turn).slice(0, 2).map((e, i) => {
-                  const tc = { policy: CL.grn, crisis: CL.red, political: CL.org, success: CL.teal, scandal: CL.red, info: CL.td };
-                  return <div key={i} style={{ fontSize: TS(34), color: tc[e.tp] || CL.tm, padding: "10px 0", borderBottom: "1px solid " + CL.bdr + "60", lineHeight: 1.4 }}>{briefly(e.tx, 90)}</div>;
-                })}
-              </div>
-              <Spark data={appH} color={s.app > 50 ? CL.grn : CL.red} w={130} h={24} />
-              <div style={{ marginTop: 14 }}><button onClick={() => { try { window.SOP_CIVIC && window.SOP_CIVIC.showReview(); } catch (e) {} }} style={{ background: "none", border: "1px solid " + CL.grn, color: CL.grn, borderRadius: 999, padding: "10px 22px", fontSize: TALL() ? TS(20) : TS(29), fontWeight: 700, cursor: "pointer", fontFamily: F.b }}>📋 Full year review</button></div>
-              {achPopup && <div style={{ background: CL.gold + "15", border: "1px solid " + CL.gold + "40", borderRadius: 17, padding: "29px 43px", margin: "36px auto 0", maxWidth: 552 }}>
-                <div style={{ fontSize: TS(79), marginBottom: 7 }}>{achPopup.i}</div>
-                <div style={{ fontSize: TS(36), fontWeight: 700, color: CL.gold }}>🏆 ACHIEVEMENT UNLOCKED</div>
-                <div style={{ fontSize: TS(43), fontWeight: 600, color: CL.txt }}>{achPopup.nm}</div>
-                <div style={{ fontSize: TS(34), color: CL.td }}>{achPopup.d}</div>
-              </div>}
-              <div style={{ marginTop: 29 }}><Bt onClick={() => { turn >= MT ? advance() : buildEventQueue(); }}>{turn >= MT ? "VIEW RESULTS" : "CONTINUE"}</Bt></div>
-            </Cd>}
+            {phase === "end_turn" && !curD && (() => {
+              // The year's end (Lovable's design, sop-screens.css .lv-ey): the front page, the sealed letter, what happened, Continue.
+              const ICON_FOR = [[/export|trade|deal|port|cargo/i, "icon-exports"], [/food|price|inflation/i, "icon-food-prices"], [/approval|popular/i, "icon-approval"], [/debt|loan|borrow/i, "icon-debt"], [/bank|₦|revenue|igr|faac|money/i, "icon-bank"], [/corrupt|graft|efcc/i, "icon-corruption"], [/party|defect/i, "icon-party"]];
+              const yearLines = logs.filter(l => l.t === turn).slice(0, 5).map(e => { const good = ["policy", "success"].includes(e.tp), t = briefly(String(e.tx).replace(/^[^A-Za-z₦"“]+/, ""), 80), ic = (ICON_FOR.find(([rx]) => rx.test(t)) || [null, good ? "icon-ok" : "icon-warning"])[1]; return { good, t, ic }; });
+              const paperNm = NAT ? "The National Daily" : stName + " Daily Tribune", place = NAT ? "Abuja" : stName;
+              const pic = NAT ? "./art/scenes/presidential-media-chat.webp" : "./art/scenes/news-signing-ceremony.webp";
+              const story = logs.filter(l => l.t === turn).slice(0, 2).map(l => briefly(String(l.tx).replace(/^[^A-Za-z₦"“]+/, ""), 120)).join(" ");
+              return <div className="lv lv-ey" style={{ borderRadius: 18, overflow: "hidden" }}><Sfx k="turn" /><main className="ey">
+                <div className="done"><div className="k">{yr.replace(" — ", " · ")} · Complete</div><h1>The year is done</h1>{turn < MT && <p>✓ Saved. A good place to take a break.</p>}</div>
+                {headline ? <article className="paper">
+                  <div className="mast"><div className="n">{paperNm}</div><div className="d"><span>{place}</span><span>31 December {absYear}</span><span>₦300</span></div></div>
+                  <h2>{headline}</h2>
+                  <img src={pic} alt="" />
+                  <div className="cap">{NAT ? "The President" : "The Governor"} at {NAT ? "the Villa" : "Government House"}, {absYear}.</div>
+                  {story && <div className="cols">{story}</div>}
+                </article> : <div />}
+                <div className="right">
+                  {stc.teaser && stc.teaser.turn === turn && turn < MT && <div className="sealed sop-step"><img src="./art/objects/letter-sealed-large.webp" alt="" /><div><div className="k">SEALED UNTIL {absYear + 1}</div><b>From: {stc.teaser.from}</b><em>“{stc.teaser.line}”</em></div></div>}
+                  {yearLines.length > 0 && <section className="card year"><h3>What happened this year</h3>
+                    {yearLines.map((l, i) => <div key={i} className={"ln " + (l.good ? "g" : "b")}><img src={"./art/icons/" + l.ic + ".webp"} alt="" /><span>{l.good ? "▲" : "▼"} {l.t}</span></div>)}
+                  </section>}
+                  {achPopup && <section className="card year"><h3>🏆 {achPopup.nm}</h3><div className="ln g"><span>{achPopup.i} {achPopup.d}</span></div></section>}
+                  <div className="acts">
+                    <button className="btn btn-sec" onClick={() => { try { window.SOP_CIVIC && window.SOP_CIVIC.showReview(); } catch (e) {} }}>📋 Full year review</button>
+                    <button className="btn btn-main" onClick={() => { turn >= MT ? advance() : buildEventQueue(); }}>{turn >= MT ? "View the results" : "Continue"}</button>
+                  </div>
+                </div>
+              </main></div>; })()}
           </div>
         </div>}
 

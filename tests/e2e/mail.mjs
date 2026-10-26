@@ -24,7 +24,7 @@ const r = await playUntil(g, tx => /Done: end the year/.test(tx), { max: 60 });
 check(r.ok, "reached the end of Year 1");
 await g.wait(400); await okay(g); await g.click(/^Spread it over 4 years/); await g.wait(500); await okay(g);
 await g.click(/^Done: end the year/); await g.wait(1500); await okay(g);
-await g.click(/^CONTINUE$/); await g.wait(1400);
+await g.click(/^(CONTINUE|Continue)$/); await g.wait(1400);
 const presented = /Your Excellency, .*needs you/.test(await g.txt());
 await okay(g); // the adviser announces urgent mail in person
 t = await g.txt();

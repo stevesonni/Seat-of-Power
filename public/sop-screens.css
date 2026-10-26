@@ -277,6 +277,7 @@ body:not(.sop-portrait) .lv-ey .done{grid-column:1/-1}
 body:not(.sop-portrait) .lv-ey .paper{grid-row:2/span 3;align-self:start}
 body:not(.sop-portrait) .lv-ey .paper img{aspect-ratio:16/8}
 body:not(.sop-portrait) .lv-ey .right{display:grid;gap:calc(14px*var(--k));align-content:start}
+body.sop-portrait .lv-ey .right{display:contents}
 /* screen-desk.html */
 .lv-desk{--page:#f6f2ea;--card:#fffdf8;--ink:#13261c;--muted:#5b665f;--line:#e6dfd2;
  --green:#0b7a4b;--deep:#12301f;--gold:#e9c46a;--warn:#c2410c;--red:#b3261e;

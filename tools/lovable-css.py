@@ -34,12 +34,13 @@ def rules(css):
 
 def scope(sel, root, desk):
     parts = []
+    pre0 = {True: "body:not(.sop-portrait) ", False: "", "phone": "body.sop-portrait "}[desk]
     for s in sel.split(","):
         s = s.strip()
         if s in (":root", "body", "html,body", "html"): s = ""
         elif s == "*": s = "*"
         elif s in ("img", "button"): pass
-        pre = ("body:not(.sop-portrait) " if desk else "") + "." + root
+        pre = pre0 + "." + root
         parts.append(pre if s == "" else (pre + " " + s))
     return ",".join(dict.fromkeys(parts))
 
@@ -50,7 +51,9 @@ def convert(root, html):
     def emit(rs, desk=False):
         for r in rs:
             if r[0] == "@media":
-                if "min-width:900px" in r[1].replace(" ", ""): emit(r[2], True)
+                q = r[1].replace(" ", "")
+                if "min-width:900px" in q: emit(r[2], True)
+                elif "max-width:899px" in q: emit(r[2], "phone")
                 continue
             sel, body = r
             if sel in ("html,body",) and "height" in body: continue
