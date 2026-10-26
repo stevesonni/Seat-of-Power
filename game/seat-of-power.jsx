@@ -10517,9 +10517,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const askFeedback = (k, line) => {
     if ((stc.said || {})[k]) return;
     setStc(p => ({ ...p, said: { ...(p.said || {}), [k]: 1 } }));
-    let recent = false; try { recent = Date.now() - (+localStorage.getItem("sop_fb_sent") || 0) < 7 * 864e5; } catch (e) {}
-    if (recent || !window.SOP_feedbackOn) return;
-    window.SOP_feedbackOn().then(on => { if (on) present(line, "neutral", () => { try { window.SOP_feedbackForm({ where: k, year: absYear, state: stName }); } catch (e) {} }, "Give feedback", "Not now"); });
+    // Asked once per player, ever (the account's storage follows them to a new phone). Anyone who has
+    // sent feedback or finished an office counts as asked: it is always in the ☰ menu.
+    let seen = false; try { seen = !!(localStorage.getItem("sop_fb_asked") || localStorage.getItem("sop_fb_sent")); } catch (e) {}
+    if (seen || !window.SOP_feedbackOn) return;
+    const mark = () => { try { localStorage.setItem("sop_fb_asked", "1"); } catch (e) {} try { window.storage && window.storage.set("sop_fb_asked", "1"); } catch (e) {} };
+    Promise.all([window.storage ? window.storage.get("sop_fb_asked").catch(() => null) : null, window.storage ? window.storage.get("sop_career").catch(() => null) : null]).then(([a, c]) => {
+      let played = false; try { played = c && c.value && JSON.parse(c.value).length > 0; } catch (e) {}
+      if ((a && a.value) || played) { mark(); return; }
+      return window.SOP_feedbackOn().then(on => { if (!on) return; mark(); present(line, "neutral", () => { try { window.SOP_feedbackForm({ where: k, year: absYear, state: stName }); } catch (e) {} }, "Give feedback", "Not now"); });
+    }).catch(() => {});
   };
   useEffect(() => { if (phase === "end_turn" && turn === 2) askFeedback("fb_y2", "One more thing, Your Excellency: the people who made this game want to hear from you. What don't you like, and what would you change?"); }, [phase, turn]);
   useEffect(() => { if (gEnd) setTimeout(() => askFeedback("fb_end", "Before you go: what did you not like, and what do you want to see better? The makers read every message."), 2500); }, [gEnd]);
