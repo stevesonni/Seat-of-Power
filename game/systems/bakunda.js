@@ -71,7 +71,7 @@ export const BAKUNDA_MISSIONS = [
 export const BAKUNDA_DIPLOMACY = [
   { id: "ecowas", letter: "bk4_accra", t: "An ECOWAS extraordinary summit in Accra", scene: "ecowas-summit", win: ["WEST AFRICA SPEAKS WITH ONE VOICE ON BAKUNDA", "ECOWAS leaders back Nigeria's lead"] },
   { id: "chad", letter: "bk_chad", t: "The Lake Chad neighbours meet in N'Djamena", scene: "ecowas-summit", win: ["LAKE CHAD NEIGHBOURS UNITE OVER THREAT", "A new joint defence plan for the basin"] },
-  { id: "london", letter: "bk_london", t: "An invitation to London", scene: null, win: ["LEADERS MEET IN LONDON", "Bakunda discussed; the UK offers support"] },
+  { id: "london", letter: "bk_london", t: "An invitation to London", scene: "london-westminster", win: ["LEADERS MEET IN LONDON", "Bakunda discussed; the UK offers support"] },
   { id: "washington", letter: "bk5", from: 3, t: "An invitation to the White House", scene: "oval-office", win: ["PRESSURE GROWS: US ADDS IMPETUS", "In the Oval Office, Washington pledges ₦30B and US Marines to Nigeria's fight"] },
   { id: "geneva", letter: "bk4_geneva", t: "The UN calls the world to Geneva", scene: "geneva-conference", win: ["NATIONS UNITE AGAINST THE AXIS", "Pressure mounts with Nigeria's leadership"] },
 ];

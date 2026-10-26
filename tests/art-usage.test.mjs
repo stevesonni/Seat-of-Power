@@ -207,3 +207,7 @@ test("every pack 26 picture is installed and used", () => {
   assert.deepEqual(names.filter(n => !fs.existsSync(path.join(root, "public/art", n + ".webp"))), []);
   assert.deepEqual(names.filter(n => !src.includes(path.basename(n))), []);
 });
+// Pack 27: the UN badge and London (docs/LOVABLE-DIPLOMACY-2.md).
+test("the UN badge and London's Westminster are installed and used", () => {
+  ["badges/badge-un-general-assembly", "scenes/london-westminster"].forEach(n => { assert.ok(fs.existsSync(path.join(root, "public/art", n + ".webp")), n); assert.ok(src.includes(path.basename(n)), n + " is used"); });
+});
