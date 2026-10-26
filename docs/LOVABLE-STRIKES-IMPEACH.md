@@ -1,5 +1,7 @@
 # Lovable art: strikes, flights and the President's impeachment
 
+**Delivered.** The two jets came in their own pack (Seat_of_Power_Flight_Jets.zip) and fly now; pack 25 brought the other 17, all in use (pack 25's own jets were not used, as the owner asked).
+
 The game already works with stand-in pictures. When these arrive, Claude puts each one where it belongs.
 
 **Style:** as the rest of the pack: flat-shaded cartoon with bold outlines. All people are fictional. No real coat of arms, seals, flags or party logos. No text on the pictures. WebP.

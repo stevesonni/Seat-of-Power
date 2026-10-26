@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 80, "80 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons)");
+  assert.equal(icons.length, 81, "81 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons + impeach)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -184,4 +184,18 @@ test("every trade-with-neighbours image is used", () => {
   assert.equal(names.length, 21);
   assert.deepEqual(names.filter(n => !fs.existsSync(path.join(root, "public/art", n + ".webp"))), [], "all 21 are installed");
   assert.deepEqual(names.filter(n => !src.includes(path.basename(n) + '"')), [], "all 21 are used");
+});
+// The two jets for flights during a strike (docs/LOVABLE-STRIKES-IMPEACH.md §1).
+test("the military and private jets are installed and fly", () => {
+  ["military-jet-side", "private-jet-side"].forEach(n => { assert.ok(fs.existsSync(path.join(root, "public/art/objects", n + ".webp")), n); assert.ok(src.includes(n), n + " is used"); });
+});
+// Pack 25: strikes, flights and the impeachment (docs/LOVABLE-STRIKES-IMPEACH.md). Lovable's own jets were not used:
+// the jets came in their own pack (above).
+test("every pack 25 picture is installed and used", () => {
+  const names = ["characters/state-pilot", "characters/union-picket-leader", "icons/icon-impeach", "icons/icon-strike", "objects/ghana-must-go-bag", "objects/impeachment-notice",
+    "scenes/ag-on-television", "scenes/airbase-tarmac", "scenes/aso-rock-midnight-deal", "scenes/assembly-sealed", "scenes/emergency-streets", "scenes/ghana-must-go", "scenes/private-terminal",
+    "scenes/secretariat-locked", "scenes/senate-investigation-news", "scenes/site-picketed", "scenes/tribunal-chamber"];
+  assert.equal(names.length, 17);
+  assert.deepEqual(names.filter(n => !fs.existsSync(path.join(root, "public/art", n + ".webp"))), []);
+  assert.deepEqual(names.filter(n => !src.includes(path.basename(n))), []);
 });
