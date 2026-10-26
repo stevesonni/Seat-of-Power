@@ -1,0 +1,15 @@
+{
+  "name": "Seat of Power",
+  "short_name": "Seat of Power",
+  "description": "Govern a Nigerian state, then the nation: budgets, councils, crises and elections.",
+  "start_url": "./seat-of-power.html?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#12301f",
+  "theme_color": "#12301f",
+  "icons": [
+    { "src": "./art/brand/app-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./art/brand/app-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

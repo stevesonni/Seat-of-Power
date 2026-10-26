@@ -101,7 +101,7 @@ const cleanName = (t) => String(t || "").replace(/[<>\u0000-\u001f]/g, "").trim(
 fs.mkdirSync(path.join(DATA, "players"), { recursive: true });
 fs.mkdirSync(path.join(DATA, "hall-days"), { recursive: true });
 
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".txt": "text/plain; charset=utf-8" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".txt": "text/plain; charset=utf-8", ".webmanifest": "application/manifest+json" };
 const baseHeaders = { "Content-Security-Policy": "frame-ancestors " + FRAMERS, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
 
 // The page, marked as the Vatar edition. Read once; restart to pick up a new build.
@@ -317,12 +317,12 @@ const api = {
   // What a player does not like and wants to see better.
   "/api/feedback": async (b, id) => {
     const clip = (t, n) => String(t == null ? "" : t).replace(/[\u0000-\u0008\u000b-\u001f]/g, "").trim().slice(0, n);
-    const dislike = clip(b.dislike, 1500), want = clip(b.want, 1500), rating = Math.max(0, Math.min(5, Math.round(+b.rating || 0)));
-    if (!dislike && !want && !rating) return { _code: 400, error: "empty" };
+    const like = clip(b.like, 1500), dislike = clip(b.dislike, 1500), want = clip(b.want, 1500), rating = Math.max(0, Math.min(5, Math.round(+b.rating || 0)));
+    if (!like && !dislike && !want && !rating) return { _code: 400, error: "empty" };
     const day = new Date().toISOString().slice(0, 10), c = fbCount.get(id);
     const n = c && c.day === day ? c.n : 0; if (n >= 5) return { _code: 429, error: "enough_today" };
     fbCount.set(id, { day, n: n + 1 });
-    const rec = { at: new Date().toISOString(), player: id, name: userOf(b, b.session), rating, dislike, want, where: clip(b.where, 40), year: clip(b.year, 20), state: clip(b.state, 40) };
+    const rec = { at: new Date().toISOString(), player: id, name: userOf(b, b.session), rating, like, dislike, want, where: clip(b.where, 40), year: clip(b.year, 20), state: clip(b.state, 40) };
     fs.mkdirSync(DATA, { recursive: true }); fs.appendFileSync(FEEDBACK, JSON.stringify(rec) + "\n");
     return { ok: true };
   },
@@ -391,7 +391,7 @@ http.createServer(async (req, res) => {
       let rows = []; try { rows = fs.readFileSync(FEEDBACK, "utf8").split("\n").filter(Boolean).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean).reverse(); } catch (e) {}
       if (url.searchParams.get("format") === "csv") {
         const q = (v) => '"' + String(v == null ? "" : v).replace(/"/g, '""') + '"';
-        const csv = "when,player,stars,does not like,wants better,screen,year,state\n" + rows.map(r => [r.at, r.name || r.player, r.rating, r.dislike, r.want, r.where, r.year, r.state].map(q).join(",")).join("\n");
+        const csv = "when,player,stars,likes,does not like,wants better,screen,year,state\n" + rows.map(r => [r.at, r.name || r.player, r.rating, r.like, r.dislike, r.want, r.where, r.year, r.state].map(q).join(",")).join("\n");
         res.writeHead(200, { ...baseHeaders, "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=seat-of-power-feedback.csv", "Cache-Control": "no-store" }); return res.end(csv);
       }
       const esc = (t) => String(t == null ? "" : t).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
@@ -423,7 +423,7 @@ http.createServer(async (req, res) => {
         + '<h2 style="margin:22px 0 8px">What players choose</h2><div class="m" style="margin-bottom:8px">Anonymous: each player counts once per answer. <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=stats">as JSON</a></div>' + statsHtml
         + '<h2 style="margin:22px 0 8px">Messages</h2>'
         + (rows.length ? rows.slice(0, 1000).map(r => '<div class="c"><div class="m">' + esc(r.at.replace("T", " ").slice(0, 16)) + ' · ' + esc(r.name || "a player") + (r.rating ? ' · ' + "★".repeat(r.rating) + "☆".repeat(5 - r.rating) : "") + (r.where ? ' · on ' + esc(r.where) : "") + (r.year ? ' · ' + esc(r.year) : "") + (r.state ? ' · ' + esc(r.state) : "") + '</div>'
-          + (r.dislike ? '<div><span class="l">Does not like:</span> ' + esc(r.dislike) + '</div>' : "") + (r.want ? '<div><span class="w">Wants better:</span> ' + esc(r.want) + '</div>' : "") + '</div>').join("") : '<p>No feedback yet.</p>')
+          + (r.like ? '<div><span class="w">Likes:</span> ' + esc(r.like) + '</div>' : "") + (r.dislike ? '<div><span class="l">Does not like:</span> ' + esc(r.dislike) + '</div>' : "") + (r.want ? '<div><span class="w">Wants better:</span> ' + esc(r.want) + '</div>' : "") + '</div>').join("") : '<p>No feedback yet.</p>')
         + '</main>';
       res.writeHead(200, { ...baseHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end(html);
     }

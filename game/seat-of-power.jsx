@@ -2870,7 +2870,8 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["seal-projects", "Your company", "Register a contractor every player sees · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500"), () => setSheet("company")],
             ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
             ["icon-help", "How to play", "The basics in under a minute", () => { setSheet(null); onHelp(); }],
-            ["icon-ask-sa", "Tell us what to improve", "What you don't like, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
+            ...(!VATAR && window.SOP_installable && window.SOP_installable() ? [["icon-share", "Install the app", "On your home screen, full-screen, one tap away", () => { setSheet(null); try { window.SOP_install(); } catch (e) {} }]] : []),
+            ["icon-ask-sa", "Tell us what to improve", "What you like, what you don't, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
             ["icon-sound", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
           ].concat(profile ? [["icon-politician", "Start afresh", "Delete your politician and records, and begin again", () => { setSheet(null); startAfresh(); }]] : []).map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
             <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 24, opacity: ic === "icon-sound" && !soundOn ? .45 : 1 }}><Ico n={ic} s={38} /></span>
@@ -10937,6 +10938,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["🗑️ Start afresh: a new politician", () => startAfresh()],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
+    ...(!VATAR && window.SOP_installable && window.SOP_installable() ? [["📲 Install the app", () => { try { window.SOP_install(); } catch (e) {} }]] : []),
     ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .3; return v === 0 ? "off" : Math.round(v * 100) + "%"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .3 : v < .5 ? .6 : v < .9 ? 1 : 0); setMenuOpen(false); } catch (e) {} }],
     ["Tell us what to improve", () => { try { window.SOP_feedbackForm({ where: nav, year: absYear, state: stName }); } catch (e) {} }, "icon-ask-sa"],
     [(soundOn ? "Sound: on" : "Sound: off"), () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }, "icon-sound"],

@@ -5,7 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
   <title>The Seat of Power</title>
   <link rel="icon" type="image/webp" href="./art/brand/app-icon.webp" />
-  <link rel="apple-touch-icon" href="./art/brand/app-icon.webp" />
+  <link rel="apple-touch-icon" href="./art/brand/app-icon-192.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <meta name="theme-color" content="#12301f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Seat of Power" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Dancing+Script:wght@600;700&display=swap" rel="stylesheet" />
   <style>
@@ -580,7 +585,7 @@
         try { window.SOP_sound && window.SOP_sound(o.tone === 'bad' ? 'bad' : o.tone === 'good' ? 'good' : 'neutral'); } catch (e) {}
         setTimeout(function () { b.focus(); }, 30);
       }
-      /* Feedback from players: what they do not like and what they want better.
+      /* Feedback from players: what they like, what they do not like and what they want better.
          SOP_feedbackForm({ where, year, state }). Sent with SOP_feedback (sop-vatar.js). */
       window.SOP_feedbackForm = function (ctx) {
         ctx = ctx || {};
@@ -592,6 +597,7 @@
         card.innerHTML = '<div style="font:800 24px/1.2 Fraunces,Georgia,serif;margin-bottom:4px">Help us make the game better</div>'
           + '<div style="color:#5b6b61;font-size:15px;margin-bottom:12px">The makers read every message.</div>'
           + '<div style="font-weight:800;font-size:15px;margin-bottom:4px">How do you like it so far?</div><div class="fb-stars" style="display:flex;gap:6px;margin-bottom:12px"></div>'
+          + '<label style="display:block;font-weight:800;font-size:15px;margin-bottom:4px">What do you like?</label><textarea class="fb-l" maxlength="1500" rows="2" style="width:100%;box-sizing:border-box;border:1px solid #d9cfb9;border-radius:12px;padding:10px;font:inherit;margin-bottom:10px;background:#fff" placeholder="What you enjoy, or want us to keep"></textarea>'
           + '<label style="display:block;font-weight:800;font-size:15px;margin-bottom:4px">What do you not like?</label><textarea class="fb-a" maxlength="1500" rows="3" style="width:100%;box-sizing:border-box;border:1px solid #d9cfb9;border-radius:12px;padding:10px;font:inherit;margin-bottom:10px;background:#fff" placeholder="Anything that annoyed, confused or bored you"></textarea>'
           + '<label style="display:block;font-weight:800;font-size:15px;margin-bottom:4px">What do you want to see better, or added?</label><textarea class="fb-b" maxlength="1500" rows="3" style="width:100%;box-sizing:border-box;border:1px solid #d9cfb9;border-radius:12px;padding:10px;font:inherit;margin-bottom:8px;background:#fff" placeholder="Your idea for the game"></textarea>'
           + '<div class="fb-msg" style="min-height:20px;font-size:14px;color:#a3271c;margin-bottom:6px"></div>'
@@ -605,10 +611,10 @@
         back.onclick = function (e) { if (e.target === back) close(); };
         var go = card.querySelector('.fb-go'), msg = card.querySelector('.fb-msg');
         go.onclick = function () {
-          var a = card.querySelector('.fb-a').value.trim(), b = card.querySelector('.fb-b').value.trim();
-          if (!a && !b && !stars) { msg.textContent = 'Tell us something first.'; return; }
+          var a = card.querySelector('.fb-a').value.trim(), b = card.querySelector('.fb-b').value.trim(), l = card.querySelector('.fb-l').value.trim();
+          if (!a && !b && !l && !stars) { msg.textContent = 'Tell us something first.'; return; }
           go.disabled = true; go.textContent = 'Sending…';
-          var send = window.SOP_feedback ? window.SOP_feedback({ rating: stars, dislike: a, want: b, where: ctx.where || '', year: ctx.year || '', state: ctx.state || '' }) : Promise.reject(new Error('offline'));
+          var send = window.SOP_feedback ? window.SOP_feedback({ rating: stars, like: l, dislike: a, want: b, where: ctx.where || '', year: ctx.year || '', state: ctx.state || '' }) : Promise.reject(new Error('offline'));
           send.then(function () {
             card.innerHTML = '<div style="text-align:center;padding:18px 6px"><div style="font-size:52px">🙏</div><div style="font:800 24px Fraunces,Georgia,serif;margin:6px 0">Thank you</div><div style="color:#5b6b61">Your message is with the makers.</div><button type="button" style="margin-top:16px;width:100%;min-height:50px;border-radius:999px;border:0;background:#0b6b42;color:#fff;font:800 18px \'Plus Jakarta Sans\',sans-serif;cursor:pointer">Back to the game</button></div>';
             card.querySelector('button').onclick = close;
@@ -619,9 +625,26 @@
           });
         };
         back.appendChild(card); document.body.appendChild(back);
-        setTimeout(function () { card.querySelector('.fb-a').focus(); }, 60);
+        setTimeout(function () { card.querySelector('.fb-l').focus(); }, 60);
       };
       window.SOP_outcome = function (o) { queue.push(o || {}); setTimeout(next, 0); };
+      /* Install as an app (Michael's feedback): Android and desktop Chrome offer an install
+         prompt; on an iPhone it is Share → Add to Home Screen. Not inside another app's frame.
+         SOP_installable(): "prompt" | "ios" | null (installed, or not possible). SOP_install() runs it. */
+      (function () {
+        var framed = window.top !== window.self, deferred = null;
+        var standalone = function () { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; };
+        var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+        if (!framed && 'serviceWorker' in navigator) window.addEventListener('load', function () { navigator.serviceWorker.register('./sw.js').catch(function () {}); });
+        window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; });
+        window.addEventListener('appinstalled', function () { deferred = null; try { window.SOP_toast && window.SOP_toast('Seat of Power is on your home screen', 'ok'); } catch (e) {} });
+        window.SOP_installable = function () { if (framed || standalone()) return null; return deferred ? 'prompt' : ios ? 'ios' : null; };
+        window.SOP_install = function () {
+          if (deferred) { var d = deferred; deferred = null; d.prompt(); return d.userChoice.catch(function () {}); }
+          if (ios) window.SOP_outcome({ icon: '📲', title: 'Put the game on your home screen', text: 'In Safari, tap the Share button (the square with an arrow), then "Add to Home Screen". Seat of Power opens full-screen, like an app.', ok: 'Got it' });
+          return Promise.resolve();
+        };
+      })();
       // A broadcast (the news anchors) has the screen: pop-ups wait until it ends.
       var holdT = null;
       window.SOP_hold = function (on) { held = !!on; clearTimeout(holdT); if (held) holdT = setTimeout(function () { held = false; next(); }, 90000); else setTimeout(next, 250); };
