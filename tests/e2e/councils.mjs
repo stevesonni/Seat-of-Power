@@ -16,7 +16,7 @@ const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/
 await g.click(/^Continue/); await g.wait(1800);
 const seen = new Set();
 const inSession = () => g.page.evaluate(() => { const d = document.querySelector("[role=dialog]"); return d ? d.innerText : ""; });
-const r = await playUntil(g, t => { if (/State Executive Council/.test(t) && /Close the session/.test(t)) seen.add("exco"); if (/Traditional Rulers Council/.test(t) && /Close the session/.test(t)) seen.add("rulers"); if (/Close the session/.test(t) && /“[^”]{40,}”/.test(t)) seen.add("speaks");
+const r = await playUntil(g, t => { if (/State Executive Council/.test(t) && /Close the session/.test(t)) seen.add("exco"); if (/Traditional Rulers Council/.test(t) && /Close the session/.test(t)) seen.add("rulers"); if (/Close the session/.test(t) && /(inaugurated|in council)[^\n]{20,}/.test(t)) seen.add("speaks");
   return seen.has("exco") && seen.has("rulers") && !/Close the session/.test(t); }, { max: 160, prefer: [/^Later$/], onStep: async () => { if ((await inSession()).length) await shot("session-" + seen.size); } });
 check(seen.has("exco"), "the Executive Council sits, in its chamber, when first formed");
 check(seen.has("rulers"), "so does the Traditional Rulers Council");
@@ -27,9 +27,9 @@ await g.page.evaluate(() => window.SOP.councils.econ()); await g.wait(700);
 { const t = await inSession(); check(/The State Economic Council/.test(t) && /Farmers' Association/.test(t) && /exporters and Customs/.test(t), "the State Economic Council sits: farmers, exporters, Customs");
   check(/Abuja's policy is (protect|open|targeted)/.test(t), "the declaration says what Abuja's trade policy does to the state"); }
 await shot("econ");
-const opts = await g.page.evaluate(() => [...document.querySelectorAll("button.ds-option")].map(b => b.textContent.trim()));
+const opts = await g.page.evaluate(() => [...document.querySelectorAll("[role=dialog] button.opt")].map(b => b.textContent.trim()));
 check(opts.length === 3 && opts.some(o => /processing zone/.test(o)) && opts.some(o => /container depot/.test(o)), "three ways to sell: raw, a depot and road, a processing zone (" + opts.length + ")");
-await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /^Aggregate and ship raw/.test(x.textContent.trim())); b && b.click(); }); await g.wait(1200);
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.opt")].find(x => /^Aggregate and ship raw/.test(x.textContent.trim())); b && b.click(); }); await g.wait(1200);
 for (let i = 0; i < 3 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(400);
 await g.wait(2500);
 let sv = await saved(g);

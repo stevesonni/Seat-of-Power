@@ -1,0 +1,123 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Decision · Seat of Power</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>
+:root{
+ --page:#f6f2ea;--card:#fffdf8;--ink:#13261c;--muted:#5b665f;--line:#e6dfd2;
+ --green:#0b7a4b;--deep:#12301f;--gold:#e9c46a;--warn:#c2410c;--red:#b3261e;
+ --people:#2563eb;--growth:#0b7a4b;--costs:#7c3aed;
+ --r-sm:10px;--r:16px;--r-lg:22px;
+ --sh:0 1px 0 rgba(19,38,28,.06),0 6px 18px -8px rgba(19,38,28,.22);
+ --sh-lg:0 2px 0 rgba(19,38,28,.08),0 18px 40px -16px rgba(19,38,28,.45);
+ --fs-micro:12px;--fs-label:13px;--fs-body:15px;--fs-lead:16px;--fs-title:22px;--fs-hero:30px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:"Plus Jakarta Sans",system-ui,sans-serif;background:var(--page);color:var(--ink);font-size:var(--fs-body);line-height:1.4;-webkit-font-smoothing:antialiased}
+.serif{font-family:"Fraunces",Georgia,serif}
+img{display:block;max-width:100%}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.app{min-height:100vh;display:flex;flex-direction:column}
+
+/* top bar */
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--deep);color:#fdf8ec;position:sticky;top:0;z-index:20}
+.top .yr{display:flex;flex-direction:column;line-height:1.15}
+.top .yr b{font-family:Fraunces,serif;font-size:17px;font-weight:600}
+.top .yr span{font-size:var(--fs-micro);color:var(--gold);font-weight:600;letter-spacing:.02em}
+.top .sp{flex:1}
+.moves{display:flex;align-items:center;gap:8px;background:rgba(233,196,106,.14);border:1px solid rgba(233,196,106,.45);border-radius:999px;padding:5px 10px 5px 8px;font-size:var(--fs-label);font-weight:600}
+.moves .pips{display:flex;gap:3px}.moves .pips i{width:7px;height:14px;border-radius:3px;background:var(--gold)}
+.moves .pips i.off{background:rgba(233,196,106,.25)}
+.iconbtn{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;color:#fdf8ec}
+.dnav{display:none}
+
+/* sub tabs */
+.subtabs{display:flex;gap:6px;padding:10px 14px 0;}
+.subtabs button{flex:1;height:40px;border-radius:999px;font-weight:600;font-size:var(--fs-label);color:var(--muted);background:var(--card);border:1px solid var(--line)}
+.subtabs button.on{background:var(--ink);color:#fdf8ec;border-color:var(--ink)}
+
+/* bottom nav */
+.bnav{position:sticky;bottom:0;z-index:20;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(8px + env(safe-area-inset-bottom))}
+.bnav button{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:52px;justify-content:center;font-size:var(--fs-micro);font-weight:600;color:var(--muted);position:relative;border-radius:12px}
+.bnav button img{width:28px;height:28px}
+.bnav button.on{color:var(--green);background:rgba(11,122,75,.08)}
+.badge{position:absolute;top:2px;left:calc(50% + 6px);min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--red);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;border:2px solid var(--card)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh)}
+.kicker{font-size:var(--fs-micro);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--green)}
+.h-title{font-family:Fraunces,serif;font-weight:600;font-size:var(--fs-title);line-height:1.15;letter-spacing:-.01em}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:14px;font-weight:700;font-size:var(--fs-lead)}
+.btn-main{background:var(--green);color:#fff;box-shadow:0 3px 0 #075a37}
+.btn-gold{background:var(--gold);color:var(--deep);box-shadow:0 3px 0 #b8933c}
+.btn-sec{background:var(--card);color:var(--ink);border:1.5px solid var(--ink);box-shadow:0 3px 0 var(--ink)}
+.btn-block{width:100%}
+
+/* tags & chips */
+.tag{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.tag.prog{background:#e3f3ea;color:var(--green)}
+.tag.bill{background:#e5edfd;color:var(--people)}
+.tag.order{background:#fbf0d3;color:#8a6410}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;height:26px;padding:0 9px;border-radius:999px;font-size:var(--fs-label);font-weight:700;background:#f1ece2;color:var(--ink)}
+.chip.up{background:#e3f3ea;color:var(--green)}
+.chip.down{background:#fbe6e4;color:var(--red)}
+.chip.cost{background:#efe9fd;color:var(--costs)}
+
+.dnav{display:none}
+@media(min-width:900px){
+ .dnav{display:flex;gap:4px;margin-left:24px}
+ .dnav button{position:relative;display:flex;align-items:center;gap:8px;height:44px;padding:0 16px;border-radius:12px;color:#cfe0d4;font-weight:600}
+ .dnav button img{width:24px;height:24px}
+ .dnav button.on{background:rgba(255,255,255,.1);color:#fff}
+ .dnav .badge{top:2px;left:auto;right:4px;border-color:var(--deep)}
+ .bnav{display:none}
+}
+
+body{background:var(--deep)}
+.dec{min-height:100vh;display:flex;flex-direction:column;background:var(--page)}
+.scene{position:relative;height:300px;overflow:hidden;flex:none}
+.scene .bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.scene::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,48,31,0) 45%,rgba(18,48,31,.55) 100%)}
+.scene .who{position:absolute;bottom:0;right:2%;height:96%;width:auto;max-width:none;z-index:2;filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
+.scene .close{position:absolute;top:10px;left:10px;z-index:3;width:44px;height:44px;border-radius:12px;background:rgba(255,253,248,.92);font-size:22px;display:grid;place-items:center;box-shadow:var(--sh)}
+.scene .nameplate{position:absolute;left:14px;bottom:14px;z-index:3;color:#fff}
+.scene .nameplate b{display:block;font-size:var(--fs-body);font-weight:700}
+.scene .nameplate span{font-size:var(--fs-micro);opacity:.85}
+.sheet{position:relative;z-index:4;margin-top:-18px;background:var(--page);border-radius:22px 22px 0 0;padding:18px 16px 24px;display:grid;gap:12px;flex:1;align-content:start}
+.sheet .h-title{font-size:25px}
+.brief{font-size:var(--fs-body);color:#2d3b33}
+.brief .more{color:var(--green);font-weight:700;margin-left:4px}
+.recall{display:flex;gap:10px;align-items:flex-start;background:#fbf0d3;border-left:4px solid var(--gold);border-radius:10px;padding:9px 12px;font-size:var(--fs-label);font-weight:500}
+.recall b{font-weight:700}
+.opts{display:grid;gap:10px}
+.opt{width:100%;text-align:left;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:8px;box-shadow:0 3px 0 var(--line);position:relative}
+.opt:hover,.opt.focus{border-color:var(--green);box-shadow:0 3px 0 var(--green)}
+.opt .lab{font-weight:700;font-size:var(--fs-lead);line-height:1.3;padding-right:22px}
+.opt .lab::after{content:"›";position:absolute;right:14px;top:10px;font-size:22px;color:var(--muted)}
+.opt .warnline{font-size:var(--fs-label);font-weight:600;color:var(--warn);display:flex;gap:6px;align-items:center}
+.meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+@media(min-width:900px){
+ body{display:grid;place-items:center;background:rgba(18,48,31,.92) url(art/compound.webp) center/cover;background-blend-mode:multiply}
+ .dec{min-height:0;width:1180px;height:700px;flex-direction:row;border-radius:24px;overflow:hidden;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
+ .scene{height:auto;width:46%}
+ .scene .who{height:78%;right:50%;transform:translateX(50%)}
+ .sheet{margin:0;border-radius:0;overflow:auto;padding:28px 30px;width:54%}
+ .sheet .h-title{font-size:30px}
+ .opts{grid-template-columns:1fr 1fr}
+}
+/* result popup */
+.veil{position:fixed;inset:0;background:rgba(18,48,31,.72);display:grid;place-items:center;padding:20px;z-index:50}
+.result{width:100%;max-width:400px;background:var(--card);border-radius:24px;overflow:hidden;box-shadow:0 30px 60px -20px rgba(0,0,0,.6);border:3px solid var(--gold)}
+.result .art{background:var(--deep);height:150px;display:grid;place-items:center;position:relative;overflow:hidden}
+.result .art::before{content:"";position:absolute;inset:-40%;background:repeating-conic-gradient(from 0deg,rgba(233,196,106,.16) 0 10deg,transparent 10deg 20deg)}
+.result .art img{height:120px;position:relative;transform:rotate(-8deg);filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))}
+.result .bd{padding:18px 18px 18px;display:grid;gap:12px;text-align:center}
+.result .bd p{color:#2d3b33}
+.rows{display:grid;gap:0;text-align:left;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.rows div{display:flex;gap:10px;align-items:center;padding:10px 12px;font-size:var(--fs-label);font-weight:600;border-bottom:1px solid var(--line)}
+.rows div:last-child{border:0}
+.rows i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;flex:none}
+</style></head><body><div class="dec"><div class="scene"><img class="bg" src="art/seaport.webp" alt="Apapa port"><img class="who" src="art/comptroller.webp" alt="Comptroller Musa Danladi"><button class="close" aria-label="Back to the Desk">‹</button><div class="nameplate"><b>Musa Danladi</b><span>Customs Comptroller · Apapa</span></div></div>
+<section class="sheet"><div class="kicker">Trade · Apapa · Year 2</div><h1 class="h-title">Twenty kilometres of trucks at Apapa</h1>
+<p class="brief">Containers have sat on the quay for nine days. Traders say prices will rise by the weekend. The unions blame the tolls; the port blames the roads. <button class="more">More</button></p>
+<div class="recall">↺ <span><b>Last year you</b> cut the port road budget by ₦12B.</span></div>
+<div class="opts"><button class="opt"><div class="lab">Order a night-only truck window at Apapa</div><div class="meta"><span class="tag order">Executive order</span><span class="chip up">Approval +2</span><span class="chip up">Trade +3</span></div></button><button class="opt"><div class="lab">Fund a truck park and call-up system at Ijora</div><div class="meta"><span class="tag prog">Programme</span><span class="chip cost">₦40B</span><span class="chip up">Trade +6</span><span class="chip up">Approval +1</span></div></button><button class="opt"><div class="lab">Ask the House for a port access levy law</div><div class="meta"><span class="tag bill">Bill</span><span class="chip up">Revenue +₦3B</span><span class="chip down">Party −4</span></div></button><button class="opt"><div class="lab">Let the unions clear it their own way</div><div class="meta"><span class="chip down">Corruption +2%</span><span class="chip ">Approval ±?</span></div><div class="warnline">⚠ A gamble: it can go either way</div></button></div></section></div></body></html>

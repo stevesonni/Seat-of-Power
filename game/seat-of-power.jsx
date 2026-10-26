@@ -2190,40 +2190,35 @@ const OL = ({ children, show }) => {
     React.createElement("div", { className: "sop-slide-up", style: { maxWidth: 984, width: "100%", margin: "auto 0" } }, children));
 };
 
-/* A council in session: the chamber's picture, the council's wax seal, one
-   declaration, then the decision (or Close). T: { title, sub, bg, seal
-   (element), by: { name, role, img } (who reads the declaration),
-   declaration, decision: { title, brief, by, options: [{ label, note,
-   chips, run }] } | null, doneLabel }. */
+/* A council in session (Lovable's design, public/sop-screens.css .lv-council):
+   the chamber's picture, the council's wax seal, one declaration, then the
+   decision (or Close). T: { title, sub, bg, seal (element), by: { name, role,
+   img } (who reads the declaration), declaration, decision: { title, brief,
+   by, options: [{ label, note, chips, run }] } | null, doneLabel }. */
+// An effect chip in Lovable's colours: up (green), down (red), cost (purple), or plain.
+const lvChip = (c) => c.color === CL.grn ? "chip up" : c.color === CL.red ? "chip down" : c.color === CL.org || /^₦|^Borrow/.test(c.text || "") ? "chip cost" : "chip";
+const lvTag = (t) => /^Programme/i.test(t) ? "tag prog" : /^Bill/i.test(t) ? "tag bill" : /order/i.test(t) ? "tag order" : null;
+const LvChips = ({ chips }) => (chips || []).slice(0, 4).map((c, j) => { const tg = lvTag(c.text || ""); return <span key={j} className={tg || lvChip(c)}>{tg ? c.text.replace(/^[^A-Za-z]+/, "") : c.text}</span>; });
 const CouncilTable = ({ T, onPick, onClose }) => {
-  const tall = TALL(), D = T.decision, fs = tall ? { s: TS(15), m: TS(18), l: TS(26) } : { s: TS(20), m: TS(26), l: TS(40) };
-  const who = (P) => P ? <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-    <img src={P.img} alt="" style={{ width: tall ? 52 : 72, height: tall ? 52 : 72, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", border: "3px solid #e9c46a", flexShrink: 0 }} />
-    <div><div style={{ fontWeight: 800, fontSize: fs.m, color: CL.txt }}>{P.name}</div><div style={{ fontSize: fs.s, color: CL.td }}>{P.role}</div></div>
-  </div> : null;
-  return <div className="sop-fade-in" role="dialog" aria-label={T.title} style={{ position: "fixed", inset: 0, zIndex: 9975, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(rgba(10,8,4,.15), rgba(10,8,4,.25) 45%, rgba(10,8,4,.82)), url(./art/backgrounds/" + (T.bg || "council-chamber") + ".webp) center/cover", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: tall ? "18px 12px 28px" : "28px 24px 36px" }}>
-    <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#fff", maxWidth: 980, width: "100%", margin: "0 auto", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>
-      {T.seal}
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fs.l, lineHeight: 1.1 }}>{T.title}</div>
-        {T.sub && <div style={{ fontSize: fs.s, opacity: .9, marginTop: 2 }}>{T.sub}</div>}
+  const D = T.decision;
+  const spk = (P) => P ? <div className="spk"><div className="av"><img src={P.img} alt="" /></div><div><b>{P.name}</b><span>{P.role}</span></div></div> : null;
+  return <div className="lv lv-council sop-fade-in" role="dialog" aria-label={T.title} style={{ position: "fixed", inset: 0, zIndex: 9975, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "#000" }}>
+    <div className="room" style={{ minHeight: "100%" }}>
+      <img className="bg" src={"./art/backgrounds/" + (T.bg || "council-chamber") + ".webp"} alt="" />
+      <div className="crest">{T.seal}<div><h1>{T.title}</h1>{T.sub && <p>{T.sub}</p>}</div></div>
+      <div className="stack">
+        <div className="decl sop-slide-up">{spk(T.by)}{T.declaration && <q>{T.declaration}</q>}</div>
+        {D ? <div className="dq sop-slide-up">
+          {spk(D.by)}
+          <h2 className="h-title">{D.title}</h2>
+          {D.brief && <p className="sub">{D.brief}</p>}
+          <div className="opts">{D.options.map((o, k) => <button key={k} className="opt" onClick={() => onPick(o)} disabled={o.disabled} style={o.disabled ? { opacity: .45, cursor: "not-allowed" } : null}>
+            <b>{o.label}</b>
+            {o.note && <span style={{ color: "var(--muted)", fontSize: "var(--fs-label)" }}>{o.note}</span>}
+            {(o.chips || []).length > 0 && <div className="meta"><LvChips chips={o.chips} /></div>}
+          </button>)}</div>
+        </div> : <button className="btn btn-gold btn-block" style={{ maxWidth: "calc(420px*var(--k))", justifySelf: "end" }} onClick={onClose}>{T.doneLabel || "Close the session"}</button>}
       </div>
-    </div>
-    <div className="sop-slide-up" style={{ maxWidth: 820, width: "100%", margin: (tall ? 24 : 40) + "px auto 0", background: "#fffaf0", borderRadius: 18, border: "2px solid #b8893c", padding: tall ? "14px 16px" : "22px 26px", boxShadow: "0 12px 34px rgba(0,0,0,.45)" }}>
-      {who(T.by)}
-      {T.declaration && <div style={{ fontFamily: F.d, fontSize: fs.m, color: CL.txt, lineHeight: 1.45, marginBottom: 14 }}>“{T.declaration}”</div>}
-      {D ? <>
-        {D.by && who(D.by)}
-        <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: tall ? TS(21) : TS(30), color: CL.txt, marginBottom: 4 }}>{D.title}</div>
-        {D.brief && <div style={{ fontSize: fs.s, color: CL.td, marginBottom: 12, lineHeight: 1.4 }}>{D.brief}</div>}
-        <div style={{ display: "grid", gap: 10 }}>
-          {D.options.map((o, k) => <button key={k} className="ds-option" onClick={() => onPick(o)} disabled={o.disabled} style={o.disabled ? { opacity: .45, cursor: "not-allowed" } : null}>
-            <div className="ds-option-label">{o.label}</div>
-            {o.note && <div className="ds-option-note">{o.note}</div>}
-            {(o.chips || []).length > 0 && <div className="ds-chiprow">{o.chips.slice(0, 3).map((c, j) => <span key={j} className="ds-chip" style={{ color: c.color || CL.tm, background: (c.color || CL.tm) + "12" }}>{c.text}</span>)}</div>}
-          </button>)}
-        </div>
-      </> : <div style={{ textAlign: "center" }}><Bt onClick={onClose}>{T.doneLabel || "Close the session"}</Bt></div>}
     </div>
   </div>;
 };
@@ -5714,7 +5709,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   });
   // ── The councils, in session around a table (CouncilTable) ──
   const youImg = () => (setup && AVATAR_IMGS[setup.avatar]) || (NAT ? "./art/characters/the-president.webp" : "./art/characters/governor-male-agbada.webp");
-  const openTable = (T) => setSession({ you: youImg(), ...T, seal: <Seal kind={T.sealKind} size={TALL() ? 40 : 56} /> });
+  const openTable = (T) => setSession({ you: youImg(), ...T, seal: <Seal kind={T.sealKind} size={TALL() ? 111 : 124} /> });
   const worstFront = () => { const F = Object.entries(stc.fronts || {}).sort((a, b) => b[1] - a[1])[0]; return F && SYS.FRONTS[F[0]] ? { id: F[0], sev: F[1], nm: SYS.FRONTS[F[0]].nm, short: SYS.FRONTS[F[0]].short } : { id: "ne", sev: 55, nm: SYS.FRONTS.ne.nm, short: SYS.FRONTS.ne.short }; };
   // The President's councils. Each sits once to begin; after that it can be called once a year.
   const conveneFEC = () => {
