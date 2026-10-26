@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 75, "75 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons)");
+  assert.equal(icons.length, 80, "80 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -175,4 +175,13 @@ test("every councils and trade picture is used", () => {
   all.forEach(f => assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f + " is installed"));
   const used = (f) => { const b = path.basename(f); if (new RegExp('["/]' + b + '(["\\.]|-pleased|-angry)|"' + b + '"').test(src)) return true; const m = b.match(/^(.*)-(pleased|angry)$/); return !!m && src.includes('"./art/characters/' + m[1] + '" + mood(') && src.includes('"-' + m[2] + '"'); };
   assert.deepEqual(all.filter(f => !used(f)), []);
+});
+// The trade-with-neighbours pack (docs/LOVABLE-INTERSTATE.md): 21 images, all used.
+test("every trade-with-neighbours image is used", () => {
+  const names = ["scenes/mou-signing-governors", "scenes/interstate-checkpoint", "scenes/interstate-highway", "scenes/joint-project-site", "scenes/border-market", "scenes/boundary-clash", "backgrounds/neighbour-government-house",
+    ...["", "-pleased", "-angry"].flatMap(m => ["characters/neighbour-governor-male" + m, "characters/neighbour-governor-female" + m]), "characters/commerce-commissioner", "characters/truckers-union-leader", "characters/truckers-union-leader-angry",
+    "icons/icon-neighbours", "icons/icon-deal-supply", "icons/icon-deal-market", "icons/icon-deal-joint", "icons/icon-deal-security"];
+  assert.equal(names.length, 21);
+  assert.deepEqual(names.filter(n => !fs.existsSync(path.join(root, "public/art", n + ".webp"))), [], "all 21 are installed");
+  assert.deepEqual(names.filter(n => !src.includes(path.basename(n) + '"')), [], "all 21 are used");
 });

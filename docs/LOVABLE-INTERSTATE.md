@@ -2,7 +2,7 @@
 
 Governors can now go on trade missions to the states next door (or send their Commissioner for Commerce) and sign deals: a supply pact, market access, a joint road and border market, or a security pact. Deals turn into storylines: toll gates on the route, a partner who stops paying, a new governor who tears the deal up, a boundary quarrel, goods leaking across the border, success. The President can be asked to settle a trade war between two governors.
 
-The game works now with stand-in pictures. When these arrive, drop them in at the paths given and they replace the stand-ins.
+**Delivered and installed.** All 21 are in public/art and used: the MoU signing on every deal and its front page; the neighbour's Government House behind the trade mission, with the neighbouring governor (pleased, neutral or angry by your relations) or the Commissioner for Commerce in front; the checkpoint, highway, project site, border market and boundary clash in the storylines; the five icons in the Your neighbours panel and the deal choices.
 
 Style: as the rest of the pack (flat-shaded cartoon, bold outlines). Fictional people only. No real coat of arms, seals, flags, logos or state emblems; where a state must be told apart, use invented colours or banners. No text on the pictures. WebP.
 

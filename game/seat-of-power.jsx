@@ -1793,6 +1793,8 @@ const Fold = ({ title, summary, children, open: startOpen = false }) => {
 // Only cast members get portraits (see CAST_ART); other scenes get the
 // background alone.
 // An icon from the icon pack (public/art/icons), sized to sit in a line of text.
+// A neighbouring governor's portrait: [neutral, pleased, angry].
+const NB_GOV = { male: ["neighbour-governor-male", "neighbour-governor-male-pleased", "neighbour-governor-male-angry"], female: ["neighbour-governor-female", "neighbour-governor-female-pleased", "neighbour-governor-female-angry"] };
 const Ico = ({ n, s = 22, style }) => React.createElement("img", { src: "./art/icons/" + n + ".webp", alt: "", "aria-hidden": "true", style: { width: s, height: s, objectFit: "contain", verticalAlign: "middle", flexShrink: 0, ...(style || {}) } });
 /* Backgrounds that already have people in them: a portrait or object laid
    over these looks like a stranger standing in the room, so they show alone,
@@ -5907,16 +5909,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const NeighboursPanel = () => { const I = interNow(), big = !TALL(), done = I.last === turn, fz = big ? { s: TS(19), m: TS(22), l: TS(34) } : { s: TS(15), m: TS(17), l: TS(24) };
     const ST = { active: ["In force", CL.grn], ended: ["Ended", CL.td] };
     return <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: big ? "18px 22px" : "14px", margin: big ? "0 auto 14px" : "0 auto 12px", maxWidth: big ? 1100 : 900 }}>
-      <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt }}>🤝 Your neighbours</div>
+      <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt, display: "flex", alignItems: "center", gap: 10 }}><Ico n="icon-neighbours" s={big ? 48 : 36} />Your neighbours</div>
       <div style={{ fontSize: fz.s, color: CL.td, margin: "4px 0 12px", lineHeight: 1.4 }}>Trade with the states next door: their crops for your factories, your goods for their markets, a road or a border patrol together.</div>
       <div style={{ display: "grid", gridTemplateColumns: big ? "repeat(auto-fill, minmax(240px, 1fr))" : "1fr", gap: 10 }}>
         {SYS.neighboursOf(state).map(n => { const G = I.gov[n] || { rel: 50, party: "same" }, deals = I.deals.filter(d => d.partner === n);
           return <div key={n} style={{ border: "1.5px solid " + CL.bdr, borderRadius: 14, padding: "10px 12px", background: CL.bg }}>
-            <div style={{ fontWeight: 800, fontSize: fz.m, color: CL.txt }}>{SYS.stateLabel(n)}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src={"./art/characters/" + nGovImg(n) + ".webp"} alt={nGov(n)} style={{ width: big ? 56 : 48, height: big ? 56 : 48, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", flexShrink: 0 }} /><div style={{ fontWeight: 800, fontSize: fz.m, color: CL.txt }}>{SYS.stateLabel(n)}</div></div>
             <div style={{ fontSize: fz.s, color: CL.td }}>{nGov(n)} · {G.party === "same" ? "your party" : "opposition"} · grows {SYS.produceOf(n)[0]}</div>
             <div style={{ height: 6, borderRadius: 6, background: CL.bdr, margin: "6px 0", overflow: "hidden" }}><i style={{ display: "block", height: "100%", width: G.rel + "%", background: G.rel >= 55 ? CL.grn : G.rel < 40 ? CL.red : CL.org }} /></div>
             {deals.map(d => { const K = SYS.DEAL_KINDS[d.kind], sx = d.status === "active" ? (turn < d.opens ? ["Building · opens in year " + d.opens, CL.org] : d.mods.levy ? ["Toll gates on the route", CL.red] : d.mods.frozen ? ["Frozen", CL.red] : ST.active) : ST.ended;
-              return <div key={d.id} style={{ fontSize: fz.s, display: "flex", justifyContent: "space-between", gap: 8 }}><span>{K.icon} {K.nm}</span><b style={{ color: sx[1] }}>{sx[0]}</b></div>; })}
+              return <div key={d.id} style={{ fontSize: fz.s, display: "flex", justifyContent: "space-between", gap: 8 }}><span style={{ display: "flex", alignItems: "center", gap: 6 }}><Ico n={K.ico} s={big ? 28 : 24} />{K.nm}</span><b style={{ color: sx[1] }}>{sx[0]}</b></div>; })}
           </div>; })}
       </div>
       <div style={{ marginTop: 12 }}>{done ? <div style={{ fontSize: fz.s, color: CL.grn, fontWeight: 700 }}>✓ This year's mission is done. The next one, next year.</div> : <Bt onClick={startVisit}>Plan a trade mission</Bt>}</div>
@@ -6235,6 +6237,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      every year and can turn into a storyline. */
   const interNow = () => stc.inter || SYS.interInit(state, state + ":" + pName, party);
   const nGov = (st) => "Gov. " + gNAs(rng(hashStr(state + ":" + pName + ":" + st)), (STATES[st] || {}).zone || "SW", st, hashStr(st + pName) % 4 === 0);
+  const nGovImg = (st) => { const G = (interNow().gov || {})[st] || { rel: 50 }; return NB_GOV[hashStr(st + pName) % 4 === 0 ? "female" : "male"][G.rel >= 60 ? 1 : G.rel < 40 ? 2 : 0]; };
   const interFill = (x, d) => { const X = (stc.inter || {}).stories || {}, key = Object.keys(X).find(k => X[k].deal === d.id), third = key ? X[key].third : null;
     return SYS.fillText(x, { p: SYS.stateLabel(d.partner), t: third ? SYS.stateLabel(third) : "a neighbouring state", g: nGov(d.partner), k: (SYS.DEAL_KINDS[d.kind] || {}).nm.toLowerCase(), c: SYS.produceOf(d.partner)[0], y: SYS.produceOf(state)[0] }); };
   const [visit, setVisit] = useState(null); // a trade mission: { step: "pick" | "kind" | "how" | "ask", partner, kind, ask }
@@ -6247,7 +6250,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         chips: [{ text: "Relations " + G.rel, color: G.rel >= 55 ? CL.grn : G.rel < 40 ? CL.red : CL.org }].concat(active.some(d => d.partner === n) ? [{ text: "A deal in force", color: CL.blu }] : []), run: () => setVisit({ step: "kind", partner: n }) }; }) };
     const P = SYS.stateLabel(V.partner), m = { p: P, c: SYS.produceOf(V.partner)[0], y: SYS.produceOf(state)[0] };
     if (V.step === "kind") return { kicker: "A trade mission · " + P, title: "What will you offer " + P + "?", brief: nGov(V.partner) + " will hear you out. " + P + " grows " + SYS.produceOf(V.partner).join(" and ") + "; " + stName + " grows " + SYS.produceOf(state).join(" and ") + ".",
-      options: Object.entries(SYS.DEAL_KINDS).filter(([k]) => !active.some(d => d.partner === V.partner && d.kind === k)).map(([k, K]) => ({ label: K.icon + " " + SYS.fillText(K.l, m), note: K.d,
+      options: Object.entries(SYS.DEAL_KINDS).filter(([k]) => !active.some(d => d.partner === V.partner && d.kind === k)).map(([k, K]) => ({ label: <><Ico n={K.ico} s={TALL() ? 30 : 40} style={{ marginRight: 8 }} />{SYS.fillText(K.l, m)}</>, note: K.d,
         chips: [{ text: "₦" + K.cost + "B", color: CL.org }].concat(K.cash ? [{ text: "+₦" + K.cash + "B a year", color: CL.grn }] : [], K.sec ? [{ text: "Security +1", color: CL.grn }] : [], K.years ? [{ text: K.years + " years to build", color: CL.td }] : []), run: () => setVisit({ ...V, step: "how", kind: k }) })) };
     if (V.step === "how") { const G = I.gov[V.partner], fit = SYS.dealFit(state, V.partner), sec = s.sec;
       return { kicker: "A trade mission · " + P, title: "Go yourself, or send your commissioner?", brief: SYS.DEAL_KINDS[V.kind].nm + " with " + P + ". " + (G.party === "same" ? "Their Governor is from your party." : "Their Governor is from the opposition: expect to be asked for something."),
@@ -6269,8 +6272,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🤝 " + K.nm + " signed with " + P + (go ? ": you went yourself." : ", by the Commissioner for Commerce."), "policy");
     scWiki("Governorship", "Signed a " + K.nm.toLowerCase() + " with " + P + " State" + (go ? " on a trade mission to " + P : "") + ".");
     track("inter_deal", kind + (go ? ":go" : ":send"));
-    setTimeout(() => paper(stName.toUpperCase() + " AND " + P.toUpperCase() + " SIGN TRADE DEAL", K.nm + ": " + K.d, true, "./art/scenes/trade-deal-signing.webp"), 400);
-    return { icon: K.icon, img: "./art/scenes/trade-deal-signing.webp", title: K.nm + " with " + P, text: K.d + (K.years ? " It opens in " + K.years + " years." : " It starts paying at the year's end."), tone: "good",
+    setTimeout(() => paper(stName.toUpperCase() + " AND " + P.toUpperCase() + " SIGN TRADE DEAL", K.nm + ": " + K.d, true, "./art/scenes/mou-signing-governors.webp"), 400);
+    return { icon: K.icon, img: "./art/scenes/mou-signing-governors.webp", title: K.nm + " with " + P, text: K.d + (K.years ? " It opens in " + K.years + " years." : " It starts paying at the year's end."), tone: "good",
       rows: [{ l: "Your share", v: "₦" + K.cost + "B", good: false }].concat(K.cash ? [{ l: "Expected", v: "₦" + K.cash + "B a year", good: true }] : [], ask ? [{ l: "Their price", v: SYS.fillText(ask.l, { p: P }), good: false }] : []) };
   };
   const doMission = (go) => {
@@ -11689,7 +11692,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
         <OL show={!!visit}>
           {visit && (() => { const C = missionCards(); if (!C) return null;
-            return <><SceneArt bg="government-house" scene="trade-deal-signing" h={TALL() ? 160 : 200} />
+            const A = visit.step === "pick" ? {} : visit.step === "how" ? { who: "commerce-commissioner", alt: "The Commissioner for Commerce" } : { who: nGovImg(visit.partner), alt: nGov(visit.partner) };
+            return <><SceneArt bg="neighbour-government-house" who={A.who} alt={A.alt} h={TALL() ? 200 : 260} />
               <DecisionCard kicker={C.kicker} kickerColor={CL.blu} title={C.title} brief={C.brief} options={C.options.map(o => ({ label: o.label, note: o.note, chips: o.chips, disabled: o.disabled, raw: o }))}
                 onPick={(o) => { let r = null; try { r = o.raw.run(); } catch (e) { console.error("[mission]", e); } if (r && r.title) setTimeout(() => { try { window.SOP_outcome(r); } catch (e) {} }, 60); }} />
               <div style={{ textAlign: "center", marginTop: 8 }}><Bt onClick={() => setVisit(null)} style={{ background: CL.card, color: CL.txt, border: "1px solid " + CL.bdr }}>Not now</Bt></div></>; })()}
