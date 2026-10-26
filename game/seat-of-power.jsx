@@ -10929,7 +10929,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // by key still works. Wiki, Constitution, Standing, Help and Sound live in the ☰ menu.
   const SCREENS = [
     { id: "desk", i: "🗂️", img: "icon-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }, { k: "log", l: "News" }] },
-    { id: "map", i: "🗺️", img: "icon-state", l: "State", subs: [{ k: "tre", l: "💰 Treasury" }, { k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
+    { id: "map", i: "🗺️", img: "icon-state", l: NAT ? "Nation" : "State", subs: [{ k: "tre", l: "💰 Treasury" }, { k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
     { id: "people", i: "👥", img: "icon-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: NAT ? "Councils" : "Council" }, { k: "ppl", l: "Public" }] },
   ];
   const WIKI_SCREEN = { id: "wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] };
