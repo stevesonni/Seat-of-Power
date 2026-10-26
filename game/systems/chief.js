@@ -41,7 +41,14 @@ export const SEALS = {
   projects: { c: "#b35c00", rim: "#ffd3a1", i: "🏗️", nm: "Projects" },
   intel: { c: "#263238", rim: "#90a4ae", i: "🕵️", nm: "Intelligence" },
   briefing: { c: "#4e5d4f", rim: "#cfd8cf", i: "🗂️", nm: "Briefing" },
-  bakunda: { c: "#8e0c0c", rim: "#e0453a", i: "🚨", nm: "URGENT: the war" }, // the red wax seal on the war's letters
+  bakunda: { c: "#8e0c0c", rim: "#e0453a", i: "🚨", nm: "URGENT: the war" },
+  // The councils' seals, pressed beside each council in session.
+  fec: { c: "#0b5d3b", rim: "#e9c46a", i: "🏛️", nm: "Federal Executive Council" },
+  nsc: { c: "#263238", rim: "#c9a227", i: "🛡️", nm: "National Security Council" },
+  eac: { c: "#7a5a00", rim: "#ffe08a", i: "📈", nm: "Economic Advisory Council" },
+  exco: { c: "#1f4f8f", rim: "#e9c46a", i: "🏛️", nm: "State Executive Council" },
+  rulers: { c: "#5b2a86", rim: "#e9c46a", i: "👑", nm: "Traditional Rulers Council" },
+  econ: { c: "#7a4a1f", rim: "#ffd3a1", i: "🚢", nm: "State Economic Council" }, // the red wax seal on the war's letters
 };
 
 // What kind of letter each year event is, and how much it needs the governor (1–3).
@@ -60,6 +67,7 @@ export const letterKind = (key) => {
   if (k === "sc#faac") return ["budget", 2];
   if (k === "dilemma" || k.startsWith("sc#lg") || k.startsWith("sc#ruler")) return ["community", 2];
   if (k.startsWith("stall:")) return ["projects", 2];
+  if (k.startsWith("sc#export_")) return ["econ", 2];
   if (k === "media") return ["press", 1];
   if (k === "investor") return ["investment", 1];
   if (k === "hidden_threat") return ["intel", 1];

@@ -3,7 +3,27 @@
 
 
 
-## More decisions, and complaints you can answer (26 Oct, latest)
+## Councils at the table, trade, and exports (26 Oct, latest)
+From player feedback (Chinaza: programmes should depend on money, LGAs should show their district; Ben: earning money should be easier, with exports and imports) and the owner's trade design. Both offices.
+- **Real senatorial districts** (game/systems/districts.js): all 36 states and the FCT, each LGA in its real district, named as INEC names them ("Ogun Central"). LGA lists show the district.
+- **Programmes** are limited by money and the ministry's capacity, not by slots: two running per sector, three when the minister or commissioner performs at 75+.
+- **Councils at the table** (CouncilTable in game/seat-of-power.jsx): every council sits around an oval table, the council's wax seal at its centre, you presiding at the head. Each member speaks in turn (one line, tied to the game: the worst front, the reserves, the factories), then the decision.
+  - President: the Federal Executive Council (first sitting; a yearly retreat that publishes or keeps the scorecards), the National Security Council (first sitting; an emergency session where you choose the front), and the new Economic Advisory Council.
+  - Governor: the State Executive Council and the Traditional Rulers Council when first formed, and the new State Economic Council.
+  - Seals: fec, nsc, eac, exco, rulers, econ (game/systems/chief.js). Pressed wax until Lovable's pictures arrive.
+- **Trade** (game/systems/trade.js), for the President:
+  - The Economic Advisory Council's first sitting sets the stance: Protect, Open or Targeted. Later sittings show the figures; changing course costs approval.
+  - Each year: reserves, the street dollar's premium, a food price index, factories, smuggling and exports move with the stance and with security (bandits empty the farms: protection plus empty farms is the trap). Customs duties and exports pay into the treasury.
+  - Five storylines open from the figures: the dollar shortage, the smugglers' border, the money-changers, Apapa (where you can build a deep seaport for the East, a dry port in Kano, or the cargo rail line, each opening years later), and selling to the world.
+- **Exports** (game/systems/trade.js), for the governor:
+  - Every state has its two real export crops (Ondo: cocoa and cashew; Kano: sesame, hides and skins; and so on).
+  - The State Economic Council chooses how to sell: raw through aggregators, a container depot and farm-to-port road, or a processing zone (two years to build). Later sittings add the second crop, a zone or the depot.
+  - The state earns money at every year's end, more with good farms and security, less under a ban.
+  - Abuja's trade stance (drawn once per game) helps or hurts: protection helps raw farmers but makes processing machines dear; open borders the reverse; border states feel it first.
+  - Four storylines: the rejected containers (aflatoxin), the middlemen, the exclusive buyer, containers held at the port.
+- **Tests:** tests/trade.test.mjs; tests/e2e/councils.mjs (the governor's councils at the table, the export plan, the year's earnings); the president e2e convenes the Economic Advisory Council, sets the stance and checks a year of trade.
+
+## More decisions, and complaints you can answer (26 Oct)
 From player feedback ("how can a president make just six decisions a year"; "we should be able to click on the public complaints and solve them"). Both offices.
 - **Big moves** (game/systems/agenda.js):
   - 10 on Easy, 8 on Medium, 6 on Hard.

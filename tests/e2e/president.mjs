@@ -26,8 +26,15 @@ for (const re of [/Steady electricity/, /Jobs for young people/, /End grand corr
 await g.click(/^Next: the address$/); await g.wait(500);
 await shot("address");
 check(!!(await g.click(/Deliver the address/)), "the inaugural address is delivered"); await g.wait(1200);
+// The Economic Advisory Council around its table: each member speaks, then its first sitting sets the trade policy.
+await g.page.evaluate(() => window.SOP.councils.eac()); await g.wait(700);
+{ const t = await g.txt(); check(/You, presiding/.test(t) && /The Economic Advisory Council/.test(t) && /Central Bank of Nigeria/.test(t), "the Economic Advisory Council sits around the table"); }
+for (let i = 0; i < 8 && await g.click(/^(Next: .*|To the decision) ›$/); i++) await g.wait(200);
+await shot("eac");
+check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /^Targeted/.test(x.textContent.trim())); b && b.click(); return !!b; }), "its first sitting sets the trade policy"); await g.wait(1200);
+for (let i = 0; i < 3 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(400);
 const seen = new Set();
-const r = await playUntil(g, t0 => { const t = t0.replace(/\u2060/g, ""); if (/Last year you /.test(t)) seen.add("recap"); if (/Answer ›/.test(t)) seen.add("complaints"); if (/Big moves \d+\/\d+/.test(t)) seen.add("bigmoves"); for (const k of ["Address to the nation", "Senate President ·", "Chair, Governors' Forum ·", "Chief of Army Staff ·", "Governor of the Central Bank ·", "National Chairman of the party ·", "The world stage", "The insurgency", "The fuel crisis", "The naira crisis", "The National Security Council", "North-East:", "North-West:", "South-East:", "Niger Delta:"]) if (t.includes(k)) seen.add(k); return /Year 3 of 4/.test(t); }, { max: 900 });
+const r = await playUntil(g, t0 => { const t = t0.replace(/\u2060/g, ""); if (/You, presiding/.test(t)) seen.add("table"); if (/^Trade · /m.test(t) || /Trade · /.test(t)) seen.add("trade"); if (/Last year you /.test(t)) seen.add("recap"); if (/Answer ›/.test(t)) seen.add("complaints"); if (/Big moves \d+\/\d+/.test(t)) seen.add("bigmoves"); for (const k of ["Address to the nation", "Senate President ·", "Chair, Governors' Forum ·", "Chief of Army Staff ·", "Governor of the Central Bank ·", "National Chairman of the party ·", "The world stage", "The insurgency", "The fuel crisis", "The naira crisis", "The National Security Council", "North-East:", "North-West:", "South-East:", "Niger Delta:"]) if (t.includes(k)) seen.add(k); return /Year 3 of 4/.test(t); }, { max: 900 });
 console.log("  national deck seen: " + [...seen].join(", "));
 check(seen.size >= 3, "the national deck plays: crisis, power centres, the world stage");
 check(seen.has("recap"), "a card opens with what you decided last year");
@@ -38,6 +45,8 @@ check(sv.stc && sv.stc.inaugurated && sv.stc.pres && (sv.stc.pres.commits || [])
 { const st = (sv.stc.pres || {}).story || {}, hist = st.hist || [], fs = sv.stc.frontStories || {};
   check(hist.length >= 1 && new Set(st.seen || []).size === (st.seen || []).length, "the national crisis is a storyline that moves on (" + hist.map(h => h.beat + ":" + h.opt).join(", ") + ")");
   check(Object.values(fs).some(x => (x.hist || []).length >= 1), "a security front moved on to its next development"); }
+{ const T = sv.stc.trade || {}; check(T.stance === "targeted" && (T.hist || []).length >= 1, "the trade policy runs: reserves, food prices and exports each year (" + JSON.stringify((T.hist || []).slice(-1)) + ")"); }
+check(seen.has("table"), "the councils sit around a table (the FEC and the Security Council)");
 const t = await g.txt();
 await shot("year2");
 check(r.ok, "the presidency plays into its third year");
