@@ -40,5 +40,20 @@ check(r3.ok, "on to the next year");
 await g.wait(2500); sv = await saved(g);
 const E = (sv.stc || {}).exports || {};
 check((E.earned || 0) > 0 && (E.hist || []).length >= 1, "the exports earned the state money at the year's end (₦" + E.earned + "B)");
+// A trade mission to a neighbour: pick the state, the deal, then send the commissioner (accept their price if asked).
+for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(400);
+await g.page.evaluate(() => window.SOP.councils.visit()); await g.wait(700);
+{ const t = await g.txt(); check(/Which neighbour\?/.test(t) && /Lagos/.test(t) && /Oyo/.test(t), "the mission offers Ogun's real neighbours"); }
+await shot("mission-pick");
+const opt = (re) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button.ds-option")].find(x => new RegExp(src).test(x.textContent) && !x.disabled); b && b.click(); return b ? b.textContent.slice(0, 60) : null; }, re.source);
+check(!!(await opt(/^Oyo/)), "pick Oyo"); await g.wait(500);
+check(/What will you offer Oyo\?/.test(await g.txt()), "then the deal");
+check(!!(await opt(/Their .* to our markets/)), "a supply pact"); await g.wait(500);
+check(!!(await opt(/^Send the Commissioner/)), "send the commissioner"); await g.wait(900);
+if (/wants something in return/.test(await g.txt())) { await opt(/^Accept/); await g.wait(900); }
+for (let i = 0; i < 3 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(400);
+await g.wait(2500); sv = await saved(g);
+const deals = ((sv.stc || {}).inter || {}).deals || [];
+check(deals.length === 1 && deals[0].partner === "Oyo" && deals[0].kind === "supply", "the supply pact with Oyo is signed (" + JSON.stringify(deals.map(d => d.id)) + ")");
 check(!g.errors.length, "no page errors " + g.errors.join(" | "));
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

@@ -3,7 +3,17 @@
 
 
 
-## Councils at the table, trade, and exports (26 Oct, latest)
+## Trade with the neighbours (26 Oct, latest)
+From a player (Olajire Samuel, Ogun): "what about if Governors go on trips to other neighbouring states to do trade exchange with them". game/systems/interstate.js.
+- **Real neighbours:** every state's land borders (checked both ways in tests). Each neighbour has a fictional governor, your party or the opposition, and relations that move with how you treat them.
+- **The trade mission** (State → Economy, the councils page, the State Economic Council, and a Desk prompt): pick a neighbour, pick the deal, then go yourself (one big move, better odds) or send the Commissioner for Commerce (free). A no comes with their price: a share of the earnings, your vote at the Governors' Forum, or a boundary quarrel settled their way. One mission a year; three deals at most.
+- **Four deals:** supply pact (their crop for your markets and factories), market access (your goods into theirs), a joint road and border market (half each, two years to build), a security pact (joint patrols on the shared highway). Each earns, or pays back, every year.
+- **Six storylines:** the toll gates (a state on the route charges levies; call its governor, build a way round, or retaliate and start a trade war), the half-built road (the partner stops paying), a new governor tears the deal up, the boundary quarrel, goods leaking across the border, and success (a joint processing plant).
+- **The President:** once a term, two governors at war over levies come to the Villa: mediate, back your party's governor, or ban state levies by executive order.
+- **Tests:** tests/interstate.test.mjs; tests/e2e/councils.mjs signs a supply pact with Oyo from Ogun in the browser.
+- **Art:** stand-ins for now; the request to Lovable is docs/LOVABLE-INTERSTATE.md.
+
+## Councils at the table, trade, and exports (26 Oct)
 From player feedback (Chinaza: programmes should depend on money, LGAs should show their district; Ben: earning money should be easier, with exports and imports) and the owner's trade design. Both offices.
 - **Real senatorial districts** (game/systems/districts.js): all 36 states and the FCT, each LGA in its real district, named as INEC names them ("Ogun Central"). LGA lists show the district.
 - **Programmes** are limited by money and the ministry's capacity, not by slots: two running per sector, three when the minister or commissioner performs at 75+.

@@ -5272,7 +5272,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       ledger: window.SOP_LEDGER ? window.SOP_LEDGER.all() : [],
       ledgerAppend: (entry) => (window.SOP_LEDGER ? window.SOP_LEDGER.append(entry) : null),
       story: () => story(),
-      councils: { eac: () => conveneEAC(), econ: () => conveneEcon() }, // the councils' sessions (the Desk and tests/e2e open them)
+      councils: { eac: () => conveneEAC(), econ: () => conveneEcon(), visit: () => startVisit() }, // the councils' sessions (the Desk and tests/e2e open them)
       gEnd, setTurn,
       federalAlignment: fgRelation > 65,
       desk: desk.current,
@@ -5846,12 +5846,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       !M.second && more("second", "Export " + crops[1] + " too", "A second crop through the same warehouses and buyers.", 1.5, { second: true }, "The first containers of " + crops[1] + " leave next year."),
       E.plan !== "zone" && M.zoneAt == null && more("zone", "Build a processing zone for " + crop, "Two years to build; it nearly doubles what the exports earn.", 8, { zoneAt: turn + 2 }, "Work starts on the processing zone. It opens in two years."),
       !M.hub && E.plan !== "hub" && more("hub", "A container depot and a farm-to-port road", "Every crop leaves cheaper.", 5, { hub: true }, "The depot opens next year."),
+      (interNow().last !== turn) && { label: "Plan a trade mission to a neighbour", note: "Their crops for your factories, your goods for their markets.", chips: [{ text: "🤝 " + SYS.neighboursOf(state).map(SYS.stateLabel).slice(0, 3).join(", "), color: CL.blu }], run: () => { sat(); startVisit(); return null; } },
       { label: "Keep going as we are", note: "Nothing new this year.", chips: [{ text: "Free", color: CL.grn }], run: () => { sat(); return { icon: "🚢", title: "Steady", text: "The Council meets again next year.", tone: "good" }; } },
     ].filter(Boolean) : ["raw", "hub", "zone"].map(plan);
     openTable({ id: "econ", sealKind: "econ", title: "The State Economic Council", sub: E ? "The year's exports · ₦" + (E.earned || 0).toFixed(1) + "B earned so far" : "First sitting · selling " + stName + "'s " + crops.join(" and ") + " to the world", bg: "council-table-state", by: E ? { name: "The Customs Area Controller", role: "Nigeria Customs Service (federal)", img: "./art/characters/customs-comptroller" + mood(fedStanceNow() === "open", fedStanceNow() === "protect") + ".webp" } : { name: "The Farmers' Association", role: crop.charAt(0).toUpperCase() + crop.slice(1) + " farmers", img: "./art/characters/farmers-association-chair" + mood(false, (s.sec || .5) < .45) + ".webp" },
       declaration: (E ? "Exports have earned the state ₦" + (E.earned || 0).toFixed(1) + "B so far. " : "The State Economic Council is in session: agriculture, finance, the farmers, the exporters and Customs. " + stName + " grows " + crops.join(" and ") + ": the question is how to sell them to the world. ") + "Abuja's policy is " + SYS.STANCES[fedStanceNow()].nm.toLowerCase() + ". " + SYS.FED_STANCE_FX[fedStanceNow()].d,
       decision: { title: E ? "Expand the export trade?" : "How will " + stName + " sell its " + crop + "?", brief: E ? undefined : "The money arrives with each year's end, as long as the farms are safe and the produce is clean.", options: opts } });
   };
+  // Your neighbours (State → Economy, and the councils): the governors next door, the deals in force, and the trade mission.
+  const NeighboursPanel = () => { const I = interNow(), big = !TALL(), done = I.last === turn, fz = big ? { s: TS(19), m: TS(22), l: TS(34) } : { s: TS(15), m: TS(17), l: TS(24) };
+    const ST = { active: ["In force", CL.grn], ended: ["Ended", CL.td] };
+    return <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: big ? "18px 22px" : "14px", margin: big ? "0 auto 14px" : "0 auto 12px", maxWidth: big ? 1100 : 900 }}>
+      <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.l, color: CL.txt }}>🤝 Your neighbours</div>
+      <div style={{ fontSize: fz.s, color: CL.td, margin: "4px 0 12px", lineHeight: 1.4 }}>Trade with the states next door: their crops for your factories, your goods for their markets, a road or a border patrol together.</div>
+      <div style={{ display: "grid", gridTemplateColumns: big ? "repeat(auto-fill, minmax(240px, 1fr))" : "1fr", gap: 10 }}>
+        {SYS.neighboursOf(state).map(n => { const G = I.gov[n] || { rel: 50, party: "same" }, deals = I.deals.filter(d => d.partner === n);
+          return <div key={n} style={{ border: "1.5px solid " + CL.bdr, borderRadius: 14, padding: "10px 12px", background: CL.bg }}>
+            <div style={{ fontWeight: 800, fontSize: fz.m, color: CL.txt }}>{SYS.stateLabel(n)}</div>
+            <div style={{ fontSize: fz.s, color: CL.td }}>{nGov(n)} · {G.party === "same" ? "your party" : "opposition"} · grows {SYS.produceOf(n)[0]}</div>
+            <div style={{ height: 6, borderRadius: 6, background: CL.bdr, margin: "6px 0", overflow: "hidden" }}><i style={{ display: "block", height: "100%", width: G.rel + "%", background: G.rel >= 55 ? CL.grn : G.rel < 40 ? CL.red : CL.org }} /></div>
+            {deals.map(d => { const K = SYS.DEAL_KINDS[d.kind], sx = d.status === "active" ? (turn < d.opens ? ["Building · opens in year " + d.opens, CL.org] : d.mods.levy ? ["Toll gates on the route", CL.red] : d.mods.frozen ? ["Frozen", CL.red] : ST.active) : ST.ended;
+              return <div key={d.id} style={{ fontSize: fz.s, display: "flex", justifyContent: "space-between", gap: 8 }}><span>{K.icon} {K.nm}</span><b style={{ color: sx[1] }}>{sx[0]}</b></div>; })}
+          </div>; })}
+      </div>
+      <div style={{ marginTop: 12 }}>{done ? <div style={{ fontSize: fz.s, color: CL.grn, fontWeight: 700 }}>✓ This year's mission is done. The next one, next year.</div> : <Bt onClick={startVisit}>Plan a trade mission</Bt>}</div>
+    </div>; };
   const StateEconPanel = () => { const E = stc.exports, big = !TALL(), crops = SYS.produceOf(state), FS = SYS.STANCES[fedStanceNow()];
     return <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, overflow: "hidden", margin: big ? "24px auto 14px" : "8px auto 14px", maxWidth: big ? 1100 : 900 }}>
       <div style={{ height: big ? 200 : 120, background: "url(./art/scenes/money-agric-exports.webp) center/cover" }} />
@@ -6161,6 +6180,93 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             return { icon: "🚢", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : "./art/scenes/money-agric-exports.webp", title: o.l, text: SYS.cropText(SYS.placeText(R.say || "", X.lga || stName), E.crop), tone: o.weak || R.won === false ? "bad" : "good", rows };
           } }; }) };
   };
+  /* Neighbouring states (SYS.interstate): the governor visits a neighbour (or
+     sends the Commissioner for Commerce) and signs a deal; each deal earns
+     every year and can turn into a storyline. */
+  const interNow = () => stc.inter || SYS.interInit(state, state + ":" + pName, party);
+  const nGov = (st) => "Gov. " + gNAs(rng(hashStr(state + ":" + pName + ":" + st)), (STATES[st] || {}).zone || "SW", st, hashStr(st + pName) % 4 === 0);
+  const interFill = (x, d) => { const X = (stc.inter || {}).stories || {}, key = Object.keys(X).find(k => X[k].deal === d.id), third = key ? X[key].third : null;
+    return SYS.fillText(x, { p: SYS.stateLabel(d.partner), t: third ? SYS.stateLabel(third) : "a neighbouring state", g: nGov(d.partner), k: (SYS.DEAL_KINDS[d.kind] || {}).nm.toLowerCase(), c: SYS.produceOf(d.partner)[0], y: SYS.produceOf(state)[0] }); };
+  const [visit, setVisit] = useState(null); // a trade mission: { step: "pick" | "kind" | "how" | "ask", partner, kind, ask }
+  const startVisit = () => { const I = interNow(); if (!stc.inter) setStc(p => ({ ...p, inter: I })); setVisit({ step: "pick" }); };
+  const missionCards = () => {
+    const I = interNow(), V = visit; if (!V) return null;
+    const active = SYS.activeDeals(I), full = active.length >= SYS.ACTIVE_MAX;
+    if (V.step === "pick") return { kicker: "A trade mission", title: "Which neighbour?", brief: stName + " borders " + SYS.neighboursOf(state).map(SYS.stateLabel).join(", ") + ". One mission a year; at most " + SYS.ACTIVE_MAX + " deals in force." + (full ? " You have " + SYS.ACTIVE_MAX + " already: one must end before another." : ""),
+      options: SYS.neighboursOf(state).map(n => { const G = I.gov[n]; return { label: SYS.stateLabel(n) + " · " + nGov(n) + (G.party === "same" ? " (your party)" : " (opposition)"), note: "They grow " + SYS.produceOf(n).join(" and ") + ". Relations " + G.rel + "/100.", disabled: full,
+        chips: [{ text: "Relations " + G.rel, color: G.rel >= 55 ? CL.grn : G.rel < 40 ? CL.red : CL.org }].concat(active.some(d => d.partner === n) ? [{ text: "A deal in force", color: CL.blu }] : []), run: () => setVisit({ step: "kind", partner: n }) }; }) };
+    const P = SYS.stateLabel(V.partner), m = { p: P, c: SYS.produceOf(V.partner)[0], y: SYS.produceOf(state)[0] };
+    if (V.step === "kind") return { kicker: "A trade mission · " + P, title: "What will you offer " + P + "?", brief: nGov(V.partner) + " will hear you out. " + P + " grows " + SYS.produceOf(V.partner).join(" and ") + "; " + stName + " grows " + SYS.produceOf(state).join(" and ") + ".",
+      options: Object.entries(SYS.DEAL_KINDS).filter(([k]) => !active.some(d => d.partner === V.partner && d.kind === k)).map(([k, K]) => ({ label: K.icon + " " + SYS.fillText(K.l, m), note: K.d,
+        chips: [{ text: "₦" + K.cost + "B", color: CL.org }].concat(K.cash ? [{ text: "+₦" + K.cash + "B a year", color: CL.grn }] : [], K.sec ? [{ text: "Security +1", color: CL.grn }] : [], K.years ? [{ text: K.years + " years to build", color: CL.td }] : []), run: () => setVisit({ ...V, step: "how", kind: k }) })) };
+    if (V.step === "how") { const G = I.gov[V.partner], fit = SYS.dealFit(state, V.partner), sec = s.sec;
+      return { kicker: "A trade mission · " + P, title: "Go yourself, or send your commissioner?", brief: SYS.DEAL_KINDS[V.kind].nm + " with " + P + ". " + (G.party === "same" ? "Their Governor is from your party." : "Their Governor is from the opposition: expect to be asked for something."),
+        options: [{ label: "Go to " + P + " yourself", note: "Uses one of this year's big moves. A Governor at the table gets a better hearing.", chips: [{ text: "Odds " + Math.round(SYS.missionOdds(G, V.kind, { go: true, sec, fit }) * 100) + "%", color: CL.grn }, { text: "1 big move", color: CL.org }], run: () => doMission(true) },
+          { label: "Send the Commissioner for Commerce", note: "Free. A commissioner carries less weight.", chips: [{ text: "Odds " + Math.round(SYS.missionOdds(G, V.kind, { go: false, sec, fit }) * 100) + "%", color: CL.org }, { text: "Free", color: CL.grn }], run: () => doMission(false) }] }; }
+    if (V.step === "ask") { const A = V.ask, l = SYS.fillText(A.l, m);
+      return { kicker: "A trade mission · " + P, title: nGov(V.partner) + " wants something in return", brief: "“We can sign, Your Excellency, but our people must see what " + P + " gains.” Their price: " + l.charAt(0).toLowerCase() + l.slice(1) + ".",
+        options: [{ label: "Accept: " + l.charAt(0).toLowerCase() + l.slice(1), chips: fxChips(A.fx), run: () => sign(V.partner, V.kind, V.go, A) },
+          { label: "Walk away", note: "No deal this year. They will remember you said no.", run: () => { setVisit(null); setStc(p => ({ ...p, inter: SYS.interApply({ ...interNow(), last: turn }, "", {}) })); addL("🤝 No deal with " + P + ": " + nGov(V.partner) + "'s price was too high.", "political"); return { icon: "🤝", title: "No deal", text: "You came home without a deal. " + P + " will remember it.", tone: "neutral" }; } }] }; }
+    return null;
+  };
+  const sign = (partner, kind, go, ask) => {
+    const K = SYS.DEAL_KINDS[kind], P = SYS.stateLabel(partner);
+    if (!spendB(K.cost, K.nm + " with " + P)) { setVisit(null); return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for your share of the deal.", tone: "bad" }; }
+    setVisit(null);
+    setStc(p => ({ ...p, inter: SYS.signDeal(p.inter || interNow(), partner, kind, turn, ask) }));
+    if (ask && ask.fx) scFx({ app: ask.fx.app || 0, pStab: ask.fx.pStab || 0 });
+    scFx({ app: go ? 2 : 1 });
+    addL("🤝 " + K.nm + " signed with " + P + (go ? ": you went yourself." : ", by the Commissioner for Commerce."), "policy");
+    scWiki("Governorship", "Signed a " + K.nm.toLowerCase() + " with " + P + " State" + (go ? " on a trade mission to " + P : "") + ".");
+    track("inter_deal", kind + (go ? ":go" : ":send"));
+    setTimeout(() => paper(stName.toUpperCase() + " AND " + P.toUpperCase() + " SIGN TRADE DEAL", K.nm + ": " + K.d, true, "./art/scenes/trade-deal-signing.webp"), 400);
+    return { icon: K.icon, img: "./art/scenes/trade-deal-signing.webp", title: K.nm + " with " + P, text: K.d + (K.years ? " It opens in " + K.years + " years." : " It starts paying at the year's end."), tone: "good",
+      rows: [{ l: "Your share", v: "₦" + K.cost + "B", good: false }].concat(K.cash ? [{ l: "Expected", v: "₦" + K.cash + "B a year", good: true }] : [], ask ? [{ l: "Their price", v: SYS.fillText(ask.l, { p: P }), good: false }] : []) };
+  };
+  const doMission = (go) => {
+    const V = visit, I = interNow(), P = SYS.stateLabel(V.partner);
+    if (go && !takeAgenda("mission", "Trade mission to " + P, "mission:" + turn)) return null;
+    const R = SYS.mission(I, V.partner, V.kind, { go, sec: s.sec, turn, fit: SYS.dealFit(state, V.partner), r: rng(turn * 389 + hashStr(V.partner + V.kind)) });
+    if (R.ok) return sign(V.partner, V.kind, go, null);
+    setVisit({ ...V, step: "ask", ask: R.ask, go }); return null;
+  };
+  // A deal's storyline as a Desk card (SYS.INTER_STORIES).
+  const interStoryCardFor = (key, I) => {
+    const X = I.stories[key], id = key.split(":")[0], d0 = SYS.INTER_STORIES[id], deal = I.deals.find(x => x.id === X.deal), raw = d0 && deal && SYS.storyCard(d0, X.S, { nat: false });
+    if (!raw) return null;
+    const c = interFill(raw, deal), P = SYS.stateLabel(deal.partner), yr = (X.S.hist || []).length;
+    return { key: "inter_" + id + "_" + turn, kicker: stName + " & " + P + " · " + interFill(d0.nm, deal) + (yr ? ", year " + (yr + 1) : ""), color: CL.blu, art: [c.bg || "government-house", c.who || "governors-forum-chair", null, c.scene || null], title: "🤝 " + c.t, brief: c.d,
+      options: c.opts.map(o => { const fx = { ...(o.fx || {}), debt: o.cost || 0 };
+        return { label: o.l, note: o.kind === "order" ? "In force today. A State High Court can strike it down next year." : undefined, risk: o.odds != null ? "A gamble: it can go either way." : null,
+          chips: (o.tag ? [{ text: o.tag, color: o.kind === "bill" ? CL.blu : o.kind === "order" ? CL.gold : CL.grn }] : []).concat(fxChips(fx, o.dz)), run: () => {
+            if (o.cost && !spendB(o.cost, d0.nm + ": " + o.l)) return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for this. Choose another way.", tone: "bad" };
+            const R = SYS.storyAfter(d0, X.S, o, turn, { nat: false }, rng(turn * 557 + hashStr(key + o.id))), W = R.won == null ? o : { ...o, ...((R.won ? o.win : o.lose) || {}) };
+            scFx({ ...(R.fx || {}), debt: 0 });
+            setStc(p => { const I0 = p.inter || I, I1 = SYS.interApply(I0, deal.id, { mod: W.mod, rel: W.rel || 0, end: !!W.end }); return { ...p, inter: { ...I1, stories: { ...I1.stories, [key]: { ...X, S: R.S } } } }; });
+            const past = interFill((R.S.hist[R.S.hist.length - 1] || {}).past || o.l, deal);
+            addL("🤝 " + interFill(d0.nm, deal) + ": " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".", o.weak || R.won === false ? "crisis" : "policy");
+            scWiki(o.weak || R.won === false ? "Controversies" : "Governorship", past.charAt(0).toUpperCase() + past.slice(1) + ".");
+            track("inter_" + id + "_" + (X.S.beat || ""), o.id + (R.won == null ? "" : R.won ? ":won" : ":lost"));
+            const rows = [].concat(W.end ? [{ l: "The deal with " + P, v: "Ended", good: false }] : [], (W.mod || {}).levy ? [{ l: "Earnings", v: "Halved by the toll gates", good: false }] : (W.mod || {}).levy === false ? [{ l: "The toll gates", v: "Gone", good: true }] : [], (W.mod || {}).boost ? [{ l: "Earnings", v: "+50% a year", good: true }] : [], (W.mod || {}).frozen ? [{ l: "The joint project", v: "Frozen", good: false }] : [], W.rel ? [{ l: nGov(deal.partner), v: (W.rel > 0 ? "+" : "") + W.rel, good: W.rel > 0 }] : []);
+            return { icon: "🤝", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: interFill(R.say || W.say || "", deal), tone: o.weak || R.won === false || W.end ? "bad" : "good", rows };
+          } }; }) };
+  };
+  // The President's side: two governors in a trade war over levies (SYS.MEDIATION).
+  const mediationCardFor = (M) => {
+    const raw = M && M.S && SYS.storyCard(SYS.MEDIATION, M.S, { nat: true }); if (!raw) return null;
+    const fm = { a: SYS.stateLabel(M.a), b: SYS.stateLabel(M.b) }, c = SYS.fillText(raw, fm);
+    return { key: "pres_med_" + turn, kicker: "The governors · " + fm.a + " and " + fm.b, color: CL.blu, art: [c.bg || "villa-office", c.who || "governors-forum-chair", null, c.scene || null], title: c.t, brief: c.d,
+      options: c.opts.map(o => { const fx = storyFx(o.fx);
+        return { label: o.l, note: SYS.KINDS[o.kind] && SYS.KINDS[o.kind].note || undefined, chips: (o.tag ? [{ text: o.tag, color: o.kind === "order" ? CL.gold : CL.grn }] : []).concat(fxChips({ app: fx.app, cor: fx.cor, pStab: fx.pStab })), run: () => {
+          const R = SYS.storyAfter(SYS.MEDIATION, M.S, o, turn, { nat: true }, rng(turn * 211 + hashStr(o.id)));
+          scFx(storyFx(R.fx)); if (R.decree) scFx({ app: -1 });
+          setStc(p => ({ ...p, mediation: { ...(p.mediation || M), S: R.S } }));
+          const past = SYS.fillText((R.S.hist[R.S.hist.length - 1] || {}).past || o.l, fm);
+          addL("🤝 " + c.t + ": " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".", "policy"); scWiki("Presidency", past.charAt(0).toUpperCase() + past.slice(1) + "."); track("pres_med_" + (M.S.beat || ""), o.id);
+          return { icon: "🤝", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: SYS.fillText(R.say || "", fm), tone: fx.app < 0 ? "neutral" : "good",
+            rows: R.order ? [{ l: "The order", v: "In force; it can be challenged in court", good: true }] : [] };
+        } }; }) };
+  };
   /* Public complaints (SYS.complaints): the street's voices, each tied to a
      real cause, tappable and answerable. Same for the President, with the
      nation's causes (the crisis, the security fronts). */
@@ -6464,6 +6570,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         next.exports = E;
         const live = Object.entries(E.stories).filter(([id, X]) => SYS.STATE_TRADE_STORIES[id] && X.S && !X.S.closed && X.S.beat).map(([id]) => id);
         if (live.length) { const c = exportStoryCardFor(live[0], E); if (c) cards.push(c); }
+      }
+      // Deals with the neighbours (SYS.interYear): the year's earnings, and the storyline one of them has become.
+      if (next.inter && (next.inter.deals || []).length) {
+        const Y = SYS.interYear(next.inter, { turn, state, r: rE });
+        let I = Y.I;
+        if (Y.cash > 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + Y.cash) * 100) / 100 }));
+        if (Y.app) dApp += Y.app; if (Y.sec) dStat.sec = (dStat.sec || 0) + Y.sec;
+        Y.lines.forEach(l => notes.push([l, "success"]));
+        const H = scHouse(), house = Math.round(H.loyal / Math.max(1, H.seats) * 100);
+        Object.entries(I.stories).forEach(([k, X]) => { const d = SYS.INTER_STORIES[k.split(":")[0]]; if (d && X.S && !X.S.closed && !(Y.open && k === Y.open.id + ":" + Y.open.deal.id)) I = { ...I, stories: { ...I.stories, [k]: { ...X, S: SYS.storyTurn(d, X.S, turn, { house }, rE) } } }; });
+        next.inter = I;
+        const liveK = Object.keys(I.stories).find(k => { const X = I.stories[k]; return X.S && !X.S.closed && X.S.beat; });
+        if (liveK) { const c = interStoryCardFor(liveK, I); if (c) cards.push(c); }
       }
     }
 
@@ -7018,6 +7137,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         next.trade = T;
         openT().slice(0, 2).forEach(id => { const c = tradeStoryCardFor(id, T.stories[id]); if (c) cards.push(c); });
       }
+      // Two governors at war over levies (SYS.MEDIATION): once a term, the President settles it.
+      if (next.mediation && next.mediation.S && !next.mediation.S.closed) next.mediation = { ...next.mediation, S: SYS.storyTurn(SYS.MEDIATION, next.mediation.S, turn, { house: ((next.pres.npcs || {}).nass || {}).rel, nat: true }, rE) };
+      else if (turn >= 2 && (!next.mediation || turn - next.mediation.t0 >= 4) && rE() < .35) { const [a, b] = SYS.mediationPair(state + ":" + pName + ":" + turn); next.mediation = { S: SYS.storyStart(SYS.MEDIATION, "med" + turn, rE), a, b, t0: turn }; }
+      if (next.mediation && next.mediation.S && !next.mediation.S.closed && next.mediation.S.beat) { const c = mediationCardFor(next.mediation); if (c) cards.push(c); }
       // The Bakunda crisis: a war storyline across the term (SYS.bakunda).
       next.bakunda = next.bakunda || SYS.bakundaInit(state + ":" + pName);
       SYS.bakundaCards(next.bakunda, turn, { nass: ((next.pres.npcs || {}).nass || {}).rel }).forEach(c => {
@@ -7822,6 +7945,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (s.cor > .45) { const b_ = { urgent: true, icon: "🧾", title: "Publish an audit before EFCC does", body: "Corruption above 45% compounds through contracts, cabinet loyalty, press attacks and tribunal credibility.", actionLabel: "Open Wiki Bio", action: () => goTab("bio") }; if (!skipB(b_)) return b_; }
     if (s.app < 40) { const b_ = { urgent: true, icon: "📉", title: "Approval crisis: deliver something now", body: "Below 40% approval, the House blocks bills because members fear losing their seats with you.", actionLabel: "Open Projects", action: () => goTab("prj") }; if (!skipB(b_)) return b_; }
     if (NAT && turn >= 2 && !(stc.trade && stc.trade.stance)) { const b_ = { urgent: false, icon: "📈", title: "Convene the Economic Advisory Council", body: "Imports, exports and the naira: its first sitting sets your trade policy. Until then Nigeria drifts, and the dollars with it.", actionLabel: "Convene it", action: conveneEAC }; if (!skipB(b_)) return b_; }
+    if (!NAT && turn >= 2 && stc.exports && !((stc.inter || {}).deals || []).length && (stc.inter || {}).last == null) { const b_ = { urgent: false, icon: "🤝", title: "Visit a neighbour: trade with " + SYS.neighboursOf(state).map(SYS.stateLabel).slice(0, 3).join(", "), body: "Their crops for your factories, your goods for their markets, a road or a border patrol together. Go yourself, or send your commissioner.", actionLabel: "Plan a trade mission", action: startVisit }; if (!skipB(b_)) return b_; }
     if (!NAT && turn >= 2 && !stc.exports) { const b_ = { urgent: false, icon: "🚢", title: "Sell " + stName + "'s " + SYS.produceOf(state)[0] + " to the world", body: "The State Economic Council can turn what the farms grow into money every year, money no one in Abuja can cut.", actionLabel: "Convene the council", action: conveneEcon }; if (!skipB(b_)) return b_; }
     // Nothing urgent: the adviser says what their outlook notices first.
     const lensId = SYS.lensIdOf(saOffice.adviser.name);
@@ -9540,8 +9664,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (groundedRef.current) { const gone = q.filter(k => k === "intl_invite" || k === "investor" || k === "netherlands" || k === "wedding"); if (gone.length) { const keep = q.filter(k => !gone.includes(k)); q.length = 0; keep.forEach(k => q.push(k)); addL("✈️ The airports are shut by the strike: " + gone.length + (gone.length === 1 ? " trip or visit" : " trips and visits") + " cancelled this year.", "crisis"); } }
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
-    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
-      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#export_") ? 74 : k === "shock" ? 70
+    const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
@@ -11464,6 +11588,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 options={A.map(a => ({ label: a.l, note: a.note, chips: a.how === "fix" ? [{ text: "Opens the fix", color: CL.blu }] : fxChips(a.fx || {}, a.dz), raw: a }))}
                 onPick={(o) => answerComplaint(c, o.raw)} />
               <div style={{ textAlign: "center", marginTop: 8 }}><Bt onClick={() => setComplaint(null)} style={{ background: CL.card, color: CL.txt, border: "1px solid " + CL.bdr }}>Not now</Bt></div></>; })()}
+        </OL>
+        <OL show={!!visit}>
+          {visit && (() => { const C = missionCards(); if (!C) return null;
+            return <><SceneArt bg="government-house" scene="trade-deal-signing" h={TALL() ? 160 : 200} />
+              <DecisionCard kicker={C.kicker} kickerColor={CL.blu} title={C.title} brief={C.brief} options={C.options.map(o => ({ label: o.label, note: o.note, chips: o.chips, disabled: o.disabled, raw: o }))}
+                onPick={(o) => { let r = null; try { r = o.raw.run(); } catch (e) { console.error("[mission]", e); } if (r && r.title) setTimeout(() => { try { window.SOP_outcome(r); } catch (e) {} }, 60); }} />
+              <div style={{ textAlign: "center", marginTop: 8 }}><Bt onClick={() => setVisit(null)} style={{ background: CL.card, color: CL.txt, border: "1px solid " + CL.bdr }}>Not now</Bt></div></>; })()}
         </OL>
         {session && <CouncilTable key={session.id + ":" + turn} T={session} onPick={(o) => { setSession(null); let r = null; try { r = o.run(); } catch (e) { console.error("[council]", e); } if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => setSession(null)} />}
         <OL show={phase === "sc" && scCards.length > 0}>
@@ -13681,6 +13812,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             </div>
           </div>;
         })()}
+        {nav === "econ" && !NAT && !needSetup && NeighboursPanel()}
         {nav === "econ" && <div style={{ display: "grid", gap: TALL() ? 14 : 22 }}>
           {/* The economy at a glance: three numbers on a dark banner, then one tile per sector. */}
           <div style={{ borderRadius: TALL() ? 24 : 28, padding: TALL() ? "18px 18px 16px" : "26px 32px", color: "#fff", background: "radial-gradient(120% 140% at 0% 0%, #1f7a4d 0%, #12301f 60%, #0c2116 100%)", boxShadow: "0 14px 34px rgba(12,33,22,.28)", position: "relative", overflow: "hidden" }}>
@@ -13866,6 +13998,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && NAT && FedCouncilsPanel()}
         {nav === "coun" && !NAT && !needSetup && StateEconPanel()}
+        {nav === "coun" && !NAT && !needSetup && NeighboursPanel()}
         {nav === "coun" && !NAT && <div id="sop-realism-coun" data-nav="coun"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Traditional Rulers Council…</div></div>}
         {nav === "bio" && <WikiArticle w={buildWiki(false)} onShare={(k) => shareWiki(buildWiki(false), k)} />}
         {nav === "cast" && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(auto-fill,minmax(280px,1fr))", gap: TALL() ? 10 : 18 }}>
