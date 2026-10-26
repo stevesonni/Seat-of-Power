@@ -6239,6 +6239,49 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   /* A trade storyline's beat (SYS.TRADE_STORIES), for the President, saved in
      stc.trade.stories; an option's tr changes the state of trade. */
+  /* The President's impeachment (SYS.impeach). The investigation is a card;
+     an indictment opens the tribunal in the Senate chamber at once. */
+  const nassNm = () => (((stc.pres || {}).npcs || {}).nass || {}).name || "the Senate President";
+  const impeachCardFor = (trig) => {
+    const T = SYS.triggerOf(trig), r0 = rng(hashStr("imp" + turn + pName + trig));
+    const goat = (ministries || []).find(m => m.minister && m.id === "fin") || (ministries || []).find(m => m.minister && m.id !== "just" && m.id !== "sec");
+    const odds = trig === "exposed" ? 70 : 50;
+    const vote = (choice, extra) => { const ind = SYS.indictRoll(choice === "stand" && trig === "exposed" ? "exposed" : choice, r0);
+      track("impeach_" + trig, choice + (ind ? ":indicted" : ":cleared"));
+      if (ind) { setStc(p => ({ ...p, impeach: { ...(p.impeach || {}), ...(extra || {}), active: true, indicted: true, frozen: turn } })); addL("⚖️ The Senate voted to indict the President.", "crisis"); scWiki("Controversies", "Indicted by the Senate in " + absYear + " (" + T.nm.toLowerCase() + ").");
+        return { icon: "⚖️", img: "./art/scenes/senate-vote.webp", title: "Indicted", text: "The gavel falls: the Senate votes to indict you. It sits as a tribunal now, and nothing new starts until it rules.", tone: "bad", ok: "To the Senate chamber", onClose: () => setTimeout(() => openTribunal(trig), 200) }; }
+      setStc(p => ({ ...p, impeach: { ...(p.impeach || {}), ...(extra || {}), active: false, indicted: false, last: turn } }));
+      if (choice === "stand") scFx({ app: 5 });
+      addL("🏛️ The Senate dropped the case against the President.", "success");
+      return { icon: "🏛️", img: "./art/scenes/senate-vote.webp", title: "Cleared", text: choice === "stand" ? "The vote fails. You stood your ground, and the country saw it." : "The vote fails. The Senate moves on.", tone: "good", rows: choice === "stand" ? [{ l: "Approval", v: "+5", good: true }] : [] }; };
+    return { key: "impeach_" + trig + "_" + turn, kicker: "The Senate · Section 143", color: CL.red, urgent: true, from: nassNm() + " · Senate President", art: ["senate-hearing-room", "senate-president-angry", null, null],
+      title: "The Senate is investigating you", brief: "The charge: " + T.charge + ". Next the Senate votes on whether to indict you. Your Chief of Staff counts it at " + odds + "%.",
+      options: [].concat(goat ? [{ label: "Sacrifice a minister: sack " + goat.minister + " (" + goat.name + ") and blame it on them", chips: [{ text: "Indictment 20%", color: CL.grn }, { text: "You lose a minister", color: CL.red }],
+          run: () => { try { fireMinister(goat.id, true); } catch (e) {} addL("🪓 You sacked " + goat.minister + " and laid the scandal at their door.", "political"); return vote("scapegoat"); } }] : [],
+        trig !== "exposed" ? [{ label: "Pay the investigating panel quietly (₦2B from the security vote)", risk: "A whistleblower may surface next year.", chips: [{ text: "Indictment 0%", color: CL.grn }, { text: "Corruption +8%", color: CL.red }, { text: naira(2), color: CL.org }],
+          run: () => { spendB(2, "The investigating panel", { force: true }); scFx({ cor: .08 }); addL("💼 Bags of cash went to the Senate panel. The case went quiet.", "political"); return vote("bribe", { whistle: turn + 1, exposed: r0() < .5 }); } }] : [],
+        [{ label: "Stand your ground: let the Senate vote", chips: [{ text: "Indictment " + odds + "%", color: CL.org }, { text: "Cleared: approval +5", color: CL.grn }], run: () => vote("stand") }]) };
+  };
+  const openTribunal = (trig) => {
+    const T = SYS.triggerOf(trig), ag = (ministries || []).find(m => m.id === "just" && m.minister), army = ((((stc.pres || {}).npcs || {}).army || {}).rel ?? 50);
+    const r0 = rng(hashStr("trib" + turn + pName)), done = (R) => { setStc(p => ({ ...p, impeach: { ...(p.impeach || {}), active: false, indicted: false, last: turn, ports: (p.impeach || {}).ports || !!R.ports, emergency: (p.impeach || {}).emergency || !!R.emergency }, pres: p.pres && R.nass ? { ...p.pres, npcs: { ...p.pres.npcs, nass: { ...p.pres.npcs.nass, rel: Math.max(0, Math.min(100, ((p.pres.npcs.nass || {}).rel ?? 50) + R.nass)) } } } : p.pres })); if (R.fx) scFx(R.fx); track("tribunal", R.how + (R.acquit ? ":acquitted" : ":removed")); };
+    const out = (R) => { done(R);
+      if (!R.acquit) { if (R.coup) setStc(p => ({ ...p, removedBy: "coup" })); setTimeout(() => { paper(R.coup ? "ARMY REFUSES ORDER, ARRESTS PRESIDENT" : "SENATE REMOVES THE PRESIDENT", R.coup ? "The Chief of Army Staff joins the Senate" : "Two-thirds vote to remove under Section 143", false, R.coup ? "./art/scenes/coup-night.webp" : "./art/scenes/senate-vote.webp"); setGEnd("impeached"); }, 1800);
+        return { icon: R.coup ? "🪖" : "⚖️", title: R.coup ? "The army arrests you" : "Removed from office", text: R.coup ? "The Chief of Army Staff refused the order and stood with the Senate. Soldiers came for you at dawn." : "Your defence failed. Two-thirds of the Senate voted to remove you.", tone: "bad" }; }
+      scWiki("Presidency", "Survived a Senate impeachment trial in " + absYear + (R.how === "deal" ? " after a deal with the opposition leadership." : R.how === "defence" ? ", defended by the Attorney-General." : " by sealing the National Assembly with the Presidential Guard.") );
+      if (R.how === "guard") setTimeout(() => paper("PRESIDENT SEALS NATIONAL ASSEMBLY, DECLARES EMERGENCY", "Soldiers at the gates; the Senate suspended", false, "./art/backgrounds/national-assembly-exterior.webp"), 600);
+      return { icon: R.how === "guard" ? "🪖" : "🏛️", title: R.how === "deal" ? "Acquitted, at a price" : R.how === "defence" ? "Acquitted: a national hero" : "The Senate is suspended", text: R.how === "deal" ? "They voted to acquit you. In return the opposition takes the ports: from now on half of the customs and export money goes to them." : R.how === "defence" ? "The Attorney-General took the charges apart on live television. The Senate voted to acquit." : "The Presidential Guard sealed the National Assembly. You rule by decree now: bills go nowhere, the world condemns you, and the army can change its mind.", tone: R.how === "defence" ? "good" : "bad",
+        rows: R.how === "deal" ? [{ l: "Customs and exports", v: "Half, for good", good: false }, { l: "Corruption", v: "+5%", good: false }] : R.how === "defence" ? [{ l: "Approval", v: "+8", good: true }] : [{ l: "Approval", v: "−8", good: false }, { l: "Each year", v: "Approval −2; a coup is possible", good: false }] }; };
+    setSession({ id: "tribunal", seal: null, title: "The Senate sits as a tribunal", sub: "Section 143 · the Senate Chamber, Abuja", bg: "senate-chamber",
+      by: { name: nassNm(), role: "Senate President", img: "./art/characters/senate-president-angry.webp" },
+      declaration: "The charge against the President of the Federal Republic: " + T.charge + ". Two-thirds of this Senate will decide.",
+      decision: { title: "How do you survive the vote?", brief: "One sitting. Nothing new starts until it rules.", by: ag ? { name: (ag.acting ? "" : "Hon. ") + ag.minister, role: "Attorney-General of the Federation", img: "./art/characters/attorney-general.webp" } : undefined,
+        options: [
+          { label: "A late-night deal at Aso Rock: give the opposition the ports", note: "They vote to acquit. Half of all customs and export money goes to them, for good.", chips: [{ text: "Acquitted", color: CL.grn }, { text: "Ports lost", color: CL.red }], run: () => out(SYS.tribunalOutcome("deal")) },
+          { label: ag ? "Let the Attorney-General, " + ag.minister + ", defend you" : "Defend yourself without an Attorney-General", note: ag ? "As good as the lawyer you appointed: performance " + Math.round(ag.perf || 50) + "." : "There is no Attorney-General. Appoint one next time.", chips: [{ text: "About " + Math.round(SYS.defenceOdds(ag ? { perf: ag.perf } : null) * 100) + "% to win", color: CL.org }], run: () => out(SYS.tribunalOutcome("defence", { ag: ag ? { perf: ag.perf } : null }, r0)) },
+          { label: "Seal the National Assembly with the Presidential Guard", note: "It works only if the army is with you. If not, the army removes you.", chips: [{ text: "All or nothing", color: CL.red }], run: () => out(SYS.tribunalOutcome("guard", { army }, r0)) },
+        ] } });
+  };
   /* The Special Adviser's yearly economic letter (SYS.econbrief): one real
      question from the year's figures, never the same twice in a term; each
      answer acts now and most come back next year. */
@@ -7275,7 +7318,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const Y = SYS.tradeYear(next.trade, { fronts: next.fronts, turn, corruption: s.cor });
         let T = Y.T;
         if (Y.fx.app) dApp += Y.fx.app;
-        if (Y.fx.cash) { setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + Y.fx.cash) * 100) / 100 })); notes.push(["📈 Customs duties and exports brought in " + naira(Y.fx.cash) + " this year.", "success"]); }
+        if (Y.fx.cash) { const cashT = (next.impeach || {}).ports ? Math.round(Y.fx.cash * 50) / 100 : Y.fx.cash; setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + cashT) * 100) / 100 })); notes.push(["📈 Customs duties and exports brought in " + naira(cashT) + " this year." + ((next.impeach || {}).ports ? " Half the rest went to the senators who took the ports in the tribunal deal." : ""), "success"]); }
         Y.lines.forEach(l => notes.push(["📈 " + l, "political"]));
         Object.entries(SYS.TRADE_INFRA).forEach(([k, I]) => { if (T.infra[k] === turn) { notes.push(["🏗️ " + I.nm + " is open: more exports, cheaper imports.", "success"]); scWiki("Presidency", "Opened " + I.nm.charAt(0).toLowerCase() + I.nm.slice(1) + "."); setTimeout(() => paper(I.nm.toUpperCase() + " OPENS", I.d, true, "./art/scenes/" + I.img + ".webp"), 1400); } });
         // Each open trade storyline brings its next development; a new one opens from the figures, two at most at a time.
@@ -7298,6 +7341,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (c.kind === "tip") { next.bakunda = SYS.bakundaAfter(next.bakunda, c); const nm = "Gen. " + ((((next.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff"; setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-neutral.webp", name: nm, text: c.t } }); } catch (e) {} }, 1500); return; }
         cards.push(bakundaCardFor(c));
       });
+    }
+
+    // The President's impeachment (SYS.impeach): the record starts a Senate case; emergency rule has its own price.
+    if (NAT && next.pres) {
+      const I = next.impeach || {}, nlc = next.labour && next.labour.strikes && next.labour.strikes.nlc;
+      if (I.emergency) { dApp -= 2; notes.push(["🪖 Emergency rule: the National Assembly is sealed and bills go nowhere. Embassies have recalled their ambassadors.", "crisis"]);
+        if (rE() < .12) { next.removedBy = "coup"; setTimeout(() => { paper("ARMY TAKES OVER: PRESIDENT DETAINED", "“The Constitution is restored,” says the new junta", false, "./art/scenes/coup-night.webp"); setGEnd("impeached"); }, 1500); } }
+      const ctx = { turn, cor: s.cor || 0, nass: (((next.pres.npcs || {}).nass || {}).rel ?? 50), strikeStage: nlc && nlc.on ? nlc.stage || 1 : 0, strikeYears: nlc && nlc.on ? SYS.yearsOn(nlc, turn) : 0,
+        worstFront: Math.max(0, ...Object.values(next.fronts || {}).map(Number).filter(x => !isNaN(x))), app: s.app, pStab: s.pStab,
+        defied: !!(window.SOP_TEST && window.SOP_TEST.impeach) || (next.defied != null && next.defied >= turn - 1) || (next.bakunda && next.bakunda.override === "defied" && !I.defiedSeen) || ((next.pres.seeds || []).some(x => x.key === "court_defied" && x.due >= turn - 1)) };
+      const trig = !I.emergency && SYS.impeachCheck(ctx, I);
+      if (trig) { const T = SYS.triggerOf(trig);
+        next.impeach = { ...I, active: true, trig, t0: turn, whistle: null, exposed: false, defiedSeen: I.defiedSeen || !!(next.bakunda && next.bakunda.override === "defied") };
+        cards.push(impeachCardFor(trig)); notes.push(["🏛️ The Senate has opened an investigation into the President: " + T.nm.toLowerCase() + ".", "crisis"]);
+        setTimeout(() => paper("SENATE LAUNCHES INVESTIGATION INTO THE PRESIDENT", T.nm, false, "./art/backgrounds/senate-hearing-room.webp"), 900); }
     }
 
     // The Special Adviser's economic letter (SYS.econbrief): last year's answer lands, and this year's question comes.
@@ -8261,6 +8319,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
     { const B = SYS.strikeBlock(strikeNow(), { s: p.s, id: p.id }); if (B) return strikeRefuse(p.nm.replace(/^⭐\s*/, ""), B); }
+    if (NAT && stc.impeach && stc.impeach.frozen === turn) { try { window.SOP_outcome({ icon: "⚖️", img: "./art/backgrounds/senate-chamber.webp", title: "Not in the year of the trial", text: "The Senate tribunal has frozen the government's programmes for the rest of this year.", tone: "bad" }); } catch (e) {} return; }
     if (!isCapital(p)) return enactP(p);
     // Capital programmes are projects: they go through the one project flow
     // (proposal → budget → money → contractor), prefilled from the programme.
@@ -8795,6 +8854,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("⚠️ CONTEMPT: Defied court ruling on " + judEvent.nm + ". Constitutional crisis unfolding.", "judicial");
       out = { icon: "⚠️", title: "You defied the court", text: judEvent.nm + ": contempt of court. A constitutional crisis is unfolding.", tone: "bad" };
       try { window.SOPX_onDecision && window.SOPX_onDecision("court_defied", { ruling: judEvent.nm }); } catch(e){}
+      setStc(p => ({ ...p, defied: turn }));
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_defiance", target: judEvent.nm, gravity:5, evidence:5, approvalDelta:-5, corruptionDelta:+5, note:"Defied court ruling: "+judEvent.nm }); } catch(e){}
     }
     setJudEvent(null);
@@ -8851,7 +8911,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The House: two-thirds of members against you starts impeachment (S.188).
     { const H = stc.house; if (H && H.seats - H.loyal >= Math.ceil(H.seats * 2 / 3) && s.app < 60) { setPhase("impeach"); addL("⚠️ " + (H.seats - H.loyal) + " of " + H.seats + " Assembly members have signed the impeachment notice.", "crisis"); return; } }
     // Party collapse triggers impeachment only if approval also low (House needs justification)
-    if (s.pStab < 20 && s.app < 50) { setPhase("impeach"); addL("⚠️ Party stability collapsed AND approval low! House of Assembly moves to impeach.", "crisis"); return; }
+    if (!NAT && s.pStab < 20 && s.app < 50) { setPhase("impeach"); addL("⚠️ Party stability collapsed AND approval low! House of Assembly moves to impeach.", "crisis"); return; }
     if (advancedFrom.current >= turn) return; // the year has already moved on
     advancedFrom.current = turn;
     setTurn(t => t + 1);
@@ -9460,7 +9520,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Impeachment — easier to trigger on hard (House moves faster when blood is in the water)
     const _impA = _lvE === "hard" ? 38 : _lvE === "easy" ? 25 : 30;
     const _impS = _lvE === "hard" ? 48 : _lvE === "easy" ? 35 : 40;
-    if (s.app < _impA && s.pStab < _impS) { setPhase("impeach"); return; }
+    // The President answers to the Senate instead (SYS.impeach: the investigation, the vote, the tribunal).
+    if (!NAT && s.app < _impA && s.pStab < _impS) { setPhase("impeach"); return; }
     // Check judiciary
     // A court ruling goes first on this year's Desk instead of
     // replacing it (it used to skip every other event of the turn).
@@ -9686,7 +9747,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const successor = !ended ? "Incumbent" : gEnd === "defeated" ? ini(cast.rival.name) : gEnd === "impeached" ? (depGov?.nm || "Deputy governor") : (() => { const so = successionOutcome(); return so && so.won ? so.name : gN(rng(state.length * 733 + turn + 1), sd?.zone, state); })();
     const termStr = turn > 4 ? "Two terms" : "First term";
     // The story is written by SYS.writeBio from the facts below.
-    const exit = ended ? (() => { const out = gEnd === "impeached" ? He + " was removed from office by the State House of Assembly under Section 188 of the Constitution." : gEnd === "nullified" ? "The Supreme Court nullified " + his + " election on a petition by " + ((stc.petition && stc.petition.opp) || "the opposition candidate") + ", who was sworn in as governor." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182."; return out; })() : null;
+    const exit = ended ? (() => { const out = gEnd === "impeached" ? (stc.removedBy === "coup" ? He + " was removed from office in a military coup." : NAT ? He + " was removed from office by the National Assembly under Section 143 of the Constitution." : He + " was removed from office by the State House of Assembly under Section 188 of the Constitution.") : gEnd === "nullified" ? "The Supreme Court nullified " + his + " election on a petition by " + ((stc.petition && stc.petition.opp) || "the opposition candidate") + ", who was sworn in as governor." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182."; return out; })() : null;
     let owed = 0; if (M) { try { owed = M.owed().length; } catch (e) {} }
     const pj = projects || [], nd = needs || [], debtStart = (stc.oldDebt || {}).total;
     const ordinal = SYS.governorOrdinal(stName), born = SYS.birthOf(pName, startYear);
@@ -9857,7 +9918,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
-      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
+      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") ? 100 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
@@ -10823,7 +10884,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Sfx k={gEnd === "impeached" || gEnd === "defeated" || gEnd === "bankrupt" || gEnd === "nullified" ? "lose" : "win"} />
           <img src={heroImg} alt={pName} style={{ height: TALL() ? 220 : 280, width: "auto", objectFit: "contain", display: "block", margin: "0 auto 18px", borderRadius: 24, ...frameStyle() }} />
           <h2 style={{ fontFamily: F.d, color: gEnd === "complete" ? CL.txt : gEnd === "pres_bid" ? CL.gold : gEnd === "stepped_down" ? CL.blu : CL.red, fontSize: TS(94), fontWeight: 700, margin: "0 0 14px" }}>
-            {gEnd === "impeached" ? "IMPEACHED" : gEnd === "nullified" ? "ELECTION NULLIFIED" : gEnd === "bankrupt" ? "STATE BANKRUPT" : gEnd === "defeated" ? "VOTED OUT" : gEnd === "stepped_down" ? "STEPPED DOWN" : gEnd === "pres_bid" ? "PRESIDENTIAL BID" : "Tenure Complete"}
+            {gEnd === "impeached" ? (stc.removedBy === "coup" ? "REMOVED IN A COUP" : "IMPEACHED") : gEnd === "nullified" ? "ELECTION NULLIFIED" : gEnd === "bankrupt" ? "STATE BANKRUPT" : gEnd === "defeated" ? "VOTED OUT" : gEnd === "stepped_down" ? "STEPPED DOWN" : gEnd === "pres_bid" ? "PRESIDENTIAL BID" : "Tenure Complete"}
           </h2>
           <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 14 }}>Gov. {pName} · {party} · {state.replace("_", " ")} · {termsServed}</p>
           {gEnd === "defeated" && VATAR && !stc.secondChance && <SecondChance />}
@@ -11717,6 +11778,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setS(p => ({ ...p, app: cl100(Math.min(p.app, 32) - 15), pStab: cl100(p.pStab - 20), cor: cl(p.cor + .08) }));
                 setSkApp(p => ({ ...p, media: cl100((p.media || 50) - 25), business: cl100((p.business || 50) - 20), youth: cl100((p.youth || 50) - 15) }));
                 try { window.SOPX_onDecision && window.SOPX_onDecision("court_defied", { ruling: curCourt?.title || "Supreme Court ruling" }); } catch(e){}
+                setStc(p => ({ ...p, defied: turn }));
                 addL("🚨 GOVERNOR DEFIES SUPREME COURT! Constitutional crisis erupts.", "crisis");
                 showResult({ icon: "🚨", title: "CONSTITUTIONAL CRISIS", narrative: "You have defied the Supreme Court of Nigeria. This is unprecedented. The National Assembly is discussing emergency intervention. The NBA has called for impeachment. International bodies are issuing statements. Your party leadership is in emergency session. Even your supporters are questioning whether you've crossed a line.", effects: [
                   { icon: "💥", text: "Approval CRASHES — capped at 32% then -15%", value: "-15%+", bad: true },
