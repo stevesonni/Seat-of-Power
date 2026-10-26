@@ -28,7 +28,7 @@ await shot("address");
 check(!!(await g.click(/Deliver the address/)), "the inaugural address is delivered"); await g.wait(1200);
 // The Economic Advisory Council around its table: each member speaks, then its first sitting sets the trade policy.
 await g.page.evaluate(() => window.SOP.councils.eac()); await g.wait(700);
-{ const t = await g.txt(); check(/You, presiding/.test(t) && /The Economic Advisory Council/.test(t) && /Central Bank of Nigeria/.test(t), "the Economic Advisory Council sits around the table"); }
+{ const t = await g.txt(); check(/You, presiding/.test(t) && /The Economic Advisory Council/.test(t) && /CBN/.test(t) && /Customs/.test(t), "the Economic Advisory Council sits around the table"); }
 for (let i = 0; i < 8 && await g.click(/^(Next: .*|To the decision) ›$/); i++) await g.wait(200);
 await shot("eac");
 check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button.ds-option")].find(x => /^Targeted/.test(x.textContent.trim())); b && b.click(); return !!b; }), "its first sitting sets the trade policy"); await g.wait(1200);
