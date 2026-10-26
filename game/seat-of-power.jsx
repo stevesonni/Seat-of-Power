@@ -881,7 +881,7 @@ const NEED_TYPES = [
 // The ministry that must exist before a need can be answered.
 const NEED_MINISTRY = { water: "water", power: "power", housing: "housing", traffic: "transport", youth: "sports", poverty: "humanitarian", land: "lands", jobs: "commerce", digital: "digital" };
 // Project types that cannot start without their own commissioner.
-const NEEDS_MINISTRY = { stadium: "sports", esports: "sports", water: "water", dam: "water", power: "power", housing: "housing", industrial: "commerce", tourist: "tourism", landfill: "env", vehicles: "transport" };
+const NEEDS_MINISTRY = { nursing: "health", stadium: "sports", esports: "sports", water: "water", dam: "water", power: "power", housing: "housing", industrial: "commerce", tourist: "tourism", landfill: "env", vehicles: "transport" };
 /* Which office is on screen. The presidency runs on the governorship's engine;
    these accessors hand it the Federal Government's own ministries, programmes,
    bills, orders and needs (game/systems/federal.js) instead of a state's. */
@@ -900,8 +900,8 @@ const INVITES = () => SEAT.nat ? [] : INTL_INVITES; // the President's world sta
 const REVM = () => SEAT.nat ? SYS.FED_REVENUE : REVENUE_MEASURES;
 const TYPES_FOR = () => SEAT.nat ? SYS.FED_TYPES : Object.keys(SYS.UNIT).filter(k => !SYS.FED_ONLY.includes(k));
 // What kind of need each project type answers, and what it improves when done.
-const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security", industrial: "jobs", stadium: "youth", esports: "youth" };
-const PROJ_STAT = { stadium: "igr", esports: "igr", tourist: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
+const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", secondary: "school", nursing: "clinic", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security", industrial: "jobs", stadium: "youth", esports: "youth" };
+const PROJ_STAT = { stadium: "igr", esports: "igr", tourist: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", secondary: "lit", nursing: "hp", coe: "lit", polytechnic: "lit", university: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
 const STAT_NAME = { infra: "Infrastructure", hp: "Health", lit: "Education", agr: "Agriculture", sec: "Security", igr: "Own revenue" };
 // Ministries a governor can add when the state needs them. key: the number a
 // good commissioner moves each year; unlock: project types it adds.
@@ -4547,7 +4547,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, feder
         <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: "0 12px" }}>
           <div>{spLab("Name")}<input value={d.title || ""} onChange={e => onFlow({ ...F0, draft: { ...d, title: e.target.value } })} style={spField} /></div>
 
-          <div>{spLab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas, federal: SEAT.nat }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need, srcPolicy: d.srcPolicy, ministryId: null } }); }} style={spField}>{TYPES_FOR().map(k => <option key={k} value={k}>{SYS.UNIT[k].nm}</option>)}</select></div>
+          <div>{spLab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas, federal: SEAT.nat }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need, srcPolicy: d.srcPolicy, ministryId: null } }); }} style={spField}>{TYPES_FOR().map(k => <option key={k} value={k}>{(SEAT.nat && SYS.UNIT[k].fed) || SYS.UNIT[k].nm}</option>)}</select></div>
 
           <div>{spLab("Supervising ministry")}<select value={d.ministryId || ""} onChange={e => onFlow({ ...F0, draft: { ...d, ministryId: e.target.value } })} style={spField}>{(ministries || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
         </div>
@@ -8177,7 +8177,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Projects sheet, and gets Wikipedia entries at each stage.
   const CAPITAL_IDS = new Set(["roads","mega_airport","mega_hospital","housing","rail","ind_park","tech_hub","uni","new_uni","rural_elec","water","irrigation","phc"]);
   const isCapital = (p) => CAPITAL_IDS.has(p.id) || (p.nm||"").startsWith("⭐") || (p.t >= 3);
-  const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"road", ind_park:"industrial", tech_hub:"industrial", uni:"school", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam" };
+  const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"road", ind_park:"industrial", tech_hub:"industrial", uni:"university", new_uni:"university", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam" };
   const EIA_TYPES = new Set(["road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
@@ -8486,7 +8486,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     welcomeInvestors(p);
     // The ribbon: the crowd is waiting; you cut it, and the front page credits whoever delivered (SYS.ribbonHeadline).
     const RH = SYS.ribbonHeadline({ contractor: p.contractor, who: (NAT ? "President " : "Governor ") + String(pName || "").split(" ").pop(), what: (SYS.UNIT[p.type] || {}).nm || p.title, leakage: p.leakage || 0 });
-    const RIBBON = { road: "ribbon-road", hospital: "ribbon-hospital", school: "ribbon-school", bridge: "ribbon-bridge", water: "ribbon-water", market: "ribbon-market" };
+    const RIBBON = { road: "ribbon-road", hospital: "ribbon-hospital", school: "ribbon-school", secondary: "ribbon-school", nursing: "ribbon-school", coe: "ribbon-school", polytechnic: "ribbon-school", university: "ribbon-school", bridge: "ribbon-bridge", water: "ribbon-water", market: "ribbon-market" };
     const ribbonImg = RIBBON[p.type] ? "./art/scenes/" + RIBBON[p.type] + ".webp" : NAT ? "./art/scenes/federal-project-commissioning.webp" : "./art/backgrounds/project-ribbon-cutting.webp";
     try {
       window.SOP_outcome({ icon: "✂️", img: ribbonImg, badge: "./art/objects/ceremonial-scissors.webp", title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" });

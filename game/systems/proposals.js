@@ -17,6 +17,11 @@ const TYPE_WORDS = [
   ["esports", /\b(e-?sports?|gaming (arena|cent(re|er)|hub))\b/i],
   ["tourist", /\b(tourists?|tourism|resorts?|heritage sites?|museums?|beach(es)?|attractions?)\b/i],
   ["hospital", /\b(hospital|clinic|health ?cent(re|er)s?|phc|maternity|medical cent(re|er)|wards?|beds?)\b/i],
+  ["university", /\b(universit(y|ies))\b/i],
+  ["polytechnic", /\b(polytechnics?|poly)\b/i],
+  ["coe", /\b(colleges? of education|coe)\b/i],
+  ["nursing", /\b(nursing|midwifery)\b/i],
+  ["secondary", /\b(secondary|high schools?|grammar schools?|government colleges?|unity schools?)\b/i],
   ["school", /\b(schools?|classrooms?|college|secondary|primary school|laborator(y|ies)|hostels?)\b/i],
   ["bridge", /\b(bridges?|flyovers?|overpass)\b/i],
   ["road", /\b(roads?|highways?|km|kilomet(re|er)s?|dualisation|dual carriageway|asphalt|tarring)\b/i],
@@ -33,6 +38,7 @@ const TYPE_WORDS = [
 ];
 // Not within a state government's power, or not a capital project.
 const UNSUPPORTED = [
+  [/\bfederal (universit(y|ies)|polytechnics?|colleges?|government colleges?)\b/i, "Federal institutions are founded by the Federal Government. A state founds its own: a state university, polytechnic, college of education or school of nursing.", "gov"],
   [/\b(army|military|soldiers?|navy|air ?force)\b/i, "The armed forces are federal (Exclusive List). A state can fund vigilance groups or equipment for the police, not an army."],
   [/\b(seaports?|ports? authority|deep ?sea ports?)\b/i, "Seaports are under federal control. A state can build roads to a port, not the port.", "gov"],
   [/\b(railways?|standard[- ]gauge)\b/i, "Railways are on the Exclusive List: the Federal Government builds them. A state can fund a light rail only with federal approval.", "gov"],
@@ -41,13 +47,18 @@ const UNSUPPORTED = [
   [/\b(refiner(y|ies)|oil wells?|gas pipelines?)\b/i, "Refineries need federal licences and private investors; look out for investor proposals on the Desk.", "gov"],
   [/\b(boreholes?|street ?lights?|motor parks?|market stalls?)\b/i, "That is a state or local government's job. The Federal Government can fund it through the states, but not build it itself.", "fed"],
 ];
-const UNIT_WORDS = { rail: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)\s*(of )?(rail|railway|track)/i, pipeline: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)\s*(of )?(gas )?pipe/i, seaport: /(\d+)\s*(berths?)/i, hospital: /(\d[\d,]*)\s*(beds?)/i, school: /(\d[\d,]*)\s*(classrooms?|blocks?)/i, road: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)/i, bridge: /(\d+)\s*(bridges?)/i,
+const UNIT_WORDS = { rail: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)\s*(of )?(rail|railway|track)/i, pipeline: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)\s*(of )?(gas )?pipe/i, seaport: /(\d+)\s*(berths?)/i, hospital: /(\d[\d,]*)\s*(beds?)/i, secondary: /(\d[\d,]*)\s*(classrooms?)/i, nursing: /(\d[\d,]*)\s*(students?|places?)/i, coe: /(\d[\d,]*)\s*(students?|places?)/i, polytechnic: /(\d[\d,]*)\s*(students?|places?)/i, university: /(\d[\d,]*)\s*(students?|places?)/i, school: /(\d[\d,]*)\s*(classrooms?|blocks?)/i, road: /(\d[\d,.]*)\s*(km|kilomet(?:re|er)s?)/i, bridge: /(\d+)\s*(bridges?)/i,
   water: /(\d[\d,]*)\s*(boreholes?|schemes?)/i, dam: /(\d+)\s*(dams?)/i, power: /(\d[\d,.]*)\s*(mw|megawatts?)/i, market: /(\d[\d,]*)\s*(stalls?|shops?)/i, housing: /(\d[\d,]*)\s*(homes?|houses|units|flats)/i,
   cctv: /(\d[\d,]*)\s*(cameras?)/i, vehicles: /(\d[\d,]*)\s*(vehicles?|vans?|ambulances?)/i, landfill: /(\d+)\s*(sites?|landfills?)/i, industrial: /(\d[\d,]*)\s*(hectares?|ha)\b/i, stadium: /(\d[\d,]*)\s*(seats?|capacity)/i };
 
 const BENEFIT = {
   hospital: (q) => "Care for about " + Math.round(q * 800).toLocaleString() + " people a year once equipped and staffed; fewer deaths in childbirth.",
   school: (q) => "Places for about " + Math.round(q * 45).toLocaleString() + " pupils once furnished and staffed.",
+  secondary: (q) => "Places for about " + Math.round(q * 45).toLocaleString() + " secondary students once furnished and staffed.",
+  nursing: (q) => q.toLocaleString() + " student nurses and midwives in training; the state's hospitals and health centres get staff.",
+  coe: (q) => q.toLocaleString() + " teachers in training: the schools you build get someone to teach in them.",
+  polytechnic: (q) => q.toLocaleString() + " students in technical courses: engineers, technicians and accountants for local firms.",
+  university: (q) => q.toLocaleString() + " university places: fewer young people leave the state to study, and some never come back.",
   road: (q) => q + " km of usable road: cheaper trips for farmers and traders, fewer accidents.",
   bridge: () => "Joins communities the river cuts off; trade crosses all year.",
   water: (q) => "Clean water for about " + Math.round(q * 2500).toLocaleString() + " people once pumps and operators are in place.",
@@ -91,7 +102,7 @@ export const parseProposal = (text, { lgas = [], federal = false } = {}) => {
   return {
     status: "ok",
     proposal: {
-      name: (UNIT[type].nm + (lga ? " in " + lga : "")).trim(), description: t, type, sector: TYPE_SECTOR[type], sectorName: SECTORS[TYPE_SECTOR[type]],
+      name: ((federal && UNIT[type].fed) || UNIT[type].nm) + (lga ? " in " + lga : ""), description: t, type, sector: TYPE_SECTOR[type], sectorName: SECTORS[TYPE_SECTOR[type]],
       lga, qty: e.qty, unit: e.unit, estimateM: e.buildM, equipM: e.equipM, opsPerYearM: e.opsPerYearM, years: e.years, facility: e.facility,
       needs: SECTORS[TYPE_SECTOR[type]] + " contractor" + (FACILITY[type] ? "; then " + FACILITY[type].what : ""),
       benefit: BENEFIT[type](e.qty), assumptions,

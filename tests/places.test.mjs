@@ -39,3 +39,20 @@ test("site trouble: floods only where there is water; landowners elsewhere; seed
   assert.ok(fl > 40 && fl < 110, "about 18% of years flood: " + fl);
   assert.ok(land > 15 && land < 70, "about 10% of years a land dispute: " + land);
 });
+// A player chose to build a university and got a road: the university programmes are universities now,
+// and the education choices go beyond primary schools (feedback, October 2026).
+import { parseProposal } from "../game/systems/proposals.js";
+import { FED_TYPES } from "../game/systems/federal.js";
+test("education: universities, polytechnics, colleges of education, nursing and secondary schools", () => {
+  const P = (t, o) => parseProposal(t, o).proposal;
+  assert.equal(P("a state university with 6000 students").type, "university");
+  assert.equal(P("university").qty, 5000);
+  assert.equal(P("polytechnic").type, "polytechnic");
+  assert.equal(P("college of education").type, "coe");
+  assert.equal(P("school of nursing and midwifery").type, "nursing");
+  assert.equal(P("secondary school").type, "secondary");
+  assert.equal(P("primary school").type, "school");
+  assert.equal(P("university", { federal: true }).name, "Federal university");
+  assert.equal(parseProposal("a federal university").status, "unsupported", "a governor founds state institutions only");
+  ["university", "polytechnic", "coe", "nursing", "secondary"].forEach(k => assert.ok(FED_TYPES.includes(k), k));
+});

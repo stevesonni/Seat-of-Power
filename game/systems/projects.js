@@ -25,13 +25,19 @@ export const SECTORS = {
   roads: "Roads and transport", health: "Health facilities", education: "Schools and colleges", water: "Water and sanitation",
   energy: "Power", markets: "Markets and housing", security: "Security equipment", waste: "Waste", industry: "Industrial estates", sports: "Sports", tourism: "Tourism and culture",
 };
-export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports", esports: "sports", tourist: "tourism", rail: "roads", airport: "roads", seaport: "industry", refinery: "industry", pipeline: "energy" };
+export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", secondary: "education", nursing: "health", coe: "education", polytechnic: "education", university: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports", esports: "sports", tourist: "tourism", rail: "roads", airport: "roads", seaport: "industry", refinery: "industry", pipeline: "energy" };
 
 // Simulation unit costs (₦M) and typical duration. Assumptions for play, not
 // real tender prices.
 export const UNIT = {
   road: { unit: "km", per: 900, def: 10, years: 2, nm: "Road" }, bridge: { unit: "bridge", per: 3500, def: 1, years: 2, nm: "Bridge" },
-  hospital: { unit: "bed", per: 25, def: 100, years: 2, nm: "Hospital" }, school: { unit: "classroom", per: 35, def: 40, years: 1, nm: "School" },
+  hospital: { unit: "bed", per: 25, def: 100, years: 2, nm: "Hospital" }, school: { unit: "classroom", per: 35, def: 40, years: 1, nm: "Primary school" },
+  // Education beyond primary (a player asked): sized in student places. For the President, the federal version (fed).
+  secondary: { unit: "classroom", per: 40, def: 36, years: 1, nm: "Secondary school", fed: "Federal Government College" },
+  nursing: { unit: "student place", per: 2.2, def: 300, years: 2, nm: "School of nursing", fed: "Federal college of nursing" },
+  coe: { unit: "student place", per: 1.8, def: 1500, years: 2, nm: "College of education", fed: "Federal college of education" },
+  polytechnic: { unit: "student place", per: 2.5, def: 3000, years: 3, nm: "Polytechnic", fed: "Federal polytechnic" },
+  university: { unit: "student place", per: 3, def: 5000, years: 3, nm: "University", fed: "Federal university" },
   water: { unit: "borehole scheme", per: 120, def: 20, years: 1, nm: "Water scheme" }, dam: { unit: "dam", per: 6000, def: 1, years: 3, nm: "Dam" },
   power: { unit: "MW", per: 700, def: 5, years: 2, nm: "Power plant" }, market: { unit: "stall", per: 2, def: 500, years: 1, nm: "Market" },
   housing: { unit: "home", per: 18, def: 200, years: 2, nm: "Housing estate" }, vehicles: { unit: "patrol vehicle", per: 45, def: 40, years: 1, nm: "Patrol fleet" },
@@ -47,6 +53,11 @@ export const UNIT = {
 export const FACILITY = {
   hospital: { equip: .25, opsPer: 4, what: "beds, theatres and oxygen; doctors and nurses" },   // opsPer: ₦M a year per unit
   school: { equip: .15, opsPer: 6, what: "desks, books and laboratories; teachers" },
+  secondary: { equip: .18, opsPer: 7, what: "desks, laboratories and a library; teachers" },
+  nursing: { equip: .25, opsPer: .5, what: "skills labs and a teaching ward; nurse tutors" },
+  coe: { equip: .15, opsPer: .3, what: "lecture halls, a library and a demonstration school; lecturers" },
+  polytechnic: { equip: .25, opsPer: .4, what: "workshops and laboratories; lecturers and technologists" },
+  university: { equip: .2, opsPer: .45, what: "laboratories, a library and hostels; lecturers" },
   water: { equip: .1, opsPer: 4, what: "pumps and treatment; operators" },
   power: { equip: .2, opsPer: 24, what: "turbines and lines; engineers" },
   market: { equip: .04, opsPer: .08, what: "stalls fitted; a market management board" },
@@ -62,7 +73,7 @@ export const TERRAIN = { riverine: { f: 1.3, nm: "riverine", why: "creeks and sw
 export const terrainOf = (place) => { const x = String(place || ""); return RIVERINE_STATES.has(x) || RIVERINE.test(x) ? "riverine" : ROCKY_STATES.has(x) || ROCKY.test(x) ? "rocky" : null; };
 // How much one ministry can oversee in a year, in the project's units. A good
 // minister (perf 100) manages a quarter more; a weak one (perf 40) a quarter less.
-export const CAPACITY = { road: 150, bridge: 2, hospital: 250, school: 200, water: 60, dam: 1, power: 15, market: 2000, housing: 1500, vehicles: 200, cctv: 2000, landfill: 2, industrial: 150, stadium: 30000, esports: 3000, tourist: 2, rail: 120, pipeline: 250, refinery: 50, seaport: 3, airport: 1 };
+export const CAPACITY = { secondary: 200, nursing: 600, coe: 3000, polytechnic: 4000, university: 5000, road: 150, bridge: 2, hospital: 250, school: 200, water: 60, dam: 1, power: 15, market: 2000, housing: 1500, vehicles: 200, cctv: 2000, landfill: 2, industrial: 150, stadium: 30000, esports: 3000, tourist: 2, rail: 120, pipeline: 250, refinery: 50, seaport: 3, airport: 1 };
 export const capacityOf = (type, { perf = 70, federal = false } = {}) => Math.max(1, Math.round((CAPACITY[type] || 100) * (federal ? 2.5 : 1) * (.75 + Math.max(0, Math.min(100, perf)) / 200)));
 // A second contractor doubles what can be built in a year, for 12% more.
 export const SECOND_CONTRACTOR = 1.12;

@@ -43,7 +43,7 @@ export const FED_CORE = {
 };
 
 // ── Federal project types the President can build (the governor's list minus local ones).
-export const FED_TYPES = ["road", "bridge", "rail", "pipeline", "refinery", "power", "dam", "seaport", "airport", "hospital", "school", "housing", "industrial", "water"];
+export const FED_TYPES = ["road", "bridge", "rail", "pipeline", "refinery", "power", "dam", "seaport", "airport", "hospital", "school", "secondary", "nursing", "coe", "polytechnic", "university", "housing", "industrial", "water"];
 export const FED_ONLY = ["rail", "pipeline", "refinery", "seaport", "airport"];
 
 // ── Programmes (same shape as the governor's POLICIES).
