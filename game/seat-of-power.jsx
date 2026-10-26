@@ -6213,6 +6213,42 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   /* A trade storyline's beat (SYS.TRADE_STORIES), for the President, saved in
      stc.trade.stories; an option's tr changes the state of trade. */
+  /* The Special Adviser's yearly economic letter (SYS.econbrief): one real
+     question from the year's figures, never the same twice in a term; each
+     answer acts now and most come back next year. */
+  const econCtx = (st0 = stc) => { const T = st0.trade || SYS.tradeInit(), E = st0.exports;
+    return { T, stance: T.stance, cash: s.cash || 0, debt: s.debt || 0, app: s.app, cor: s.cor, turn, igr: s.igr || 0, faac: s.faac || 0, arrears: st0.arrears || 0, exportsOn: !!E, crop: (E && E.crop) || SYS.produceOf(state)[0], stName }; };
+  const trChips = (tr = {}) => [["reserves", "Reserves", "$", "bn", 1], ["food", "Food prices", "", "%", -1], ["factories", "Factories", "", "", 1], ["exports", "Exports", "$", "bn", 1], ["smuggling", "Smuggling", "", "", -1], ["premium", "Street-rate gap", "", "%", -1]]
+    .filter(([k]) => tr[k]).map(([k, l, a, b, good]) => ({ text: l + " " + (tr[k] > 0 ? "+" : "−") + a + Math.abs(tr[k]) + b, color: tr[k] * good > 0 ? CL.grn : CL.red }));
+  // Apply an answer's effects now (fx: approval, money, debt, IGR…; tr: the trade figures).
+  const econFx = (fx = {}, tr = null) => {
+    scFx({ app: fx.app || 0, pStab: fx.pStab || 0, cor: fx.cor || 0, sec: fx.sec || 0, agr: fx.agr || 0, infra: fx.infra || 0, igr: fx.igr || 0, debt: fx.cost > 0 ? fx.cost : 0 });
+    if (fx.gain || fx.borrow || fx.debtCut) setS(p => { const cut = Math.min(fx.debtCut || 0, Math.max(0, p.cash || 0)); return { ...p, cash: Math.round(((p.cash || 0) + (fx.gain || 0) + (fx.borrow || 0) - cut) * 100) / 100, debt: Math.max(0, Math.round(((p.debt || 0) + (fx.borrow || 0) - cut) * 10) / 10) }; });
+    if (tr && Object.keys(tr).length) setStc(p => ({ ...p, trade: SYS.tradeApply(p.trade || SYS.tradeInit(), tr, turn) }));
+  };
+  const econCardFor = (id, E, ctx, landed) => {
+    const iss = SYS.econIssue(id, NAT); if (!iss) return null;
+    const sa = cast.adviser.name, recall = SYS.econRecall(E, turn, landed);
+    return { key: "econ_" + id + "_" + turn, kicker: (NAT ? "The national economy" : "The state's economy") + " · " + absYear, color: CL.gold, from: sa + " · Special Adviser", art: [NAT ? "finance-ministry-office" : "finance-ministry-office", saPortrait(sa).split("/").pop().replace(/\.webp$/, ""), null, null],
+      title: iss.t(ctx), brief: (recall ? recall + " " : "") + iss.d(ctx),
+      stakes: NAT && ctx.stance ? tradeFigures(ctx.T) + "." : !NAT ? "Taxes and fees " + naira(ctx.igr) + " a year · in the bank " + naira(ctx.cash) + (ctx.debt ? " · debt " + naira(ctx.debt) : "") + "." : undefined,
+      options: iss.opts.map(o => { const fx = o.fx || {};
+        return { label: o.l, note: o.act ? "It sits now." : undefined, chips: fxChips({ app: fx.app, pStab: fx.pStab, cor: fx.cor, sec: fx.sec, igr: fx.igr > 0 ? fx.igr : 0, debt: fx.cost || 0 })
+          .concat(fx.igr < 0 ? [{ text: "Revenue −" + naira(-fx.igr) + "/yr", color: CL.red }] : [], fx.gain ? [{ text: "+" + naira(fx.gain) + " now", color: CL.grn }] : [], fx.borrow ? [{ text: "Borrow " + naira(fx.borrow), color: CL.org }] : [], fx.debtCut ? [{ text: "Debt −" + naira(fx.debtCut), color: CL.grn }] : [], trChips(o.tr)),
+          run: () => {
+            if (fx.cost && !spendB(fx.cost, iss.t(ctx))) return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for this. Choose another way.", tone: "bad" };
+            econFx({ ...fx, cost: 0 }, o.tr);
+            setStc(p => ({ ...p, econ: SYS.econChoose(p.econ || SYS.econInit(), id, o.id, turn, NAT).E }));
+            if (o.stall) stallWork(["roads"]);
+            if (o.act === "convene") setTimeout(() => { try { NAT ? conveneEAC() : conveneEcon(); } catch (e) { console.error("[econ convene]", e); } }, 700);
+            addL("📊 " + iss.t(ctx) + ": " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".", "policy");
+            if (!o.act) scWiki(NAT ? "Presidency" : "Governorship", "The economy, " + absYear + ": " + o.past.replace(/^\w/, c => c.toUpperCase()) + ".");
+            track("econ_" + id, o.id);
+            return o.act ? { icon: "📊", title: NAT ? "The Economic Advisory Council is called" : "The State Economic Council is called", text: "It sits now.", tone: "neutral" }
+              : { icon: "📊", img: "./art/backgrounds/finance-ministry-office.webp", title: o.l, text: o.later ? "Done. " + sa.split(" ").slice(-1)[0] + " will report next year on what it led to." : "Done.", tone: (fx.app || 0) < 0 ? "neutral" : "good",
+                rows: [].concat(fx.app ? [{ l: "Approval", v: sgnN(fx.app), good: fx.app > 0 }] : [], fx.igr ? [{ l: "Revenue", v: (fx.igr > 0 ? "+" : "−") + naira(Math.abs(fx.igr)) + " a year", good: fx.igr > 0 }] : [], fx.cost ? [{ l: "Cost", v: naira(fx.cost), good: false }] : [], fx.borrow ? [{ l: "Borrowed", v: naira(fx.borrow), good: false }] : [], fx.gain ? [{ l: "Into the bank", v: naira(fx.gain), good: true }] : [], trChips(o.tr).map(c => ({ l: c.text.replace(/ [+−].*$/, ""), v: c.text.replace(/^.* ([+−])/, "$1"), good: c.color === CL.grn }))) };
+          } }; }) };
+  };
   const tradeStoryCardFor = (id, S) => {
     const def = SYS.TRADE_STORIES[id], c = def && S && SYS.storyCard(def, S, { nat: true });
     if (!c) return null;
@@ -7234,6 +7270,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (c.kind === "tip") { next.bakunda = SYS.bakundaAfter(next.bakunda, c); const nm = "Gen. " + ((((next.pres || {}).npcs || {}).army || {}).name || "the Chief") + " · Chief of Army Staff"; setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/chief-of-army-staff-full-neutral.webp", name: nm, text: c.t } }); } catch (e) {} }, 1500); return; }
         cards.push(bakundaCardFor(c));
       });
+    }
+
+    // The Special Adviser's economic letter (SYS.econbrief): last year's answer lands, and this year's question comes.
+    {
+      let E = next.econ || SYS.econInit(); const D = SYS.econDue(E, turn); E = D.E;
+      D.due.forEach(x => { const f = x.fx || {};
+        scFx({ app: f.app || 0, pStab: f.pStab || 0, cor: f.cor || 0, sec: f.sec || 0, agr: f.agr || 0, infra: f.infra || 0, igr: f.igr || 0, debt: f.cost > 0 ? f.cost : 0 });
+        if (x.tr && next.trade) next.trade = SYS.tradeApply(next.trade, x.tr, turn);
+        notes.push(["📊 " + x.text, (f.app || 0) < 0 || (f.cost || 0) > 0 || (f.cor || 0) > 0 ? "political" : "success"]); });
+      const ctx = econCtx(next), id = SYS.econPick(E, ctx, NAT, rE);
+      next.econ = E;
+      if (id) { const c = econCardFor(id, E, ctx, D.due); if (c) cards.push(c); }
     }
 
     // Apply the year's passive costs.
@@ -9775,7 +9823,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
-      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
+      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
