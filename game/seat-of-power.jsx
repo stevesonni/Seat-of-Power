@@ -13782,7 +13782,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   {story && <div className="cols">{story}</div>}
                 </article> : <div />}
                 <div className="right">
-                  {stc.teaser && stc.teaser.turn === turn && turn < MT && <div className="sealed sop-step"><img src="./art/objects/letter-sealed-large.webp" alt="" /><div><div className="k">SEALED UNTIL {absYear + 1}</div><b>From: {stc.teaser.from}</b><em>“{stc.teaser.line}”</em></div></div>}
+                  {stc.teaser && stc.teaser.turn === turn && turn < MT && <div className="sealed sop-step"><img src="./art/objects/letter-sealed-large.webp" alt="" /><div><div className="k" style={{ display: "flex", alignItems: "center", gap: 5 }}><img src="./art/objects/wax-seal-red.webp" alt="" style={{ width: "1.3em", height: "1.3em", filter: "none" }} />SEALED UNTIL {absYear + 1}</div><b>From: {stc.teaser.from}</b><em>“{stc.teaser.line}”</em></div></div>}
                   {yearLines.length > 0 && <section className="card year"><h3>What happened this year</h3>
                     {yearLines.map((l, i) => <div key={i} className={"ln " + (l.good ? "g" : "b")}><img src={"./art/icons/" + l.ic + ".webp"} alt="" /><span>{l.good ? "▲" : "▼"} {l.t}</span></div>)}
                   </section>}
