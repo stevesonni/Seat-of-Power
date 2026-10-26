@@ -502,8 +502,8 @@
           // Long names shrink until they fit the board (two lines at most).
           spans.forEach(function (el) { var f = parseFloat(getComputedStyle(el).fontSize) || 30; for (var k = 0; k < 30 && f > 11 && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1); k++) { f -= 1; el.style.fontSize = f + 'px'; } });
           var engine = null; try { engine = window.SOP_sound && window.SOP_sound(home ? 'landing' : 'takeoff'); } catch (e) {}
-          // A military jet has its own roar (audio/sfx/military-jet.mp3) once it is added; until then, the airliner's engines.
-          if (plane === 'military' && window.SOP_soundOn && window.SOP_soundOn()) try { var jet = new Audio('./audio/sfx/military-jet.mp3'); jet.volume = .5; jet.addEventListener('canplay', function () { if (engine) engine.pause(); engine = jet; jet.play().catch(function () {}); }, { once: true }); } catch (e) {}
+          // A military jet has its own roar (audio/sfx/military-jet.mp3, left to right; -home.mp3, right to left).
+          if (plane === 'military' && window.SOP_soundOn && window.SOP_soundOn()) try { var jet = new Audio('./audio/sfx/military-jet' + (home ? '-home' : '') + '.mp3'); jet.volume = .5; jet.addEventListener('canplay', function () { if (engine) engine.pause(); engine = jet; jet.play().catch(function () {}); }, { once: true }); } catch (e) {}
           setTimeout(fend, still() ? 1400 : 7200);
           return;
         }

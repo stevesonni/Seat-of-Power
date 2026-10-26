@@ -12,7 +12,7 @@ These fly across the sky exactly like `airliner-side.webp` does now. Each must m
 | military-jet-side.webp | An Air Force transport jet in grey military livery, with invented roundels | The President flies from the Air Force base during a strike |
 | private-jet-side.webp | A small white business jet with an invented stripe and no logos | A governor charters a jet during a strike |
 
-The owner will supply the jet sound as `public/audio/sfx/military-jet.mp3`.
+The jet sound is in: `public/audio/sfx/military-jet.mp3` (left to right, flying out) and `military-jet-home.mp3` (channels swapped, flying home).
 
 ## 2. Strike scenes (1280 × 720) · public/art/scenes/
 | File | The picture | Used for |
