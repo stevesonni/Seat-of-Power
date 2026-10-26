@@ -24,7 +24,8 @@ export async function open(port, { test = {}, seed = 7, phone = true, save } = {
   // Clicks only a button a player could reach: not one hidden behind an open sheet.
   const click = (re) => page.evaluate((src) => {
     const rx = new RegExp(src);
-    for (const b of [...document.querySelectorAll("button")].filter(x => rx.test(x.textContent.trim()) && !x.disabled && x.offsetParent)) {
+    // The street's complaints are optional: the bot plays the year, not the phone-in (tests/e2e/complaints.mjs answers them).
+    for (const b of [...document.querySelectorAll("button")].filter(x => rx.test(x.textContent.trim()) && !x.disabled && x.offsetParent && !x.closest("[aria-label=Complaints]"))) {
       b.scrollIntoView({ block: "center" });
       const r = b.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       if (el && !b.contains(el) && !el.contains(b)) continue;
@@ -102,7 +103,7 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
       const scope = sheets[sheets.length - 1] || document.getElementById("sop-task") || null;
       if (!scope) return null;
       const okText = (e) => { const t = e.textContent.trim().replace(/\s+/g, " "); return t.length > 1 && !skip.test(t) && !stuck.some(x => t.startsWith(x)); };
-      const bs = [...scope.querySelectorAll("button")].filter(b => vis(b) && okText(b));
+      const bs = [...scope.querySelectorAll("button")].filter(b => vis(b) && okText(b) && !b.closest("[aria-label=Complaints]"));
       if (bs.length) { bs[0].click(); return "btn " + bs[0].textContent.trim().slice(0, 50); }
       const cards = [...scope.querySelectorAll("div, li, [role=button]")].filter(e => vis(e) && getComputedStyle(e).cursor === "pointer" && okText(e) && e.textContent.length < 400 && ![...e.querySelectorAll("div,li")].some(c => getComputedStyle(c).cursor === "pointer"));
       if (cards.length) { cards[0].click(); return "card " + cards[0].textContent.trim().slice(0, 50); }

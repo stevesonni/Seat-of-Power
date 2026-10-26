@@ -41,3 +41,4 @@ export * from "./labour.js";
 export * from "./glossary.js";
 export * from "./storylines.js";
 export * from "./statestories.js";
+export * from "./complaints.js";

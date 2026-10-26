@@ -2247,7 +2247,7 @@ const CivicPanel = ({ children, style: st }) => React.createElement("div", {
 // The Basics: five cards, under a minute. The full guide is one tap behind them.
 const BASICS = [
   { art: "backgrounds/government-house", icon: "icon-office-governor", t: "You are in charge", c: "You run a Nigerian state. First you win the election; then you govern for four years. Do well and the people give you a second term, and one day you may run for President." },
-  { art: "backgrounds/governor-office", icon: "icon-desk", t: "How a year works", c: "Each year you set the budget, answer what the state needs, and open your letters: each one is a decision. Then you end the year and see what your choices did." },
+  { art: "backgrounds/governor-office", icon: "icon-desk", t: "How a year works", c: "Each year you set the budget, answer what the state needs, and open your letters: each one is a decision. You have eight big moves a year (more with a strong team); bills, executive orders, letters and the street's complaints are extra. Then you end the year and see what your choices did." },
   { art: "scenes/camp-youth-town-hall", icons: ["icon-approval", "icon-bank", "icon-party"], t: "Three things to watch", c: "Approval: do the people like you? The bank: can you pay for what you promised? The party: will they stand with you? Keep all three healthy." },
   { art: "scenes/ribbon-cut", icon: "icon-ok", t: "How you win, how you lose", c: "Deliver what you promise and win elections. Lose the people and the party at the same time, and the House can impeach you. Run out of money, and nothing gets built." },
   { art: "backgrounds/assembly-chamber", icon: "icon-ask-sa", t: "You don't need to know politics", c: "You learn as you play. Everything is explained the first time it appears, and any underlined word has a meaning one tap away. Your Special Adviser is always beside you." },
@@ -4505,7 +4505,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
         <button className="sp-btn quiet" onClick={() => onFlow({ ...F0, step: "propose" })}>‹ Back</button>
         <button className="sp-btn" disabled={(a.kind === "short" || overRoom) && !P.choice} onClick={() => onConfirmPlan(F0, a, overRoom)}>{P.choice === "defer" ? "Defer" : "Approve the project"}</button>
       </Actions>
-      <div style={{ textAlign: "right", font: "600 13px 'Plus Jakarta Sans', sans-serif", color: "#7a6c4c", marginTop: 6 }}>Approving uses 1 of your {agendaLeft} major actions this year.</div>
+      <div style={{ textAlign: "right", font: "600 13px 'Plus Jakarta Sans', sans-serif", color: "#7a6c4c", marginTop: 6 }}>Approving uses 1 of your {agendaLeft} big moves left this year.</div>
     </Dossier>;
   }
 
@@ -4737,7 +4737,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
           </button>)}
       </div>}
       {!decided && c.meetings.length > 0 && <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-        <div style={{ fontSize: fz.s, color: CL.td }}>Find out more {c.methodsUsed.length ? "" : "(opening a formal investigation uses one of this year's major actions: " + agendaLeft + " left)"}</div>
+        <div style={{ fontSize: fz.s, color: CL.td }}>Find out more {c.methodsUsed.length ? "" : "(opening a formal investigation uses one of this year's big moves: " + agendaLeft + " left)"}</div>
         {Object.entries(SYS.METHODS).filter(([k]) => !c.methodsUsed.includes(k)).map(([k, M]) =>
           <button key={k} onClick={() => onGather(c.id, k)} style={{ textAlign: "left", padding: "10px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
             <b style={{ display: "block", fontSize: fz.m }}>🔎 {M.nm}</b><span style={{ fontSize: fz.s, color: CL.tm }}>{M.note}</span>
@@ -4799,7 +4799,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
         <div><b style={{ color: CL.txt }}>Set-up:</b> {SYS.fmtM(plan.setupM)} · <b style={{ color: CL.txt }}>Every year:</b> {plan.budgetSource}</div>
         {plan.lead && <div><b style={{ color: CL.txt }}>Led by:</b> Hon. {plan.lead}</div>}
         <div><b style={{ color: CL.txt }}>Transition:</b> {plan.transition ? "about a year of slower work while it settles" : "none"}. It will not fix the problem by itself.</div>
-        <div style={{ marginTop: 10, textAlign: "right" }}><Bt onClick={() => onApplyRestructure(plan)}>Make the change (uses 1 of {agendaLeft} major actions)</Bt></div>
+        <div style={{ marginTop: 10, textAlign: "right" }}><Bt onClick={() => onApplyRestructure(plan)}>Make the change (uses 1 of {agendaLeft} big moves left)</Bt></div>
       </div> : <div style={{ fontSize: fz.s, color: CL.org }}>{plan.reason}</div>)}
       <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={() => onOpen({ view: "dir" })}>Back</Bt></div>
     </Cd>;
@@ -4811,7 +4811,7 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
   return <Cd style={{ maxWidth: 960 }}>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 10 }}>
       <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: fz.l, margin: 0 }}>🏢 The State Secretariat</h3>
-      <span style={{ fontSize: fz.s, color: CL.td }}>Year {year} · {agendaLeft} major actions left</span>
+      <span style={{ fontSize: fz.s, color: CL.td }}>Year {year} · {agendaLeft} big moves left</span>
     </div>
     {(audiences || []).length > 0 && <div style={{ marginBottom: 12 }}>
       <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>Asking to see you</div>
@@ -5387,23 +5387,34 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── THE YEAR'S AGENDA (SYS.agenda): a few major actions a year ──
   const [agenda, setAgenda] = useState(() => ld?.agenda || null);
   const agendaRef = React.useRef(agenda);
-  const agendaLeftNow = SYS.agendaLeft(agenda, turn, setup?.level || "medium");
+  /* Big moves a year (SYS.agenda): the base for the difficulty, plus what a
+     strong team earns (a capable Chief of Staff, commissioners or ministers
+     who perform, a trusting public). Bills and executive orders do not count:
+     the House takes three bills a year, and every order adds to the charge of
+     ruling by decree. The Chief of Staff is read through a ref (declared later). */
+  const cosRef = React.useRef(null);
+  const agendaBonusNow = () => { const c0 = cosRef.current && cosRef.current.cos, C = typeof c0 === "string" ? SYS.cosById(c0) : c0; return SYS.agendaBonus({ cosComp: (C && C.comp) || 0, perfs: (ministries || []).filter(m => m.minister).map(m => m.perf), app: s.app }); };
+  const agendaSizeNow = () => SYS.agendaSize(setup?.level || "medium", agendaBonusNow().n);
+  const agendaLeftNow = SYS.agendaLeft(agenda, turn, setup?.level || "medium", agendaBonusNow().n);
   // The agenda, explained: what counts, what does not, and what this year's went on.
   const explainAgenda = () => {
-    const size = SYS.agendaSize(setup?.level || "medium"), used = (agenda && agenda.turn === turn ? agenda.used : []) || [];
-    try { window.SOP_outcome({ icon: "🗓️", title: "Your agenda: " + size + " big decisions a year", text: (used.length ? "You have used " + used.length + ", " + (size - used.length) + " left. " : "None used yet. ") + "Big decisions are programmes, projects, executive orders, bills, revenue reforms, new ministries and investigations. Free, and never counted: reading and answering letters, the budget, appointing and firing, meetings, inspections and the treasury. A choice you repeat in the same year counts once. The agenda refills every new year.",
-      rows: used.map(u => ({ l: u.label, v: "used", good: true })), tone: "neutral",
-      learn: "Real governors face the same limit: the House of Assembly can pass only so many bills in a session, and the civil service can carry only a few big reforms at once. Choosing what matters most is the job." }); } catch (e) {}
+    const B = agendaBonusNow(), size = agendaSizeNow(), used = (agenda && agenda.turn === turn ? agenda.used : []) || [];
+    const bl = SYS.billsLeft(agenda, turn), ords = SYS.ordersThisYear(agenda, turn);
+    try { window.SOP_outcome({ icon: "🗓️", title: size + " big moves this year", text: (used.length ? "You have used " + used.length + ", " + (size - used.length) + " left. " : "None used yet. ") + "Big moves are programmes, projects, revenue reforms, new ministries and investigations. Bills and executive orders do not count: the " + (NAT ? "National Assembly" : "House") + " takes up to " + SYS.BILLS_A_YEAR + " of your bills a year (" + bl + " left), and orders are free, but more than three a year and the press calls it rule by decree. Never counted: letters, complaints, visits, meetings, the budget and appointments.",
+      rows: [{ l: (setup?.level || "medium").replace(/^./, c => c.toUpperCase()) + " level", v: String(SYS.agendaSize(setup?.level || "medium")), good: true }].concat(B.parts.map(p => ({ l: p.l, v: "+" + p.n, good: true })), [{ l: "Bills this year", v: (SYS.BILLS_A_YEAR - bl) + " of " + SYS.BILLS_A_YEAR, good: bl > 0 }, { l: "Executive orders this year", v: String(ords), good: ords <= 3 }], used.map(u => ({ l: u.label, v: "used", good: true }))), tone: "neutral",
+      learn: "Real leaders face the same limit: the civil service can carry only a few big reforms at once, and the legislature only so many bills in a session. A strong cabinet carries more for you." }); } catch (e) {}
   };
   const takeAgenda = (kind, label, key) => {
-    const r = SYS.spendAgenda(agendaRef.current, turn, setup?.level || "medium", { kind, label, key });
+    const B = agendaBonusNow(), r = SYS.spendAgenda(agendaRef.current, turn, setup?.level || "medium", { kind, label, key }, B.n);
     if (!r.ok) {
-      try { window.SOP_outcome({ icon: "🗓️", title: "This year's agenda is full", text: "You have taken " + SYS.agendaSize(setup?.level || "medium") + " major actions this year (" + r.agenda.used.map(u => u.label).slice(-3).join(", ") + "…). Meetings, inspections and the year's events are still open. New programmes, projects, orders, bills and ministries wait for next year.", tone: "neutral", ok: "Understood" }); } catch (e) {}
+      try { window.SOP_outcome(r.why === "bills" ? { icon: "📜", title: "The " + (NAT ? "National Assembly" : "House") + " has your three bills for this year", text: "Members will not take another bill from you this year. Programmes, projects and executive orders are still open; the next bill can go in next year.", tone: "neutral" }
+        : { icon: "🗓️", title: "This year's big moves are used", text: "You have made " + agendaSizeNow() + " big moves this year (" + r.agenda.used.map(u => u.label).slice(-3).join(", ") + "…). Bills, executive orders, letters, complaints and visits are still open. A stronger cabinet earns more big moves next year.", tone: "neutral" }); } catch (e) {}
       return false;
     }
     agendaRef.current = r.agenda; setAgenda(r.agenda);
-    const left = SYS.agendaSize(setup?.level || "medium") - r.agenda.used.length;
-    if (left === 1 && !r.repeat) setTimeout(() => { try { present("Your Excellency, one big decision is left this year. Make it count: the need that hurts most, or the promise that is due. Letters, the budget and appointments stay free.", "neutral"); } catch (e) {} }, 900);
+    if (r.free && kind === "order" && r.orders > 3) { scFx({ app: -1 }); addL("✍️ Another executive order: the press says you rule by decree (approval −1).", "political"); if (r.orders === 4) scWiki("Controversies", "Was accused of ruling by decree after signing more than three executive orders in a year."); }
+    const left = agendaSizeNow() - r.agenda.used.length;
+    if (!r.free && left === 1 && !r.repeat) setTimeout(() => { try { present("Your Excellency, one big move is left this year. Make it count. Bills, orders, letters and complaints stay open.", "neutral"); } catch (e) {} }, 900);
     return true;
   };
   // The last year whose end-of-year resolution has run (never twice).
@@ -5947,6 +5958,34 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             return { icon: R.closed ? "🕊️" : o.kind === "bill" ? "📜" : o.kind === "order" ? "✍️" : o.kind === "programme" ? "💰" : "🚨", img: c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: R.say + (R.decree ? " Critics say you are ruling by decree." : ""),
               tone: R.closed ? "good" : R.won === false || o.weak || f.app < 0 ? "bad" : "good", rows, learn: def.learn && SYS.PRES_LEARN[def.learn] };
           } }; }) };
+  };
+  /* Public complaints (SYS.complaints): the street's voices, each tied to a
+     real cause, tappable and answerable. Same for the President, with the
+     nation's causes (the crisis, the security fronts). */
+  const MIN_RX = { finance: /budget|finance/i, works: /works|infrastructure|transport/i, labour: /labour/i, defence: /defence|security|interior/i, health: /health/i, education: /educ/i, agriculture: /agric/i, water: /water/i, housing: /housing|lands/i };
+  const ministerFor = (kind) => { const rx = MIN_RX[kind]; const M = rx && (ministries || []).find(m => m.minister && rx.test(m.name || m.id)); return M ? { name: "Hon. " + M.minister, perf: M.perf } : null; };
+  const complaintsNow = () => { try {
+    const needsC = (needs || []).filter(n => n.status === "failed" ? (n.closed || 0) >= turn - 1 : n.status === "open" && (n.raised || 0) < turn).map(n => { const T = needType(n); return { id: n.id, lga: n.lga, zone: n.zone, status: n.status, ask: T && T.ask, title: T && T.title ? T.title(n.lga) : null, ministry: T && T.sector }; });
+    const stalled = (projects || []).filter(p => ["suspended", "stalled", "abandoned"].includes(p.status)).map(p => ({ id: p.id, title: p.title || p.nm, lga: p.lga, zone: null }));
+    const stories = Object.entries(stc.stateStories || {}).filter(([id, T]) => SYS.STATE_STORIES[id] && T.S && !T.S.closed && (T.S.hist || []).length).map(([id, T]) => ({ id, nm: SYS.STATE_STORIES[id].nm, lga: T.lga, zone: T.zi }));
+    const strikes = Object.values(((stc.labour || {}).strikes) || {}).filter(x => x.on).map(x => ({ id: x.id, nm: (SYS.UNIONS[x.id] || {}).short || x.id }));
+    const bIdx = balanceIssue(), P = stc.pres || {};
+    const fronts = NAT ? Object.entries(stc.fronts || {}).map(([k, v]) => ({ id: k, zone: String(SYS.FRONTS[k].nm).split(":")[0], sev: v })) : [];
+    const list = SYS.complaintsFor({ nat: NAT, arrears: stc.arrears || 0, needs: needsC, stalled, cor: s.cor, house: scHouse(), balance: bIdx != null ? zoneName(bIdx) : null, stories, strikes, app: s.app,
+      crisis: NAT && P.story && !P.over && SYS.PRES_STORIES[P.crisis] ? { nm: SYS.PRES_STORIES[P.crisis].nm, heat: P.story.heat } : null, fronts, memo: stc.complaints || {}, turn });
+    return list.map(c => ({ ...c, zoneIdx: c.zone != null ? c.zone : /^balance:/.test(c.id) ? bIdx : null, minister: c.minister ? ministerFor(c.minister === "works" || c.minister === "finance" || c.minister === "labour" || c.minister === "defence" ? c.minister : ({ infrastructure: "works", health: "health", education: "education", agriculture: "agriculture", security: "defence" })[c.minister] || c.minister) : null }));
+  } catch (e) { console.warn("[complaints]", e); return []; } };
+  const [complaint, setComplaint] = useState(null);
+  const answerComplaint = (c, a) => {
+    setComplaint(null);
+    if (a.how === "fix") { track("complaint_fix", c.id.split(":")[0]); if (a.go) setNav(a.go); window.SOP_toast && window.SOP_toast("The fix: " + c.want.charAt(0).toLowerCase() + c.want.slice(1) + "."); return; }
+    scFx(a.fx || {}, c.zoneIdx, a.dz || 0);
+    setStc(p => ({ ...p, complaints: { ...(p.complaints || {}), [c.id]: { how: a.how, t: turn } } }));
+    addL("🗣️ " + c.who + ": you " + (a.id === "visit" ? "went to " + (c.place || "the " + c.zoneName) : a.id === "radio" ? "answered on the radio" : "sent " + ((c.minister || {}).name || "a minister")) + ".", a.ok === false ? "political" : "policy");
+    track("complaint_" + a.id, c.id.split(":")[0]);
+    try { window.SOP_outcome({ icon: a.id === "visit" ? "🚶" : a.id === "radio" ? "📻" : "🧑🏾‍💼", img: "./art/characters/" + voiceArt(c.who) + ".webp", title: a.l,
+      text: a.id === "send" ? (a.ok ? (c.minister || {}).name + " handled it well. " + c.who.split(",")[0] + " says thank you, for now." : (c.minister || {}).name + " made it worse. " + c.who.split(",")[0] + " is angrier.") : c.who.split(",")[0] + " heard you. If nothing changes by next year, they will say you lied.",
+      tone: a.ok === false ? "bad" : "good", rows: [{ l: "The cause", v: "Still there until you fix it", good: false }] }); } catch (e) {}
   };
   // A state crisis storyline's beat as a Desk card, in its LGA (SYS.STATE_STORIES).
   const stateStoryCardFor = (id, T) => {
@@ -6645,6 +6684,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       lab.forEach(([t, k]) => notes.push([t, k]));
       groundedRef.current = NAT && !!(L.strikes.nlc && L.strikes.nlc.on); // NUATE: no trips, no investor visits this year
       next.labour = L;
+    }
+    // Last year's complaints: the unanswered ones, and the ones answered only with words, cost approval and their zone.
+    if (turn > 1) {
+      const CY = SYS.complaintsYear(complaintsNow(), stc.complaints || {}, turn - 1);
+      if (CY.app) { dApp += CY.app; notes.push(["🗣️ The street remembers: " + CY.lines.length + " complaint" + (CY.lines.length === 1 ? "" : "s") + " went without a real answer (approval " + CY.app + ").", "political"]); }
+      Object.entries(CY.zones).forEach(([z, v]) => { if (/^\d+$/.test(z)) addZ(+z, v); });
     }
     // The flagship as an eight-year story (SYS.agendaStory): a bill sent last year meets its vote, an order may meet a court.
     {
@@ -9503,6 +9548,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // and handle it yourself, or hand it to your Chief of Staff, who may do it
   // well, badly or crookedly. The year does not move on until the tray is clear.
   const [cosOffice, setCosOffice] = useState(() => ld?.cosOffice || (setup?.comeback?.team?.cos ? { cos: setup.comeback.team.cos, history: [] } : { cos: null, history: [] }));
+  cosRef.current = cosOffice; // the agenda's bonus reads it (declared earlier)
   const [cosPickOpen, setCosPickOpen] = useState(() => !(ld?.cosOffice && ld.cosOffice.cos));
   const [mail, setMail] = useState(() => (ld?.mail || []).filter(l => l.live && l.key !== "gold"));
   const [mailOpen, setMailOpen] = useState(false);
@@ -10543,7 +10589,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
     {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
-    <span role="button" tabIndex={0} onClick={explainAgenda} title="Major actions left this year: programmes, projects, orders, bills, reforms, new ministries. Meetings and inspections are free." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Agenda {agendaLeftNow}/{SYS.agendaSize(setup?.level || "medium")} left</span>
+    <span role="button" tabIndex={0} onClick={explainAgenda} title="Big moves left this year: programmes, projects, reforms, new ministries, investigations. Bills (3 a year) and executive orders do not count." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Big moves {agendaLeftNow}/{agendaSizeNow()} · bills & orders free</span>
         {["Budget", "House vote", "Policies", "Review", "Mail"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
   </div>;
@@ -10790,7 +10836,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const angry = stc.arrears > 0 || s.app < 50 || s.cor > .5;
               const pic = { "market-women": ["market-women-group-cheering", "market-women-group-angry"], youth: ["youth-group-cheering", "youth-group-angry"], workers: ["workers-group-cheering", "workers-group-angry"] }[grp][angry ? 1 : 0];
               return <div style={{ height: TALL() ? 76 : 110, borderRadius: 14, marginBottom: 6, background: (angry ? CL.red : CL.grn) + "12 url(./art/characters/" + pic + ".webp) center bottom/contain no-repeat" }} role="img" aria-label={angry ? "An angry crowd" : "A cheering crowd"} />; })()}
-            {sv.lines.slice(0, 1).map((l, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
+{(() => { const cl = complaintsNow(); if (!cl.length) return null;
+              return <div aria-label="Complaints">{cl.map((c, i) => { const done = (stc.complaints || {})[c.id], answered = done && done.t === turn;
+                return <button key={c.id} onClick={() => setComplaint(c)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", width: "100%", textAlign: "left", background: "none", border: 0, borderTop: i ? "1px solid " + CL.bdr + "88" : 0, padding: "8px 0", cursor: "pointer", fontFamily: F.b, fontSize: fz.s, color: CL.tm, lineHeight: 1.4 }}>
+                  <img src={"./art/characters/" + voiceArt(c.who) + ".webp"} alt="" loading="lazy" style={{ width: TALL() ? 40 : 52, height: TALL() ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "14" }} />
+                  <span><span style={{ color: CL.txt }}>{c.icon} “{c.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {c.who}{c.place ? ", " + c.place : ""}</span></span>
+                  <span style={{ whiteSpace: "nowrap", borderRadius: 999, padding: "3px 10px", fontWeight: 800, background: (answered ? CL.grn : c.lied ? CL.red : CL.org) + "16", color: answered ? CL.grn : c.lied ? CL.red : CL.org }}>{answered ? "✓ Answered" : c.lied ? "“You lied”" : "Answer ›"}</span>
+                </button>; })}</div>; })()}
+            {!complaintsNow().length && sv.lines.slice(0, 1).map((l, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
               <img src={"./art/characters/" + voiceArt(l.w) + ".webp"} alt="" loading="lazy" style={{ width: TALL() ? 40 : 52, height: TALL() ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "14" }} />
               <span><span style={{ color: CL.txt }}>“{l.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {l.w}</span></span>
             </div>)}
@@ -11158,6 +11211,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           })()}
         </OL>
 
+        <OL show={!!complaint}>
+          {complaint && (() => { const c = complaint, A = SYS.complaintAnswers(c, { minister: c.minister, nat: NAT });
+            return <><SceneArt bg={c.kind === "workers" ? "street-protest" : c.kind === "elders" ? "village-square" : "busy-market-street"} who={voiceArt(c.who)} h={TALL() ? 180 : 220} />
+              <DecisionCard kicker={"A complaint · " + (c.place || c.zoneName || (NAT ? "Nigeria" : stName))} kickerColor={c.lied ? CL.red : CL.org} title={"“" + c.t + "”"}
+                brief={(c.prev ? "You have already answered with words: only the fix will do now. " : "") + c.who + (c.lied ? " says you lied last year." : "") + " What they want: " + c.want.charAt(0).toLowerCase() + c.want.slice(1) + "." + (c.prev ? "" : " Unanswered complaints cost approval at the year's end.")}
+                options={A.map(a => ({ label: a.l, note: a.note, chips: a.how === "fix" ? [{ text: "Opens the fix", color: CL.blu }] : fxChips(a.fx || {}, a.dz), raw: a }))}
+                onPick={(o) => answerComplaint(c, o.raw)} />
+              <div style={{ textAlign: "center", marginTop: 8 }}><Bt onClick={() => setComplaint(null)} style={{ background: CL.card, color: CL.txt, border: "1px solid " + CL.bdr }}>Not now</Bt></div></>; })()}
+        </OL>
         <OL show={phase === "sc" && scCards.length > 0}>
           {scCards[0] && (() => { const c = scCards[0]; return <>{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />

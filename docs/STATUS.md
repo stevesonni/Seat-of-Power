@@ -3,7 +3,23 @@
 
 
 
-## Storylines that remember: no more "the queues are back" twice (25 Oct, latest)
+## More decisions, and complaints you can answer (26 Oct, latest)
+From player feedback ("how can a president make just six decisions a year"; "we should be able to click on the public complaints and solve them"). Both offices.
+- **Big moves** (game/systems/agenda.js):
+  - 10 on Easy, 8 on Medium, 6 on Hard.
+  - Earned extras: +1 for a capable Chief of Staff (competence 70+); +1 for each commissioner or minister performing at 70+ (up to 3); +1 at approval 60+.
+  - Bills and executive orders no longer use big moves. The House or National Assembly takes 3 bills a year; more than 3 orders a year brings "rule by decree" (approval −1 each, a wiki line).
+  - The Desk chip reads "Big moves 5/8 · bills & orders free"; tapping it shows the breakdown.
+- **Complaints** (game/systems/complaints.js):
+  - The street panel lists up to five complaints, each tied to a real cause: unpaid salaries, a failed or open need, an abandoned site, corruption, defecting members, a zone left out of the cabinet, a crisis storyline, a strike. For the President, also the national crisis and the worst security front.
+  - Tap one to answer it:
+    - visit, or answer on the radio: free, once, a little goodwill;
+    - send the minister in charge: free; it works if they are good;
+    - fix it: opens the real fix (treasury, projects, cabinet).
+  - At the year's end an unanswered complaint costs approval and its zone's mood. Words without a fix cost more: next year the complaint says "you lied".
+- **Tests:** tests/agenda.test.mjs, tests/complaints.test.mjs, tests/e2e/complaints.mjs (a governor answers a complaint in the browser). The president e2e checks complaints and big moves on screen. The e2e bot leaves complaints alone.
+
+## Storylines that remember: no more "the queues are back" twice (25 Oct)
 
 - **The engine** (game/systems/storylines.js): a recurring matter is a graph of beats, one a year. Every answer is one of four kinds:
   - a **programme**: money, works now;
