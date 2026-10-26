@@ -33,7 +33,7 @@ const lendUntilOffer = async (g) => {
   }
   return !!(await g.click(/^Accept and receive/));
 };
-const ROAD = "500km Road Network";
+const ROAD_PROG = "500km Road Network", ROAD = "Road Network"; // the programme, and the project it becomes (its size is set on the proposal)
 // Close any outcome card on top, as a player would, before the next click.
 // The adviser announces the year's next step a moment after the Desk opens, and her Continue takes you there: hear her out, pick a Chief of Staff if asked, then go back to the Desk.
 const toDesk = async (g) => { await g.wait(900); await clear(g); await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde/.test(x.textContent)); b && b.click(); }); await g.wait(500); await clear(g); await g.page.evaluate(() => window.postMessage({ type: "sop-nav", payload: "hub" }, "*")); await g.wait(600); };
@@ -47,7 +47,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   const d0 = await saved(g);
   check(d0.s && d0.s.cash > 5, "money: this year's money arrived in the bank (" + (d0.s && d0.s.cash) + "B)");
   await g.click(/^Show all \d+ programmes$/); await g.wait(300); // the list shows two at a time
-  await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
+  await g.page.getByText(ROAD_PROG, { exact: true }).first().click(); await g.wait(600);
   await g.click(/^Next: the budget/); await g.wait(300);
   check(!/Seek financing/.test(await g.txt()), "money: the bank can pay this year's share, so no loan is offered");
   await g.click(/^Approve the project$/); await g.wait(2200);
@@ -63,7 +63,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   const g = await open(port, { save: withSave(d => { d.s.cash = 0; d.cashSeed = 1; d.s.cashYear = 1; d.s.debt = 40; }) });
   await toPolicies(g);
   await g.click(/^Show all \d+ programmes$/); await g.wait(300); // the list shows two at a time
-  await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
+  await g.page.getByText(ROAD_PROG, { exact: true }).first().click(); await g.wait(600);
   await g.click(/^Next: the budget/); await g.wait(300);
   await g.click(/^Seek financing/); await g.click(/^Approve the project$/); await g.wait(1500);
   await g.click(/^Later$/); await g.wait(300);
@@ -84,7 +84,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   const g = await open(port, { save: withSave(d => { d.s.cash = 0.5; d.s.cashYear = 1; }) });
   await toPolicies(g);
   await g.click(/^Show all \d+ programmes$/); await g.wait(300); // the list shows two at a time
-  await g.page.getByText(ROAD, { exact: true }).first().click(); await g.wait(600);
+  await g.page.getByText(ROAD_PROG, { exact: true }).first().click(); await g.wait(600);
   await g.click(/^Next: the budget/); await g.wait(300);
   await g.click(/^Seek financing/);
   check(!!(await g.click(/^Approve the project$/)), "1. approve the road programme");
@@ -94,10 +94,10 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   check(p && p.status === "pending_finance" && !p.contractorId && p.spentM === 0, "1. approval is not a contract: no contractor, nothing spent (" + (p && p.status) + ")");
   await g.wait(800);
   let b = await bubbles(g);
-  check(b.some(x => /^Governor, 500km Road Network is approved.*next step is to find the money/.test(x)), "2. the adviser names the next step: " + b[b.length - 1]);
+  check(b.some(x => /^Governor, Road Network is approved.*next step is to find the money/.test(x)), "2. the adviser names the next step: " + b[b.length - 1]);
   check(!!(await g.click(/^Find the money$/)), "2. follow the adviser's button");
   await g.wait(400);
-  check(/FIND THE MONEY/i.test(await g.txt()) && /500km Road Network/.test(await g.txt()), "3. it opens this project's finance step");
+  check(/FIND THE MONEY/i.test(await g.txt()) && /Road Network/.test(await g.txt()), "3. it opens this project's finance step");
   check(await lendUntilOffer(g), "4. a lender's offer is accepted");
   await g.wait(250);
   await g.wait(900);
@@ -121,14 +121,14 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   const con = await g.page.evaluate(() => [...document.querySelectorAll(".sp-con")].map(x => x.textContent).join(" "));
   check(/contract signed with/.test(con), "5. the desk shows what changed: " + con.slice(0, 90));
   b = await bubbles(g);
-  check(!b.some(x => /500km Road Network/.test(x) && /next step/.test(x)), "5. the desk adviser no longer asks for a done step");
+  check(!b.some(x => /Road Network/.test(x) && /next step/.test(x)), "5. the desk adviser no longer asks for a done step");
   await g.page.reload(); await g.wait(1500);
   await g.click(/^Continue/); await g.wait(1800);
   p = await proj(g, ROAD);
   check(p && p.status === "in_progress" && p.contractorId, "6. after reload the project is still under construction");
   await toTab(g, "prj");
   const t = await g.txt();
-  check(/500km Road Network/.test(t) && /UNDER CONSTRUCTION/i.test(t) && /Nothing due yet/.test(t), "6. the Projects tab resumes it: under construction, nothing due yet");
+  check(/Road Network/.test(t) && /UNDER CONSTRUCTION/i.test(t) && /Nothing due yet/.test(t), "6. the Projects tab resumes it: under construction, nothing due yet");
 
   // ── 7: a second project while the first is running ──
   await g.click(/New project/); await g.wait(400);

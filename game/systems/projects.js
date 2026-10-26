@@ -52,11 +52,38 @@ export const FACILITY = {
   market: { equip: .04, opsPer: .08, what: "stalls fitted; a market management board" },
 };
 
-export const estimate = (type, qty) => {
+/* Where a project goes changes what it costs. Creeks and swamps (bridges,
+   sand-filling, boats for materials) and rocky highlands (blasting) cost more
+   per unit. For the President a place is a state; for a governor, an LGA. */
+const RIVERINE = /Island|Bonny|Brass|Nembe|Ijaw|Ekeremor|Sagbama|Burutu|Bomadi|Warri|Ilaje|Ese Odo|Epe|Ibeju|Andoni|Opobo|Akuku|Asari|Degema|Okrika|Ogbia|Kolokuma|Yenagoa|Mbo$|Ibeno|Bakassi|Patani|Ogu\/Bolo|Ndokwa East|Anambra West|Ogbaru|Ogun Waterside|Ibaji|Amuwo|Eti-Osa|Badagry|Oguta/;
+const ROCKY = /^Jos |Bokkos|Mangu|Barkin Ladi|Riyom|Obudu|Sardauna|Kanam|Wase/;
+const RIVERINE_STATES = new Set(["Bayelsa", "Rivers", "Delta"]), ROCKY_STATES = new Set(["Plateau"]);
+export const TERRAIN = { riverine: { f: 1.3, nm: "riverine", why: "creeks and swamp: sand-filling, bridges, boats for materials" }, rocky: { f: 1.15, nm: "rocky", why: "hills and rock: blasting and steep grades" } };
+export const terrainOf = (place) => { const x = String(place || ""); return RIVERINE_STATES.has(x) || RIVERINE.test(x) ? "riverine" : ROCKY_STATES.has(x) || ROCKY.test(x) ? "rocky" : null; };
+// How much one ministry can oversee in a year, in the project's units. A good
+// minister (perf 100) manages a quarter more; a weak one (perf 40) a quarter less.
+export const CAPACITY = { road: 150, bridge: 2, hospital: 250, school: 200, water: 60, dam: 1, power: 15, market: 2000, housing: 1500, vehicles: 200, cctv: 2000, landfill: 2, industrial: 150, stadium: 30000, esports: 3000, tourist: 2, rail: 120, pipeline: 250, refinery: 50, seaport: 3, airport: 1 };
+export const capacityOf = (type, { perf = 70, federal = false } = {}) => Math.max(1, Math.round((CAPACITY[type] || 100) * (federal ? 2.5 : 1) * (.75 + Math.max(0, Math.min(100, perf)) / 200)));
+// A second contractor doubles what can be built in a year, for 12% more.
+export const SECOND_CONTRACTOR = 1.12;
+/* opts.places: where it goes (spread evenly); opts.perf, opts.federal: the
+   ministry's capacity; opts.second: a second contractor. */
+export const estimate = (type, qty, opts = {}) => {
   const U = UNIT[type] || UNIT.road, F = FACILITY[type], q = Math.max(0, Number(qty) || U.def);
-  const buildM = Math.round(U.per * q);
-  return { qty: q, unit: U.unit, buildM, equipM: F ? Math.round(buildM * F.equip) : 0, opsPerYearM: F ? Math.round(F.opsPer * q) : 0, years: U.years, facility: !!F };
+  const places = (opts.places || []).filter(Boolean), terr = places.map(terrainOf);
+  const tf = places.length ? terr.reduce((a, t) => a + (t ? TERRAIN[t].f : 1), 0) / places.length : 1;
+  const cap = capacityOf(type, opts) * (opts.second ? 2 : 1), capYears = Math.ceil(q / cap);
+  // Spread thin, a programme takes longer: every three more places, a year more.
+  const spread = places.length > 1 ? Math.floor((places.length - 1) / 3) : 0;
+  const buildM = Math.round(U.per * q * tf * (opts.second ? SECOND_CONTRACTOR : 1));
+  const odd = places.filter((x, i) => terr[i]);
+  return { qty: q, unit: U.unit, buildM, equipM: F ? Math.round(buildM * F.equip) : 0, opsPerYearM: F ? Math.round(F.opsPer * q) : 0, years: Math.max(U.years, capYears) + spread, facility: !!F,
+    cap, capYears, overCap: capYears > U.years, spread, terrainF: Math.round(tf * 100) / 100, hard: odd.map(x => ({ place: x, kind: terrainOf(x) })) };
 };
+// The size a slider offers: from a small pilot to ten times the starting size.
+// A unit's name for n of them: 1 bed, 40 beds, 18 km, 5 MW.
+export const unitsOf = (unit, n) => unit + (n === 1 || /^(km|MW)$/.test(unit) ? "" : "s");
+export const sizeRange = (type, start) => { const U = UNIT[type] || UNIT.road, b = Math.max(1, Math.round(start || U.def)); return { min: Math.max(1, Math.round(b / 4)), max: Math.max(b * 10, U.def * 10), small: Math.max(1, Math.round(b / 2)), medium: b, large: b * 2 }; };
 
 /* A small reusable roster. Capabilities decide who can bid: a hospital
    surfaces hospital builders, not road gangs. */
@@ -124,11 +151,12 @@ export const assessFunding = ({ needM, approvedM, thisYearM, years }) => {
 };
 
 // Make a project record (after the player confirms the proposal and plan).
-export const makeProject = ({ id, title, type, qty, lga, ministryId, need, approvedM, thisYearM, year, years, decision, proposal }) => {
-  const e = estimate(type, qty);
+export const makeProject = ({ id, title, type, qty, lga, lgas, ministryId, need, approvedM, thisYearM, year, years, decision, proposal, perf, federal, second }) => {
+  const places = (lgas && lgas.length ? lgas : [lga]).filter(Boolean);
+  const e = estimate(type, qty, { places, perf, federal, second });
   const yrs = years || e.years;
   return {
-    id, title, type, sector: TYPE_SECTOR[type] || "roads", qty: e.qty, unit: e.unit, lga: lga || null, ministryId, need: need || null,
+    id, title, type, sector: TYPE_SECTOR[type] || "roads", qty: e.qty, unit: e.unit, lga: places[0] || null, lgas: places, second: !!second, ministryId, need: need || null,
     estimateM: e.buildM, equipM: e.equipM, opsPerYearM: e.opsPerYearM, facility: e.facility, years: yrs,
     approvedM: Math.round(approvedM), alloc: { [year]: Math.round(Math.min(approvedM, thisYearM)) }, spentM: 0, builtM: 0,
     progress: 0, quality: null, status: "pending_procurement", equipped: !e.facility, staffed: !e.facility,
@@ -152,6 +180,17 @@ export const toFinishM = (p, cor = 0) => { const C = contractorById(p.contractor
 export const committedM = (p) => Math.max(0, p.approvedM - p.spentM);
 export const remainingM = (p) => Math.max(0, p.estimateM - p.builtM);
 
+/* Trouble at the site, at most once a year: a riverine site floods (a quarter
+   of the year's work lost); elsewhere landowners or community youths block it
+   until they are paid (a third lost). Seeded, so a reload never changes it. */
+export const siteTrouble = (p, year, r = Math.random) => {
+  const places = (p.lgas && p.lgas.length ? p.lgas : [p.lga]).filter(Boolean); if (!places.length) return null;
+  const x = places[Math.floor(r() * places.length)], t = terrainOf(x), roll = r();
+  if (t === "riverine" && roll < .18) return { kind: "flood", place: x, f: .75, text: "the river rose at the " + x + " site and swept away part of the works; a quarter of the year's work was lost." };
+  if (!t && roll < .1 && ["road", "housing", "market", "industrial", "dam", "school", "hospital"].includes(p.type)) return { kind: "land", place: x, f: .66, text: "landowners in " + x + " blocked the site until they were compensated; a third of the year's work was lost." };
+  return null;
+};
+
 /* One year of work. alloc for the year (default: an even share of what is
    approved and unspent) is the most that can be paid. */
 export const tickProject = (p, year, ctx = {}) => {
@@ -173,16 +212,19 @@ export const tickProject = (p, year, ctx = {}) => {
   // Skimming. An honest firm (integrity .5 and up) skims by building worse, not by
   // over-billing, so a project funded at its contract sum always has the money to finish.
   // A crooked one pads the bill: money that buys nothing, and the budget runs dry.
+  const site = siteTrouble(p, year, r);
   const leak = (1 - C.integrity) * .25 + (ctx.cor || 0) * .15;
   const crooked = C.integrity < .5;
   const price = C.price * (1 + (crooked ? leak : 0));
   const affordable = avail / price;
-  const value = Math.max(0, Math.min(toBuild, pace, affordable));
+  const value = Math.max(0, Math.min(toBuild, pace * (site ? site.f : 1), affordable));
   const pay = Math.round(value * price);
   let quality = C.quality - (ctx.cor || 0) * .2 + (ctx.oversight || 0) * .08 - (crooked ? 0 : leak * .4);
   // Short of money only if it held back work the contractor could have done (not in a last, small year).
   if (affordable < Math.min(pace, toBuild) * .7) { quality -= .12; events.push("Year " + year + ": not enough money released; the contractor cut corners to keep going."); }
   if (r() > C.reliability + .1) events.push("Year " + year + ": " + C.name + " missed its milestones.");
+  // The ground itself: floods on riverine sites; landowners who block a site until they are paid.
+  if (site) events.push("Year " + year + ": " + site.text);
   quality = Math.max(.15, Math.min(.98, quality));
   const builtM = p.builtM + Math.round(value);
   const prevQ = p.quality == null ? quality : p.quality;

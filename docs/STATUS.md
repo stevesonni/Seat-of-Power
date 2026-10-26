@@ -950,3 +950,12 @@ Alternating with them: **the council chamber** (councillors' "allowances", an ok
 - **A four-part verdict** (`lgaVerdict`): Delivery, Integrity, Survival, Your promise, plus "Your term:" (your actual decisions) and "Who you leave behind" (your three people).
 - **The question at the end:** "Which decision would you change?" goes to the feedback page (where = `chairman_end`).
 - **One life:** a former chairman who becomes governor of the **same state** meets their past on day one (`chairmanEchoes`): the market women campaign for them, or the evicted traders don't forget; the road still stands, or is on the posters; the councillor they fought sits in the House of Assembly; their old party chairman works the party for them.
+
+## Projects: how much and where (player feedback, October 2026)
+A player asked to choose how big a road or housing project is and which local governments (or states) it goes to.
+- **How much:** every project, programmes included, has a slider (from a quarter to ten times the starting size) with Small / Medium / Large presets and an exact number. A programme's name no longer carries a fixed size ("500km Road Network" becomes "Road Network"; the proposal says how big).
+- **Where:** tap one or more local governments, grouped by senatorial district, with "All of <district>"; the President taps states, grouped by the six zones. The size is shared between them. Every three more places add a year. `project.lgas` keeps them all; `project.lga` is the first (older code reads it).
+- **What it means:** when a project opens, approval rises in each district or zone it reached (+3 if it went to one, +2 each if spread); a big one (twice the usual size) that left a district out costs −1 there.
+- **Capacity:** a ministry oversees so much a year (`SYS.capacityOf`: roads 150 km, homes 1,500, …; a good minister a quarter more, federal ministries 2.5×). Beyond that the build takes longer, or a second contractor doubles it for 12% more.
+- **The ground:** riverine places (creeks, swamp) cost about 30% more and can flood the works; rocky highlands about 15% more. Elsewhere landowners can block a site until paid (`SYS.siteTrouble`, seeded). Marked 🌊 / ⛰️ on the place chips.
+- Tests: tests/places.test.mjs; tests/e2e/projects.mjs.
