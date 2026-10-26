@@ -21,7 +21,12 @@ def rules(css):
         j = css.find("{", i)
         if j < 0: break
         sel = css[i:j].strip()
-        if sel.startswith("@media"):
+        if sel.startswith("@keyframes"):
+            depth, k = 1, j + 1
+            while depth: depth += {"{": 1, "}": -1}.get(css[k], 0); k += 1
+            out.append(("@raw", css[i:k].strip()))
+            i = k
+        elif sel.startswith("@media"):
             depth, k = 1, j + 1
             while depth: depth += {"{": 1, "}": -1}.get(css[k], 0); k += 1
             out.append(("@media", sel, rules(css[j + 1:k - 1])))
@@ -50,6 +55,8 @@ def convert(root, html):
     lines = []
     def emit(rs, desk=False):
         for r in rs:
+            if r[0] == "@raw":
+                lines.append(px(r[1]).replace("@keyframes ", "@keyframes " + root + "-")); continue
             if r[0] == "@media":
                 q = r[1].replace(" ", "")
                 if "min-width:900px" in q: emit(r[2], True)
@@ -58,6 +65,7 @@ def convert(root, html):
             sel, body = r
             if sel in ("html,body",) and "height" in body: continue
             if sel == "body" and "background:#000" in body.replace(" ", ""): continue
+            body = re.sub(r"animation:(\w+)", lambda m: "animation:" + root + "-" + m.group(1), body)
             lines.append(scope(sel, root, desk) + "{" + px(body) + "}")
     emit(rules(css))
     return "\n".join(lines)

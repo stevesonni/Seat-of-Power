@@ -11113,10 +11113,49 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {/* Wide screens only: on phones the Desk tab already carries the count. */}
         {!TALL() && curScreen.id === "desk" && mail.length > 0 && phase !== "mail" && <button onClick={() => setMailOpen(true)} aria-label={"Mail: " + mail.length} style={{ position: "fixed", right: 16, bottom: TALL() ? 104 : 24, zIndex: 65, display: "flex", alignItems: "center", gap: 6, background: CL.gold, color: "#1a2e05", border: 0, borderRadius: 999, padding: "6px 16px 6px 8px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), boxShadow: "0 8px 20px rgba(0,0,0,.25)", cursor: "pointer", fontFamily: F.b }}><img src="./art/objects/mailbox-tray.webp" alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />📬 {mail.length}</button>}
         <div ref={paneRef}>
-        {nav === "hub" && <div style={{ maxWidth: TALL() ? 900 : 1440, margin: TALL() ? "0 0 14px" : "0 auto 18px" }}>
-          <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} villa={NAT} />
-          {TALL() && <div style={{ fontSize: TS(18), color: CL.td, textAlign: "center", marginTop: 10 }}>Turn your phone sideways for the full compound.</div>}
-        </div>}
+        {nav === "hub" && (() => {
+          // The Desk (Lovable's design, sop-screens.css .lv-desk): the compound on the left; four figures, the adviser and the mail on the right.
+          const appPrev = appH.length > 1 ? appH[appH.length - 2] : null, dApp = appPrev == null ? null : Math.round(s.app - appPrev);
+          const rev = Math.max(1, (s.igr || 0) + (s.faac || 0)), sgn = (d) => (d > 0 ? "+" : d < 0 ? "−" : "±") + Math.abs(d);
+          const stat = (ic, l, v, w, col, d, dGood) => <div className="card stat"><img src={"./art/icons/" + ic + ".webp"} alt="" /><div className="l">{l}</div><div className="v">{v}{d != null && d !== 0 && <span className={"d " + (dGood ? "up" : "down")}>{sgn(d)}</span>}</div><div className="bar"><i style={{ width: Math.max(2, Math.min(100, w)) + "%", background: col }} /></div></div>;
+          const adv = saOffice.adviser && saBrief && saBrief.title && saBrief.action ? saBrief : null, advNm = saOffice.adviser ? saOffice.adviser.name : "";
+          const rows = mail.slice().sort((a, b) => (b.stakes || 0) - (a.stakes || 0) || (!!a.cat - !!b.cat));
+          const yearStuff = mail.filter(l => !l.live), budgetWaiting = mail.some(l => l.key === "budget");
+          return <div className="lv lv-desk" style={{ maxWidth: TALL() ? 900 : 1500, margin: "0 auto", background: "transparent" }}>
+            <main className="desk" style={{ padding: 0, gridTemplateColumns: TALL() ? "minmax(0,1fr)" : "minmax(0,1.55fr) minmax(0,1fr)" }}>
+              <div className="colA">
+                <CompoundHub badges={hubBadges()} overlays={hubOverlays()} night={phase === "end_turn"} palace={hubPalace} next={hubNext()} list={TALL()} onArrive={hubArrive} villa={NAT} />
+                {TALL() && <div style={{ fontSize: "var(--fs-micro)", color: "var(--muted)", textAlign: "center" }}>Turn your phone sideways for the full compound.</div>}
+              </div>
+              <div className="right">
+                <div className="dash">
+                  {stat("icon-approval", "Approval", Math.round(s.app) + "%", s.app, "var(--people)", dApp, dApp > 0)}
+                  {stat("icon-bank", "In the bank", naira(s.cash || 0), (s.cash || 0) / rev * 100, "var(--green)", null, true)}
+                  {stat("icon-party", "Party stability", Math.round(s.pStab) + "%", s.pStab, "var(--gold)", null, true)}
+                  {stat("icon-corruption", "Corruption", Math.round((s.cor || 0) * 100) + "%", (s.cor || 0) * 100, "var(--red)", null, false)}
+                </div>
+                {adv && <div className="card adv"><div className="face"><img src={saPortrait(advNm)} alt="" /></div><div className="body">
+                  <div className="who">{String(advNm).split(" ").slice(-2, -1)[0] || advNm} · {NAT ? "Chief of Staff" : "Special Adviser"}</div>
+                  <p>{adv.title}</p>
+                  <button className="btn btn-gold btn-block" onClick={adv.action}>{adv.actionLabel || "Go"} →</button>
+                </div></div>}
+                <section className="card tray">
+                  <div className="head"><img src="./art/objects/mailbox-tray.webp" alt="" /><h2>Your mail</h2><span className="count">{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") : "Empty"}</span></div>
+                  {rows.map(l => { const v = letterView(l); return <button key={l.id} className="letter" onClick={() => { setMailOpen(true); setLetterOpen(l.id); }}>
+                    <Seal kind={l.kind} size={40} />
+                    <div className="t"><b>{v.title}</b>{v.from && <span>From: {String(v.from).split(",").slice(-1)[0].trim()}</span>}</div>
+                    {l.stakes >= 3 && <span className="urg" aria-label="Urgent">!</span>}
+                    <span className="chev">›</span>
+                  </button>; })}
+                  {!mail.length && <div className="letter" style={{ color: "var(--muted)" }}>No letters waiting.</div>}
+                  {phase === "mail" && <div className="clear">
+                    <button className="btn btn-main btn-block" disabled={!!(yearStuff.length || budgetWaiting)} style={yearStuff.length || budgetWaiting ? { opacity: .45 } : null} onClick={() => { if (!(yearStuff.length || budgetWaiting)) { finishMail(); setNav("gov"); } }}>The tray is clear: on to {absYear + 1} →</button>
+                    {(yearStuff.length > 0 || budgetWaiting) && <small>Answer every letter to move on</small>}
+                  </div>}
+                </section>
+              </div>
+            </main>
+          </div>; })()}
         <OL show={!!hubSheet}>
           {hubSheet && (() => { const v = hubSheetView(hubSheet); if (!v) return null; return <Cd>
             <div style={{ display: "flex", gap: 14, alignItems: "center", marginBottom: 8 }}>

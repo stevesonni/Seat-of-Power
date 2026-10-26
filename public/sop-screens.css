@@ -340,10 +340,9 @@ body:not(.sop-portrait) .lv-desk .bnav{display:none}
 .lv-desk .compound{position:relative;border-radius:var(--r-lg);overflow:hidden;aspect-ratio:16/10;box-shadow:var(--sh-lg);border:calc(3px*var(--k)) solid var(--deep)}
 .lv-desk .compound img{width:100%;height:100%;object-fit:cover;object-position:50% 30%}
 .lv-desk .compound .office{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:calc(4px*var(--k))}
-.lv-desk .compound .ring{width:calc(64px*var(--k));height:calc(64px*var(--k));border-radius:50%;border:calc(3px*var(--k)) solid var(--gold);box-shadow:0 0 0 calc(6px*var(--k)) rgba(233,196,106,.35);animation:pulse 2s ease-in-out infinite}
-.lv-desk @keyframes pulse{50%{box-shadow:0 0 0 calc(12px*var(--k)) rgba(233,196,106,.1)}
-.lv-desk }
-.compound .lbl{background:var(--deep);color:#fdf8ec;font-weight:700;font-size:var(--fs-label);padding:calc(5px*var(--k)) calc(10px*var(--k));border-radius:calc(999px*var(--k));border:calc(1.5px*var(--k)) solid var(--gold);white-space:nowrap}
+.lv-desk .compound .ring{width:calc(64px*var(--k));height:calc(64px*var(--k));border-radius:50%;border:calc(3px*var(--k)) solid var(--gold);box-shadow:0 0 0 calc(6px*var(--k)) rgba(233,196,106,.35);animation:lv-desk-pulse 2s ease-in-out infinite}
+@keyframes lv-desk-pulse{50%{box-shadow:0 0 0 calc(12px*var(--k)) rgba(233,196,106,.1)}}
+.lv-desk .compound .lbl{background:var(--deep);color:#fdf8ec;font-weight:700;font-size:var(--fs-label);padding:calc(5px*var(--k)) calc(10px*var(--k));border-radius:calc(999px*var(--k));border:calc(1.5px*var(--k)) solid var(--gold);white-space:nowrap}
 .lv-desk .compound .where{position:absolute;left:calc(10px*var(--k));bottom:calc(10px*var(--k));background:rgba(18,48,31,.88);color:#fdf8ec;font-size:var(--fs-micro);font-weight:600;padding:calc(5px*var(--k)) calc(9px*var(--k));border-radius:calc(8px*var(--k))}
 .lv-desk .dash{display:grid;grid-template-columns:repeat(2,1fr);gap:calc(8px*var(--k))}
 .lv-desk .stat{padding:calc(10px*var(--k)) calc(12px*var(--k));display:grid;grid-template-columns:calc(34px*var(--k)) 1fr;column-gap:calc(10px*var(--k));align-items:center}
