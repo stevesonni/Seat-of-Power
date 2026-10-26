@@ -12,6 +12,9 @@ const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/
 await g.click(/^Continue/); await g.wait(1800);
 const r = await playUntil(g, t => /Visit the President at Aso Rock/.test(t), { max: 60 });
 check(r.ok, "the Desk offers a visit to the President");
+// The adviser announces the year's next step a moment after the Desk opens: hear her out, then come back to the Desk.
+await g.wait(900);
+if (await g.page.evaluate(() => { const d = [...document.querySelectorAll("[role=alertdialog]")].find(x => /Special Adviser/i.test(x.textContent)); const b = d && d.querySelector("button"); if (b) { b.click(); return true; } return false; })) { await g.wait(700); await g.page.evaluate(() => window.postMessage({ type: "sop-nav", payload: "hub" }, "*")); await g.wait(700); await g.click(/^Today$/); await g.wait(500); }
 await shot("desk-card"); await g.click(/✈️ Plan it/); await g.wait(600);
 check(/To Aso Rock/.test(await g.txt()) && /Troops for the state/.test(await g.txt()), "four requests, with the odds");
 await shot("pick");

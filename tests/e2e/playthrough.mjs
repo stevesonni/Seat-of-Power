@@ -48,7 +48,7 @@ if (which === "defeat" || which === "all") {
 if (which === "second" || which === "all") {
   const g = await firstTerm({ win: true, reWin: true });
   const before = await save(g);
-  const r1 = await playUntil(g, t => /2nd Term — Year 1 of 4/.test(t), { max: 500, prefer });
+  const r1 = await playUntil(g, t => /2nd Term — Year 1 of 4|Year 1 of your second term/i.test(t), { max: 500, prefer });
   check(r1.ok, "re-elected into Year 5");
   if (!r1.ok) { console.log("  last clicks: " + r1.clicks.slice(-15).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 600)); }
   const y5 = await save(g);
@@ -57,7 +57,7 @@ if (which === "second" || which === "all") {
   { const fl = (y5.stc || {}).flagStory || {}; check((fl.hist || []).length >= 3 && new Set(fl.seen || []).size === (fl.seen || []).length, "the flagship is a story: a different problem each year (" + (fl.hist || []).map(h => h.beat + ":" + h.opt).join(", ") + ")"); }
   check((y5.cases || []).length >= (before.cases || []).length && (y5.projects || []).length >= (before.projects || []).length, "cases and projects carried into the second term");
   const seen = [];
-  const r2 = await playUntil(g, t => { const m = t.match(/2nd Term — Year (\d) of 4/); if (m && !seen.includes(m[1])) seen.push(m[1]); return /Tenure Complete/.test(t); }, { max: 1500, prefer });
+  const r2 = await playUntil(g, t => { const m = t.match(/2nd Term — Year (\d) of 4/) || t.match(/Year (\d) of your second term/i); if (m && !seen.includes(m[1])) seen.push(m[1]); return /Tenure Complete/.test(t); }, { max: 1500, prefer });
   check(r2.ok, "tenure complete at the end of Year 8 (second-term years seen: " + seen.join(",") + ")");
   if (!r2.ok) { console.log("  last clicks: " + r2.clicks.slice(-15).join(" | ")); console.log("  screen: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 900)); }
   const t = await g.txt();

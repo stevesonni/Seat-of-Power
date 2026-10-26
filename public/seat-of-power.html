@@ -135,7 +135,8 @@
     /* ---- Phone (tall stage): card-first --------------------------------
        One decision fills the screen as a sheet; options are big, thumb-sized
        tiles. Values are artboard px on the 600-wide portrait stage. */
-    #sop-stage.sop-tall img { max-width: 100%; height: auto; }
+    /* Pictures shrink to fit on phones, unless a screen sizes them itself (:where keeps this rule weaker than any class). */
+    :where(#sop-stage.sop-tall) img { max-width: 100%; height: auto; }
     #sop-stage.sop-tall .ds-card { border-radius: 28px; padding: 26px 22px; border-width: 1px; box-shadow: 0 2px 12px rgba(30,40,30,.06); }
     #sop-stage.sop-tall .ds-option { border-radius: 24px; padding: 22px 22px; min-height: 96px; border-width: 1px; box-shadow: 0 2px 10px rgba(30,40,30,.05); }
     #sop-stage.sop-tall .ds-option:active { transform: scale(.985); }

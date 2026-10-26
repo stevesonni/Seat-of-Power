@@ -85,7 +85,7 @@ await g.browser.close();
 g = await open(srv.port, { save: YEAR1, seed: 7, test: { labour: "asuu", twist: true } });
 await g.click(/^Continue/); await g.wait(1800);
 let twisted = false, seenTwist = false;
-await playUntil(g, t0 => { if (/strike · a new turn/.test(t0)) seenTwist = true; return twisted; }, { max: 260, prefer: [/^Later$/, /^Tell the communities first/],
+await playUntil(g, t0 => { if (/strike · a new turn/i.test(t0)) seenTwist = true; return twisted; }, { max: 260, prefer: [/^Later$/, /^Tell the communities first/],
   onStep: async () => { const v = await saved(g); twisted = Object.values(((v.stc || {}).labour || {}).strikes || {}).some(x => (x.twists || []).length); } });
 { const v = await saved(g); check(seenTwist && twisted, "a strike takes a new turn the next year, and it is answered" + (twisted ? "" : " " + JSON.stringify({ seenTwist, turn: v.turn, lab: v.stc && v.stc.labour, last: v.stc && v.stc.lastTurn }) + " | " + (await g.txt()).slice(0, 300))); }
 check(!g.errors.length, "no page errors (twist) " + g.errors.join(" | "));

@@ -13,7 +13,7 @@ const srv = await serve(), port = srv.port;
 const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const withSave = (edit) => { const d = JSON.parse(YEAR1.sop_save); edit(d); return { ...YEAR1, sop_save: JSON.stringify(d) }; };
-const bubbles = (g) => g.page.evaluate(() => [...document.querySelectorAll(".sp-bubble")].filter(b => b.offsetParent).map(b => b.textContent));
+const bubbles = (g) => g.page.evaluate(() => [...document.querySelectorAll(".sp-bubble, .lv-desk .adv p")].filter(b => b.offsetParent).map(b => b.textContent));
 const saved = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
 const proj = async (g, title) => ((await saved(g)).projects || []).find(p => p.title === title);
 // Into the policy step of Year 1, with nothing in front of the programmes.
@@ -35,6 +35,8 @@ const lendUntilOffer = async (g) => {
 };
 const ROAD = "500km Road Network";
 // Close any outcome card on top, as a player would, before the next click.
+// The adviser announces the year's next step a moment after the Desk opens, and her Continue takes you there: hear her out, pick a Chief of Staff if asked, then go back to the Desk.
+const toDesk = async (g) => { await g.wait(900); await clear(g); await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde/.test(x.textContent)); b && b.click(); }); await g.wait(500); await clear(g); await g.page.evaluate(() => window.postMessage({ type: "sop-nav", payload: "hub" }, "*")); await g.wait(600); };
 const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|Not now)$/); i++) await g.wait(350); };
 const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(600); };
 
@@ -50,7 +52,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   check(!/Seek financing/.test(await g.txt()), "money: the bank can pay this year's share, so no loan is offered");
   await g.click(/^Approve the project$/); await g.wait(2200);
   check((await bubbles(g)).some(x => /money is in place.*review its procurement/.test(x)), "money: the adviser goes straight to procurement");
-  await g.click(/^Review road procurement$/); await g.wait(400); await g.click(/^Award contract$/); await g.wait(1500);
+  await g.click(/^Review road procurement( →)?$/); await g.wait(400); await g.click(/^Award contract$/); await g.wait(1500);
   const d1 = await saved(g);
   check((d1.s.debt || 0) === (d0.s.debt || 0), "money: nothing was borrowed (debt " + d1.s.debt + ")");
   check(!g.errors.length, "no page errors: " + g.errors.join(" | "));
@@ -105,7 +107,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   b = await bubbles(g);
   check(b.some(x => /next step is to review its procurement/.test(x)), "5. the adviser moves on to procurement");
   await clear(g);
-  check(!!(await g.click(/^Review road procurement$/)), "2. 'Review road procurement' opens procurement");
+  check(!!(await g.click(/^Review road procurement( →)?$/)), "2. 'Review road procurement' opens procurement");
   await g.wait(400);
   check(/Award the contract/.test(await g.txt()), "3. bidders shown for this project");
   await g.click(/^Award contract$/); await g.wait(250);
@@ -155,8 +157,8 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   check(p && p.migrated && p.estimateM === 8100 && p.status === "pending_procurement", "8. the old stuck project is repaired on load (" + (p && p.status) + ")");
   const r8 = await playUntil(g, t => /Review road procurement/.test(t), { max: 40, prefer: [/^Tell the communities first/, /^Decide later this year$/] });
   if (!r8.ok) console.log("  clicks 8:", r8.clicks.slice(-20).join(" / "));
-  await clear(g);
-  { const ok8 = !!(await g.click(/^Review road procurement$/)); if (!ok8) console.log("  cover 8:", await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Review road procurement/.test(x.textContent)); if (!b) return "no button"; b.scrollIntoView({ block: "center" }); const r = b.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return JSON.stringify([b.textContent, r.top, r.height, el && el.tagName, el && el.className, el && (el.textContent || "").slice(0, 80), el && el.closest("[style]") && el.closest("[style]").getAttribute("style").slice(0, 160)]); })); check(ok8, "8. the adviser offers 'Review road procurement' for the old project"); }
+  await toDesk(g);
+  { const ok8 = !!(await g.click(/^Review road procurement( →)?$/)); if (!ok8) console.log("  cover 8:", await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Review road procurement/.test(x.textContent)); if (!b) return "no button"; b.scrollIntoView({ block: "center" }); const r = b.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return JSON.stringify([b.textContent, r.top, r.height, el && el.tagName, el && el.className, el && (el.textContent || "").slice(0, 80), el && el.closest("[style]") && el.closest("[style]").getAttribute("style").slice(0, 160)]); })); check(ok8, "8. the adviser offers 'Review road procurement' for the old project"); }
   await g.wait(400);
   check(/Award the contract/.test(await g.txt()), "8. it opens procurement with bidders, not an empty list");
   await g.click(/^Award contract$/); await g.wait(1200);
@@ -173,15 +175,16 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   const g = await open(port, { save: withSave(d => { d.sv = 4; d.projects = [big]; }) });
   await g.click(/^Continue/); await g.wait(1800);
   await playUntil(g, t => /every lender has turned down/i.test(t), { max: 40, prefer: [/^Tell the communities first/, /^Decide later this year$/] });
+  await toDesk(g);
   const b = await bubbles(g);
   check(b.some(x => /every lender has turned down Ring Road/.test(x)), "9. the adviser explains the blocker: " + (b.find(x => /lender/.test(x)) || b[0]));
   await clear(g);
-  check(!!(await g.click(/^Revise the scope$/)), "9. its button opens the project");
+  check(!!(await g.click(/^Revise the scope( →)?$/)), "9. its button opens the project");
   await g.wait(400);
   const t = await g.txt();
   check(/Blocked/.test(t) && /Fit the scope to the budget/.test(t) && /Defer indefinitely/.test(t), "9. the dossier says Blocked and offers the two real ways out");
   await g.click(/^Fit the scope to the budget$/); await g.wait(1200);
-  if (await g.click(/^Spread it over 4 years/)) { await g.wait(600); await g.click(/^Got it$/); await g.wait(400); await g.click(/^Revise the scope$/); await g.wait(400); await g.click(/^Fit the scope to the budget$/); await g.wait(1200); } // the debt choice came up first
+  if (await g.click(/^Spread it over 4 years/)) { await g.wait(600); await g.click(/^Got it$/); await g.wait(400); await g.click(/^Revise the scope( →)?$/); await g.wait(400); await g.click(/^Fit the scope to the budget$/); await g.wait(1200); } // the debt choice came up first
   let t2 = await g.txt();
   for (let i = 0; i < 4 && !/It still does not fit/.test(t2) && await g.click(/^(On to the next.*|Okay|Got it|Understood)$/); i++) { await g.wait(500); t2 = await g.txt(); } // cards queued ahead of the result
   const p = await proj(g, "Ring Road");
