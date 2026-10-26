@@ -11120,7 +11120,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Three tabs. Each keeps its pages as chips, so anything that opens a page
   // by key still works. Wiki, Constitution, Standing, Help and Sound live in the ☰ menu.
   const SCREENS = [
-    { id: "desk", i: "🗂️", img: "icon-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }, { k: "log", l: "News" }] },
+    { id: "desk", i: "🗂️", img: "icon-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }] }, // the News tab is retired (owner, October 2026)
     { id: "map", i: "🗺️", img: "icon-state", l: NAT ? "Nation" : "State", subs: [{ k: "tre", l: "💰 Treasury" }, { k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
     { id: "people", i: "👥", img: "icon-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: NAT ? "Councils" : "Council" }, { k: "ppl", l: "Public" }] },
   ];

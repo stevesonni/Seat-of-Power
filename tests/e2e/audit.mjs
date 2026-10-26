@@ -15,7 +15,7 @@ const r0 = await playUntil(g, t => ((yearOf(t) || {}).y || 0) >= 2 && !/Your mai
 console.log("reached year 2:", r0.ok); if (!r0.ok) { console.log((await g.txt()).slice(0, 600)); console.log(r0.clicks.slice(-40).join("\n")); process.exit(0); }
 const clear = async () => { for (let i = 0; i < 6; i++) { const hit = await g.click(/^(Got it|Okay|Continue|Close|Not now|✕|← Back to the mail|Back|Cancel)$/); if (!hit) break; await g.wait(250); } await g.page.keyboard.press("Escape").catch(() => {}); };
 const sig = () => g.page.evaluate(() => document.body.innerText.length + ":" + document.querySelectorAll("*").length + ":" + (document.body.innerText.slice(0, 4000)));
-for (const tab of ["hub", "gov", "log", "tre", "econ", "prj", "proc", "cast", "cab", "min", "coun", "ppl"]) {
+for (const tab of ["hub", "gov", "tre", "econ", "prj", "proc", "cast", "cab", "min", "coun", "ppl"]) {
   await clear();
   await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(700);
   const labels = await g.page.evaluate(() => [...document.querySelectorAll("button")].filter(b => b.offsetParent && !b.disabled).map(b => b.innerText.trim().replace(/\s+/g, " ").slice(0, 60)).filter(Boolean));
