@@ -33,3 +33,5 @@ The game works now with stand-in pictures. These replace them; Claude puts each 
 | icon-diplomacy.webp | A dove over a globe, sky blue (256 × 256, transparent) | Diplomacy lines on the year's end |
 
 That is 16 files: 11 scenes, 3 people, 1 seal and 1 icon. Send them as one zip with the folders above.
+
+**Delivered** (pack 26): all 16 in use. Two more requested in docs/LOVABLE-DIPLOMACY-2.md.

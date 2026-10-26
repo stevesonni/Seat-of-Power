@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 81, "81 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons + impeach)");
+  assert.equal(icons.length, 83, "83 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons + impeach + the diplomacy seal and icon)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -196,6 +196,14 @@ test("every pack 25 picture is installed and used", () => {
     "scenes/ag-on-television", "scenes/airbase-tarmac", "scenes/aso-rock-midnight-deal", "scenes/assembly-sealed", "scenes/emergency-streets", "scenes/ghana-must-go", "scenes/private-terminal",
     "scenes/secretariat-locked", "scenes/senate-investigation-news", "scenes/site-picketed", "scenes/tribunal-chamber"];
   assert.equal(names.length, 17);
+  assert.deepEqual(names.filter(n => !fs.existsSync(path.join(root, "public/art", n + ".webp"))), []);
+  assert.deepEqual(names.filter(n => !src.includes(path.basename(n))), []);
+});
+// Pack 26: diplomacy (docs/LOVABLE-DIPLOMACY.md): 16 pictures, all used.
+test("every pack 26 picture is installed and used", () => {
+  const names = ["characters/foreign-head-of-government", "characters/un-secretary-general", "characters/vice-president-nigeria", "icons/icon-diplomacy", "icons/seal-diplomacy",
+    "scenes/deal-signing-abroad", "scenes/un-corridor-deal", "scenes/un-general-assembly", ...["abudhabi-national-day", "delhi-diwali", "munich-oktoberfest", "ottawa-canada-day", "rio-carnival", "seoul-lanterns", "stockholm-midsummer", "tokyo-blossoms"].map(x => "scenes/fest-" + x)];
+  assert.equal(names.length, 16);
   assert.deepEqual(names.filter(n => !fs.existsSync(path.join(root, "public/art", n + ".webp"))), []);
   assert.deepEqual(names.filter(n => !src.includes(path.basename(n))), []);
 });

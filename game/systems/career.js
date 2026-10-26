@@ -46,6 +46,7 @@ export const careerBadges = (list, zoneOf = () => null, stats = {}) => {
     ["unifier", "🤝", "Unifier", "Leave the presidency with all six zones behind you", P.some(c => c.allZones && c.ending !== "impeached")],
     ["crisis", "⛓️", "Crisis ended", "As President, end the national crisis", P.some(c => c.crisisOver)],
     ["peacemaker", "🕊️", "Peacemaker", "As President, end the regional war with a peace treaty", P.some(c => c.peace)],
+    ["unga", "🌐", "At the UN every year", "As President, go to every UN General Assembly of your time in office", P.some(c => c.ungaAll)],
     ["fallen", "⚠️", "Fallen", "Be impeached or removed (it happens)", L.some(c => c.ending === "impeached" || c.ending === "nullified")],
     ["junketer", "✈️", "The Junketer", "Take " + JUNKET_TRIPS + " official trips: abroad, to Aso Rock and to the summits", (stats.trips || 0) >= JUNKET_TRIPS],
   ];
@@ -59,6 +60,7 @@ export const BADGE_PERKS = {
   first: { text: "Known face: party +3", fx: { pStab: 3 } },
   two: { text: "Two-term record: approval +3", fx: { app: 3 } },
   gradeA: { text: "Reputation: approval +4", fx: { app: 4 } },
+  unga: { text: "Friends at the UN: approval +2", fx: { app: 2 } },
   clean: { text: "Clean hands: corruption −4%", fx: { cor: -.04 } },
   builder: { text: "Builder: ₦0.5B in the bank", fx: { cashB: .5 } },
   survivor: { text: "Survivor: two more loyal lawmakers", fx: { house: 2 } },

@@ -20,3 +20,8 @@ test("the letter is sky blue and called Diplomacy", () => {
   assert.deepEqual(letterKind("sc#dipl_unga_climate_3"), ["diplomacy", 2]);
   assert.equal(SEALS.diplomacy.nm, "Diplomacy"); assert.equal(SEALS.diplomacy.c, "#3a9ad9");
 });
+import { careerBadges } from "../game/systems/career.js";
+test("the UN badge: every General Assembly attended in person", () => {
+  const b = (c) => careerBadges([{ office: "president", ...c }]).find(x => x.id === "unga").got;
+  assert.equal(b({ ungaAll: true }), true); assert.equal(b({ ungaAll: false }), false);
+});

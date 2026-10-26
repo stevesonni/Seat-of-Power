@@ -2663,7 +2663,7 @@ const StreakSheet = ({ st, onClose }) => {
 };
 
 // Your career: the map of states you have governed, and the badges earned.
-const BADGE_ART = { first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", peacemaker: "badge-peacemaker", junketer: "badge-junketer", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
+const BADGE_ART = { unga: "badge-un-general-assembly", first: "badge-sworn-in", two: "badge-two-termer", gradeA: "badge-grade-a", clean: "badge-clean-hands", builder: "badge-builder", survivor: "badge-survivor", aso: "badge-aso-rock", statesman: "badge-statesman", commander: "badge-commander", unifier: "badge-unifier", crisis: "badge-crisis-ended", peacemaker: "badge-peacemaker", junketer: "badge-junketer", zones: "badge-six-zones", ten: "badge-ten-states", all: "badge-federation", fallen: "badge-fallen" };
 // Every official trip, across every game (governor and President): the Junketer badge and the career stats.
 const tripsTotal = () => { try { return +localStorage.getItem("sop_trips") || 0; } catch (e) { return 0; } };
 const noteTripTotal = () => { try { localStorage.setItem("sop_trips", String(tripsTotal() + 1)); } catch (e) {} };
@@ -6308,20 +6308,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (d.jobs) setS(p => ({ ...p, invJobs: (p.invJobs || 0) + d.jobs, totalJobs: (p.totalJobs || 0) + d.jobs }));
     if (d.later) setStc(p => ({ ...p, diplo: { ...(p.diplo || { used: [], pending: [] }), pending: [...((p.diplo || {}).pending || []), { due: turn + 1, ...d.later }] } }));
     addL("🕊️ " + where + ": you " + d.past + ".", "success"); scWiki("Presidency", where + ": " + d.past.replace(/^\w/, c => c.toUpperCase()) + ".");
-    return { icon: "🕊️", img: "./art/scenes/" + (kind === "unga" ? "geneva-conference" : "news-signing-ceremony") + ".webp", title: d.l, text: where + ": " + d.past + "." + (d.later ? " It pays off again next year." : ""), tone: "good",
+    setTimeout(() => paper(kind === "unga" ? "PRESIDENT AT THE UN: " + d.l.toUpperCase() : "NIGERIA SIGNS DEALS ABROAD", where + ": " + d.past, true, "./art/scenes/" + (kind === "unga" ? "un-general-assembly" : "deal-signing-abroad") + ".webp"), 600);
+    return { icon: "🕊️", img: "./art/scenes/" + (kind === "unga" ? "un-corridor-deal" : "deal-signing-abroad") + ".webp", title: d.l, text: where + ": " + d.past + "." + (d.later ? " It pays off again next year." : ""), tone: "good",
       rows: [].concat(d.fx.igr ? [{ l: "Revenue", v: "+" + naira(d.fx.igr) + " a year", good: true }] : [], d.jobs ? [{ l: "Jobs", v: d.jobs.toLocaleString(), good: true }] : [], d.fx.gain ? [{ l: "Into the bank", v: naira(d.fx.gain), good: true }] : [], d.fx.borrow ? [{ l: "Loan", v: naira(d.fx.borrow), good: false }] : [], d.fx.debtCut ? [{ l: "Debt", v: "−" + naira(d.fx.debtCut), good: true }] : [], d.fx.app ? [{ l: "Approval", v: sgnN(d.fx.app), good: d.fx.app > 0 }] : [], trChips(d.tr).map(c => ({ l: c.text.replace(/ [+−].*$/, ""), v: c.text.replace(/^.* ([+−])/, "$1"), good: c.color === CL.grn }))) };
   };
   const diploCardFor = (kind, X) => {
     const unga = kind === "unga", city = unga ? "New York" : X.city, where = unga ? "The UN General Assembly" : X.event.replace(/^the /, "The ");
     const go = (d) => ({ label: (unga ? "Go to New York: " : "Go to " + X.city + ": ") + d.l.charAt(0).toLowerCase() + d.l.slice(1), travel: city, chips: dealChips(d),
       run: () => { if (d.fx.cost && !spendB(d.fx.cost, "The trip to " + city)) return { icon: "🏦", title: "The bank cannot cover the trip", text: "There is not enough money for the delegation.", tone: "bad" };
-        presTrip(city, unga ? "the UN General Assembly" : X.event); track("dipl_" + (unga ? "unga_" + X.id : X.id), d.id); return closeDeal(d, where, kind); } });
+        presTrip(city, unga ? "the UN General Assembly" : X.event); track("dipl_" + (unga ? "unga_" + X.id : X.id), d.id);
+        if (unga) setStc(p => ({ ...p, diplo: { ...(p.diplo || { used: [], pending: [] }), ungaGo: [...new Set([...((p.diplo || {}).ungaGo || []), turn])] } }));
+        return closeDeal(d, where, kind); } });
     const small = SYS.smaller(X.deals[0]);
     return { key: "dipl_" + (unga ? "unga_" + X.id : X.id) + "_" + turn, kicker: "Diplomacy · " + (unga ? "The UN General Assembly · " + X.t : X.event), color: SKY, from: unga ? "The Secretary-General of the United Nations" : X.host + ", " + X.from,
-      art: ["foreign-ministry-meeting", null, null, unga ? "geneva-conference" : "state-banquet"],
+      art: ["foreign-ministry-meeting", unga ? "un-secretary-general" : "foreign-head-of-government", null, unga ? "un-general-assembly" : X.scene || "state-banquet"],
       title: unga ? "The UN General Assembly: " + X.t.charAt(0).toLowerCase() + X.t.slice(1) : X.host + " invites you to " + X.event,
       brief: unga ? "Every September the world's leaders speak in New York. This year's theme is " + X.t.charAt(0).toLowerCase() + X.t.slice(1) + ". Go yourself and you can close a deal in the corridors; send the Vice-President and Nigeria is heard, no more." : "An invitation to " + X.event + ", with the government and business leaders around the table. Go and you can close a deal; send the Foreign Minister and you get a smaller one.",
-      options: X.deals.map(go).concat(unga ? [{ label: "Send the Vice-President", chips: fxChips({ app: X.vp.fx.app, debt: X.vp.fx.cost }), run: () => { spendB(X.vp.fx.cost || 0, "The UN delegation", { force: true }); scFx({ app: X.vp.fx.app || 0 }); track("dipl_unga_" + X.id, "vp"); addL("🕊️ The Vice-President spoke for Nigeria at the UN.", "info"); return { icon: "🕊️", title: "The Vice-President goes to New York", text: "Nigeria is heard; nothing is signed.", tone: "neutral" }; } }]
+      options: X.deals.map(go).concat(unga ? [{ label: "Send the Vice-President", chips: fxChips({ app: X.vp.fx.app, debt: X.vp.fx.cost }), run: () => { spendB(X.vp.fx.cost || 0, "The UN delegation", { force: true }); scFx({ app: X.vp.fx.app || 0 }); track("dipl_unga_" + X.id, "vp"); addL("🕊️ The Vice-President spoke for Nigeria at the UN.", "info"); return { icon: "🕊️", img: "./art/characters/vice-president-nigeria.webp", title: "The Vice-President goes to New York", text: "Nigeria is heard; nothing is signed.", tone: "neutral" }; } }]
         : [{ label: "Send the Foreign Minister: " + small.l.charAt(0).toLowerCase() + small.l.slice(1) + ", on a smaller scale", chips: dealChips(small), run: () => { track("dipl_" + X.id, "minister"); return closeDeal({ ...small, past: "sent the Foreign Minister and " + X.deals[0].past.replace(/^\w+ /, m => m) }, where, kind); } },
           { label: "Decline politely", chips: [{ text: "No cost", color: CL.grn }], run: () => { track("dipl_" + X.id, "decline"); addL("🕊️ You declined the invitation to " + X.event + ".", "info"); return { icon: "🕊️", title: "Declined", text: "A polite letter goes back. The door stays open, a little less wide.", tone: "neutral" }; } }]) };
   };
@@ -7382,7 +7385,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (NAT && next.pres) {
       let Dp = next.diplo || { used: [], pending: [] }; const due = (Dp.pending || []).filter(x => x.due <= turn); Dp = { ...Dp, pending: (Dp.pending || []).filter(x => x.due > turn) };
       due.forEach(x => { econFx(x.fx || {}, null); if (x.tr && next.trade) next.trade = SYS.tradeApply(next.trade, x.tr, turn); notes.push(["🕊️ " + x.text, "success"]); });
-      cards.push(diploCardFor("unga", SYS.ungaFor(turn, hashStr(state + pName))));
+      cards.push(diploCardFor("unga", SYS.ungaFor(turn, hashStr(state + pName)))); Dp = { ...Dp, ungaSeen: [...new Set([...(Dp.ungaSeen || []), turn])] };
       if (turn % 2 === 0) { const X = SYS.inviteFor(Dp.used || [], rE); if (X) { Dp = { ...Dp, used: [...(Dp.used || []), X.id] }; cards.push(diploCardFor("invite", X)); } }
       next.diplo = Dp;
     }
@@ -10579,7 +10582,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   }, [gEnd]);
   useEffect(() => { if (impSurv && !anchored.current.imp) { anchored.current.imp = 1; anchors(govShort + " survives the impeachment vote!", "The House blinked. The governor walks out stronger."); } }, [impSurv]);
   // ── The mailbox on screen ──
-  const SEAL_ART = { bakunda: "seal-bakunda", agenda: "seal-agenda", budget: "seal-budget", gold: "seal-gold", crisis: "seal-crisis", godfather: "seal-godfather", party: "seal-party", house: "seal-house", courts: "seal-courts", federal: "seal-abuja", community: "seal-community", press: "seal-press", travel: "seal-invitation", investment: "seal-investor", projects: "seal-projects", intel: "seal-intel", briefing: "seal-briefing", fec: "seal-fec", nsc: "seal-nsc", eac: "seal-eac", exco: "seal-exco", rulers: "seal-rulers", econ: "seal-econ" };
+  const SEAL_ART = { bakunda: "seal-bakunda", agenda: "seal-agenda", budget: "seal-budget", gold: "seal-gold", crisis: "seal-crisis", godfather: "seal-godfather", party: "seal-party", house: "seal-house", courts: "seal-courts", federal: "seal-abuja", community: "seal-community", press: "seal-press", travel: "seal-invitation", diplomacy: "seal-diplomacy", investment: "seal-investor", projects: "seal-projects", intel: "seal-intel", briefing: "seal-briefing", fec: "seal-fec", nsc: "seal-nsc", eac: "seal-eac", exco: "seal-exco", rulers: "seal-rulers", econ: "seal-econ" };
   const Seal = ({ kind, size = 44 }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; if (SEAL_ART[kind]) return <Ico n={SEAL_ART[kind]} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />;
     return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
   const mailboxView = (inline) => {
@@ -10705,7 +10708,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
     setStc(p => ({ ...p, careerSaved: true })); track("ending", SYS.ENDING_NAME[gEnd] || gEnd); track("grade", gr); track("ending_state", state);
-    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", trips: stc.trips || 0, ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), peace: !!(stc.bakunda && stc.bakunda.done && stc.bakunda.treaty === "enacted"), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0) } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
+    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", trips: stc.trips || 0, ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), peace: !!(stc.bakunda && stc.bakunda.done && stc.bakunda.treaty === "enacted"), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0), ungaAll: (() => { const D0 = stc.diplo || {}, seen = D0.ungaSeen || [], go = D0.ungaGo || []; return seen.length >= 3 && seen.every(t => go.includes(t)); })() } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
   // The Secretariat writes: each commissioner asking to see you, and each open
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the
@@ -14038,7 +14041,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             </Cd>}
             {phase === "end_turn" && !curD && (() => {
               // The year's end (Lovable's design, sop-screens.css .lv-ey): the front page, the sealed letter, what happened, Continue.
-              const ICON_FOR = [[/strike|union|picket|NLC|ASUU/i, "icon-strike"], [/Senate|tribunal|impeach|indict/i, "icon-impeach"], [/export|trade|deal|port|cargo/i, "icon-exports"], [/food|price|inflation/i, "icon-food-prices"], [/approval|popular/i, "icon-approval"], [/debt|loan|borrow/i, "icon-debt"], [/bank|₦|revenue|igr|faac|money/i, "icon-bank"], [/corrupt|graft|efcc/i, "icon-corruption"], [/party|defect/i, "icon-party"]];
+              const ICON_FOR = [[/UN General Assembly|the UN\b|diplomac|invitation|Foreign Minister|Vice-President spoke/i, "icon-diplomacy"], [/strike|union|picket|NLC|ASUU/i, "icon-strike"], [/Senate|tribunal|impeach|indict/i, "icon-impeach"], [/export|trade|deal|port|cargo/i, "icon-exports"], [/food|price|inflation/i, "icon-food-prices"], [/approval|popular/i, "icon-approval"], [/debt|loan|borrow/i, "icon-debt"], [/bank|₦|revenue|igr|faac|money/i, "icon-bank"], [/corrupt|graft|efcc/i, "icon-corruption"], [/party|defect/i, "icon-party"]];
               const yearLines = logs.filter(l => l.t === turn).slice(0, 5).map(e => { const good = ["policy", "success"].includes(e.tp), t = briefly(String(e.tx).replace(/^[^A-Za-z₦"“]+/, ""), 80), ic = (ICON_FOR.find(([rx]) => rx.test(t)) || [null, good ? "icon-ok" : "icon-warning"])[1]; return { good, t, ic }; });
               const paperNm = NAT ? "The National Daily" : stName + " Daily Tribune", place = NAT ? "Abuja" : stName;
               const pic = NAT ? "./art/scenes/presidential-media-chat.webp" : "./art/scenes/news-signing-ceremony.webp";
