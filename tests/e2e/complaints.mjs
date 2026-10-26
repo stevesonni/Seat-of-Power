@@ -18,7 +18,7 @@ const r = await playUntil(g, t => /Answer ›/.test(t) && /Big moves \d+\/\d+/.t
 check(r.ok, "the street lists complaints with Answer, and the Desk counts big moves");
 const t = await g.txt();
 const m = t.match(/Big moves (\d+)\/(\d+)/); check(m && +m[2] >= 8, "at least 8 big moves on Medium (" + (m && m[0]) + ")");
-check(/bills & orders free/.test(t), "bills and orders are outside the count");
+check(/programmes, bills & orders separate/.test(t), "programmes, bills and orders are outside the count");
 check(/“Na 2 months now dem never pay us/.test(t), "the unpaid workers' complaint is on the street");
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Answer ›/.test(x.textContent) && /never pay us/.test(x.textContent)); b && b.scrollIntoView({ block: "center" }); b && b.click(); }); await g.wait(700);
 const card = await g.txt();

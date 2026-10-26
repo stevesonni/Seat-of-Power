@@ -44,7 +44,7 @@ export async function createPolitician(g, state = "Ogun") {
   await g.page.evaluate(() => { const b = [...document.querySelectorAll("button[aria-pressed]")].find(x => x.querySelector("img")); b && b.click(); });
   const ins = await g.page.$$("input"); if (ins[0]) await ins[0].fill("Wale"); if (ins[1]) await ins[1].fill("Adegoke");
   await g.page.selectOption("select", state); await g.wait(200);
-  await g.click(/^Central/); await g.wait(200);
+  await g.click(/^(\S+ )?Central/); await g.wait(200); // the district tile: "Ogun Central" (real district names)
   await g.click(/^Create my politician$/); await g.wait(800);
   return true;
 }

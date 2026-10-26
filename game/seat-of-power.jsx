@@ -324,7 +324,11 @@ const ZONE_LABELS = ["North Senatorial", "Central Senatorial", "South Senatorial
 const NATION = "Nigeria";
 const NATION_ZONES = ["North-West", "North-East", "North-Central", "South-West", "South-East", "South-South"];
 const NATION_ZONE_IDS = ["NW", "NE", "NC", "SW", "SE", "SS"];
-const zonesOf = (state) => state === NATION ? NATION_ZONES : ZONE_LABELS;
+const zonesOf = (state) => state === NATION ? NATION_ZONES : SYS.SENATE_DISTRICTS[state] ? SYS.SENATE_DISTRICTS[state].map(d => d[0] + " Senatorial") : ZONE_LABELS;
+// "Ikorodu · Lagos East": an LGA with its district, found from the state's own list.
+const lgaInList = (lgas, l) => { const st = Object.keys(STATE_LGAS).find(k => STATE_LGAS[k] === lgas); const i = st ? SYS.districtOf(st, l) : -1; return i >= 0 ? l + " · " + SYS.districtNames(st)[i] : l; };
+// A state's three district names ("Lagos East"), or the generic three.
+const districtNamesOf = (state) => { const n = SYS.districtNames(state); return n.length ? n : SYS.DISTRICTS.map(d => d.replace(" Senatorial", "")); };
 const getLGAs = (state) => STATE_LGAS[state] || [];
 /* Nigeria as a polity: kept out of Object.keys (so no state picker, map or
    leaderboard ever lists it) but readable as STATES.Nigeria. The money is the
@@ -334,11 +338,8 @@ Object.defineProperty(STATES, NATION, { enumerable: false, value: mkS(220, 240, 
 Object.defineProperty(STATE_LGAS, NATION, { enumerable: false, value: Object.keys(STATES) });
 // Real senatorial districts where they are entered (index 0 North, 1 Central,
 // 2 South); elsewhere the state's LGAs are dealt into three groups.
-const SENATORIAL = {
-  Edo: [["Akoko-Edo", "Etsako East", "Etsako West", "Etsako Central", "Owan East", "Owan West"],
-        ["Esan Central", "Esan North-East", "Esan South-East", "Esan West", "Igueben"],
-        ["Egor", "Ikpoba-Okha", "Oredo", "Orhionmwon", "Ovia North-East", "Ovia South-West", "Uhunmwonde"]],
-};
+// The real senatorial districts and their LGAs, for every state (SYS.SENATE_DISTRICTS).
+const SENATORIAL = Object.fromEntries(Object.entries(SYS.SENATE_DISTRICTS).map(([k, v]) => [k, v.map(d => d[1])]));
 const lgaCluster = (lgas, idx) => { const st = lgas === STATE_LGAS[NATION] ? NATION : Object.keys(STATE_LGAS).find(k => STATE_LGAS[k] === lgas); if (st === NATION) return lgas.filter(k => (k === "FCT" ? "NC" : STATES[k]?.zone) === NATION_ZONE_IDS[idx]); if (st && SENATORIAL[st]) return SENATORIAL[st][idx].filter(l => lgas.includes(l)); return lgas.filter((_, i) => i % 3 === idx); };
 const buildBattlegrounds = (state, seed, partyId, oppPartyId) => {
   const lgas = getLGAs(state);
@@ -2247,7 +2248,7 @@ const CivicPanel = ({ children, style: st }) => React.createElement("div", {
 // The Basics: five cards, under a minute. The full guide is one tap behind them.
 const BASICS = [
   { art: "backgrounds/government-house", icon: "icon-office-governor", t: "You are in charge", c: "You run a Nigerian state. First you win the election; then you govern for four years. Do well and the people give you a second term, and one day you may run for President." },
-  { art: "backgrounds/governor-office", icon: "icon-desk", t: "How a year works", c: "Each year you set the budget, answer what the state needs, and open your letters: each one is a decision. You have eight big moves a year (more with a strong team); bills, executive orders, letters and the street's complaints are extra. Then you end the year and see what your choices did." },
+  { art: "backgrounds/governor-office", icon: "icon-desk", t: "How a year works", c: "Each year you set the budget, answer what the state needs, and open your letters: each one is a decision. You have eight big moves a year (more with a strong team). Programmes are limited only by money and your ministries' capacity; bills, executive orders, letters and the street's complaints are extra. Then you end the year and see what your choices did." },
   { art: "scenes/camp-youth-town-hall", icons: ["icon-approval", "icon-bank", "icon-party"], t: "Three things to watch", c: "Approval: do the people like you? The bank: can you pay for what you promised? The party: will they stand with you? Keep all three healthy." },
   { art: "scenes/ribbon-cut", icon: "icon-ok", t: "How you win, how you lose", c: "Deliver what you promise and win elections. Lose the people and the party at the same time, and the House can impeach you. Run out of money, and nothing gets built." },
   { art: "backgrounds/assembly-chamber", icon: "icon-ask-sa", t: "You don't need to know politics", c: "You learn as you play. Everything is explained the first time it appears, and any underlined word has a meaning one tap away. Your Special Adviser is always beside you." },
@@ -2400,7 +2401,7 @@ const ProfileForm = ({ initial, onSave, onCancel, first: firstTime }) => {
     {origin && <>
       <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>Home senatorial district</div>
       <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-        {SYS.DISTRICTS.map((d, i) => { const l = lgaCluster(getLGAs(origin), i).slice(0, 3).join(", "); return <Tile key={d} tint={district === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={district === i} onClick={() => { setDistrict(i); setLga(null); }} title={d} sub={l ? l + "…" : null} />; })}
+        {districtNamesOf(origin).map((d, i) => { const l = lgaCluster(getLGAs(origin), i).slice(0, 3).join(", "); return <Tile key={d} tint={district === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={district === i} onClick={() => { setDistrict(i); setLga(null); }} title={d} sub={l ? l + "…" : null} />; })}
       </div>
       {district != null && (() => { const ls = lgaCluster(getLGAs(origin), district); return ls.length ? <>
         <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>Home local government</div>
@@ -3357,7 +3358,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       </div>
       <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "18px 0 6px 6px" }}>Your home senatorial district</div>
       <div style={{ display: "grid", gap: 8 }}>
-        {SYS.DISTRICTS.map((d, i) => { const l = lgaCluster(getLGAs(st), i).slice(0, 3).join(", "); return <Tile key={d} tint={homeDistrict === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={homeDistrict === i} onClick={() => { setHomeDistrict(i); setHomeLga(null); }} title={d} sub={l ? l + "…" : null} />; })}
+        {districtNamesOf(st).map((d, i) => { const l = lgaCluster(getLGAs(st), i).slice(0, 3).join(", "); return <Tile key={d} tint={homeDistrict === i ? "#fff" : UI.tints[(i + 1) % UI.tints.length]} on={homeDistrict === i} onClick={() => { setHomeDistrict(i); setHomeLga(null); }} title={d} sub={l ? l + "…" : null} />; })}
       </div>
       {homeDistrict != null && (() => { const ls = lgaCluster(getLGAs(st), homeDistrict); return ls.length ? <>
         <div style={{ fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "16px 0 6px 6px" }}>Your home local government</div>
@@ -3504,7 +3505,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
             {c.partyFav && <span style={{ background: UI.dark, color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 700 }}>Party's choice</span>}
             {same && <span style={{ background: CL.org, color: "#fff", borderRadius: 999, padding: "3px 10px", fontSize: DS.t.meta, fontWeight: 700 }}>Same district as you</span>}
           </span>
-          <span style={{ fontSize: DS.t.label, color: UI.sub }}>{c.bg} · {SYS.DISTRICTS[c.district]} · network: {c.network}</span>
+          <span style={{ fontSize: DS.t.label, color: UI.sub }}>{c.bg} · {districtNamesOf(st)[c.district]} · network: {c.network}</span>
           {meter("Competence", c.co, CL.blu)}
           {meter("Pull with voters", c.pu, CL.grn)}
           {meter("Loyal to you", c.lo, CL.pur)}
@@ -4466,7 +4467,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, ministries, r
         <Tiles items={[["Cost to build", SYS.fmtM(est.buildM)], est.facility && ["To equip", SYS.fmtM(est.equipM)], est.facility && ["To run", SYS.fmtM(est.opsPerYearM) + "/yr"], ["Takes about", est.years + (est.years === 1 ? " year" : " years")]]} />
         <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: "0 12px" }}>
           <div>{spLab("Name")}<input value={d.title || ""} onChange={e => onFlow({ ...F0, draft: { ...d, title: e.target.value } })} style={spField} /></div>
-          <div>{spLab("Where")}<select value={d.lga || ""} onChange={e => onFlow({ ...F0, draft: { ...d, lga: e.target.value || null } })} style={spField}><option value="">Pick a local government</option>{lgas.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
+          <div>{spLab("Where")}<select value={d.lga || ""} onChange={e => onFlow({ ...F0, draft: { ...d, lga: e.target.value || null } })} style={spField}><option value="">Pick a local government</option>{lgas.map(l => <option key={l} value={l}>{lgaInList(lgas, l)}</option>)}</select></div>
           <div>{spLab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas, federal: SEAT.nat }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need, srcPolicy: d.srcPolicy, ministryId: null } }); }} style={spField}>{TYPES_FOR().map(k => <option key={k} value={k}>{SYS.UNIT[k].nm}</option>)}</select></div>
           <div>{spLab("Size (" + est.unit + "s)")}<input type="number" min={1} value={d.qty} onChange={e => onFlow({ ...F0, draft: { ...d, qty: Math.max(1, +e.target.value || 1) } })} style={spField} /></div>
           <div>{spLab("Supervising ministry")}<select value={d.ministryId || ""} onChange={e => onFlow({ ...F0, draft: { ...d, ministryId: e.target.value } })} style={spField}>{(ministries || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
@@ -5400,7 +5401,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const explainAgenda = () => {
     const B = agendaBonusNow(), size = agendaSizeNow(), used = (agenda && agenda.turn === turn ? agenda.used : []) || [];
     const bl = SYS.billsLeft(agenda, turn), ords = SYS.ordersThisYear(agenda, turn);
-    try { window.SOP_outcome({ icon: "🗓️", title: size + " big moves this year", text: (used.length ? "You have used " + used.length + ", " + (size - used.length) + " left. " : "None used yet. ") + "Big moves are programmes, projects, revenue reforms, new ministries and investigations. Bills and executive orders do not count: the " + (NAT ? "National Assembly" : "House") + " takes up to " + SYS.BILLS_A_YEAR + " of your bills a year (" + bl + " left), and orders are free, but more than three a year and the press calls it rule by decree. Never counted: letters, complaints, visits, meetings, the budget and appointments.",
+    try { window.SOP_outcome({ icon: "🗓️", title: size + " big moves this year", text: (used.length ? "You have used " + used.length + ", " + (size - used.length) + " left. " : "None used yet. ") + "Big moves are projects, revenue reforms, new ministries and investigations. Programmes do not count either: they are limited by money and by each ministry's capacity (two at a time per sector, three with a strong " + (NAT ? "minister" : "commissioner") + "). Bills and executive orders do not count: the " + (NAT ? "National Assembly" : "House") + " takes up to " + SYS.BILLS_A_YEAR + " of your bills a year (" + bl + " left), and orders are free, but more than three a year and the press calls it rule by decree. Never counted: letters, complaints, visits, meetings, the budget and appointments.",
       rows: [{ l: (setup?.level || "medium").replace(/^./, c => c.toUpperCase()) + " level", v: String(SYS.agendaSize(setup?.level || "medium")), good: true }].concat(B.parts.map(p => ({ l: p.l, v: "+" + p.n, good: true })), [{ l: "Bills this year", v: (SYS.BILLS_A_YEAR - bl) + " of " + SYS.BILLS_A_YEAR, good: bl > 0 }, { l: "Executive orders this year", v: String(ords), good: ords <= 3 }], used.map(u => ({ l: u.label, v: "used", good: true }))), tone: "neutral",
       learn: "Real leaders face the same limit: the civil service can carry only a few big reforms at once, and the legislature only so many bills in a session. A strong cabinet carries more for you." }); } catch (e) {}
   };
@@ -5532,6 +5533,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The Desk shows only what still needs you: work already under way steps aside.
   const deskNeeds = activeNeeds.filter(n => n.status !== "started"), workingNeeds = activeNeeds.filter(n => n.status === "started");
   const zoneName = (zi) => (ZN[zi] || "").replace(" Senatorial", "");
+  // "Lagos East" for a governor (the real district), "North-West zone" for the President.
+  const zoneLabel = (zi) => NAT ? zoneLabel(zi) : zoneName(zi);
+  // An LGA with its district: "Ikorodu · Lagos East".
+  const lgaLabel = (l) => { const i = SYS.districtOf(state, l); return i >= 0 && !NAT ? l + " · " + zoneName(i) : l; };
   const makeNeed = (r, avoid) => {
     const pool = NEEDS().filter(t => !avoid.includes(t.k));
     const w = pool.map(t => Math.max(.12, 1.1 - (s[t.stat] == null ? .5 : s[t.stat])));
@@ -5619,7 +5624,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       // Waiting costs something every year, not only at the deadline.
       dApp -= 1; addZ(n.zone, -2);
-      notes.push([(turn === n.due ? "⏳ Last year to act: " : "😠 Still waiting: ") + T.title(n.lga) + ". " + zoneName(n.zone) + " zone is turning against you.", "political"]);
+      notes.push([(turn === n.due ? "⏳ Last year to act: " : "😠 Still waiting: ") + T.title(n.lga) + ". " + zoneLabel(n.zone) + " is turning against you.", "political"]);
       return n;
     });
     if (lastActTurn.current < turn - 1) {
@@ -5633,7 +5638,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setNeeds([...next, ...fresh, ...added]);
     if (dApp || Object.keys(dZone).length) setS(p => { const zm = { ...(p.zoneMood || {}) }; Object.entries(dZone).forEach(([z, v]) => { zm[z] = Math.max(-25, Math.min(25, (zm[z] || 0) + v)); }); return { ...p, app: cl100(p.app + dApp), zoneMood: zm }; });
     notes.forEach(([t, k]) => addL(t, k));
-    added.forEach(n => addL("🧭 New need: " + needType(n).title(n.lga) + " (" + zoneName(n.zone) + " zone).", "political"));
+    added.forEach(n => addL("🧭 New need: " + needType(n).title(n.lga) + " (" + zoneLabel(n.zone) + ").", "political"));
   }, [turn]);
 
   // ── Statecraft engine (salaries and FAAC, promises, cabinet balance, the
@@ -5743,7 +5748,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (promiseKept(p)) return { ...p, status: "kept" };
       broken++;
       scFx({ app: -2 }, p.zone, -4);
-      addL("💔 Broken promise: “" + p.text + "”. " + zoneName(p.zone) + " zone remembers (approval −2, zone −4).", "crisis");
+      addL("💔 Broken promise: “" + p.text + "”. " + zoneLabel(p.zone) + " remembers (approval −2, zone −4).", "crisis");
       scWiki("Controversies", "Broke the campaign promise to “" + p.text.charAt(0).toLowerCase() + p.text.slice(1) + "”.");
       return { ...p, status: "broken" };
     });
@@ -5962,6 +5967,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   /* Public complaints (SYS.complaints): the street's voices, each tied to a
      real cause, tappable and answerable. Same for the President, with the
      nation's causes (the crisis, the security fronts). */
+  const SECTOR_MIN = { education: "education", health: "health", infrastructure: "works", agriculture: "agriculture", security: "defence", water: "water", housing: "housing" };
+  const progCap = (sector) => { const M = SECTOR_MIN[sector] && ministerFor(SECTOR_MIN[sector]); return 2 + (M && (M.perf || 0) >= 75 ? 1 : 0); };
   const MIN_RX = { finance: /budget|finance/i, works: /works|infrastructure|transport/i, labour: /labour/i, defence: /defence|security|interior/i, health: /health/i, education: /educ/i, agriculture: /agric/i, water: /water/i, housing: /housing|lands/i };
   const ministerFor = (kind) => { const rx = MIN_RX[kind]; const M = rx && (ministries || []).find(m => m.minister && rx.test(m.name || m.id)); return M ? { name: "Hon. " + M.minister, perf: M.perf } : null; };
   const complaintsNow = () => { try {
@@ -5992,7 +5999,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const d = SYS.STATE_STORIES[id], C = STATE_CRISES.find(x => x.id === id) || {}, raw = d && SYS.storyCard(d, T.S, { nat: NAT });
     if (!raw) return null;
     const c = SYS.placeText(raw, T.lga), zi = T.zi, yr = (T.S.hist || []).length;
-    return { key: "crisis_" + id + "_" + turn, kicker: stName + " · " + zoneName(zi) + " zone" + (yr ? " · " + d.nm.replace(/^The /, "the ") + ", year " + (yr + 1) : ""), color: CL.red, art: [c.bg || C.bg, c.who || C.who, null, c.scene || null],
+    return { key: "crisis_" + id + "_" + turn, kicker: stName + " · " + zoneLabel(zi) + (yr ? " · " + d.nm.replace(/^The /, "the ") + ", year " + (yr + 1) : ""), color: CL.red, art: [c.bg || C.bg, c.who || C.who, null, c.scene || null],
       title: (C.icon ? C.icon + " " : "") + c.t, brief: c.d, stakes: yr ? undefined : "Every option has a price. This one is " + stName + "'s own.",
       options: c.opts.map(o => { const fx = { ...(o.fx || {}), debt: o.cost || 0 };
         return { label: o.l, note: o.kind === "bill" ? "Goes to the House: the vote comes next year. If it passes, it lasts." : o.kind === "order" ? "In force today. A State High Court can strike it down next year." : undefined, risk: o.odds != null ? "A gamble: it can go either way." : null,
@@ -6205,7 +6212,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     next.promises = next.promises.map(p => {
       if (p.status !== "pending" || !promiseKept(p)) return p;
       dApp += 2; addZ(p.zone, 3);
-      notes.push(["✅ Promise kept: “" + p.text + "”. " + zoneName(p.zone) + " zone takes note (approval +2, zone +3).", "success"]);
+      notes.push(["✅ Promise kept: “" + p.text + "”. " + zoneLabel(p.zone) + " takes note (approval +2, zone +3).", "success"]);
       scWiki("Governorship", "Kept the campaign promise to “" + p.text.charAt(0).toLowerCase() + p.text.slice(1) + "”.");
       return { ...p, status: "kept" };
     });
@@ -6214,7 +6221,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const bi = balanceIssue();
     if (bi != null) {
       const c = cabZones(); addZ(bi, -2);
-      notes.push(["⚖️ " + zoneName(bi) + " zone elders complain of marginalisation: " + c[bi] + " of " + (ministries || []).length + " commissioners are theirs (zone −2 every year until you rebalance).", "political"]);
+      notes.push(["⚖️ " + zoneLabel(bi) + " elders complain of marginalisation: " + c[bi] + " of " + (ministries || []).length + " commissioners are theirs (zone −2 every year until you rebalance).", "political"]);
       if (!next.balanceWarned) { scWiki("Controversies", "Was accused of marginalising " + zoneName(bi) + " Senatorial District in cabinet appointments."); next.balanceWarned = true; }
     }
 
@@ -7682,7 +7689,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The cost is paid each year the policy runs, not all at once: this year's share now, from the bank.
     const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100;
     if (!canAfford(perH, p.nm.replace(/^⭐\s*/, ""))) return;
-    if (!takeAgenda("programme", p.nm.replace(/^⭐\s*/, ""), "pol:" + p.id)) return;
+    // Programmes are limited by money and by the ministry that runs them, not by big moves:
+    // two at a time per sector, three when its commissioner or minister is strong.
+    { const cap = progCap(p.s), on = (pol || []).filter(a => a.s === p.s && (a.tl == null || a.tl > 0)).length;
+      if (on >= cap) { try { window.SOP_outcome({ icon: "🏛️", title: "That ministry is at capacity", text: "It is already running " + on + " " + (p.s || "") + " programme" + (on === 1 ? "" : "s") + ". It can take another when one finishes" + (cap < 3 ? ", or when a stronger " + (NAT ? "minister" : "commissioner") + " runs it (three at a time)." : "."), tone: "neutral", rows: (pol || []).filter(a => a.s === p.s).map(a => ({ l: a.nm.replace(/^⭐\s*/, ""), v: (a.tl || 0) + " yr left", good: true })) }); } catch (e) {} return; } }
     if (!spendB(perH, p.nm.replace(/^⭐\s*/, ""))) return;
     const [forS, againstS] = policySides(p);
     setPol(pp => [...pp, { ...p, tl: p.t, perH }]);
@@ -7853,7 +7863,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try {
       window.SOP_outcome({ present: { img: "./art/" + R.who + ".webp", bg: "./art/" + R.img + ".webp", name: purposeId === "chairman" ? chairman + " · Chairman, " + lga + " LGA" : "The people of " + lga, text: R.line, ok: "Continue" } });
       window.SOP_outcome({ icon: "🚙", img: "./art/" + R.img + ".webp", title: R.title, text: ask ? "The request is on your Desk: " + needType(ask).title(lga) + ". " + (needType(ask).ask || "") : R.line, tone: R.rough ? "bad" : "good",
-        rows: [{ l: ["North", "Central", "South"][zi] + " zone", v: (R.zone > 0 ? "+" : "") + R.zone, good: R.zone > 0 }].concat(R.fx.app ? [{ l: "Approval", v: (R.fx.app > 0 ? "+" : "") + R.fx.app, good: R.fx.app > 0 }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : []) });
+        rows: [{ l: zoneLabel(zi), v: (R.zone > 0 ? "+" : "") + R.zone, good: R.zone > 0 }].concat(R.fx.app ? [{ l: "Approval", v: (R.fx.app > 0 ? "+" : "") + R.fx.app, good: R.fx.app > 0 }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : []) });
     } catch (e) {}
     setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + R.img + ".webp"), 300);
   };
@@ -10589,7 +10599,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
     {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
-    <span role="button" tabIndex={0} onClick={explainAgenda} title="Big moves left this year: programmes, projects, reforms, new ministries, investigations. Bills (3 a year) and executive orders do not count." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Big moves {agendaLeftNow}/{agendaSizeNow()} · bills & orders free</span>
+    <span role="button" tabIndex={0} onClick={explainAgenda} title="Big moves left this year: projects, reforms, new ministries, investigations. Programmes (money and ministry capacity), bills (3 a year) and executive orders do not count." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Big moves {agendaLeftNow}/{agendaSizeNow()} · programmes, bills & orders separate</span>
         {["Budget", "House vote", "Policies", "Review", "Mail"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
   </div>;
@@ -10792,7 +10802,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <label style={{ display: "block", fontSize: TALL() ? TS(17) : TS(24), color: CL.td, marginBottom: 6 }} htmlFor="lt-lga">Which LGA?</label>
             <select id="lt-lga" value={lgaTour.lga} onChange={e => setLgaTour({ lga: e.target.value })} style={{ width: "100%", minHeight: 48, borderRadius: 12, border: "1px solid " + CL.bdr, padding: "8px 12px", fontFamily: F.b, fontSize: TALL() ? TS(19) : TS(26), marginBottom: 12, background: "#fff" }}>
               <option value="">Choose an LGA…</option>
-              {getLGAs(state).slice().sort().map(l => <option key={l} value={l}>{l}{(stc.lgaTours && stc.lgaTours.turn === turn && stc.lgaTours.list.includes(l)) ? " (toured this year)" : ""}</option>)}
+              {getLGAs(state).slice().sort().map(l => <option key={l} value={l}>{lgaLabel(l)}{(stc.lgaTours && stc.lgaTours.turn === turn && stc.lgaTours.list.includes(l)) ? " (toured this year)" : ""}</option>)}
             </select>
             {lgaTour.lga && <div style={{ display: "grid", gap: 8 }}>{SYS.LGA_TOUR_PURPOSES.map(pp => <button key={pp.id} className="ds-option" onClick={() => tourLga(lgaTour.lga, pp.id)} style={{ textAlign: "left" }}>
               <b style={{ display: "block" }}>{pp.l}</b><span className="ds-option-note" style={{ display: "block" }}>{pp.d}</span>
@@ -11157,7 +11167,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const cost = Math.round((1.4 + turn * 0.15) * 10) / 10;
             const done = (window.SOP_MEMORY ? window.SOP_MEMORY.all("flagship_milestone", e => e.meta && e.meta.delivered) : []).length;
             // This year's share, in plain terms: which road, how many guards, where.
-            const deliv = SYS.flagshipDeliverable(setup.agenda, ((year - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(year * 131 + state.length * 7), NAT ? ZN : null);
+            const deliv = SYS.flagshipDeliverable(setup.agenda, ((year - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(year * 131 + state.length * 7), NAT ? ZN : ZIX.map(zoneName));
             const pick = (opt) => decide(() => {
               if (opt.debt && !spendB(opt.debt, "The flagship")) return;
               setS(p => ({ ...p, app: cl100(p.app + opt.app), cor: cl(p.cor + (opt.cor || 0)) }));
@@ -14150,7 +14160,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     S.race = SYS.raceStart(S);
     setG(S); trk("career_start", "senator_" + from);
   };
-  const districtName = (G) => ["North", "Central", "South"][G.district] + " senatorial district of " + String(G.state || "").replace(/_/g, " ");
+  const districtName = (G) => (districtNamesOf(G.state)[G.district] || ["North", "Central", "South"][G.district]) + " senatorial district of " + String(G.state || "").replace(/_/g, " ");
 
   // ── The race ──
   const raceMove = (m) => {
