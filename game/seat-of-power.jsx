@@ -2190,76 +2190,40 @@ const OL = ({ children, show }) => {
     React.createElement("div", { className: "sop-slide-up", style: { maxWidth: 984, width: "100%", margin: "auto 0" } }, children));
 };
 
-/* A council in session: the members around a table, the council's wax seal
-   at its centre, each member speaking in turn (one line each), then the
-   decision. T: { title, sub, bg, seal (element), you (img), members:
-   [{ name, role, img, line }], decision: { title, brief, options: [{ label,
-   note, chips, run }] } | null, doneLabel, onDone }. */
+/* A council in session: the chamber's picture, the council's wax seal, one
+   declaration, then the decision (or Close). T: { title, sub, bg, seal
+   (element), by: { name, role, img } (who reads the declaration),
+   declaration, decision: { title, brief, by, options: [{ label, note,
+   chips, run }] } | null, doneLabel }. */
 const CouncilTable = ({ T, onPick, onClose }) => {
-  const [i, setI] = React.useState(0);
-  const M = T.members || [], n = M.length, tall = TALL(), atEnd = i >= n, sp = M[Math.min(i, n - 1)] || {};
-  const seat = tall ? 46 : 74, you = tall ? 52 : 80;
-  // Seats around an oval; the head of the table (you) at the bottom.
-  const pos = (k) => { const a = (90 + 360 * (k + 1) / (n + 1)) * Math.PI / 180; return { left: 50 + 43 * Math.cos(a) + "%", top: 50 + 38 * Math.sin(a) + "%" }; };
-  const fs = tall ? { s: TS(15), m: TS(18), l: TS(24) } : { s: TS(20), m: TS(25), l: TS(36) };
-  return <div className="sop-fade-in" role="dialog" aria-label={T.title} style={{ position: "fixed", inset: 0, zIndex: 120, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(rgba(10,8,4,.72), rgba(10,8,4,.86)), url(./art/backgrounds/" + (T.bg || "council-chamber") + ".webp) center/cover", padding: tall ? "16px 12px 36px" : "28px 24px 40px" }}>
-    <div style={{ maxWidth: 980, margin: "0 auto" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#fff", marginBottom: tall ? 6 : 10 }}>
-        {T.seal}
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fs.l, lineHeight: 1.1 }}>{T.title}</div>
-          {T.sub && <div style={{ fontSize: fs.s, opacity: .8, marginTop: 2 }}>{T.sub}</div>}
-        </div>
+  const tall = TALL(), D = T.decision, fs = tall ? { s: TS(15), m: TS(18), l: TS(26) } : { s: TS(20), m: TS(26), l: TS(40) };
+  const who = (P) => P ? <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
+    <img src={P.img} alt="" style={{ width: tall ? 52 : 72, height: tall ? 52 : 72, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", border: "3px solid #e9c46a", flexShrink: 0 }} />
+    <div><div style={{ fontWeight: 800, fontSize: fs.m, color: CL.txt }}>{P.name}</div><div style={{ fontSize: fs.s, color: CL.td }}>{P.role}</div></div>
+  </div> : null;
+  return <div className="sop-fade-in" role="dialog" aria-label={T.title} style={{ position: "fixed", inset: 0, zIndex: 120, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(rgba(10,8,4,.15), rgba(10,8,4,.25) 45%, rgba(10,8,4,.82)), url(./art/backgrounds/" + (T.bg || "council-chamber") + ".webp) center/cover", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: tall ? "18px 12px 28px" : "28px 24px 36px" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#fff", maxWidth: 980, width: "100%", margin: "0 auto", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>
+      {T.seal}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fs.l, lineHeight: 1.1 }}>{T.title}</div>
+        {T.sub && <div style={{ fontSize: fs.s, opacity: .9, marginTop: 2 }}>{T.sub}</div>}
       </div>
-      {/* The table */}
-      <div style={{ position: "relative", width: "100%", aspectRatio: tall ? "1 / .8" : "16 / 8", margin: "0 auto" }}>
-        <div style={{ position: "absolute", left: "17%", right: "17%", top: "22%", bottom: "22%", borderRadius: "50%", background: "radial-gradient(ellipse at 40% 35%, #8a5a2b, #5a3417 70%, #3d220e)", border: (tall ? 4 : 7) + "px solid #b8893c", boxShadow: "0 18px 40px rgba(0,0,0,.55), inset 0 0 30px rgba(0,0,0,.45)", display: "grid", placeItems: "center" }}>
-          <div style={{ opacity: .95, transform: "scale(" + (tall ? 1.1 : 1.6) + ")" }}>{T.seal}</div>
+    </div>
+    <div className="sop-slide-up" style={{ maxWidth: 820, width: "100%", margin: (tall ? 24 : 40) + "px auto 0", background: "#fffaf0", borderRadius: 18, border: "2px solid #b8893c", padding: tall ? "14px 16px" : "22px 26px", boxShadow: "0 12px 34px rgba(0,0,0,.45)" }}>
+      {who(T.by)}
+      {T.declaration && <div style={{ fontFamily: F.d, fontSize: fs.m, color: CL.txt, lineHeight: 1.45, marginBottom: 14 }}>“{T.declaration}”</div>}
+      {D ? <>
+        {D.by && who(D.by)}
+        <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: tall ? TS(21) : TS(30), color: CL.txt, marginBottom: 4 }}>{D.title}</div>
+        {D.brief && <div style={{ fontSize: fs.s, color: CL.td, marginBottom: 12, lineHeight: 1.4 }}>{D.brief}</div>}
+        <div style={{ display: "grid", gap: 10 }}>
+          {D.options.map((o, k) => <button key={k} className="ds-option" onClick={() => onPick(o)} disabled={o.disabled} style={o.disabled ? { opacity: .45, cursor: "not-allowed" } : null}>
+            <div className="ds-option-label">{o.label}</div>
+            {o.note && <div className="ds-option-note">{o.note}</div>}
+            {(o.chips || []).length > 0 && <div className="ds-chiprow">{o.chips.slice(0, 3).map((c, j) => <span key={j} className="ds-chip" style={{ color: c.color || CL.tm, background: (c.color || CL.tm) + "12" }}>{c.text}</span>)}</div>}
+          </button>)}
         </div>
-        {M.map((m, k) => { const on = k === i, done = k < i;
-          return <div key={k} aria-label={m.name + ", " + m.role} style={{ position: "absolute", ...pos(k), transform: "translate(-50%,-50%)" + (on ? " scale(1.18)" : ""), transition: "transform .25s", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, zIndex: on ? 3 : 2, opacity: on || done || atEnd ? 1 : .72 }}>
-            <img src={m.img} alt="" style={{ width: seat, height: seat, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", border: (on ? 4 : 2) + "px solid " + (on ? "#e9c46a" : "#fff"), boxShadow: on ? "0 0 0 4px rgba(233,196,106,.35), 0 6px 16px rgba(0,0,0,.5)" : "0 3px 8px rgba(0,0,0,.4)" }} />
-            <span style={{ fontSize: tall ? TS(11) : TS(15), fontWeight: 700, color: "#fff", background: "rgba(0,0,0,.55)", borderRadius: 6, padding: "1px 6px", maxWidth: tall ? 90 : 150, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.short || m.role}</span>
-          </div>; })}
-        <div style={{ position: "absolute", left: "50%", top: "94%", transform: "translate(-50%,-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, zIndex: 2 }}>
-          <img src={T.you} alt="" style={{ width: you, height: you, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", border: "3px solid #0b7a4b", boxShadow: "0 4px 12px rgba(0,0,0,.5)" }} />
-          <span style={{ fontSize: tall ? TS(11) : TS(15), fontWeight: 800, color: "#fff", background: "#0b7a4b", borderRadius: 6, padding: "1px 8px" }}>You, presiding</span>
-        </div>
-      </div>
-      {/* Who is speaking, or the decision */}
-      <div className="sop-slide-up" key={atEnd ? "end" : i} style={{ marginTop: tall ? 22 : 28, background: "#fffaf0", borderRadius: 18, border: "2px solid #b8893c", padding: tall ? "12px 14px" : "18px 22px", boxShadow: "0 10px 30px rgba(0,0,0,.4)" }}>
-        {!atEnd ? <>
-          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: tall ? 10 : 16, alignItems: "start" }}>
-            <img src={sp.img} alt="" style={{ width: tall ? 56 : 84, height: tall ? 56 : 84, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", border: "3px solid #e9c46a" }} />
-            <div>
-              <div style={{ fontWeight: 800, fontSize: fs.m, color: CL.txt }}>{sp.name}</div>
-              <div style={{ fontSize: fs.s, color: CL.td, marginBottom: 6 }}>{sp.role}</div>
-              <div style={{ fontFamily: F.d, fontSize: fs.m, color: CL.txt, lineHeight: 1.4 }}>“{sp.line}”</div>
-            </div>
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12, gap: 10, flexWrap: "wrap" }}>
-            <span style={{ fontSize: fs.s, color: CL.td }}>{i + 1} of {n} speaking</span>
-            <div style={{ display: "flex", gap: 10 }}>
-              {i < n - 1 && <button onClick={() => setI(n)} style={{ background: "none", border: 0, color: CL.td, textDecoration: "underline", fontSize: fs.s, cursor: "pointer", fontFamily: F.b }}>{T.decision ? "Skip to the decision" : "Skip"}</button>}
-              <Bt onClick={() => setI(i + 1)}>{i < n - 1 ? "Next: " + (M[i + 1].short || M[i + 1].role) + " ›" : T.decision ? "To the decision ›" : "Close the session ›"}</Bt>
-            </div>
-          </div>
-        </> : T.decision ? <>
-          <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fs.l, color: CL.txt, marginBottom: 4 }}>{T.decision.title}</div>
-          {T.decision.brief && <div style={{ fontSize: fs.s, color: CL.td, marginBottom: 12, lineHeight: 1.4 }}>{T.decision.brief}</div>}
-          <div style={{ display: "grid", gap: 10 }}>
-            {T.decision.options.map((o, k) => <button key={k} className="ds-option" onClick={() => onPick(o)} disabled={o.disabled} style={o.disabled ? { opacity: .45, cursor: "not-allowed" } : null}>
-              <div className="ds-option-label">{o.label}</div>
-              {o.note && <div className="ds-option-note">{o.note}</div>}
-              {(o.chips || []).length > 0 && <div className="ds-chiprow">{o.chips.slice(0, 3).map((c, j) => <span key={j} className="ds-chip" style={{ color: c.color || CL.tm, background: (c.color || CL.tm) + "12" }}>{c.text}</span>)}</div>}
-            </button>)}
-          </div>
-          <div style={{ textAlign: "center", marginTop: 10 }}><button onClick={() => setI(0)} style={{ background: "none", border: 0, color: CL.td, textDecoration: "underline", fontSize: fs.s, cursor: "pointer", fontFamily: F.b }}>Hear them again</button></div>
-        </> : <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: fs.m, color: CL.txt, marginBottom: 10 }}>{T.closing || "The council has spoken."}</div>
-          <Bt onClick={onClose}>{T.doneLabel || "Close the session"}</Bt>
-        </div>}
-      </div>
+      </> : <div style={{ textAlign: "center" }}><Bt onClick={onClose}>{T.doneLabel || "Close the session"}</Bt></div>}
     </div>
   </div>;
 };
@@ -5752,36 +5716,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── The councils, in session around a table (CouncilTable) ──
   const youImg = () => (setup && AVATAR_IMGS[setup.avatar]) || (NAT ? "./art/characters/the-president.webp" : "./art/characters/governor-male-agbada.webp");
   const openTable = (T) => setSession({ you: youImg(), ...T, seal: <Seal kind={T.sealKind} size={TALL() ? 40 : 56} /> });
-  const pickL = (arr, k) => arr[hashStr(String(k)) % arr.length];
-  const YE = "Your Excellency";
-  const minLine = (m, first) => { const p = m.perf == null ? 55 : m.perf, k = m.id + ":" + turn;
-    if (first) return pickL(["Ready to serve, " + YE + ". My plan for the first hundred days is on your desk.", "We start today. Give me the releases on time and you will see results by the year's end.", "The ministry has been asleep for years. We will wake it.", "I know where the money leaks. I will close it."], k);
-    return p >= 65 ? pickL(["Ahead of plan. Release the money on time and we finish this year.", "Every naira accounted for: I can show you the sites.", "We delivered what we promised, and the press has noticed."], k)
-      : p < 40 ? pickL(["I need more time, " + YE + ". The contractors have left the site.", "Our releases came late and short. I cannot work miracles.", "The permanent secretary and I do not agree on the plan."], k)
-      : pickL(["On track, but the releases from Finance come late.", "Two sites are moving; one waits for the contractor.", "One more year and the results will show."], k); };
-  const ministerSeats = (first) => (ministries || []).slice(0, NAT ? 9 : 8).map(m => ({ name: "Hon. " + m.minister, role: (NAT ? "Minister · " : "Commissioner · ") + m.name, short: String(m.name).replace(/^Ministry of /, "").split(/[ ,&]/)[0], img: commissionerArt(m.minister, first ? null : m.perf, m.id), line: minLine(m, first) }));
-  const minOf = (rx) => (ministries || []).find(m => m.minister && rx.test(m.name || m.id));
   const worstFront = () => { const F = Object.entries(stc.fronts || {}).sort((a, b) => b[1] - a[1])[0]; return F && SYS.FRONTS[F[0]] ? { id: F[0], sev: F[1], nm: SYS.FRONTS[F[0]].nm, short: SYS.FRONTS[F[0]].short } : { id: "ne", sev: 55, nm: SYS.FRONTS.ne.nm, short: SYS.FRONTS.ne.short }; };
-  const nscSeats = () => { const W = worstFront(), dm = minOf(/defence|security/i), army = (((stc.pres || {}).npcs || {}).army || {}).name, hot = Object.values(stc.fronts || {}).filter(v => v >= 50).length || 1;
-    return [{ name: nsaName, role: "National Security Adviser", short: "NSA", img: "./art/characters/national-security-adviser.webp", line: "The worst front is " + W.short + " (" + W.sev + "/100). We sit here so every agency hears the same orders." },
-      { name: "The Chief of Defence Staff", role: "Armed Forces of Nigeria", short: "CDS", img: "./art/characters/chief-of-defence-staff.webp", line: W.sev >= 70 ? "The services are fighting three wars with one budget. Tell us which front comes first, and we will hold the others." : "The army, navy and air force are working together on " + W.short + ". Keep the money coming." },
-      { name: dm ? "Hon. " + dm.minister : "The Minister of Defence", role: "Minister of Defence", short: "Defence", img: dm ? commissionerArt(dm.minister, dm.perf, "sec") : "./art/characters/defence-minister.webp", line: "The army is stretched across " + hot + (hot === 1 ? " front" : " fronts") + ". We need equipment, not more speeches." },
-      { name: army ? "Gen. " + army : "The Chief of Army Staff", role: "Chief of Army Staff", short: "Army", img: "./art/characters/chief-of-army-staff.webp", line: "Give me the troops and the air cover, and I will hold " + W.short + "." },
-      { name: "The Inspector-General of Police", role: "Nigeria Police Force", short: "Police", img: "./art/characters/inspector-general.webp", line: "The police can hold the towns once the army clears the bush. We are short of men, and the men are short of pay." },
-      { name: "The Director-General, State Security Service", role: "Department of State Services", short: "DSS", img: "./art/characters/dss-director-general.webp", line: "We know who funds the attacks on " + W.short + ". Some of them sit in Abuja. Give us the order and the warrants." }]; };
   // The President's councils. Each sits once to begin; after that it can be called once a year.
   const conveneFEC = () => {
     if (!ministries || !ministries.length) { goTab("min"); return; }
     setFedCouncils(c => ({ ...(c || {}), fec: turn, fecYear: turn })); scFx({ pStab: 2 });
     addL("🏛️ You chaired the first Federal Executive Council: " + ministries.length + " ministers around the table.", "policy");
-    openTable({ id: "fec", sealKind: "fec", title: "The Federal Executive Council", sub: "First sitting · the Council Chamber, Aso Rock", bg: "council-table-federal", members: ministerSeats(true),
-      closing: "From now on the FEC sits every Wednesday and approves federal contracts and programmes. Party stability +2.", doneLabel: "Adjourn the Council" });
+    openTable({ id: "fec", sealKind: "fec", title: "The Federal Executive Council", sub: "First sitting · the Council Chamber, Aso Rock", bg: "council-table-federal", by: { name: "The Secretary to the Government of the Federation", role: "Secretary to the Council", img: "./art/characters/permanent-secretary.webp" },
+      declaration: "The Federal Executive Council is inaugurated with " + ministries.length + " ministers. It will sit every Wednesday in this Chamber, approve federal contracts and programmes, and answer to the President for delivery.", doneLabel: "Close the session" });
   };
   const conveneNSC = () => {
     setFedCouncils(c => ({ ...(c || {}), nsc: turn, nscYear: turn })); scFx({ sec: .005 });
     addL("🛡️ You convened the National Security Council: the service chiefs, the police, the DSS and " + nsaName + ".", "policy");
-    openTable({ id: "nsc", sealKind: "nsc", title: "The National Security Council", sub: "In session · the Situation Room", bg: "council-table-security", members: nscSeats(),
-      closing: "The Council will bring every front to you here, once a year, and you can call it in an emergency.", doneLabel: "Close the session" });
+    openTable({ id: "nsc", sealKind: "nsc", title: "The National Security Council", sub: "In session · the Situation Room", bg: "council-table-security", by: { name: nsaName, role: "National Security Adviser", img: "./art/characters/national-security-adviser.webp" },
+      declaration: "The National Security Council is in session: the Chief of Defence Staff, the service chiefs, the Inspector-General of Police and the intelligence services. Every front will be decided here, and every agency will hear the same orders.", doneLabel: "Close the session" });
   };
   // Once a year after that: an emergency Security Council (troops to the front you choose), and an FEC retreat on delivery.
   const nscEmergency = () => {
@@ -5794,8 +5742,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("🛡️ Emergency National Security Council: troops and police sent to " + nm + ".", "policy");
       return { img: "./art/backgrounds/situation-room.webp", icon: "🛡️", title: "Emergency Security Council", text: "The chiefs leave with orders: troops and police to " + nm + ", and the intelligence agencies told to share what they have.", tone: "good", rows: [{ l: "Security", v: "+2%", good: true }].concat(k ? [{ l: SYS.FRONTS[k].nm, v: "−12", good: true }] : [], [{ l: "Cost", v: naira(20), good: false }]) };
     };
-    openTable({ id: "nsc_e", sealKind: "nsc", title: "Emergency Security Council", sub: "Called by you · the Situation Room", bg: "council-table-security", members: nscSeats(),
-      decision: { title: "Where do the troops go?", brief: "An emergency deployment costs " + naira(20) + " and cools the front you choose.", options: (fr.length ? fr : [[null, 0]]).map(([k, v]) => ({ label: k ? "Send them to " + SYS.FRONTS[k].nm.split(":")[0] + " (" + v + "/100)" : "Redeploy to the worst fronts", note: k ? SYS.FRONTS[k].short : undefined, chips: [{ text: naira(20), color: CL.org }, { text: "Security +2", color: CL.grn }], run: send(k) })) } });
+    openTable({ id: "nsc_e", sealKind: "nsc", title: "Emergency Security Council", sub: "Called by you · the Situation Room", bg: "council-table-security", by: { name: "The Chief of Defence Staff", role: "Armed Forces of Nigeria", img: "./art/characters/chief-of-defence-staff.webp" },
+      declaration: "The Council is in emergency session. The army, navy, air force and police stand ready to redeploy at your order.",
+      decision: { title: "Where do the troops go?", by: { name: "The Director-General, State Security Service", role: "Intelligence: " + worstFront().short + " is the worst front (" + worstFront().sev + "/100)", img: "./art/characters/dss-director-general.webp" }, brief: "An emergency deployment costs " + naira(20) + " and cools the front you choose.", options: (fr.length ? fr : [[null, 0]]).map(([k, v]) => ({ label: k ? "Send them to " + SYS.FRONTS[k].nm.split(":")[0] + " (" + v + "/100)" : "Redeploy to the worst fronts", note: k ? SYS.FRONTS[k].short : undefined, chips: [{ text: naira(20), color: CL.org }, { text: "Security +2", color: CL.grn }], run: send(k) })) } });
   };
   const fecRetreat = () => {
     const weak = (ministries || []).filter(m => (m.perf == null ? 50 : m.perf) < 45);
@@ -5805,7 +5754,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (pub && weak.length) scWiki("Presidency", "Published every minister's delivery scorecard after an FEC retreat; " + weak.length + " were behind.");
       return { img: "./art/backgrounds/federal-executive-council.webp", icon: "📋", title: pub ? "The scorecards are public" : "A quiet word", text: pub ? "The newspapers print every minister's score. The public likes it; the ministers who fell short do not." : weak.length ? "You warned " + weak.map(m => "Hon. " + m.minister).slice(0, 3).join(", ") + " in private. The party is grateful for the discretion." : "The cabinet is on track. The party is calm.", tone: "good", rows: pub ? [{ l: "Approval", v: "+2", good: true }, { l: "Party stability", v: "−1", good: false }] : [{ l: "Party stability", v: "+2", good: true }] };
     };
-    openTable({ id: "fec_r", sealKind: "fec", title: "The FEC retreat", sub: "Two days · every minister with a scorecard", bg: "council-table-federal", members: ministerSeats(false),
+    openTable({ id: "fec_r", sealKind: "fec", title: "The FEC retreat", sub: "Two days · every minister with a scorecard", bg: "council-table-federal", by: { name: "The Secretary to the Government of the Federation", role: "Secretary to the Council", img: "./art/characters/permanent-secretary.webp" },
+      declaration: "Every minister has presented a scorecard: what was promised, and what was delivered." + (weak.length ? " " + weak.length + " of " + ministries.length + " ministries are behind." : " The cabinet is on track."),
       decision: { title: weak.length ? weak.length + (weak.length === 1 ? " ministry is" : " ministries are") + " behind" : "The cabinet is on track", brief: "What do you do with the scorecards?",
         options: [{ label: "Publish every minister's scorecard", note: "The public sees who delivers. The weak ones will resent it.", chips: [{ text: "Approval +2", color: CL.grn }, { text: "Party −1", color: CL.red }], run: done(true) },
           { label: weak.length ? "Warn the weak ministers in private" : "Thank them, and keep the scores in the room", note: "Discreet. The party likes it.", chips: [{ text: "Party +2", color: CL.grn }], run: done(false) }] } });
@@ -5814,21 +5764,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      trade stance; after that it meets once a year with the figures, and you
      can hold the line or change course. */
   const mood = (good, bad) => good ? "-pleased" : bad ? "-angry" : "";
-  const eacSeats = (first) => { const T = stc.trade, fin = minOf(/finance/i), sup = SYS.localSupply(stc.fronts || {}), res = T ? T.reserves : 33;
-    return [{ name: fin ? "Hon. " + fin.minister : "The Minister of Finance", role: "Minister of Finance", short: "Finance", img: fin ? commissionerArt(fin.minister, fin.perf, "fin") : "./art/characters/finance-minister.webp",
-        line: first ? "Open the borders. Food inflation is what the voters feel, and cheap imports end it in a year." : T.food >= 130 ? "Food is up " + (T.food - 100) + "% since we took office. That is the number that will decide the election." : "Inflation is under control. Do not give it a reason to come back." },
-      { name: "The Governor of the Central Bank", role: "Central Bank of Nigeria", short: "CBN", img: "./art/characters/cbn-governor.webp",
-        line: "We hold $" + res + " billion in reserves" + (T && T.premium >= 60 ? ", and the street dollar is " + T.premium + "% above ours" : "") + ". Every open border spends them faster. I cannot defend the naira and fund imports at once." },
-      { name: "The Minister of Industry, Trade and Investment", role: "Federal Ministry of Industry, Trade and Investment", short: "Trade", img: "./art/characters/trade-minister" + (T ? mood(T.exports >= 6, T.exports < 4) : "") + ".webp",
-        line: first ? "Whatever you choose, choose it for ten years. Investors build factories where the rules do not change every budget." : "Exports are $" + T.exports + " billion a year. " + (T.exports >= 6 ? "The new routes are working: keep them open." : "We sell oil and little else. That is the real dollar shortage.") },
-      { name: "The Comptroller-General of Customs", role: "Nigeria Customs Service", short: "Customs", img: "./art/characters/customs-comptroller" + (T ? mood(T.smuggling < 35, T.smuggling >= 55) : "") + ".webp",
-        line: T && T.smuggling >= 55 ? "Smuggling is at " + Math.round(T.smuggling) + "/100. My officers at Seme and Idiroko are being bought." : "Ban something and I will show you a smuggling route by Monday. Protection only works with scanners and honest officers." },
-      { name: "The Manufacturers' Association", role: "Factory owners, Agbara to Kano", short: "Factories", img: "./art/characters/manufacturers-rep" + (T ? (T.factories >= 55 ? "-pleased" : T.factories < 40 ? "-angry" : "") : "") + ".webp",
-        line: T && T.factories < 40 ? "Half the factories in Agbara have closed. Cheap imports and dear dollars are killing us." : "Protect us. Cheap Asian goods have closed factories from Agbara to Kano." },
-      { name: "The Farmers' Association", role: "Rice, maize and sesame farmers", short: "Farmers", img: "./art/characters/farmers-association-chair" + mood(sup >= 70, sup < 55) + ".webp",
-        line: sup < 60 ? "Protect the farmers, yes, but the bandits have chased us off the farms in the North-West. If you ban rice now, there will be no rice." : "Protect us and we will feed the country. Our farms can grow the rice." },
-      { name: "Your Chief Economic Adviser", role: "Office of the President", short: "Adviser", img: "./art/characters/chief-economic-adviser.webp",
-        line: "There is a middle way: protect only what our farms can supply, and import the rest. It needs good data and an honest Customs." }]; };
   const stanceOpts = (cur) => Object.entries(SYS.STANCES).map(([k, S]) => ({ label: (cur === k ? "Hold the line: " : "") + S.l, note: S.d, chips: [{ text: S.nm, color: k === "protect" ? CL.org : k === "open" ? CL.blu : CL.grn }].concat(cur && cur !== k ? [{ text: "A change of course", color: CL.red }] : []),
     run: () => {
       const first = !cur, changed = cur && cur !== k;
@@ -5843,7 +5778,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     } }));
   const conveneEAC = () => {
     const T = stc.trade, first = !(T && T.stance);
-    openTable({ id: "eac", sealKind: "eac", title: "The Economic Advisory Council", sub: first ? "First sitting · imports, exports and the naira" : "The year's figures · " + tradeFigures(T), bg: "council-table-federal", members: eacSeats(first),
+    openTable({ id: "eac", sealKind: "eac", title: "The Economic Advisory Council", sub: first ? "First sitting · imports, exports and the naira" : "The year's figures · " + tradeFigures(T), bg: "council-table-federal", by: first ? { name: "Your Chief Economic Adviser", role: "Secretary to the Council", img: "./art/characters/chief-economic-adviser.webp" } : { name: "The Minister of Industry, Trade and Investment", role: "Federal Ministry of Industry, Trade and Investment", img: "./art/characters/trade-minister" + mood(T.exports >= 6, T.exports < 4) + ".webp" },
+      declaration: first ? "The Economic Advisory Council is inaugurated: Finance, the Central Bank, Customs, the manufacturers and the farmers. Its first task is the nation's trade policy." : "The year's figures: " + tradeFigures(T) + ".",
       decision: { title: first ? "Set the trade policy" : "Hold the line, or change course?", brief: first ? "Your stance decides food prices, factories, smuggling and the reserves for years. You can change it at a later sitting, at a price." : "Changing course costs approval: markets hate surprises.", options: stanceOpts(first ? null : T.stance) } });
   };
   const tradeFigures = (T) => T ? "Reserves $" + T.reserves + "bn · Food " + (T.food >= 100 ? "+" : "") + (T.food - 100) + "% · Factories " + T.factories + "/100 · Exports $" + T.exports + "bn" : "";
@@ -5882,29 +5818,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Opens when the Executive Council or the rulers' council is first formed, from any button (sop-realism or the Desk).
   const prevSeat = React.useRef({ min: (ministries || []).length, council: !!council });
   const rulerImg = (r) => "./art/characters/" + (/hausa|fulani|kanuri|nupe|north/i.test(r.bloc || "") || /Emir|Sarki|Etsu|Mai|Lamido/i.test(r.title || "") ? "traditional-ruler-emir" : "traditional-ruler-oba-obi") + ".webp";
-  const RULER_LINE = { Loyal: "Our palace is with you. Bring the roads, and we will bring the villages.", Independent: "We will judge you by what reaches our people, not by what you promise in this room.", "Godfather-aligned": "Remember who stood with you before the election. Your godfather sends his greetings.", "Opposition-aligned": "My people did not vote for you. Show them they were wrong.", Reformist: "Educate the girls, and the young men will not take up arms.", Traditionalist: "Respect the stools. Do not make the chiefs beg your commissioners for an audience." };
   useEffect(() => {
     const P0 = prevSeat.current; prevSeat.current = { min: (ministries || []).length, council: !!council };
     if (NAT) return;
-    if (!P0.min && (ministries || []).length) { openTable({ id: "exco", sealKind: "exco", title: "The " + stName + " State Executive Council", sub: "First sitting · Government House", bg: "council-table-state", members: ministerSeats(true), closing: "The Executive Council will run your programmes. Each commissioner answers to you.", doneLabel: "Adjourn the Council" }); }
-    else if (!P0.council && council && council.rulers) { openTable({ id: "rulers", sealKind: "rulers", title: "The Traditional Rulers Council", sub: "In session · the palaces of " + stName, bg: council.rulers.some(r => /Emir|Sarki|Etsu|Lamido/i.test(r.title || "")) ? "emirs-palace-courtyard" : "council-table-palace", members: council.rulers.map(r => ({ name: r.name, role: r.stool + " ruler · " + r.domain + " " + stName, short: r.title, img: rulerImg(r), line: RULER_LINE[r.stance] || RULER_LINE.Independent })), closing: "The palaces deliver the villages. Keep them close.", doneLabel: "Close the session" }); }
+    if (!P0.min && (ministries || []).length) { openTable({ id: "exco", sealKind: "exco", title: "The " + stName + " State Executive Council", sub: "First sitting · Government House", bg: "council-table-state", by: { name: "The Secretary to the State Government", role: "Secretary to the Council", img: "./art/characters/permanent-secretary.webp" }, declaration: "The " + stName + " State Executive Council is inaugurated with " + ministries.length + " commissioners. It will meet every week, run the government's programmes, and answer to the Governor.", doneLabel: "Close the session" }); }
+    else if (!P0.council && council && council.rulers) { openTable({ id: "rulers", sealKind: "rulers", title: "The Traditional Rulers Council", sub: "In session · the palaces of " + stName, bg: council.rulers.some(r => /Emir|Sarki|Etsu|Lamido/i.test(r.title || "")) ? "emirs-palace-courtyard" : "council-table-palace", by: (() => { const c = council.rulers.find(r => r.id === council.chair) || council.rulers[0]; return { name: c.name, role: "Chairman, Traditional Rulers Council", img: rulerImg(c) }; })(), declaration: "The royal fathers of " + stName + " are in council. We will carry your government to the villages, and the villages' voice to you.", doneLabel: "Close the session" }); }
   }, [ministries, council]);
   /* The State Economic Council (SYS.EXPORT_PLANS): the governor's way to earn
      money from what the state grows. Its first sitting chooses how to sell;
      after that it meets once a year to expand. Abuja's trade stance (not
      yours to set) changes what it is worth. */
   const fedStanceNow = () => stc.fedStance || ["protect", "open", "targeted"][hashStr(state + ":" + pName) % 3];
-  const econSeats = () => { const E = stc.exports, crops = SYS.produceOf(state), crop = (E && E.crop) || crops[0], ag = minOf(/agric/i), fin = minOf(/finance|budget/i), FS = SYS.STANCES[fedStanceNow()], border = SYS.BORDER_STATES.includes(state);
-    return [{ name: ag ? "Hon. " + ag.minister : "The Commissioner for Agriculture", role: "Commissioner · Agriculture", short: "Agriculture", img: ag ? commissionerArt(ag.minister, ag.perf, ag.id) : "./art/characters/commissioner-technocrat.webp",
-        line: E ? "Our farmers grew more " + crop + " this year. The question is how much of the money reaches them." : stName + " grows " + crops.join(" and ") + ". The world buys both. We sell them raw, by the roadside, for almost nothing." },
-      { name: "The Farmers' Association", role: crop.charAt(0).toUpperCase() + crop.slice(1) + " farmers", short: "Farmers", img: "./art/characters/farmers-association-chair" + mood(E && (E.mods || {}).coop, (s.sec || .5) < .45) + ".webp",
-        line: (s.sec || .5) < .45 ? "Make the farms safe first. Nobody harvests where the bandits are." : "Give us warehouses and a fair price, and we will double the harvest." },
-      { name: "A " + stName + " exporter", role: "Exporters' Association", short: "Exporters", img: "./art/characters/exporter.webp",
-        line: E && E.plan === "raw" ? "Raw " + crop + " earns a fifth of what processed " + crop + " earns. Build a processing zone and we will fill it." : "Buyers in Europe and Asia want " + crop + ", clean and on time. Our problem is the road to the port and the paperwork." },
-      { name: fin ? "Hon. " + fin.minister : "The Commissioner for Finance", role: "Commissioner · Finance", short: "Finance", img: fin ? commissionerArt(fin.minister, fin.perf, fin.id) : "./art/characters/finance-commissioner.webp",
-        line: E ? "Exports have earned the state ₦" + (E.earned || 0).toFixed(1) + "B so far. That is money no one in Abuja can cut." : "Every naira we earn from exports is a naira we do not beg from FAAC." },
-      { name: "The Customs Area Controller", role: "Nigeria Customs Service (federal)", short: "Customs", img: "./art/characters/customs-comptroller" + mood(fedStanceNow() === "open", fedStanceNow() === "protect") + ".webp",
-        line: "Abuja's policy is " + FS.nm.toLowerCase() + ". " + SYS.FED_STANCE_FX[fedStanceNow()].d + (border ? " And this is a border state: we feel it first." : "") }]; };
   const conveneEcon = () => {
     const E = stc.exports, crops = SYS.produceOf(state), crop = (E && E.crop) || crops[0], F = SYS.FED_STANCE_FX[fedStanceNow()];
     const sat = () => setStc(p => ({ ...p, econYear: turn, fedStance: p.fedStance || fedStanceNow() }));
@@ -5925,7 +5849,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       !M.hub && E.plan !== "hub" && more("hub", "A container depot and a farm-to-port road", "Every crop leaves cheaper.", 5, { hub: true }, "The depot opens next year."),
       { label: "Keep going as we are", note: "Nothing new this year.", chips: [{ text: "Free", color: CL.grn }], run: () => { sat(); return { icon: "🚢", title: "Steady", text: "The Council meets again next year.", tone: "good" }; } },
     ].filter(Boolean) : ["raw", "hub", "zone"].map(plan);
-    openTable({ id: "econ", sealKind: "econ", title: "The State Economic Council", sub: E ? "The year's exports · ₦" + (E.earned || 0).toFixed(1) + "B earned so far" : "First sitting · selling " + stName + "'s " + crops.join(" and ") + " to the world", bg: "council-table-state", members: econSeats(),
+    openTable({ id: "econ", sealKind: "econ", title: "The State Economic Council", sub: E ? "The year's exports · ₦" + (E.earned || 0).toFixed(1) + "B earned so far" : "First sitting · selling " + stName + "'s " + crops.join(" and ") + " to the world", bg: "council-table-state", by: E ? { name: "The Customs Area Controller", role: "Nigeria Customs Service (federal)", img: "./art/characters/customs-comptroller" + mood(fedStanceNow() === "open", fedStanceNow() === "protect") + ".webp" } : { name: "The Farmers' Association", role: crop.charAt(0).toUpperCase() + crop.slice(1) + " farmers", img: "./art/characters/farmers-association-chair" + mood(false, (s.sec || .5) < .45) + ".webp" },
+      declaration: (E ? "Exports have earned the state ₦" + (E.earned || 0).toFixed(1) + "B so far. " : "The State Economic Council is in session: agriculture, finance, the farmers, the exporters and Customs. " + stName + " grows " + crops.join(" and ") + ": the question is how to sell them to the world. ") + "Abuja's policy is " + SYS.STANCES[fedStanceNow()].nm.toLowerCase() + ". " + SYS.FED_STANCE_FX[fedStanceNow()].d,
       decision: { title: E ? "Expand the export trade?" : "How will " + stName + " sell its " + crop + "?", brief: E ? undefined : "The money arrives with each year's end, as long as the farms are safe and the produce is clean.", options: opts } });
   };
   const StateEconPanel = () => { const E = stc.exports, big = !TALL(), crops = SYS.produceOf(state), FS = SYS.STANCES[fedStanceNow()];
@@ -6083,8 +6008,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🦅 Sworn in at Eagle Square as President of the Federal Republic. Inaugural address: " + T.nm + ". Commitments: " + commits.map(k => SYS.PRES_COMMITS[k].l.toLowerCase()).join(", ") + ".", "success");
     scWiki("Presidency", "Was sworn in at Eagle Square, Abuja, on 29 May " + (setup?.startYear || 2027) + ", promising " + commits.map(k => SYS.PRES_COMMITS[k].l.toLowerCase()).join(", ") + ".");
     track("pres_inaugural", tone);
-    try { window.SOP_outcome({ icon: "📺", img: "./art/scenes/national-broadcast.webp", title: "“" + T.line + "”", text: "The address is carried live on every network. Your three commitments will be judged at the end of the term.", tone: "good",
-      rows: commits.map(k => ({ l: "🎯 " + SYS.PRES_COMMITS[k].l, v: "promised", good: true })), learn: SYS.PRES_LEARN.oath }); } catch (e) {}
+    try { window.SOP_outcome({ icon: "📺", img: "./art/scenes/national-broadcast.webp", title: "“" + T.line + "”", text: "The address is carried live on every network.", tone: "good", learn: SYS.PRES_LEARN.oath }); } catch (e) {}
   };
   /* A trip abroad: the adviser speaks first, then the pilot welcomes you at
      the Presidential Air Fleet, then the flight. */

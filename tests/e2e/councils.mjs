@@ -15,18 +15,17 @@ const g = await open(srv.port, { save: YEAR1, seed: 11, test: { noStrikes: true 
 const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/councils-" + n + ".png" });
 await g.click(/^Continue/); await g.wait(1800);
 const seen = new Set();
-const r = await playUntil(g, t => { if (/You, presiding/.test(t)) { if (/State Executive Council/.test(t)) seen.add("exco"); if (/Traditional Rulers Council/.test(t)) seen.add("rulers"); if (/“/.test(t)) seen.add("speaks"); }
-  return seen.has("exco") && seen.has("rulers") && !/You, presiding/.test(t); }, { max: 160, prefer: [/^Later$/], onStep: async () => { if (await g.page.evaluate(() => /You, presiding/.test(document.body.innerText))) await shot("table-" + seen.size); } });
-check(seen.has("exco"), "the Executive Council sits around a table when first formed");
+const inSession = () => g.page.evaluate(() => { const d = document.querySelector("[role=dialog]"); return d ? d.innerText : ""; });
+const r = await playUntil(g, t => { if (/State Executive Council/.test(t) && /Close the session/.test(t)) seen.add("exco"); if (/Traditional Rulers Council/.test(t) && /Close the session/.test(t)) seen.add("rulers"); if (/Close the session/.test(t) && /“[^”]{40,}”/.test(t)) seen.add("speaks");
+  return seen.has("exco") && seen.has("rulers") && !/Close the session/.test(t); }, { max: 160, prefer: [/^Later$/], onStep: async () => { if ((await inSession()).length) await shot("session-" + seen.size); } });
+check(seen.has("exco"), "the Executive Council sits, in its chamber, when first formed");
 check(seen.has("rulers"), "so does the Traditional Rulers Council");
-check(seen.has("speaks"), "each member speaks in turn");
+check(seen.has("speaks"), "the council makes one declaration, then closes");
 // The State Economic Council: first sitting, how to sell the state's crop.
 const before = (await saved(g)).s || {};
 await g.page.evaluate(() => window.SOP.councils.econ()); await g.wait(700);
-{ const t = await g.txt(); check(/The State Economic Council/.test(t) && /You, presiding/.test(t) && /Farmers/.test(t) && /Exporters/.test(t) && /Customs/.test(t), "the State Economic Council sits: farmers, exporters, Customs"); }
-let abuja = false;
-for (let i = 0; i < 8; i++) { if (/Abuja's policy is (protect|open|targeted)/.test(await g.txt())) abuja = true; if (!(await g.click(/^(Next: .*|To the decision) ›$/))) break; await g.wait(200); }
-check(abuja, "Customs says what Abuja's trade policy does to the state");
+{ const t = await inSession(); check(/The State Economic Council/.test(t) && /Farmers' Association/.test(t) && /exporters and Customs/.test(t), "the State Economic Council sits: farmers, exporters, Customs");
+  check(/Abuja's policy is (protect|open|targeted)/.test(t), "the declaration says what Abuja's trade policy does to the state"); }
 await shot("econ");
 const opts = await g.page.evaluate(() => [...document.querySelectorAll("button.ds-option")].map(b => b.textContent.trim()));
 check(opts.length === 3 && opts.some(o => /processing zone/.test(o)) && opts.some(o => /container depot/.test(o)), "three ways to sell: raw, a depot and road, a processing zone (" + opts.length + ")");
