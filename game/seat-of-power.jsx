@@ -2201,7 +2201,7 @@ const CouncilTable = ({ T, onPick, onClose }) => {
     <img src={P.img} alt="" style={{ width: tall ? 52 : 72, height: tall ? 52 : 72, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", border: "3px solid #e9c46a", flexShrink: 0 }} />
     <div><div style={{ fontWeight: 800, fontSize: fs.m, color: CL.txt }}>{P.name}</div><div style={{ fontSize: fs.s, color: CL.td }}>{P.role}</div></div>
   </div> : null;
-  return <div className="sop-fade-in" role="dialog" aria-label={T.title} style={{ position: "fixed", inset: 0, zIndex: 120, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(rgba(10,8,4,.15), rgba(10,8,4,.25) 45%, rgba(10,8,4,.82)), url(./art/backgrounds/" + (T.bg || "council-chamber") + ".webp) center/cover", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: tall ? "18px 12px 28px" : "28px 24px 36px" }}>
+  return <div className="sop-fade-in" role="dialog" aria-label={T.title} style={{ position: "fixed", inset: 0, zIndex: 9975, overflowY: "auto", WebkitOverflowScrolling: "touch", background: "linear-gradient(rgba(10,8,4,.15), rgba(10,8,4,.25) 45%, rgba(10,8,4,.82)), url(./art/backgrounds/" + (T.bg || "council-chamber") + ".webp) center/cover", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: tall ? "18px 12px 28px" : "28px 24px 36px" }}>
     <div style={{ display: "flex", alignItems: "center", gap: 12, color: "#fff", maxWidth: 980, width: "100%", margin: "0 auto", textShadow: "0 2px 8px rgba(0,0,0,.6)" }}>
       {T.seal}
       <div style={{ minWidth: 0 }}>
@@ -5121,7 +5121,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [sosOpen, setSosOpen] = useState(false);   // phone "State of the state" sheet
   const [budOpen, setBudOpen] = useState(null);    // budget sector whose details are open
   const [budTune, setBudTune] = useState(false);   // budget: the eight sector rows are showing
-  const [budInfo, setBudInfo] = useState(false);   // budget: "What's in the pot?" is open
   const [polTab, setPolTab] = useState("pol");     // policies step: programmes, bills or executive orders
   const [polAll, setPolAll] = useState(false);     // policies step: every programme, not just the first five
 
@@ -13293,29 +13292,55 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {phase === "mail" && mailboxView(true)}
             {phase === "budget" && needSetup && (() => {
               const fs = TALL() ? { s: TS(20), m: TS(24), l: TS(32) } : { s: TS(30), m: TS(38), l: TS(56) };
-              const row = (done, n, title, desc, act, actLabel, manual, manualLabel) => <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 14, padding: TALL() ? "14px 0" : "20px 0", borderTop: "1px solid " + CL.bdr }}>
-                <div style={{ width: TALL() ? 40 : 56, height: TALL() ? 40 : 56, borderRadius: "50%", display: "grid", placeItems: "center", fontWeight: 800, fontSize: fs.m, background: done ? CL.grn : CL.bg, color: done ? "#fff" : CL.txt, border: "1px solid " + (done ? CL.grn : CL.bdr) }}>{done ? "✓" : n}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: fs.m, color: CL.txt }}>{title}</div>
-                  <div style={{ fontSize: fs.s, color: CL.td, margin: "2px 0 10px", lineHeight: 1.4 }}>{desc}</div>
-                  {done ? <div style={{ fontSize: fs.s, color: CL.grn, fontWeight: 700 }}>Done</div> : <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                    <Bt onClick={act}>{actLabel}</Bt>
-                    <button onClick={manual} style={{ background: "none", border: 0, color: CL.grn, fontSize: fs.s, fontWeight: 700, textDecoration: "underline", cursor: "pointer", fontFamily: F.b }}>{manualLabel}</button>
-                  </div>}
+              // Set up your government (game tiles): a stepper, one big card for the step to do now, the others as small tiles.
+              const tall = TALL(), north = council && council.rulers && council.rulers.some(r => /Emir|Sarki|Etsu|Lamido/i.test(r.title || ""));
+              const steps = [
+                { done: !!(ministries && ministries.length), short: NAT ? "Ministers" : "Executive Council", title: NAT ? "Appoint your ministers" : "Convene the Executive Council", desc: NAT ? "The Senate screens them; they run the ministries." : "Your commissioners. They run your programmes.",
+                  bg: NAT ? "senate-chamber" : "council-table-state", seal: NAT ? null : "exco", doneL: (ministries || []).length + (NAT ? " ministers sworn in" : " commissioners sworn in"),
+                  act: () => { try { window.SOP_REALISM.initMinistries(); } catch (e) { goTab("min"); } }, actL: "Convene the ministries", alt: () => goTab("min"), altL: "Choose them yourself" },
+              ].concat(NAT ? [
+                { done: !!(fedCouncils && fedCouncils.fec), short: "The FEC", title: "Convene the Federal Executive Council", desc: "Your ministers, every Wednesday. It approves federal contracts and programmes.", bg: "council-table-federal", seal: "fec", doneL: "Sitting every Wednesday", act: conveneFEC, actL: "Chair the first FEC", alt: () => goTab("coun"), altL: "Open the councils" },
+                { done: !!(fedCouncils && fedCouncils.nsc), short: "Security Council", title: "Convene the National Security Council", desc: "The service chiefs and the intelligence chiefs decide every front with you.", bg: "council-table-security", seal: "nsc", doneL: "In session", act: conveneNSC, actL: "Convene the Security Council", alt: () => goTab("coun"), altL: "Open the councils" },
+              ] : [
+                { done: !!council, short: "Rulers' Council", title: "Convene the Traditional Rulers Council", desc: "The palaces deliver the villages.", bg: north ? "emirs-palace-courtyard" : "council-table-palace", seal: "rulers", doneL: "In council", act: () => { try { window.SOP_REALISM.conveneCouncil(); } catch (e) { goTab("coun"); } }, actL: "Convene the council", alt: () => goTab("coun"), altL: "Open the council" },
+              ]);
+              const ci = Math.max(0, steps.findIndex(x => !x.done)), cur = steps[ci], N = steps.length;
+              const fz = tall ? { s: TS(15), m: TS(17), l: TS(26), h: TS(22) } : { s: TS(19), m: TS(22), l: TS(38), h: TS(32) };
+              return <Cd style={{ padding: tall ? "16px 14px" : "26px 28px" }}>
+                <div style={{ fontFamily: F.d, fontSize: fz.l, fontWeight: 700, color: CL.txt, lineHeight: 1.15 }}>Set up your government</div>
+                {/* The stepper */}
+                <div style={{ display: "flex", alignItems: "center", margin: tall ? "12px 0 14px" : "16px 0 20px" }}>
+                  {steps.map((x, k) => <React.Fragment key={k}>
+                    {k > 0 && <span style={{ flex: 1, height: 3, borderRadius: 3, margin: "0 10px", background: steps[k - 1].done ? CL.grn : CL.bdr }} />}
+                    <span style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: fz.s, color: k === ci ? CL.txt : CL.td, whiteSpace: "nowrap" }}>
+                      <i style={{ fontStyle: "normal", width: tall ? 26 : 30, height: tall ? 26 : 30, borderRadius: "50%", display: "grid", placeItems: "center", background: x.done ? CL.grn : k === ci ? "#e9c46a" : CL.bdr, color: x.done ? "#fff" : CL.txt }}>{x.done ? "✓" : k + 1}</i>
+                      {!tall && x.short}
+                    </span>
+                  </React.Fragment>)}
                 </div>
-              </div>;
-              return <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
-                <div style={{ fontFamily: F.d, fontSize: fs.l, fontWeight: 700, color: CL.txt, margin: "4px 0 6px", lineHeight: 1.15 }}>Set up your government</div>
-                
-                {row(!!(ministries && ministries.length), 1, NAT ? "Appoint your ministers" : "Convene the Executive Council", NAT ? "The Senate screens them; they run the ministries." : "They run your programmes.",
-                  () => { try { window.SOP_REALISM.initMinistries(); } catch (e) { goTab("min"); } }, "Convene the ministries", () => goTab("min"), "Choose them yourself")}
-                {NAT ? <>
-                  {row(!!(fedCouncils && fedCouncils.fec), 2, "Convene the Federal Executive Council", "Your ministers, every Wednesday. It approves federal contracts and programmes.",
-                    conveneFEC, "Chair the first FEC", () => goTab("coun"), "Open the councils")}
-                  {row(!!(fedCouncils && fedCouncils.nsc), 3, "Convene the National Security Council", "The service chiefs and the intelligence chiefs decide every front with you.",
-                    conveneNSC, "Convene the Security Council", () => goTab("coun"), "Open the councils")}
-                </> : row(!!council, 2, "Convene the Traditional Rulers Council", "The palaces deliver the villages.",
-                  () => { try { window.SOP_REALISM.conveneCouncil(); } catch (e) { goTab("coun"); } }, "Convene the council", () => goTab("coun"), "Open the council")}
+                {/* The step to do now */}
+                <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1.15fr 1fr", borderRadius: 20, overflow: "hidden", background: "#0f2a1d", color: "#fff", minHeight: tall ? 0 : 250 }}>
+                  <div style={{ position: "relative", minHeight: tall ? 150 : 0, background: "url(./art/backgrounds/" + cur.bg + ".webp) center/cover" }}>
+                    {cur.seal && <span style={{ position: "absolute", right: tall ? 14 : -30, bottom: tall ? -28 : 20, zIndex: 1 }}><Seal kind={cur.seal} size={tall ? 72 : 104} /></span>}
+                  </div>
+                  <div style={{ padding: tall ? "24px 18px 20px" : "26px 26px 26px 46px", display: "flex", flexDirection: "column", justifyContent: "center", gap: 8 }}>
+                    <div style={{ color: "#e9c46a", fontWeight: 800, fontSize: TS(tall ? 12 : 14), letterSpacing: ".1em", textTransform: "uppercase" }}>Step {ci + 1} of {N} · Do this now</div>
+                    <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: fz.h, lineHeight: 1.15 }}>{cur.title}</div>
+                    <div style={{ color: "#cfd8cf", fontSize: fz.s, lineHeight: 1.45 }}>{cur.desc}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap", marginTop: 8 }}>
+                      <button onClick={cur.act} style={{ border: 0, borderRadius: 14, padding: tall ? "12px 18px" : "14px 22px", fontWeight: 800, fontSize: fz.m, background: "#fff", color: "#12301f", cursor: "pointer", fontFamily: F.b }}>{cur.actL}</button>
+                      <button onClick={cur.alt} style={{ background: "none", border: 0, color: "#e9c46a", fontSize: fz.s, fontWeight: 700, textDecoration: "underline", cursor: "pointer", fontFamily: F.b }}>{cur.altL}</button>
+                    </div>
+                  </div>
+                </div>
+                {/* The other steps */}
+                {N > 1 && <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(" + (N - 1) + ", 1fr)", gap: 12, marginTop: 12 }}>
+                  {steps.map((x, k) => k === ci ? null : <div key={k} style={{ display: "flex", alignItems: "center", gap: 12, border: "1.5px solid " + CL.bdr, borderRadius: 16, padding: "10px 14px", background: CL.card }}>
+                    <span style={{ width: tall ? 40 : 48, height: tall ? 40 : 48, borderRadius: 12, flexShrink: 0, background: "url(./art/backgrounds/" + x.bg + ".webp) center/cover" }} />
+                    <div style={{ minWidth: 0 }}><div style={{ fontWeight: 800, fontSize: fz.m, color: CL.txt }}>{x.title}</div>
+                      <div style={{ fontSize: fz.s, fontWeight: 700, color: x.done ? CL.grn : CL.td }}>{x.done ? "✓ " + x.doneL : "Next, after step " + (k) }</div></div>
+                  </div>)}
+                </div>}
               </Cd>;
             })()}
             {phase === "budget" && !needSetup && (() => {
@@ -13370,67 +13395,72 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               ];
               const same = (a, b) => BSECTORS.every(sec => (a[sec.k] || 0) === (b[sec.k] || 0));
               const warnCount = (v) => BSECTORS.filter(sec => { const m = SEC_META[sec.k], x = v[sec.k] || 0; return m && (x < m.min || x > m.max); }).length;
-              const grpBar = (v, h = 10) => <div style={{ display: "flex", height: h, borderRadius: h, overflow: "hidden", background: CL.bdr }}>
-                {grpOrder.map(g => <span key={g} style={{ width: BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (v[sec.k] || 0), 0) + "%", background: grpColor[g] }} />)}
-              </div>;
               const GRP_SHORT = { "Human Development": "People", "Growth Engines": "Growth", "Obligations": "Running costs" };
               const cards = (STANCES.some(([k]) => same(bud, presets[k])) ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "On your desk" : "Not balanced: " + bs + "%", bud]])
                 .concat(STANCES.map(([k, l, d]) => [k, l, d, presets[k]]));
               const step = (k, d) => setBud(p => ({ ...p, [k]: Math.max(0, Math.min(40, (p[k] || 0) + d)) }));
               const stepBtn = { width: tall ? 48 : 64, height: tall ? 48 : 64, minHeight: tall ? 48 : 64, borderRadius: 12, border: "1px solid " + CL.bdr, background: CL.bg, color: CL.txt, fontSize: fs.m, fontWeight: 800, cursor: "pointer", flexShrink: 0 };
-              return <Cd style={{ padding: tall ? "18px 16px" : "32px 36px" }}>
-                {s.igr + s.faac < 3 && <div style={{ fontSize: fs.s, color: CL.red, fontWeight: 700, marginBottom: 10 }}>Revenue has collapsed to {naira(s.igr + s.faac)}. The state is close to bankrupt.</div>}
-                <div style={{ fontSize: fs.s, color: CL.td }}>Year {turn <= 4 ? turn : turn - 4} of 4 · {(setup?.startYear || 2027) + turn - 1}</div>
-                <div style={{ fontFamily: F.d, fontSize: fs.l, fontWeight: 700, color: CL.txt, margin: "4px 0 6px", lineHeight: 1.15 }}>Split {naira(tb)} for the next six months</div>
-                <button onClick={() => setBudInfo(o => !o)} aria-expanded={budInfo} style={{ background: "none", border: 0, padding: "4px 0", color: CL.grn, fontSize: fs.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{budInfo ? "Hide the details" : "What's in the pot?"}</button>
-                {budInfo && <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.5, margin: "8px 0 4px", padding: tall ? "12px 14px" : "18px 22px", background: CL.bg, borderRadius: 12, display: "grid", gap: 8 }}>
-                  <div>{naira(s.igr)} the state raises itself (IGR) + {naira(s.faac)} from the federal share (FAAC){s.debt > 0 ? ", minus " + naira(s.debt * .08) + " debt service" : ""}.</div>
-                  {s.debt > 0 && <div>State debt stands at {naira(s.debt)}. Its service comes off the pot before you see it; money you put into Debt reduces what you owe.{s.debt > SYS.revenueB(s) * 1.4 ? " Debt is dangerously high: creditors will call soon." : ""}</div>}
-                  <div>Under Section 121 of the 1999 Constitution you lay this bill before the House of Assembly. Members can pass it, amend it, or force you into horse-trading.</div>
-                </div>}
-                <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "repeat(auto-fit, minmax(360px, 1fr))", gap: tall ? 8 : 14, margin: tall ? "12px 0" : "20px 0" }}>
-                  {cards.map(([k, l, d, v]) => {
-                    const on = same(bud, v), w = warnCount(v);
-                    return <button key={k} onClick={() => setBud({ ...v })} aria-pressed={on} style={{ textAlign: "left", display: "grid", gap: 6, padding: tall ? "12px 14px" : "18px 22px", borderRadius: 16, cursor: "pointer", fontFamily: F.b, color: CL.txt,
-                      border: "1.5px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn + "0d" : CL.card, boxShadow: on ? "inset 0 0 0 1px " + CL.grn : "none" }}>
-                      <span style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
-                        <b style={{ fontSize: fs.m }}>{on ? "✓ " : ""}{l}</b>
-                        <span style={{ fontSize: fs.s, color: w ? CL.org : CL.grn, fontWeight: 700, whiteSpace: "nowrap" }}>{w ? <><Ico n="icon-warning" s={20} /> {w}</> : <Ico n="icon-ok" s={20} />}</span>
-                      </span>
-                      {grpBar(v)}
-                    </button>;
-                  })}
+              // The budget (dark green and gold): the sum, how it splits, the five shapes, then Submit. The eight sectors open in a light panel.
+              const ICONS = { __draft: "📋", recommended: "⚖️", populist: "📣", reformer: "🧮", godfather: "🎩" };
+              const grpPct = (g) => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (bud[sec.k] || 0), 0);
+              const LIGHT = { "Human Development": "#6ea0ff", "Growth Engines": "#7fd3a5", "Obligations": "#b99cff" };
+              const fz = tall ? { s: TS(15), m: TS(17), l: TS(46), k: TS(12) } : { s: TS(19), m: TS(22), l: TS(64), k: TS(14) };
+              return <div style={{ background: "radial-gradient(120% 120% at 0 0, #1d4a33 0, #0f2a1d 55%, #0b1f15 100%)", color: "#f3eedf", borderRadius: 24, padding: tall ? "18px 16px" : "28px 30px", boxShadow: "0 18px 40px rgba(0,0,0,.25)", border: "1px solid rgba(233,196,106,.25)" }}>
+                {s.igr + s.faac < 3 && <div style={{ fontSize: fz.s, color: "#ffb38a", fontWeight: 700, marginBottom: 10 }}>Revenue has collapsed to {naira(s.igr + s.faac)}. The {NAT ? "country" : "state"} is close to bankrupt.</div>}
+                <div style={{ color: "#e9c46a", fontSize: fz.k, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Year {turn <= 4 ? turn : turn - 4} of 4 · {(setup?.startYear || 2027) + turn - 1} · The Appropriation Bill</div>
+                <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1.1fr 1fr", gap: tall ? 16 : 26, marginTop: 10, alignItems: "start" }}>
+                  <div>
+                    <div style={{ fontFamily: F.d, fontSize: fz.l, lineHeight: 1, margin: "4px 0 6px" }}>{naira(tb)}</div>
+                    <div style={{ color: "#c9c3b2", fontSize: fz.s }}>to split for the next six months</div>
+                    <div style={{ display: "grid", gap: 10, marginTop: 16 }}>
+                      {grpOrder.map(g => { const v = grpPct(g); return <div key={g} style={{ display: "grid", gridTemplateColumns: (tall ? 104 : 140) + "px 1fr 52px", gap: 10, alignItems: "center", fontSize: fz.s }}>
+                        <span>{GRP_SHORT[g]}</span><span style={{ height: 10, borderRadius: 10, background: "rgba(255,255,255,.1)", overflow: "hidden" }}><i style={{ display: "block", height: "100%", width: Math.min(100, v) + "%", background: LIGHT[g] }} /></span><b>{v}%</b>
+                      </div>; })}
+                    </div>
+                    <div style={{ color: "#c9c3b2", fontSize: fz.s, marginTop: 14, lineHeight: 1.5 }}>{naira(s.igr)} raised at home · {naira(s.faac)} {NAT ? "federal revenue" : "federal share (FAAC)"}{s.debt > 0 ? " · −" + naira(s.debt * .08) + " debt service" : ""}</div>
+                  </div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    {cards.map(([k, l, d, v]) => { const on = same(bud, v), w = warnCount(v);
+                      return <button key={k} onClick={() => setBud({ ...v })} aria-pressed={on} style={{ textAlign: "left", borderRadius: 16, padding: tall ? "12px 14px" : "14px 16px", cursor: "pointer", fontFamily: F.b, color: "#f3eedf", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center",
+                        background: on ? "rgba(233,196,106,.12)" : "rgba(255,255,255,.05)", border: "1.5px solid " + (on ? "#e9c46a" : "rgba(255,255,255,.12)") }}>
+                        <span style={{ fontSize: tall ? 22 : 26 }}>{ICONS[k] || "📋"}</span>
+                        <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: fz.m }}>{on ? "✓ " : ""}{l}</b><span style={{ fontSize: fz.s, color: "#c9c3b2" }}>{d}</span></span>
+                        <span style={{ fontSize: TS(tall ? 12 : 14), fontWeight: 800, borderRadius: 999, padding: "4px 10px", whiteSpace: "nowrap", background: w ? "rgba(255,160,100,.15)" : "rgba(127,211,165,.15)", color: w ? "#ffb38a" : "#7fd3a5", display: "inline-flex", alignItems: "center", gap: 5 }}>{w ? <><Ico n="icon-warning" s={16} />{w + " out of range"}</> : "All in range"}</span>
+                      </button>; })}
+                  </div>
                 </div>
-                <button onClick={() => setBudTune(o => !o)} aria-expanded={budTune} style={{ background: "none", border: 0, padding: "8px 0", color: CL.grn, fontSize: fs.s, fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontFamily: F.b }}>{budTune ? "Hide the eight sectors" : "Fine-tune the eight sectors"}</button>
+                <button onClick={() => setBudTune(o => !o)} aria-expanded={budTune} style={{ background: "none", border: "1.5px solid rgba(233,196,106,.5)", borderRadius: 12, padding: "10px 16px", marginTop: 16, color: "#e9c46a", fontSize: fz.s, fontWeight: 700, cursor: "pointer", fontFamily: F.b }}>🎚️ {budTune ? "Hide the eight sectors" : "Fine-tune the eight sectors"}</button>
+                {(budTune || activeNeeds.some(n => n.status !== "open" && (bud[needType(n).sector] || 0) < BUDGET_MIN[needType(n).sector])) && <div style={{ background: CL.card, color: CL.txt, borderRadius: 16, padding: tall ? "8px 12px" : "12px 20px", marginTop: 12 }}>
                 {budTune && <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1fr 1fr", columnGap: 48, margin: "4px 0 8px" }}>
-                  {grpOrder.flatMap(g => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g)).map(sec => {
-                    const meta = SEC_META[sec.k], v = bud[sec.k] || 0;
-                    const st = v < meta.min ? "low" : v > meta.max ? "high" : "ok";
-                    const sc = st === "ok" ? CL.grn : st === "low" ? CL.red : CL.org;
-                    const open = budOpen === sec.k;
-                    return <div key={sec.k} style={{ borderTop: "1px solid " + CL.bdr, padding: "8px 0" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <button onClick={() => setBudOpen(open ? null : sec.k)} aria-expanded={open} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, padding: 0, cursor: "pointer", color: CL.txt, fontFamily: F.b }}>
-                          <span style={{ display: "block", fontSize: fs.m, fontWeight: 700 }}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: grpColor[meta.grp], marginRight: 8, verticalAlign: 2 }} />{sec.l}</span>
-                          <span style={{ display: "block", fontSize: fs.s, color: sc }}>{st === "ok" ? "In range" : st === "low" ? "Underfunded" : "Too much"} · {naira(tb * v / 100)}</span>
-                        </button>
-                        <button onClick={() => step(sec.k, -1)} aria-label={"Less " + sec.l} style={stepBtn}>−</button>
-                        <span style={{ width: tall ? 44 : 64, textAlign: "center", fontFamily: F.m, fontWeight: 800, fontSize: fs.m, color: sc }}>{v}%</span>
-                        <button onClick={() => step(sec.k, 1)} aria-label={"More " + sec.l} style={stepBtn}>+</button>
-                      </div>
-                      {open && <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.45, padding: "6px 0 2px" }}>
-                        {meta.funds} Healthy range {meta.min}–{meta.max}%.{st !== "ok" ? " " + (st === "low" ? "If you submit this: " + meta.low : "Waste flag: " + meta.high) : ""}
-                      </div>}
-                    </div>;
-                  })}
-                </div>}
-                {activeNeeds.filter(n => n.status !== "open" && (bud[needType(n).sector] || 0) < BUDGET_MIN[needType(n).sector]).map(n => <div key={n.id} style={{ fontSize: fs.s, color: CL.red, background: CL.red + "0c", borderRadius: 12, padding: "8px 12px", margin: "6px 0", lineHeight: 1.4 }}>
-                  ⚠️ {SECTOR_NAME[needType(n).sector]} is below {BUDGET_MIN[needType(n).sector]}%: the contractors working on "{needType(n).title(n.lga)}" will not be paid, and the work will stop.
-                </div>)}
-                <Bt onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} style={{ width: "100%", marginTop: 6, opacity: bs === 100 ? 1 : .5, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
+                    {grpOrder.flatMap(g => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g)).map(sec => {
+                      const meta = SEC_META[sec.k], v = bud[sec.k] || 0;
+                      const st = v < meta.min ? "low" : v > meta.max ? "high" : "ok";
+                      const sc = st === "ok" ? CL.grn : st === "low" ? CL.red : CL.org;
+                      const open = budOpen === sec.k;
+                      return <div key={sec.k} style={{ borderTop: "1px solid " + CL.bdr, padding: "8px 0" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <button onClick={() => setBudOpen(open ? null : sec.k)} aria-expanded={open} style={{ flex: 1, minWidth: 0, textAlign: "left", background: "transparent", border: 0, padding: 0, cursor: "pointer", color: CL.txt, fontFamily: F.b }}>
+                            <span style={{ display: "block", fontSize: fs.m, fontWeight: 700 }}><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: grpColor[meta.grp], marginRight: 8, verticalAlign: 2 }} />{sec.l}</span>
+                            <span style={{ display: "block", fontSize: fs.s, color: sc }}>{st === "ok" ? "In range" : st === "low" ? "Underfunded" : "Too much"} · {naira(tb * v / 100)}</span>
+                          </button>
+                          <button onClick={() => step(sec.k, -1)} aria-label={"Less " + sec.l} style={stepBtn}>−</button>
+                          <span style={{ width: tall ? 44 : 64, textAlign: "center", fontFamily: F.m, fontWeight: 800, fontSize: fs.m, color: sc }}>{v}%</span>
+                          <button onClick={() => step(sec.k, 1)} aria-label={"More " + sec.l} style={stepBtn}>+</button>
+                        </div>
+                        {open && <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.45, padding: "6px 0 2px" }}>
+                          {meta.funds} Healthy range {meta.min}–{meta.max}%.{st !== "ok" ? " " + (st === "low" ? "If you submit this: " + meta.low : "Waste flag: " + meta.high) : ""}
+                        </div>}
+                      </div>;
+                    })}
+                  </div>}
+                  {activeNeeds.filter(n => n.status !== "open" && (bud[needType(n).sector] || 0) < BUDGET_MIN[needType(n).sector]).map(n => <div key={n.id} style={{ fontSize: fs.s, color: CL.red, background: CL.red + "0c", borderRadius: 12, padding: "8px 12px", margin: "6px 0", lineHeight: 1.4 }}>
+                    ⚠️ {SECTOR_NAME[needType(n).sector]} is below {BUDGET_MIN[needType(n).sector]}%: the contractors working on "{needType(n).title(n.lga)}" will not be paid, and the work will stop.
+                  </div>)}
+                  </div>}
+                <button onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} disabled={bs !== 100} style={{ width: "100%", marginTop: 16, border: 0, borderRadius: 14, padding: tall ? "14px" : "18px", fontWeight: 800, fontSize: fz.m, fontFamily: F.b, background: "#e9c46a", color: "#1b1404", opacity: bs === 100 ? 1 : .55, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
                   {bs === 100 ? "Submit to the House of Assembly →" : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
-                </Bt>
-              </Cd>;
+                </button>
+              </div>;
             })()}
 
             {phase === "house_vote" && NAT && (stc.cake || {}).turn !== turn && (() => { const K = SYS.nassCake((s.igr || 0) + (s.faac || 0), stc.cakeHist || ((stc.cake || {}).choice ? [stc.cake.choice] : [])), sp = ((stc.pres || {}).npcs || {}).nass;
