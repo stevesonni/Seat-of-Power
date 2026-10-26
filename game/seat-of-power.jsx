@@ -2223,6 +2223,41 @@ const CouncilTable = ({ T, onPick, onClose }) => {
   </div>;
 };
 
+/* A decision (Lovable's design, public/sop-screens.css .lv-dec): the scene and
+   the person who brings it on one side, the matter and the options on the
+   other; full-screen on a phone. c: a Desk card ({ kicker, title, brief,
+   stakes, art: [bg, who, obj, scene], from, options: [{ label, note, risk,
+   chips }] }). */
+const LvDecision = ({ c, onPick, advice }) => {
+  const [more, setMore] = React.useState(false);
+  const m = String(c.brief || "").match(/^Last year you ([^.]*\.)\s*/), recall = m ? m[1] : null, brief = m ? c.brief.slice(m[0].length) : String(c.brief || "");
+  const long = brief.length > 230, shown = long && !more ? brief.slice(0, 210).replace(/\s+\S*$/, "") + "…" : brief;
+  const [bg, who, , scene] = c.art || [], pic = scene ? "./art/scenes/" + scene + ".webp" : bg ? "./art/backgrounds/" + bg + ".webp" : null;
+  const plate = c.from ? String(c.from).split(/\s*[,·]\s*/) : null;
+  return <div className="lv lv-dec sop-fade-in" role="dialog" aria-label={c.title} style={{ position: "fixed", inset: 0, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+    <div className="dec">
+      <div className="scene">
+        {pic && <img className="bg" src={pic} alt="" />}
+        {who && <img className="who" src={"./art/characters/" + who + ".webp"} alt="" />}
+        {plate && plate[0] && <div className="nameplate"><b>{plate[0]}</b>{plate.length > 1 && <span>{plate.slice(1).join(" · ")}</span>}</div>}
+      </div>
+      <section className="sheet">
+        {advice}
+        <div className="kicker">{c.kicker}</div>
+        <h1 className="h-title">{c.title}</h1>
+        {shown && <p className="brief">{shown}{long && <span role="button" tabIndex={0} className="more" onClick={() => setMore(x => !x)} style={{ cursor: "pointer" }}>{more ? "Less" : "More"}</span>}</p>}
+        {recall && <div className="recall">↺ <span><b>Last year you</b> {recall}</span></div>}
+        {c.stakes && <div className="recall" style={{ background: "#eef4ef", borderLeftColor: "var(--green)" }}>{c.stakes}</div>}
+        <div className="opts">{(c.options || []).map((o, i) => <button key={i} className="opt" disabled={o.disabled} onClick={() => onPick(o, i)} style={o.disabled ? { opacity: .45, cursor: "not-allowed" } : null}>
+          <div className="lab">{o.label}</div>
+          {(o.chips || []).length > 0 ? <div className="meta"><LvChips chips={o.chips} /></div> : o.note ? <div style={{ fontSize: "var(--fs-label)", color: "var(--muted)" }}>{briefly(o.note, 60)}</div> : null}
+          {o.risk && <div className="warnline">⚠ {briefly(o.risk, 60)}</div>}
+        </button>)}</div>
+      </section>
+    </div>
+  </div>;
+};
+
 // Special Adviser speech bubble — shows for ALL levels
 /* Consult your adviser: her portrait and a button. She comes forward with her
    advice only when you ask. */
@@ -11592,7 +11627,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ textAlign: "center", marginTop: 8 }}><Bt onClick={() => setVisit(null)} style={{ background: CL.card, color: CL.txt, border: "1px solid " + CL.bdr }}>Not now</Bt></div></>; })()}
         </OL>
         {session && <CouncilTable key={session.id + ":" + turn} T={session} onPick={(o) => { setSession(null); let r = null; try { r = o.run(); } catch (e) { console.error("[council]", e); } if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => setSession(null)} />}
-        <OL show={phase === "sc" && scCards.length > 0}>
+        {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
+          return <LvDecision key={c.key} c={{ ...c, options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, disabled: o.disabled, raw: o })) }}
+            advice={c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}
+            onPick={(o) => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); }} />; })()}
+        <OL show={phase === "sc" && scCards.length > 0 && !!(scCards[0].letter || scCards[0].military || scCards[0].doc)}>
           {scCards[0] && (() => { const c = scCards[0]; return <>{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
               <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>

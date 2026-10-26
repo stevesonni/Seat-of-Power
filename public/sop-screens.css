@@ -168,7 +168,7 @@ body:not(.sop-portrait) .lv-dec .bnav{display:none}
 .lv-dec .opt .lab::after{content:"›";position:absolute;right:calc(14px*var(--k));top:calc(10px*var(--k));font-size:calc(22px*var(--k));color:var(--muted)}
 .lv-dec .opt .warnline{font-size:var(--fs-label);font-weight:600;color:var(--warn);display:flex;gap:calc(6px*var(--k));align-items:center}
 .lv-dec .meta{display:flex;flex-wrap:wrap;gap:calc(6px*var(--k));align-items:center}
-body:not(.sop-portrait) .lv-dec{display:grid;place-items:center;background:rgba(18,48,31,.92) url(art/compound.webp) center/cover;background-blend-mode:multiply}
+body:not(.sop-portrait) .lv-dec{display:grid;place-items:center;background:rgba(18,48,31,.92) url(art/compound/compound-full.webp) center/cover;background-blend-mode:multiply}
 body:not(.sop-portrait) .lv-dec .dec{min-height:0;width:calc(1180px*var(--k));height:calc(700px*var(--k));flex-direction:row;border-radius:calc(24px*var(--k));overflow:hidden;box-shadow:0 calc(30px*var(--k)) calc(80px*var(--k)) calc(-20px*var(--k)) rgba(0,0,0,.6)}
 body:not(.sop-portrait) .lv-dec .scene{height:auto;width:46%}
 body:not(.sop-portrait) .lv-dec .scene .who{height:78%;right:50%;transform:translateX(50%)}

@@ -13,7 +13,7 @@ SRC = ROOT / "tools" / "lovable-screens"
 SCREENS = [("lv-council", "screen-council-decision.html"), ("lv-dec", "screen-decision-result.html"), ("lv-ey", "screen-endyear.html"), ("lv-desk", "screen-desk.html")]
 
 def px(v):
-    return re.sub(r"(-?\d*\.?\d+)px", lambda m: "0" if float(m.group(1)) == 0 else "calc(%spx*var(--k))" % m.group(1), v).replace("100vh", "100%")
+    return re.sub(r"(-?\d*\.?\d+)px", lambda m: "0" if float(m.group(1)) == 0 else "calc(%spx*var(--k))" % m.group(1), v).replace("100vh", "100%").replace("url(art/compound.webp)", "url(art/compound/compound-full.webp)")
 
 def rules(css):
     out, i = [], 0
