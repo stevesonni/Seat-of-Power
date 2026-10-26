@@ -24,6 +24,11 @@ check(seen.has("speaks"), "the council makes one declaration, then closes");
 // The State Economic Council: first sitting, how to sell the state's crop.
 const before = (await saved(g)).s || {};
 await g.page.evaluate(() => window.SOP.councils.econ()); await g.wait(700);
+// Its first report: what the last government left (no pop-up any more). Settle it, then the Council's business.
+{ const t = await g.page.evaluate(() => (document.querySelector("[role=dialog]") || {}).innerText || "");
+  check(/what the last government left/i.test(t) && /How do we pay the debt\?/.test(t), "the State Economic Council opens with the debt the last government left"); }
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.opt")].find(x => /^Spread it over 4 years/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
+await g.page.evaluate(() => { const b = document.querySelector(".veil .btn"); b && b.click(); }); await g.wait(1200);
 { const t = await inSession(); check(/The State Economic Council/.test(t) && /Farmers' Association/.test(t) && /exporters and Customs/.test(t), "the State Economic Council sits: farmers, exporters, Customs");
   check(/Abuja's policy is (protect|open|targeted)/.test(t), "the declaration says what Abuja's trade policy does to the state"); }
 await shot("econ");

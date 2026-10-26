@@ -5805,7 +5805,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { icon: "📈", img: "./art/scenes/trade-deal-signing.webp", title: S.nm + ": " + S.l.split(": ").pop(), text: S.d + " The Council will bring you the figures every year.", tone: changed ? "neutral" : "good",
         rows: [{ l: "Tariffs", v: S.tariff + "%", good: true }].concat(changed ? [{ l: "Approval (markets dislike a change of course)", v: "−1", good: false }] : []) };
     } }));
-  const conveneEAC = () => {
+  /* The economic council's first report: what the last government left. Until it is decided the
+     debt is spread over 4 years; here the player settles it once, then the Council moves on. */
+  const debtFirst = (then) => {
+    const O = stc.oldDebt; if (!O || O.decided || !(O.total > 0)) return false;
+    const fin = (ministries || []).find(m => m.minister && /finance|budget/i.test(m.name || m.id));
+    const left = O.leftB != null ? O.leftB : O.total, nowB = Math.min(left, Math.max(0, Math.round(((s.cash || 0) * .85 - .5) * 10) / 10));
+    const choices = O.auto ? [["now", "Pay as much as we can now", "Pay " + naira(nowB) + " from the bank now; the rest over 4 years."], ["four", "Spread it over 4 years", naira(SYS.oldDebtPlan("four", left, 0).perYearB) + " a year."], ["eight", "Spread it over 8 years", naira(SYS.oldDebtPlan("eight", left, 0).perYearB) + " a year, more interest."]]
+      : debtChoices().map(c => [c.k, c.t, c.d]);
+    openTable({ id: "debt", sealKind: NAT ? "eac" : "econ", title: NAT ? "The Economic Advisory Council" : "The State Economic Council", sub: "First report · what the last government left", bg: NAT ? "council-table-federal" : "council-table-state",
+      by: { name: fin ? "Hon. " + fin.minister : NAT ? "The Minister of Finance" : "The Commissioner for Finance", role: NAT ? "Minister of Finance" : "Commissioner for Finance", img: fin ? commissionerArt(fin.minister, fin.perf, fin.id) : "./art/characters/" + (NAT ? "finance-minister" : "finance-commissioner") + ".webp" },
+      declaration: "Before anything else, Your Excellency: the last government left " + (NAT ? "the federation" : stName) + " owing " + naira(O.total) + ", at 8% interest a year." + (O.auto ? " Until you decide, we are paying it over four years." : ""),
+      decision: { title: "How do we pay the debt?", brief: "Your answer settles it. Then the Council moves on to its business.", options: choices.map(([k, l, d]) => ({ label: l, note: d, run: () => {
+        const r = chooseOldDebt(k);
+        return { icon: "💳", img: "./art/scenes/inherited-debt.webp", title: l, text: k === "now" ? "Paid " + naira(r.nowB || r.P.payNowB || 0) + (O.auto ? " from the bank." : " this year.") + " The rest is spread over 4 years." : "Spread over " + r.P.years + " years: " + naira(r.P.perYearB) + " a year.", tone: "good",
+          rows: [{ l: "Left by the last government", v: naira(O.total), good: false }], ok: "On to the Council's business", onClose: then };
+      } })) } });
+    return true;
+  };
+  const conveneEAC = (skipDebt) => {
+    if (!skipDebt && debtFirst(() => conveneEAC(true))) return;
     const T = stc.trade, first = !(T && T.stance);
     openTable({ id: "eac", sealKind: "eac", title: "The Economic Advisory Council", sub: first ? "First sitting · imports, exports and the naira" : "The year's figures · " + tradeFigures(T), bg: "council-table-federal", by: first ? { name: "Your Chief Economic Adviser", role: "Secretary to the Council", img: "./art/characters/chief-economic-adviser.webp" } : { name: "The Minister of Industry, Trade and Investment", role: "Federal Ministry of Industry, Trade and Investment", img: "./art/characters/trade-minister" + mood(T.exports >= 6, T.exports < 4) + ".webp" },
       declaration: first ? "The Economic Advisory Council is inaugurated: Finance, the Central Bank, Customs, the manufacturers and the farmers. Its first task is the nation's trade policy." : "The year's figures: " + tradeFigures(T) + ".",
@@ -5835,7 +5854,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         ["Call an emergency session (" + naira(20) + ")", nscEmergency, conveneNSC], "Convene the Security Council", C.nscYear === turn)}
       {card("council-table-federal", "eac", "The Economic Advisory Council", "Finance, the Central Bank, Customs, the manufacturers and the farmers. It sets what Nigeria imports and protects, and watches the naira.", !!(T && T.stance),
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Ico n="icon-trade" s={big ? 34 : 24} />{T && T.stance ? "Trade policy: " + SYS.STANCES[T.stance].nm + ". " + SYS.STANCES[T.stance].l.split(": ").pop() + "." : "Its first sitting sets your trade policy: protect local producers, open the borders, or the targeted middle."}</span>,
-        ["Convene it with this year's figures", conveneEAC, conveneEAC], "Convene the Economic Advisory Council", C.eacYear === turn,
+        ["Convene it with this year's figures", () => conveneEAC(), () => conveneEAC()], "Convene the Economic Advisory Council", C.eacYear === turn,
         T && T.stance ? <div style={{ display: "grid", gridTemplateColumns: big ? "repeat(4, 1fr)" : "repeat(2, 1fr)", gap: 8, margin: "0 0 12px" }}>
           {[["Reserves", "$" + T.reserves + "bn", T.reserves >= 20, "icon-reserves"], ["Food prices", (T.food >= 100 ? "+" : "") + (T.food - 100) + "%", T.food < 120, "icon-food-prices"], ["Factories", T.factories + "/100", T.factories >= 45], ["Exports", "$" + T.exports + "bn/yr", T.exports >= 5, "icon-exports"], ["Street dollar", "+" + T.premium + "%", T.premium < 50], ["Smuggling", Math.round(T.smuggling) + "/100", T.smuggling < 50]].map(([l, v, ok, ic]) =>
             <div key={l} style={{ background: CL.bg, borderRadius: 10, padding: big ? "8px 10px" : "6px 8px" }}><div style={{ fontSize: big ? TS(18) : TS(13), color: CL.td, display: "flex", alignItems: "center", gap: 6 }}>{ic && <Ico n={ic} s={big ? 26 : 18} />}{l}</div><div style={{ fontWeight: 800, fontSize: big ? TS(26) : TS(18), color: ok ? CL.grn : CL.red }}>{v}</div></div>)}
@@ -5858,7 +5877,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      after that it meets once a year to expand. Abuja's trade stance (not
      yours to set) changes what it is worth. */
   const fedStanceNow = () => stc.fedStance || ["protect", "open", "targeted"][hashStr(state + ":" + pName) % 3];
-  const conveneEcon = () => {
+  const conveneEcon = (skipDebt) => {
+    if (!skipDebt && debtFirst(() => conveneEcon(true))) return;
     const E = stc.exports, crops = SYS.produceOf(state), crop = (E && E.crop) || crops[0], F = SYS.FED_STANCE_FX[fedStanceNow()];
     const sat = () => setStc(p => ({ ...p, econYear: turn, fedStance: p.fedStance || fedStanceNow() }));
     const plan = (k) => { const P = SYS.EXPORT_PLANS[k], nm = SYS.cropText(P.nm, crop); return { label: nm, note: SYS.cropText(P.d, crop), chips: [{ text: "₦" + P.cost + "B", color: CL.org }, { text: P.years ? "Earns from year " + (turn + P.years) : "Earns from next year", color: CL.grn }].concat(F[k] !== 1 ? [{ text: "Abuja's policy " + (F[k] > 1 ? "helps" : "hurts"), color: F[k] > 1 ? CL.grn : CL.red }] : []),
@@ -5909,7 +5929,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <div style={{ fontSize: big ? TS(26) : TS(18), color: CL.td, margin: "4px 0 10px", lineHeight: 1.4 }}>{stName} grows {crops.join(" and ")}. Sell them abroad and the state earns money every year, money no one in Abuja can cut.</div>
         {E ? <div style={{ fontSize: big ? TS(24) : TS(17), color: CL.txt, margin: "0 0 12px", lineHeight: 1.5 }}>🚢 {SYS.cropText(SYS.EXPORT_PLANS[E.plan].nm, E.crop)}{turn < E.opens ? " · opens in year " + E.opens : ""}<br /><Ico n="icon-exports" s={big ? 30 : 22} /> Earned so far: <b style={{ color: CL.grn }}>₦{(E.earned || 0).toFixed(1)}B</b>{(E.hist || []).length ? " · last year ₦" + E.hist[E.hist.length - 1].cash.toFixed(1) + "B" : ""}</div> : null}
         <div style={{ fontSize: big ? TS(22) : TS(16), color: CL.td, margin: "0 0 12px" }}>Abuja's trade policy: <b>{FS.nm}</b>. {SYS.FED_STANCE_FX[fedStanceNow()].d}</div>
-        {stc.econYear === turn ? <div style={{ fontSize: big ? TS(24) : TS(17), color: CL.grn, fontWeight: 700 }}>✓ Met this year.</div> : <Bt onClick={conveneEcon}>{E ? "Convene it for this year" : "Convene the State Economic Council"}</Bt>}
+        {stc.econYear === turn ? <div style={{ fontSize: big ? TS(24) : TS(17), color: CL.grn, fontWeight: 700 }}>✓ Met this year.</div> : <Bt onClick={() => conveneEcon()}>{E ? "Convene it for this year" : "Convene the State Economic Council"}</Bt>}
       </div>
     </div>; };
   const fxChips = (fx = {}, dz = 0) => [
@@ -7480,7 +7500,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The year's money arrives when its budget is settled (passed, amended, dealt, dropped or forced).
   // A new game starts with an empty bank and the last government's debt; a save from
   // before the bank existed starts with this year's work money in it.
-  const [debtPick, setDebtPick] = useState(false);
   const oldPlan = stc.oldDebt || null;
   const firstOfNow = (P) => P && P.kind === "now" && P.payYear === turn; // paying it now: instalments start next year
   const accounts = () => SYS.yearAccounts(s, bud, oldPlan && oldPlan.kind ? { oldDueB: firstOfNow(oldPlan) ? 0 : oldPlan.perYearB, oldLeftB: oldPlan.leftB } : {});
@@ -7494,8 +7513,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return;
     }
     if (phase !== "policy" || s.cashYear === turn) return;
-    // Year 1: first decide how to deal with the debt the last government left.
-    if (oldPlan && !oldPlan.kind) { setDebtPick(true); return; }
+    // Year 1: the debt the last government left is spread over 4 years until the economic council decides (its first report).
+    if (oldPlan && !oldPlan.kind) { chooseOldDebt("four", true); return; }
     const a = accounts(), left = s.cash || 0;
     const bills = turn === 1 && !stc.inherited ? Math.round(a.workB * .15 * 10) / 10 : 0;
     const payNow = oldPlan && oldPlan.payNowB && oldPlan.payYear === turn ? Math.min(oldPlan.payNowB, Math.max(0, a.workB - bills)) : 0;
@@ -7517,14 +7536,24 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         .concat([{ l: "In the bank", v: naira(total), good: total > 0 }, { l: "Still owed", v: naira(Math.max(0, a.debtAfter - payNow)), good: false }]) }); } catch (e) {}
   }, [phase, turn, s.cash == null, oldPlan && oldPlan.kind]);
   // The three ways to deal with the last government's debt, with what each leaves you.
-  const chooseOldDebt = (kind) => {
+  const chooseOldDebt = (kind, auto = false) => {
+    // Re-planned at the council after the money came in: pay from the bank now, or spread what is left.
+    if (oldPlan && oldPlan.auto && !auto) {
+      const left = oldPlan.leftB != null ? oldPlan.leftB : oldPlan.total || 0, nowB = kind === "now" ? Math.min(left, Math.max(0, Math.round(((s.cash || 0) * .85 - .5) * 10) / 10)) : 0, P = SYS.oldDebtPlan(kind, left, nowB);
+      if (nowB > 0) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - nowB) * 100) / 100, debt: Math.max(0, Math.round(((p.debt || 0) - nowB) * 100) / 100) }));
+      setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, kind, auto: false, decided: true, leftB: P.leftB, perYearB: P.perYearB, years: P.years, payNowB: 0, payYear: -1 } }));
+      addL("💳 The last government's debt: " + (kind === "now" ? "paid " + naira(nowB) + " from the bank; the rest over 4 years." : "spread over " + P.years + " years.") , "policy");
+      scWiki(NAT ? "Presidency" : "Governorship", "Inherited " + naira(oldPlan.total || 0) + " of debt from the previous administration and " + (kind === "now" ? "paid " + naira(nowB) + " of it at once." : "spread its repayment over " + P.years + " years."));
+      return { nowB, P };
+    }
     const base = SYS.yearAccounts({ ...s, debt: Math.max(0, (s.debt || 0) - ((oldPlan || {}).total || 0)) }, bud); // this year's money before the old debt
     const nowB = kind === "now" ? Math.max(0, Math.round((base.workB * .85 - .5) * 10) / 10) : 0;
     const P = SYS.oldDebtPlan(kind, (oldPlan || {}).total || 0, nowB);
-    setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, kind, leftB: P.leftB, perYearB: P.perYearB, years: P.years, payNowB: P.payNowB, payYear: turn } }));
-    setDebtPick(false);
+    setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, kind, auto, decided: !auto, leftB: P.leftB, perYearB: P.perYearB, years: P.years, payNowB: P.payNowB, payYear: turn } }));
+    if (auto) { addL("💳 The last government left " + naira((oldPlan || {}).total || 0) + " of debt. For now it is spread over 4 years; the " + (NAT ? "Economic Advisory Council" : "State Economic Council") + " will report on it.", "info"); return { nowB, P }; }
     addL("💳 The last government's debt: " + (kind === "now" ? "paid " + naira(P.payNowB) + " at once; the rest over 4 years." : "spread over " + P.years + " years.") , "policy");
-    scWiki("Governorship", "Inherited " + naira((oldPlan || {}).total || 0) + " of debt from the previous administration and " + (kind === "now" ? "paid " + naira(P.payNowB) + " of it at once." : "spread its repayment over " + P.years + " years."));
+    scWiki(NAT ? "Presidency" : "Governorship", "Inherited " + naira((oldPlan || {}).total || 0) + " of debt from the previous administration and " + (kind === "now" ? "paid " + naira(P.payNowB) + " of it at once." : "spread its repayment over " + P.years + " years."));
+    return { nowB, P };
   };
   const debtChoices = () => {
     if (!oldPlan) return [];
@@ -7974,9 +8003,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (risky) { const b_ = { urgent: true, icon: "🚧", title: "Unblock " + (risky.title || risky.name || "a stalled project"), body: "A stalled site becomes an opposition billboard. Visit, terminate, audit or renegotiate before it enters your Wikipedia controversies.", actionLabel: "Open Projects", action: () => goTab("prj") }; if (!skipB(b_)) return b_; }
     if (s.cor > .45) { const b_ = { urgent: true, icon: "🧾", title: "Publish an audit before EFCC does", body: "Corruption above 45% compounds through contracts, cabinet loyalty, press attacks and tribunal credibility.", actionLabel: "Open Wiki Bio", action: () => goTab("bio") }; if (!skipB(b_)) return b_; }
     if (s.app < 40) { const b_ = { urgent: true, icon: "📉", title: "Approval crisis: deliver something now", body: "Below 40% approval, the House blocks bills because members fear losing their seats with you.", actionLabel: "Open Projects", action: () => goTab("prj") }; if (!skipB(b_)) return b_; }
-    if (NAT && turn >= 2 && !(stc.trade && stc.trade.stance)) { const b_ = { urgent: false, icon: "📈", title: "Convene the Economic Advisory Council", body: "Imports, exports and the naira: its first sitting sets your trade policy. Until then Nigeria drifts, and the dollars with it.", actionLabel: "Convene it", action: conveneEAC }; if (!skipB(b_)) return b_; }
+    if (NAT && turn >= 2 && !(stc.trade && stc.trade.stance)) { const b_ = { urgent: false, icon: "📈", title: "Convene the Economic Advisory Council", body: "Imports, exports and the naira: its first sitting sets your trade policy. Until then Nigeria drifts, and the dollars with it.", actionLabel: "Convene it", action: () => conveneEAC() }; if (!skipB(b_)) return b_; }
     if (!NAT && turn >= 2 && stc.exports && !((stc.inter || {}).deals || []).length && (stc.inter || {}).last == null) { const b_ = { urgent: false, icon: "🤝", title: "Visit a neighbour: trade with " + SYS.neighboursOf(state).map(SYS.stateLabel).slice(0, 3).join(", "), body: "Their crops for your factories, your goods for their markets, a road or a border patrol together. Go yourself, or send your commissioner.", actionLabel: "Plan a trade mission", action: startVisit }; if (!skipB(b_)) return b_; }
-    if (!NAT && turn >= 2 && !stc.exports) { const b_ = { urgent: false, icon: "🚢", title: "Sell " + stName + "'s " + SYS.produceOf(state)[0] + " to the world", body: "The State Economic Council can turn what the farms grow into money every year, money no one in Abuja can cut.", actionLabel: "Convene the council", action: conveneEcon }; if (!skipB(b_)) return b_; }
+    if (!NAT && turn >= 2 && !stc.exports) { const b_ = { urgent: false, icon: "🚢", title: "Sell " + stName + "'s " + SYS.produceOf(state)[0] + " to the world", body: "The State Economic Council can turn what the farms grow into money every year, money no one in Abuja can cut.", actionLabel: "Convene the council", action: () => conveneEcon() }; if (!skipB(b_)) return b_; }
     // Nothing urgent: the adviser says what their outlook notices first.
     const lensId = SYS.lensIdOf(saOffice.adviser.name);
     if (turn > 1) { const b_ = { urgent: false, icon: "🧭", title: SYS.lensRead(lensId, { s, stalled: (projects || []).filter(p => p.status === "suspended" || p.status === "abandoned").length }).replace(/\.$/, ""), body: "Your adviser's read (" + SYS.SA_LENSES[lensId].nm.toLowerCase() + "). Weigh it against the others: " + SYS.SA_LENSES[lensId].blind, actionLabel: "Open Govern", action: () => goTab("gov") }; if (!skipB(b_)) return b_; }
@@ -13369,15 +13398,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         <OL show={goldOpen && !!gold}>
           {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
-        </OL>
-        <OL show={debtPick}>
-          {debtPick && oldPlan && <div className="sp-card sp-step" style={{ maxWidth: 720, margin: "0 auto", padding: TALL() ? 16 : 24 }}>
-            <img src="./art/scenes/inherited-debt.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
-            <div className="sp-kicker" style={{ display: "flex", alignItems: "center", gap: 6 }}><Ico n="icon-debt" s={22} />What the last government left</div>
-            <div style={{ font: "700 26px/1.15 'Fraunces', Georgia, serif", color: "#17301f", margin: "4px 0 6px" }}>The state owes {naira(oldPlan.total)}</div>
-            <div style={{ font: "500 15px/1.45 'Plus Jakarta Sans', sans-serif", color: "#3d4f3a", marginBottom: 12 }}>8% interest a year. How do we pay?</div>
-            <div style={{ display: "grid", gap: 8 }}>{debtChoices().map(c => <button key={c.k} className="sp-opt" onClick={() => chooseOldDebt(c.k)}><b style={{ display: "block", fontSize: 16 }}>{c.t}</b><span style={{ fontSize: 14, color: "#5b6b55" }}>{c.d}</span></button>)}</div>
-          </div>}
         </OL>
         <OL show={!!pflow}>
           {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}

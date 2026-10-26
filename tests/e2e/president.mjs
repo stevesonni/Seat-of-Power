@@ -28,6 +28,11 @@ await shot("address");
 check(!!(await g.click(/Deliver the address/)), "the inaugural address is delivered"); await g.wait(1200);
 // The Economic Advisory Council around its table: each member speaks, then its first sitting sets the trade policy.
 await g.page.evaluate(() => window.SOP.councils.eac()); await g.wait(700);
+// Its first report: what the last government left (no pop-up any more). Settle it, then the Council's business.
+{ const t = await g.page.evaluate(() => (document.querySelector("[role=dialog]") || {}).innerText || "");
+  check(/what the last government left/i.test(t) && /How do we pay the debt\?/.test(t), "the Economic Advisory Council opens with the debt the last government left"); }
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.opt")].find(x => /^Spread it over 4 years/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
+await g.page.evaluate(() => { const b = document.querySelector(".veil .btn"); b && b.click(); }); await g.wait(1200);
 { const t = await g.page.evaluate(() => (document.querySelector("[role=dialog]") || {}).innerText || ""); check(/The Economic Advisory Council/.test(t) && /Chief Economic Adviser/.test(t) && /Central Bank, Customs/.test(t), "the Economic Advisory Council sits in its chamber"); }
 for (let i = 0; i < 10; i++) { const ok = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button")].find(x => /^(Next: .*|To the decision) ›$/.test(x.textContent.trim())); b && b.click(); return !!b; }); if (!ok) break; await g.wait(200); }
 await shot("eac");
