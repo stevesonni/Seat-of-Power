@@ -81,12 +81,16 @@ export async function takeOffice(g) {
    choice (a button, or a clickable choice card). Returns the click log. */
 const SKIP = /^(🏠|🗑️|🔀 Restructure|☰|Compound|Govern|Today|News|Desk|Map|State|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Council|Personas|Public|Stakeholders|Money|💰 Treasury|Treasury|Economy|Contracts|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|🤵 Ask your SA$|Ask your SA$|Hide$|Less$|▼$|▲$|Open the councils?$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
 const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound|Open the Treasury|Watch them decide|Not now)$/, /^Do it: /, /^✍️ Handle it personally$/, /^✍️ Sign off the investigation$/, /^.{6,}(›|❗)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Create and swear in/, /^Convene the council$/, /^Chair the first FEC$/, /^Convene the Security Council$/, /^Submit to the (House of Assembly|National Assembly)/, /^🗳️ Call the vote/, /^Proceed to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/, /^(✍️ )?(Sign|Assent)$/];
-export async function playUntil(g, until, { max = 400, prefer = [], log = false, onStep = null } = {}) {
+export async function playUntil(g, until, { max = 400, prefer = [], log = false, onStep = null, keepSession = false } = {}) {
   const clicks = [];
   for (let i = 0; i < max; i++) {
     if (onStep) await onStep(); // e.g. a screenshot of each new screen (audits)
     const t = await g.txt();
-    if (until(t)) return { ok: true, clicks };
+    if (until(t)) {
+      // A council in session sits above everything: close it, as a player would, before handing back.
+      if (!keepSession) for (let j = 0; j < 3 && await g.page.evaluate(() => { const b = [...document.querySelectorAll(".lv-council button")].find(x => /^Close the session$/.test(x.textContent.trim())); if (b) { b.click(); return true; } return false; }); j++) await g.wait(600);
+      return { ok: true, clicks };
+    }
     let hit = null;
     // A shortcut that keeps coming back (say "Not now" on the same visitor) is a loop: decide instead.
     const recent = clicks.slice(-24), looping = (re) => recent.filter(c => re.test(c)).length >= 3;

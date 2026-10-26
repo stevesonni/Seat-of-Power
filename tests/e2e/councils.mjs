@@ -15,9 +15,9 @@ const g = await open(srv.port, { save: YEAR1, seed: 11, test: { noStrikes: true 
 const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/councils-" + n + ".png" });
 await g.click(/^Continue/); await g.wait(1800);
 const seen = new Set();
-const inSession = () => g.page.evaluate(() => { const d = document.querySelector("[role=dialog]"); return d ? d.innerText : ""; });
+const inSession = () => g.page.evaluate(() => { const d = document.querySelector(".lv-council"); return d ? d.innerText : ""; });
 const r = await playUntil(g, t => { if (/State Executive Council/.test(t) && /Close the session/.test(t)) seen.add("exco"); if (/Traditional Rulers Council/.test(t) && /Close the session/.test(t)) seen.add("rulers"); if (/Close the session/.test(t) && /(inaugurated|in council)[^\n]{20,}/.test(t)) seen.add("speaks");
-  return seen.has("exco") && seen.has("rulers") && !/Close the session/.test(t); }, { max: 160, prefer: [/^Later$/], onStep: async () => { if ((await inSession()).length) await shot("session-" + seen.size); } });
+  return seen.has("exco") && seen.has("rulers") && !/Close the session/.test(t); }, { max: 160, keepSession: true, prefer: [/^Later$/], onStep: async () => { if ((await inSession()).length) await shot("session-" + seen.size); } });
 check(seen.has("exco"), "the Executive Council sits, in its chamber, when first formed");
 check(seen.has("rulers"), "so does the Traditional Rulers Council");
 check(seen.has("speaks"), "the council makes one declaration, then closes");
@@ -25,16 +25,19 @@ check(seen.has("speaks"), "the council makes one declaration, then closes");
 const before = (await saved(g)).s || {};
 await g.page.evaluate(() => window.SOP.councils.econ()); await g.wait(700);
 // Its first report: what the last government left (no pop-up any more). Settle it, then the Council's business.
-{ const t = await g.page.evaluate(() => (document.querySelector("[role=dialog]") || {}).innerText || "");
+{ const t = await g.page.evaluate(() => (document.querySelector(".lv-council") || {}).innerText || "");
   check(/what the last government left/i.test(t) && /How do we pay the debt\?/.test(t), "the State Economic Council opens with the debt the last government left"); }
-await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.opt")].find(x => /^Spread it over 4 years/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
-await g.page.evaluate(() => { const b = document.querySelector(".veil .btn"); b && b.click(); }); await g.wait(1200);
+await g.page.evaluate(() => { const b = [...document.querySelectorAll(".lv-council button.opt")].find(x => /^Spread it over 4 years/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
+// The result card waits its turn behind any pop-up already open (the adviser's welcome); clear them, then the Council's business opens.
+for (let i = 0; i < 8 && !(await g.page.evaluate(() => { const c = document.querySelector(".lv-council"); return !!c && !/How do we pay the debt/.test(c.innerText); })); i++) {
+  if (!(await g.page.evaluate(() => { const b = document.querySelector(".veil .btn"); if (b) { b.click(); return true; } return false; }))) await g.click(/^(Continue|Got it|Okay)$/);
+  await g.wait(800); }
 { const t = await inSession(); check(/The State Economic Council/.test(t) && /Farmers' Association/.test(t) && /exporters and Customs/.test(t), "the State Economic Council sits: farmers, exporters, Customs");
   check(/Abuja's policy is (protect|open|targeted)/.test(t), "the declaration says what Abuja's trade policy does to the state"); }
 await shot("econ");
-const opts = await g.page.evaluate(() => [...document.querySelectorAll("[role=dialog] button.opt")].map(b => b.textContent.trim()));
+const opts = await g.page.evaluate(() => [...document.querySelectorAll(".lv-council button.opt")].map(b => b.textContent.trim()));
 check(opts.length === 3 && opts.some(o => /processing zone/.test(o)) && opts.some(o => /container depot/.test(o)), "three ways to sell: raw, a depot and road, a processing zone (" + opts.length + ")");
-await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.opt")].find(x => /^Aggregate and ship raw/.test(x.textContent.trim())); b && b.click(); }); await g.wait(1200);
+await g.page.evaluate(() => { const b = [...document.querySelectorAll(".lv-council button.opt")].find(x => /^Aggregate and ship raw/.test(x.textContent.trim())); b && b.click(); }); await g.wait(1200);
 for (let i = 0; i < 3 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(400);
 await g.wait(2500);
 let sv = await saved(g);

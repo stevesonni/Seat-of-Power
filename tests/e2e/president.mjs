@@ -29,14 +29,17 @@ check(!!(await g.click(/Deliver the address/)), "the inaugural address is delive
 // The Economic Advisory Council around its table: each member speaks, then its first sitting sets the trade policy.
 await g.page.evaluate(() => window.SOP.councils.eac()); await g.wait(700);
 // Its first report: what the last government left (no pop-up any more). Settle it, then the Council's business.
-{ const t = await g.page.evaluate(() => (document.querySelector("[role=dialog]") || {}).innerText || "");
+{ const t = await g.page.evaluate(() => (document.querySelector(".lv-council") || {}).innerText || "");
   check(/what the last government left/i.test(t) && /How do we pay the debt\?/.test(t), "the Economic Advisory Council opens with the debt the last government left"); }
-await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.opt")].find(x => /^Spread it over 4 years/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
-await g.page.evaluate(() => { const b = document.querySelector(".veil .btn"); b && b.click(); }); await g.wait(1200);
-{ const t = await g.page.evaluate(() => (document.querySelector("[role=dialog]") || {}).innerText || ""); check(/The Economic Advisory Council/.test(t) && /Chief Economic Adviser/.test(t) && /Central Bank, Customs/.test(t), "the Economic Advisory Council sits in its chamber"); }
+await g.page.evaluate(() => { const b = [...document.querySelectorAll(".lv-council button.opt")].find(x => /^Spread it over 4 years/.test(x.textContent.trim())); b && b.click(); }); await g.wait(900);
+// The result card waits its turn behind any pop-up already open (the adviser's welcome); clear them, then the Council's business opens.
+for (let i = 0; i < 8 && !(await g.page.evaluate(() => { const c = document.querySelector(".lv-council"); return !!c && !/How do we pay the debt/.test(c.innerText); })); i++) {
+  if (!(await g.page.evaluate(() => { const b = document.querySelector(".veil .btn"); if (b) { b.click(); return true; } return false; }))) await g.click(/^(Continue|Got it|Okay)$/);
+  await g.wait(800); }
+{ const t = await g.page.evaluate(() => (document.querySelector(".lv-council") || {}).innerText || ""); check(/The Economic Advisory Council/.test(t) && /Chief Economic Adviser/.test(t) && /Central Bank, Customs/.test(t), "the Economic Advisory Council sits in its chamber"); }
 for (let i = 0; i < 10; i++) { const ok = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button")].find(x => /^(Next: .*|To the decision) ›$/.test(x.textContent.trim())); b && b.click(); return !!b; }); if (!ok) break; await g.wait(200); }
 await shot("eac");
-check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button.opt")].find(x => /^Targeted/.test(x.textContent.trim())); b && b.click(); return !!b; }), "its first sitting sets the trade policy"); await g.wait(1200);
+check(await g.page.evaluate(() => { const b = [...document.querySelectorAll(".lv-council button.opt")].find(x => /^Targeted/.test(x.textContent.trim())); b && b.click(); return !!b; }), "its first sitting sets the trade policy"); await g.wait(1200);
 for (let i = 0; i < 3 && await g.click(/^(Got it|Okay|Continue)$/); i++) await g.wait(400);
 const seen = new Set();
 const r = await playUntil(g, t0 => { const t = t0.replace(/\u2060/g, ""); if (/(Federal Executive|National Security) Council/.test(t) && /Close the session/.test(t)) seen.add("table"); if (/^Trade · /m.test(t) || /Trade · /.test(t)) seen.add("trade"); if (/Last year you /.test(t)) seen.add("recap"); if (/Answer ›/.test(t)) seen.add("complaints"); if (/Big moves \d+\/\d+/.test(t)) seen.add("bigmoves"); for (const k of ["Address to the nation", "Senate President ·", "Chair, Governors' Forum ·", "Chief of Army Staff ·", "Governor of the Central Bank ·", "National Chairman of the party ·", "The world stage", "The insurgency", "The fuel crisis", "The naira crisis", "The National Security Council", "North-East:", "North-West:", "South-East:", "Niger Delta:"]) if (t.includes(k)) seen.add(k); return /Year 3 of 4/.test(t); }, { max: 900 });
