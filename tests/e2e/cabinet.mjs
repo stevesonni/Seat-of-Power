@@ -39,7 +39,7 @@ await g.click(/^Continue/); await g.wait(1800);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde Okafor-Ilesanmi/.test(x.textContent)); if (b) b.click(); });
 await g.wait(500); await okay(g);
 await menu(g); await g.wait(400);
-check(!!(await g.click(/^👥 Govern with your friends$/)), "with the preview switch, the menu offers to govern with friends");
+check(!!(await g.click(/^Govern with your friends$/)), "with the preview switch, the menu offers to govern with friends");
 await g.wait(600);
 check(/Govern with your friends/.test(await g.txt()) && /Form the government/.test(await g.txt()), "the cabinet card explains it");
 await g.click(/^Form the government$/); await g.wait(1500); await okay(g);

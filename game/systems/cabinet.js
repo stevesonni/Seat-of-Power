@@ -12,11 +12,11 @@ export const CAB_SEATS = [
     does: "The House, the party, the godfather, the communities and Abuja." },
   { id: "finance", t: "Commissioner for Finance", short: "Finance", i: "💰", img: "finance-commissioner", kinds: ["budget", "econ", "investment"], sectors: ["salaries", "debt"],
     does: "The budget, the economy and the investors. Finance proposes how the money is shared." },
-  { id: "works", t: "Commissioner for Works", short: "Works", i: "🏗️", img: "commissioner-male-agbada", kinds: ["projects"], sectors: ["infrastructure"],
+  { id: "works", t: "Commissioner for Works", short: "Works", i: "🏗️", img: "works-commissioner", kinds: ["projects"], sectors: ["infrastructure"],
     does: "Roads, bridges and every stalled site." },
   { id: "justice", t: "Attorney-General & Security", short: "Justice & Security", i: "⚖️", img: "attorney-general", kinds: ["courts", "crisis", "intel"], sectors: ["security"],
     does: "The courts, the police and every crisis." },
-  { id: "social", t: "Commissioner for Health & Education", short: "Health & Education", i: "🏥", img: "commissioner-female-suit", kinds: [], sectors: ["health", "education", "agriculture"],
+  { id: "social", t: "Commissioner for Health & Education", short: "Health & Education", i: "🏥", img: "social-commissioner", kinds: [], sectors: ["health", "education", "agriculture"],
     does: "Hospitals, schools, teachers, nurses and farms." },
 ];
 // The President's cabinet: the Vice-President and seven ministers.
@@ -25,7 +25,7 @@ export const PRES_SEATS = [
     does: "The National Assembly, the party, the states and the social programmes." },
   { id: "finance", t: "Minister of Finance", short: "Finance", i: "💰", img: "finance-minister", kinds: ["budget", "econ", "investment"], sectors: ["salaries", "debt"],
     does: "The federal budget, the naira, the debt and the investors. Finance proposes how the money is shared." },
-  { id: "works", t: "Minister of Works & Power", short: "Works & Power", i: "🏗️", img: "commissioner-technocrat", kinds: ["projects"], sectors: ["infrastructure"],
+  { id: "works", t: "Minister of Works & Power", short: "Works & Power", i: "🏗️", img: "works-power-minister", kinds: ["projects"], sectors: ["infrastructure"],
     does: "Federal roads, the rail, the grid and every stalled site." },
   { id: "defence", t: "Minister of Defence & NSA", short: "Defence", i: "🛡️", img: "national-security-adviser", kinds: ["crisis", "intel", "bakunda"], sectors: ["security"],
     does: "The security fronts, the armed forces and the war." },

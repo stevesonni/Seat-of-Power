@@ -36,7 +36,7 @@ await p.click(/Deliver the address/); await p.wait(1500);
 for (let i = 0; i < 8; i++) { if (!(await p.page.evaluate(() => { const b = document.querySelector(".veil .btn"); if (b) { b.click(); return true; } return false; })) && !(await p.click(/^(Continue|Got it|Okay)$/))) break; await p.wait(500); }
 await p.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde Okafor-Ilesanmi/.test(x.textContent)); if (b) b.click(); }); await p.wait(500); await clear(p);
 await p.page.evaluate(() => { const b = [...document.querySelectorAll("button[aria-label=Menu]")].find(x => x.offsetParent); b && b.click(); }); await p.wait(400);
-await tap(p, /^👥 Govern with your friends$/); await p.wait(700);
+await tap(p, /^Govern with your friends$/); await p.wait(700);
 check(/Link your friends' governorships/.test(await p.txt()), "the President is offered the federation");
 await tap(p, /^Invite the governors$/); await p.wait(1500);
 check(created && created.ok, "a federation is created (" + (created && created.code) + ")");

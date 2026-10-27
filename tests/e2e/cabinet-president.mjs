@@ -28,7 +28,7 @@ await g.click(/^Next: the address$/); await g.wait(500);
 await g.click(/Deliver the address/); await g.wait(1500);
 for (let i = 0; i < 8; i++) { if (!(await g.page.evaluate(() => { const b = document.querySelector(".veil .btn"); if (b) { b.click(); return true; } return false; })) && !(await g.click(/^(Continue|Got it|Okay)$/))) break; await g.wait(500); }
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button[aria-label=Menu]")].find(x => x.offsetParent); b && b.click(); }); await g.wait(400);
-check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && x.textContent.trim() === "👥 Govern with your friends"); if (!b) return false; b.click(); return true; }), "the President's menu offers the cabinet of friends");
+check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && x.textContent.trim() === "Govern with your friends"); if (!b) return false; b.click(); return true; }), "the President's menu offers the cabinet of friends");
 await g.wait(600);
 let t = await g.txt();
 check(/Vice-President/.test(t) && /Minister of Defence & NSA/.test(t) && /Minister of State for Petroleum/.test(t), "the form lists the Vice-President and the seven ministers");

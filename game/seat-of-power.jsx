@@ -2841,7 +2841,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
         <PillBtn onClick={async () => { if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nA new game replaces it once you take office. To keep playing it, press Continue instead.", "Start a new game", "Keep my career"))) return; if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
-        {mems.length > 0 && onCabinet && <PillBtn tone="plain" onClick={onCabinet} style={{ width: "100%", maxWidth: 460 }}>👥 Your cabinet desk<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{(() => { const m = mems[mems.length - 1]; return ((SYS.seatById(m.seat, m.office) || {}).t || "Minister") + (m.gov ? " · " + (m.office === "president" ? "President " + m.gov + "'s administration" : m.gov + "'s government") : ""); })()}</span></PillBtn>}
+        {mems.length > 0 && onCabinet && <PillBtn tone="plain" onClick={onCabinet} style={{ width: "100%", maxWidth: 460 }}><Ico n="icon-cabinet-friends" s={28} style={{ marginRight: 6 }} />Your cabinet desk<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{(() => { const m = mems[mems.length - 1]; return ((SYS.seatById(m.seat, m.office) || {}).t || "Minister") + (m.gov ? " · " + (m.office === "president" ? "President " + m.gov + "'s administration" : m.gov + "'s government") : ""); })()}</span></PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
       {sheet === "daily" && <DailyScreen onClose={() => setSheet(null)} />}
@@ -10392,7 +10392,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { if (!fc) return; fcLoad(); const t = setInterval(() => { if (document.visibilityState === "visible") fcLoad(); }, 30000); return () => clearInterval(t); }, [fc && fc.code]);
   const fcForm = (hard) => { setFcBusy(true); cabCall("create", { hostName: pName, govName: pName, state: stName, startYear: setup?.startYear || 2027, office: OFFICE, hard: !!hard })
     .then(r => { const F0 = { code: r.code, hostKey: r.hostKey, invites: r.invites }; setFc(F0); fcRef.current = F0; setSaveTick(t => t + 1); track("cabinet", "formed"); setTimeout(() => { fcPublish(); fcLoad(); }, 50);
-      try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/council-table-state.webp", icon: "👥", title: "Your government is formed", text: "Send each friend their own link on WhatsApp. When they accept, " + (NAT ? "the Senate screens them" : "the House screens them") + " and they are sworn in. Their letters then reach their phones.", tone: "good" }); } catch (e) {} })
+      try { window.SOP_outcome && window.SOP_outcome({ img: NAT ? "./art/scenes/minister-swearing-in.webp" : "./art/scenes/exco-budget-council.webp", icon: "👥", title: "Your government is formed", text: "Send each friend their own link on WhatsApp. When they accept, " + (NAT ? "the Senate screens them" : "the House screens them") + " and they are sworn in. Their letters then reach their phones.", tone: "good" }); } catch (e) {} })
     .catch(() => { try { window.SOP_outcome && window.SOP_outcome({ icon: "📵", title: "Could not reach the cabinet office", text: "Forming a government needs a connection. Try again in a moment.", tone: "bad" }); } catch (e) {} }).finally(() => setFcBusy(false)); };
   const fcSack = async (seat, nm, sure) => { const F0 = fcRef.current; if (!F0) return; if (!sure && !(await window.SOP_confirm("Sack " + nm + "?\n\nThey leave the cabinet at once, the seat gets a new invite link, and they can write against you in the papers once a year.", "Sack " + nm.split(" ")[0], "Keep them"))) return;
     cabCall("sack", { code: F0.code, key: F0.hostKey, seat }).then(r => { setFc(f => ({ ...f, invites: { ...(f.invites || {}), [seat]: r.invite } })); setSaveTick(t => t + 1); addL("👥 Sacked " + nm + " from the cabinet.", "political"); fcLoad(); }).catch(() => {}); };
@@ -10416,7 +10416,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fcWaiting = (key) => { const x = fcSent.current[key]; if (!x || !fcv) return null; const l = (fcv.letters || []).find(y => y.id === x.id); if (!l || l.advice || l.decided) return null; const m = ((fcv.seats || {})[l.seat] || {}).member; return m ? m.name : null; };
   const fcStrip = (key) => { const a = fcAdvice(key), w = !a && fcWaiting(key), x = fcSent.current[key], seat = x && fcv && ((fcv.letters || []).find(l => l.id === x.id) || {}).seat;
     if (!a && !w) return null; const S = SYS.seatById(seat) || {};
-    return <div className="recall" data-testid="cab-advice" style={{ background: a ? "#eef4ff" : "#f4efe3", borderLeftColor: a ? "#1f4f8f" : "#b8a77a" }}><span>{a ? <><b style={{ color: "#1f4f8f" }}>💬 {a.by} · {S.short || "your minister"} advises:</b> {x.stance ? "" : "“" + a.pick + "”"}{x.stance ? a.pick : ""}{a.note ? <> · <i>{a.note}</i></> : null}</> : <>⏳ Sent to <b>{w}</b> ({S.short || "the minister"}) for advice{fcv && fcv.closesAt ? " · " + hoursLeft(fcv.closesAt) : ""}. <button onClick={(e) => { e.stopPropagation(); const L0 = (fcv.letters || []).find(l => l.id === x.id); waShare(remindText(String(w).split(" ")[0], NAT ? "the President" : "the Governor", [L0 ? L0.title : "a letter"], fcRef.current.code)); }} style={{ border: 0, background: "#128c4a", color: "#fff", borderRadius: 999, padding: "2px 10px", fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>📬 Remind</button></>}</span></div>; };
+    return <div className="recall" data-testid="cab-advice" style={{ background: a ? "#eef4ff" : "#f4efe3", borderLeftColor: a ? "#1f4f8f" : "#b8a77a" }}><span>{a ? <><b style={{ color: "#1f4f8f" }}>💬 {a.by} · {S.short || "your minister"} advises:</b> {x.stance ? "" : "“" + a.pick + "”"}{x.stance ? a.pick : ""}{a.note ? <> · <i>{a.note}</i></> : null}</> : <>⏳ Sent to <b>{w}</b> ({S.short || "the minister"}) for advice{fcv && fcv.closesAt ? " · " + hoursLeft(fcv.closesAt) : ""}. <button onClick={(e) => { e.stopPropagation(); const L0 = (fcv.letters || []).find(l => l.id === x.id); waShare(remindText(String(w).split(" ")[0], NAT ? "the President" : "the Governor", [L0 ? L0.title : "a letter"], fcRef.current.code)); }} style={{ border: 0, background: "#128c4a", color: "#fff", borderRadius: 999, padding: "2px 10px", fontWeight: 800, cursor: "pointer", fontFamily: F.b }}><Ico n="icon-remind" s={16} style={{ marginRight: 3 }} />Remind</button></>}</span></div>; };
   // ── Linked governments: the President's federation, or a governorship linked into a friend's ──
   const [fed, setFed] = useState(() => (ld && ld.fed) || null); // President: { code, key, invite, role: "pres" } · Governor: { code, key, role: "gov", pres }
   const fedRef = React.useRef(fed); fedRef.current = fed;
@@ -10426,10 +10426,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     E.forEach(e => { fedDone.current.add(e.id);
       if (F0.role === "gov") {
         if (e.kind === "grant") { setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + e.amountB) * 100) / 100 })); setFgRelation(r => Math.min(100, r + 5)); addL("🇳🇬 President " + e.from + " sent ₦" + e.amountB + "B to " + stName + (e.asked ? ", as you asked." : "."), "success");
-          setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/villa-office.webp", icon: "🇳🇬", title: "₦" + e.amountB + "B from Abuja", text: "President " + e.from + " has sent " + stName + " a grant" + (e.asked ? ", as you asked" : "") + ". It is in the bank.", tone: "good", rows: [{ l: "In the bank", v: "+" + naira(e.amountB), good: true }, { l: "Standing with Abuja", v: "+5", good: true }] }); } catch (x) {} }, 600); }
+          setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/scenes/federal-grant-arrives.webp", icon: "🇳🇬", title: "₦" + e.amountB + "B from Abuja", text: "President " + e.from + " has sent " + stName + " a grant" + (e.asked ? ", as you asked" : "") + ". It is in the bank.", tone: "good", rows: [{ l: "In the bank", v: "+" + naira(e.amountB), good: true }, { l: "Standing with Abuja", v: "+5", good: true }] }); } catch (x) {} }, 600); }
         if (e.kind === "project") { const P0 = FED_PROJ[e.project] || FED_PROJ.road, stat = e.project === "hospital" ? "hp" : e.project === "university" ? "lit" : "infra";
           setS(p => ({ ...p, [stat]: cl((p[stat] || 0) + .02), app: cl100(p.app + 2) })); setFgRelation(r => Math.min(100, r + 8)); addL("🇳🇬 President " + e.from + " is building a " + P0[1].toLowerCase() + " in " + stName + ".", "success");
-          setTimeout(() => paper(P0[1].toUpperCase() + " FOR " + stName.toUpperCase(), "President " + e.from + " picks " + stName + (e.asked ? ", answering the Governor's request" : ""), true, "./art/scenes/news-signing-ceremony.webp"), 600); }
+          setTimeout(() => paper(P0[1].toUpperCase() + " FOR " + stName.toUpperCase(), "President " + e.from + " picks " + stName + (e.asked ? ", answering the Governor's request" : ""), true, "./art/scenes/federal-project-site.webp"), 600); }
         if (e.kind === "refused") { setFgRelation(r => Math.max(0, r - 6)); addL("🇳🇬 President " + e.from + " turned down " + stName + "'s request.", "political"); }
         if (e.kind === "forum") { setFgRelation(r => Math.max(0, Math.min(100, r + (e.pos === "for" ? 5 : -5)))); if (e.pos === "against") setS(p => ({ ...p, app: cl100(p.app + 1) }));
           addL("🏛️ The Governors' Forum " + (e.passed ? "backed" : "rejected") + " the President. You voted " + (e.pos === "for" ? "with him." : "against him."), "political"); }
@@ -10439,7 +10439,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (e.kind === "ask") { const P0 = e.ask === "grant" ? null : FED_PROJ[e.ask] || FED_PROJ.road; addL(KEEP("📨 Governor " + e.name + " of " + e.state + " asks for " + (P0 ? "a " + P0[1].toLowerCase() : "a ₦2B grant") + "."), "political");
           setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/villa-office.webp", icon: "📨", title: KEEP(e.state + " asks for " + (P0 ? "a " + P0[1].toLowerCase() : "a ₦2B grant")), text: KEEP("Governor " + e.name + (e.note ? ": “" + e.note + "”" : " is waiting for your answer.")), tone: "neutral", ok: "Later", action: { label: "Approve (₦" + (P0 ? P0[2] : 2) + "B)", fn: () => fedAnswer({ id: e.rid, state: e.state, kind: e.ask }, true) } }); } catch (x) {} }, 600); }
         if (e.kind === "forum" && e.voted) { setS(p => ({ ...p, pStab: cl100(p.pStab + (e.passed ? 3 : -3)), app: cl100(p.app + (e.passed ? 1 : -1)) }));
-          setTimeout(() => paper(KEEP("GOVERNORS " + (e.passed ? "BACK" : "REJECT") + " THE PRESIDENT"), KEEP(String(e.q).replace(/^The President proposes /, "On ").replace(/\.$/, "") + ": " + e.yes + " for, " + e.no + " against"), e.passed, "./art/backgrounds/council-table-federal.webp"), 800); }
+          setTimeout(() => paper(KEEP("GOVERNORS " + (e.passed ? "BACK" : "REJECT") + " THE PRESIDENT"), KEEP(String(e.q).replace(/^The President proposes /, "On ").replace(/\.$/, "") + ": " + e.yes + " for, " + e.no + " against"), e.passed, "./art/scenes/governors-forum-vote.webp"), 800); }
       }
     });
     fedCall("seen", { code: F0.code, key: F0.key, ids: E.map(e => e.id) }).catch(() => {}); };
@@ -10467,7 +10467,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fedRemove = async (st, nm) => { if (!(await window.SOP_confirm(KEEP("Cut " + st + " out of the federation?\n\nGovernor " + nm + " keeps playing, but your grants and the Forum no longer reach them."), "Cut them off", "Keep them"))) return; fedAct("remove", { state: st }); };
   // The end of the term: the cabinet's card goes to everyone.
   useEffect(() => { const F0 = fcRef.current; if (!gEnd || !F0) return; cabCall("end", { code: F0.code, key: F0.hostKey, endYear: absYear, why: String(gEnd) }).then(() => fcLoad()).then(v => { const card = SYS.shareCard(v); if (!card || !card.rows.length) return;
-    setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/council-table-state.webp", icon: "👥", title: card.head, text: card.rows.map(r => r.name + ", " + r.t + ": " + r.word).join(". ") + ".", tone: "good", action: { label: "Share on WhatsApp", fn: () => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname) } }); } catch (e) {} }, 2500); }).catch(() => {}); }, [gEnd]);
+    setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/scenes/cabinet-share-card.webp", icon: "👥", title: card.head, text: card.rows.map(r => r.name + ", " + r.t + ": " + r.word).join(". ") + ".", tone: "good", action: { label: "Share on WhatsApp", fn: () => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname) } }); } catch (e) {} }, 2500); }).catch(() => {}); }, [gEnd]);
   const handleLetter = (l) => {
     if (l.secr && l.secr.agency) { setLetterOpen(l.id); return; }
     if (l.secr && (l.secr.hosAppoint || l.secr.hosBrief)) { setLetterOpen(null); setMailOpen(false); setHosOpen(l.secr.hosAppoint ? "appoint" : "brief"); return; }
@@ -11242,7 +11242,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["🗑️ Start afresh: a new politician", () => startAfresh()],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
-    ["👥 " + (fc ? "Your government of friends" : fed && !NAT ? "President " + (fed.pres || "") + "'s federation" : cabOpen() ? "Govern with your friends" : "Govern with your friends · coming soon"), () => { setMenuOpen(false); if (fc || fed || cabOpen()) setNav("cab"); else cabSoon(); }],
+    [(fc ? "Your government of friends" : fed && !NAT ? "President " + (fed.pres || "") + "'s federation" : cabOpen() ? "Govern with your friends" : "Govern with your friends · coming soon"), () => { setMenuOpen(false); if (fc || fed || cabOpen()) setNav("cab"); else cabSoon(); }, "icon-cabinet-friends"],
     ...(!VATAR && window.SOP_installable && window.SOP_installable() ? [["📲 Install the app", () => { try { window.SOP_install(); } catch (e) {} }]] : []),
     ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .3; return v === 0 ? "off" : Math.round(v * 100) + "%"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .3 : v < .5 ? .6 : v < .9 ? 1 : 0); setMenuOpen(false); } catch (e) {} }],
     ["Tell us what to improve", () => { try { window.SOP_feedbackForm({ where: nav, year: absYear, state: stName }); } catch (e) {} }, "icon-ask-sa"],
@@ -15891,7 +15891,7 @@ const hoursLeft = (t) => { const h = Math.max(0, Math.round(((t || 0) - Date.now
 const seatArt = (id, office) => "./art/characters/" + ((SYS.seatById(id, office) || {}).img || "commissioner-male-suit") + ".webp";
 // The Cabinet of friends is "coming soon" for players. ?cabinet=preview unlocks it on this phone, for testing.
 const cabOpen = () => { try { if (/[?&]cabinet=preview/.test(location.search)) localStorage.setItem("sop_cab_preview", "1"); return localStorage.getItem("sop_cab_preview") === "1"; } catch (e) { return false; } };
-const cabSoon = () => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/council-table-state.webp", icon: "👥", title: "Coming soon: govern with your friends", text: "Give your friends the portfolios. Their letters reach their phones; they advise, you sign. Overrule them and they remember. It is almost ready.", tone: "good" }); } catch (e) {} };
+const cabSoon = () => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/scenes/exco-budget-council.webp", icon: "👥", title: "Coming soon: govern with your friends", text: "Give your friends the portfolios. Their letters reach their phones; they advise, you sign. Overrule them and they remember. It is almost ready.", tone: "good" }); } catch (e) {} };
 const recLine = (r = {}) => [(r.advised || 0) + " advised", (r.followed || 0) + " followed", (r.overruled || 0) + " overruled"].concat(r.absent ? [r.absent + " absent"] : []).join(" · ");
 
 // The Governor's side: form the government, send the invites, see each minister's record.
@@ -15901,20 +15901,20 @@ const FriendsCabinet = ({ fc, view, busy, onForm, onSack, onReinvite, onMove, on
   const box = { background: "#fffdf8", border: "1px solid #e7dcc4", borderRadius: 22, padding: TALL() ? "14px 14px" : "18px 22px", marginBottom: 22, fontFamily: F.b, color: "#17301f" };
   const small = { fontSize: 15, color: "#5b6b55", lineHeight: 1.45 };
   if (!fc && !cabOpen()) return <div style={box} data-testid="cab-soon">
-    <img src="./art/backgrounds/council-table-state.webp" alt="The Executive Council table" style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover", borderRadius: 16, marginBottom: 12, filter: "saturate(.7)" }} />
+    <img src="./art/scenes/exco-budget-council.webp" alt="The Executive Council at work" style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover", borderRadius: 16, marginBottom: 12, filter: "saturate(.7)" }} />
     <span style={{ display: "inline-block", background: "#e9b949", color: "#2a1d05", borderRadius: 999, padding: "4px 12px", fontSize: 13, fontWeight: 900, letterSpacing: 1, textTransform: "uppercase" }}>Coming soon</span>
-    <h3 style={{ fontFamily: F.d, fontSize: 28, margin: "8px 0 6px" }}>👥 Govern with your friends</h3>
+    <h3 style={{ fontFamily: F.d, fontSize: 28, margin: "8px 0 6px", display: "flex", alignItems: "center", gap: 8 }}><Ico n="icon-cabinet-friends" s={36} /> Govern with your friends</h3>
     <div style={small}>Give your friends the portfolios. Their letters reach their phones: they advise, you sign. Overrule them and they remember. It is almost ready.</div>
   </div>;
   if (!fc) return <div style={box} data-testid="cab-form" data-nowords="">
-    <img src="./art/backgrounds/council-table-state.webp" alt="The Executive Council table" style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
+    <img src={pres ? "./art/scenes/minister-swearing-in.webp" : "./art/scenes/exco-budget-council.webp"} alt={pres ? "A minister sworn in at the Villa" : "The Executive Council at work"} style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
     <div className="sp-kicker">New · play with friends</div>
     <h3 style={{ fontFamily: F.d, fontSize: 28, margin: "6px 0 6px" }}>👥 Govern with your friends</h3>
     <div style={small}>{pres ? "Give up to eight friends a seat: the Vice-President and seven ministers. Each one gets a WhatsApp link and faces the Senate." : "Give up to five friends a portfolio. Each one gets a WhatsApp link, is screened by the House and sworn in."} Their letters reach their phones: they advise, you sign. Overrule a friend and it costs their loyalty. Everyone sees the same front pages.</div>
     <div style={{ display: "grid", gap: 8, margin: "14px 0" }}>{SEATS.map(x => <div key={x.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#f8f2e3", borderRadius: 14, padding: "8px 12px" }}>
       <span style={{ fontSize: 24 }}>{x.i}</span><span><b style={{ fontSize: 16 }}>{x.t}</b><span style={{ display: "block", ...small, fontSize: 14 }}>{x.does}</span></span></div>)}</div>
     <button className="sp-opt" aria-pressed={hard} onClick={() => setHard(h => !h)} style={{ marginBottom: 10 }} data-testid="cab-hard">
-      <b style={{ fontSize: 16 }}>{hard ? "☑" : "☐"} Hard politics</b><span style={{ display: "block", ...small, fontSize: 14 }}>Private offers reach your ministers: a contractor's envelope, a baron's favour. Only they see them. What they take can come out later, on the front page.</span></button>
+      <b style={{ fontSize: 16, display: "flex", alignItems: "center", gap: 6 }}>{hard ? "☑" : "☐"} <img src="./art/objects/brown-envelope.webp" alt="" style={{ width: 28, height: 28, objectFit: "contain" }} /> Hard politics</b><span style={{ display: "block", ...small, fontSize: 14 }}>Private offers reach your ministers: a contractor's envelope, a baron's favour. Only they see them. What they take can come out later, on the front page.</span></button>
     <button className="sp-btn" disabled={busy} onClick={() => onForm(hard)} style={{ width: "100%" }}>{busy ? "Forming the government…" : "Form the government"}</button>
     <div style={{ ...small, fontSize: 13, marginTop: 8, textAlign: "center" }}>A seat nobody takes is run by your own commissioners, as now. Friends play on any phone; no account needed.</div>
   </div>;
@@ -15933,7 +15933,7 @@ const FriendsCabinet = ({ fc, view, busy, onForm, onSack, onReinvite, onMove, on
         <img src={seatArt(x.id, office)} alt="" style={{ width: 54, height: 64, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: "#e8f3ea" }} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#8a7a55", textTransform: "uppercase", letterSpacing: .6 }}>{x.i} {x.t}</div>
-          {m ? <><b style={{ fontSize: 18 }}>{m.name}</b>{(() => { const W = (V.letters || []).filter(l => l.seat === x.id && !l.advice && !l.decided); return W.length && !V.ended ? <button className="sp-btn" data-testid="cab-remind" style={{ minHeight: 32, padding: "4px 12px", fontSize: 13, marginLeft: 8, background: "#128c4a" }} onClick={() => waShare(remindText(m.name.split(" ")[0], pres ? "the President" : "the Governor", W.map(l => l.title), fc.code))}>📬 {W.length} waiting · Remind</button> : null; })()}
+          {m ? <><b style={{ fontSize: 18 }}>{m.name}</b>{(() => { const W = (V.letters || []).filter(l => l.seat === x.id && !l.advice && !l.decided); return W.length && !V.ended ? <button className="sp-btn" data-testid="cab-remind" style={{ minHeight: 32, padding: "4px 12px", fontSize: 13, marginLeft: 8, background: "#128c4a" }} onClick={() => waShare(remindText(m.name.split(" ")[0], pres ? "the President" : "the Governor", W.map(l => l.title), fc.code))}><Ico n="icon-remind" s={18} style={{ marginRight: 4 }} />{W.length} waiting · Remind</button> : null; })()}
             <div style={{ ...small, fontSize: 14 }}>{SYS.ministerWord(r)} · {SYS.loyaltyWord(r.loyalty)} ({r.loyalty == null ? 70 : r.loyalty}) · {recLine(r)}</div>
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}><button className="sp-btn ghost" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14 }} onClick={() => onSack(x.id, m.name)}>Sack</button>
               {empty.length > 0 && <button className="sp-btn ghost" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14 }} onClick={() => setMoving(moving === x.id ? null : x.id)}>Move…</button>}</div>
@@ -15989,6 +15989,7 @@ const MinisterApp = ({ onExit }) => {
   if (stage === "nominated" && nom) { const G = nom.gov || {};
     return <div style={page}><div style={wrap}>
       <div style={{ ...box, background: "#fffaf0", padding: "22px 20px" }} data-testid="cab-nomination">
+        <img src="./art/objects/nomination-letter.webp" alt="" style={{ display: "block", width: 96, height: 96, objectFit: "contain", margin: "0 auto 6px" }} />
         <div className="sp-kicker">{pres ? "The Presidency · Aso Rock Villa" : "Government House · " + (G.state || "the state")}</div>
         <img src={seatArt(seat.id, office)} alt="" style={{ float: "right", width: 92, height: 110, objectFit: "cover", objectPosition: "top", borderRadius: 16, margin: "6px 0 8px 12px", background: "#e8f3ea" }} />
         <h2 style={{ fontFamily: F.d, fontSize: 28, margin: "10px 0 8px" }}>You have been nominated</h2>
@@ -16002,7 +16003,7 @@ const MinisterApp = ({ onExit }) => {
       </div></div></div>; }
   if (stage === "screening") { const Q = SYS.screeningFor(pend.code, pend.seat, office);
     return <div style={page}><div style={wrap}><div style={box} data-testid="cab-screening">
-      <img src={pres ? "./art/backgrounds/senate-chamber.webp" : "./art/backgrounds/assembly-chamber.webp"} alt={pres ? "The Senate" : "The State House of Assembly"} style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 16 }} />
+      <img src={pres ? "./art/scenes/senate-screening.webp" : "./art/scenes/assembly-screening.webp"} alt={pres ? "The Senate screens the nominee" : "The House screens the nominee"} style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 16 }} />
       <div className="sp-kicker" style={{ marginTop: 12 }}>{pres ? "The Senate screens the nominee" : "The House screens the nominee"}</div>
       <h2 style={{ fontFamily: F.d, fontSize: 24, margin: "8px 0" }}>“{Q.q}”</h2>
       <div style={{ display: "grid", gap: 8 }}>{Q.a.map(([a, rep], i) => <button key={i} className="sp-opt" aria-pressed={ans === i} onClick={() => { if (ans == null) setAns(i); }} style={{ fontSize: 17, opacity: ans != null && ans !== i ? .45 : 1 }}><b>{a}</b>{ans === i && <div style={{ ...small, marginTop: 4, color: "#0b6b42" }}>{rep}</div>}</button>)}</div>
@@ -16011,7 +16012,7 @@ const MinisterApp = ({ onExit }) => {
           .catch(e => { setErr(e.code === "taken" ? "Someone accepted this seat a moment before you. Ask the Governor for a new link." : "The oath could not be recorded. Check your connection and try again."); setStage("error"); }).finally(() => setSending(null)); }}>{sending ? "Taking the oath…" : "Take the oath of office"}</button>}
     </div></div></div>; }
   if (stage === "sworn") return <div style={page}><div style={wrap}><div style={{ ...box, textAlign: "center" }} data-testid="cab-sworn">
-    <img src="./art/scenes/inauguration-eagle-square.webp" alt="A swearing-in ceremony" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 16 }} />
+    <img src={pres ? "./art/scenes/minister-swearing-in.webp" : "./art/scenes/cabinet-swearing-in.webp"} alt="The swearing-in" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 16 }} />
     <h2 style={{ fontFamily: F.d, fontSize: 28, margin: "14px 0 6px" }}>Sworn in</h2>
     <div style={{ fontSize: 17, lineHeight: 1.5 }}><b>{mem && mem.name}</b>, {seat.t}. The Bible, the Qur'an and the oath of allegiance: you are now in the government.</div>
     <button className="sp-btn" style={{ width: "100%", marginTop: 16 }} onClick={() => setStage("desk")}>Go to your desk</button>
@@ -16051,6 +16052,7 @@ const MinisterApp = ({ onExit }) => {
     {C.successor && <div style={{ ...box, background: "#f3ecff" }}><div className="sp-kicker">The succession</div><div style={{ fontSize: 17, marginTop: 4 }}>👑 {Lead} has anointed <b>{C.successor.name}</b>{C.successor.seat === me ? " (you!)" : C.successor.seat ? ", the cabinet's choice" : ", from outside the cabinet"}.</div>
       {C.successor.seat === me && <button className="sp-btn gold" style={{ width: "100%", marginTop: 10 }} onClick={() => { clearUrl(); onExit(); }}>Run for {pres ? "President" : "Governor"} yourself: start your own game</button>}</div>}
     {former && C.former && <div style={{ ...box, background: "#fff8e6" }} data-testid="cab-former">
+      <img src="./art/scenes/minister-op-ed.webp" alt="A former minister writing at night" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} />
       <div className="sp-kicker">Sacked in year {C.former.until || 1}</div>
       <div style={{ ...small, marginTop: 4 }}>You are out of the cabinet, but not out of politics. Once a year you can write against {lead} in the papers. It costs them approval.</div>
       {C.former.opedYear === C.year ? <div style={{ fontSize: 15, marginTop: 10, color: "#0b6b42", fontWeight: 700 }}>✔ Your piece ran this year. The next one, next year.</div> : <>
@@ -16059,15 +16061,17 @@ const MinisterApp = ({ onExit }) => {
         <button className="sp-btn" disabled={sending === "oped" || !((draft.oped || {}).h || "").trim() || !((draft.oped || {}).t || "").trim()} style={{ width: "100%", marginTop: 8 }} onClick={() => act("oped", { headline: draft.oped.h, text: draft.oped.t }, "Your piece is on the front page")}>Publish my op-ed</button></>}
     </div>}
     {!former && T && <div style={{ ...box, background: "#1b1b1b", color: "#f3eedf" }} data-testid="cab-tempt">
+      <img src="./art/scenes/private-offer-envelope.webp" alt="An envelope slides across a hotel table" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} />
       <div className="sp-kicker" style={{ color: "#e9b949" }}>🔒 For your eyes only</div>
       <div style={{ fontSize: 17, lineHeight: 1.5, marginTop: 6 }}>{T.text}</div>
       {T.choice ? <div style={{ fontSize: 15, marginTop: 10, color: T.choice === "took" ? "#ffb38a" : "#7fd3a5" }}>{T.choice === "took" ? "You took it. ₦" + T.amt + "M is in an account nobody knows about. For now." : "You sent the man away. Nobody will ever know you said no."}</div>
         : <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 }}>
           <button className="sp-btn" style={{ background: "#7fd3a5", color: "#12301f" }} disabled={sending === "tempt"} onClick={() => act("tempt", { take: false }, "Refused. Your hands are clean.")}>Send him away</button>
           <button className="sp-btn gold" disabled={sending === "tempt"} onClick={() => act("tempt", { take: true })}>Take the envelope</button></div>}
-      {((C.seats || {})[me] || {}).rec && ((C.seats || {})[me].rec.stash > 0) && <div style={{ fontSize: 13, marginTop: 10, color: "#c9c3b2" }}>Your private account: ₦{C.seats[me].rec.stash}M</div>}
+      {((C.seats || {})[me] || {}).rec && ((C.seats || {})[me].rec.stash > 0) && <div style={{ fontSize: 13, marginTop: 10, color: "#c9c3b2", display: "flex", alignItems: "center", gap: 6 }}><img src="./art/objects/brown-envelope.webp" alt="" style={{ width: 26, height: 26, objectFit: "contain" }} />Your private account: ₦{C.seats[me].rec.stash}M</div>}
     </div>}
     {!former && C.primary && C.primary.open && !C.successor && <div style={{ ...box, background: "#f3ecff" }} data-testid="cab-run">
+      <img src="./art/scenes/cabinet-primary.webp" alt="The cabinet's primary" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} />
       <div className="sp-kicker">The cabinet's primary</div>
       <div style={{ ...small, marginTop: 4 }}>{Lead}'s time is running out. Who should carry the government's flag next? Declare, and vote: the votes and each record decide who the cabinet puts forward.</div>
       {stand.map(x => <div key={x.seat} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "center", marginTop: 8 }}>
@@ -16075,7 +16079,7 @@ const MinisterApp = ({ onExit }) => {
         <button className="sp-btn ghost" aria-pressed={C.primary.myVote === x.seat} disabled={sending === "vote" || C.primary.myVote === x.seat} style={{ minHeight: 38, padding: "4px 14px", fontSize: 14 }} onClick={() => act("vote", { seat: x.seat }, "Vote cast")}>{C.primary.myVote === x.seat ? "✔ Your vote" : "Vote"}</button></div>)}
       {!(C.primary.running || []).includes(me) && <button className="sp-btn gold" disabled={sending === "run"} style={{ width: "100%", marginTop: 10 }} onClick={() => act("run", null, "You have declared")}>Declare: I want to succeed {G.name || lead}</button>}
     </div>}
-    {card && <div style={{ ...box, background: "#fff8e6" }}><div className="sp-kicker">The term is over</div><h3 style={{ fontFamily: F.d, fontSize: 24, margin: "6px 0" }}>{card.head}</h3>
+    {card && <div style={{ ...box, background: "#fff8e6" }}><img src="./art/scenes/cabinet-share-card.webp" alt="The government on the steps, for the official photo" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /><div className="sp-kicker">The term is over</div><h3 style={{ fontFamily: F.d, fontSize: 24, margin: "6px 0" }}>{card.head}</h3>
       {card.rows.map(r => <div key={r.seat} style={{ fontSize: 16, marginTop: 4 }}><b>{r.name}</b> · {r.t} · <span style={{ color: "#5b6b55" }}>{r.word}</span></div>)}
       <button className="sp-btn gold" style={{ width: "100%", marginTop: 12 }} onClick={() => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname)}>Share our government</button></div>}
     {sn.app != null && <div className="sp-tiles" style={{ marginBottom: 14 }}>
@@ -16141,12 +16145,13 @@ const FedPanel = ({ role, fed, view, busy, onCreate, onGrant, onProject, onAnswe
   const V = view || {}, F0 = V.forum, L0 = V.lastForum;
   if (role === "pres" && !fed) return <div style={box} data-testid="fed-form" data-nowords="">
     <div className="sp-kicker">Play with friends · the federation</div>
-    <h3 style={{ fontFamily: F.d, fontSize: 26, margin: "6px 0" }}>🇳🇬 Link your friends' governorships</h3>
+    <h3 style={{ fontFamily: F.d, fontSize: 26, margin: "6px 0", display: "flex", alignItems: "center", gap: 8 }}><Ico n="icon-federation" s={36} /> Link your friends' governorships</h3>
     <div style={small}>Friends who play the governorship join with their state. Your grants and federal projects land in their games; their requests land on your desk; each year the Governors' Forum votes on your proposal.</div>
     <button className="sp-btn" disabled={busy} style={{ width: "100%", marginTop: 12 }} onClick={onCreate}>{busy ? "Inviting…" : "Invite the governors"}</button>
   </div>;
   if (!fed) return null;
   const forumBox = F0 && <div style={{ background: "#f3ecff", borderRadius: 14, padding: "10px 12px", marginTop: 12 }} data-testid="fed-forum">
+    <img src="./art/scenes/governors-forum-vote.webp" alt="The Governors' Forum" style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover", borderRadius: 12, marginBottom: 8 }} />
     <div className="sp-kicker">The Governors' Forum · year {F0.year}</div>
     <div style={{ fontSize: 16, margin: "4px 0" }}>{F0.q}</div>
     {role === "gov" ? <div style={{ display: "flex", gap: 8, marginTop: 6 }}>{[["for", "Back the President"], ["against", "Oppose it"]].map(([p, l]) => <button key={p} className="sp-btn ghost" aria-pressed={F0.votes[stName] === p} disabled={busy || V.me.left} style={{ ...chip, background: F0.votes[stName] === p ? "#0b6b42" : undefined, color: F0.votes[stName] === p ? "#fff" : undefined }} onClick={() => onVote(p)}>{F0.votes[stName] === p ? "✔ " : ""}{l}</button>)}</div>
@@ -16156,7 +16161,7 @@ const FedPanel = ({ role, fed, view, busy, onCreate, onGrant, onProject, onAnswe
   const lastBox = L0 && <div style={{ ...small, fontSize: 14, marginTop: 8 }}>Last year the Forum {L0.passed ? "backed" : "rejected"} the President, {L0.yes} to {L0.no}.</div>;
   if (role === "pres") return <div style={box} data-testid="fed-panel" data-nowords="">
     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
-      <h3 style={{ fontFamily: F.d, fontSize: 24, margin: 0 }}>🇳🇬 Your friends' states</h3><span style={{ fontSize: 14, color: "#8a7a55" }}>Code {fed.code}</span></div>
+      <h3 style={{ fontFamily: F.d, fontSize: 24, margin: 0, display: "flex", alignItems: "center", gap: 8 }}><Ico n="icon-federation" s={34} /> Your friends' states</h3><span style={{ fontSize: 14, color: "#8a7a55" }}>Code {fed.code}</span></div>
     <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
       <button className="sp-btn" style={{ ...chip, background: "#128c4a" }} onClick={() => waShare("🦅 President " + ((V.pres || {}).name || "") + " invites your governorship into the federation in Seat of Power. Tap to link your state: " + fedLink(fed.code, fed.invite))}>Invite a governor on WhatsApp</button>
       <button className="sp-btn ghost" style={chip} onClick={() => copyText(fedLink(fed.code, fed.invite))}>Copy link</button></div>
@@ -16176,7 +16181,7 @@ const FedPanel = ({ role, fed, view, busy, onCreate, onGrant, onProject, onAnswe
   </div>;
   const me = (V.govs || []).find(g => g.state === stName) || {}, open = (V.requests || []).find(r => !r.answer);
   return <div style={box} data-testid="fed-panel" data-nowords="">
-    <h3 style={{ fontFamily: F.d, fontSize: 24, margin: 0 }}>🇳🇬 President {(V.pres || {}).name || ""}'s federation</h3>
+    <h3 style={{ fontFamily: F.d, fontSize: 24, margin: 0, display: "flex", alignItems: "center", gap: 8 }}><Ico n="icon-federation" s={34} /> President {(V.pres || {}).name || ""}'s federation</h3>
     <div style={{ ...small, marginTop: 4 }}>{V.me && V.me.left ? "The President has cut " + stName + " off. You can still read what happens." : "Your standing with the President: " + (me.fg == null ? 50 : me.fg) + "/100. Other states: " + ((V.govs || []).filter(g => g.state !== stName).map(g => g.state + " (" + g.name + ")").join(", ") || "none yet") + "."}</div>
     {!(V.me && V.me.left) && <div style={{ marginTop: 10 }}>{open ? <div style={small}>📨 Your request ({open.kind === "grant" ? "a grant" : (FED_PROJ[open.kind] || FED_PROJ.road)[1].toLowerCase()}) is on the President's desk.</div>
       : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}><button className="sp-btn ghost" style={chip} disabled={busy} onClick={() => onAsk("grant")}>Ask for a ₦2B grant</button>{Object.entries(FED_PROJ).map(([k, [i, l]]) => <button key={k} className="sp-btn ghost" style={chip} disabled={busy} onClick={() => onAsk(k)}>Ask for a {i} {l.toLowerCase()}</button>)}</div>}</div>}
@@ -16380,7 +16385,7 @@ function App() {
         <div data-testid="fed-invite" style={{ fontFamily: F.b, color: UI.ink }}>
           {fedInv.bad ? <div style={{ fontSize: DS.t.body, lineHeight: 1.5 }}>This invitation is no longer valid. Ask the President for a new link.</div> : <>
             <img src="./art/backgrounds/villa-office.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 16, marginBottom: 10 }} />
-            <div style={{ fontSize: DS.t.body, lineHeight: 1.5 }}>President <b>{fedInv.pres}</b> invites your governorship into the federation. Grants and federal projects can reach your state, you can ask for them, and each year the Governors' Forum votes on the President's proposal.</div>
+            <div style={{ fontSize: DS.t.body, lineHeight: 1.5, display: "flex", gap: 10, alignItems: "flex-start" }}><Ico n="icon-federation" s={44} /><span>President <b>{fedInv.pres}</b> invites your governorship into the federation. Grants and federal projects can reach your state, you can ask for them, and each year the Governors' Forum votes on the President's proposal.</span></div>
             {(fedInv.govs || []).length > 0 && <div style={{ fontSize: DS.t.meta, color: UI.sub, marginTop: 8 }}>Already in: {fedInv.govs.map(g => g.state + " (" + g.name + ")").join(", ")}.</div>}
             {fedInv.full ? <div style={{ fontSize: DS.t.meta, color: "#a3271c", marginTop: 8 }}>The federation already has eight states.</div> : fedInv.gov
               ? <button className="sp-btn" style={{ width: "100%", marginTop: 14 }} onClick={() => { setFedInv(null); loadGame(); }}>Link {fedInv.gov} and continue my governorship</button>
