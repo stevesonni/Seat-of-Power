@@ -924,7 +924,7 @@ const MINISTRY_CATALOGUE = [
 const band = (v) => v >= 70 ? "Strong" : v >= 50 ? "Solid" : "Weak";
 // Honours: milestones earned in office. c is a snapshot of the record.
 const HONOURS = [
-  { id: "peacemaker", i: "🕊️", art: "badge-peacemaker", nm: "Peacemaker", d: "Ended a regional war with a peace treaty the National Assembly enacted.", ok: (c) => !!c.peace },
+  { id: "peacemaker", i: "🕊️", art: "badge-peacemaker", nm: "Peacemaker", d: "Ended a war for good: by treaty, or with a Peace Plan at home.", ok: (c) => !!c.peace || c.peaceClosed > 0 },
   { id: "ribbon", i: "✂️", nm: "First ribbon", d: "Delivered your first project.", ok: (c) => c.delivered >= 1 },
   { id: "builder", i: "🏗️", nm: "Master builder", d: "Delivered five projects.", ok: (c) => c.delivered >= 5 },
   { id: "listener", i: "👂", nm: "The listener", d: "Answered three community needs.", ok: (c) => c.met >= 3 },
@@ -4514,7 +4514,7 @@ const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn
 // What changed because of the last decision.
 const Consequence = ({ text, icon = "✅" }) => text ? <div className="sp-con" role="status"><span aria-hidden="true" style={{ fontSize: 20 }}>{icon}</span><span><b>What changed:</b> {text}</span></div> : null;
 
-const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, federal, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound, onNeedMinistry }) => {
+const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, federal, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound, onNeedMinistry, survive, lastYear = 8 }) => {
   const F0 = flow;
   // Where a draft goes (one place or several), and what its ministry can manage (SYS.estimate).
   const placesOf = (d) => (d.lgas && d.lgas.length ? d.lgas : [d.lga]).filter(Boolean);
@@ -4601,7 +4601,9 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, feder
     const room = roomM(SYS.TYPE_SECTOR[d.type]), gap = Math.max(a.shortM, P.thisYearM - room), overRoom = P.thisYearM > room;
     const choices = { increase: ["Approve the full cost", "Set the budget to " + SYS.fmtM(e.buildM) + "."], reduce: ["Cut the scope to fit", "About " + Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)) + " " + e.unit + "s instead of " + d.qty + "."], finance: ["Seek financing", "Apply to lenders for " + SYS.fmtM(gap) + ". No debt until you accept an offer."], defer: ["Defer it", "Nothing starts this year. No agenda used."], proceed: ["Go ahead anyway", "On the record: you were warned the money runs out first."] };
     const head = a.kind === "short" ? "Funding gap: " + SYS.fmtM(a.shortM) : overRoom ? "This year's share is more than the bank can pay" : a.kind === "phased" ? "Phased over " + e.years + (e.years === 1 ? " year" : " years") : "Fully funded";
+    const late = SYS.finishesAfterTerm(year, e.years, lastYear);
     return <Dossier icon={SECTOR_ICON[SYS.TYPE_SECTOR[d.type]]} kicker="Budget" title={d.title} place={placeLabel(d)} at={0}>
+      {late && <div data-testid="proj-late" style={{ margin: "0 0 10px", padding: "10px 12px", borderRadius: 12, background: "#fff4e5", color: "#7a4a00", fontSize: 15, fontFamily: F.b, lineHeight: 1.4 }}>⏳ Started now, it finishes in {year + e.years - 1 > lastYear ? "year " + (year + e.years - 1) : "your last year"}: after your time in office. Your successor decides whether it is finished. A smaller size, or speeding it up once it starts, can open it before you leave.</div>}
       <Situation tone={a.kind === "short" ? "bad" : overRoom ? "warn" : null} head={head} text={a.kind === "short" ? "The project cannot proceed as planned. Close the gap, cut the scope, or go ahead knowing the money runs out first." : overRoom ? "The bank can pay " + SYS.fmtM(room) + " towards it this year. The rest must be borrowed, or the work goes slower." : "Approval sets the budget. It is not a contract: nothing is paid until a contractor is chosen."} />
       <Tiles items={[["Estimated cost", SYS.fmtM(e.buildM)], ["Approved", SYS.fmtM(P.approvedM), a.kind === "short" ? "bad" : null], ["Funding gap", SYS.fmtM(Math.max(0, a.shortM)), a.shortM ? "bad" : "good"], ["Bank can pay", SYS.fmtM(room), overRoom ? "bad" : null]]} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -4663,6 +4665,8 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, feder
     return <Dossier pic={big ? siteArt(p) : null} thumb={big ? null : siteArt(p)} pin={pinOf(p)} icon={SECTOR_ICON[p.sector] || "🏗️"} kicker={{ pending_finance: "Waiting for money", pending_procurement: "Waiting for a contractor", in_progress: "Under construction", stalled: "Stalled", built: "Built, not working", delivered: "Open", suspended: "Suspended", abandoned: "Abandoned" }[p.status] || p.status} title={p.title} place={where(p) + (C ? " · " + C.name : "")} at={SYS.milestoneOf(p)}>
       <Situation tone={n.blocked ? "bad" : n.due ? "warn" : null} head={n.due ? (n.blocked ? "Blocked" : "Next: " + n.button.toLowerCase()) : p.status === "delivered" ? "Open and working" : "Nothing due yet"} text={n.say + (n.when ? " Next check: " + n.when + "." : "")} />
       <Tiles items={[["Scope costs", SYS.fmtM(p.estimateM)], ["Approved", SYS.fmtM(p.approvedM), p.approvedM < p.estimateM * .95 ? "bad" : null], ["Spent", SYS.fmtM(p.spentM)], p.status === "delivered" || p.status === "built" ? ["Benefit", Math.round(bf * 100) + "%", bf < .6 ? "bad" : "good"] : ["Built", p.progress + "%"]]} />
+      {survive && !["delivered", "built", "abandoned"].includes(p.status) && (() => { const S = survive(p); return <div data-testid="proj-survive" style={{ marginTop: 8, fontSize: 14, color: S.odds >= .7 ? "#0b6b42" : S.odds >= .45 ? "#9a5b12" : "#a3271c", fontFamily: F.b }}>
+        If you left office today: <b>{Math.round(S.odds * 100)}%</b> chance it gets finished. {S.kind}{p.fast ? " · Sped up" : ""}{p.protected ? " · Protected" : ""}</div>; })()}
       {n.due && (n.id === "blocked_finance"
         ? <Actions><button className="sp-btn quiet" onClick={() => onAction(p.id, "abandon")}>Defer indefinitely</button><button className="sp-btn" onClick={() => onAction(p.id, "fit")}>Fit the scope to the budget</button></Actions>
         : <Actions><button className="sp-btn" onClick={() => onOpenStep(p)}>{n.button}</button></Actions>)}
@@ -4675,6 +4679,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, feder
           {(p.status === "stalled" || p.status === "in_progress") && SYS.toFinishM(p) > 0 && <button className="sp-btn ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.toFinishM(p))}</button>}
           {["stalled", "in_progress", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</button>}
           {(p.status === "stalled" || p.status === "in_progress") && <button className="sp-btn ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</button>}
+          {p.status === "in_progress" && !p.fast && <button className="sp-btn ghost" onClick={() => onAction(p.id, "accelerate")}>Speed it up (+15%)</button>}
           {p.status === "in_progress" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</button>}
           {["stalled", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "abandon")}>{p.status === "pending_finance" ? "Defer indefinitely" : "Abandon"}</button>}
           {p.facility && p.status === "built" && p.equipped && !p.staffed && <button className="sp-btn ghost" onClick={() => onAction(p.id, "staff")}>Staff it</button>}
@@ -5264,6 +5269,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // ── REALISM MODULE state (ministries, projects, procurement, council, wiki, SA) ──
   const [ministries, setMinistries] = useState(ld?.ministries || (setup?.comeback?.team?.ministries ? setup.comeback.team.ministries.map(m => ({ ...m, hired: 5, record: [], flag: null, sinkhole: false, watch: undefined, godfatherMandate: null })) : null));
   const [projects, setProjects] = useState(ld?.projects || []);
+  const projRef = React.useRef(projects); projRef.current = projects; // for year-end code drawn in an older render
   const [procLog, setProcLog] = useState(ld?.procLog || []);
   const [council, setCouncil] = useState(ld?.council || null);
   // The President's councils: the Federal Executive Council (ministers) and the National Security Council (service chiefs). The Traditional Council is the governor's.
@@ -6562,7 +6568,70 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (k2) { const m = SYS.FRONTS[k2].military; opts.push({ id: k2 + ":military", front: k2, how: "military", ...m, l: "Send the forces to " + SYS.FRONTS[k2].short + " instead", storyK: k1, storyIgnore: true }); }
     return { ...c, t: d.nm + ": " + sc.t, d: sc.d + (k2 ? " Meanwhile, " + SYS.FRONTS[k2].short + " stands at " + Math.round((F || {})[k2] || 0) + "/100." : ""), opts, who: sc.who, bg: sc.bg, scene: sc.scene, storyS: S, ignored: B.ignored };
   };
-  const frontsCardFor = (c) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: [c.bg || "situation-room", c.who || null, null, c.scene || null], title: c.t, brief: c.d,
+  // A Peace Plan for a front in the council (SYS.PEACE): a commitment over about four years to end it for good.
+  const peaceStartOpt = (k, PZ) => { const D = SYS.PEACE[k], F = SYS.FRONTS[k]; if (!D || !SYS.peaceCanStart(PZ || {}, k)) return null; const cost = 10;
+    return { label: "🕊️ End " + D.war + " for good: a Peace Plan", note: "About four years: Clear, Hold, Build, Seal. One step a year; shortcuts can set it back.", chips: [{ text: "Four years", color: CL.blu }, { text: naira(cost), color: CL.org }], run: () => {
+      scFx({ debt: cost }); setStc(p => ({ ...p, peace: { ...(p.peace || {}), [k]: { front: k, step: 0, started: turn, relapses: 0 } }, frontPick: { front: k, sev: -8 } }));
+      addL("🕊️ You committed to end " + D.war + " in " + D.nm + " for good. The first step comes to your desk next year.", "policy"); scWiki("Presidency", "Launched a Peace Plan to end " + D.war + " in " + D.nm + ".");
+      setTimeout(() => paper("PRESIDENT VOWS TO END " + D.war.toUpperCase() + " FOR GOOD", "A four-year Peace Plan for " + D.nm + ": clear, hold, build, seal", true, "./art/" + D.img + ".webp"), 400);
+      return { icon: "🕊️", img: "./art/" + D.img + ".webp", title: "A Peace Plan for " + D.nm, text: "Four steps, one a year: Clear, Hold, Build and Seal. Do them properly and " + D.war + " ends for good. Cut corners and it can slip back.", tone: "good", rows: [{ l: F.nm.split(":")[0], v: "Plan started", good: true }, { l: "Cost", v: naira(cost), good: false }] }; } }; };
+  const handoverCard = () => ({ key: "handover_" + turn, kicker: "The Transition Committee", color: CL.pur, art: [NAT ? "villa-office" : "government-house", "permanent-secretary", null, null], from: "The Head of Service",
+    title: "What do you hand over?", brief: "Your last year. The Transition Committee wants to know what the next government receives: every file, a briefing, or nothing at all.",
+    stakes: "A proper handover makes it likelier your projects are finished after you.",
+    options: [
+      { label: "A full handover dossier for every project and programme", note: "Contracts, payment schedules, site reports. The next team starts where you stopped.", chips: [{ text: naira(NAT ? 2 : .5), color: CL.org }, { text: "Projects +10% to survive", color: CL.grn }], run: () => { scFx({ debt: NAT ? 2 : .5 }); setStc(p => ({ ...p, handover: "full" })); addL("📁 A full handover dossier for every project.", "policy"); scWiki(NAT ? "Presidency" : "Governorship", "Left a full handover dossier to the next government."); return { icon: "📁", title: "Every file, in order", text: "Whoever follows you will find every contract, every payment and every site report.", tone: "good" }; } },
+      { label: "A briefing, and the keys", note: "Enough to start. Not enough to finish everything.", chips: [{ text: "Free", color: CL.grn }], run: () => { setStc(p => ({ ...p, handover: "brief" })); addL("📁 A briefing for the next government.", "info"); return null; } },
+      { label: "Hand over nothing", note: "Some files are better lost. So are some projects.", chips: [{ text: "Projects −10% to survive", color: CL.red }], run: () => { setStc(p => ({ ...p, handover: "none" })); scFx({ cor: .01 }); addL("📁 You handed over nothing. Files went missing.", "political"); return { icon: "🔥", title: "The shredders ran all night", text: "The next government starts blind, and so do your projects.", tone: "bad" }; } }] });
+  const peaceDef = (k) => k === "state" ? SYS.STATE_PEACE : SYS.PEACE[k];
+  const peaceWhere = (k) => k === "state" ? stName : SYS.PEACE[k].nm;
+  const PEACE_LINE = ["First, take the ground back.", "Now hold what was taken, so it stays taken.", "Give people a reason to stay out of it.", "Close the last doors, and write the peace down."];
+  const peaceArt = (D) => [NAT ? "situation-room" : "government-house", NAT ? "national-security-adviser" : "police-commissioner", null, D.img.startsWith("scenes/") ? D.img.slice(7) : null];
+  // The peace holds: the front closes for good and the dividend arrives.
+  const peaceClose = (k) => { const D = peaceDef(k), V = D.dividend || {};
+    scFx({ app: V.app || 0, sec: V.sec || 0, agr: V.agr || 0, igr: V.igr || 0 });
+    if (V.faacPct) setS(p => ({ ...p, faac: Math.round((p.faac || 0) * (1 + V.faacPct) * 10) / 10 }));
+    if (k === "state") setStc(p => ({ ...p, stateStories: Object.fromEntries(Object.entries(p.stateStories || {}).map(([id, T]) => [id, SYS.STATE_PEACE.ends.includes(id) && T && T.S ? { ...T, S: { ...T.S, closed: true } } : T])) }));
+    const head = typeof D.end.headline === "function" ? D.end.headline(stName) : D.end.headline;
+    addL("🕊️ " + head.charAt(0) + head.slice(1).toLowerCase() + ". " + V.text, "success"); scWiki(NAT ? "Presidency" : "Governorship", "Ended " + D.war + " in " + peaceWhere(k) + " for good, with a Peace Plan."); track("peace_closed", k);
+    setTimeout(() => { paper(head, D.end.sub, true, "./art/" + D.img + ".webp"); try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} }, 500);
+    return head; };
+  const peaceRun = (k, P, w) => { const D = peaceDef(k), R = SYS.peaceChoose(P, w, Math.random, turn), n = P.step;
+    scFx({ debt: w.cost, app: (w.fx || {}).app || 0, cor: (w.fx || {}).cor || 0, sec: (w.fx || {}).sec || 0, agr: (w.fx || {}).agr || 0 });
+    setStc(p => ({ ...p, peace: { ...(p.peace || {}), [k]: R.plan }, peaceClosed: (p.peaceClosed || 0) + (R.closed ? 1 : 0),
+      fronts: k !== "state" && p.fronts ? { ...p.fronts, [k]: R.closed ? 0 : Math.max(0, Math.min(100, (p.fronts[k] || 0) + R.sev)) } : p.fronts }));
+    track("peace_" + k, SYS.PEACE_STEP_NAMES[n] + ":" + w.id);
+    if (R.closed) { const head = peaceClose(k); return { icon: "🕊️", img: "./art/" + D.img + ".webp", title: head.charAt(0) + head.slice(1).toLowerCase(), text: D.dividend.text, tone: "good", rows: [{ l: "The front", v: "Closed for good", good: true }, { l: "Approval", v: "+" + (D.dividend.app || 0), good: true }] }; }
+    if (R.relapsed) { addL("🕊️ The Peace Plan in " + peaceWhere(k) + " slipped back to " + SYS.PEACE_STEP_NAMES[R.plan.step] + ": " + w.note, "crisis");
+      setTimeout(() => paper("PEACE PLAN STUMBLES IN " + peaceWhere(k).replace(/^the /, "").toUpperCase(), "The shortcut showed: " + w.note.replace(/\.$/, "").toLowerCase(), false, "./art/scenes/news-protest.webp"), 400);
+      return { icon: "⚠️", title: "The plan slipped back", text: w.note + " The shortcut cost you a step: " + SYS.PEACE_STEP_NAMES[R.plan.step] + " has to be done again.", tone: "bad", rows: [{ l: "Peace Plan", v: "Step " + (R.plan.step + 1) + " of 4", good: false }] }; }
+    addL("🕊️ Peace Plan, " + peaceWhere(k) + ": " + SYS.PEACE_STEP_NAMES[n] + " done. " + w.note, "policy");
+    return { icon: "🕊️", title: SYS.PEACE_STEP_NAMES[n] + ": done", text: w.note + (R.plan.step < 4 ? " Next year: " + SYS.PEACE_STEP_NAMES[R.plan.step] + "." : ""), tone: w.id === "proper" ? "good" : "neutral", rows: [{ l: "Peace Plan", v: "Step " + R.plan.step + " of 4 done", good: true }, { l: "Cost", v: naira(w.cost), good: false }] }; };
+  const peaceCardFor = (k, P, sev) => { const D = peaceDef(k), st = SYS.peaceStep(P, D); if (!D || !st) return null;
+    const n = P.step, block = k === "state" ? null : SYS.peaceBlock(P, sev), F = SYS.FRONTS[k];
+    return { key: "peace_" + k + "_" + turn, kicker: "Peace Plan · " + peaceWhere(k) + " · Step " + (n + 1) + " of 4: " + SYS.PEACE_STEP_NAMES[n], color: CL.grn, art: peaceArt(D),
+      from: NAT ? nsaName + " · National Security Adviser" : "The Commissioner of Police", title: "Ending " + D.war + ": " + SYS.PEACE_STEP_NAMES[n],
+      brief: PEACE_LINE[n] + (P.relapses ? " The plan has slipped back " + P.relapses + " time" + (P.relapses === 1 ? "" : "s") + "." : "") + (block ? " " + block : ""),
+      stakes: block ? "The plan waits until the front cools." : "Done properly, it moves on. A shortcut can set it back a step.",
+      options: block ? [
+        { label: "Keep up the pressure first: " + F.military.l.replace(/^./, x => x.toLowerCase()), chips: [{ text: naira(F.military.cost), color: CL.org }, { text: "Front −12", color: CL.grn }], run: () => { scFx({ debt: F.military.cost }); setStc(p => ({ ...p, fronts: { ...(p.fronts || {}), [k]: Math.max(0, ((p.fronts || {})[k] || 0) - 12) } })); addL("🛡️ " + F.nm + ": pressure kept up so the Peace Plan can move.", "policy"); return { icon: "🛡️", title: "The pressure is kept up", text: F.military.note, tone: "neutral" }; } },
+        { label: "Wait a year", note: "The plan holds where it is.", chips: [{ text: "Free", color: CL.grn }], run: () => { addL("🕊️ The Peace Plan in " + peaceWhere(k) + " waits a year.", "info"); return null; } }]
+        : st.map(w => ({ label: w.l, note: w.note, chips: [{ text: naira(w.cost), color: CL.org }].concat(w.relapse ? [{ text: "Risk " + Math.round(w.relapse * 100) + "%", color: CL.red }] : [{ text: "No setback", color: CL.grn }], (w.fx || {}).cor ? fxChips({ cor: w.fx.cor }) : []), run: () => peaceRun(k, P, w) })) }; };
+  const peaceOfferCard = () => ({ key: "peace_offer_" + turn, kicker: "Security · " + stName, color: CL.grn, art: peaceArt(SYS.STATE_PEACE), from: "The Commissioner of Police",
+    title: "End insecurity in " + stName + " for good", brief: "Every year the same crises come back: kidnappers, cult clashes, bandits. The Commissioner proposes a plan over four years: a security outfit, community policing, jobs for young men, and peace committees with a law behind them.",
+    stakes: "Done properly, the state's security crises stop for good.",
+    options: [{ label: "Commit to the four-year plan", note: "₦1B to start. One step a year.", chips: [{ text: naira(1), color: CL.org }, { text: "Four years", color: CL.blu }], run: () => { scFx({ debt: 1 }); setStc(p => ({ ...p, peace: { ...(p.peace || {}), state: { front: "state", step: 0, started: turn, relapses: 0 } } })); addL("🕊️ You committed to make " + stName + " safe for good. The first step comes next year.", "policy"); scWiki("Governorship", "Launched a four-year plan to end insecurity in " + stName + "."); setTimeout(() => paper("GOVERNOR VOWS TO MAKE " + stName.toUpperCase() + " SAFE FOR GOOD", "A four-year plan: an outfit, community policing, jobs, peace committees", true, "./art/scenes/army-convoy.webp"), 400); return { icon: "🕊️", title: "A plan to make " + stName + " safe", text: "Four steps, one a year. Do them properly and the state's security crises end for good.", tone: "good" }; } },
+      { label: "Not now", note: "The offer comes back in two years.", chips: [{ text: "Free", color: CL.grn }], run: () => null }] });
+  const peaceAfterCard = (k, P) => { const D = peaceDef(k), c = SYS.PEACE_AFTERSHOCK_COST[k] || 1;
+    return { key: "peace_after_" + k + "_" + turn, kicker: "The peace in " + peaceWhere(k), color: CL.grn, art: peaceArt(D), from: NAT ? nsaName + " · National Security Adviser" : "The Commissioner of Police",
+      title: "Will you keep paying for the peace?", brief: "Two years on, " + D.war + " is over in " + peaceWhere(k) + ". The peace committees, the guards and the programmes need money every year, and the Treasury wants to cut them.",
+      stakes: "Peace that is not paid for does not last.",
+      options: [{ label: "Keep the peace funded", note: naira(c) + ". It holds.", chips: [{ text: naira(c), color: CL.org }], run: () => { scFx({ debt: c }); setStc(p => ({ ...p, peace: { ...(p.peace || {}), [k]: { ...((p.peace || {})[k] || P), after: "kept" } } })); addL("🕊️ The peace in " + peaceWhere(k) + " stays funded.", "policy"); return { icon: "🕊️", title: "The peace holds", text: "The guards are paid and the programmes run. Nobody makes headlines out of a quiet year.", tone: "good" }; } },
+        { label: "Let it lapse and save the money", note: "It may hold on its own. It may not.", chips: [{ text: "Saves " + naira(c), color: CL.grn }, { text: "Risk 50%", color: CL.red }], run: () => { const back = Math.random() < .5;
+          setStc(p => { const pz = { ...(p.peace || {}) }; if (back) delete pz[k]; else pz[k] = { ...(pz[k] || P), after: "lapsed" }; return { ...p, peace: pz, fronts: back && k !== "state" ? { ...(p.fronts || {}), [k]: 40 } : p.fronts }; });
+          if (back) { scFx({ app: -4 }); setTimeout(() => paper("VIOLENCE RETURNS TO " + peaceWhere(k).replace(/^the /, "").toUpperCase(), "The peace was not paid for", false, "./art/scenes/news-protest.webp"), 400); }
+          addL(back ? "🚨 The peace in " + peaceWhere(k) + " collapsed after the funding stopped." : "🕊️ The funding stopped; the peace in " + peaceWhere(k) + " held, for now.", back ? "crisis" : "info");
+          return { icon: back ? "🚨" : "🕊️", title: back ? "The peace collapsed" : "It held, for now", text: back ? "Without the money the committees stopped meeting and the guards went home. The fighting is back." : "The money stopped and nothing happened. This time.", tone: back ? "bad" : "neutral" }; } }] }; };
+  const frontsCardFor = (c, PZ) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: [c.bg || "situation-room", c.who || null, null, c.scene || null], title: c.t, brief: c.d + ((c.worst || []).some(k => SYS.peaceCanStart(PZ || {}, k)) ? " Or commit to ending one of them for good." : ""),
     options: c.opts.map(o => ({ label: o.l, note: o.storyOpt ? o.note : undefined, chips: (o.tag ? [{ text: o.tag, color: o.how === "bill" ? CL.blu : o.how === "order" ? CL.gold : CL.grn }] : []).concat(fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }), o.cost ? [{ text: naira(o.cost), color: CL.org }] : []), run: () => {
       if (o.storyK && c.storyS) { const d = SYS.FRONT_STORIES[o.storyK], opt = o.storyIgnore ? { id: "ignored", kind: "act", weak: true, next: c.ignored, past: "left the " + d.nm + " to itself" } : o.storyOpt;
         const R = SYS.storyAfter(d, c.storyS, opt, turn, { nat: true }, rng(turn * 389 + hashStr(o.id)));
@@ -6578,7 +6647,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { icon: "🛡️", img: o.img ? "./art/" + o.img + ".webp" : undefined, title: o.l.split(": ").pop(), text: o.say || o.note, tone: o.storyOpt && o.storyOpt.weak ? "bad" : "neutral",
         rows: [{ l: SYS.FRONTS[o.front].nm.split(":")[0], v: Math.round(F0) + " → " + Math.max(0, Math.round(F0 + o.sev)), good: true }].concat(Object.entries(o.zones || {}).filter(([, v]) => v).map(([z, v]) => ({ l: zoneName(NATION_ZONE_IDS.indexOf(z)) + " zone", v: (v > 0 ? "+" : "") + v, good: v > 0 }))),
         learn: "Section 217: the armed forces defend Nigeria and, when the President orders it, help the police restore order. Section 14(3), federal character: how each region's crisis is handled is read region against region." };
-    } })) });
+    } })).concat((c.worst || []).map(k => peaceStartOpt(k, PZ)).filter(Boolean)) });
   // The Bakunda war's cards: letters, Defence Headquarters missions, the
   // Assembly's documents, and plain cards (SYS.bakundaCards).
   const BKC = () => SYS.bkCountry(stc.bakunda); // this game's country: Bakunda, Kasongo, Angova or Saharia
@@ -6775,7 +6844,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const needTopics = activeNeeds.map(n => NEED_TOPIC[n.k]);
         const billCovered = Object.entries(BILL_CRISIS).filter(([b]) => houseBillsSeen.includes(b)).map(([, c]) => c);
         const recent = Object.keys(CRISIS_TOPIC).map(k => CRISIS_TOPIC[k]).filter(tp => topicRecent(tp));
-        const pool = stateCrisesFor(state).filter(c => SYS.STATE_STORIES[c.id] && !ST[c.id] && !next.crisesSeen.includes(c.id) && !billCovered.includes(c.id) && !needTopics.includes(CRISIS_TOPIC[c.id]) && !recent.includes(CRISIS_TOPIC[c.id]));
+        const safe = ((next.peace || {}).state || {}).closed; // a state made safe by its Peace Plan has no new security crises
+        const pool = stateCrisesFor(state).filter(c => SYS.STATE_STORIES[c.id] && !ST[c.id] && !(safe && SYS.STATE_PEACE.ends.includes(c.id)) && !next.crisesSeen.includes(c.id) && !billCovered.includes(c.id) && !needTopics.includes(CRISIS_TOPIC[c.id]) && !recent.includes(CRISIS_TOPIC[c.id]));
         if (pool.length) {
           const C = pool[Math.floor(r() * pool.length)], d = SYS.STATE_STORIES[C.id];
           const zi = Math.floor(r() * 3), lgas = lgaCluster(getLGAs(state), zi), lga = lgas.length ? lgas[Math.floor(r() * lgas.length)] : stName;
@@ -7044,6 +7114,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const godson = gN(rng(turn * 313 + state.length * 7), sd.zone, state);
       const partyMan = gN(rng(turn * 717 + state.length * 3), sd.zone, state);
       const pickS = (o) => { scFx(o.fx); setStc(p => ({ ...p, successor: o.who }));
+        // Your support can be conditional: a public pledge to finish your biggest unfinished project (SYS.legacy).
+        { const open = (projRef.current || []).filter(p => !["delivered", "built", "abandoned"].includes(p.status) && p.estimateM).sort((a, b) => (b.estimateM || 0) - (a.estimateM || 0)), P = open[0];
+          if (P) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/party-convention-hall.webp", icon: "🤝", title: "Make " + o.who.name + " promise to finish " + P.title + "?", text: o.who.name + " needs your support in the race. Make it conditional: a public pledge to finish " + P.title + " (" + (P.progress || 0) + "% built). A pledge raises its odds; breaking it is front-page news.", tone: "neutral", ok: "No conditions", action: { label: "Ask for a public pledge", fn: () => { setStc(p => ({ ...p, pledge: { id: P.id, title: P.title, who: o.who.name } })); scFx({ pStab: -1 }); addL("🤝 " + o.who.name + " pledged in public to finish " + P.title + ".", "political"); } } }); } catch (e) {} }, 1600); }
         const cv0 = fcvRef.current; if (fcRef.current && cv0 && cv0.primary && !cv0.successor) cabCall("crown", { code: fcRef.current.code, key: fcRef.current.hostKey, seat: o.who.seat || null, name: o.who.name }).then(() => fcLoad()).catch(() => {}); addL("👑 You anointed " + o.who.name + " as your successor. " + o.log, "political"); scWiki("Governorship", "Endorsed " + o.who.name + " as successor."); };
       const list = [
         { label: "Anoint your deputy, " + dep, note: "Loyal to the end. Not a crowd-puller.", fx: { pStab: -2 }, who: { name: dep, kind: "deputy", loyal: .85, elect: 40 }, log: "The party barons wanted their own man." },
@@ -7352,7 +7425,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // Security fronts (SYS.FRONTS): last year's choice cooled one front, the others grew, and above 70 they bite.
       const freshF = !next.fronts; next.fronts = next.fronts || SYS.frontsInit();
       if (!freshF) {
-        const Y = SYS.frontsYear(next.fronts, next.frontPick); next.fronts = Y.S; next.frontPick = null;
+        const PZ = next.peace || {}, closedF = Object.keys(PZ).filter(k => PZ[k] && PZ[k].closed), plannedF = Object.keys(PZ).filter(k => PZ[k] && !PZ[k].closed);
+        const Y = SYS.frontsYear(next.fronts, next.frontPick, { closed: closedF, planned: plannedF }); next.fronts = Y.S; next.frontPick = null;
         let igrHit = 0, faacPct = 0;
         Y.tolls.forEach(t => { if (t.app) dApp += t.app; if (t.sec) dStat.sec = (dStat.sec || 0) + t.sec; if (t.agr) dStat.agr = (dStat.agr || 0) + t.agr; igrHit += t.igr || 0; faacPct += t.faacPct || 0; notes.push(["🛡️ " + SYS.FRONTS[t.front].nm + ": " + t.why, "crisis"]); });
         if (igrHit || faacPct) setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) + igrHit) * 10) / 10), faac: Math.round((p.faac || 0) * (1 + faacPct) * 10) / 10 }));
@@ -7360,7 +7434,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // Each front is a storyline (SYS.FRONT_STORIES): the worst front's next development, not the same two options every year.
       next.frontStories = { ...(next.frontStories || {}) };
       Object.entries(SYS.FRONT_STORIES).forEach(([k, d]) => { next.frontStories[k] = SYS.storyTurn(d, next.frontStories[k] || SYS.storyStart(d, state + ":" + k), turn, { house: ((next.pres.npcs || {}).nass || {}).rel, nat: true }, rE); });
-      cards.push(frontsCardFor(frontsWithStory(SYS.frontsCard(next.fronts), next.frontStories, next.fronts)));
+      { const PZ = next.peace || {}, closedF = Object.keys(PZ).filter(k => PZ[k] && PZ[k].closed), FC = SYS.frontsCard(next.fronts, closedF);
+        if (FC.worst.length) cards.push(frontsCardFor(frontsWithStory(FC, next.frontStories, next.fronts), PZ)); }
       // Trade (SYS.trade): once the Economic Advisory Council has set a stance, the year's imports, exports and the naira.
       if (next.trade && next.trade.stance) {
         const Y = SYS.tradeYear(next.trade, { fronts: next.fronts, turn, corruption: s.cor });
@@ -7427,6 +7502,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       next.econ = E;
       if (id) { const c = econCardFor(id, E, ctx, D.due); if (c) cards.push(c); }
     }
+
+    // The last year: the Transition Committee's handover, and a pledge from the anointed successor (SYS.legacy).
+    if (turn >= MT - 1 && !next.handoverAsked) { next.handoverAsked = true; cards.push(handoverCard()); }
+
+    // Peace Plans (SYS.PEACE, SYS.STATE_PEACE): this year's step for each plan under way, the
+    // Governor's offer, and the aftershock two years after a peace.
+    { const PZ = next.peace || {};
+      Object.entries(PZ).forEach(([k, P]) => { if (!P) return;
+        if (!P.closed && P.started < turn) { const c = peaceCardFor(k, P, (next.fronts || {})[k]); if (c) cards.push(c); }
+        if (SYS.peaceAftershockDue(P, turn)) cards.push(peaceAfterCard(k, P)); });
+      if (!NAT && turn >= 2 && !PZ.state && turn - (next.peaceOffered || -9) >= 2 && ((s.sec || 0) < .6 || (next.crisesSeen || []).some(id => SYS.STATE_PEACE.ends.includes(id)))) { next.peaceOffered = turn; cards.push(peaceOfferCard()); } }
 
     // Apply the year's passive costs.
     if (dApp || Object.keys(dZone).length || Object.keys(dStat).length) setS(p => {
@@ -7499,6 +7585,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (gEnd === "nullified") return { name: (stc.petition && stc.petition.opp) || cast?.rival?.name || "the petitioner", kind: "opposition", won: true, betrayed: false, efcc: .1 };
     return null;
   };
+
+  // Who follows you, and what they will finish (SYS.legacy): odds on every unfinished project.
+  const succKindNow = () => gEnd ? SYS.successorKind(successionOutcome()) : stc.successor ? SYS.successorKind({ ...stc.successor, won: true }) : "rival";
+  const projSurvive = (p) => { const k = succKindNow(); return { odds: SYS.surviveOdds(p, { kind: k, handover: stc.handover, pledged: (stc.pledge || {}).id, app: s.app }), kind: SYS.SUCC_KINDS[k].nm + (stc.successor ? " (" + stc.successor.name + ")" : ": no successor anointed yet") }; };
+  // Five years later: decided once, when the term ends, and kept in the save.
+  useEffect(() => { if (!gEnd || stc.legacy) return; const so = successionOutcome(), kind = SYS.successorKind(so);
+    const L = SYS.legacyAfter(projects || [], stc.peace || {}, { kind, name: so ? so.name : "your successor", handover: stc.handover, pledged: (stc.pledge || {}).id, app: s.app }, rng(hashStr(state + ":" + pName + ":legacy")));
+    setStc(p => ({ ...p, legacy: { ...L, name: so ? so.name : null, year: absYear + 5 } })); }, [gEnd]);
 
   // ── THE SECRETARIAT: cases, commitments, audiences (rules in SYS/cases.js) ──
   const [cases, setCases] = useState(() => ld?.cases || []);
@@ -7877,6 +7971,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const p = (projects || []).find(x => x.id === id); if (!p) return;
     let n = p, text = "", tone = "neutral";
     if (act === "fund") { const add = SYS.toFinishM(p, s.cor || 0); n = SYS.addFunding(p, add, turn); text = "Added " + SYS.fmtM(add) + ". The money still has to be released from the budget or borrowed."; }
+    // Speed it up: a second shift and overtime, for 15% of what is left, so it can open before you leave.
+    else if (act === "accelerate") { const extraM = Math.max(10, Math.round(SYS.remainingM(p) * .15)); if (!spendB(SYS.toB(extraM), "Speeding up " + p.title)) return null; n = { ...p, fast: true, decisions: [...(p.decisions || []), { year: turn, text: "Sped up: a second shift and overtime, " + SYS.fmtM(extraM) + "." }] }; text = "A second shift and overtime, for " + SYS.fmtM(extraM) + ". It builds about half as fast again from next year."; tone = "good"; }
     else if (act === "fit") { const r = SYS.fitScope(p, roomM(p.sector) + ((p.alloc || {})[turn] || 0), turn); if (!r.ok) return { icon: "🚧", title: "It still does not fit", text: r.why, tone: "bad" }; n = r.p; text = r.factor < 1 ? "Scope cut to " + Math.round(r.factor * 100) + "% (" + SYS.fmtM(n.estimateM) + ") so the budget line pays for it without a loan. Next: award the contract." : "The budget line can pay for it without a loan. Next: award the contract."; setLastCon({ turn, icon: "✂️", text: p.title + ": " + text }); }
     else if (act === "reduce") { n = SYS.reduceScope(p, Math.max(.3, (p.approvedM - 0) / Math.max(1, p.estimateM)), turn); text = "The scope now fits the money approved. " + SYS.fmtM(p.spentM) + " already spent stays spent."; }
     else if (act === "replace") { const alt = SYS.eligible(p.type, projects, p.id + ":replace").filter(c => c.id !== p.contractorId && !c.full && !c.nepotism).sort((a, b) => b.reliability - a.reliability)[0]; if (!alt) return { icon: "🚧", title: "No one free", text: "No other qualified contractor has capacity this year.", tone: "bad" }; n = SYS.replaceContractor(p, alt.id, turn); text = alt.name + " takes over. The handover adds " + SYS.fmtM(n.estimateM - p.estimateM) + "; nothing already paid is paid again."; }
@@ -7922,7 +8018,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // The bank pays this year's share; if it runs short, lenders may lend the rest; past that, work slows or stops.
       const canM = bankM + SYS.toM(SYS.borrowRoomB({ ...moneyRef.current, debt: (moneyRef.current.debt || 0) + SYS.toB(owedM) }, lvl));
       const SB = SYS.strikeBlock(SYS.strikeImpact(stc.labour, NAT), { type: p.type, sector: p.sector });
-      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost, ...(SB ? { halt: SB.status === "stop" ? 0 : .5, haltWhy: SB.who + (SB.status === "stop" ? " are on strike" : " are on a go-slow") } : {}) });
+      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost: (boost || 0) + (p.fast ? .5 : 0), ...(SB ? { halt: SB.status === "stop" ? 0 : .5, haltWhy: SB.who + (SB.status === "stop" ? " are on strike" : " are on a go-slow") } : {}) });
       const used = r.cashUsedM || 0, fromBank = Math.min(bankM, used);
       bankM -= fromBank; paidM += fromBank; owedM += used - fromBank;
       next[p.id] = r.p;
@@ -9976,7 +10072,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
-      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") ? 100 : k.startsWith("sc#dipl_unga") ? 88 : k.startsWith("sc#dipl_") ? 86 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
+      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") ? 100 : k.startsWith("sc#peace_") ? 87 : k.startsWith("sc#handover_") ? 97 : k.startsWith("sc#dipl_unga") ? 88 : k.startsWith("sc#dipl_") ? 86 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
@@ -10820,7 +10916,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2, gr = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
     let flagAll = false; try { const f = story().flagship; flagAll = !!(f && f.targets && f.met === f.targets); } catch (e) {}
     setStc(p => ({ ...p, careerSaved: true })); track("ending", SYS.ENDING_NAME[gEnd] || gEnd); track("grade", gr); track("ending_state", state);
-    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", trips: stc.trips || 0, ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), peace: !!(stc.bakunda && stc.bakunda.done && stc.bakunda.treaty === "enacted"), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0), ungaAll: (() => { const D0 = stc.diplo || {}, seen = D0.ungaSeen || [], go = D0.ungaGo || []; return seen.length >= 3 && seen.every(t => go.includes(t)); })() } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
+    (async () => { try { const r = await window.storage.get("sop_career"); const L = r && r.value ? JSON.parse(r.value) : []; L.push({ state, office: NAT ? "president" : "governor", trips: stc.trips || 0, peaceClosed: stc.peaceClosed || 0, ...(NAT ? { crisisOver: !!(stc.pres && stc.pres.over), coup: !!(stc.pres && stc.pres.coupSurvived), peace: !!(stc.bakunda && stc.bakunda.done && stc.bakunda.treaty === "enacted"), allZones: ZIX.every(z => ((s.zoneMood || {})[z] || 0) >= 0), ungaAll: (() => { const D0 = stc.diplo || {}, seen = D0.ungaSeen || [], go = D0.ungaGo || []; return seen.length >= 3 && seen.every(t => go.includes(t)); })() } : {}), grade: gr, score: Math.round(ov), ending: gEnd, terms: turn > 4 ? 2 : 1, cor: Math.round((s.cor || 0) * 100) / 100, impSurv: !!impSurv, flagAll, name: pName, at: Date.now() }); await window.storage.set("sop_career", JSON.stringify(L.slice(-200))); } catch (e) {} })();
   }, [gEnd]);
   // The Secretariat writes: each commissioner asking to see you, and each open
   // file, is a letter on the Desk. Acting on it opens that item; it leaves the
@@ -11068,6 +11164,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </div>
             {st0.keyDecisions.length > 0 && <div style={{ fontSize: TS(31), color: CL.tm, marginTop: 10 }}>Decisions people remember: {st0.keyDecisions.map(k => k.what).join(" · ")}</div>}
           </Cd>; })()}
+          {stc.legacy && (stc.legacy.rows.length > 0 || stc.legacy.peace.length > 0) && (() => { const L = stc.legacy, ft = (k) => k === "state" ? state.replace(/_/g, " ") : (SYS.PEACE[k] || {}).nm || k;
+            return <Cd data-testid="legacy" style={{ textAlign: "left", margin: "29px auto 0", maxWidth: 900 }}>
+              <img src="./art/backgrounds/project-ribbon-cutting.webp" alt="A ribbon-cutting" style={{ display: "block", width: "100%", aspectRatio: "16 / 6", objectFit: "cover", borderRadius: 14, marginBottom: 12 }} />
+              <div style={{ fontSize: TS(31), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 6 }}>FIVE YEARS LATER · {L.year}</div>
+              <div style={{ fontSize: TS(32), color: CL.txt, lineHeight: 1.5, marginBottom: 8 }}>{L.name ? L.name + ", " : ""}{SYS.SUCC_KINDS[L.kind].nm.toLowerCase()}: {SYS.SUCC_KINDS[L.kind].line} {L.rows.length ? L.kept + " of the " + L.rows.length + " projects you left unfinished " + (L.kept === 1 ? "was" : "were") + " finished." : ""}{L.pledgeBroken ? " The public pledge was broken." : ""}</div>
+              {L.rows.map(x => <div key={x.id} style={{ fontSize: TS(29), lineHeight: 1.45, marginTop: 6, color: x.finished ? CL.grn : CL.red }}>{x.finished ? "✔ " : "✖ "}<b>{x.title}</b>: {x.text}{x.finished && L.kind === "heir" ? " The plaque reads: started by " + (NAT ? "President " : "Governor ") + pName + "." : ""}</div>)}
+              {L.peace.map(x => <div key={x.front} style={{ fontSize: TS(29), lineHeight: 1.45, marginTop: 6, color: x.held ? CL.grn : CL.red }}>🕊️ <b>{ft(x.front)}</b>: {x.text}</div>)}
+            </Cd>; })()}
           {gold && (() => {
             // Any handover before Year 8 (defeat, stepping down, removal, bankruptcy): the successor inherits it.
             if (gEnd && gEnd !== "complete") {
@@ -13767,7 +13871,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
         </OL>
         <OL show={!!pflow}>
-          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
+          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </OL>
         <OL show={!!secr}>
           {secr && <SecretariatView year={turn} ministries={ministries} cases={cases.filter(c => !c.agency || c.stage === "decided" || c.stage === "closed" || (c.stage === "findings" && !stc.hos))} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
@@ -14462,7 +14566,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "con" && <div className="sop-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 29 }}><Cd><h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>✅ CAN</h3>{CONST_CAN.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd><Cd><h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>❌ CANNOT</h3>{CONST_CANT.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd></div>}
 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
-        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
+        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && NAT && FedCouncilsPanel()}
         {nav === "coun" && !NAT && !needSetup && StateEconPanel()}

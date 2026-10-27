@@ -69,6 +69,8 @@ export const letterKind = (key) => {
   if (k === "dilemma" || k.startsWith("sc#lg") || k.startsWith("sc#ruler")) return ["community", 2];
   if (k.startsWith("stall:")) return ["projects", 2];
   if (k.startsWith("sc#impeach_")) return ["house", 3];
+  if (k.startsWith("sc#peace_")) return ["crisis", 3];
+  if (k.startsWith("sc#handover_")) return ["briefing", 3];
   if (k.startsWith("sc#dipl_")) return ["diplomacy", 2];
   if (k.startsWith("sc#econ_")) return ["econ", 2];
   if (k.startsWith("sc#export_")) return ["econ", 2];

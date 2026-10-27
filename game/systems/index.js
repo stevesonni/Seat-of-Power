@@ -49,3 +49,5 @@ export * from "./econbrief.js";
 export * from "./impeach.js";
 export * from "./diplomacy.js";
 export * from "./cabinet.js";
+export * from "./peace.js";
+export * from "./legacy.js";

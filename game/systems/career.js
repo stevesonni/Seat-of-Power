@@ -45,7 +45,7 @@ export const careerBadges = (list, zoneOf = () => null, stats = {}) => {
     ["commander", "🎖️", "Commander-in-Chief", "As President, face down tanks near the Villa", P.some(c => c.coup)],
     ["unifier", "🤝", "Unifier", "Leave the presidency with all six zones behind you", P.some(c => c.allZones && c.ending !== "impeached")],
     ["crisis", "⛓️", "Crisis ended", "As President, end the national crisis", P.some(c => c.crisisOver)],
-    ["peacemaker", "🕊️", "Peacemaker", "As President, end the regional war with a peace treaty", P.some(c => c.peace)],
+    ["peacemaker", "🕊️", "Peacemaker", "End a war for good: the regional war by treaty, a front at home with a Peace Plan, or your state's insecurity", P.some(c => c.peace) || (list || []).some(c => c.peaceClosed > 0)],
     ["unga", "🌐", "At the UN every year", "As President, go to every UN General Assembly of your time in office", P.some(c => c.ungaAll)],
     ["fallen", "⚠️", "Fallen", "Be impeached or removed (it happens)", L.some(c => c.ending === "impeached" || c.ending === "nullified")],
     ["junketer", "✈️", "The Junketer", "Take " + JUNKET_TRIPS + " official trips: abroad, to Aso Rock and to the summits", (stats.trips || 0) >= JUNKET_TRIPS],

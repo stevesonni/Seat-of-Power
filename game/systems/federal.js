@@ -286,18 +286,21 @@ export const FRONTS = {
 };
 export const frontsInit = () => Object.fromEntries(Object.entries(FRONTS).map(([k, f]) => [k, f.start]));
 // The year's council: the two worst fronts, each with its two approaches.
-export const frontsCard = (S) => {
-  const worst = Object.entries(S || {}).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
+// closed: fronts ended for good by a Peace Plan (game/systems/peace.js); they never come back to the council.
+export const frontsCard = (S, closed = []) => {
+  const worst = Object.entries(S || {}).filter(([k]) => !closed.includes(k)).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
   return { id: "nsc", t: "The National Security Council: two fronts need you", worst,
     d: worst.map(k => FRONTS[k].nm + " (" + Math.round(S[k]) + "/100)").join("; ") + ". The army cannot be everywhere. Choose where, and how.",
     opts: worst.flatMap(k => ["military", "talks"].map(a => ({ id: k + ":" + a, front: k, how: a, ...FRONTS[k][a], l: FRONTS[k].short.replace(/^./, c => c.toUpperCase()) + ": " + FRONTS[k][a].l.replace(/^./, c => c.toLowerCase()) }))) };
 };
 // After the year: the front you worked on cools; the others grow; above 70 they bite.
-export const frontsYear = (S, chosen) => {
+// A closed front stays at 0 and never bites; a front under a Peace Plan grows half as fast.
+export const frontsYear = (S, chosen, { closed = [], planned = [] } = {}) => {
   const next = { ...S }, tolls = [];
   Object.keys(FRONTS).forEach(k => {
+    if (closed.includes(k)) { next[k] = 0; return; }
     if (chosen && chosen.front === k) next[k] = Math.max(0, next[k] + chosen.sev);
-    else next[k] = Math.min(100, next[k] + 6);
+    else next[k] = Math.min(100, next[k] + (planned.includes(k) ? 3 : 6));
     if (next[k] >= 70) tolls.push({ front: k, ...FRONTS[k].toll });
   });
   return { S: next, tolls };
