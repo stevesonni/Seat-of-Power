@@ -7043,20 +7043,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const godson = gN(rng(turn * 313 + state.length * 7), sd.zone, state);
       const partyMan = gN(rng(turn * 717 + state.length * 3), sd.zone, state);
       const pickS = (o) => { scFx(o.fx); setStc(p => ({ ...p, successor: o.who }));
-        if (fcRef.current && fcv && fcv.primary && !fcv.successor) cabCall("crown", { code: fcRef.current.code, key: fcRef.current.hostKey, seat: o.who.seat || null, name: o.who.name }).then(() => fcLoad()).catch(() => {}); addL("👑 You anointed " + o.who.name + " as your successor. " + o.log, "political"); scWiki("Governorship", "Endorsed " + o.who.name + " as successor."); };
+        const cv0 = fcvRef.current; if (fcRef.current && cv0 && cv0.primary && !cv0.successor) cabCall("crown", { code: fcRef.current.code, key: fcRef.current.hostKey, seat: o.who.seat || null, name: o.who.name }).then(() => fcLoad()).catch(() => {}); addL("👑 You anointed " + o.who.name + " as your successor. " + o.log, "political"); scWiki("Governorship", "Endorsed " + o.who.name + " as successor."); };
       const list = [
         { label: "Anoint your deputy, " + dep, note: "Loyal to the end. Not a crowd-puller.", fx: { pStab: -2 }, who: { name: dep, kind: "deputy", loyal: .85, elect: 40 }, log: "The party barons wanted their own man." },
         best ? { label: "Anoint Hon. " + best.minister + ", your best commissioner", note: "Competent and popular. Owes you less than you think.", fx: { pStab: -4, app: 2 }, who: { name: best.minister, kind: "technocrat", loyal: .55, elect: 53 }, log: "The public likes the choice; the party is restless." } : null,
         { label: "Anoint " + godson + ", your political son", note: "The barons love him. He has expensive friends and big appetites.", fx: { pStab: 4, cor: .03 }, who: { name: godson, kind: "godson", loyal: .6, elect: 47 }, log: "The party cheers. Contractors line up at his door." },
         { label: "Stay neutral: let the party decide", note: "No enemies today. No one owes you tomorrow.", fx: { pStab: 3 }, who: { name: partyMan, kind: "party", loyal: .4, elect: 46 }, log: "The party picks " + partyMan + "." },
       ].filter(Boolean);
-      // The cabinet of friends held a primary: its winner comes first.
-      const cabTop = fcv && !fcv.successor ? SYS.primaryStanding(fcv)[0] : null;
-      if (cabTop) list.unshift({ label: "Anoint " + cabTop.name + ", the cabinet's choice", note: cabTop.votes + " of your ministers' votes, and a record you know. The cabinet will stand behind them.", fx: { pStab: 1, app: 1 }, who: { name: cabTop.name, kind: "cabinet", seat: cabTop.seat, loyal: .8, elect: 50 }, log: "The cabinet stands behind the choice." });
+      // The cabinet of friends held a primary: its winner comes first. Looked up when the letter opens,
+      // so it is there even if the year's matters were drawn before the cabinet answered.
+      const cabOpt = () => { const cv = fcvRef.current, top = cv && !cv.successor ? SYS.primaryStanding(cv)[0] : null;
+        return top ? [{ label: "Anoint " + top.name + ", the cabinet's choice", note: top.votes + " of your ministers' votes, and a record you know. The cabinet will stand behind them.", fx: { pStab: 1, app: 1 }, who: { name: top.name, kind: "cabinet", seat: top.seat, loyal: .8, elect: 50 }, log: "The cabinet stands behind the choice." }] : []; };
       cards.push({ key: "succession", kicker: "Succession", color: CL.pur, art: ["party-convention-hall", "party-chairman"], title: "Who comes after you?",
         brief: "The primaries are months away. Whoever holds this office next decides what happens to your projects, and to your files. Immunity ends the day you leave.",
         stakes: "A loyal successor can protect you. A betrayed one hands your file to the EFCC.",
-        options: list.map(o => ({ label: o.label, note: o.note, chips: fxChips(o.fx).concat([{ text: "Loyalty " + Math.round(o.who.loyal * 100) + "%", color: CL.pur }, { text: "Electability " + o.who.elect, color: CL.blu }]), run: () => pickS(o) })) });
+        get options() { return [...cabOpt(), ...list].map(o => ({ label: o.label, note: o.note, chips: fxChips(o.fx).concat([{ text: "Loyalty " + Math.round(o.who.loyal * 100) + "%", color: CL.pur }, { text: "Electability " + o.who.elect, color: CL.blu }]), run: () => pickS(o) })); } });
     }
 
     // The nephew's ministry wastes money every year: from the bank first, then debt.
@@ -10371,6 +10372,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fcRef = React.useRef(fc); fcRef.current = fc;
   const OFFICE = NAT ? "president" : "governor";
   const [fcv, setFcv] = useState(null), [fcBusy, setFcBusy] = useState(false);
+  const fcvRef = React.useRef(null); fcvRef.current = fcv; // the year-end code may run from an older render
   const fcSent = React.useRef({}); // letter key → { id, stance } as last shared
   const fcLoad = () => { const F0 = fcRef.current; if (!F0) return Promise.resolve(null); return cabCall("view", { code: F0.code, key: F0.hostKey }).then(r => { setFcv(r.cab); fcEvents(r.cab); return r.cab; }).catch(() => null); };
   /* What the cabinet did that lands on the government: a private offer taken (corruption, unnamed),
@@ -10413,7 +10415,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fcWaiting = (key) => { const x = fcSent.current[key]; if (!x || !fcv) return null; const l = (fcv.letters || []).find(y => y.id === x.id); if (!l || l.advice || l.decided) return null; const m = ((fcv.seats || {})[l.seat] || {}).member; return m ? m.name : null; };
   const fcStrip = (key) => { const a = fcAdvice(key), w = !a && fcWaiting(key), x = fcSent.current[key], seat = x && fcv && ((fcv.letters || []).find(l => l.id === x.id) || {}).seat;
     if (!a && !w) return null; const S = SYS.seatById(seat) || {};
-    return <div className="recall" data-testid="cab-advice" style={{ background: a ? "#eef4ff" : "#f4efe3", borderLeftColor: a ? "#1f4f8f" : "#b8a77a" }}><span>{a ? <><b style={{ color: "#1f4f8f" }}>💬 {a.by} · {S.short || "your minister"} advises:</b> {x.stance ? "" : "“" + a.pick + "”"}{x.stance ? a.pick : ""}{a.note ? <> · <i>{a.note}</i></> : null}</> : <>⏳ Sent to <b>{w}</b> ({S.short || "the minister"}) for advice{fcv && fcv.closesAt ? " · " + hoursLeft(fcv.closesAt) : ""}.</>}</span></div>; };
+    return <div className="recall" data-testid="cab-advice" style={{ background: a ? "#eef4ff" : "#f4efe3", borderLeftColor: a ? "#1f4f8f" : "#b8a77a" }}><span>{a ? <><b style={{ color: "#1f4f8f" }}>💬 {a.by} · {S.short || "your minister"} advises:</b> {x.stance ? "" : "“" + a.pick + "”"}{x.stance ? a.pick : ""}{a.note ? <> · <i>{a.note}</i></> : null}</> : <>⏳ Sent to <b>{w}</b> ({S.short || "the minister"}) for advice{fcv && fcv.closesAt ? " · " + hoursLeft(fcv.closesAt) : ""}. <button onClick={(e) => { e.stopPropagation(); const L0 = (fcv.letters || []).find(l => l.id === x.id); waShare(remindText(String(w).split(" ")[0], NAT ? "the President" : "the Governor", [L0 ? L0.title : "a letter"], fcRef.current.code)); }} style={{ border: 0, background: "#128c4a", color: "#fff", borderRadius: 999, padding: "2px 10px", fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>📬 Remind</button></>}</span></div>; };
   // The end of the term: the cabinet's card goes to everyone.
   useEffect(() => { const F0 = fcRef.current; if (!gEnd || !F0) return; cabCall("end", { code: F0.code, key: F0.hostKey, endYear: absYear, why: String(gEnd) }).then(() => fcLoad()).then(v => { const card = SYS.shareCard(v); if (!card || !card.rows.length) return;
     setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/council-table-state.webp", icon: "👥", title: card.head, text: card.rows.map(r => r.name + ", " + r.t + ": " + r.word).join(". ") + ".", tone: "good", action: { label: "Share on WhatsApp", fn: () => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname) } }); } catch (e) {} }, 2500); }).catch(() => {}); }, [gEnd]);
@@ -15824,6 +15826,9 @@ const ExecutiveCommandSA = ({ adviser, brief, inbox, vacantTurns, onFire }) => {
 const cabCall = (op, b) => fetch("/api/cab/" + op, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b || {}) })
   .then(r => r.json().catch(() => ({})).then(j => { if (!r.ok) { const e = new Error(j.error || "http_" + r.status); e.code = j.error || "http_" + r.status; e.status = r.status; throw e; } return j; }));
 const cabLink = (code, seat, inv) => SYS.inviteUrl(location.origin + location.pathname, code, seat, inv);
+// A minister's desk, for reminders: the phone that holds the seat opens straight to it.
+const deskLink = (code) => location.origin + location.pathname + "?desk=" + encodeURIComponent(code);
+const remindText = (name, chief, titles, code) => "📬 " + name + ", " + chief + " needs your advice on “" + titles[0] + "”" + (titles.length > 1 ? " and " + (titles.length - 1) + " more" : "") + ". Open your desk before the year closes: " + deskLink(code);
 const waShare = (text) => { const u = "https://wa.me/?text=" + encodeURIComponent(text); try { if (navigator.share) { navigator.share({ text }).catch(() => {}); return; } } catch (e) {} try { window.open(u, "_blank"); } catch (e) { location.href = u; } };
 const copyText = (t) => { try { navigator.clipboard.writeText(t); window.SOP_toast && window.SOP_toast("Link copied", "ok"); } catch (e) {} };
 // This phone's seats in friends' governments: [{ code, seat, key, name, gov, state }].
@@ -15877,7 +15882,7 @@ const FriendsCabinet = ({ fc, view, busy, onForm, onSack, onReinvite, onMove, on
         <img src={seatArt(x.id, office)} alt="" style={{ width: 54, height: 64, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: "#e8f3ea" }} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: "#8a7a55", textTransform: "uppercase", letterSpacing: .6 }}>{x.i} {x.t}</div>
-          {m ? <><b style={{ fontSize: 18 }}>{m.name}</b>
+          {m ? <><b style={{ fontSize: 18 }}>{m.name}</b>{(() => { const W = (V.letters || []).filter(l => l.seat === x.id && !l.advice && !l.decided); return W.length && !V.ended ? <button className="sp-btn" data-testid="cab-remind" style={{ minHeight: 32, padding: "4px 12px", fontSize: 13, marginLeft: 8, background: "#128c4a" }} onClick={() => waShare(remindText(m.name.split(" ")[0], pres ? "the President" : "the Governor", W.map(l => l.title), fc.code))}>📬 {W.length} waiting · Remind</button> : null; })()}
             <div style={{ ...small, fontSize: 14 }}>{SYS.ministerWord(r)} · {SYS.loyaltyWord(r.loyalty)} ({r.loyalty == null ? 70 : r.loyalty}) · {recLine(r)}</div>
             <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}><button className="sp-btn ghost" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14 }} onClick={() => onSack(x.id, m.name)}>Sack</button>
               {empty.length > 0 && <button className="sp-btn ghost" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14 }} onClick={() => setMoving(moving === x.id ? null : x.id)}>Move…</button>}</div>
@@ -15900,13 +15905,25 @@ const MinisterApp = ({ onExit }) => {
   const pend = q.get("cab") && q.get("seat") && q.get("inv") ? { code: q.get("cab").toUpperCase(), seat: q.get("seat"), invite: q.get("inv") } : null;
   const [stage, setStage] = useState(pend ? "loading" : "desk");
   const [nom, setNom] = useState(null), [err, setErr] = useState(null), [name, setName] = useState(""), [ans, setAns] = useState(null);
-  const [mem, setMem] = useState(() => { const L = cabMems(); return L[L.length - 1] || null; });
+  const [mem, setMem] = useState(() => { const L = cabMems(), d = String(q.get("desk") || "").toUpperCase(); return (d && L.filter(x => x.code === d).pop()) || L[L.length - 1] || null; });
+  const [away, setAway] = useState(null); // what happened since this phone last opened the desk
   const [cab, setCab] = useState(null), [draft, setDraft] = useState({}), [sending, setSending] = useState(null), [bid, setBid] = useState(null);
   const clearUrl = () => { try { history.replaceState(null, "", location.pathname); } catch (e) {} };
+  useEffect(() => { if (q.get("desk")) clearUrl(); }, []);
   useEffect(() => { if (!pend) { if (!mem) cabMemsSync().then(L => { if (L.length) setMem(L[L.length - 1]); else onExit(); }); return; }
     cabCall("invite", pend).then(r => { setNom(r); setStage(r.ended ? "error" : "nominated"); if (r.ended) setErr("This government's term is over."); })
       .catch(e => { const had = cabMems().find(x => x.code === pend.code && x.seat === pend.seat); if (had) { clearUrl(); setMem(had); setStage("desk"); return; } setErr(e.code === "taken" ? "Someone has already accepted this seat. Ask the Governor for a new link." : e.code === "bad_invite" ? "This invite link is no longer valid. Ask the Governor for a new one." : "We could not reach the cabinet. Check your connection and open the link again."); setStage("error"); }); }, []);
-  const load = () => mem ? cabCall("view", { code: mem.code, key: mem.key }).then(r => { setCab(r.cab); setErr(null); }).catch(e => { if (e.status === 403) setErr("You are no longer in this government: the Governor gave your seat to someone else."); else if (!cab) setErr("We could not reach the cabinet. Pull to refresh in a moment."); }) : null;
+  const awayDone = React.useRef(false);
+  const awayCheck = (C) => { if (awayDone.current || !mem) return; awayDone.current = true;
+    const k = "sop_cab_seen_" + mem.code + "_" + mem.seat; let prev = null; try { prev = JSON.parse(localStorage.getItem(k) || "null"); } catch (e) {}
+    try { localStorage.setItem(k, JSON.stringify({ at: Date.now(), year: C.year || 0 })); } catch (e) {}
+    if (!prev || !prev.at) return;
+    const me0 = (C.me || {}).seat, mineD = (C.letters || []).filter(l => l.seat === me0 && l.decided && l.decided.at > prev.at && l.advice).map(l => ({ t: (l.decided.followed ? "✔ Your advice was taken: " : l.decided.followed === false ? "✖ You were overruled on " : "Signed: ") + l.title }));
+    const log = (C.log || []).filter(l => l.at > prev.at).map(l => ({ t: (l.year ? "Year " + l.year + ": " : "") + l.t }));
+    const paper = (C.papers || []).find(p => p.year > (prev.year || 0) || (C.year === prev.year && false));
+    const items = [...mineD, ...log.reverse()].slice(0, 7);
+    if (items.length || paper || (C.year || 0) > (prev.year || 0)) setAway({ items, paper: (C.year || 0) > (prev.year || 0) ? (C.papers || [])[0] : null, years: Math.max(0, (C.year || 0) - (prev.year || 0)) }); };
+  const load = () => mem ? cabCall("view", { code: mem.code, key: mem.key }).then(r => { setCab(r.cab); setErr(null); awayCheck(r.cab); }).catch(e => { if (e.status === 403) setErr("You are no longer in this government: the Governor gave your seat to someone else."); else if (!cab) setErr("We could not reach the cabinet. Pull to refresh in a moment."); }) : null;
   useEffect(() => { if (stage !== "desk" || !mem) return; load(); const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 20000); return () => clearInterval(t); }, [stage, mem && mem.code + mem.seat]);
   const page = { minHeight: "100vh", background: "#f6f2ea", fontFamily: F.b, color: "#17301f", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px 40px" };
   const wrap = { maxWidth: 640, margin: "0 auto" };
@@ -15973,6 +15990,13 @@ const MinisterApp = ({ onExit }) => {
         <div style={{ ...small, fontSize: 14 }}>{C.year ? "Year " + C.year + (sn.absYear ? " (" + sn.absYear + ")" : "") + (C.closesAt && !C.ended ? " · " + hoursLeft(C.closesAt) + " to advise" : "") : "The Governor has not opened the first year yet."} · {SYS.ministerWord(myRec)} · {SYS.loyaltyWord(myRec.loyalty)}</div></div>
     </div>
     {err && <div style={{ ...box, background: "#fff4f2", color: "#a3271c" }}>{err}</div>}
+    {away && <div style={{ ...box, background: "#eef4ff", border: "1px solid #c9d6ea" }} data-testid="cab-away">
+      <div className="sp-kicker" style={{ color: "#1f4f8f" }}>While you were away{away.years > 0 ? " · " + away.years + " year" + (away.years === 1 ? "" : "s") + " passed" : ""}</div>
+      {away.paper && <div style={{ fontFamily: F.d, fontSize: 19, fontWeight: 700, margin: "6px 0", color: away.paper.good ? "#17301f" : "#a3271c" }}>📰 {away.paper.headline}</div>}
+      {away.items.map((x, i) => <div key={i} style={{ fontSize: 15, lineHeight: 1.45, marginTop: 4 }}>{x.t}</div>)}
+      {!away.items.length && !away.paper && <div style={{ ...small, marginTop: 4 }}>A new year has opened. Nothing else changed.</div>}
+      <button className="sp-btn quiet" onClick={() => setAway(null)} style={{ marginTop: 6 }}>Got it</button>
+    </div>}
     {C.successor && <div style={{ ...box, background: "#f3ecff" }}><div className="sp-kicker">The succession</div><div style={{ fontSize: 17, marginTop: 4 }}>👑 {Lead} has anointed <b>{C.successor.name}</b>{C.successor.seat === me ? " (you!)" : C.successor.seat ? ", the cabinet's choice" : ", from outside the cabinet"}.</div>
       {C.successor.seat === me && <button className="sp-btn gold" style={{ width: "100%", marginTop: 10 }} onClick={() => { clearUrl(); onExit(); }}>Run for {pres ? "President" : "Governor"} yourself: start your own game</button>}</div>}
     {former && C.former && <div style={{ ...box, background: "#fff8e6" }} data-testid="cab-former">
@@ -16059,7 +16083,7 @@ function App() {
     return () => window.removeEventListener("resize", on);
   }, []);
   // A friend's invite link (?cab=…) opens the cabinet desk instead of the title.
-  const [scr, setScr] = useState(() => { try { return new URLSearchParams(location.search).get("cab") ? "cab" : "title"; } catch (e) { return "title"; } });
+  const [scr, setScr] = useState(() => { try { const q = new URLSearchParams(location.search); return q.get("cab") || (q.get("desk") && cabMems().length) ? "cab" : "title"; } catch (e) { return "title"; } });
   const [level, setLevel] = useState("medium");
   const [setup, setSetup] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
