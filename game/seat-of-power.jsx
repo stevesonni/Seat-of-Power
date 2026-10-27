@@ -5111,7 +5111,8 @@ const presidentialScreen = () => {
   };
   // A painted background set in CSS (SceneArt): the same swap.
   const bgi = (el) => { const st = el.getAttribute && el.getAttribute("style"); if (!st || st.indexOf("art/backgrounds/") < 0) return; const m = /art\/backgrounds\/([a-z0-9-]+)\.webp/.exec(st); if (m && ART[m[1]]) el.setAttribute("style", st.replace("backgrounds/" + m[1] + ".webp", "backgrounds/" + ART[m[1]] + ".webp")); };
-  const text = (t) => { const p = t.parentNode; if (!p || /^(TEXTAREA|SCRIPT|STYLE)$/.test(p.nodeName)) return; const v = t.nodeValue, w = W(v); if (w !== v) t.nodeValue = w; };
+  // [data-nowords]: a panel that speaks of real governors and states (the federation) keeps its words.
+  const text = (t) => { const p = t.parentNode; if (!p || /^(TEXTAREA|SCRIPT|STYLE)$/.test(p.nodeName) || (p.closest && p.closest("[data-nowords]"))) return; const v = t.nodeValue, w = W(v); if (w !== v) t.nodeValue = w; };
   const all = (n) => {
     if (n.nodeType === 3) return text(n);
     if (n.nodeType !== 1) return;
@@ -5371,7 +5372,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
       houseBillsSeen, investorsSeen, investorsApproved, godfatherSeen, mediaSeen,
       ministries, projects, procLog, council, fedCouncils, wikiEvents, nepotismCount, saMemory, saOffice, gEnd, setup,
-      cast, cosOffice, mail: (mail || []).filter(l => l.live), fc,
+      cast, cosOffice, mail: (mail || []).filter(l => l.live), fc, fed,
     };
   };
   const saveGame = async () => {
@@ -10416,6 +10417,54 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const fcStrip = (key) => { const a = fcAdvice(key), w = !a && fcWaiting(key), x = fcSent.current[key], seat = x && fcv && ((fcv.letters || []).find(l => l.id === x.id) || {}).seat;
     if (!a && !w) return null; const S = SYS.seatById(seat) || {};
     return <div className="recall" data-testid="cab-advice" style={{ background: a ? "#eef4ff" : "#f4efe3", borderLeftColor: a ? "#1f4f8f" : "#b8a77a" }}><span>{a ? <><b style={{ color: "#1f4f8f" }}>💬 {a.by} · {S.short || "your minister"} advises:</b> {x.stance ? "" : "“" + a.pick + "”"}{x.stance ? a.pick : ""}{a.note ? <> · <i>{a.note}</i></> : null}</> : <>⏳ Sent to <b>{w}</b> ({S.short || "the minister"}) for advice{fcv && fcv.closesAt ? " · " + hoursLeft(fcv.closesAt) : ""}. <button onClick={(e) => { e.stopPropagation(); const L0 = (fcv.letters || []).find(l => l.id === x.id); waShare(remindText(String(w).split(" ")[0], NAT ? "the President" : "the Governor", [L0 ? L0.title : "a letter"], fcRef.current.code)); }} style={{ border: 0, background: "#128c4a", color: "#fff", borderRadius: 999, padding: "2px 10px", fontWeight: 800, cursor: "pointer", fontFamily: F.b }}>📬 Remind</button></>}</span></div>; };
+  // ── Linked governments: the President's federation, or a governorship linked into a friend's ──
+  const [fed, setFed] = useState(() => (ld && ld.fed) || null); // President: { code, key, invite, role: "pres" } · Governor: { code, key, role: "gov", pres }
+  const fedRef = React.useRef(fed); fedRef.current = fed;
+  const [fedv, setFedv] = useState(null), [fedBusy, setFedBusy] = useState(false);
+  const fedDone = React.useRef(new Set());
+  const fedEvents = (v) => { const F0 = fedRef.current, E = ((v && v.events) || []).filter(e => !fedDone.current.has(e.id)); if (!F0 || !E.length || gEnd) return;
+    E.forEach(e => { fedDone.current.add(e.id);
+      if (F0.role === "gov") {
+        if (e.kind === "grant") { setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + e.amountB) * 100) / 100 })); setFgRelation(r => Math.min(100, r + 5)); addL("🇳🇬 President " + e.from + " sent ₦" + e.amountB + "B to " + stName + (e.asked ? ", as you asked." : "."), "success");
+          setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/villa-office.webp", icon: "🇳🇬", title: "₦" + e.amountB + "B from Abuja", text: "President " + e.from + " has sent " + stName + " a grant" + (e.asked ? ", as you asked" : "") + ". It is in the bank.", tone: "good", rows: [{ l: "In the bank", v: "+" + naira(e.amountB), good: true }, { l: "Standing with Abuja", v: "+5", good: true }] }); } catch (x) {} }, 600); }
+        if (e.kind === "project") { const P0 = FED_PROJ[e.project] || FED_PROJ.road, stat = e.project === "hospital" ? "hp" : e.project === "university" ? "lit" : "infra";
+          setS(p => ({ ...p, [stat]: cl((p[stat] || 0) + .02), app: cl100(p.app + 2) })); setFgRelation(r => Math.min(100, r + 8)); addL("🇳🇬 President " + e.from + " is building a " + P0[1].toLowerCase() + " in " + stName + ".", "success");
+          setTimeout(() => paper(P0[1].toUpperCase() + " FOR " + stName.toUpperCase(), "President " + e.from + " picks " + stName + (e.asked ? ", answering the Governor's request" : ""), true, "./art/scenes/news-signing-ceremony.webp"), 600); }
+        if (e.kind === "refused") { setFgRelation(r => Math.max(0, r - 6)); addL("🇳🇬 President " + e.from + " turned down " + stName + "'s request.", "political"); }
+        if (e.kind === "forum") { setFgRelation(r => Math.max(0, Math.min(100, r + (e.pos === "for" ? 5 : -5)))); if (e.pos === "against") setS(p => ({ ...p, app: cl100(p.app + 1) }));
+          addL("🏛️ The Governors' Forum " + (e.passed ? "backed" : "rejected") + " the President. You voted " + (e.pos === "for" ? "with him." : "against him."), "political"); }
+        if (e.kind === "removed") { addL("🇳🇬 President " + e.from + " has cut " + stName + " out of the federation.", "crisis"); setFgRelation(r => Math.max(0, r - 10)); }
+      } else {
+        if (e.kind === "joined") addL(KEEP("🇳🇬 Governor " + e.name + " of " + e.state + " joined your federation."), "success");
+        if (e.kind === "ask") { const P0 = e.ask === "grant" ? null : FED_PROJ[e.ask] || FED_PROJ.road; addL(KEEP("📨 Governor " + e.name + " of " + e.state + " asks for " + (P0 ? "a " + P0[1].toLowerCase() : "a ₦2B grant") + "."), "political");
+          setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/villa-office.webp", icon: "📨", title: KEEP(e.state + " asks for " + (P0 ? "a " + P0[1].toLowerCase() : "a ₦2B grant")), text: KEEP("Governor " + e.name + (e.note ? ": “" + e.note + "”" : " is waiting for your answer.")), tone: "neutral", ok: "Later", action: { label: "Approve (₦" + (P0 ? P0[2] : 2) + "B)", fn: () => fedAnswer({ id: e.rid, state: e.state, kind: e.ask }, true) } }); } catch (x) {} }, 600); }
+        if (e.kind === "forum" && e.voted) { setS(p => ({ ...p, pStab: cl100(p.pStab + (e.passed ? 3 : -3)), app: cl100(p.app + (e.passed ? 1 : -1)) }));
+          setTimeout(() => paper(KEEP("GOVERNORS " + (e.passed ? "BACK" : "REJECT") + " THE PRESIDENT"), KEEP(String(e.q).replace(/^The President proposes /, "On ").replace(/\.$/, "") + ": " + e.yes + " for, " + e.no + " against"), e.passed, "./art/backgrounds/council-table-federal.webp"), 800); }
+      }
+    });
+    fedCall("seen", { code: F0.code, key: F0.key, ids: E.map(e => e.id) }).catch(() => {}); };
+  const fedLoad = () => { const F0 = fedRef.current; if (!F0) return Promise.resolve(null); return fedCall("view", { code: F0.code, key: F0.key }).then(r => { setFedv(r.fed); fedEvents(r.fed); return r.fed; }).catch(() => null); };
+  useEffect(() => { if (!fed) return; fedLoad(); const t = setInterval(() => { if (document.visibilityState === "visible") fedLoad(); }, 30000); return () => clearInterval(t); }, [fed && fed.code]);
+  // A governorship opened from a President's link joins now, with this state.
+  useEffect(() => { const P0 = fedPending(); if (NAT || fed || !P0 || turn < 1 || gEnd) return;
+    fedCall("join", { code: P0.code, invite: P0.invite, name: pName, state: stName }).then(r => { try { localStorage.removeItem(FED_PENDING); } catch (e) {} const F0 = { code: P0.code, key: r.key, role: "gov", pres: r.pres }; setFed(F0); fedRef.current = F0; setSaveTick(t => t + 1); track("federation", "joined");
+      setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/villa-office.webp", icon: "🇳🇬", title: stName + " joins President " + r.pres + "'s federation", text: "The President's grants and federal projects now reach your state, and you can ask for them. Each year the Governors' Forum votes on the President's proposal. Find it under People → Cabinet.", tone: "good" }); } catch (e) {} }, 800); fedLoad(); })
+      .catch(e => { try { localStorage.removeItem(FED_PENDING); } catch (x) {} try { window.SOP_outcome && window.SOP_outcome({ icon: "🇳🇬", title: "Could not join the federation", text: e.code === "state_taken" ? stName + " already has a governor in that federation." : e.code === "full" ? "That federation already has eight states." : "The invitation is no longer valid. Ask the President for a new link.", tone: "bad" }); } catch (x) {} }); }, [turn]);
+  // Each side shares its numbers; the President's year turn closes the forum.
+  useEffect(() => { const F0 = fedRef.current; if (!F0 || gEnd) return; const t = setTimeout(() => {
+    if (F0.role === "pres") fedCall("publish", { code: F0.code, key: F0.key, year: turn, snap: { app: s.app, absYear } }).then(() => fedLoad()).catch(() => {});
+    else fedCall("gpublish", { code: F0.code, key: F0.key, year: turn, snap: { app: s.app, cash: s.cash || 0, absYear } }).catch(() => {}); }, 1200); return () => clearTimeout(t); }, [turn, fed && fed.code, Math.round(s.app)]);
+  const fedCreate = () => { setFedBusy(true); fedCall("create", { presName: pName, startYear: setup?.startYear || 2031 }).then(r => { const F0 = { code: r.code, key: r.presKey, invite: r.invite, role: "pres" }; setFed(F0); fedRef.current = F0; setSaveTick(t => t + 1); track("federation", "created"); setTimeout(() => { fedCall("publish", { code: r.code, key: r.presKey, year: turn, snap: { app: s.app, absYear } }).then(() => fedLoad()).catch(() => {}); }, 50); })
+    .catch(() => { try { window.SOP_outcome && window.SOP_outcome({ icon: "📵", title: "Could not reach the federation office", text: "Inviting the governors needs a connection. Try again in a moment.", tone: "bad" }); } catch (e) {} }).finally(() => setFedBusy(false)); };
+  const fedAct = (op, body, then, fail) => { const F0 = fedRef.current; if (!F0) return; setFedBusy(true); fedCall(op, { code: F0.code, key: F0.key, ...(body || {}) }).then(r => { then && then(r); fedLoad(); })
+    .catch(e => { fail && fail(); try { window.SOP_toast && window.SOP_toast(e.code === "once_a_year" ? "Once a year for each state" : e.code === "already_asking" ? "Your last request is still on the President's desk" : "Not sent. Try again.", "bad"); } catch (x) {} }).finally(() => setFedBusy(false)); };
+  // Paid first (from the bank, or borrowed as for anything else); refunded if the federation office cannot be reached.
+  const fedPay = (cost, what, op, body, then) => { if (!spendB(cost, what)) return; fedAct(op, body, then, () => setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + cost) * 100) / 100 }))); };
+  const fedGrant = (st) => fedPay(2, KEEP("A grant to " + st), "grant", { state: st, amountB: 2 }, () => addL(KEEP("💰 Sent ₦2B to " + st + "."), "policy"));
+  const fedProject = (st, kind) => { const P0 = FED_PROJ[kind] || FED_PROJ.road; fedPay(P0[2], KEEP(P0[1] + " in " + st), "project", { state: st, kind }, () => addL(KEEP("🏗️ Sited a " + P0[1].toLowerCase() + " in " + st + "."), "policy")); };
+  const fedAnswer = (r0, yes) => { if (!yes) return fedAct("answer", { id: r0.id, yes: false }, () => addL(KEEP("🇳🇬 Turned down " + r0.state + "."), "political"));
+    const c = r0.kind === "grant" ? 2 : (FED_PROJ[r0.kind] || FED_PROJ.road)[2]; fedPay(c, KEEP("Answering " + r0.state), "answer", { id: r0.id, yes: true }, () => addL(KEEP("🇳🇬 Granted " + r0.state + "'s request."), "policy")); };
+  const fedRemove = async (st, nm) => { if (!(await window.SOP_confirm(KEEP("Cut " + st + " out of the federation?\n\nGovernor " + nm + " keeps playing, but your grants and the Forum no longer reach them."), "Cut them off", "Keep them"))) return; fedAct("remove", { state: st }); };
   // The end of the term: the cabinet's card goes to everyone.
   useEffect(() => { const F0 = fcRef.current; if (!gEnd || !F0) return; cabCall("end", { code: F0.code, key: F0.hostKey, endYear: absYear, why: String(gEnd) }).then(() => fcLoad()).then(v => { const card = SYS.shareCard(v); if (!card || !card.rows.length) return;
     setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/council-table-state.webp", icon: "👥", title: card.head, text: card.rows.map(r => r.name + ", " + r.t + ": " + r.word).join(". ") + ".", tone: "good", action: { label: "Share on WhatsApp", fn: () => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname) } }); } catch (e) {} }, 2500); }).catch(() => {}); }, [gEnd]);
@@ -11193,7 +11242,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["🗑️ Start afresh: a new politician", () => startAfresh()],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
-    ["👥 " + (fc ? "Your government of friends" : cabOpen() ? "Govern with your friends" : "Govern with your friends · coming soon"), () => { setMenuOpen(false); if (fc || cabOpen()) setNav("cab"); else cabSoon(); }],
+    ["👥 " + (fc ? "Your government of friends" : fed && !NAT ? "President " + (fed.pres || "") + "'s federation" : cabOpen() ? "Govern with your friends" : "Govern with your friends · coming soon"), () => { setMenuOpen(false); if (fc || fed || cabOpen()) setNav("cab"); else cabSoon(); }],
     ...(!VATAR && window.SOP_installable && window.SOP_installable() ? [["📲 Install the app", () => { try { window.SOP_install(); } catch (e) {} }]] : []),
     ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .3; return v === 0 ? "off" : Math.round(v * 100) + "%"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .3 : v < .5 ? .6 : v < .9 ? 1 : 0); setMenuOpen(false); } catch (e) {} }],
     ["Tell us what to improve", () => { try { window.SOP_feedbackForm({ where: nav, year: absYear, state: stName }); } catch (e) {} }, "icon-ask-sa"],
@@ -14279,6 +14328,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
 
         {nav === "cab" && <div>
           <FriendsCabinet fc={fc} view={fcv} busy={fcBusy} onForm={fcForm} onSack={fcSack} onReinvite={fcReinvite} onMove={fcMove} onRefresh={fcLoad} govName={pName} stName={stName} office={OFFICE} />
+          {(fed || (NAT && (fc || cabOpen()))) && <FedPanel role={NAT ? "pres" : "gov"} fed={fed} view={fedv} busy={fedBusy} stName={stName} onCreate={fedCreate} onGrant={fedGrant} onProject={fedProject} onAnswer={fedAnswer} onRemove={fedRemove}
+            onAsk={(kind) => fedAct("ask", { kind }, () => { try { window.SOP_toast && window.SOP_toast("Your request is on the President's desk", "ok"); } catch (e) {} })} onVote={(pos) => fedAct("vote", { pos })} />}
           {ministries && ministries.length > 0 && <div style={{ marginBottom: 50 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(50), fontWeight: 600, margin: 1 }}>🏛️ Executive Council — Your Ministries ({ministries.length})</h3>
@@ -15855,7 +15906,7 @@ const FriendsCabinet = ({ fc, view, busy, onForm, onSack, onReinvite, onMove, on
     <h3 style={{ fontFamily: F.d, fontSize: 28, margin: "8px 0 6px" }}>👥 Govern with your friends</h3>
     <div style={small}>Give your friends the portfolios. Their letters reach their phones: they advise, you sign. Overrule them and they remember. It is almost ready.</div>
   </div>;
-  if (!fc) return <div style={box} data-testid="cab-form">
+  if (!fc) return <div style={box} data-testid="cab-form" data-nowords="">
     <img src="./art/backgrounds/council-table-state.webp" alt="The Executive Council table" style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
     <div className="sp-kicker">New · play with friends</div>
     <h3 style={{ fontFamily: F.d, fontSize: 28, margin: "6px 0 6px" }}>👥 Govern with your friends</h3>
@@ -15869,7 +15920,7 @@ const FriendsCabinet = ({ fc, view, busy, onForm, onSack, onReinvite, onMove, on
   </div>;
   const V = view || {}, seats = V.seats || {}, inv = fc.invites || {};
   const card = SYS.shareCard(V.seats ? V : null), empty = SEATS.filter(x => !(seats[x.id] || {}).member), stand = SYS.primaryStanding(V);
-  return <div style={box} data-testid="cab-panel">
+  return <div style={box} data-testid="cab-panel" data-nowords="">
     <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
       <h3 style={{ fontFamily: F.d, fontSize: 26, margin: 0 }}>👥 Your government of friends</h3>
       <span style={{ fontSize: 14, color: "#8a7a55" }}>Code {fc.code}{V.hard ? " · hard politics" : ""}{V.year ? " · year " + V.year + (V.closesAt && !V.ended ? " · " + hoursLeft(V.closesAt) + " for advice" : "") : ""}</span>
@@ -16074,6 +16125,66 @@ const MinisterApp = ({ onExit }) => {
   </div></div>;
 };
 
+// ─── LINKED GOVERNMENTS: a President's game and friends' governorships (server/federation.mjs) ───
+const fedCall = (op, b) => fetch("/api/fed/" + op, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b || {}) })
+  .then(r => r.json().catch(() => ({})).then(j => { if (!r.ok) { const e = new Error(j.error || "http_" + r.status); e.code = j.error || "http_" + r.status; e.status = r.status; throw e; } return j; }));
+const fedLink = (code, inv) => location.origin + location.pathname + "?fed=" + encodeURIComponent(code) + "&inv=" + encodeURIComponent(inv);
+const FED_PENDING = "sop_fed_pending"; // { code, invite, pres }: a governorship waiting to join
+const fedPending = () => { try { return JSON.parse(localStorage.getItem(FED_PENDING) || "null"); } catch (e) { return null; } };
+// In the President's game the screen turns "governor" into "president"; a word joiner keeps the federation's governors and states as they are.
+const KEEP = (t) => String(t).replace(/([Gg])(overnor)/g, "$1\u2060$2").replace(/\bGov\. /g, "Gov\u2060. ").replace(/\b([Ss])(tates?)\b/g, "$1\u2060$2");
+const FED_PROJ = { road: ["🛣️", "Federal road", 3], hospital: ["🏥", "Federal medical centre", 3], university: ["🎓", "Federal university", 4] };
+
+const FedPanel = ({ role, fed, view, busy, onCreate, onGrant, onProject, onAnswer, onAsk, onVote, onRemove, stName }) => {
+  const box = { background: "#fffdf8", border: "1px solid #e7dcc4", borderRadius: 22, padding: TALL() ? "14px 14px" : "18px 22px", marginBottom: 22, fontFamily: F.b, color: "#17301f" };
+  const small = { fontSize: 15, color: "#5b6b55", lineHeight: 1.45 }, chip = { minHeight: 36, padding: "4px 12px", fontSize: 14 };
+  const V = view || {}, F0 = V.forum, L0 = V.lastForum;
+  if (role === "pres" && !fed) return <div style={box} data-testid="fed-form" data-nowords="">
+    <div className="sp-kicker">Play with friends · the federation</div>
+    <h3 style={{ fontFamily: F.d, fontSize: 26, margin: "6px 0" }}>🇳🇬 Link your friends' governorships</h3>
+    <div style={small}>Friends who play the governorship join with their state. Your grants and federal projects land in their games; their requests land on your desk; each year the Governors' Forum votes on your proposal.</div>
+    <button className="sp-btn" disabled={busy} style={{ width: "100%", marginTop: 12 }} onClick={onCreate}>{busy ? "Inviting…" : "Invite the governors"}</button>
+  </div>;
+  if (!fed) return null;
+  const forumBox = F0 && <div style={{ background: "#f3ecff", borderRadius: 14, padding: "10px 12px", marginTop: 12 }} data-testid="fed-forum">
+    <div className="sp-kicker">The Governors' Forum · year {F0.year}</div>
+    <div style={{ fontSize: 16, margin: "4px 0" }}>{F0.q}</div>
+    {role === "gov" ? <div style={{ display: "flex", gap: 8, marginTop: 6 }}>{[["for", "Back the President"], ["against", "Oppose it"]].map(([p, l]) => <button key={p} className="sp-btn ghost" aria-pressed={F0.votes[stName] === p} disabled={busy || V.me.left} style={{ ...chip, background: F0.votes[stName] === p ? "#0b6b42" : undefined, color: F0.votes[stName] === p ? "#fff" : undefined }} onClick={() => onVote(p)}>{F0.votes[stName] === p ? "✔ " : ""}{l}</button>)}</div>
+      : <div style={small}>{Object.keys(F0.votes).length ? Object.entries(F0.votes).map(([s2, p]) => s2 + (p === "for" ? " ✔" : " ✖")).join(" · ") : "No votes yet."} The vote closes when you end the year.</div>}
+    {role === "gov" && <div style={{ ...small, fontSize: 13, marginTop: 6 }}>Backing the President raises your standing with Abuja; opposing it pleases your own people.</div>}
+  </div>;
+  const lastBox = L0 && <div style={{ ...small, fontSize: 14, marginTop: 8 }}>Last year the Forum {L0.passed ? "backed" : "rejected"} the President, {L0.yes} to {L0.no}.</div>;
+  if (role === "pres") return <div style={box} data-testid="fed-panel" data-nowords="">
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+      <h3 style={{ fontFamily: F.d, fontSize: 24, margin: 0 }}>🇳🇬 Your friends' states</h3><span style={{ fontSize: 14, color: "#8a7a55" }}>Code {fed.code}</span></div>
+    <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
+      <button className="sp-btn" style={{ ...chip, background: "#128c4a" }} onClick={() => waShare("🦅 President " + ((V.pres || {}).name || "") + " invites your governorship into the federation in Seat of Power. Tap to link your state: " + fedLink(fed.code, fed.invite))}>Invite a governor on WhatsApp</button>
+      <button className="sp-btn ghost" style={chip} onClick={() => copyText(fedLink(fed.code, fed.invite))}>Copy link</button></div>
+    {!(V.govs || []).length && <div style={{ ...small, marginTop: 10 }}>No governor has joined yet. Any friend playing a governorship can join with their state.</div>}
+    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>{(V.govs || []).map(g => { const asks = (V.requests || []).filter(r => r.state === g.state && !r.answer);
+      return <div key={g.state} style={{ background: "#f8f2e3", borderRadius: 16, padding: "10px 12px" }} data-testid="fed-gov">
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}><b style={{ fontSize: 17 }}>{g.state} · Gov. {g.name}</b><span style={{ ...small, fontSize: 13 }}>Standing with you {g.fg}/100{g.snap && g.snap.app != null ? " · approval " + Math.round(g.snap.app) + "%" : ""}</span></div>
+        {asks.map(r => <div key={r.id} style={{ marginTop: 6, background: "#fff", borderRadius: 12, padding: "8px 10px" }}><div style={{ fontSize: 15 }}>📨 Asks for {r.kind === "grant" ? "a ₦2B grant" : (FED_PROJ[r.kind] || FED_PROJ.road)[1].toLowerCase()}{r.note ? ": “" + r.note + "”" : ""}</div>
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}><button className="sp-btn" style={chip} disabled={busy} onClick={() => onAnswer(r, true)}>Approve (₦{r.kind === "grant" ? 2 : (FED_PROJ[r.kind] || FED_PROJ.road)[2]}B)</button><button className="sp-btn ghost" style={chip} disabled={busy} onClick={() => onAnswer(r, false)}>Decline</button></div></div>)}
+        <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+          <button className="sp-btn ghost" style={chip} disabled={busy} onClick={() => onGrant(g.state)}>💰 Grant ₦2B</button>
+          {Object.entries(FED_PROJ).map(([k, [i, l, c]]) => <button key={k} className="sp-btn ghost" style={chip} disabled={busy} onClick={() => onProject(g.state, k)}>{i} {l} ₦{c}B</button>)}
+          <button className="sp-btn quiet" style={chip} onClick={() => onRemove(g.state, g.name)}>Cut off</button></div>
+      </div>; })}</div>
+    {forumBox}{lastBox}
+    {(V.log || []).length > 0 && <div style={{ marginTop: 12 }}><div className="sp-kicker">The federation</div>{V.log.slice(-4).reverse().map((l, i) => <div key={i} style={{ ...small, fontSize: 14, marginTop: 4 }}>{l.t}</div>)}</div>}
+  </div>;
+  const me = (V.govs || []).find(g => g.state === stName) || {}, open = (V.requests || []).find(r => !r.answer);
+  return <div style={box} data-testid="fed-panel" data-nowords="">
+    <h3 style={{ fontFamily: F.d, fontSize: 24, margin: 0 }}>🇳🇬 President {(V.pres || {}).name || ""}'s federation</h3>
+    <div style={{ ...small, marginTop: 4 }}>{V.me && V.me.left ? "The President has cut " + stName + " off. You can still read what happens." : "Your standing with the President: " + (me.fg == null ? 50 : me.fg) + "/100. Other states: " + ((V.govs || []).filter(g => g.state !== stName).map(g => g.state + " (" + g.name + ")").join(", ") || "none yet") + "."}</div>
+    {!(V.me && V.me.left) && <div style={{ marginTop: 10 }}>{open ? <div style={small}>📨 Your request ({open.kind === "grant" ? "a grant" : (FED_PROJ[open.kind] || FED_PROJ.road)[1].toLowerCase()}) is on the President's desk.</div>
+      : <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}><button className="sp-btn ghost" style={chip} disabled={busy} onClick={() => onAsk("grant")}>Ask for a ₦2B grant</button>{Object.entries(FED_PROJ).map(([k, [i, l]]) => <button key={k} className="sp-btn ghost" style={chip} disabled={busy} onClick={() => onAsk(k)}>Ask for a {i} {l.toLowerCase()}</button>)}</div>}</div>}
+    {forumBox}{lastBox}
+    {(V.log || []).length > 0 && <div style={{ marginTop: 12 }}><div className="sp-kicker">The federation</div>{V.log.slice(-4).reverse().map((l, i) => <div key={i} style={{ ...small, fontSize: 14, marginTop: 4 }}>{l.t}</div>)}</div>}
+  </div>;
+};
+
 function App() {
   // Re-render on rotation so TALL() layouts switch with the screen.
   const [, setShape] = useState(TALL());
@@ -16090,6 +16201,15 @@ function App() {
   useEffect(() => { try { installGlossary(); } catch (e) {} }, []);
   const [finalStats, setFinalStats] = useState(null);
   const [loadedSave, setLoadedSave] = useState(null);
+  // A President's invitation (?fed=CODE&inv=KEY): the governorship on this phone joins when it is next in office.
+  const [fedInv, setFedInv] = useState(null);
+  useEffect(() => { let q; try { q = new URLSearchParams(location.search); } catch (e) { return; } const code = String(q.get("fed") || "").toUpperCase(), inv = q.get("inv"); if (!code || !inv || q.get("cab")) return;
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+    Promise.all([fedCall("invite", { code, invite: inv }), window.storage.get("sop_save").catch(() => null)]).then(([r, sv]) => {
+      let gov = null; try { const d = sv && sv.value ? JSON.parse(sv.value) : null; if (d && d.setup && d.setup.state && d.setup.state !== NATION && !d.gEnd) gov = String(d.setup.state).replace(/_/g, " "); } catch (e) {}
+      try { localStorage.setItem(FED_PENDING, JSON.stringify({ code, invite: inv, pres: r.pres })); } catch (e) {}
+      setFedInv({ ...r, gov }); })
+      .catch(() => setFedInv({ bad: true })); }, []);
   const rst = () => { setScr("title"); setSetup(null); setFinalStats(null); setLoadedSave(null); };
   // After a defeat: four years in opposition, then the same politician back on the ballot in the same state.
   // A defeated governor runs again four years on: with the old team, or a new one. Either
@@ -16256,6 +16376,18 @@ function App() {
       {scr === "title" && <TitleScreen onPreview={presidencyPreview} onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onCabinet={() => setScr("cab")} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <button onClick={async () => { if (await window.SOP_confirm("Leave the campaign?\n\nIt is not saved until you take office: next time you start the campaign again.", "Go to the home screen", "Keep campaigning")) rst(); }} aria-label="Home screen" style={{ position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 8px)", right: 10, zIndex: 70, background: "rgba(255,255,255,.92)", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "6px 12px", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: CL.txt, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}>🏠 Home</button>}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
+      {scr === "title" && fedInv && <EntranceSheet title="🇳🇬 An invitation from the President" onClose={() => setFedInv(null)}>
+        <div data-testid="fed-invite" style={{ fontFamily: F.b, color: UI.ink }}>
+          {fedInv.bad ? <div style={{ fontSize: DS.t.body, lineHeight: 1.5 }}>This invitation is no longer valid. Ask the President for a new link.</div> : <>
+            <img src="./art/backgrounds/villa-office.webp" alt="" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 16, marginBottom: 10 }} />
+            <div style={{ fontSize: DS.t.body, lineHeight: 1.5 }}>President <b>{fedInv.pres}</b> invites your governorship into the federation. Grants and federal projects can reach your state, you can ask for them, and each year the Governors' Forum votes on the President's proposal.</div>
+            {(fedInv.govs || []).length > 0 && <div style={{ fontSize: DS.t.meta, color: UI.sub, marginTop: 8 }}>Already in: {fedInv.govs.map(g => g.state + " (" + g.name + ")").join(", ")}.</div>}
+            {fedInv.full ? <div style={{ fontSize: DS.t.meta, color: "#a3271c", marginTop: 8 }}>The federation already has eight states.</div> : fedInv.gov
+              ? <button className="sp-btn" style={{ width: "100%", marginTop: 14 }} onClick={() => { setFedInv(null); loadGame(); }}>Link {fedInv.gov} and continue my governorship</button>
+              : <div style={{ fontSize: DS.t.meta, color: UI.sub, marginTop: 10 }}>Start a governorship (New game): your state joins when you take office.</div>}
+            <button className="sp-btn quiet" style={{ width: "100%", marginTop: 6 }} onClick={() => { try { localStorage.removeItem(FED_PENDING); } catch (e) {} setFedInv(null); }}>Not now</button></>}
+        </div>
+      </EntranceSheet>}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
         <HallBoard tab={board.tab === "all" ? "all" : "today"} />
       </EntranceSheet>}

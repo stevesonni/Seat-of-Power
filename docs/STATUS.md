@@ -1009,4 +1009,17 @@ A player asked to choose how big a road or housing project is and which local go
 - Reshuffles: Move… puts a minister in an empty seat (their record goes with them). Sacked ministers keep their key as former ministers: once a year they can write an op-ed, which lands on the leader's front page (−2 approval).
 - The primary: from year 6 the cabinet's primary opens. Ministers declare and vote; votes (3 each) and record rank them. The winner heads the succession letter as "the cabinet's choice". Passing them over costs every minister 5 loyalty. The anointed friend's desk offers "Run for Governor/President yourself".
 - Tests: tests/e2e/cabinet-president.mjs (the President's cabinet, an offer taken, the scandal, the sacking from the scandal card, the op-ed).
-- Pictures are stand-ins for now. The Lovable brief waits until the whole feature is done (owner, October 2026).
+- Reminders: beside each minister with letters waiting, "📬 N waiting · Remind" opens WhatsApp with the letter's title and a desk link (?desk=CODE opens that phone's seat directly). The letter's "⏳ Sent to …" strip has the same button.
+- While you were away: a minister returning to the desk sees a card with the years that passed, the front page, advice taken or overruled, and the cabinet's news since the last visit.
+- The succession letter looks up the cabinet's primary when it opens (tests/e2e/cabinet-succession.mjs).
+
+## Linked governments (phase 3) · COMING SOON with the cabinet
+- The President (People → Cabinet, with the preview switch) invites friends' governorships with one link (?fed=CODE&inv=KEY), up to eight states, one governor per state.
+- A friend opens the link: "An invitation from the President". With a governorship in progress they tap "Link Ogun and continue"; without one, their state joins when they next take office. Their game says "Ogun joins President X's federation".
+- The President's panel lists each state (standing, approval) with: Grant ₦2B, a federal road (₦3B), a federal medical centre (₦3B) or a federal university (₦4B), once a year each; paid from the federal bank (borrowed if it is empty), refunded if the server cannot be reached. Cut off removes a state.
+- In the governor's game: a grant lands in the bank (+5 standing with Abuja); a project raises infrastructure, health or education by 2 points, approval by 2 and standing by 8, with a front page ("FEDERAL ROAD FOR OGUN").
+- Governors ask (a grant or a project, one open request at a time); the request reaches the President as a card with "Approve (₦xB)". A refusal costs 6 standing.
+- The Governors' Forum: each year the President's proposal (state police, a VAT formula, one minimum wage, grazing reserves, state power grids, paying local governments directly, state ports, a national ID). Governors back it (+5 standing) or oppose it (−5 standing, +1 approval at home). It closes when the President's year turns: passed, +3 party and +1 approval for the President; rejected, −3 and −1, on the front page.
+- In the President's game the screen's word swap (governor → president) leaves the federation's panels alone ([data-nowords]); pop-ups keep their words with a word joiner (KEEP).
+- Server: server/federation.mjs, POST /api/fed/* (create, invite, join, view, publish, gpublish, grant, project, ask, answer, vote, seen, remove), files in DATA_DIR/federations. Tests: tests/federation-server.test.mjs, tests/e2e/federation.mjs (two browsers: a President and Ogun).
+- Pictures: stand-ins until the Lovable pack arrives (brief: docs/LOVABLE-CABINET.md, written once the feature was finished).

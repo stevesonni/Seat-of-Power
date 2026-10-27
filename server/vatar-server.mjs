@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from "./company-name.mjs";
 import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntries, playedAgain } from "./hall-rules.mjs";
 import { makeCabinets } from "./cabinet.mjs";
+import { makeFederation } from "./federation.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -102,6 +103,7 @@ const cleanName = (t) => String(t || "").replace(/[<>\u0000-\u001f]/g, "").trim(
 fs.mkdirSync(path.join(DATA, "players"), { recursive: true });
 fs.mkdirSync(path.join(DATA, "hall-days"), { recursive: true });
 const cabinet = makeCabinets(DATA); // governments formed with friends (server/cabinet.mjs)
+const federation = makeFederation(DATA); // a President's game linked to friends' governorships (server/federation.mjs)
 
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff2": "font/woff2", ".mp3": "audio/mpeg", ".txt": "text/plain; charset=utf-8", ".webmanifest": "application/manifest+json" };
 const baseHeaders = { "Content-Security-Policy": "frame-ancestors " + FRAMERS, "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
@@ -374,10 +376,10 @@ http.createServer(async (req, res) => {
       return send(res, out._code || 200, out);
     }
     // The Cabinet: friends hold their own keys, so no Lagos Life session is needed.
-    if (req.method === "POST" && url.pathname.startsWith("/api/cab/")) {
+    if (req.method === "POST" && (url.pathname.startsWith("/api/cab/") || url.pathname.startsWith("/api/fed/"))) {
       let b; try { b = JSON.parse(await readBody(req, 64_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
       const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
-      const out = await cabinet(url.pathname.slice(9), b, ip);
+      const out = url.pathname.startsWith("/api/fed/") ? await federation(url.pathname.slice(9), b, ip) : await cabinet(url.pathname.slice(9), b, ip);
       return send(res, out._code || 200, out);
     }
     if (req.method === "POST" && api[url.pathname]) {
