@@ -993,7 +993,8 @@ A player asked to choose how big a road or housing project is and which local go
 - The first-year guide panel ("Your first year · Skip guide") is retired for both offices.
 - Tests: tests/diplomacy.test.mjs; tests/e2e/president.mjs checks the UN letter.
 
-## The Cabinet of friends (phase 1, the governorship)
+## The Cabinet of friends (phases 1 and 2) · COMING SOON for players
+- Locked: ☰ shows "Govern with your friends · coming soon" (a card explains it) and People → Cabinet shows a Coming soon card with no way to form one. Opening the game once with ?cabinet=preview unlocks it on that phone (localStorage sop_cab_preview), for testing. Invite links still work for anyone they were sent to.
 - People → Cabinet (or ☰ → Govern with your friends): the Governor forms a government with five seats: Deputy Governor, Finance, Works, Attorney-General & Security, and Health & Education. Each seat gets its own invite link, to share on WhatsApp or copy.
 - A friend opens the link on any phone (no account): the nomination letter, a name, one question from the House's screening (any answer passes, each with its own reply), the oath, then their desk. The home screen keeps a "Your cabinet desk" button on that phone.
 - The Governor's phone runs the game. Each time the mail changes it shares the year's open letters, routed by seal (game/systems/cabinet.js `seatFor`; anything about schools, hospitals or farms goes to Health & Education). Statecraft letters carry their real options; other letters a stance (act now / middle way / hold firm).
@@ -1003,4 +1004,9 @@ A player asked to choose how big a road or housing project is and which local go
 - At the end of the term, the share card ("The Ada Obi Government, 2027–2034", each minister's word, the star of the cabinet) goes to the Governor and every minister, with WhatsApp sharing.
 - Server: server/cabinet.mjs, POST /api/cab/* (create, invite, join, view, publish, decide, advise, bid, usesplit, sack, reinvite, end), files in DATA_DIR/cabinets. Keys are held by each phone; only their hashes are stored. 10 new governments a day per address.
 - Tests: tests/cabinet.test.mjs (rules), tests/cabinet-server.test.mjs (endpoints), tests/e2e/cabinet.mjs (two browsers on the real server).
-- Pictures are stand-ins until docs/LOVABLE-CABINET.md arrives.
+- Phase 2, the President: the Vice-President and seven ministers (Finance, Works & Power, Defence & NSA, Attorney-General, Foreign Affairs, Labour, Petroleum). The Senate screens the nominees. Letters route by key and words: the war → Defence, the impeachment → the Attorney-General, the UN and invitations → Foreign Affairs, strikes and wages → Labour, oil, fuel and the subsidy → Petroleum, schools and hospitals → the Vice-President.
+- Hard politics (a switch when forming, off by default): each year a minister may get a private offer only they see (a contractor's envelope, a baron's favour). Taken, it fills their private account and adds a point of corruption to the government, unnamed. Each year after, it may come out: "EFCC INVITES <NAME>" on the front page, −3 approval, and a card to sack them or stand by them. The rest of the cabinet never sees the account.
+- Reshuffles: Move… puts a minister in an empty seat (their record goes with them). Sacked ministers keep their key as former ministers: once a year they can write an op-ed, which lands on the leader's front page (−2 approval).
+- The primary: from year 6 the cabinet's primary opens. Ministers declare and vote; votes (3 each) and record rank them. The winner heads the succession letter as "the cabinet's choice". Passing them over costs every minister 5 loyalty. The anointed friend's desk offers "Run for Governor/President yourself".
+- Tests: tests/e2e/cabinet-president.mjs (the President's cabinet, an offer taken, the scandal, the sacking from the scandal card, the op-ed).
+- Pictures are stand-ins for now. The Lovable brief waits until the whole feature is done (owner, October 2026).

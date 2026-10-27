@@ -9,7 +9,7 @@ import os from "node:os";
 import path from "node:path";
 
 const port = 19000 + Math.floor(Math.random() * 900), data = fs.mkdtempSync(path.join(os.tmpdir(), "cab-"));
-const srv = spawn(process.execPath, ["server/vatar-server.mjs"], { env: { ...process.env, PORT: String(port), DATA_DIR: data, VATAR_SECRET: "" }, stdio: "ignore" });
+const srv = spawn(process.execPath, ["server/vatar-server.mjs"], { env: { ...process.env, PORT: String(port), DATA_DIR: data, VATAR_SECRET: "", CAB_TEMPT: "1", CAB_EXPOSE: "1" }, stdio: "ignore" });
 for (let i = 0; i < 50; i++) { try { await fetch("http://127.0.0.1:" + port + "/health"); break; } catch (e) { await new Promise(r => setTimeout(r, 100)); } }
 const cab = (op, body) => fetch("http://127.0.0.1:" + port + "/api/cab/" + op, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(async r => ({ status: r.status, ...(await r.json()) }));
 test.after(() => srv.kill());
@@ -47,10 +47,61 @@ test("a government with friends, from the invite to the end of a year", async ()
   await cab("publish", { ...H, year: 3, letters: [] });
   v = (await cab("view", H)).cab;
   assert.deepEqual([v.seats.finance.rec.followed, v.seats.finance.rec.absent], [1, 1]);
-  // Sacked: the old key stops working and the seat has a new invite.
+  // Sacked: the old key now opens a former minister's desk, without the letters, and the seat has a new invite.
   const sk = await cab("sack", { ...H, seat: "finance" });
   assert.ok(sk.invite);
-  assert.equal((await cab("view", F)).status, 403);
+  const fv = (await cab("view", F)).cab;
+  assert.equal(fv.me.role, "former"); assert.equal(fv.letters.length, 0); assert.equal(fv.former.name, "Chinaza");
+  assert.equal((await cab("advise", { ...F, letterId: "x", pick: "y" })).status, 403);
   v = (await cab("view", H)).cab; assert.equal(v.seats.finance.former[0].name, "Chinaza");
   assert.equal((await cab("publish", { ...F, year: 4 })).status, 403, "only the Governor's phone runs the year");
+});
+
+test("the President's cabinet: hard politics, a reshuffle, an op-ed and the primary", async () => {
+  const g = await cab("create", { hostName: "Ada Obi", state: "Enugu", startYear: 2031, office: "president", hard: true });
+  assert.deepEqual(Object.keys(g.invites), ["vp", "finance", "works", "defence", "justice", "foreign", "labour", "petroleum"]);
+  const H = { code: g.code, key: g.hostKey };
+  assert.equal((await cab("invite", { code: g.code, seat: "foreign", invite: g.invites.foreign })).gov.office, "president");
+  const k = {}; for (const s of ["vp", "works", "labour"]) k[s] = { code: g.code, key: (await cab("join", { code: g.code, seat: s, invite: g.invites[s], name: "Friend " + s })).key };
+  // Year 1: every minister gets a private offer (the odds are 1 in this test); only they see it.
+  await cab("publish", { ...H, year: 1, letters: [] });
+  const w = (await cab("view", k.works)).cab;
+  assert.match(w.tempt.text, /contractor offers ₦\d+M/); assert.equal((await cab("view", k.vp)).cab.tempt.text.includes("contractor"), false);
+  assert.equal((await cab("tempt", { ...k.works, take: true })).choice, "took");
+  assert.equal((await cab("tempt", { ...k.works, take: false })).status, 409, "one answer per offer");
+  await cab("tempt", { ...k.vp, take: false });
+  let me = (await cab("view", k.works)).cab.seats.works.rec;
+  assert.ok(me.stash > 0, "the minister sees their own stash");
+  let h = (await cab("view", H)).cab;
+  assert.equal(h.seats.works.rec.stash, undefined, "the President never sees it");
+  assert.deepEqual(h.events.map(e => [e.kind, e.name]), [["take", undefined]], "the President's phone only feels it as corruption");
+  // Year 2: the bribe comes out (the odds are 1 here).
+  await cab("publish", { ...H, year: 2, letters: [] });
+  h = (await cab("view", H)).cab;
+  const sc = h.events.find(e => e.kind === "scandal");
+  assert.equal(sc.name, "Friend works"); assert.equal(h.seats.works.rec.exposed, 1);
+  await cab("seen", { ...H, ids: h.events.map(e => e.id) });
+  assert.equal((await cab("view", H)).cab.events.length, 0, "events are applied once");
+  // A reshuffle: Works moves to the empty Petroleum seat; Works gets a new invite.
+  const mv = await cab("move", { ...H, seat: "works", to: "petroleum" });
+  assert.ok(mv.invite);
+  h = (await cab("view", H)).cab;
+  assert.equal(h.seats.petroleum.member.name, "Friend works"); assert.equal(h.seats.works.member, null);
+  assert.equal((await cab("view", k.works)).cab.me.seat, "petroleum", "the same phone, the new seat");
+  // Sacked, Labour writes one op-ed a year.
+  await cab("sack", { ...H, seat: "labour" });
+  assert.equal((await cab("oped", { ...k.labour, headline: "The President has lost his way", text: "I sat in that council. Nobody listens." })).ok, true);
+  assert.equal((await cab("oped", { ...k.labour, headline: "Again", text: "And again" })).status, 429);
+  h = (await cab("view", H)).cab;
+  assert.equal(h.events.find(e => e.kind === "oped").headline, "The President has lost his way");
+  // The primary: opened by the President's phone, ministers declare and vote; the President anoints.
+  assert.equal((await cab("run", k.vp)).status, 409, "not before it opens");
+  await cab("publish", { ...H, year: 3, letters: [], primary: true });
+  await cab("run", k.vp); await cab("run", k.works);
+  await cab("vote", { ...k.works, seat: "vp" }); await cab("vote", { ...k.vp, seat: "vp" });
+  h = (await cab("view", H)).cab;
+  assert.deepEqual(h.primary.count, { vp: 2, petroleum: 0 });
+  const cr = await cab("crown", { ...H, seat: "vp" });
+  assert.equal(cr.successor.name, "Friend vp");
+  assert.equal((await cab("view", k.vp)).cab.successor.name, "Friend vp");
 });

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { seatFor, balance, BUDGET_LINES, shareCard, ministerWord, inviteUrl, inviteText, screeningFor, lineOwner, CAB_SEATS } from "../game/systems/cabinet.js";
+import { primaryStanding, seatsOf, seatById, screeningFor, SENATE_SCREENING, seatFor, balance, BUDGET_LINES, shareCard, ministerWord, inviteUrl, inviteText, lineOwner, CAB_SEATS } from "../game/systems/cabinet.js";
 import { letterKind } from "../game/systems/chief.js";
 
 test("letters go to the right desk", () => {
@@ -31,4 +31,26 @@ test("invites", () => {
   assert.match(inviteText({ gov: "Ada Obi", state: "Enugu", seat: "finance", url: u }), /Commissioner for Finance of Enugu/);
   assert.equal(screeningFor("ABC234", "finance"), screeningFor("ABC234", "finance"));
   assert.equal(CAB_SEATS.length, 5);
+});
+
+test("the President's letters go to the right minister", () => {
+  const P = (x) => seatFor(x, "president");
+  assert.equal(P({ kind: "bakunda", key: "sc#pres_bk_bk2_3", title: "Troops at the border" }), "defence");
+  assert.equal(P({ kind: "house", key: "sc#impeach_graft", title: "The Senate opens an investigation" }), "justice");
+  assert.equal(P({ kind: "diplomacy", key: "sc#dipl_unga", title: "The General Assembly" }), "foreign");
+  assert.equal(P({ kind: "crisis", title: "The NLC threatens a general strike" }), "labour");
+  assert.equal(P({ kind: "econ", title: "The fuel subsidy is eating the budget" }), "petroleum");
+  assert.equal(P({ kind: "budget", title: "The federal budget" }), "finance");
+  assert.equal(P({ kind: "party", title: "The party chairman calls" }), "vp");
+  assert.equal(P({ kind: "projects", title: "The coastal railway has stalled" }), "works");
+  assert.equal(seatsOf("president").length, 8);
+  assert.equal(seatById("finance", "president").t, "Minister of Finance");
+  assert.equal(seatById("finance", "governor").t, "Commissioner for Finance");
+  assert.ok(["education", "health", "infrastructure", "security", "agriculture", "administration", "salaries", "debt"].every(l => lineOwner(l, "president")));
+  assert.ok(SENATE_SCREENING.includes(screeningFor("ABC234", "vp", "president")));
+});
+test("the primary: votes and record decide", () => {
+  const cab = { primary: { running: ["vp", "works"], votes: { vp: "works", works: "works", labour: "vp" } }, seats: { vp: { member: { name: "Ada" }, rec: { followed: 4 } }, works: { member: { name: "Tunde" }, rec: {} } } };
+  const st = primaryStanding(cab);
+  assert.deepEqual(st.map(x => [x.name, x.votes]), [["Ada", 1], ["Tunde", 2]], "Ada's record (12) beats Tunde's two votes (6)");
 });

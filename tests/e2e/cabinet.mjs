@@ -18,14 +18,28 @@ const YEAR1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", i
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const okay = async (g) => { for (let i = 0; i < 4 && await g.click(/^(Got it|Okay|Continue)( →)?$/); i++) await g.wait(300); };
 
-// ── The Governor forms the government ──
-const g = await open(port, { save: YEAR1 });
+// ── For players it is still "coming soon" ──
+const menu = (g) => g.page.evaluate(() => { const b = [...document.querySelectorAll("button[aria-label=Menu]")].find(x => x.offsetParent); b && b.click(); });
+{ const l = await open(port, { save: YEAR1 });
+  await l.click(/^Continue/); await l.wait(1800);
+  await l.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde Okafor-Ilesanmi/.test(x.textContent)); if (b) b.click(); });
+  await l.wait(500); await okay(l); await menu(l); await l.wait(400);
+  check(!!(await l.click(/Govern with your friends · coming soon/)), "the menu says the cabinet is coming soon");
+  await l.wait(600);
+  check(/Coming soon: govern with your friends/.test(await l.txt()), "tapping it explains it is coming soon");
+  await okay(l); await l.click(/^People$/); await l.wait(300); await l.click(/^Cabinet$/); await l.wait(500);
+  const t0 = await l.txt();
+  check(/Coming soon/i.test(t0) && !/Form the government/.test(t0), "People → Cabinet shows Coming soon, with no way to form one");
+  await l.browser.close(); }
+
+// ── The Governor forms the government (unlocked for testing with the preview switch) ──
+const g = await open(port, { save: { ...YEAR1, sop_cab_preview: "1" } });
 let created = null; g.page.on("response", async r => { if (/\/api\/cab\/create$/.test(r.url())) try { created = await r.json(); } catch (e) {} });
 await g.click(/^Continue/); await g.wait(1800);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde Okafor-Ilesanmi/.test(x.textContent)); if (b) b.click(); });
 await g.wait(500); await okay(g);
-await g.page.evaluate(() => { const b = [...document.querySelectorAll("button[aria-label=Menu]")].find(x => x.offsetParent); b && b.click(); }); await g.wait(400);
-check(!!(await g.click(/Govern with your friends/)), "the menu offers to govern with friends");
+await menu(g); await g.wait(400);
+check(!!(await g.click(/^👥 Govern with your friends$/)), "with the preview switch, the menu offers to govern with friends");
 await g.wait(600);
 check(/Govern with your friends/.test(await g.txt()) && /Form the government/.test(await g.txt()), "the cabinet card explains it");
 await g.click(/^Form the government$/); await g.wait(1500); await okay(g);

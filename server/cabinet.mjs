@@ -17,12 +17,38 @@
      sack     { code, key*, seat }                            → a new invite for the seat
      reinvite { code, key*, seat }                            → a new invite for an empty seat
      end      { code, key*, endYear }                         → the term is over
-   (* the Governor's key) */
+     move     { code, key*, seat, to }                        → a reshuffle into an empty seat
+     seen     { code, key*, ids }                             → the leader's phone applied these events
+     tempt    { code, key, take }                             → a minister takes or refuses a private offer
+     oped     { code, key, headline, text }                   → a sacked minister writes (once a year)
+     run      { code, key }  /  vote { code, key, seat }      → the cabinet's primary (once opened)
+     crown    { code, key*, seat }                            → the leader names the successor
+   (* the leader's key: the Governor's or the President's)
+   "Hard politics" (create with hard: true): each year a minister may get a
+   private offer. Taken, it fattens their own stash and nudges corruption;
+   each year after, it may come out (an EFCC invitation on the front page). */
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 
 export const SEATS = ["deputy", "finance", "works", "justice", "social"];
+export const PRES_SEATS = ["vp", "finance", "works", "defence", "justice", "foreign", "labour", "petroleum"];
+const seatsOf = (c) => c && c.gov && c.gov.office === "president" ? PRES_SEATS : SEATS;
+// The odds (overridable for tests): an offer to a minister each year, and a taken offer coming out each year after.
+const P_TEMPT = () => +(process.env.CAB_TEMPT || .4), P_EXPOSE = () => +(process.env.CAB_EXPOSE || .35);
+const roll = () => crypto.randomInt(0, 1e6) / 1e6;
+const OFFERS = {
+  deputy: "A party baron offers ₦{a}M if his nephew gets a seat on the board of the state's bank.",
+  vp: "A party baron offers ₦{a}M if his son gets a seat on the board of a federal agency.",
+  finance: "A bank chairman offers ₦{a}M in \"consultancy\" if the government's accounts move to his bank.",
+  works: "A contractor offers ₦{a}M if the next road contract goes his way.",
+  justice: "A suspect's lawyer offers ₦{a}M for a weaker prosecution.",
+  social: "A drug supplier offers ₦{a}M to win the hospitals' supply tender.",
+  defence: "An arms dealer offers ₦{a}M if the helicopter order goes through at his price.",
+  foreign: "A foreign firm offers ₦{a}M to fast-track its deal at the next summit.",
+  labour: "A union boss offers ₦{a}M to look away from the strike fund's accounts.",
+  petroleum: "A fuel marketer offers ₦{a}M to keep his subsidy claims flowing.",
+};
 const LINES = ["education", "health", "infrastructure", "security", "agriculture", "administration", "salaries", "debt"];
 const YEAR_MS = 24 * 3600e3; // a year stays open for a day
 
@@ -32,7 +58,9 @@ const newKey = () => crypto.randomBytes(18).toString("base64url");
 const CODE_CH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const newCode = () => Array.from(crypto.randomBytes(6), b => CODE_CH[b % CODE_CH.length]).join("");
 const same = (a, b) => { const x = Buffer.from(String(a || "")), y = Buffer.from(String(b || "")); return x.length === y.length && crypto.timingSafeEqual(x, y); };
-const rec0 = () => ({ advised: 0, followed: 0, overruled: 0, absent: 0, bids: 0, loyalty: 70, best: null });
+const rec0 = () => ({ advised: 0, followed: 0, overruled: 0, absent: 0, bids: 0, loyalty: 70, best: null, took: 0, stash: 0, exposed: 0 });
+const PRIVATE = ["took", "stash"]; // a minister's own secrets: nobody else sees them
+const recOut = (r, mine) => { const o = { ...(r || {}) }; if (!mine) for (const k of PRIVATE) delete o[k]; return o; };
 
 export const makeCabinets = (DATA) => {
   const dir = path.join(DATA, "cabinets");
@@ -48,17 +76,27 @@ export const makeCabinets = (DATA) => {
     if (!c || !key) return null;
     const h = hash(key);
     if (same(c.host.keyHash, h)) return { role: "host" };
-    for (const s of SEATS) { const m = c.seats[s] && c.seats[s].member; if (m && same(m.keyHash, h)) return { role: "minister", seat: s }; }
+    for (const s of seatsOf(c)) { const m = c.seats[s] && c.seats[s].member; if (m && same(m.keyHash, h)) return { role: "minister", seat: s }; }
+    for (const s of seatsOf(c)) { const i = (c.seats[s].former || []).findIndex(f => f.keyHash && same(f.keyHash, h)); if (i >= 0) return { role: "former", seat: s, i, name: c.seats[s].former[i].name }; }
     return null;
   };
   // What everyone may see (never a key or a hash).
-  const publicOf = (c, me) => ({
-    code: c.code, gov: c.gov, year: c.year, opened: c.opened, closesAt: c.opened ? c.opened + YEAR_MS : null, ended: c.ended || null,
-    snap: c.snap || null, papers: c.papers || [], log: (c.log || []).slice(-30),
-    seats: Object.fromEntries(SEATS.map(s => { const x = c.seats[s]; return [s, { open: !!x.open, member: x.member ? { name: x.member.name, joined: x.member.joined } : null, former: (x.former || []).map(f => ({ name: f.name, until: f.until })), rec: x.rec }]; })),
-    letters: (c.letters || []).map(l => ({ ...l, opts: l.opts, advice: l.advice ? { ...l.advice, by: l.advice.by } : null })),
-    bids: c.bids || {}, split: c.split || null, me,
-  });
+  const publicOf = (c, me) => {
+    const mine = me.role === "minister" ? me.seat : null, minister = me.role !== "former";
+    const out = {
+      code: c.code, gov: c.gov, hard: !!c.hard, year: c.year, opened: c.opened, closesAt: c.opened ? c.opened + YEAR_MS : null, ended: c.ended || null,
+      snap: c.snap || null, papers: c.papers || [], log: (c.log || []).slice(-30), opeds: (c.opeds || []).slice(-10),
+      seats: Object.fromEntries(seatsOf(c).map(s => { const x = c.seats[s]; return [s, { open: !!x.open, member: x.member ? { name: x.member.name, joined: x.member.joined } : null, former: (x.former || []).map(f => ({ name: f.name, until: f.until })), rec: recOut(x.rec, s === mine) }]; })),
+      letters: minister ? (c.letters || []) : [], bids: minister ? c.bids || {} : {}, split: minister ? c.split || null : null,
+      primary: c.primary ? { open: !!c.primary.open, running: c.primary.running || [], votes: me.role === "host" ? c.primary.votes || {} : {}, myVote: mine ? (c.primary.votes || {})[mine] || null : null, count: Object.fromEntries((c.primary.running || []).map(r => [r, Object.values(c.primary.votes || {}).filter(v => v === r).length])) } : null,
+      successor: c.successor || null, me,
+    };
+    if (mine && c.tempt && c.tempt[mine]) out.tempt = c.tempt[mine];
+    if (me.role === "former") { const f = c.seats[me.seat].former[me.i]; out.former = { name: f.name, until: f.until, opedYear: f.opedYear || null, rec: recOut(f.rec, true) }; }
+    if (me.role === "host") out.events = (c.events || []).filter(e => !e.seen);
+    return out;
+  };
+  const event = (c, e) => { c.events = [...(c.events || []), { id: crypto.randomBytes(6).toString("hex"), year: c.year, at: Date.now(), ...e }].slice(-80); };
   const say = (c, t) => { c.log = [...(c.log || []), { at: Date.now(), year: c.year, t: clip(t, 200) }].slice(-60); };
   const R = (c, s) => (c.seats[s].rec = c.seats[s].rec || rec0());
 
@@ -69,21 +107,22 @@ export const makeCabinets = (DATA) => {
       made.set(ip, { day, n: n + 1 });
       let code = newCode(); for (let i = 0; i < 5 && read(code); i++) code = newCode();
       const hostKey = newKey(), invites = {};
-      const c = { code, created: Date.now(), host: { name: clip(b.hostName, 40) || "The Governor", keyHash: hash(hostKey) },
-        gov: { name: clip(b.govName || b.hostName, 40) || "The Governor", state: clip(b.state, 30), startYear: Math.round(+b.startYear) || null, office: "governor" },
-        year: 0, opened: null, seats: {}, letters: [], bids: {}, split: null, papers: [], log: [] };
-      for (const s of SEATS) { const inv = newKey(); invites[s] = inv; c.seats[s] = { open: true, inviteHash: hash(inv), member: null, former: [], rec: rec0() }; }
-      say(c, c.gov.name + " formed a government."); write(c);
+      const office = b.office === "president" ? "president" : "governor", lead = office === "president" ? "The President" : "The Governor";
+      const c = { code, created: Date.now(), host: { name: clip(b.hostName, 40) || lead, keyHash: hash(hostKey) },
+        gov: { name: clip(b.govName || b.hostName, 40) || lead, state: clip(b.state, 30), startYear: Math.round(+b.startYear) || null, office },
+        hard: !!b.hard, year: 0, opened: null, seats: {}, letters: [], bids: {}, split: null, papers: [], log: [], events: [], takes: [], tempt: {}, opeds: [] };
+      for (const s of seatsOf(c)) { const inv = newKey(); invites[s] = inv; c.seats[s] = { open: true, inviteHash: hash(inv), member: null, former: [], rec: rec0() }; }
+      say(c, c.gov.name + " formed a government" + (c.hard ? ", with hard politics on." : ".")); write(c);
       return { ok: true, code, hostKey, invites };
     },
     invite: async (b) => {
-      const c = read(b.code), s = String(b.seat || ""); if (!c || !SEATS.includes(s)) return { _code: 404, error: "no_cabinet" };
+      const c = read(b.code), s = String(b.seat || ""); if (!c || !seatsOf(c).includes(s)) return { _code: 404, error: "no_cabinet" };
       const x = c.seats[s];
       if (!x.inviteHash || !same(x.inviteHash, hash(b.invite))) return { _code: 403, error: x.member ? "taken" : "bad_invite" };
-      return { ok: true, gov: c.gov, seat: s, host: c.host.name, members: SEATS.filter(k => c.seats[k].member).map(k => ({ seat: k, name: c.seats[k].member.name })), ended: !!c.ended };
+      return { ok: true, gov: c.gov, seat: s, host: c.host.name, hard: !!c.hard, members: seatsOf(c).filter(k => c.seats[k].member).map(k => ({ seat: k, name: c.seats[k].member.name })), ended: !!c.ended };
     },
     join: async (b) => withCab(b.code, (c) => {
-      const s = String(b.seat || ""); if (!c || !SEATS.includes(s)) return { _code: 404, error: "no_cabinet" };
+      const s = String(b.seat || ""); if (!c || !seatsOf(c).includes(s)) return { _code: 404, error: "no_cabinet" };
       const x = c.seats[s], name = clip(b.name, 30);
       if (!name) return { _code: 400, error: "no_name" };
       if (c.ended) return { _code: 409, error: "ended" };
@@ -99,16 +138,27 @@ export const makeCabinets = (DATA) => {
       const year = Math.max(1, Math.min(20, Math.round(+b.year) || 1));
       if (year > c.year) {
         // The old year closes: a letter its minister never answered counts as absent.
-        for (const l of c.letters || []) { if (!l.seat || !c.seats[l.seat].member || l.advice) continue; R(c, l.seat).absent++; }
+        for (const l of c.letters || []) { if (!l.seat || !c.seats[l.seat] || !c.seats[l.seat].member || l.advice) continue; R(c, l.seat).absent++; }
         c.letters = []; c.year = year; c.opened = Date.now();
         // Bids and Finance's split are for one year's budget.
         c.bids = {}; c.split = null;
+        // Hard politics: offers taken in earlier years may come out; new offers arrive.
+        if (c.hard) {
+          for (const t of c.takes || []) { if (t.exposed || t.year >= year || roll() >= P_EXPOSE()) continue;
+            t.exposed = year; const x = c.seats[t.seat]; if (x && x.member && x.member.name === t.name) R(c, t.seat).exposed++;
+            event(c, { kind: "scandal", seat: t.seat, name: t.name, text: t.text, amt: t.amt });
+            say(c, "The EFCC has invited " + t.name + " over ₦" + t.amt + "M from a private offer."); }
+          c.tempt = {};
+          for (const s2 of seatsOf(c)) { if (!c.seats[s2].member || roll() >= P_TEMPT()) continue; const amt = 20 * (1 + crypto.randomInt(0, 10));
+            c.tempt[s2] = { id: crypto.randomBytes(5).toString("hex"), year, amt, text: (OFFERS[s2] || OFFERS.works).replace("{a}", amt), choice: null }; }
+        }
       }
+      if (b.primary && !c.primary) { c.primary = { open: true, running: [], votes: {}, opened: c.year }; say(c, "The primary is open: ministers may declare to succeed " + c.gov.name + "."); }
       if (b.snap && typeof b.snap === "object") { const sn = JSON.stringify(b.snap); if (sn.length < 12000) c.snap = b.snap; }
       if (Array.isArray(b.letters)) {
         const old = new Map((c.letters || []).map(l => [l.id, l]));
         const fresh = b.letters.slice(0, 30).map(l => { const id = clip(l.id, 120); if (!id) return null; const o = old.get(id);
-          return { id, seat: SEATS.includes(l.seat) ? l.seat : null, kind: clip(l.kind, 20), title: clip(l.title, 140), from: clip(l.from, 90), body: clip(l.body, 400),
+          return { id, seat: seatsOf(c).includes(l.seat) ? l.seat : null, kind: clip(l.kind, 20), title: clip(l.title, 140), from: clip(l.from, 90), body: clip(l.body, 400),
             opts: (Array.isArray(l.opts) ? l.opts : []).slice(0, 5).map(o2 => ({ id: clip(o2.id, 60), label: clip(o2.label, 120) })), stance: !!l.stance,
             advice: o ? o.advice : null, decided: o ? o.decided : null }; }).filter(Boolean);
         // Letters already decided stay on the record for the year.
@@ -164,9 +214,12 @@ export const makeCabinets = (DATA) => {
     }),
     sack: async (b) => withCab(b.code, (c) => {
       const me = roleOf(c, b.key); if (!me || me.role !== "host") return { _code: 403, error: "not_host" };
-      const s = String(b.seat || ""); if (!SEATS.includes(s)) return { _code: 400, error: "bad_seat" };
+      const s = String(b.seat || ""); if (!seatsOf(c).includes(s)) return { _code: 400, error: "bad_seat" };
       const x = c.seats[s], inv = newKey();
-      if (x.member) { x.former = [...(x.former || []), { name: x.member.name, until: c.year, rec: x.rec }].slice(-5); say(c, c.gov.name + " sacked " + x.member.name + "."); }
+      // A sacked minister keeps their key as a former minister: they may write against the government.
+      if (x.member) { x.former = [...(x.former || []), { name: x.member.name, until: c.year, rec: x.rec, keyHash: x.member.keyHash }].slice(-5); say(c, c.gov.name + " sacked " + x.member.name + ".");
+        if (c.primary) { c.primary.running = (c.primary.running || []).filter(r => r !== s); delete (c.primary.votes || {})[s]; }
+        if (c.tempt) delete c.tempt[s]; }
       x.member = null; x.open = true; x.inviteHash = hash(inv); x.rec = rec0();
       for (const l of c.letters || []) if (l.seat === s && !l.decided) l.advice = null;
       delete c.bids[s];
@@ -174,7 +227,7 @@ export const makeCabinets = (DATA) => {
     }),
     reinvite: async (b) => withCab(b.code, (c) => {
       const me = roleOf(c, b.key); if (!me || me.role !== "host") return { _code: 403, error: "not_host" };
-      const s = String(b.seat || ""); if (!SEATS.includes(s) || c.seats[s].member) return { _code: 409, error: "taken" };
+      const s = String(b.seat || ""); if (!seatsOf(c).includes(s) || c.seats[s].member) return { _code: 409, error: "taken" };
       const inv = newKey(); c.seats[s].inviteHash = hash(inv); c.seats[s].open = true;
       write(c); return { ok: true, invite: inv };
     }),
@@ -182,6 +235,66 @@ export const makeCabinets = (DATA) => {
       const me = roleOf(c, b.key); if (!me || me.role !== "host") return { _code: 403, error: "not_host" };
       if (!c.ended) { c.ended = { at: Date.now(), why: clip(b.why, 80) }; if (+b.endYear) c.gov.endYear = Math.round(+b.endYear); say(c, "The government's term is over."); write(c); }
       return { ok: true };
+    }),
+    move: async (b) => withCab(b.code, (c) => {
+      const me = roleOf(c, b.key); if (!me || me.role !== "host") return { _code: 403, error: "not_host" };
+      const s = String(b.seat || ""), t = String(b.to || ""), S = seatsOf(c);
+      if (!S.includes(s) || !S.includes(t) || s === t) return { _code: 400, error: "bad_seat" };
+      const a = c.seats[s], z = c.seats[t]; if (!a.member) return { _code: 409, error: "empty" }; if (z.member) return { _code: 409, error: "taken" };
+      z.member = a.member; z.rec = a.rec; z.open = false; z.inviteHash = null;
+      const inv = newKey(); a.member = null; a.rec = rec0(); a.open = true; a.inviteHash = hash(inv);
+      for (const l of c.letters || []) if (l.seat === s && !l.decided) l.advice = null;
+      if (c.bids[s]) delete c.bids[s];
+      if (c.tempt && c.tempt[s]) delete c.tempt[s];
+      if (c.primary) { c.primary.running = (c.primary.running || []).map(r => r === s ? t : r); for (const [k, v] of Object.entries(c.primary.votes || {})) { if (v === s) c.primary.votes[k] = t; if (k === s) { c.primary.votes[t] = c.primary.votes[s]; delete c.primary.votes[s]; } } }
+      say(c, c.gov.name + " moved " + z.member.name + " to a new portfolio."); write(c);
+      return { ok: true, invite: inv };
+    }),
+    seen: async (b) => withCab(b.code, (c) => {
+      const me = roleOf(c, b.key); if (!me || me.role !== "host") return { _code: 403, error: "not_host" };
+      const ids = new Set((Array.isArray(b.ids) ? b.ids : []).map(String)); for (const e of c.events || []) if (ids.has(e.id)) e.seen = true;
+      write(c); return { ok: true };
+    }),
+    tempt: async (b) => withCab(b.code, (c) => {
+      const me = roleOf(c, b.key); if (!me || me.role !== "minister") return { _code: 403, error: "not_member" };
+      const T = c.tempt && c.tempt[me.seat]; if (!T || T.choice) return { _code: 409, error: "no_offer" };
+      const name = c.seats[me.seat].member.name; T.choice = b.take ? "took" : "refused";
+      if (b.take) { const r = R(c, me.seat); r.took++; r.stash += T.amt; c.takes = [...(c.takes || []), { seat: me.seat, name, year: c.year, amt: T.amt, text: T.text }];
+        event(c, { kind: "take", seat: me.seat }); } // the leader's phone feels it as corruption, never as a name
+      write(c); return { ok: true, choice: T.choice };
+    }),
+    oped: async (b) => withCab(b.code, (c) => {
+      const me = roleOf(c, b.key); if (!me || me.role !== "former") return { _code: 403, error: "not_former" };
+      const f = c.seats[me.seat].former[me.i]; if (f.opedYear === c.year) return { _code: 429, error: "once_a_year" };
+      const headline = clip(b.headline, 90), text = clip(b.text, 600); if (!headline || !text) return { _code: 400, error: "empty" };
+      f.opedYear = c.year;
+      const o = { year: c.year, by: f.name, headline, text, at: Date.now() };
+      c.opeds = [...(c.opeds || []), o].slice(-20); event(c, { kind: "oped", seat: me.seat, name: f.name, headline, text });
+      say(c, f.name + ", sacked in year " + (f.until || 1) + ", wrote against the government: " + headline);
+      write(c); return { ok: true };
+    }),
+    run: async (b) => withCab(b.code, (c) => {
+      const me = roleOf(c, b.key); if (!me || me.role !== "minister") return { _code: 403, error: "not_member" };
+      if (!c.primary || !c.primary.open) return { _code: 409, error: "not_open" };
+      if (!c.primary.running.includes(me.seat)) { c.primary.running.push(me.seat); say(c, c.seats[me.seat].member.name + " declared for the succession."); }
+      write(c); return { ok: true };
+    }),
+    vote: async (b) => withCab(b.code, (c) => {
+      const me = roleOf(c, b.key); if (!me || me.role !== "minister") return { _code: 403, error: "not_member" };
+      if (!c.primary || !c.primary.open) return { _code: 409, error: "not_open" };
+      const t = String(b.seat || ""); if (!c.primary.running.includes(t)) return { _code: 400, error: "not_running" };
+      c.primary.votes[me.seat] = t; write(c); return { ok: true };
+    }),
+    crown: async (b) => withCab(b.code, (c) => {
+      const me = roleOf(c, b.key); if (!me || me.role !== "host") return { _code: 403, error: "not_host" };
+      if (c.successor) return { ok: true, successor: c.successor };
+      const s = b.seat ? String(b.seat) : null, x = s && c.seats[s];
+      if (x && x.member) { c.successor = { seat: s, name: x.member.name, year: c.year }; R(c, s).loyalty = Math.min(100, R(c, s).loyalty + 15); say(c, c.gov.name + " anointed " + x.member.name + " as the government's candidate."); }
+      else { c.successor = { seat: null, name: clip(b.name, 40) || "someone outside the cabinet", year: c.year };
+        if (c.primary && (c.primary.running || []).length) for (const k of seatsOf(c)) if (c.seats[k].member) R(c, k).loyalty = Math.max(0, R(c, k).loyalty - 5);
+        say(c, c.gov.name + " passed over the cabinet and anointed " + c.successor.name + "."); }
+      if (c.primary) c.primary.open = false;
+      write(c); return { ok: true, successor: c.successor };
     }),
   };
   return async (op, b, ip) => {
