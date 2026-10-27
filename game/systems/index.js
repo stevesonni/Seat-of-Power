@@ -48,3 +48,4 @@ export * from "./interstate.js";
 export * from "./econbrief.js";
 export * from "./impeach.js";
 export * from "./diplomacy.js";
+export * from "./cabinet.js";

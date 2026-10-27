@@ -992,3 +992,15 @@ A player asked to choose how big a road or housing project is and which local go
 - **Deals are real:** revenue a year, jobs, money in the bank, debt relief, loans, health, schools, infrastructure, farms, the trade figures; most land again the next year ("The Swedish-built wind and solar farms put 200 MW on the grid."). Going in person flies (and meets a strike at the airport if there is one).
 - The first-year guide panel ("Your first year · Skip guide") is retired for both offices.
 - Tests: tests/diplomacy.test.mjs; tests/e2e/president.mjs checks the UN letter.
+
+## The Cabinet of friends (phase 1, the governorship)
+- People → Cabinet (or ☰ → Govern with your friends): the Governor forms a government with five seats: Deputy Governor, Finance, Works, Attorney-General & Security, and Health & Education. Each seat gets its own invite link, to share on WhatsApp or copy.
+- A friend opens the link on any phone (no account): the nomination letter, a name, one question from the House's screening (any answer passes, each with its own reply), the oath, then their desk. The home screen keeps a "Your cabinet desk" button on that phone.
+- The Governor's phone runs the game. Each time the mail changes it shares the year's open letters, routed by seal (game/systems/cabinet.js `seatFor`; anything about schools, hospitals or farms goes to Health & Education). Statecraft letters carry their real options; other letters a stance (act now / middle way / hold firm).
+- The minister advises (an option and a line). The Governor sees "💬 Chinaza · Finance advises" on the letter and the card, and the advised option is marked. Signing it counts as followed (+3 loyalty); another option counts as overruled (−6, and a toast). A letter left unanswered when the year moves on counts as absent. Handing a letter to the Chief of Staff, or handling a stance letter, records no verdict.
+- The budget council: each minister asks for their lines; Finance proposes the whole split (it must add to 100). On the budget screen, Finance's budget is one of the shapes to pick, with the bids alongside; picking it counts for Finance.
+- Everyone sees the same numbers (approval, bank, debt, corruption), the latest front page, the cabinet and its log. Sack a friend and the seat gets a new link; they become a former minister.
+- At the end of the term, the share card ("The Ada Obi Government, 2027–2034", each minister's word, the star of the cabinet) goes to the Governor and every minister, with WhatsApp sharing.
+- Server: server/cabinet.mjs, POST /api/cab/* (create, invite, join, view, publish, decide, advise, bid, usesplit, sack, reinvite, end), files in DATA_DIR/cabinets. Keys are held by each phone; only their hashes are stored. 10 new governments a day per address.
+- Tests: tests/cabinet.test.mjs (rules), tests/cabinet-server.test.mjs (endpoints), tests/e2e/cabinet.mjs (two browsers on the real server).
+- Pictures are stand-ins until docs/LOVABLE-CABINET.md arrives.

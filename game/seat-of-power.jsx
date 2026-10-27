@@ -2765,7 +2765,7 @@ const CareerSheet = ({ onClose }) => {
   </EntranceSheet>;
 };
 
-const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onAmbassador, onChallenge, onScenario, onBoard, onPreview, profile, setProfile }) => {
+const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onAmbassador, onChallenge, onScenario, onBoard, onPreview, onCabinet, profile, setProfile }) => {
   // The Presidency preview: for trying the presidency without a governorship first (7 taps on the logo, or ?preview=presidency).
   const taps = React.useRef(0);
   const [preview, setPreview] = useState(() => { try { return localStorage.getItem("sop_preview") === "1" || /preview=presidency/.test(location.search); } catch (e) { return false; } });
@@ -2781,6 +2781,9 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
   useEffect(() => { (async () => { try { const r = await window.storage.get(PRES_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setHasPres(true); } } catch (e) {} })(); }, []);
   const [saveName, setSaveName] = useState("");
   const [sheet, setSheet] = useState(null); // "profile" | "me" | "scenarios"
+  // Seats this phone holds in friends' governments.
+  const [mems, setMems] = useState(() => cabMems());
+  useEffect(() => { cabMemsSync().then(setMems); }, []);
   const [startAfter, setStartAfter] = useState(false); // New game with no politician yet: create one, then start
   const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
   useEffect(() => { const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f); return () => window.removeEventListener("sop-ents", f); }, []);
@@ -2838,6 +2841,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
         <PillBtn onClick={async () => { if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nA new game replaces it once you take office. To keep playing it, press Continue instead.", "Start a new game", "Keep my career"))) return; if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
+        {mems.length > 0 && onCabinet && <PillBtn tone="plain" onClick={onCabinet} style={{ width: "100%", maxWidth: 460 }}>👥 Your cabinet desk<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{(() => { const m = mems[mems.length - 1]; return ((SYS.seatById(m.seat) || {}).t || "Minister") + (m.gov ? " · " + m.gov + "'s government" : ""); })()}</span></PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
       {sheet === "daily" && <DailyScreen onClose={() => setSheet(null)} />}
@@ -5367,7 +5371,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
       houseBillsSeen, investorsSeen, investorsApproved, godfatherSeen, mediaSeen,
       ministries, projects, procLog, council, fedCouncils, wikiEvents, nepotismCount, saMemory, saOffice, gEnd, setup,
-      cast, cosOffice, mail: (mail || []).filter(l => l.live),
+      cast, cosOffice, mail: (mail || []).filter(l => l.live), fc,
     };
   };
   const saveGame = async () => {
@@ -10358,6 +10362,42 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const takeLetter = (l) => setMail(m => m.filter(x => x.id !== l.id));
   const isNote = (l) => !!(l.tip && !l.cat);
+  // ── The Cabinet of friends (governor only): share the year, show their advice, record what you signed ──
+  const [fc, setFc] = useState(() => (ld && ld.fc) || null); // { code, hostKey, invites }
+  const fcRef = React.useRef(fc); fcRef.current = NAT ? null : fc;
+  const [fcv, setFcv] = useState(null), [fcBusy, setFcBusy] = useState(false);
+  const fcSent = React.useRef({}); // letter key → { id, stance } as last shared
+  const fcLoad = () => { const F0 = fcRef.current; if (!F0) return Promise.resolve(null); return cabCall("view", { code: F0.code, key: F0.hostKey }).then(r => { setFcv(r.cab); return r.cab; }).catch(() => null); };
+  useEffect(() => { if (!fc || NAT) return; fcLoad(); const t = setInterval(() => { if (document.visibilityState === "visible") fcLoad(); }, 30000); return () => clearInterval(t); }, [fc && fc.code]);
+  const fcForm = () => { setFcBusy(true); cabCall("create", { hostName: pName, govName: pName, state: stName, startYear: setup?.startYear || 2027 })
+    .then(r => { const F0 = { code: r.code, hostKey: r.hostKey, invites: r.invites }; setFc(F0); fcRef.current = F0; setSaveTick(t => t + 1); track("cabinet", "formed"); setTimeout(() => { fcPublish(); fcLoad(); }, 50);
+      try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/council-table-state.webp", icon: "👥", title: "Your government is formed", text: "Send each friend their own link on WhatsApp. When they accept, the House screens them and they are sworn in. Their letters then reach their phones.", tone: "good" }); } catch (e) {} })
+    .catch(() => { try { window.SOP_outcome && window.SOP_outcome({ icon: "📵", title: "Could not reach the cabinet office", text: "Forming a government needs a connection. Try again in a moment.", tone: "bad" }); } catch (e) {} }).finally(() => setFcBusy(false)); };
+  const fcSack = async (seat, nm) => { const F0 = fcRef.current; if (!F0) return; if (!(await window.SOP_confirm("Sack " + nm + "?\n\nThey leave the cabinet at once, and the seat gets a new invite link.", "Sack " + nm.split(" ")[0], "Keep them"))) return;
+    cabCall("sack", { code: F0.code, key: F0.hostKey, seat }).then(r => { setFc(f => ({ ...f, invites: { ...(f.invites || {}), [seat]: r.invite } })); setSaveTick(t => t + 1); addL("👥 Sacked " + nm + " from the cabinet.", "political"); fcLoad(); }).catch(() => {}); };
+  const fcReinvite = (seat) => { const F0 = fcRef.current; if (!F0) return; cabCall("reinvite", { code: F0.code, key: F0.hostKey, seat }).then(r => { setFc(f => ({ ...f, invites: { ...(f.invites || {}), [seat]: r.invite } })); setSaveTick(t => t + 1); fcLoad(); }).catch(() => {}); };
+  // The letters a friend can advise on: the year's open mail, routed by seat.
+  const fcLetters = () => (mail || []).filter(l => !isNote(l) && !l.secr && !l.cat).map(l => { let v; try { v = letterView(l); } catch (e) { return null; }
+    const seat = SYS.seatFor({ kind: l.kind, title: v.title, body: v.body }); if (!seat) return null;
+    const sc = l.key.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === l.key) : null;
+    const opts = sc && (sc.options || []).length ? sc.options.filter(o => !o.disabled).map((o, i) => ({ id: String(i), label: o.label })) : SYS.CAB_STANCES;
+    return { id: l.id, key: l.key, seat, kind: l.kind, title: v.title, from: v.from, body: v.body || v.line, opts, stance: !(sc && (sc.options || []).length) }; }).filter(Boolean);
+  const fcPublish = (extra) => { const F0 = fcRef.current; if (!F0 || gEnd) return; const L = fcLetters(); fcSent.current = Object.fromEntries(L.map(l => [l.key, { id: l.id, stance: l.stance }]));
+    cabCall("publish", { code: F0.code, key: F0.hostKey, year: turn, letters: L.map(({ key, ...x }) => x), snap: { absYear, app: s.app, cash: s.cash || 0, debt: s.debt || 0, cor: s.cor || 0, pStab: s.pStab, bud }, ...(extra || {}) }).then(() => fcLoad()).catch(() => {}); };
+  const fcPubT = React.useRef(null);
+  useEffect(() => { if (!fcRef.current) return; clearTimeout(fcPubT.current); fcPubT.current = setTimeout(() => fcPublish(), 1500); }, [mail, turn, fc && fc.code]);
+  // What the Governor signed: followed or overruled (pick null when it was not a choice of options).
+  const fcDecide = (key, pick) => { const F0 = fcRef.current, x = fcSent.current[key]; if (!F0 || !x) return; cabCall("decide", { code: F0.code, key: F0.hostKey, letterId: x.id, pick: x.stance ? null : pick }).then(r => { if (r && r.followed === false) { const l = ((fcv || {}).letters || []).find(y => y.id === x.id); if (l && l.advice) setTimeout(() => { try { window.SOP_toast && window.SOP_toast("You overruled " + l.advice.by + ". Their loyalty falls.", "bad"); } catch (e) {} }, 1200); } fcLoad(); }).catch(() => {}); };
+  const fcChips = (key, label, chips) => { const a = fcAdvice(key), x = fcSent.current[key]; return a && x && !x.stance && a.pick === label ? [{ text: "💬 " + a.by + "'s advice", color: CL.blu }].concat(chips || []) : chips; };
+  const fcUseSplit = () => { const F0 = fcRef.current; if (F0 && fcv && fcv.split && !fcv.split.used) cabCall("usesplit", { code: F0.code, key: F0.hostKey }).then(() => fcLoad()).catch(() => {}); };
+  const fcAdvice = (key) => { const x = fcSent.current[key]; return x && fcv ? ((fcv.letters || []).find(l => l.id === x.id) || {}).advice || null : null; };
+  const fcWaiting = (key) => { const x = fcSent.current[key]; if (!x || !fcv) return null; const l = (fcv.letters || []).find(y => y.id === x.id); if (!l || l.advice || l.decided) return null; const m = ((fcv.seats || {})[l.seat] || {}).member; return m ? m.name : null; };
+  const fcStrip = (key) => { const a = fcAdvice(key), w = !a && fcWaiting(key), x = fcSent.current[key], seat = x && fcv && ((fcv.letters || []).find(l => l.id === x.id) || {}).seat;
+    if (!a && !w) return null; const S = SYS.seatById(seat) || {};
+    return <div className="recall" data-testid="cab-advice" style={{ background: a ? "#eef4ff" : "#f4efe3", borderLeftColor: a ? "#1f4f8f" : "#b8a77a" }}><span>{a ? <><b style={{ color: "#1f4f8f" }}>💬 {a.by} · {S.short || "your minister"} advises:</b> {x.stance ? "" : "“" + a.pick + "”"}{x.stance ? a.pick : ""}{a.note ? <> · <i>{a.note}</i></> : null}</> : <>⏳ Sent to <b>{w}</b> ({S.short || "the minister"}) for advice{fcv && fcv.closesAt ? " · " + hoursLeft(fcv.closesAt) : ""}.</>}</span></div>; };
+  // The end of the term: the cabinet's card goes to everyone.
+  useEffect(() => { const F0 = fcRef.current; if (!gEnd || !F0) return; cabCall("end", { code: F0.code, key: F0.hostKey, endYear: absYear, why: String(gEnd) }).then(() => fcLoad()).then(v => { const card = SYS.shareCard(v); if (!card || !card.rows.length) return;
+    setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/backgrounds/council-table-state.webp", icon: "👥", title: card.head, text: card.rows.map(r => r.name + ", " + r.t + ": " + r.word).join(". ") + ".", tone: "good", action: { label: "Share on WhatsApp", fn: () => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname) } }); } catch (e) {} }, 2500); }).catch(() => {}); }, [gEnd]);
   const handleLetter = (l) => {
     if (l.secr && l.secr.agency) { setLetterOpen(l.id); return; }
     if (l.secr && (l.secr.hosAppoint || l.secr.hosBrief)) { setLetterOpen(null); setMailOpen(false); setHosOpen(l.secr.hosAppoint ? "appoint" : "brief"); return; }
@@ -10365,6 +10405,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (l.secr) { setLetterOpen(null); setMailOpen(false); openSecr({ ...l.secr, from: nav }); return; }
     takeLetter(l); setLetterOpen(null); setMailOpen(false);
     if (isNote(l)) return; // a report or a notice: read and filed
+    if (!l.key.startsWith("sc#")) fcDecide(l.key, null);
     if (l.key === "budget") {
       mailOn.current = false; setPhase("budget"); setNav("gov");
       if (!budgetMin()) { const padB = Math.max(.2, Math.round(SYS.revenueB(s) * .025 * 10) / 10); setS(p => ({ ...p, cor: cl(p.cor + .005), cash: Math.max(0, Math.round(((p.cash || 0) - padB) * 100) / 100) })); addL("📊 No Commissioner for Budget & Planning checked the ministries' bids: " + naira(padB) + " of padding went into the budget. Create the ministry under People → Ministries.", "political"); }
@@ -10388,7 +10429,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const delegateLetter = (l) => decide(() => {
     if (isNote(l)) { takeLetter(l); setLetterOpen(null); return null; }
     if (!silentRef.current) track("letters", "handed to the Chief of Staff");
-    const c = cosNow || COS_ACTING, v = letterView(l);
+    const c = cosNow || COS_ACTING, v = letterView(l); fcDecide(l.key, null);
     takeLetter(l); setLetterOpen(null);
     // The budget: they resubmit last year's shares to the House.
     if (l.key === "budget") {
@@ -10545,7 +10586,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // ── Big moments: a front page with your name, the news anchors, the adviser in person ──
   const govShort = "Gov. " + String(pName || "").split(" ").pop();
-  const paper = (headline, sub, good = true, img) => { if (silentRef.current) return; try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: NAT ? "The Daily Impact" : "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
+  const paper = (headline, sub, good = true, img) => { if (silentRef.current) return; if (fcRef.current) setTimeout(() => fcPublish({ paper: { headline, sub, good, img } }), 0); try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: NAT ? "The Daily Impact" : "The " + stName + " Daily Tribune", headline, sub, good, img } }); } catch (e) {} };
   const [anchorNews, setAnchorNews] = useState(null);
   const anchors = (m, f) => { if (silentRef.current) return; try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
   const anchorEl = anchorNews ? <AnchorDesk lines={anchorNews} onDone={() => setAnchorNews(null)} /> : null;
@@ -10629,6 +10670,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
           {/* Foot: the two ways to answer, as in the template. */}
           <div style={{ background: "#dcd8d1", padding: tall ? "12px 12px 14px" : "16px 22px 20px", borderTop: "1px solid #cfcac1" }}>
+            {fcStrip(open.key) && <div style={{ marginBottom: 10, fontFamily: F.b, fontSize: LS.xs }}>{fcStrip(open.key)}</div>}
             {open.key === "budget" && !budgetMin() && (() => { const bc = MIN_CAT().find(x => x.id === "budget"); return <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#fff8e6", border: "1px solid #e9cf8a", borderRadius: 16, padding: tall ? "10px 12px" : "12px 16px", marginBottom: 12 }}>
               <img src={saPortrait(cast.adviser.name)} alt="" style={{ width: tall ? 44 : 56, height: tall ? 44 : 56, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
               <div style={{ fontFamily: F.b, fontSize: LS.xs, color: "#4b3d2a", lineHeight: 1.4 }}><b>{cast.adviser.name.split(" ").slice(-2).join(" ")}:</b> “Create a Ministry of Budget & Planning first, so someone checks every bid. Otherwise the padding costs us.”</div>
@@ -11130,6 +11172,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["🗑️ Start afresh: a new politician", () => startAfresh()],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
+    ...(!NAT ? [["👥 " + (fc ? "Your government of friends" : "Govern with your friends"), () => { setMenuOpen(false); setNav("cab"); }]] : []),
     ...(!VATAR && window.SOP_installable && window.SOP_installable() ? [["📲 Install the app", () => { try { window.SOP_install(); } catch (e) {} }]] : []),
     ["🎵 Music: " + (() => { const v = window.SOP_musicVol ? window.SOP_musicVol() : .3; return v === 0 ? "off" : Math.round(v * 100) + "%"; })(), () => { try { const v = window.SOP_musicVol(); window.SOP_musicVol(v === 0 ? .3 : v < .5 ? .6 : v < .9 ? 1 : 0); setMenuOpen(false); } catch (e) {} }],
     ["Tell us what to improve", () => { try { window.SOP_feedbackForm({ where: nav, year: absYear, state: stName }); } catch (e) {} }, "icon-ask-sa"],
@@ -11950,16 +11993,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
         {session && <CouncilTable key={session.id + ":" + turn} T={session} onPick={(o) => { setSession(null); let r = null; try { r = o.run(); } catch (e) { console.error("[council]", e); } if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => setSession(null)} />}
         {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
-          return <LvDecision key={c.key} c={{ ...c, options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, disabled: o.disabled, raw: o })) }}
-            advice={c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}
-            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} />; })()}
+          return <LvDecision key={c.key} c={{ ...c, options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), disabled: o.disabled, raw: o })) }}
+            advice={<>{fcStrip("sc#" + c.key)}{c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}</>}
+            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} />; })()}
         <OL show={phase === "sc" && scCards.length > 0 && !!(scCards[0].letter || scCards[0].military || scCards[0].doc)}>
-          {scCards[0] && (() => { const c = scCards[0]; return <>{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
+          {scCards[0] && (() => { const c = scCards[0]; return <>{fcStrip("sc#" + c.key) && <div style={{ maxWidth: 600, margin: "0 auto 12px" }}>{fcStrip("sc#" + c.key)}</div>}{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
               <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
             </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
-            options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: o.chips, raw: o }))}
-            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} /></>; })()}
+            options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), raw: o }))}
+            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} /></>; })()}
         </OL>
 
         <OL show={phase === "succession_race" && !!stc.race}>
@@ -13875,11 +13918,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const warnCount = (v) => BSECTORS.filter(sec => { const m = SEC_META[sec.k], x = v[sec.k] || 0; return m && (x < m.min || x > m.max); }).length;
               const GRP_SHORT = { "Human Development": "People", "Growth Engines": "Growth", "Obligations": "Running costs" };
               const cards = (STANCES.some(([k]) => same(bud, presets[k])) ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "On your desk" : "Not balanced: " + bs + "%", bud]])
-                .concat(STANCES.map(([k, l, d]) => [k, l, d, presets[k]]));
+                .concat(STANCES.map(([k, l, d]) => [k, l, d, presets[k]]))
+                // The cabinet of friends: Finance's proposed budget, with the other ministers' bids.
+                .concat(fcv && fcv.split && fcv.year === turn ? [["__cab", "👥 " + fcv.split.by + "'s budget (Finance)", (fcv.split.note ? "“" + fcv.split.note + "” " : "") + (Object.values(fcv.bids || {}).map(b => b.by + " asked " + Object.entries(b.ask).map(([l2, v2]) => SYS.LINE_NAME[l2] + " " + v2 + "%").join(", ")).join(" · ") || "From your cabinet"), fcv.split.shares]] : []);
               const step = (k, d) => setBud(p => ({ ...p, [k]: Math.max(0, Math.min(40, (p[k] || 0) + d)) }));
               const stepBtn = { width: tall ? 48 : 64, height: tall ? 48 : 64, minHeight: tall ? 48 : 64, borderRadius: 12, border: "1px solid " + CL.bdr, background: CL.bg, color: CL.txt, fontSize: fs.m, fontWeight: 800, cursor: "pointer", flexShrink: 0 };
               // The budget (dark green and gold): the sum, how it splits, the five shapes, then Submit. The eight sectors open in a light panel.
-              const ICONS = { __draft: "📋", recommended: "⚖️", populist: "📣", reformer: "🧮", godfather: "🎩" };
+              const ICONS = { __cab: "👥", __draft: "📋", recommended: "⚖️", populist: "📣", reformer: "🧮", godfather: "🎩" };
               const grpPct = (g) => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (bud[sec.k] || 0), 0);
               const LIGHT = { "Human Development": "#6ea0ff", "Growth Engines": "#7fd3a5", "Obligations": "#b99cff" };
               const fz = tall ? { s: TS(15), m: TS(17), l: TS(46), k: TS(12) } : { s: TS(19), m: TS(22), l: TS(64), k: TS(14) };
@@ -13899,7 +13944,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </div>
                   <div style={{ display: "grid", gap: 10 }}>
                     {cards.map(([k, l, d, v]) => { const on = same(bud, v), w = warnCount(v);
-                      return <button key={k} onClick={() => setBud({ ...v })} aria-pressed={on} style={{ textAlign: "left", borderRadius: 16, padding: tall ? "12px 14px" : "14px 16px", cursor: "pointer", fontFamily: F.b, color: "#f3eedf", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center",
+                      return <button key={k} onClick={() => { setBud({ ...v }); if (k === "__cab") fcUseSplit(); }} aria-pressed={on} style={{ textAlign: "left", borderRadius: 16, padding: tall ? "12px 14px" : "14px 16px", cursor: "pointer", fontFamily: F.b, color: "#f3eedf", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center",
                         background: on ? "rgba(233,196,106,.12)" : "rgba(255,255,255,.05)", border: "1.5px solid " + (on ? "#e9c46a" : "rgba(255,255,255,.12)") }}>
                         <span style={{ fontSize: tall ? 22 : 26 }}>{ICONS[k] || "📋"}</span>
                         <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: fz.m }}>{on ? "✓ " : ""}{l}</b><span style={{ fontSize: fz.s, color: "#c9c3b2" }}>{d}</span></span>
@@ -14212,6 +14257,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {(nav === "stk" || nav === "ppl") && <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(auto-fill,minmax(264px,1fr))", gap: 22 }}>{STAKEHOLDERS.map(x => { const v = skApp[x.id] || 50; return <Cd key={x.id}><div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}><span>{x.i} <span style={{ fontWeight: 600, fontSize: TS(38) }}>{x.nm}</span></span><span style={{ fontFamily: F.m, fontSize: TS(48), color: v > 60 ? CL.grn : v > 40 ? CL.org : CL.red }}>{Math.round(v)}%</span></div><SB label="" value={v / 100} color={v > 60 ? CL.grn : v > 40 ? CL.org : CL.red} /></Cd>; })}</div>}
 
         {nav === "cab" && <div>
+          {!NAT && <FriendsCabinet fc={fc} view={fcv} busy={fcBusy} onForm={fcForm} onSack={fcSack} onReinvite={fcReinvite} onRefresh={fcLoad} govName={pName} stName={stName} />}
           {ministries && ministries.length > 0 && <div style={{ marginBottom: 50 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(50), fontWeight: 600, margin: 1 }}>🏛️ Executive Council — Your Ministries ({ministries.length})</h3>
@@ -15752,6 +15798,189 @@ const ExecutiveCommandSA = ({ adviser, brief, inbox, vacantTurns, onFire }) => {
 
 
 
+// ─── THE CABINET: a government formed with friends (phase 1, the governorship) ───
+/* The Governor's phone runs the game and shares each year with the server
+   (server/cabinet.mjs); each friend holds one portfolio, advises on its
+   letters and bids for the budget. Rules: game/systems/cabinet.js. */
+const cabCall = (op, b) => fetch("/api/cab/" + op, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(b || {}) })
+  .then(r => r.json().catch(() => ({})).then(j => { if (!r.ok) { const e = new Error(j.error || "http_" + r.status); e.code = j.error || "http_" + r.status; e.status = r.status; throw e; } return j; }));
+const cabLink = (code, seat, inv) => SYS.inviteUrl(location.origin + location.pathname, code, seat, inv);
+const waShare = (text) => { const u = "https://wa.me/?text=" + encodeURIComponent(text); try { if (navigator.share) { navigator.share({ text }).catch(() => {}); return; } } catch (e) {} try { window.open(u, "_blank"); } catch (e) { location.href = u; } };
+const copyText = (t) => { try { navigator.clipboard.writeText(t); window.SOP_toast && window.SOP_toast("Link copied", "ok"); } catch (e) {} };
+// This phone's seats in friends' governments: [{ code, seat, key, name, gov, state }].
+const CAB_MEM = "sop_cab_mem";
+const cabMems = () => { try { const v = JSON.parse(localStorage.getItem(CAB_MEM) || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+const cabMemsSave = (L) => { const v = JSON.stringify(L.slice(-6)); try { localStorage.setItem(CAB_MEM, v); } catch (e) {} try { window.storage && window.storage.set("sop_cab_mem", v); } catch (e) {} };
+const cabMemsSync = () => { try { return window.storage ? window.storage.get("sop_cab_mem").then(r => { const c = r && r.value ? JSON.parse(r.value) : []; if (Array.isArray(c) && c.length) { const L = cabMems(), add = c.filter(x => !L.some(y => y.code === x.code && y.seat === x.seat)); if (add.length) cabMemsSave([...L, ...add]); } return cabMems(); }).catch(() => cabMems()) : Promise.resolve(cabMems()); } catch (e) { return Promise.resolve(cabMems()); } };
+const hoursLeft = (t) => { const h = Math.max(0, Math.round(((t || 0) - Date.now()) / 36e5)); return h >= 1 ? h + "h left" : "closing soon"; };
+const seatArt = (id) => "./art/characters/" + ((SYS.seatById(id) || {}).img || "commissioner-male-suit") + ".webp";
+const recLine = (r = {}) => [(r.advised || 0) + " advised", (r.followed || 0) + " followed", (r.overruled || 0) + " overruled"].concat(r.absent ? [r.absent + " absent"] : []).join(" · ");
+
+// The Governor's side: form the government, send the invites, see each minister's record.
+const FriendsCabinet = ({ fc, view, busy, onForm, onSack, onReinvite, onRefresh, govName, stName }) => {
+  const box = { background: "#fffdf8", border: "1px solid #e7dcc4", borderRadius: 22, padding: TALL() ? "14px 14px" : "18px 22px", marginBottom: 22, fontFamily: F.b, color: "#17301f" };
+  const small = { fontSize: 15, color: "#5b6b55", lineHeight: 1.45 };
+  if (!fc) return <div style={box} data-testid="cab-form">
+    <img src="./art/backgrounds/council-table-state.webp" alt="The Executive Council table" style={{ display: "block", width: "100%", aspectRatio: "16 / 7", objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
+    <div className="sp-kicker">New · play with friends</div>
+    <h3 style={{ fontFamily: F.d, fontSize: 28, margin: "6px 0 6px" }}>👥 Govern with your friends</h3>
+    <div style={small}>Give up to five friends a portfolio. Each one gets a WhatsApp link, is screened by the House and sworn in. Their letters reach their phones: they advise, you sign. Overrule a friend and it costs their loyalty. Everyone sees the same front pages.</div>
+    <div style={{ display: "grid", gap: 8, margin: "14px 0" }}>{SYS.CAB_SEATS.map(x => <div key={x.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", background: "#f8f2e3", borderRadius: 14, padding: "8px 12px" }}>
+      <span style={{ fontSize: 24 }}>{x.i}</span><span><b style={{ fontSize: 16 }}>{x.t}</b><span style={{ display: "block", ...small, fontSize: 14 }}>{x.does}</span></span></div>)}</div>
+    <button className="sp-btn" disabled={busy} onClick={onForm} style={{ width: "100%" }}>{busy ? "Forming the government…" : "Form the government"}</button>
+    <div style={{ ...small, fontSize: 13, marginTop: 8, textAlign: "center" }}>A seat nobody takes is run by your own commissioners, as now. Friends play on any phone; no account needed.</div>
+  </div>;
+  const V = view || {}, seats = V.seats || {}, inv = fc.invites || {};
+  const card = SYS.shareCard(V.seats ? V : null);
+  return <div style={box} data-testid="cab-panel">
+    <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline", flexWrap: "wrap" }}>
+      <h3 style={{ fontFamily: F.d, fontSize: 26, margin: 0 }}>👥 Your government of friends</h3>
+      <span style={{ fontSize: 14, color: "#8a7a55" }}>Code {fc.code}{V.year ? " · year " + V.year + (V.closesAt && !V.ended ? " · " + hoursLeft(V.closesAt) + " for advice" : "") : ""}</span>
+    </div>
+    {!view && <div style={{ ...small, marginTop: 8 }}>Reaching your cabinet… <button className="sp-btn quiet" onClick={onRefresh}>Try again</button></div>}
+    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>{SYS.CAB_SEATS.map(x => { const S = seats[x.id] || {}, m = S.member, r = S.rec || {};
+      return <div key={x.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", background: m ? "#effaf3" : "#f8f2e3", borderRadius: 16, padding: "10px 12px" }}>
+        <img src={seatArt(x.id)} alt="" style={{ width: 54, height: 64, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: "#e8f3ea" }} />
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: "#8a7a55", textTransform: "uppercase", letterSpacing: .6 }}>{x.i} {x.t}</div>
+          {m ? <><b style={{ fontSize: 18 }}>{m.name}</b>
+            <div style={{ ...small, fontSize: 14 }}>{SYS.ministerWord(r)} · {SYS.loyaltyWord(r.loyalty)} ({r.loyalty == null ? 70 : r.loyalty}) · {recLine(r)}</div>
+            <div style={{ marginTop: 6 }}><button className="sp-btn ghost" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14 }} onClick={() => onSack(x.id, m.name)}>Sack</button></div></>
+            : <><div style={{ ...small, fontSize: 15 }}>{(S.former || []).length ? "Vacant since " + S.former[S.former.length - 1].name + " left. " : ""}Waiting for a friend to accept.</div>
+              {inv[x.id] ? <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
+                <button className="sp-btn" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14, background: "#128c4a" }} onClick={() => waShare(SYS.inviteText({ gov: govName, state: stName, seat: x.id, url: cabLink(fc.code, x.id, inv[x.id]) }))}>Invite on WhatsApp</button>
+                <button className="sp-btn ghost" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14 }} onClick={() => copyText(cabLink(fc.code, x.id, inv[x.id]))}>Copy link</button></div>
+                : <button className="sp-btn ghost" style={{ minHeight: 38, padding: "6px 14px", fontSize: 14, marginTop: 6 }} onClick={() => onReinvite(x.id)}>New invite link</button>}</>}
+        </div></div>; })}</div>
+    {(V.log || []).length > 0 && <div style={{ marginTop: 14 }}><div className="sp-kicker">In the cabinet</div>{V.log.slice(-5).reverse().map((l, i) => <div key={i} style={{ ...small, fontSize: 14, marginTop: 4 }}>Year {l.year || 1}: {l.t}</div>)}</div>}
+    {card && card.rows.length > 0 && <button className="sp-btn gold" style={{ width: "100%", marginTop: 14 }} onClick={() => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname)}>Share our government</button>}
+  </div>;
+};
+
+// A friend's phone: the nomination, the House's screening, the oath, then the desk.
+const MinisterApp = ({ onExit }) => {
+  const q = (() => { try { return new URLSearchParams(location.search); } catch (e) { return new URLSearchParams(""); } })();
+  const pend = q.get("cab") && q.get("seat") && q.get("inv") ? { code: q.get("cab").toUpperCase(), seat: q.get("seat"), invite: q.get("inv") } : null;
+  const [stage, setStage] = useState(pend ? "loading" : "desk");
+  const [nom, setNom] = useState(null), [err, setErr] = useState(null), [name, setName] = useState(""), [ans, setAns] = useState(null);
+  const [mem, setMem] = useState(() => { const L = cabMems(); return L[L.length - 1] || null; });
+  const [cab, setCab] = useState(null), [draft, setDraft] = useState({}), [sending, setSending] = useState(null), [bid, setBid] = useState(null);
+  const clearUrl = () => { try { history.replaceState(null, "", location.pathname); } catch (e) {} };
+  useEffect(() => { if (!pend) { if (!mem) cabMemsSync().then(L => { if (L.length) setMem(L[L.length - 1]); else onExit(); }); return; }
+    cabCall("invite", pend).then(r => { setNom(r); setStage(r.ended ? "error" : "nominated"); if (r.ended) setErr("This government's term is over."); })
+      .catch(e => { const had = cabMems().find(x => x.code === pend.code && x.seat === pend.seat); if (had) { clearUrl(); setMem(had); setStage("desk"); return; } setErr(e.code === "taken" ? "Someone has already accepted this seat. Ask the Governor for a new link." : e.code === "bad_invite" ? "This invite link is no longer valid. Ask the Governor for a new one." : "We could not reach the cabinet. Check your connection and open the link again."); setStage("error"); }); }, []);
+  const load = () => mem ? cabCall("view", { code: mem.code, key: mem.key }).then(r => { setCab(r.cab); setErr(null); }).catch(e => { if (e.status === 403) setErr("You are no longer in this government: the Governor gave your seat to someone else."); else if (!cab) setErr("We could not reach the cabinet. Pull to refresh in a moment."); }) : null;
+  useEffect(() => { if (stage !== "desk" || !mem) return; load(); const t = setInterval(() => { if (document.visibilityState === "visible") load(); }, 20000); return () => clearInterval(t); }, [stage, mem && mem.code + mem.seat]);
+  const page = { minHeight: "100vh", background: "#f6f2ea", fontFamily: F.b, color: "#17301f", padding: "calc(env(safe-area-inset-top, 0px) + 14px) 14px 40px" };
+  const wrap = { maxWidth: 640, margin: "0 auto" };
+  const box = { background: "#fffdf8", border: "1px solid #e7dcc4", borderRadius: 22, padding: "16px 16px", marginBottom: 14, boxShadow: "0 10px 26px rgba(18,48,31,.08)" };
+  const small = { fontSize: 15, color: "#5b6b55", lineHeight: 1.45 };
+  const seat = SYS.seatById((nom && nom.seat) || (mem && mem.seat) || (pend && pend.seat)) || SYS.CAB_SEATS[0];
+  const home = <button className="sp-btn quiet" onClick={() => { clearUrl(); onExit(); }}>← Seat of Power home</button>;
+  if (stage === "loading") return <div style={page}><div style={{ ...wrap, textAlign: "center", paddingTop: 80 }}>Opening the letter from Government House…</div></div>;
+  if (stage === "error") return <div style={page}><div style={wrap}><div style={box}><h2 style={{ fontFamily: F.d, margin: "0 0 8px" }}>🏛️ The cabinet</h2><div style={small}>{err}</div><div style={{ marginTop: 12 }}>{home}</div></div></div></div>;
+  if (stage === "nominated" && nom) { const G = nom.gov || {};
+    return <div style={page}><div style={wrap}>
+      <div style={{ ...box, background: "#fffaf0", padding: "22px 20px" }} data-testid="cab-nomination">
+        <div className="sp-kicker">Government House · {G.state || "the state"}</div>
+        <img src={seatArt(seat.id)} alt="" style={{ float: "right", width: 92, height: 110, objectFit: "cover", objectPosition: "top", borderRadius: 16, margin: "6px 0 8px 12px", background: "#e8f3ea" }} />
+        <h2 style={{ fontFamily: F.d, fontSize: 28, margin: "10px 0 8px" }}>You have been nominated</h2>
+        <div style={{ fontSize: 17, lineHeight: 1.5 }}>Governor <b>{nom.host || G.name}</b> has nominated you <b>{seat.t}</b> of {G.state || "the state"}.</div>
+        <div style={{ ...small, marginTop: 8 }}>{seat.does} The letters for your desk come to this phone: you advise, the Governor signs. If the Governor overrules you, you will know.</div>
+        {(nom.members || []).length > 0 && <div style={{ ...small, marginTop: 8, clear: "both" }}>Already sworn in: {nom.members.map(m => m.name + " (" + ((SYS.seatById(m.seat) || {}).short || m.seat) + ")").join(", ")}.</div>}
+        <label style={{ display: "block", clear: "both", marginTop: 16, fontWeight: 800, fontSize: 15 }}>Your name, as the cabinet will see it</label>
+        <input value={name} maxLength={30} onChange={e => setName(e.target.value)} placeholder="e.g. Chinaza" style={{ width: "100%", boxSizing: "border-box", marginTop: 6, minHeight: 50, borderRadius: 14, border: "1.5px solid #d6caae", padding: "10px 14px", fontSize: 18, fontFamily: F.b }} />
+        <button className="sp-btn" disabled={!name.trim()} onClick={() => setStage("screening")} style={{ width: "100%", marginTop: 14 }}>Accept the nomination</button>
+        <div style={{ textAlign: "center", marginTop: 6 }}>{home}</div>
+      </div></div></div>; }
+  if (stage === "screening") { const Q = SYS.screeningFor(pend.code, pend.seat);
+    return <div style={page}><div style={wrap}><div style={box} data-testid="cab-screening">
+      <img src="./art/backgrounds/assembly-chamber.webp" alt="The State House of Assembly" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover", borderRadius: 16 }} />
+      <div className="sp-kicker" style={{ marginTop: 12 }}>The House screens the nominee</div>
+      <h2 style={{ fontFamily: F.d, fontSize: 24, margin: "8px 0" }}>“{Q.q}”</h2>
+      <div style={{ display: "grid", gap: 8 }}>{Q.a.map(([a, rep], i) => <button key={i} className="sp-opt" aria-pressed={ans === i} onClick={() => { if (ans == null) setAns(i); }} style={{ fontSize: 17, opacity: ans != null && ans !== i ? .45 : 1 }}><b>{a}</b>{ans === i && <div style={{ ...small, marginTop: 4, color: "#0b6b42" }}>{rep}</div>}</button>)}</div>
+      {ans != null && <button className="sp-btn gold" disabled={!!sending} style={{ width: "100%", marginTop: 14 }} onClick={() => { setSending("oath");
+        cabCall("join", { ...pend, name: name.trim() }).then(r => { const m = { code: pend.code, seat: pend.seat, key: r.key, name: name.trim(), gov: (r.gov || {}).name, state: (r.gov || {}).state }; cabMemsSave([...cabMems().filter(x => !(x.code === m.code && x.seat === m.seat)), m]); setMem(m); clearUrl(); setStage("sworn"); try { window.SOP_sound && window.SOP_sound("success"); } catch (e) {} })
+          .catch(e => { setErr(e.code === "taken" ? "Someone accepted this seat a moment before you. Ask the Governor for a new link." : "The oath could not be recorded. Check your connection and try again."); setStage("error"); }).finally(() => setSending(null)); }}>{sending ? "Taking the oath…" : "Take the oath of office"}</button>}
+    </div></div></div>; }
+  if (stage === "sworn") return <div style={page}><div style={wrap}><div style={{ ...box, textAlign: "center" }} data-testid="cab-sworn">
+    <img src="./art/scenes/inauguration-eagle-square.webp" alt="A swearing-in ceremony" style={{ display: "block", width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 16 }} />
+    <h2 style={{ fontFamily: F.d, fontSize: 28, margin: "14px 0 6px" }}>Sworn in</h2>
+    <div style={{ fontSize: 17, lineHeight: 1.5 }}><b>{mem && mem.name}</b>, {seat.t}. The Bible, the Qur'an and the oath of allegiance: you are now in the government.</div>
+    <button className="sp-btn" style={{ width: "100%", marginTop: 16 }} onClick={() => setStage("desk")}>Go to your desk</button>
+  </div></div></div>;
+  // ── The desk ──
+  if (!mem) return <div style={page}><div style={wrap}><div style={box}>Looking for your seat…<div style={{ marginTop: 10 }}>{home}</div></div></div></div>;
+  const C = cab || {}, G = C.gov || {}, sn = C.snap || {}, me = mem.seat, mine = (C.letters || []).filter(l => l.seat === me), others = (C.letters || []).filter(l => l.seat && l.seat !== me);
+  const myRec = ((C.seats || {})[me] || {}).rec || {};
+  const advise = (l) => { const d = draft[l.id] || {}; const pick = d.pick || (l.advice && l.advice.pick); if (!pick) return; setSending(l.id);
+    cabCall("advise", { code: mem.code, key: mem.key, letterId: l.id, pick, note: d.note != null ? d.note : (l.advice && l.advice.note) || "" }).then(() => { try { window.SOP_toast && window.SOP_toast("Your advice is on the Governor's desk", "ok"); } catch (e) {} setDraft(x => ({ ...x, [l.id]: null })); return load(); })
+      .catch(e => { try { window.SOP_toast && window.SOP_toast(e.code === "decided" ? "Too late: the Governor has already signed it" : "Not sent. Try again.", "bad"); } catch (x) {} load(); }).finally(() => setSending(null)); };
+  const fin = me === "finance", lines = fin ? SYS.BUDGET_LINES : seat.sectors;
+  const base = (C.split && C.split.shares) || sn.bud || {};
+  const B = bid || Object.fromEntries((fin ? SYS.BUDGET_LINES : lines).map(k => [k, ((C.bids || {})[me] && C.bids[me].ask[k]) != null ? C.bids[me].ask[k] : base[k] || 12]));
+  const bsum = SYS.BUDGET_LINES.reduce((a, k) => a + (B[k] || 0), 0);
+  const step = (k, d) => setBid({ ...B, [k]: Math.max(0, Math.min(40, (B[k] || 0) + d)) });
+  const sendBid = () => { setSending("bid"); cabCall("bid", fin ? { code: mem.code, key: mem.key, split: B } : { code: mem.code, key: mem.key, ask: B }).then(() => { try { window.SOP_toast && window.SOP_toast(fin ? "Your budget is with the Governor" : "Your bid is in", "ok"); } catch (e) {} setBid(null); return load(); }).catch(() => { try { window.SOP_toast && window.SOP_toast("Not sent. Try again.", "bad"); } catch (e) {} }).finally(() => setSending(null)); };
+  const card = C.ended ? SYS.shareCard(C) : null, P = (C.papers || [])[0];
+  return <div style={page} data-testid="cab-desk"><div style={wrap}>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>{home}<button className="sp-btn quiet" onClick={load}>↻ Refresh</button></div>
+    <div style={{ ...box, display: "grid", gridTemplateColumns: "auto 1fr", gap: 14, alignItems: "center" }}>
+      <img src={seatArt(me)} alt="" style={{ width: 72, height: 86, objectFit: "cover", objectPosition: "top", borderRadius: 16, background: "#e8f3ea" }} />
+      <div style={{ minWidth: 0 }}><div className="sp-kicker">{G.name ? G.name + "'s government" : "The government"}{G.state ? " · " + G.state : ""}</div>
+        <h2 style={{ fontFamily: F.d, fontSize: 24, margin: "4px 0" }}>{seat.i} {mem.name}, {seat.t}</h2>
+        <div style={{ ...small, fontSize: 14 }}>{C.year ? "Year " + C.year + (sn.absYear ? " (" + sn.absYear + ")" : "") + (C.closesAt && !C.ended ? " · " + hoursLeft(C.closesAt) + " to advise" : "") : "The Governor has not opened the first year yet."} · {SYS.ministerWord(myRec)} · {SYS.loyaltyWord(myRec.loyalty)}</div></div>
+    </div>
+    {err && <div style={{ ...box, background: "#fff4f2", color: "#a3271c" }}>{err}</div>}
+    {card && <div style={{ ...box, background: "#fff8e6" }}><div className="sp-kicker">The term is over</div><h3 style={{ fontFamily: F.d, fontSize: 24, margin: "6px 0" }}>{card.head}</h3>
+      {card.rows.map(r => <div key={r.seat} style={{ fontSize: 16, marginTop: 4 }}><b>{r.name}</b> · {r.t} · <span style={{ color: "#5b6b55" }}>{r.word}</span></div>)}
+      <button className="sp-btn gold" style={{ width: "100%", marginTop: 12 }} onClick={() => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname)}>Share our government</button></div>}
+    {sn.app != null && <div className="sp-tiles" style={{ marginBottom: 14 }}>
+      {[["Approval", Math.round(sn.app) + "%", sn.app >= 50], ["In the bank", naira(sn.cash || 0), (sn.cash || 0) > .5], ["Debt", naira(sn.debt || 0), (sn.debt || 0) < 20], ["Corruption", Math.round((sn.cor || 0) * 100) + "%", (sn.cor || 0) < .3]].map(([l, v, g]) => <div key={l} className={"sp-tile " + (g ? "good" : "bad")}><div className="l">{l}</div><div className="v">{v}</div></div>)}</div>}
+    {P && <div style={{ ...box, padding: 0, overflow: "hidden" }}>
+      <div style={{ background: "#1b1b1b", color: "#fff", padding: "8px 14px", fontFamily: F.d, fontSize: 16, letterSpacing: 1 }}>The {G.state || "State"} Daily Tribune · Year {P.year}</div>
+      {P.img && <img src={P.img} alt="" style={{ display: "block", width: "100%", aspectRatio: "16 / 8", objectFit: "cover" }} />}
+      <div style={{ padding: "10px 14px 14px" }}><div style={{ fontFamily: F.d, fontSize: 22, fontWeight: 700, color: P.good ? "#17301f" : "#a3271c" }}>{P.headline}</div><div style={small}>{P.sub}</div></div></div>}
+    <h3 style={{ fontFamily: F.d, fontSize: 22, margin: "18px 0 8px" }}>Letters for your desk</h3>
+    {!mine.length && <div style={{ ...box, ...small }}>Nothing for your desk this year yet. Letters arrive when the Governor opens the year's mail.</div>}
+    {mine.map(l => { const d = draft[l.id] || {}, pick = d.pick || (l.advice && l.advice.pick), D = l.decided;
+      return <div key={l.id} style={box} data-testid="cab-letter">
+        <div className="sp-kicker">{l.from || "A letter"}</div>
+        <h4 style={{ fontFamily: F.d, fontSize: 20, margin: "6px 0" }}>{l.title}</h4>
+        {l.body && <div style={small}>{l.body}</div>}
+        {D ? <div style={{ marginTop: 10, padding: "10px 12px", borderRadius: 12, background: D.followed ? "#eef7f0" : D.followed === false ? "#fff4f2" : "#f4efe3", fontSize: 15 }}>
+          {D.pick ? <>The Governor signed: <b>{D.pick}</b>. </> : "The Governor has dealt with it. "}{D.followed ? "✔ Your advice was taken." : D.followed === false ? "✖ You were overruled." : !l.advice ? "You did not advise on it." : ""}</div>
+          : <>
+            <div style={{ fontSize: 14, fontWeight: 800, margin: "12px 0 6px", color: "#0b6b42" }}>{l.stance ? "How should the Governor handle it?" : "What should the Governor do?"}</div>
+            <div style={{ display: "grid", gap: 8 }}>{l.opts.map(o => <button key={o.id + o.label} className="sp-opt" aria-pressed={pick === o.label} onClick={() => setDraft(x => ({ ...x, [l.id]: { ...d, pick: o.label } }))}>{o.label}</button>)}</div>
+            <textarea value={d.note != null ? d.note : (l.advice && l.advice.note) || ""} maxLength={200} onChange={e => setDraft(x => ({ ...x, [l.id]: { ...d, note: e.target.value } }))} placeholder="A line to the Governor (optional)" style={{ width: "100%", boxSizing: "border-box", marginTop: 8, minHeight: 60, borderRadius: 12, border: "1.5px solid #d6caae", padding: "8px 12px", fontSize: 16, fontFamily: F.b }} />
+            <button className="sp-btn" disabled={!pick || sending === l.id} onClick={() => advise(l)} style={{ width: "100%", marginTop: 8 }}>{sending === l.id ? "Sending…" : l.advice ? "Change my advice" : "Send my advice"}</button>
+            {l.advice && <div style={{ ...small, fontSize: 13, marginTop: 6, textAlign: "center" }}>Sent: {l.advice.pick}. The Governor has not signed yet.</div>}</>}
+      </div>; })}
+    {C.year > 0 && !C.ended && <><h3 style={{ fontFamily: F.d, fontSize: 22, margin: "18px 0 8px" }}>The budget council</h3>
+      <div style={box}>
+        <div style={small}>{fin ? "You propose how the year's money is shared. It must add to 100%. The Governor can send your budget to the House as it is." : "Ask for your share of the year's money. Finance proposes the split; the Governor decides."}</div>
+        <div style={{ display: "grid", gap: 6, marginTop: 10 }}>{(fin ? SYS.BUDGET_LINES : lines).map(k => <div key={k} style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: 8, alignItems: "center" }}>
+          <span style={{ fontSize: 16 }}>{SYS.LINE_NAME[k]}{fin && SYS.lineOwner(k) && SYS.lineOwner(k) !== "finance" && (C.bids || {})[SYS.lineOwner(k)] && C.bids[SYS.lineOwner(k)].ask[k] != null ? <span style={{ ...small, fontSize: 13 }}> · {C.bids[SYS.lineOwner(k)].by} asks {C.bids[SYS.lineOwner(k)].ask[k]}%</span> : null}</span>
+          <button className="sp-btn ghost" aria-label={"Less for " + SYS.LINE_NAME[k]} style={{ minHeight: 38, padding: "4px 14px" }} onClick={() => step(k, -1)}>−</button>
+          <b style={{ minWidth: 44, textAlign: "center", fontSize: 18 }}>{B[k] || 0}%</b>
+          <button className="sp-btn ghost" aria-label={"More for " + SYS.LINE_NAME[k]} style={{ minHeight: 38, padding: "4px 14px" }} onClick={() => step(k, 1)}>+</button></div>)}</div>
+        {fin && <div style={{ fontSize: 15, fontWeight: 800, marginTop: 8, color: bsum === 100 ? "#0b6b42" : "#a3271c" }}>Total {bsum}%{bsum !== 100 ? " · it must be 100%" : ""}{bsum !== 100 && <button className="sp-btn quiet" onClick={() => setBid(SYS.balance(B))}>Make it 100</button>}</div>}
+        <button className="sp-btn" disabled={sending === "bid" || (fin && bsum !== 100)} onClick={sendBid} style={{ width: "100%", marginTop: 10 }}>{fin ? (C.split ? "Send my new budget" : "Send my budget to the Governor") : (C.bids || {})[me] ? "Change my bid" : "Send my bid"}</button>
+        {C.split && <div style={{ ...small, fontSize: 14, marginTop: 8 }}>{C.split.used ? "✔ The Governor sent " + C.split.by + "'s budget to the House." : "Finance's budget (" + C.split.by + ") is with the Governor."}</div>}
+        {Object.entries(C.bids || {}).filter(([k]) => k !== me).map(([k, b2]) => <div key={k} style={{ ...small, fontSize: 14, marginTop: 4 }}>{b2.by} ({(SYS.seatById(k) || {}).short}) asks {Object.entries(b2.ask).map(([l2, v]) => SYS.LINE_NAME[l2] + " " + v + "%").join(", ")}{b2.note ? ": “" + b2.note + "”" : ""}</div>)}
+      </div></>}
+    <h3 style={{ fontFamily: F.d, fontSize: 22, margin: "18px 0 8px" }}>The cabinet</h3>
+    <div style={box}>{SYS.CAB_SEATS.map(x => { const S = (C.seats || {})[x.id] || {}, m = S.member, n = others.filter(l => l.seat === x.id);
+      return <div key={x.id} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", padding: "8px 0", borderBottom: "1px solid #efe8db" }}>
+        <img src={seatArt(x.id)} alt="" style={{ width: 40, height: 48, objectFit: "cover", objectPosition: "top", borderRadius: 10, background: "#e8f3ea" }} />
+        <div style={{ minWidth: 0 }}><b style={{ fontSize: 16 }}>{m ? m.name : "Vacant"}</b> <span style={{ ...small, fontSize: 13 }}>· {x.t}{m ? " · " + SYS.ministerWord(S.rec) : ""}</span>
+          {n.slice(0, 2).map(l => <div key={l.id} style={{ ...small, fontSize: 13 }}>✉️ {l.title}{l.decided ? " · signed" : l.advice ? " · advised" : " · waiting"}</div>)}</div></div>; })}
+      {(C.log || []).slice(-4).reverse().map((l, i) => <div key={i} style={{ ...small, fontSize: 13, marginTop: 6 }}>Year {l.year || 1}: {l.t}</div>)}
+    </div>
+  </div></div>;
+};
+
 function App() {
   // Re-render on rotation so TALL() layouts switch with the screen.
   const [, setShape] = useState(TALL());
@@ -15760,7 +15989,8 @@ function App() {
     window.addEventListener("resize", on);
     return () => window.removeEventListener("resize", on);
   }, []);
-  const [scr, setScr] = useState("title");
+  // A friend's invite link (?cab=…) opens the cabinet desk instead of the title.
+  const [scr, setScr] = useState(() => { try { return new URLSearchParams(location.search).get("cab") ? "cab" : "title"; } catch (e) { return "title"; } });
   const [level, setLevel] = useState("medium");
   const [setup, setSetup] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -15930,13 +16160,14 @@ function App() {
         @keyframes sopSlideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
       <HowToPlay show={showHelp} onClose={() => setShowHelp(false)} />
-      {scr === "title" && <TitleScreen onPreview={presidencyPreview} onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
+      {scr === "title" && <TitleScreen onPreview={presidencyPreview} onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onCabinet={() => setScr("cab")} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <button onClick={async () => { if (await window.SOP_confirm("Leave the campaign?\n\nIt is not saved until you take office: next time you start the campaign again.", "Go to the home screen", "Keep campaigning")) rst(); }} aria-label="Home screen" style={{ position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 8px)", right: 10, zIndex: 70, background: "rgba(255,255,255,.92)", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "6px 12px", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: CL.txt, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}>🏠 Home</button>}
       {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && board && <EntranceSheet title="🏛️ Hall of Governors" onClose={() => setBoard(null)}>
         <HallBoard tab={board.tab === "all" ? "all" : "today"} />
       </EntranceSheet>}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(stats && stats.team); else if (ch === "again") { seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setSetup(null); setLoadedSave(null); setScr("setup"); } else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
+      {scr === "cab" && <MinisterApp onExit={rst} />}
       {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} onTakeOffice={su => { setSetup(su); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "ambassador" && <AmbassadorCareer profile={profile} onExit={rst} />}
       {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}
