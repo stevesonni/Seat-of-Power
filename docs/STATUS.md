@@ -1039,3 +1039,12 @@ A player asked to choose how big a road or housing project is and which local go
 - The Transition Committee (year 7): a full handover dossier (+10% to every project), a briefing, or nothing (−10%, and files go missing). After you anoint a successor, you can make your support conditional on a public pledge to finish your biggest unfinished project.
 - Five years later (the end screen): what became of each unfinished project (finished in your name, finished with the credit taken, cancelled, or a broken pledge) and of each Peace Plan.
 - Tests: tests/legacy.test.mjs; tests/e2e/peace.mjs (the handover).
+
+## Scenarios that deliver what they promise (owner, October 2026)
+Each of the ten scenarios is now a logjam, not just lower starting numbers (game/systems/scenarios.js, tests/scenarios.test.mjs, tests/e2e/scenarios.mjs).
+- **Day One:** before the budget, the person at the heart of the crisis walks into your office (the Speaker, the godfather, the NLC chairman, the DSS director, the emir, your lead counsel…) with three or four answers, each with its price. Some are gambles with the odds shown; some need Abuja's goodwill.
+- **The logjam on the Desk:** a strip under the journey shows the goal (a majority in the House, the arrears cleared, the children home, the sit-at-home lifted…), how far you are, the deadline year and the threat.
+- **Or else:** the year before the deadline brings a warning. At the deadline, if the logjam is unbroken, the threat lands as an urgent letter: an impeachment motion (Hostile House, the godfather, the abducted pupils; the Broke State after a general strike), the economy breaking (sit-at-home), the food running out every year (bandits), a second flood or cholera wave, salaries stopping (oil crash).
+- **Uno cards:** what you earned saves you: approval of 60%+, the traditional rulers at 70%+, a strong Attorney-General, Works or Health commissioner (performance 70+), standing with Abuja of 65+, clean hands, the ghost-worker audit. The Desk shows which cards you hold (✔/✗). Facing an impeachment without one: buy the votes (60%, corruption) or face the vote (odds from approval).
+- **The godfather** can be paid off from the Desk; **the abduction talks** bring the children home over time (better with the rulers); **the Narrow Win's** Senior Advocates lower the petition's odds.
+- The Hostile House now starts one member short of the two-thirds needed to impeach, so the deadline, not the first year's arithmetic, decides it.
