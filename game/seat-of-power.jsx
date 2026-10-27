@@ -7953,10 +7953,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const m = setup && setup.mode; if (!m || stc.modeShown || turn !== 1) return;
     setStc(p => ({ ...p, modeShown: true }));
     const sc = m.kind === "scenario" ? SCENARIOS.find(x => x.id === m.id) : null;
-    try { window.SOP_outcome(sc ? { icon: sc.icon, title: sc.nm, text: sc.d + " Your titles and honours count the same as in any game.", tone: "bad", ok: "Take office", onClose: scenR && scenR.day1 ? () => setTimeout(openDay1, 300) : undefined } : { icon: "🏆", title: "Week " + m.week + "'s challenge", text: "Everyone this week governs " + stName + " from the same start, with the same luck. Your career score goes on this week's board when your governorship ends.", tone: "good", ok: "Take office" }); } catch (e) {}
+    try { window.SOP_outcome(sc ? { icon: sc.icon, title: sc.nm, text: sc.d + " Your titles and honours count the same as in any game.", tone: "bad", ok: "Take office", onClose: scenR && scenR.day1 && day1Ready() ? () => setTimeout(openDay1, 300) : undefined } : { icon: "🏆", title: "Week " + m.week + "'s challenge", text: "Everyone this week governs " + stName + " from the same start, with the same luck. Your career score goes on this week's board when your governorship ends.", tone: "good", ok: "Take office" }); } catch (e) {}
   }, [turn]);
   // A scenario's Day One that was never answered (a reload) opens again.
-  useEffect(() => { if (scenR && scenR.day1 && turn === 1 && stc.modeShown && !(stc.scen && stc.scen.day1) && !gEnd) { const t = setTimeout(openDay1, 900); return () => clearTimeout(t); } }, []);
+  // Some Day Ones wait for a step (the Hostile House rejects the commissioners once they are named).
+  const day1Ready = () => !(scenR && scenR.day1 && scenR.day1.after === "ministries") || (ministries || []).some(m => m.minister);
+  const day1Asked = React.useRef(false), day1Reload = React.useRef(!!stc.modeShown);
+  useEffect(() => { if (!(day1Reload.current || (scenR && scenR.day1 && scenR.day1.after))) return; // otherwise the intro's Okay opens it
+    if (day1Asked.current || !scenR || !scenR.day1 || turn !== 1 || !stc.modeShown || (stc.scen && stc.scen.day1) || gEnd || session || !day1Ready()) return;
+    const t = setTimeout(() => { day1Asked.current = true; openDay1(); }, 1500); return () => clearTimeout(t); }, [ministries, session, stc.modeShown, turn]);
   // The year's money arrives when its budget is settled (passed, amended, dealt, dropped or forced).
   // A new game starts with an empty bank and the last government's debt; a save from
   // before the bank existed starts with this year's work money in it.

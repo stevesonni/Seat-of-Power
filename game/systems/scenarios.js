@@ -20,8 +20,10 @@ const opt = (id, l, note, more = {}) => ({ id, l, note, ...more });
 export const SCENARIO_RULES = {
   hostile_house: {
     day1: { who: "speaker-angry", bg: "assembly-chamber", by: "The Speaker of the House", role: "Leader of the opposition majority",
+      // The Speaker comes after the Governor has named the commissioners, not before.
+      after: "ministries",
       title: "The House will not work with you",
-      says: "Your Excellency, the House has rejected your entire list of commissioners. And the budget does not move until you drop the promise you campaigned on.",
+      says: "Your Excellency, the House has rejected every commissioner you just named. And the budget does not move until you drop the promise you campaigned on.",
       options: [
         opt("deal", "Cut a deal with the Speaker", "Committee chairs and constituency projects for his members.", { costPct: .05, fx: { cor: .03 }, house: 4, say: "The Speaker smiles. Four of his members are suddenly 'open to working with the Executive'." }),
         opt("carpet", "Bring opposition members across the carpet", "Money, quietly, member by member. If it leaks, it is on every front page.", { costPct: .08, house: 3, roll: { p: .7, ok: { say: "Three members cross to your party at a rally." }, bad: { fx: { app: -5, cor: .03 }, say: "Three members cross, and a bank alert leaks to the press." } } }),

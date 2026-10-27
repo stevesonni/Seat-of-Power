@@ -1,5 +1,5 @@
 /* Scenarios that deliver what they promise, in a browser. The Hostile House:
-   Day One brings the Speaker to your office; the logjam sits on the Desk with
+   once the commissioners are named, Day One brings the Speaker to your office; the logjam sits on the Desk with
    its deadline, its threat and the cards you could hold; at the deadline the
    impeachment motion arrives, and the traditional rulers' card saves you.
    Run: npm run build:game, then node tests/e2e/scenarios.mjs */
@@ -33,7 +33,11 @@ const mode = { kind: "scenario", id: "hostile_house" };
   const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) } });
   await g.click(/^Continue/); await g.wait(2500);
   let t = await g.txt();
-  check(/Day One: The House will not work with you/i.test(t) && /rejected your entire list of commissioners/.test(t), "Day One: the Speaker walks in");
+  check(!/Day One:/.test(t), "the Speaker waits until the commissioners are named");
+  await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde Okafor-Ilesanmi/.test(x.textContent)); if (b) b.click(); }); await g.wait(500); await okay(g);
+  check(!!(await g.click(/^Convene the ministries$/)), "the Governor convenes the ministries"); await g.wait(1200);
+  for (let i = 0; i < 12 && !/Day One:/.test(t); i++) { await g.click(/^(Close the session|Got it|Okay|Continue)( →)?$/); await g.wait(1000); t = await g.txt(); }
+  check(/Day One: The House will not work with you/i.test(t) && /rejected every commissioner you just named/.test(t), "then Day One: the Speaker walks in");
   check(/Cut a deal with the Speaker/.test(t) && /Go over their heads to the people/.test(t) && /Drop your campaign promise/.test(t), "four answers, each with its price");
   check(await tap(g, /^Go over their heads to the people/), "the Governor answers");
   await g.wait(1500); t = await g.txt();
