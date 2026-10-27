@@ -2511,10 +2511,11 @@ const TitleLineup = ({ ids, tall }) => {
   const mid = (ids.length - 1) / 2, ASPECT = 474 / 700;
   const figs = ids.map((id, i) => { const m = TITLE_FIG[id], dep = TITLE_DEPTH[Math.min(2, Math.round(Math.abs(i - mid)))], h = dep.face / (m.chin - m.eye); return { id, d: Math.abs(i - mid), h, top: dep.eye - m.eye * h, slot: h * ASPECT * m.body }; });
   const units = figs.reduce((a, f) => a + f.slot, 0) || 1;
-  // px per unit. Phone: set by the width, and the group takes only the height it needs
-  // (the logo area above centres itself in the rest). Wider screens: the smaller of the two.
-  const u = tall ? Math.min((box.w * .98) / units, 4.2) : Math.min(box.h / 100, (box.w * .96) / units);
-  return <div ref={ref} style={{ position: "relative", height: tall ? (u ? 100 * u : "36%") : "40%", flexShrink: 0, minHeight: 0, overflow: "hidden", pointerEvents: "none" }}>
+  // px per unit. Phone: set by the width, up to the height it is given: on a short screen the
+  // group shrinks rather than drawing over the logo and tagline above it. Wider screens: the smaller of the two.
+  const wU = Math.min((box.w * .98) / units, 4.2);
+  const u = tall ? Math.min(wU, box.h ? box.h / 100 : wU) : Math.min(box.h / 100, (box.w * .96) / units);
+  return <div ref={ref} style={tall ? { position: "relative", flex: "0 1 " + (wU ? Math.round(100 * wU) + "px" : "36%"), minHeight: 90, overflow: "hidden", pointerEvents: "none" } : { position: "relative", height: "40%", flexShrink: 0, minHeight: 0, overflow: "hidden", pointerEvents: "none" }}>
     <div style={{ position: "absolute", left: "50%", bottom: 0, height: 100 * u, width: units * u, transform: "translateX(-50%)" }}>
       {(() => { let x = 0; return figs.map(f => { const left = x + f.slot / 2; x += f.slot; const w = f.h * ASPECT;
         return <img key={f.id} src={AVATAR_IMGS[f.id]} alt="" style={{ position: "absolute", top: f.top * u, left: (left - w / 2) * u, height: f.h * u, width: w * u, zIndex: 10 - f.d * 2, filter: f.d ? "saturate(.92)" : "none" }} />; }); })()}
@@ -2826,8 +2827,8 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
         </button>
       </div>
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: tall ? "0 20px" : "0 40px" }}>
-        <img src={TITLE_LOGO} alt="The Seat of Power" onClick={() => { taps.current = (taps.current || 0) + 1; if (taps.current === 7) { try { localStorage.setItem("sop_preview", "1"); } catch (e) {} setPreview(true); try { window.SOP_toast && window.SOP_toast("Presidency preview unlocked: open Careers", "ok"); } catch (e) {} } }} style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
+      <div style={{ flex: tall ? "1 0 auto" : 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: tall ? "0 20px" : "0 40px" }}>
+        <img src={TITLE_LOGO} alt="The Seat of Power" onClick={() => { taps.current = (taps.current || 0) + 1; if (taps.current === 7) { try { localStorage.setItem("sop_preview", "1"); } catch (e) {} setPreview(true); try { window.SOP_toast && window.SOP_toast("Presidency preview unlocked: open Careers", "ok"); } catch (e) {} } }} style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", maxHeight: tall ? "30vh" : undefined, objectFit: "contain", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
         <div style={{ marginTop: tall ? 8 : 12, fontSize: DS.t.label, letterSpacing: 2, textTransform: "uppercase", color: UI.sub, fontWeight: 700, textAlign: "center" }}>Campaign · Govern · Survive</div>
         <div style={{ marginTop: 4, fontSize: DS.t.meta, color: UI.sub, textAlign: "center" }}>No politics needed: you learn as you play.</div>
       </div>
