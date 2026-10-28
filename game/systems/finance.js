@@ -20,20 +20,20 @@
 
 // How each lender pays out (the governor's names; the President's in PRES_NAMES).
 export const TRANCHE_RULES = {
-  bank: { n: 3, letter: "payment order", from: "The syndicate's relationship manager", who: "investor-nigerian", seal: "bank",
+  bank: { n: 3, letter: "payment order", from: "The syndicate's relationship manager", who: "bank-relationship-manager", seal: "bank",
     ask: (k, n) => "Tranche " + k + " of " + n + " is ready. We have sent you the payment order for the next section; it needs your signature." },
-  bond: { n: 4, letter: "escrow drawdown", from: "The bond trustee", who: "finance-commissioner", seal: "bond",
+  bond: { n: 4, letter: "escrow drawdown", from: "The bond trustee", who: "bond-trustee", seal: "bond",
     ask: (k, n) => "Drawdown " + k + " of " + n + " from the bond's escrow account is ready for the next stage of work. The coupon is due either way." },
-  dfi: { n: 4, letter: "mission report", from: "The AfDB / World Bank task team leader", who: "expatriate-engineer", seal: "dfi",
+  dfi: { n: 4, letter: "mission report", from: "The AfDB / World Bank task team leader", who: "mission-leader", seal: "dfi",
     ask: (k, n) => "Our supervision mission visited the site and verified the progress. We are ready to release tranche " + k + " of " + n + " on your countersignature." },
   pre: { n: 0, letter: "handover bill", from: "The contractor", who: "contractor", seal: "contractor" },
 };
 // The President borrows from different people, with the same rules.
 export const PRES_NAMES = {
-  bank: { nm: "Treasury bills and FGN bonds", from: "The Debt Management Office", who: "finance-minister" },
-  bond: { nm: "Eurobond", from: "The Eurobond's paying agent in London", who: "investor-foreign" },
-  dfi: { nm: "World Bank / African Development Bank loan", from: "The World Bank country director", who: "expatriate-engineer" },
-  pre: { nm: "China Exim Bank loan", from: "The Export-Import Bank of China", who: "foreign-head-of-government" },
+  bank: { nm: "Treasury bills and FGN bonds", from: "The Debt Management Office", who: "finance-minister", seal: "bank" },
+  bond: { nm: "Eurobond", from: "The Eurobond's paying agent in London", who: "bond-trustee", seal: "bond" },
+  dfi: { nm: "World Bank / African Development Bank loan", from: "The World Bank country director", who: "mission-leader", seal: "dfi" },
+  pre: { nm: "China Exim Bank loan", from: "The Export-Import Bank of China", who: "exim-banker", seal: "exim" },
 };
 export const PENALTY_PCT = .02;   // of the money still undrawn, when you do not sign
 export const STANDBY_PCT = .05;   // of the year's share of the work: the contractor's idle crew

@@ -1,6 +1,6 @@
 # Lovable art: the lenders, the tranches and the IMF
 
-The features work now with stand-in pictures. When these arrive, Claude puts each one where it belongs.
+**Installed (Pack 28).** All 27 pictures are in the game, each where this brief places it. The tranche letters carry their lender's seal and enclose the payment order or mission report; the Fund's letter encloses the letter of intent.
 
 **Style:** the same as the rest of the pack: flat-shaded cartoon with bold outlines. All people are fictional. **No real logos or seals**: no IMF, World Bank, AfDB, CBN, bank or Chinese government emblems; invent plain crests (a globe, a bridge, a sheaf of wheat, a key). The green-white flag is fine. No text on the pictures. WebP.
 

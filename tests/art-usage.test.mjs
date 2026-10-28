@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 86, "86 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons + impeach + the diplomacy seal and icon + the cabinet's three)");
+  assert.equal(icons.length, 92, "92 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons + impeach + the diplomacy seal and icon + the cabinet's three + the six lenders' seals)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -220,4 +220,18 @@ test("every cabinet and federation picture is used", () => {
     "characters/works-commissioner", "characters/social-commissioner", "characters/works-power-minister"];
   files.forEach(f => assert.ok(fs.existsSync(path.join(root, "public/art", f + ".webp")), f + " is shipped"));
   assert.deepEqual(files.filter(f => !src.includes(path.basename(f))), []);
+});
+
+// Pack 28: the lenders, the tranches and the IMF.
+test("every lender, tranche and IMF picture is used", () => {
+  const names = { icons: ["seal-bank", "seal-bond", "seal-dfi", "seal-contractor", "seal-exim", "seal-fund"],
+    objects: ["payment-order", "tranche-schedule", "mission-report", "contractor-bill", "court-payment-order", "letter-of-intent", "floating-naira"],
+    characters: ["bank-relationship-manager", "bond-trustee", "mission-leader", "imf-mission-chief", "exim-banker"],
+    scenes: ["tranche-signing", "site-idle-unsigned", "mission-site-visit", "lender-suspends", "imf-negotiations", "students-march-imf", "petrol-price-jump", "sovereignty-restored", "imf-walkout"] };
+  const all = src + fs.readFileSync(path.join(root, "game/systems/finance.js"), "utf8");
+  Object.entries(names).forEach(([d, ns]) => ns.forEach(n => {
+    assert.ok(fs.existsSync(path.join(root, "public/art", d, n + ".webp")), d + "/" + n + " shipped");
+    assert.ok(all.includes('"' + n + '"') || all.includes("/" + n + ".webp"), d + "/" + n + " referenced");
+  }));
+  assert.equal(Object.values(names).flat().length, 27);
 });

@@ -4682,7 +4682,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
         : <Actions><button className="sp-btn" onClick={() => onOpenStep(p)}>{n.button}</button></Actions>)}
       <Brief>
         <div>Committed, not yet spent: {SYS.fmtM(SYS.committedM(p))} · {SYS.toFinishM(p) > 0 ? "Short of finishing by: " + SYS.fmtM(SYS.toFinishM(p)) : "Enough approved to finish"}{p.loanLeftM > 0 ? " · Loan money in hand: " + SYS.fmtM(p.loanLeftM) : ""}.</div>
-        {p.loanKey && (() => { const L = (loans || []).find(l => l.key === p.loanKey); return L ? <div data-testid="loan-line" style={{ color: L.suspended ? "#b3261e" : L.warned ? "#9a5b12" : undefined }}>🏦 {SYS.loanLine(L)}</div> : null; })()}
+        {p.loanKey && (() => { const L = (loans || []).find(l => l.key === p.loanKey); return L ? <div data-testid="loan-line" style={{ display: "flex", alignItems: "center", gap: 6, color: L.suspended ? "#b3261e" : L.warned ? "#9a5b12" : undefined }}><img src={"./art/objects/" + (L.pre ? "contractor-bill" : "tranche-schedule") + ".webp"} alt="" style={{ width: 34, height: 34, objectFit: "contain", flexShrink: 0 }} />{SYS.loanLine(L)}</div> : null; })()}
         {p.facility && <div>Working: {p.equipped && p.staffed ? "equipped and staffed" : p.equipped ? "equipped, no staff" : "not equipped"}.</div>}
         {(p.events || []).slice(-3).map((ev, i) => <div key={i} style={{ color: "#9a5b12" }}>• {ev}</div>)}
         {(p.decisions || []).length > 0 && <div style={{ marginTop: 4 }}>Record: {p.decisions.slice(-4).map(x => "Year " + x.year + ": " + x.text).join(" · ")}</div>}
@@ -6112,7 +6112,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       try { window.SOP_outcome({ present: { img: "./art/characters/nlc-president-angry.webp", bg: "./art/scenes/nlc-march.webp", name: SYS.UNIONS.nlc.leader(true), text: "You went to the IMF behind the workers' backs. We know their conditions: the subsidy gone, the naira floated. From today, Nigeria stops. Withdraw the application.", urgent: true, ok: "Continue" } }); } catch (e) {} }, 400);
     setTimeout(() => postMail([letterOf("nans_imf_" + turn, { key: "nans_imf_" + turn, live: true, kind: "community", stakes: 2, lines: [{ ok: false, line: "The IMF's conditions will double transport fares and the price of food in our hostels. Every campus will march until the application is withdrawn." }], tip: [NANS[0], NANS[1], "The students will march", "On the IMF application"] })]), 900);
     track("imf", "apply");
-    return { icon: "🌐", img: "./art/scenes/nlc-march.webp", title: "You applied to the IMF", text: "The Fund's board meets at the year's end. The NLC is already out, and the students are marching.", tone: "bad", rows: [{ l: "NLC", v: "On strike", good: false }, { l: "Approval", v: "−2", good: false }] }; };
+    return { icon: "🌐", img: "./art/scenes/students-march-imf.webp", title: "You applied to the IMF", text: "The Fund's board meets at the year's end. The NLC is already out, and the students are marching.", tone: "bad", rows: [{ l: "NLC", v: "On strike", good: false }, { l: "Approval", v: "−2", good: false }] }; };
   const imfWithdraw = (quiet) => { if (!stc.imf || stc.imf.stage !== "applied") return;
     setStc(p => ({ ...p, imf: { ...p.imf, stage: "withdrawn", ended: turn }, labour: imfEndStrike(p.labour) }));
     addL("↩️ You withdrew the IMF application. The NLC calls off its strike; the students go back to class.", "political"); track("imf", "withdraw");
@@ -6129,9 +6129,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     scFx({ app: -4 }); setS(p => ({ ...p, debt: Math.round(((p.debt || 0) + T) * 10) / 10 }));
     noteMoney({ icon: "🌐", head: "The IMF's first tranche", text: "The IMF programme is approved: " + naira(T) + " arrives, with the naira floated, the fuel subsidy gone, a borrowing ceiling and VAT at 10%.", amtB: T, cash: true });
     addL("🌐 The IMF approved the programme. The naira floats, the subsidy is gone, and the borrowing ceiling starts now.", "crisis"); scWiki("Presidency", "Took an IMF programme in " + absYear + ": floated the naira, removed the fuel subsidy and raised VAT.");
-    setTimeout(() => paper("IMF APPROVES NIGERIA PROGRAMME; NAIRA FLOATED, SUBSIDY GONE", "Petrol and food prices jump overnight", false, "./art/scenes/fuel-queue.webp"), 400);
+    setTimeout(() => paper("IMF APPROVES NIGERIA PROGRAMME; NAIRA FLOATED, SUBSIDY GONE", "Petrol and food prices jump overnight", false, "./art/scenes/petrol-price-jump.webp"), 400);
     track("imf", "approved");
-    return { icon: "🌐", title: "The programme is approved", text: naira(T) + " arrives now; two more tranches follow if you pass the yearly reviews. Until you repay it, the conditions stay.", tone: "neutral",
+    return { icon: "🌐", img: "./art/objects/floating-naira.webp", title: "The programme is approved", text: naira(T) + " arrives now; two more tranches follow if you pass the yearly reviews. Until you repay it, the conditions stay.", tone: "neutral",
       rows: [{ l: "Into the bank", v: naira(T), good: true }, { l: "The naira", v: "Floated", good: false }, { l: "Fuel subsidy", v: "Gone", good: false }, { l: "Approval", v: "−4", good: false }] }; };
   const imfLift = (p) => ({ ...p, labour: imfEndStrike(p.labour) });
   const imfRepay = () => decide(() => { const I = stc.imf; if (!SYS.imfActive(I)) return;
@@ -6140,20 +6140,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - T) * 100) / 100, debt: Math.max(0, Math.round(((p.debt || 0) - T) * 10) / 10), app: cl100(p.app + 5) }));
     setStc(p => imfLift({ ...p, imf: { ...p.imf, stage: "repaid", outstandingB: 0, ended: turn } }));
     addL("💵 You repaid the IMF early. The conditions are lifted.", "success"); scWiki("Presidency", "Repaid the IMF early in " + absYear + ", ending its conditions.");
-    setTimeout(() => { paper("FINANCIAL SOVEREIGNTY RESTORED", "Nigeria repays the IMF early; the conditions are lifted", true, "./art/scenes/un-general-assembly.webp");
+    setTimeout(() => { paper("FINANCIAL SOVEREIGNTY RESTORED", "Nigeria repays the IMF early; the conditions are lifted", true, "./art/scenes/sovereignty-restored.webp");
       try { window.SOP_outcome({ present: { img: "./art/characters/student-leader-pleased.webp", bg: "./art/scenes/endasuu-protest.webp", name: NANS[0], text: "You have paid them off! The students salute you, Your Excellency.", ok: "Continue" } }); } catch (e) {} }, 400);
     track("imf", "repaid");
-    return { icon: "💵", title: "The Fund is repaid", text: "The conditions are lifted: you may print, borrow and defend the naira again. The NLC calls off any strike over the Fund.", tone: "good", rows: [{ l: "Paid", v: naira(T), good: false }, { l: "Approval", v: "+5", good: true }] }; });
+    return { icon: "💵", img: "./art/scenes/sovereignty-restored.webp", title: "The Fund is repaid", text: "The conditions are lifted: you may print, borrow and defend the naira again. The NLC calls off any strike over the Fund.", tone: "good", rows: [{ l: "Paid", v: naira(T), good: false }, { l: "Approval", v: "+5", good: true }] }; });
   const imfWalk = () => decide(() => { const I = stc.imf; if (!SYS.imfActive(I)) return;
     const T = I.outstandingB, fromBank = Math.min(s.cash || 0, T), rest = Math.round((T - fromBank) * 10) / 10, pen = Math.round(rest * .2 * 10) / 10;
     setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - fromBank) * 100) / 100, debt: Math.max(0, Math.round(((p.debt || 0) - fromBank + pen) * 10) / 10), app: cl100(p.app - 2) }));
     setStc(p => imfLift({ ...p, imf: { ...p.imf, stage: "walked", outstandingB: 0, ended: turn, rating: (p.imf.rating || 0) - 2 }, trade: p.trade ? SYS.tradeApply(p.trade, { reserves: -5 }, turn) : p.trade }));
     addL("🚪 You walked away from the IMF programme. The loan is called in; the rating agencies cut Nigeria.", "crisis"); scWiki("Controversies", "Walked away from an IMF programme in " + absYear + "; Nigeria's credit rating was cut.");
-    setTimeout(() => paper("NIGERIA QUITS IMF PROGRAMME; RATINGS CUT", "The loan is called in at once", false, "./art/scenes/finance-ministry-office.webp"), 400);
+    setTimeout(() => paper("NIGERIA QUITS IMF PROGRAMME; RATINGS CUT", "The loan is called in at once", false, "./art/scenes/imf-walkout.webp"), 400);
     track("imf", "walked");
-    return { icon: "🚪", title: "You walked away", text: "The conditions end, but the loan is called in: " + naira(fromBank) + " from the bank" + (rest ? ", and " + naira(rest) + " rolled into dearer debt (+" + naira(pen) + ")" : "") + ". Borrowing abroad costs more now.", tone: "bad", rows: [{ l: "Paid", v: naira(fromBank), good: false }].concat(pen ? [{ l: "Penalty", v: naira(pen), good: false }] : [], [{ l: "Credit rating", v: "Cut", good: false }]) }; });
+    return { icon: "🚪", img: "./art/scenes/imf-walkout.webp", title: "You walked away", text: "The conditions end, but the loan is called in: " + naira(fromBank) + " from the bank" + (rest ? ", and " + naira(rest) + " rolled into dearer debt (+" + naira(pen) + ")" : "") + ". Borrowing abroad costs more now.", tone: "bad", rows: [{ l: "Paid", v: naira(fromBank), good: false }].concat(pen ? [{ l: "Penalty", v: naira(pen), good: false }] : [], [{ l: "Credit rating", v: "Cut", good: false }]) }; });
   // The Fund's letters at the year's end (statecraft): the board's decision, the Senate's probe.
-  const imfBoardCard = () => ({ key: "fin_imf_board_" + turn, kicker: "🌐 The International Monetary Fund", color: CL.blu, from: "The IMF mission chief", art: ["finance-ministry-office", "foreign-head-of-state", null, null],
+  const imfBoardCard = () => ({ key: "fin_imf_board_" + turn, kicker: "🌐 The International Monetary Fund", color: CL.blu, from: "The IMF mission chief", art: ["finance-ministry-office", "imf-mission-chief", null, "imf-negotiations"], seal: "seal-fund", enclosure: "letter-of-intent", office: "International Monetary Fund · Washington, D.C.",
     title: "The Fund's prior actions", brief: "The board will approve " + naira(stc.imf.trancheB * SYS.IMF_TRANCHES) + " in three tranches once Nigeria has taken these actions: " + SYS.IMF_CONDITIONS.map(c => c.l.replace(/^(\w)(?=[a-z])/, x => x.toLowerCase())).join("; ") + ".",
     stakes: "Accept and the money comes, with the conditions, until you repay it. Refuse and the application lapses.",
     options: [{ label: "Accept the prior actions", note: SYS.IMF_CONDITIONS.map(c => c.d).join(" "), chips: [{ text: "+" + naira(stc.imf.trancheB) + " now", color: CL.grn }, { text: "Naira floated", color: CL.red }, { text: "Subsidy gone", color: CL.red }], run: () => imfAcceptNow() },
@@ -8298,6 +8298,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const finName = (L) => NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).nm || L.nm : L.nm;
   const finFrom = (L) => NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).from || L.lender : finRule(L).from;
   const finWho = (L) => NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).who || "investor-foreign" : finRule(L).who;
+  const FIN_SEALS = { bank: "seal-bank", bond: "seal-bond", dfi: "seal-dfi", exim: "seal-exim", contractor: "seal-contractor" };
+  const finSeal = (L) => FIN_SEALS[(NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).seal : finRule(L).seal)] || FIN_SEALS.bank;
+  const finOffice = (L) => NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).nm || L.lender : L.pre ? (L.contractor || "The contractor") : L.lender || finName(L);
+  // The paper the lender encloses with its letter.
+  const finDoc = (L) => L.lenderId === "dfi" ? "mission-report" : "payment-order";
   const yearShareM = (P) => Math.ceil(Math.max(0, (P.approvedM || 0) - (P.spentM || 0)) / Math.max(1, (P.startYear || turn) + (P.years || 1) - turn));
   const finDraw = (L, P, why) => { const R = SYS.drawTranche(L, turn), m = R.m; if (!m) return 0;
     setLoans(ls => ls.map(x => x.key === L.key ? { ...SYS.drawTranche(x, turn).L, suspended: null } : x));
@@ -8306,14 +8311,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return m; };
   const finTrancheCard = (L, P, warn) => { const k = L.drawn + 1, m = SYS.nextTrancheM(L), pen = SYS.skipCostM(L, yearShareM(P)), R = finRule(L);
     const guard = NAT ? 5 : .3;
-    return { key: "fin_tr_" + L.key + "_" + turn, kicker: "🏦 " + finName(L) + " · " + P.title, color: CL.blu, from: finFrom(L), art: ["finance-ministry-office", finWho(L), null, null],
+    return { key: "fin_tr_" + L.key + "_" + turn, kicker: "🏦 " + finName(L) + " · " + P.title, color: CL.blu, from: finFrom(L), art: ["finance-ministry-office", finWho(L), null, L.lenderId === "dfi" ? "mission-site-visit" : "tranche-signing"], seal: finSeal(L), enclosure: finDoc(L), office: finOffice(L),
       title: (warn ? "A warning, and tranche " : "Tranche ") + k + " of " + L.tranches + ": " + P.title,
       brief: (warn ? "We note " + warn.why + (P.lga ? " near " + P.lga : "") + ". Unless it improves by our next review, we will suspend the remaining tranches. " : "") + R.ask(k, L.tranches) + " Amount: " + SYS.fmtM(m) + ".",
       stakes: "Sign and the work goes on. Don't, and nothing is built on the site this year, and you pay " + SYS.fmtM(pen) + " in penalties.",
       options: [
         { label: "Sign the " + R.letter + ": " + SYS.fmtM(m), chips: [{ text: "Debt +" + SYS.fmtM(m), color: CL.org }, { text: "The work goes on", color: CL.grn }], run: () => {
           finDraw(L, P, "Signed"); addL("🖋️ You signed tranche " + k + " of " + L.tranches + " for " + P.title + ": " + SYS.fmtM(m) + " from " + finName(L) + ".", "policy");
-          return { icon: "🖋️", title: "Tranche " + k + " signed", text: SYS.fmtM(m) + " is released for " + P.title + ". The work goes on.", tone: "good", rows: [{ l: "Debt", v: "+" + SYS.fmtM(m), good: false }, { l: "Tranches drawn", v: k + " of " + L.tranches, good: true }] }; } },
+          return { icon: "🖋️", img: "./art/objects/" + finDoc(L) + ".webp", title: "Tranche " + k + " signed", text: SYS.fmtM(m) + " is released for " + P.title + ". The work goes on.", tone: "good", rows: [{ l: "Debt", v: "+" + SYS.fmtM(m), good: false }, { l: "Tranches drawn", v: k + " of " + L.tranches, good: true }] }; } },
         warn && { label: "Put police on the site, and tell them", note: "It reassures them for a year; it does not end the insecurity.", chips: [{ text: naira(guard), color: CL.org }], run: () => {
           if (!spendB(guard, "Guarding " + P.title)) return; finDraw(L, P, "Signed after guarding the site");
           setLoans(ls => ls.map(x => x.key === L.key ? { ...x, guarded: turn + 1, warned: null } : x));
@@ -8324,11 +8329,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           setLoans(ls => ls.map(x => x.key === L.key ? { ...x, skipped: (x.skipped || 0) + 1, penaltiesM: (x.penaltiesM || 0) + pen } : x));
           setProjects(prev => prev.map(x => x.id === P.id ? { ...x, holdYear: turn, decisions: [...(x.decisions || []), { year: turn, text: "Tranche " + k + " not signed: no work this year; " + SYS.fmtM(pen) + " in penalties." }] } : x));
           addL("🏦 You did not sign tranche " + k + " for " + P.title + ": " + SYS.fmtM(pen) + " in penalties, and the site is idle this year.", "political");
-          return { icon: "⏸️", title: "Not signed", text: "Nothing is built on " + P.title + " this year. The bank's commitment fee and the contractor's standby bill come to " + SYS.fmtM(pen) + ".", tone: "bad", rows: [{ l: "Penalty", v: SYS.fmtM(pen), good: false }, { l: "The site", v: "Idle this year", good: false }] }; } },
+          return { icon: "⏸️", img: "./art/scenes/site-idle-unsigned.webp", title: "Not signed", text: "Nothing is built on " + P.title + " this year. The bank's commitment fee and the contractor's standby bill come to " + SYS.fmtM(pen) + ".", tone: "bad", rows: [{ l: "Penalty", v: SYS.fmtM(pen), good: false }, { l: "The site", v: "Idle this year", good: false }] }; } },
       ].filter(Boolean) }; };
   const finWarnCard = (L, P, W) => finTrancheCard(L, P, W);
   const finHoldCard = (L, P, W) => { const m = SYS.nextTrancheM(L), odds = Math.max(.1, Math.min(.8, (L.lenderId === "dfi" ? .2 : .35) + ((s.app || 50) - 50) / 200)), fix = W.why === "armed men attacked the site" ? "Deal with the attack on the Desk, and they will release it." : W.why.startsWith("the site is shut") ? "End the strike, and they will release it." : W.why.startsWith("the contractor left") ? "Appoint a new contractor, and they will release it." : W.why === "insecurity around the site" ? "Make the area safe (a Peace Plan step, or the crisis ended), and they will release it." : "Clean up the books, and they will release it.";
-    return { key: "fin_hold_" + L.key + "_" + turn, kicker: "🏦 " + finName(L) + " · tranche suspended", color: CL.red, from: finFrom(L), art: ["finance-ministry-office", finWho(L), null, null],
+    return { key: "fin_hold_" + L.key + "_" + turn, kicker: "🏦 " + finName(L) + " · tranche suspended", color: CL.red, from: finFrom(L), art: ["finance-ministry-office", finWho(L), null, "lender-suspends"], seal: finSeal(L), office: finOffice(L),
       title: "Tranche " + (L.drawn + 1) + " suspended: " + P.title, brief: "We have suspended the next tranche (" + SYS.fmtM(m) + "): " + W.why + ". " + fix,
       stakes: "The site runs only on the money already drawn and what the bank can pay.",
       options: [
@@ -8341,23 +8346,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           if (Math.random() < odds) { finDraw(L, P, "Released after you asked"); addL("🏦 " + finName(L) + " reconsidered and released tranche " + (L.drawn + 1) + " for " + P.title + ".", "success");
             return { icon: "🏦", title: "They reconsidered", text: SYS.fmtM(m) + " is released. They will be watching.", tone: "good", rows: [{ l: "Debt", v: "+" + SYS.fmtM(m), good: false }] }; }
           addL("🏦 " + finName(L) + " refused to release the tranche for " + P.title + ".", "political");
-          return { icon: "🏦", title: "They said no", text: "The tranche stays suspended. " + fix, tone: "bad" }; } },
+          return { icon: "🏦", img: "./art/scenes/lender-suspends.webp", title: "They said no", text: "The tranche stays suspended. " + fix, tone: "bad" }; } },
         { label: "Wait until it is resolved", note: "The work slows to what the money in hand can pay.", chips: [{ text: "Free", color: CL.grn }], run: () => { addL("🏦 The tranche for " + P.title + " stays suspended.", "info"); return null; } },
       ] }; };
   const finBillCard = (L, P) => { const bill = L.billM, court = Math.round(bill * (1 + SYS.PRE_COURT_COST));
     const mark = (how) => setLoans(ls => ls.map(x => x.key === L.key ? { ...x, billed: how, outstandingM: 0 } : x));
-    return { key: "fin_bill_" + L.key, kicker: "🏗️ " + finName(L) + " · the bill", color: CL.org, from: finFrom(L), art: ["finance-ministry-office", NAT ? finWho(L) : "contractor", null, null],
+    return { key: "fin_bill_" + L.key, kicker: "🏗️ " + finName(L) + " · the bill", color: CL.org, from: finFrom(L), art: ["finance-ministry-office", NAT ? finWho(L) : "contractor", null, null], seal: NAT ? finSeal(L) : "seal-contractor", enclosure: "contractor-bill", office: finOffice(L),
       title: "The bill for " + P.title, brief: "We pre-financed the work and handed it over. Our bill, with the financing charge: " + SYS.fmtM(bill) + ".",
       stakes: "Refuse, and they will go to court.",
       options: [
         { label: "Pay the bill: " + SYS.fmtM(bill), chips: [{ text: SYS.fmtM(bill), color: CL.org }], run: () => {
           scFx({ debt: SYS.toB(bill) }); mark("paid"); addL("🏗️ You paid the contractor's bill for " + P.title + ": " + SYS.fmtM(bill) + ".", "policy");
-          return { icon: "🏗️", title: "Paid", text: SYS.fmtM(bill) + " to the contractor, from the bank first and borrowed if it ran short.", tone: "neutral", rows: [{ l: "Paid", v: SYS.fmtM(bill), good: false }] }; } },
+          return { icon: "🏗️", img: "./art/objects/contractor-bill.webp", title: "Paid", text: SYS.fmtM(bill) + " to the contractor, from the bank first and borrowed if it ran short.", tone: "neutral", rows: [{ l: "Paid", v: SYS.fmtM(bill), good: false }] }; } },
         { label: "Refuse to pay", note: "The courts will order you to pay, with costs.", chips: [{ text: "To court", color: CL.red }], run: () => {
           scFx({ debt: SYS.toB(court), app: -3 }); mark("court");
           addL("⚖️ You refused the contractor's bill for " + P.title + ". The court ordered the state to pay " + SYS.fmtM(court) + " with costs.", "crisis"); scWiki("Controversies", "Refused to pay the contractor who pre-financed " + P.title + "; the court ordered payment with costs.");
           setTimeout(() => paper("COURT ORDERS " + (NAT ? "FEDERAL GOVERNMENT" : "STATE") + " TO PAY CONTRACTOR", P.title + ": " + SYS.fmtM(court) + " with costs", false, "./art/scenes/news-court-steps.webp"), 500);
-          return { icon: "⚖️", img: "./art/characters/judge.webp", title: "The court ordered you to pay", text: "The contractor won. The state paid " + SYS.fmtM(court) + ", the bill and the legal costs, and it is in the papers.", tone: "bad", rows: [{ l: "Paid", v: SYS.fmtM(court), good: false }, { l: "Approval", v: "−3", good: false }] }; } },
+          return { icon: "⚖️", img: "./art/objects/court-payment-order.webp", title: "The court ordered you to pay", text: "The contractor won. The state paid " + SYS.fmtM(court) + ", the bill and the legal costs, and it is in the papers.", tone: "bad", rows: [{ l: "Paid", v: SYS.fmtM(court), good: false }, { l: "Approval", v: "−3", good: false }] }; } },
       ] }; };
   const awardProject = (id, cid, mth) => {
     const p = (projects || []).find(x => x.id === id), C = SYS.contractorById(cid), M = SYS.PROCUREMENT[mth] || SYS.PROCUREMENT.open; if (!p || !C) return;
@@ -10846,6 +10851,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         fn: () => { if (news && news.news) anchors(news.news[0], news.news[1]); setTimeout(() => pingMail(bks.length, bks[0].key), 600); } } }); } catch (e) {} }, 400);
     }
   };
+  const scOf = (l) => l && l.key && l.key.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === l.key) || null : null;
+  const sealOf = (l) => (l && l.seal) || (scOf(l) || {}).seal;
   const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: ((extra && extra.key) || key) + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
   const budgetMin = () => (ministries || []).find(m => m.id === "budget");
   // Who wrote it, what it is about, in one line. Read when shown, so it sees the latest state.
@@ -11263,7 +11270,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { if (impSurv && !anchored.current.imp) { anchored.current.imp = 1; anchors(govShort + " survives the impeachment vote!", "The House blinked. The governor walks out stronger."); } }, [impSurv]);
   // ── The mailbox on screen ──
   const SEAL_ART = { bakunda: "seal-bakunda", agenda: "seal-agenda", budget: "seal-budget", gold: "seal-gold", crisis: "seal-crisis", godfather: "seal-godfather", party: "seal-party", house: "seal-house", courts: "seal-courts", federal: "seal-abuja", community: "seal-community", press: "seal-press", travel: "seal-invitation", diplomacy: "seal-diplomacy", investment: "seal-investor", projects: "seal-projects", intel: "seal-intel", briefing: "seal-briefing", fec: "seal-fec", nsc: "seal-nsc", eac: "seal-eac", exco: "seal-exco", rulers: "seal-rulers", econ: "seal-econ" };
-  const Seal = ({ kind, size = 44 }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; if (SEAL_ART[kind]) return <Ico n={SEAL_ART[kind]} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />;
+  const Seal = ({ kind, size = 44, art }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; if (art) return <Ico n={art} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />; if (SEAL_ART[kind]) return <Ico n={SEAL_ART[kind]} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />;
     return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
   const mailboxView = (inline) => {
     const fz = TALL() ? { s: TS(19), m: TS(23), l: TS(30) } : { s: TS(28), m: TS(34), l: TS(48) };
@@ -11277,7 +11284,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const OFFICE = { bakunda: "Defence Headquarters · Office of the Chief of Army Staff", agenda: "Office of the Special Adviser to the Governor", budget: "Ministry of Budget & Economic Planning", gold: "Local Government Secretariat", crisis: "State Security Council", godfather: "Private & Confidential", party: "The Party Secretariat", house: "State House of Assembly", courts: "High Court of Justice", federal: "The Presidency · Abuja", community: open.key.startsWith("sc#ruler") ? "The Palace" : "A Community Delegation", press: "The Newsroom", diplomacy: "Ministry of Foreign Affairs · Protocol Department", travel: "Protocol Department, Government House", investment: "Investment Promotion Office", projects: "Ministry of Works & Infrastructure", intel: "Department of State Services · Secret", briefing: "Office of the Secretary to the State Government" };
       const ref = "GH/" + absYear + "/" + String(100 + (hashStr(open.id) % 900));
       const fromSA = String(v.from || "") === cast.adviser.name;
-      const office = v.office || (fromSA ? "Office of the Special Adviser to the Governor" : open.secr ? "The State Secretariat" : (OFFICE[open.kind] || "Government House"));
+      const office = v.office || (scOf(open) || {}).office || (fromSA ? "Office of the Special Adviser to the Governor" : open.secr ? "The State Secretariat" : (OFFICE[open.kind] || "Government House"));
       const role = String(v.from || "").includes(",") ? String(v.from).split(",").slice(1).join(",").trim() : fromSA ? "Special Adviser to the Governor" : "";
       const signer = String(v.from || "").split(",")[0];
       const sc = (SYS.SEALS[open.kind] || {}).c || "#7a1f2b", tall = TALL();
@@ -11298,13 +11305,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {open.lines ? <div style={{ fontSize: LS.m, lineHeight: 1.55, display: "grid", gap: 8 }}>{open.lines.map((x, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8 }}><span style={{ color: x.ok ? "#1f7a46" : "#a3271c", fontWeight: 700 }}>{x.ok ? "✓" : "✗"}</span><span>{x.line}</span></div>)}</div>
               : v.full ? <div style={{ fontSize: LS.l, lineHeight: 1.55 }}>{v.full}</div>
               : <div style={{ fontSize: LS.l, lineHeight: 1.55 }}>{v.body || v.line}{v.body && v.line && !v.line.startsWith(v.body.replace(/…$/, "").slice(0, 40)) && !v.body.includes(v.line.slice(0, 40)) ? " " + v.line : ""}</div>}
+            {(scOf(open) || {}).enclosure && <div data-testid="enclosure" style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: LS.s, fontStyle: "italic", color: "#5a4a35" }}><img src={"./art/objects/" + scOf(open).enclosure + ".webp"} alt="" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, objectFit: "contain", flexShrink: 0, transform: "rotate(-4deg)" }} />Enclosed: {({ "payment-order": "the payment order", "mission-report": "our mission report", "contractor-bill": "our invoice", "letter-of-intent": "the letter of intent, for your signature" })[scOf(open).enclosure] || "the papers"}.</div>}
             <div style={{ marginTop: tall ? 16 : 24, fontSize: LS.l }}>Yours faithfully,</div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: "'Dancing Script','Brush Script MT','Segoe Script',cursive", fontWeight: 700, fontSize: LS.sig, color: "#1f4f9c", lineHeight: 1.15, margin: "2px 0" }}>{signer}</div>
                 {role && <div style={{ fontSize: LS.m, color: "#2b2117" }}>{role}</div>}
               </div>
-              <div style={{ transform: "rotate(-12deg)", flexShrink: 0 }}><Seal kind={open.kind} size={tall ? 60 : 84} /></div>
+              <div style={{ transform: "rotate(-12deg)", flexShrink: 0 }}><Seal kind={open.kind} art={sealOf(open)} size={tall ? 60 : 84} /></div>
             </div>
           </div>
           {/* Foot: the two ways to answer, as in the template. */}
@@ -11346,7 +11354,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       </div>
       <div style={{ display: "grid", gap: 8 }}>
         {mail.slice().sort((a, b) => (b.stakes || 0) - (a.stakes || 0) || (!!a.cat - !!b.cat)).map(l => { const v = letterView(l); return <button key={l.id} onClick={() => setLetterOpen(l.id)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "8px 10px" : "10px 14px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
-          <Seal kind={l.kind} size={TALL() ? 38 : 48} />
+          <Seal kind={l.kind} art={sealOf(l)} size={TALL() ? 38 : 48} />
           <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.title}</b></span>
           <span aria-label={l.stakes >= 3 ? "Urgent" : "Open"} style={{ fontSize: fz.s, color: l.stakes >= 3 ? CL.red : CL.td, fontWeight: 800 }}>{l.stakes >= 3 ? "❗" : "›"}</span>
         </button>; })}
@@ -12112,7 +12120,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <section className="card tray">
                   <div className="head"><img src="./art/objects/mailbox-tray.webp" alt="" /><h2>Your mail</h2><span className="count">{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") : "Empty"}</span></div>
                   {rows.map(l => { const v = letterView(l); return <button key={l.id} className="letter" onClick={() => { setMailOpen(true); setLetterOpen(l.id); }}>
-                    <Seal kind={l.kind} size={40} />
+                    <Seal kind={l.kind} art={sealOf(l)} size={40} />
                     <div className="t"><b>{v.title}</b>{v.from && <span>From: {String(v.from).split(",").slice(-1)[0].trim()}</span>}</div>
                     {l.stakes >= 3 && <span className="urg" aria-label="Urgent">!</span>}
                     <span className="chev">›</span>

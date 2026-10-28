@@ -67,6 +67,7 @@ const before = await save();
 for (let i = 0; i < 6 && !/Accept the prior actions/.test(await g.txt()); i++) { await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /The Fund's prior actions/.test(x.textContent)); b && b.click(); }); await g.wait(700); await g.page.evaluate(() => { const b = [...document.querySelectorAll("button, .opt")].find(x => x.offsetParent && /^✍️ Handle it personally$/.test(x.textContent.trim())); b && b.click(); }); await g.wait(700); }
 const t = await g.txt();
 check(/Float the naira/i.test(t) && /fuel subsidy/i.test(t) && /borrowing ceiling/i.test(t) && /VAT/.test(t), "the four prior actions are spelt out");
+{ const p = await g.page.evaluate(() => [...document.querySelectorAll("img")].filter(x => x.offsetParent).map(x => x.getAttribute("src")).join(" ")); check(/scenes\/imf-negotiations\.webp/.test(p) && /characters\/imf-mission-chief\.webp/.test(p), "the board's letter shows the negotiations and the mission chief"); if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/imf-board.png" }); }
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button, .opt")].find(x => x.offsetParent && /^Accept the prior actions/.test(x.textContent.trim())); b && b.click(); }); await g.wait(3000); await okay(); await g.wait(1500);
 sv = await save();
 const I = sv.stc.imf || {};

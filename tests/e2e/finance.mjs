@@ -26,6 +26,9 @@ const toTray = async (g) => {
   return r.ok;
 };
 const openLetter = async (g, re) => { for (let i = 0; i < 6; i++) { const ok = await g.page.evaluate((src) => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && new RegExp(src).test(x.textContent)); if (!b) return false; b.click(); return true; }, re.source); if (ok) return true; await okay(g); await g.wait(700); } return false; };
+// The pictures on screen now (Pack 28: each lender's seal, the enclosed paper, the scene).
+const pics = (g) => g.page.evaluate(() => [...document.querySelectorAll("img")].filter(x => x.offsetParent).map(x => x.getAttribute("src")).join(" "));
+const SHOT = process.env.SHOTS;
 const save = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
 
 // A road under way in year 2, financed by a 3-tranche bank loan (tranche 1 drawn and spent).
@@ -42,7 +45,9 @@ const withLoan = (mut = {}) => { const sv = JSON.parse(Y1.sop_save);
   check(await toTray(g), "the Governor reaches the end of year 2");
   const before = await save(g);
   check(await openLetter(g, /Tranche 2 of 3: Abeokuta Ring Road/), "the bank's letter: tranche 2 of 3");
+  await g.wait(600); { const p = await pics(g); check(/seal-bank\.webp/.test(p) && /objects\/payment-order\.webp/.test(p), "the letter carries the bank's wax seal and the enclosed payment order"); if (SHOT) await g.page.screenshot({ path: SHOT + "/fin-letter.png" }); }
   await g.wait(400); await tap(g, /^✍️ Handle it personally$/); await g.wait(900);
+  { const p = await pics(g); check(/scenes\/tranche-signing\.webp/.test(p) && /characters\/bank-relationship-manager\.webp/.test(p), "the decision shows the signing scene and the bank's relationship manager"); if (SHOT) await g.page.screenshot({ path: SHOT + "/fin-card.png" }); }
   const t = await g.txt();
   check(/payment order/.test(t) && /Sign the payment order: ₦3(\.0)?B/.test(t) && /Don't sign this year/.test(t), "sign it, or don't (with the penalty shown)");
   await tap(g, /^Sign the payment order/); await g.wait(1500); await okay(g);
@@ -81,6 +86,7 @@ const withLoan = (mut = {}) => { const sv = JSON.parse(Y1.sop_save);
   check(await openLetter(g, /Tranche 2 suspended: Abeokuta Ring Road/), "the bank suspends tranche 2");
   await g.wait(400); await tap(g, /^✍️ Handle it personally$/); await g.wait(900);
   check(/insecurity around the site/.test(await g.txt()), "it says why: insecurity around the site");
+  check(/scenes\/lender-suspends\.webp/.test(await pics(g)), "the suspension shows the boardroom scene");
   await tap(g, /^Pay this year's share from the bank instead/); await g.wait(1500); await okay(g);
   const sv = await save(g), P = sv.projects.find(p => p.id === "p_road");
   check(sv.loans[0].suspended && sv.loans[0].drawn === 1, "the loan stays suspended, nothing drawn from it");
@@ -94,9 +100,12 @@ const withLoan = (mut = {}) => { const sv = JSON.parse(Y1.sop_save);
   const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv0) } });
   check(await toTray(g), "the Governor reaches the end of year 2 with the road handed over");
   check(await openLetter(g, /The bill for Abeokuta Ring Road/), "the contractor's bill arrives at handover");
+  await g.wait(600); { const p = await pics(g); check(/seal-contractor\.webp/.test(p) && /objects\/contractor-bill\.webp/.test(p), "the bill carries the contractor's seal and the invoice"); }
   await g.wait(400); await tap(g, /^✍️ Handle it personally$/); await g.wait(900);
   const before = await save(g), owe = Math.round(L.billM * 1.05) / 1000;
-  await tap(g, /^Refuse to pay/); await g.wait(1800); await okay(g);
+  await tap(g, /^Refuse to pay/); await g.wait(1800);
+  { const p = await pics(g); check(/objects\/court-payment-order\.webp/.test(p), "the court's payment order is shown"); if (SHOT) await g.page.screenshot({ path: SHOT + "/fin-court.png" }); }
+  await okay(g);
   const sv = await save(g), paid = ((before.s.debt || 0) - (before.s.cash || 0)) - ((sv.s.debt || 0) - (sv.s.cash || 0));
   check(sv.loans[0].billed === "court", "the court case is recorded");
   check(Math.abs(-paid - owe) < .2, "the court's order was paid: ₦" + (-paid).toFixed(1) + "B (bill and costs ₦" + owe.toFixed(1) + "B)");
