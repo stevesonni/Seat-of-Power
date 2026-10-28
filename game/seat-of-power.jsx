@@ -6031,6 +6031,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if ((stc.rev || {})[m.id] != null) return { icon: m.icon, title: "Already in place", text: m.t + " was adopted in " + ((setup?.startYear || 2027) + stc.rev[m.id] - 1) + ". It is still paying.", tone: "neutral" };
     if (revThisTurn() >= 2) return { icon: "🗓️", title: "Two reforms this year already", text: "The civil service can carry two revenue reforms a year. " + m.t + " can start next year.", tone: "neutral" };
     const why = m.req && m.req(c); if (why) return { icon: m.icon, title: "Not yet: " + m.t, text: why, tone: "bad" };
+    if (hostileOn() && SYS.HOUSE_REVENUE.includes(m.id) && stc.appealed !== turn && (stc.scen || {}).truce !== turn) {
+      addL("🏛️ The House threw out the law for " + m.t.charAt(0).toLowerCase() + m.t.slice(1) + ".", "political");
+      return { icon: "🏛️", img: "./art/characters/speaker-angry.webp", title: "The House threw it out", text: m.t + " needs a law, and the opposition majority voted it down. Buy a year's truce from the Speaker, win the voters over, or win the House.", tone: "bad",
+        action: { label: "Buy a year's truce (" + naira(truceCost()) + ")", fn: () => clearGrudge("truce") } };
+    }
     if (!takeAgenda("reform", m.nm, "rev:" + m.id)) return;
     const a = m.adopt(c);
     scFx(a.fx || {}); fedVoice(m.id, "adopt");
@@ -6635,105 +6640,137 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           if (back) { scFx({ app: -4 }); setTimeout(() => paper("VIOLENCE RETURNS TO " + peaceWhere(k).replace(/^the /, "").toUpperCase(), "The peace was not paid for", false, "./art/scenes/news-protest.webp"), 400); }
           addL(back ? "🚨 The peace in " + peaceWhere(k) + " collapsed after the funding stopped." : "🕊️ The funding stopped; the peace in " + peaceWhere(k) + " held, for now.", back ? "crisis" : "info");
           return { icon: back ? "🚨" : "🕊️", title: back ? "The peace collapsed" : "It held, for now", text: back ? "Without the money the committees stopped meeting and the guards went home. The fighting is back." : "The money stopped and nothing happened. This time.", tone: back ? "bad" : "neutral" }; } }] }; };
-  /* Scenarios that deliver what they promise (SYS.scenarios, owner, October 2026):
-     Day One brings the person at the heart of the crisis to your office; the
-     logjam sits on the Desk with a deadline; at the deadline the "or else"
-     lands, unless you hold an uno card you earned. */
+  /* Scenarios that deliver what they promise (SYS.scenarios, owner, October 2026; redone after
+     "they all fell flat"). Day One opens the fight; the rival comes back with a new move
+     every year; while the crisis lasts it changes the rules (the Hostile House votes down
+     your bills, budget and taxes); the front pages count down; at the deadline the threat
+     lands full-screen, unless you play an uno card you earned, and playing it spends it. */
   const scenId = !NAT && setup && setup.mode && setup.mode.kind === "scenario" ? setup.mode.id : null;
   const scenR = scenId ? SYS.scenarioRules(scenId) : null;
   const scenDef = scenId ? SCENARIOS.find(x => x.id === scenId) : null;
+  const scenPace = SYS.paceAdj(PACE);
   const minPerf = (re) => Math.max(0, ...(ministries || []).filter(m => m.minister && re.test(m.name || "")).map(m => m.perf || 0));
   const scenCtx = (st0 = stc, s0 = s, t0 = turn) => ({ turn: t0, app: s0.app, pStab: s0.pStab, cor: s0.cor || 0, rulers: (skApp || {}).traditional || 0, fg: fgRelation,
     house: st0.house || scHouse(), arrears: st0.arrears || 0, peace: (st0.peace || {}).state || null,
-    sitClosed: !!(((st0.stateStories || {}).sit_at_home || {}).S || {}).closed, flags: ((st0.scen || {}).flags) || {}, base: ((st0.scen || {}).base) || {},
+    sitClosed: !!(((st0.stateStories || {}).sit_at_home || {}).S || {}).closed, flags: ((st0.scen || {}).flags) || {}, prog: ((st0.scen || {}).prog) || 0, base: ((st0.scen || {}).base) || {},
     sec: s0.sec || 0, hp: s0.hp || 0, infra: s0.infra || 0, agr: s0.agr || 0, igr: s0.igr || 0, reforms: Object.keys(st0.rev || {}).length,
-    petition: st0.petition && st0.petition.result, agPerf: minPerf(/justice|attorney/i), worksPerf: minPerf(/works|infrastructure/i), healthPerf: minPerf(/health/i) });
+    petition: st0.petition && st0.petition.result, agPerf: minPerf(/justice|attorney/i), worksPerf: minPerf(/works|infrastructure/i), healthPerf: minPerf(/health/i), pace: PACE, bar: scenPace.bar });
   const scenRevB = () => Math.max(1, (s.igr || 0) + (s.faac || 0));
   const scenSet = (f) => setStc(p => ({ ...p, scen: { ...(p.scen || { id: scenId, flags: {} }), ...f(p.scen || { id: scenId, flags: {} }) } }));
-  // A Day One answer (or an uno card, or the godfather's pay-off): money, numbers, members, Abuja, flags.
+  // The Hostile House is hostile until you hold a majority.
+  const hostileOn = () => { if (scenId !== "hostile_house") return false; const H = stc.house || scHouse(); return H.loyal < Math.floor(H.seats / 2) + 1; };
+  const scenOk = (o) => (!o.needFg || fgRelation >= o.needFg) && (!o.needRulers || ((skApp || {}).traditional || 0) >= o.needRulers);
+  const scenWhyNot = (o) => o.needFg && fgRelation < o.needFg ? " Needs Abuja at " + o.needFg + " (now " + Math.round(fgRelation) + ")." : o.needRulers && ((skApp || {}).traditional || 0) < o.needRulers ? " Needs the traditional rulers at " + o.needRulers + " (now " + Math.round((skApp || {}).traditional || 0) + ")." : "";
+  // A gamble decided: the answer with its luck folded in.
+  const scenResolve = (o) => { if (!o.roll) return o;
+    const p = Math.max(.05, Math.min(.95, o.roll.p + (o.rollFg ? (fgRelation - 50) / 100 : 0))), bad = Math.random() >= p, X = bad ? o.roll.bad : o.roll.ok;
+    const fx = { ...(o.fx || {}) }; Object.entries(X.fx || {}).forEach(([k, v]) => { fx[k] = (fx[k] || 0) + v; });
+    return { ...o, roll: null, fx, set: { ...(o.set || {}), ...(X.set || {}) }, fg: (o.fg || 0) + (X.fg || 0), prog: (o.prog || 0) + (X.prog || 0), house: (o.house || 0) + (X.house || 0), stall: o.stall || X.stall, say: X.say || o.say, bad }; };
+  // An answer's effects: money, numbers, members, Abuja, progress, flags.
   const scenApply = (o) => {
     const cost = SYS.scenarioCostB(o, scenRevB()), revB = scenRevB();
     scFx({ ...(o.fx || {}), debt: cost || 0 });
-    if (o.debtPct) setS(p => ({ ...p, debt: Math.round(((p.debt || 0) + revB * o.debtPct * (o.debtMul || 1)) * 10) / 10 }));
+    if (o.debtPct) setS(p => ({ ...p, debt: Math.max(0, Math.round(((p.debt || 0) + revB * o.debtPct * (o.debtMul || 1)) * 10) / 10) }));
     if (o.igrPct) setS(p => ({ ...p, igr: Math.max(0, Math.round((p.igr || 0) * (1 + o.igrPct) * 10) / 10) }));
     if (o.faacPct) setS(p => ({ ...p, faac: Math.max(0, Math.round((p.faac || 0) * (1 + o.faacPct) * 10) / 10) }));
     if (o.fg) setFgRelation(v => Math.max(0, Math.min(100, v + o.fg)));
-    if (o.house) setStc(p => { const H = p.house || scHouse(); return { ...p, house: { ...H, loyal: Math.min(H.seats, H.loyal + o.house * MEM) } }; });
+    if (o.house) setStc(p => { const H = p.house || scHouse(); return { ...p, house: { ...H, loyal: Math.max(0, Math.min(H.seats, H.loyal + o.house * MEM)) } }; });
     if (o.arrears) setStc(p => ({ ...p, arrears: Math.max(0, (p.arrears || 0) - o.arrears), ultimatum: false }));
+    if (o.stall) stallWork(Array.isArray(o.stall) ? o.stall : null);
     if (o.set && o.set.peace) setStc(p => (p.peace || {}).state ? p : { ...p, peace: { ...(p.peace || {}), state: { front: "state", step: 0, started: 0, relapses: 0 } } });
-    if (o.set && o.set.strike) stallWork(null);
-    if (o.set) scenSet(S => ({ flags: { ...(S.flags || {}), ...o.set } }));
+    if (o.set || o.prog) scenSet(S => ({ flags: { ...(S.flags || {}), ...(o.set || {}) }, prog: Math.max(0, Math.min(100, (S.prog || 0) + (o.prog || 0))) }));
     return cost;
   };
-  const scenRow = (o, cost) => [].concat(cost ? [{ l: "Cost", v: naira(cost), good: false }] : [], o.house ? [{ l: "House members", v: "+" + o.house * MEM, good: true }] : [], o.arrears ? [{ l: "Arrears", v: "−" + o.arrears + " month", good: true }] : [], o.fg ? [{ l: "Abuja", v: sgnN(o.fg), good: o.fg > 0 }] : [], (o.fx || {}).app ? [{ l: "Approval", v: sgnN(o.fx.app), good: o.fx.app > 0 }] : []);
+  const scenRow = (o, cost) => [].concat(o.prog ? [{ l: "Towards " + scenR.goal.label, v: (o.prog > 0 ? "+" : "−") + Math.abs(o.prog) + "%", good: o.prog > 0 }] : [], cost ? [{ l: "Cost", v: naira(cost), good: false }] : [], o.house ? [{ l: "House members", v: sgnN(o.house * MEM), good: o.house > 0 }] : [], o.arrears ? [{ l: "Arrears", v: "−" + o.arrears + " month", good: true }] : [], o.fg ? [{ l: "Abuja", v: sgnN(o.fg), good: o.fg > 0 }] : [], (o.fx || {}).app ? [{ l: "Approval", v: sgnN(o.fx.app), good: o.fx.app > 0 }] : [], o.stall ? [{ l: "Your sites", v: "Work stops this year", good: false }] : []);
   const scenChips = (o) => { const cost = SYS.scenarioCostB(o, scenRevB());
-    return [].concat(cost ? [{ text: naira(cost), color: CL.org }] : [], o.house ? [{ text: "+" + o.house * MEM + " members", color: CL.grn }] : [], o.arrears ? [{ text: "Arrears −" + o.arrears, color: CL.grn }] : [], o.fg ? [{ text: "Abuja " + sgnN(o.fg), color: o.fg > 0 ? CL.grn : CL.red }] : [],
-      o.debtPct ? [{ text: "Debt +" + naira(Math.round(scenRevB() * o.debtPct * (o.debtMul || 1) * 10) / 10), color: CL.red }] : [], o.faacPct ? [{ text: "Next FAAC " + Math.round(o.faacPct * 100) + "%", color: CL.red }] : [], o.igrPct ? [{ text: "Own revenue " + (o.igrPct > 0 ? "+" : "") + Math.round(o.igrPct * 100) + "%", color: o.igrPct > 0 ? CL.grn : CL.red }] : [],
-      o.roll ? [{ text: "About " + Math.round(Math.max(.05, Math.min(.95, o.roll.p + (o.rollFg ? (fgRelation - 50) / 100 : 0))) * 100) + "% to work", color: CL.org }] : [], fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor, pStab: (o.fx || {}).pStab })); };
+    return [].concat(o.prog ? [{ text: "Goal " + (o.prog > 0 ? "+" : "−") + Math.abs(o.prog) + "%", color: o.prog > 0 ? CL.grn : CL.red }] : [], cost ? [{ text: naira(cost), color: CL.org }] : [], o.house ? [{ text: sgnN(o.house * MEM) + " members", color: o.house > 0 ? CL.grn : CL.red }] : [], o.arrears ? [{ text: "Arrears −" + o.arrears, color: CL.grn }] : [], o.fg ? [{ text: "Abuja " + sgnN(o.fg), color: o.fg > 0 ? CL.grn : CL.red }] : [],
+      o.debtPct ? [{ text: "Debt " + (o.debtPct > 0 ? "+" : "−") + naira(Math.abs(Math.round(scenRevB() * o.debtPct * (o.debtMul || 1) * 10) / 10)), color: o.debtPct > 0 ? CL.red : CL.grn }] : [], o.faacPct ? [{ text: "Next FAAC " + Math.round(o.faacPct * 100) + "%", color: CL.red }] : [], o.igrPct ? [{ text: "Own revenue " + (o.igrPct > 0 ? "+" : "") + Math.round(o.igrPct * 100) + "%", color: o.igrPct > 0 ? CL.grn : CL.red }] : [],
+      o.stall ? [{ text: "Sites stop", color: CL.red }] : [], o.roll ? [{ text: "About " + Math.round(Math.max(.05, Math.min(.95, o.roll.p + (o.rollFg ? (fgRelation - 50) / 100 : 0))) * 100) + "% to work", color: CL.org }] : [], fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor, pStab: (o.fx || {}).pStab })); };
+  const scenRun = (o, who, extraRows = []) => { const R = scenResolve(o), cost = scenApply(R);
+    addL((scenDef ? scenDef.icon + " " : "") + R.say, R.bad ? "crisis" : "policy");
+    return { icon: scenDef ? scenDef.icon : "📜", img: who ? "./art/characters/" + who + ".webp" : undefined, title: o.l, text: R.say, tone: R.bad ? "bad" : (R.prog || 0) > 0 ? "good" : "neutral", rows: extraRows.concat(scenRow(R, cost)) }; };
+  const scenOpts = (opts, who, extra) => opts.map(o => ({ label: o.l, note: (o.note || "") + scenWhyNot(o), chips: scenChips(o), disabled: !scenOk(o), run: () => scenRun(o, who, extra ? extra(o) : []) }));
   const openDay1 = () => {
     if (!scenR || !scenR.day1) return; const D = scenR.day1;
-    setStc(p => ({ ...p, scen: { id: scenId, flags: {}, ...(p.scen || {}), day1Open: true, base: { infra: s.infra, hp: s.hp, igr: s.igr } } }));
+    setStc(p => ({ ...p, scen: { id: scenId, flags: {}, prog: 0, ...(p.scen || {}), day1Open: true, base: { infra: s.infra, hp: s.hp, igr: s.igr, sec: s.sec } } }));
+    const goalRow = (o) => { const dl = SYS.scenarioDeadline(scenR, scenCtx({ ...stc, scen: { flags: o.set || {} } }));
+      return scenR.goal ? [{ l: "Your goal", v: scenR.goal.label + (dl ? ", by the end of " + ((setup?.startYear || 2027) + dl - 1) : ""), good: null }] : []; };
     setSession({ id: "day1", seal: null, title: "Day One: " + D.title, sub: (scenDef ? scenDef.nm + " · " : "") + stName, bgSrc: "./art/backgrounds/" + D.bg + ".webp",
       by: { name: D.by, role: D.role, img: "./art/characters/" + D.who + ".webp" }, declaration: D.says,
-      decision: { title: "Your first answer", brief: "Before the budget, before anything else. Only you can answer.",
-        options: D.options.filter(o => !o.needFg || fgRelation >= o.needFg).map(o => ({ label: o.l, note: o.note, chips: scenChips(o), run: () => {
-          let R = o; if (o.roll) { const p = Math.max(.05, Math.min(.95, o.roll.p + (o.rollFg ? (fgRelation - 50) / 100 : 0))), X = Math.random() < p ? o.roll.ok : o.roll.bad;
-            const fx = { ...(o.fx || {}) }; Object.entries(X.fx || {}).forEach(([k, v]) => { fx[k] = (fx[k] || 0) + v; });
-            R = { ...o, fx, set: { ...(o.set || {}), ...(X.set || {}) }, fg: (o.fg || 0) + (X.fg || 0), say: X.say || o.say, bad: X === o.roll.bad }; }
-          const cost = scenApply(R);
-          scenSet(() => ({ day1: o.id, day1Open: false })); track("scen_day1", scenId + ":" + o.id);
-          addL("📜 Day One: " + R.say, R.bad ? "crisis" : "policy"); scWiki("Governorship", "Day One: " + o.l.replace(/^./, c => c.toUpperCase()) + ".");
-          const dl = SYS.scenarioDeadline(scenR, scenCtx({ ...stc, scen: { flags: R.set || {} } }));
-          const goal = scenR.goal ? [{ l: "Your goal", v: scenR.goal.label + (dl ? ", by the end of " + ((setup?.startYear || 2027) + dl - 1) : ""), good: null }] : [];
-          return { icon: scenDef ? scenDef.icon : "📜", img: "./art/characters/" + D.who + ".webp", title: o.l, text: R.say, tone: R.bad ? "bad" : "neutral", rows: goal.concat(scenRow(R, cost)) }; } })) } });
+      decision: { title: "Your first answer", brief: "It opens the fight. It will not end it.",
+        options: scenOpts(D.options, D.who, goalRow).map((x, i) => ({ ...x, run: () => { const out = x.run(); scenSet(() => ({ day1: D.options[i].id, day1Open: false })); track("scen_day1", scenId + ":" + D.options[i].id); scWiki("Governorship", "Day One: " + D.options[i].l.replace(/^./, c => c.toUpperCase()) + "."); return out; } })) } });
   };
+  // The rival's move this year: a letter from the same people, answering what you did.
+  const scenMoveCard = (m) => ({ key: "scen_move_" + m.id + "_" + turn, kicker: (scenDef ? scenDef.nm : "The scenario") + " · " + m.by, color: CL.red, art: [m.bg || "governor-office", m.who, null, m.scene || null],
+    from: m.by, title: m.title, brief: m.says, stakes: "Your goal: " + scenR.goal.label + ".",
+    options: scenOpts(m.options, m.who).map((x, i) => ({ ...x, run: () => { track("scen_move", scenId + ":" + m.id + ":" + m.options[i].id); return x.run(); } })) });
   // The godfather's pay-off, and any other scenario action, from the Desk strip.
   const scenAction = (a) => { const cost = SYS.scenarioCostB(a, scenRevB()); if (cost && !spendB(cost, a.l)) return;
     scenApply({ ...a, cost: 0, costPct: 0 }); addL("🎩 " + a.say, "political"); scWiki("Governorship", a.l + ".");
     try { window.SOP_outcome({ icon: scenDef ? scenDef.icon : "📜", title: a.l, text: a.say, tone: "good", rows: cost ? [{ l: "Cost", v: naira(cost), good: false }] : [] }); } catch (e) {} };
+  // Playing an uno card spends it.
+  const unoSpend = (sp = {}) => {
+    if (sp.app) scFx({ app: sp.app });
+    if (sp.rulers) setSkApp(p => ({ ...p, traditional: cl100((p.traditional || 0) + sp.rulers) }));
+    if (sp.fg) setFgRelation(v => Math.max(0, Math.min(100, v + sp.fg)));
+  };
+  const unoCost = (sp = {}) => [sp.app ? "approval " + sgnN(sp.app) : null, sp.rulers ? "the rulers' favour " + sgnN(sp.rulers) : null, sp.fg ? "Abuja " + sgnN(sp.fg) : null].filter(Boolean).join(", ");
   // The "or else": the deadline has come and the logjam is unbroken.
-  const scenDoomCard = (held) => { const T = scenR.threat, D = scenR.doom, imp = D.kind === "impeach" || D.then === "impeach";
+  const scenDoomCard = (held) => { const T = scenR.threat, D = scenR.doom, M = scenPace.mult;
     const resolve = (how) => setStc(p => ({ ...p, scen: { ...(p.scen || {}), resolved: how, resolvedTurn: turn } }));
-    const unoOpts = held.map(u => ({ label: "🃏 Play your card: " + u.l, note: u.say, chips: [{ text: "Saved", color: CL.grn }], run: () => {
-      if (u.fx) scFx(u.fx); resolve("saved:" + u.id); track("scen_uno", scenId + ":" + u.id);
+    const unoOpts = held.map(u => ({ label: "🃏 Play your card: " + u.l, note: u.say, chips: [{ text: "Saved", color: CL.grn }].concat(unoCost(u.spend) ? [{ text: "Costs " + unoCost(u.spend), color: CL.org }] : []), run: () => {
+      if (u.fx) scFx(u.fx); unoSpend(u.spend); resolve("saved:" + u.id); track("scen_uno", scenId + ":" + u.id);
       addL("🃏 " + u.say, "success"); scWiki("Governorship", "Survived " + T.t.replace(/^./, c => c.toLowerCase()) + ": " + u.say);
       setTimeout(() => paper("GOVERNOR SURVIVES: " + T.t.toUpperCase(), u.say.split(".")[0], true), 400);
-      return { icon: "🃏", title: "You played your card", text: u.say, tone: "good", rows: [{ l: "The threat", v: "Over", good: true }] }; } }));
-    const faceImp = () => { const ch = s.app > 70 ? .95 : s.app > 50 ? .75 : s.app > 40 ? .55 : .4, won = Math.random() < ch;
-      if (won) { resolve("survived"); scFx({ pStab: 5 }); setStc(p => ({ ...p, house: { ...(p.house || scHouse()), loyal: Math.min((p.house || scHouse()).seats, (p.house || scHouse()).loyal + 3 * MEM) } }));
+      return { icon: "🃏", title: "You played your card", text: u.say, tone: "good", rows: [{ l: "The threat", v: "Over", good: true }].concat(unoCost(u.spend) ? [{ l: "It cost you", v: unoCost(u.spend), good: false }] : []) }; } }));
+    const odds = s.app > 70 ? .9 : s.app > 55 ? .65 : s.app > 45 ? .45 : .3, oddsNow = Math.max(.1, odds - (PACE === "intense" ? .1 : 0));
+    const faceImp = () => { const won = Math.random() < oddsNow;
+      if (won) { resolve("survived"); scFx({ pStab: 5 });
         addL("🛡️ The impeachment motion failed on the floor. You survived.", "political"); scWiki("Governorship", "Survived an impeachment motion in " + absYear + ".");
-        return { icon: "🛡️", img: "./art/backgrounds/assembly-chamber.webp", title: "The motion failed", text: "It went to a vote, and they fell short. Some members lost their nerve; three crossed to you afterwards.", tone: "good" }; }
-      setTimeout(() => { paper("HOUSE IMPEACHES GOVERNOR", T.paper ? T.paper[1] : "Two-thirds vote to remove under Section 188", false, "./art/backgrounds/assembly-chamber.webp"); setGEnd("impeached"); }, 1800);
-      return { icon: "⚖️", img: "./art/backgrounds/assembly-chamber.webp", title: "Removed from office", text: "Two-thirds of the House voted to remove you under Section 188. " + (scenR.goal ? "You never got " + scenR.goal.label + "." : ""), tone: "bad" }; };
-    const faceFx = () => { const F = D.fx || {}; scFx(F);
-      if (D.igrPct) setS(p => ({ ...p, igr: Math.max(0, Math.round((p.igr || 0) * (1 + D.igrPct) * 10) / 10) }));
+        return { icon: "🛡️", img: "./art/backgrounds/assembly-chamber.webp", title: "The motion failed", text: "It went to a vote, and they fell short by two. They will try again if you give them a reason.", tone: "good" }; }
+      setTimeout(() => { paper("HOUSE IMPEACHES GOVERNOR", (T.text || "").split(".")[0], false, "./art/backgrounds/assembly-chamber.webp"); setGEnd("impeached"); }, 1800);
+      return { icon: "⚖️", img: "./art/backgrounds/assembly-chamber.webp", title: "Removed from office", text: "Two-thirds of the House voted to remove you under Section 188. You never got " + scenR.goal.label + ".", tone: "bad" }; };
+    const faceFx = () => { const F = Object.fromEntries(Object.entries(D.fx || {}).map(([k, v]) => [k, Math.round(v * M * 100) / 100])); scFx(F);
+      if (D.igrPct) setS(p => ({ ...p, igr: Math.max(0, Math.round((p.igr || 0) * (1 + D.igrPct * M) * 10) / 10) }));
       if (D.fg) setFgRelation(v => Math.max(0, Math.min(100, v + D.fg)));
       if (D.arrears) setStc(p => ({ ...p, arrears: (p.arrears || 0) + D.arrears, arrearsMax: Math.max(p.arrearsMax || 0, (p.arrears || 0) + D.arrears) }));
       if (D.halt) stallWork(null);
       if (D.repeat) setStc(p => ({ ...p, scen: { ...(p.scen || {}), hits: ((p.scen || {}).hits || 0) + 1, lastHit: turn } })); else resolve("hit");
       if (D.then === "impeach") setStc(p => ({ ...p, scen: { ...(p.scen || {}), resolved: undefined, then: turn + 1 } }));
       addL("💥 " + T.text, "crisis"); scWiki("Controversies", T.t + " (" + absYear + ").");
-      return { icon: "💥", title: T.t, text: T.text + (D.repeat ? " It will come back every year until " + scenR.goal.label + "." : D.then === "impeach" ? " If it is still on next year, the House moves to impeach you." : ""), tone: "bad",
-        rows: [].concat(F.app ? [{ l: "Approval", v: sgnN(F.app), good: false }] : [], D.igrPct ? [{ l: "Own revenue", v: Math.round(D.igrPct * 100) + "%", good: false }] : [], D.arrears ? [{ l: "Salaries owed", v: "+" + D.arrears + " months", good: false }] : [], D.halt ? [{ l: "Projects", v: "Stopped this year", good: false }] : [], D.fg ? [{ l: "Abuja", v: sgnN(D.fg), good: false }] : []) }; };
+      setTimeout(() => paper(T.t.toUpperCase(), (T.text || "").split(".")[0], false), 400);
+      return { icon: "💥", title: T.t, text: T.text + (D.repeat ? " It comes back every year until " + scenR.goal.label + "." : D.then === "impeach" ? " If it is still on next year, the House moves to impeach you." : ""), tone: "bad",
+        rows: [].concat(F.app ? [{ l: "Approval", v: sgnN(F.app), good: false }] : [], D.igrPct ? [{ l: "Own revenue", v: Math.round(D.igrPct * M * 100) + "%", good: false }] : [], D.arrears ? [{ l: "Salaries owed", v: "+" + D.arrears + " months", good: false }] : [], D.halt ? [{ l: "Projects", v: "Stopped this year", good: false }] : [], D.fg ? [{ l: "Abuja", v: sgnN(D.fg), good: false }] : []) }; };
     const isImp = D.kind === "impeach" || (D.then === "impeach" && (stc.scen || {}).then && turn >= stc.scen.then);
     const buy = Math.round(scenRevB() * .12 * 10) / 10;
-    return { key: "scen_doom_" + turn, kicker: (scenDef ? scenDef.nm : "The scenario") + " · The deadline", color: CL.red, art: [isImp ? "assembly-chamber" : "government-house", scenR.day1 ? scenR.day1.who : null, null, isImp ? null : (scenR.day1 && scenR.day1.scene) || "news-protest"],
-      from: scenR.day1 ? scenR.day1.by : undefined, title: isImp ? (scenR.doom.kind === "impeach" ? T.t : "The House moves to impeach you") : T.t,
+    return { isImp, title: isImp ? (D.kind === "impeach" ? T.t : "The House moves to impeach you") : T.t,
       brief: (isImp && D.kind !== "impeach" ? "It is still on, and the House blames you." : T.text) + " You did not get " + scenR.goal.label + " in time." + (held.length ? " But you hold " + (held.length === 1 ? "a card" : held.length + " cards") + " to play." : " You hold no card to play."),
       stakes: isImp ? "Lose the vote and your governorship ends." : "This lands now, unless you play a card.",
-      options: unoOpts.concat(isImp ? [{ label: "Buy the votes on the floor", note: "Constituency projects and envelopes, tonight. If it leaks, the motion becomes unstoppable.", chips: [{ text: naira(buy), color: CL.org }, { text: "About 60% to work", color: CL.org }].concat(fxChips({ cor: .05 })), run: () => {
-          scFx({ debt: buy, cor: .05 }); if (Math.random() < .6) { resolve("bought"); addL("💰 The votes were bought. The motion failed.", "political"); return { icon: "💰", title: "The motion failed", text: "Enough members took the envelopes. Everyone in the House knows what happened.", tone: "neutral", rows: [{ l: "Cost", v: naira(buy), good: false }, { l: "Corruption", v: "+5%", good: false }] }; }
+      options: unoOpts.concat(isImp ? [{ label: "Buy the votes on the floor", note: "Constituency projects and envelopes, tonight. If it leaks, the motion becomes unstoppable.", chips: [{ text: naira(buy), color: CL.org }, { text: "About 55% to work", color: CL.org }].concat(fxChips({ cor: .05 })), run: () => {
+          scFx({ debt: buy, cor: .05 }); if (Math.random() < .55) { resolve("bought"); addL("💰 The votes were bought. The motion failed.", "political"); return { icon: "💰", title: "The motion failed", text: "Enough members took the envelopes. Everyone in the House knows what happened.", tone: "neutral", rows: [{ l: "Cost", v: naira(buy), good: false }, { l: "Corruption", v: "+5%", good: false }] }; }
           addL("💥 The vote-buying leaked.", "crisis"); return faceImp(); } },
-        { label: "Face the vote", note: "Your approval decides it: about " + Math.round((s.app > 70 ? .95 : s.app > 50 ? .75 : s.app > 40 ? .55 : .4) * 100) + "% to survive.", chips: [{ text: "All or nothing", color: CL.red }], run: faceImp }]
+        { label: "Face the vote", note: "Your approval decides it: about " + Math.round(oddsNow * 100) + "% to survive.", chips: [{ text: "All or nothing", color: CL.red }], run: faceImp }]
         : [{ label: "Take the blow", note: "Ride it out and rebuild.", chips: [{ text: T.t, color: CL.red }], run: faceFx }]) };
   };
-  // The logjam on the Desk: the goal, the deadline, the threat, and the cards you hold.
+  // The deadline lands full-screen, once the year's end has been read.
+  const openDoom = () => { const S = stc.scen; if (!scenR || !S || S.doomAt == null) return;
+    const C = scenDoomCard(SYS.unoHeld(scenR, scenCtx())), D = scenR.day1 || {};
+    const mark = () => setStc(p => ({ ...p, scen: { ...(p.scen || {}), doomDone: (p.scen || {}).doomAt } }));
+    try { window.SOP_sound && window.SOP_sound("bad"); } catch (e) {}
+    setSession({ id: "doom" + S.doomAt, seal: null, title: C.title, sub: (scenDef ? scenDef.nm : "") + " · The deadline has come", bgSrc: "./art/backgrounds/" + (C.isImp ? "assembly-chamber" : D.bg || "governor-office") + ".webp",
+      by: { name: C.isImp ? cast.speaker.name : D.by, role: C.isImp ? "Speaker of the House" : D.role, img: "./art/characters/" + (C.isImp ? "speaker-angry" : D.who || "governor-worried") + ".webp" }, declaration: C.brief,
+      decision: { title: C.isImp ? "How do you survive the vote?" : "What do you do?", brief: C.stakes, options: C.options.map(o => ({ ...o, run: () => { mark(); return o.run(); } })) } });
+  };
+  useEffect(() => { const S = stc.scen; if (!scenR || !S || S.doomAt == null || S.doomDone === S.doomAt || session || gEnd) return;
+    const t = setTimeout(openDoom, 2500); return () => clearTimeout(t); }, [stc.scen && stc.scen.doomAt, stc.scen && stc.scen.doomDone, session, gEnd]);
+  // The logjam on the Desk: the goal, how far you are, the deadline, what it is doing to you, and your cards.
   const scenStrip = () => {
     if (!scenR || !scenR.goal || !stc.scen || !stc.scen.day1) return null;
-    const S = stc.scen, c = scenCtx(), met = (() => { try { return !!scenR.goal.met(c); } catch (e) { return false; } })(), done = met || S.broken, over = !done && S.resolved && !(scenR.doom && scenR.doom.repeat);
+    const S = stc.scen, c = scenCtx(), done = SYS.scenarioMet(scenR, c) || S.broken, over = !done && S.resolved && !(scenR.doom && scenR.doom.repeat);
     const dl = SYS.scenarioDeadline(scenR, c), tall = TALL(), fs = tall ? TS(14) : TS(19);
     const held = SYS.unoHeld(scenR, c), left = dl ? dl - turn + 1 : 0; // counting this year
-    let prog = ""; try { prog = scenR.goal.progress(c); } catch (e) {}
+    const P = SYS.scenarioProg(scenR, c), showBar = !["hostile_house", "broke", "narrow_win"].includes(scenId);
+    let prog = ""; try { prog = scenR.goal.progress({ ...c, prog: P }); } catch (e) {}
     const act = !done && (scenR.actions || []).filter(a => !(S.flags || {})[Object.keys(a.set || {})[0]]);
     return <div data-testid="scen-strip" style={{ maxWidth: tall ? 900 : 1320, margin: tall ? "0 0 10px" : "0 auto 14px", background: done ? "#eef7ee" : "#fff6ef", border: "2px solid " + (done ? CL.grn : left <= 1 ? CL.red : CL.org), borderRadius: 14, padding: tall ? "8px 10px" : "10px 16px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: tall ? TS(15) : TS(21) }}>
@@ -6742,6 +6779,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {!done && !over && dl > 0 && <span style={{ color: left <= 1 ? CL.red : CL.org, whiteSpace: "nowrap" }}>{left <= 1 ? "This year" : left + " years left"}</span>}
       </div>
       {prog && <div style={{ fontSize: fs, color: CL.tm, marginTop: 3, fontWeight: 700 }}>{prog}</div>}
+      {!done && showBar && <div style={{ height: 8, background: "#eadfce", borderRadius: 99, marginTop: 5, overflow: "hidden" }}><div style={{ width: P + "%", height: "100%", background: P >= 70 ? CL.grn : CL.org, transition: "width .6s" }} /></div>}
+      {!done && scenR.rule && <div style={{ fontSize: fs, color: CL.tm, marginTop: 4 }}><b>While it lasts:</b> {scenR.rule}</div>}
       {!done && !over && scenR.threat && <div style={{ fontSize: fs, color: CL.red, marginTop: 3 }}><b>Or else:</b> {scenR.threat.t.toLowerCase()}.</div>}
       {!done && !over && (scenR.uno || []).length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
         {scenR.uno.map(u => { const ok = held.some(h => h.id === u.id); return <span key={u.id} title={u.say} style={{ fontSize: tall ? TS(12) : TS(16), fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: ok ? "#e3f3e3" : "#f3efe8", color: ok ? CL.grn : CL.td, border: "1px solid " + (ok ? CL.grn : CL.bdr) }}>🃏 {ok ? "✔" : "✗"} {u.l}</span>; })}
@@ -6860,7 +6899,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       next.house = { ...H0, loyal };
     }
     const H = next.house, against = H.seats - H.loyal, impNeed = Math.ceil(H.seats * 2 / 3);
-    if (H.loyal < H.seats / 2 && turn - next.houseCardTurn >= 2) {
+    if (H.loyal < H.seats / 2 && turn - next.houseCardTurn >= 2 && scenId !== "hostile_house") {
       next.houseCardTurn = turn;
       const buy = Math.round(H.seats * .05 * 10) / 10 + .4;
       cards.push({ key: "house", kicker: "House of Assembly", color: CL.red, art: ["assembly-chamber", "speaker"], title: "You have lost the House majority",
@@ -7632,20 +7671,36 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (SYS.peaceAftershockDue(P, turn)) cards.push(peaceAfterCard(k, P)); });
       if (!NAT && turn >= 2 && !PZ.state && turn - (next.peaceOffered || -9) >= 2 && ((s.sec || 0) < .6 || (next.crisesSeen || []).some(id => SYS.STATE_PEACE.ends.includes(id)))) { next.peaceOffered = turn; cards.push(peaceOfferCard()); } }
 
-    // The scenario's logjam (SYS.scenarios): broken, a warning, or the deadline and its "or else".
+    // The scenario (SYS.scenarios): while it lasts it bites every year; the rival makes a move;
+    // the front pages count down; at the deadline the threat lands (full-screen, see openDoom).
     if (scenR && scenR.goal && next.scen && next.scen.day1) {
       let c = scenCtx(next, s, turn);
-      if (c.flags.children === "talks" && scenR.talks && r() < scenR.talks(c)) {
-        next.scen = { ...next.scen, flags: { ...next.scen.flags, children: "home" } }; c = { ...c, flags: next.scen.flags };
-        notes.push(["🏫 The talks worked: the emir and the bishop walked the last of the abducted pupils home.", "success"]); }
+      if (!next.scen.broken && !SYS.scenarioMet(scenR, c) && scenR.yearly) {
+        const Y = scenR.yearly(c);
+        if (Y) {
+          if (Y.fx) scFx(Y.fx);
+          if (Y.igrPct) setS(p => ({ ...p, igr: Math.max(0, Math.round((p.igr || 0) * (1 + Y.igrPct) * 10) / 10) }));
+          if (Y.debtPct) setS(p => ({ ...p, debt: Math.round(((p.debt || 0) + scenRevB() * Y.debtPct) * 10) / 10 }));
+          if (Y.stall !== undefined) stallWork(Y.stall);
+          if (Y.house && next.house) { const H = next.house, floor = H.seats - Math.ceil(H.seats * 2 / 3) + 1; next.house = { ...H, loyal: Math.max(Math.min(H.loyal, floor), H.loyal + Y.house * MEM) }; }
+          if (Y.prog) next.scen = { ...next.scen, prog: Math.min(100, (next.scen.prog || 0) + Y.prog) };
+          if (Y.note) notes.push([Y.note, "crisis"]);
+          c = scenCtx(next, s, turn);
+        }
+      }
       const Y = SYS.scenarioYear(scenR, c, next.scen);
       if (Y.fresh) { next.scen = { ...next.scen, broken: turn };
         notes.push(["🔓 The logjam is broken: " + scenR.goal.label + ". " + (scenR.threat ? "The threat is off the table." : ""), "success"]);
         scWiki("Governorship", "Broke the logjam of " + (scenDef ? scenDef.nm : "the scenario") + ": " + scenR.goal.label + " in " + absYear + ".");
         setTimeout(() => paper(scenR.goal.label.toUpperCase().replace(/^A /, "") + ": DONE", "The Governor breaks the logjam of " + (scenDef ? scenDef.nm.replace(/^The /, "the ") : "the year"), true), 900); }
-      if (Y.warn) { next.scen = { ...next.scen, warned: turn }; if (scenR.warn.fx && scenR.warn.fx.app) dApp += scenR.warn.fx.app;
-        notes.push(["⏳ " + scenR.warn.text, "crisis"]); }
-      if (Y.due && next.scen.lastHit !== turn) cards.push(scenDoomCard(Y.held || []));
+      else if (Y.due && next.scen.lastHit !== turn) next.scen = { ...next.scen, doomAt: turn };
+      else if (!Y.broken && (!next.scen.resolved || (scenR.doom && scenR.doom.repeat))) {
+        if (Y.warn) { next.scen = { ...next.scen, warned: turn }; notes.push(["⏳ " + scenR.warn.text, "crisis"]); }
+        if (scenR.threat && scenR.threat.count && Y.left > 0) { const [h, sub] = scenR.threat.count(Y.left); setTimeout(() => paper(h, sub, false), 1100); }
+        const mv = SYS.scenarioMoves(scenR, next.scen, c);
+        mv.forEach(m => cards.push(scenMoveCard(m)));
+        if (mv.length) next.scen = { ...next.scen, moves: [...(next.scen.moves || []), ...mv.map(m => m.id)] };
+      }
     }
 
     // Apply the year's passive costs.
@@ -9008,6 +9063,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (o.need) setNeeds(ns => { const i = ns.findIndex(n => n.status === "open" && n.k === o.need); if (i < 0) return ns; const c = ns.slice(); c[i] = { ...c[i], status: "met", closed: turn }; return c; });
     addL(o.i + " Executive order: " + o.nm + "." + (hit ? " " + o.risk.log : ""), "policy"); fedVoice(o.id, "sign");
     scWiki(hit ? "Controversies" : "Governorship", "Signed an executive order: " + o.nm.toLowerCase() + "." + (hit ? " " + o.risk.log : ""));
+    // A provocation: in the Hostile House the Speaker takes it personally; the godfather's plots were his.
+    const why = SYS.PROVOKE_ORDERS[o.id];
+    if (why && hostileOn()) {
+      const n = (((stc.scen || {}).flags || {}).provoked || 0) + 1;
+      setStc(p => { const H = p.house || scHouse(); return { ...p, house: { ...H, loyal: Math.max(0, H.loyal - MEM) }, scen: { ...(p.scen || {}), flags: { ...((p.scen || {}).flags || {}), provoked: n } } }; });
+      addL("🏛️ The House took the order as a provocation. One more member turned against you.", "crisis");
+      setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/speaker-angry.webp", bg: "./art/backgrounds/assembly-chamber.webp", name: cast.speaker.name, text: "So the Governor wants war. " + why + " " + (n % 2 === 0 ? "Very well: the House will not wait. The motion comes a year sooner." : "Do it again, and the House will not wait."), urgent: true, ok: "Continue" } }); } catch (e) {} }, 900);
+    }
+    if (o.id === "revoke_land" && scenId === "godfather_candidate" && stc.scen && !stc.scen.broken) {
+      setStc(p => ({ ...p, scen: { ...(p.scen || {}), prog: Math.min(100, ((p.scen || {}).prog || 0) + 15) } })); setS(p => ({ ...p, pStab: cl100(p.pStab - 5) }));
+      addL("🎩 Half the plots you revoked were the godfather's. His grip loosens; his men are furious.", "political");
+    }
     const sk = Object.entries(o.sk || {}).filter(([, v]) => v).map(([k, v]) => ({ l: (STAKEHOLDERS.find(x => x.id === k) || { nm: k }).nm, v: (v > 0 ? "+" : "−") + Math.abs(v), good: v > 0 }));
     sk.unshift(...Object.entries(o.fx).filter(([k]) => !["app", "corM", "pStab"].includes(k)).map(([k, v]) => ({ l: FX_NAME[k] || k, v: (v > 0 ? "+" : "−") + Math.round(Math.abs(v) * 100) + "%", good: v > 0 })));
     return { icon: o.i, img: decArt(o.id) || undefined, title: "Order signed: " + o.nm, text: o.d + (o.rev ? (o.rev > 0 ? " Saves about ₦" + o.rev + "B a year." : " Costs about ₦" + Math.abs(o.rev) + "B a year.") : "") + (hit ? " But: " + o.risk.log : ""), tone: hit ? "bad" : "good", rows: sk };
@@ -10123,9 +10190,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (nep) out.push({ who: "The opposition caucus", why: nep + " appointment" + (nep === 1 ? "" : "s") + " of relatives and allies are on the record.", good: true, block: false });
     } catch (e) {}
     if (forcedBudget) out.push({ who: "Members across the House", why: "you forced an earlier budget through without them.", good: true, block: false });
+    // The Hostile House: the opposition majority votes down whatever you send, until you hold a majority.
+    if (hostileOn()) { const H = stc.house || scHouse(); out.unshift({ who: "The opposition majority under " + cast.speaker.name, why: "they hold " + (H.seats - H.loyal) + " of " + H.seats + " seats, and they vote down whatever you send.", good: false, block: stc.appealed !== turn && (stc.scen || {}).truce !== turn, fix: "truce", majority: true }); }
     return out;
   };
   const houseDeal = (cost, reasons, what) => {
+    if ((reasons || []).some(r => /opposition majority/.test(r.who || ""))) cost = Math.round((cost + scenRevB() * .04) * 10) / 10;
     if (!spendB(cost, "Constituency projects for the House")) return false;
     setS(p => ({ ...p, cor: cl(p.cor + .01 + .005 * (reasons || []).length) }));
     const who = (reasons || []).map(r => r.who.replace(/^The /, "the ")).filter((v, i, a) => a.indexOf(v) === i).slice(0, 2).join(" and ") || "the members who voted no";
@@ -10137,8 +10207,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   /* Clearing what blocks you in the House: pay the godfather what you owe,
      make peace through the party elders, or go over the members' heads to
      the voters (works only if the voters are with you). Returns true if cleared. */
+  const truceCost = () => Math.round(scenRevB() * .06 * 10) / 10;
   const clearGrudge = (fix, g) => decide(() => {
     const M = window.SOP_MEMORY, gfN = cast.godfather.name;
+    if (fix === "truce") {
+      const c = truceCost(); if (!spendB(c, "The Speaker's truce")) return;
+      setStc(p => ({ ...p, scen: { ...(p.scen || {}), truce: turn } })); setS(p => ({ ...p, cor: cl((p.cor || 0) + .03) }));
+      addL("🤝 You bought a year's truce from " + cast.speaker.name + ": " + naira(c) + " in constituency projects. His members will pass what you send, this year.", "political");
+      return { icon: "🤝", img: "./art/characters/speaker-angry.webp", title: "A truce, for this year", text: "The Speaker's members will let your bills, budget and taxes through until the year ends. Next year he will want more.", tone: "neutral", rows: [{ l: "Cost", v: naira(c), good: false }, { l: "Corruption", v: "+3%", good: false }] };
+    }
     if (fix === "settle") {
       if (!spendB(.5, "Settling with " + gfN)) return;
       try { M && g.debtId && M.settle(g.debtId, "Honoured before a House vote"); } catch (e) {}
@@ -10164,7 +10241,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { icon: "📣", title: "The voters didn't come", text: "At " + Math.round(s.app) + "% approval, members are not afraid of their constituents. It takes about 55%.", tone: "bad", rows: [{ l: "Approval", v: "−3", good: false }] };
     }
   });
-  const fixLabel = (fix) => fix === "settle" ? "🎩 Pay " + cast.godfather.name + " what you owe (₦0.5B, corruption +3%)" : fix === "elders" ? "🤝 Make peace through the party elders (₦0.3B)" : "📣 Go over their heads to the voters (needs 55% approval; you have " + Math.round(s.app) + "%)";
+  const fixLabel = (fix) => fix === "truce" ? "🤝 Buy a year's truce from the Speaker (" + naira(truceCost()) + ", corruption +3%)" : fix === "settle" ? "🎩 Pay " + cast.godfather.name + " what you owe (₦0.5B, corruption +3%)" : fix === "elders" ? "🤝 Make peace through the party elders (₦0.3B)" : "📣 Go over their heads to the voters (needs 55% approval; you have " + Math.round(s.app) + "%)";
   const [billReject, setBillReject] = useState(null);
   const [billFlags, setBillFlags] = useState([]); // clauses you flagged on the bill in front of you
   const [billAsk, setBillAsk] = useState(false);
@@ -10213,7 +10290,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
     const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
     const pri = (k) => k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
-      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") || k.startsWith("sc#scen_doom") ? 100 : k.startsWith("sc#peace_") ? 87 : k.startsWith("sc#handover_") ? 97 : k.startsWith("sc#dipl_unga") ? 88 : k.startsWith("sc#dipl_") ? 86 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
+      : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") ? 100 : k.startsWith("sc#scen_move") ? 96 : k.startsWith("sc#peace_") ? 87 : k.startsWith("sc#handover_") ? 97 : k.startsWith("sc#dipl_unga") ? 88 : k.startsWith("sc#dipl_") ? 86 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
