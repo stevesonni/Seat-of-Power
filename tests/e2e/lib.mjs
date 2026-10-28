@@ -94,6 +94,8 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
     let hit = null;
     // A shortcut that keeps coming back (say "Not now" on the same visitor) is a loop: decide instead.
     const recent = clicks.slice(-24), looping = (re) => recent.filter(c => re.test(c)).length >= 3;
+    // The Head of Service picker: appoint the first candidate, as a player would (pressing "Later" every year leaves the letter, and the year, unfinished).
+    if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button")].find(x => x.offsetParent && !x.disabled && /^(Appoint \S+|✍️ Sign it off.*)$/.test(x.textContent.trim())); if (b) { b.click(); return "btn " + b.textContent.trim(); } return null; });
     // Swearing in a commissioner: press it directly (the bot's cover check can miss it inside the sheet).
     if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && !x.disabled && /^Create and swear in/.test(x.textContent.trim())); if (b) { b.click(); return "btn Create and swear in"; } return null; });
     if (!hit) for (const re of [...prefer, ...PRIO]) { if (looping(re) && !/Leave the Secretariat/.test(re.source)) continue; hit = await g.click(re); if (hit) break; }

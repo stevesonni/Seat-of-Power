@@ -52,3 +52,4 @@ export * from "./cabinet.js";
 export * from "./peace.js";
 export * from "./legacy.js";
 export * from "./scenarios.js";
+export * from "./finance.js";

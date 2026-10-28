@@ -4524,7 +4524,7 @@ const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn
 // What changed because of the last decision.
 const Consequence = ({ text, icon = "✅" }) => text ? <div className="sp-con" role="status"><span aria-hidden="true" style={{ fontSize: 20 }}>{icon}</span><span><b>What changed:</b> {text}</span></div> : null;
 
-const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, federal, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound, onNeedMinistry, survive, lastYear = 8 }) => {
+const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, groups, federal, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound, onNeedMinistry, survive, lastYear = 8 }) => {
   const F0 = flow;
   // Where a draft goes (one place or several), and what its ministry can manage (SYS.estimate).
   const placesOf = (d) => (d.lgas && d.lgas.length ? d.lgas : [d.lga]).filter(Boolean);
@@ -4682,6 +4682,7 @@ const ProjectsView = ({ year, projects, flow, onFlow, needs, lgas, groups, feder
         : <Actions><button className="sp-btn" onClick={() => onOpenStep(p)}>{n.button}</button></Actions>)}
       <Brief>
         <div>Committed, not yet spent: {SYS.fmtM(SYS.committedM(p))} · {SYS.toFinishM(p) > 0 ? "Short of finishing by: " + SYS.fmtM(SYS.toFinishM(p)) : "Enough approved to finish"}{p.loanLeftM > 0 ? " · Loan money in hand: " + SYS.fmtM(p.loanLeftM) : ""}.</div>
+        {p.loanKey && (() => { const L = (loans || []).find(l => l.key === p.loanKey); return L ? <div data-testid="loan-line" style={{ color: L.suspended ? "#b3261e" : L.warned ? "#9a5b12" : undefined }}>🏦 {SYS.loanLine(L)}</div> : null; })()}
         {p.facility && <div>Working: {p.equipped && p.staffed ? "equipped and staffed" : p.equipped ? "equipped, no staff" : "not equipped"}.</div>}
         {(p.events || []).slice(-3).map((ev, i) => <div key={i} style={{ color: "#9a5b12" }}>• {ev}</div>)}
         {(p.decisions || []).length > 0 && <div style={{ marginTop: 4 }}>Record: {p.decisions.slice(-4).map(x => "Year " + x.year + ": " + x.text).join(" · ")}</div>}
@@ -6093,6 +6094,75 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The President's relief: from the creditors, not from Abuja (game/systems/federal.js).
   const fedVoice = (id, on) => { const v = NAT && SYS.FED_VOICES[id]; if (!v || v.on !== on) return; setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ present: { img: "./art/characters/" + v.img + ".webp", name: v.name, text: v.text, urgent: /angry/.test(v.img) } }); } catch (e) {} }, 700); };
   const credCtx = () => ({ cor: s.cor || 0, reforms: Object.keys(stc.rev || {}).length, washington: (stc.bakunda || {}).washington, app: s.app });
+  /* The IMF programme (SYS.finance, the President's last resort). Applying brings the NLC
+     out and the students into the streets; the Fund approves only after its prior actions
+     (the naira floated, the fuel subsidy gone, a borrowing ceiling, VAT up); the money comes
+     in tranches after yearly reviews; every year under it costs approval and prices; paying
+     it back early, or walking away, ends the conditions. */
+  const imfRevB = () => Math.max(200, (s.igr || 0) + (s.faac || 0));
+  const NANS = ["Adaeze Okonkwo-Bala, President of the National Association of Nigerian Students", "./art/characters/student-leader-angry.webp"];
+  const imfEndStrike = (L) => { const n = L && L.strikes && L.strikes.nlc; return n && n.on && n.cause === "imf" ? { ...L, strikes: { ...L.strikes, nlc: { ...n, on: false, over: "imf_gone" } } } : L; };
+  const imfApplyNow = () => { if (!NAT || SYS.imfOn(stc.imf)) return;
+    setStc(p => { const L = { ...(p.labour || {}), strikes: { ...((p.labour || {}).strikes || {}) } }, n = L.strikes.nlc;
+      if (!(n && n.on)) L.strikes.nlc = { ...SYS.startStrike("nlc", "imf", turn), fresh: true };
+      return { ...p, imf: SYS.imfApply(turn, imfRevB()), labour: L }; });
+    scFx({ app: -2 });
+    addL("🌐 You applied to the IMF. The NLC has called a general strike, and the students say they will march.", "crisis"); scWiki("Presidency", "Applied to the International Monetary Fund for a programme in " + absYear + "; the NLC struck the same day.");
+    setTimeout(() => { paper("NIGERIA APPLIES TO THE IMF; NLC CALLS GENERAL STRIKE", "“No to the Fund's conditions”: unions and students take to the streets", false, "./art/scenes/nlc-march.webp");
+      try { window.SOP_outcome({ present: { img: "./art/characters/nlc-president-angry.webp", bg: "./art/scenes/nlc-march.webp", name: SYS.UNIONS.nlc.leader(true), text: "You went to the IMF behind the workers' backs. We know their conditions: the subsidy gone, the naira floated. From today, Nigeria stops. Withdraw the application.", urgent: true, ok: "Continue" } }); } catch (e) {} }, 400);
+    setTimeout(() => postMail([letterOf("nans_imf_" + turn, { key: "nans_imf_" + turn, live: true, kind: "community", stakes: 2, lines: [{ ok: false, line: "The IMF's conditions will double transport fares and the price of food in our hostels. Every campus will march until the application is withdrawn." }], tip: [NANS[0], NANS[1], "The students will march", "On the IMF application"] })]), 900);
+    track("imf", "apply");
+    return { icon: "🌐", img: "./art/scenes/nlc-march.webp", title: "You applied to the IMF", text: "The Fund's board meets at the year's end. The NLC is already out, and the students are marching.", tone: "bad", rows: [{ l: "NLC", v: "On strike", good: false }, { l: "Approval", v: "−2", good: false }] }; };
+  const imfWithdraw = (quiet) => { if (!stc.imf || stc.imf.stage !== "applied") return;
+    setStc(p => ({ ...p, imf: { ...p.imf, stage: "withdrawn", ended: turn }, labour: imfEndStrike(p.labour) }));
+    addL("↩️ You withdrew the IMF application. The NLC calls off its strike; the students go back to class.", "political"); track("imf", "withdraw");
+    if (!quiet) setTimeout(() => paper("GOVERNMENT WITHDRAWS IMF APPLICATION", "The NLC calls off its strike", true, "./art/scenes/labour-roundtable.webp"), 300);
+    return { icon: "↩️", title: "Application withdrawn", text: "The NLC calls off its strike and the students stand down. The money problem is still yours.", tone: "neutral" }; };
+  const imfAcceptNow = () => { const I0 = stc.imf; if (!I0 || I0.stage !== "applied") return null;
+    const I = SYS.imfApprove(I0, turn, s.debt || 0), T = I.trancheB;
+    setStc(p => { const prem = ((p.trade || {}).premium) || 0; return { ...p, imf: { ...I, subsidyGone: true },
+      trade: p.trade ? SYS.tradeApply(p.trade, { floated: true, food: 10, premium: -prem }, turn) : p.trade }; });
+    // VAT to 10%, adopted with the programme.
+    const m = REVM().find(x => x.id === "f_vat");
+    if (m && (stc.rev || {}).f_vat == null) { const a = m.adopt({ s, stc, turn }), now = (a.sched || []).filter(x => x.k === 0), later = (a.sched || []).filter(x => x.k > 0).map(x => ({ ...x, t: turn + x.k, id: m.id }));
+      if (now.length) setS(p => applyRev(p, now)); setStc(p => ({ ...p, rev: { ...(p.rev || {}), f_vat: turn }, revSched: [...(p.revSched || []), ...later] })); }
+    scFx({ app: -4 }); setS(p => ({ ...p, debt: Math.round(((p.debt || 0) + T) * 10) / 10 }));
+    noteMoney({ icon: "🌐", head: "The IMF's first tranche", text: "The IMF programme is approved: " + naira(T) + " arrives, with the naira floated, the fuel subsidy gone, a borrowing ceiling and VAT at 10%.", amtB: T, cash: true });
+    addL("🌐 The IMF approved the programme. The naira floats, the subsidy is gone, and the borrowing ceiling starts now.", "crisis"); scWiki("Presidency", "Took an IMF programme in " + absYear + ": floated the naira, removed the fuel subsidy and raised VAT.");
+    setTimeout(() => paper("IMF APPROVES NIGERIA PROGRAMME; NAIRA FLOATED, SUBSIDY GONE", "Petrol and food prices jump overnight", false, "./art/scenes/fuel-queue.webp"), 400);
+    track("imf", "approved");
+    return { icon: "🌐", title: "The programme is approved", text: naira(T) + " arrives now; two more tranches follow if you pass the yearly reviews. Until you repay it, the conditions stay.", tone: "neutral",
+      rows: [{ l: "Into the bank", v: naira(T), good: true }, { l: "The naira", v: "Floated", good: false }, { l: "Fuel subsidy", v: "Gone", good: false }, { l: "Approval", v: "−4", good: false }] }; };
+  const imfLift = (p) => ({ ...p, labour: imfEndStrike(p.labour) });
+  const imfRepay = () => decide(() => { const I = stc.imf; if (!SYS.imfActive(I)) return;
+    if (!SYS.imfCanRepay(I, s.cash || 0)) return { icon: "🏦", title: "Not enough in the bank", text: "Repaying the Fund needs " + naira(I.outstandingB) + " in the bank; you have " + naira(s.cash || 0) + ". Exports, taxes or an oil windfall can get you there.", tone: "bad" };
+    const T = I.outstandingB;
+    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - T) * 100) / 100, debt: Math.max(0, Math.round(((p.debt || 0) - T) * 10) / 10), app: cl100(p.app + 5) }));
+    setStc(p => imfLift({ ...p, imf: { ...p.imf, stage: "repaid", outstandingB: 0, ended: turn } }));
+    addL("💵 You repaid the IMF early. The conditions are lifted.", "success"); scWiki("Presidency", "Repaid the IMF early in " + absYear + ", ending its conditions.");
+    setTimeout(() => { paper("FINANCIAL SOVEREIGNTY RESTORED", "Nigeria repays the IMF early; the conditions are lifted", true, "./art/scenes/un-general-assembly.webp");
+      try { window.SOP_outcome({ present: { img: "./art/characters/student-leader-pleased.webp", bg: "./art/scenes/endasuu-protest.webp", name: NANS[0], text: "You have paid them off! The students salute you, Your Excellency.", ok: "Continue" } }); } catch (e) {} }, 400);
+    track("imf", "repaid");
+    return { icon: "💵", title: "The Fund is repaid", text: "The conditions are lifted: you may print, borrow and defend the naira again. The NLC calls off any strike over the Fund.", tone: "good", rows: [{ l: "Paid", v: naira(T), good: false }, { l: "Approval", v: "+5", good: true }] }; });
+  const imfWalk = () => decide(() => { const I = stc.imf; if (!SYS.imfActive(I)) return;
+    const T = I.outstandingB, fromBank = Math.min(s.cash || 0, T), rest = Math.round((T - fromBank) * 10) / 10, pen = Math.round(rest * .2 * 10) / 10;
+    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) - fromBank) * 100) / 100, debt: Math.max(0, Math.round(((p.debt || 0) - fromBank + pen) * 10) / 10), app: cl100(p.app - 2) }));
+    setStc(p => imfLift({ ...p, imf: { ...p.imf, stage: "walked", outstandingB: 0, ended: turn, rating: (p.imf.rating || 0) - 2 }, trade: p.trade ? SYS.tradeApply(p.trade, { reserves: -5 }, turn) : p.trade }));
+    addL("🚪 You walked away from the IMF programme. The loan is called in; the rating agencies cut Nigeria.", "crisis"); scWiki("Controversies", "Walked away from an IMF programme in " + absYear + "; Nigeria's credit rating was cut.");
+    setTimeout(() => paper("NIGERIA QUITS IMF PROGRAMME; RATINGS CUT", "The loan is called in at once", false, "./art/scenes/finance-ministry-office.webp"), 400);
+    track("imf", "walked");
+    return { icon: "🚪", title: "You walked away", text: "The conditions end, but the loan is called in: " + naira(fromBank) + " from the bank" + (rest ? ", and " + naira(rest) + " rolled into dearer debt (+" + naira(pen) + ")" : "") + ". Borrowing abroad costs more now.", tone: "bad", rows: [{ l: "Paid", v: naira(fromBank), good: false }].concat(pen ? [{ l: "Penalty", v: naira(pen), good: false }] : [], [{ l: "Credit rating", v: "Cut", good: false }]) }; });
+  // The Fund's letters at the year's end (statecraft): the board's decision, the Senate's probe.
+  const imfBoardCard = () => ({ key: "fin_imf_board_" + turn, kicker: "🌐 The International Monetary Fund", color: CL.blu, from: "The IMF mission chief", art: ["finance-ministry-office", "foreign-head-of-state", null, null],
+    title: "The Fund's prior actions", brief: "The board will approve " + naira(stc.imf.trancheB * SYS.IMF_TRANCHES) + " in three tranches once Nigeria has taken these actions: " + SYS.IMF_CONDITIONS.map(c => c.l.replace(/^(\w)(?=[a-z])/, x => x.toLowerCase())).join("; ") + ".",
+    stakes: "Accept and the money comes, with the conditions, until you repay it. Refuse and the application lapses.",
+    options: [{ label: "Accept the prior actions", note: SYS.IMF_CONDITIONS.map(c => c.d).join(" "), chips: [{ text: "+" + naira(stc.imf.trancheB) + " now", color: CL.grn }, { text: "Naira floated", color: CL.red }, { text: "Subsidy gone", color: CL.red }], run: () => imfAcceptNow() },
+      { label: "Refuse: withdraw the application", chips: [{ text: "The NLC stands down", color: CL.grn }], run: () => imfWithdraw() }] });
+  const imfProbeCard = () => { const nassRel = (v) => setStc(p => p.pres ? { ...p, pres: { ...p.pres, npcs: { ...p.pres.npcs, nass: { ...((p.pres.npcs || {}).nass || {}), rel: Math.max(0, Math.min(100, (((p.pres.npcs || {}).nass || {}).rel ?? 50) + v)) } } } } : p);
+    return { key: "fin_imf_probe_" + turn, kicker: "🏛️ The Senate", color: CL.red, from: nassNm(), art: ["senate-chamber", "senate-president-angry", null, null],
+      title: "The Senate probes the IMF programme", brief: "Senators accuse your government of selling Nigeria's sovereignty to the Fund. The probe opens next week, on live television.",
+      options: [{ label: "Defend the programme before the Senate yourself", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); nassRel(-5); addL("🏛️ You defended the IMF programme before the Senate.", "political"); return { icon: "🏛️", title: "You defended it", text: "Hard questions, live. The Senate is not won over, but it is not lost.", tone: "neutral", rows: [{ l: "The Senate", v: "−5", good: false }] }; } },
+        { label: "Ignore the Senate", chips: [{ text: "The Senate −15", color: CL.red }], run: () => { nassRel(-15); addL("🏛️ You ignored the Senate's IMF probe. Senators are counting votes.", "crisis"); return { icon: "🏛️", title: "You ignored them", text: "The Senate takes it personally. Impeachment talk grows.", tone: "bad", rows: [{ l: "The Senate", v: "−15", good: false }] }; } }] }; };
   const askCreditor = (C) => decide(() => {
     if (debtDone(C.id) || (s.debt || 0) < 20) return; markDebt(C.id);
     const odds = C.odds(credCtx());
@@ -6232,7 +6302,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     else if ((h === "nlc_fuel" || h === "nlc_imf") && !L.ult && !(st && st.on)) { L.ult = SYS.ultimatum(h === "nlc_imf" ? "imf" : "fuel", NAT, turn); const pp = L.ult.paper; setTimeout(() => paper(pp[0], pp[1], false, "./art/scenes/nlc-march.webp"), 1200); }
     return L;
   };
-  const storyHook = (h) => setStc(p => ({ ...p, labour: storyLabour(p.labour, h) }));
+  const storyHook = (h) => h === "imf_apply" ? imfApplyNow() : h === "imf_accept" ? (stc.imf && stc.imf.stage === "applied" ? imfAcceptNow() : imfApplyNow()) : h === "imf_refuse" ? (stc.imf && stc.imf.stage === "applied" ? imfWithdraw() : SYS.imfActive(stc.imf) ? imfWalk() : null) : setStc(p => ({ ...p, labour: storyLabour(p.labour, h) }));
   const storyFx = (f = {}) => ({ app: f.app || 0, sec: (f.sec || 0) * .006, agr: (f.agr || 0) * .006, cor: f.cor || 0, igr: f.igr || 0, pStab: f.pStab || 0 });
   const storyCardFor = (def, S) => {
     const c = SYS.storyCard(def, S, { nat: NAT });
@@ -6253,6 +6323,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               Object.entries(R.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; });
               return { ...p, pres: { ...P, story: R.S, sev: R.S.heat, over: P.over || R.S.closed } }; });
             if (R.hook) storyHook(R.hook);
+            if (/print/i.test(String((o && (o.l || o.label)) || ""))) setStc(p => ({ ...p, printedTurn: turn })); // printing breaks the IMF's ceiling
             const past = (R.S.hist[R.S.hist.length - 1] || {}).past || o.l;
             addL("🚨 " + def.nm + ": " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + "." + (R.won === false ? " It did not work." : ""), R.won === false || o.weak ? "crisis" : "policy");
             scWiki(o.weak || R.won === false ? "Controversies" : "Presidency", past.charAt(0).toUpperCase() + past.slice(1) + ".");
@@ -6398,6 +6469,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               if (P) Object.entries(R.npc || {}).forEach(([k, v]) => { if (P.npcs[k]) P.npcs[k] = { ...P.npcs[k], rel: Math.max(0, Math.min(100, P.npcs[k].rel + v)) }; });
               return { ...p, pres: P, trade: { ...T1, stories: { ...(T1.stories || {}), [id]: R.S } } }; });
             if (R.hook) storyHook(R.hook);
+            if (/print/i.test(String((o && (o.l || o.label)) || ""))) setStc(p => ({ ...p, printedTurn: turn })); // printing breaks the IMF's ceiling
             const past = (R.S.hist[R.S.hist.length - 1] || {}).past || o.l;
             addL("📈 " + def.nm + ": " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + "." + (R.won === false ? " It did not work." : ""), R.won === false || o.weak ? "crisis" : "policy");
             scWiki(o.weak || R.won === false ? "Controversies" : "Presidency", past.charAt(0).toUpperCase() + past.slice(1) + ".");
@@ -7697,6 +7769,57 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (SYS.peaceAftershockDue(P, turn)) cards.push(peaceAfterCard(k, P)); });
       if (!NAT && turn >= 2 && !PZ.state && turn - (next.peaceOffered || -9) >= 2 && ((s.sec || 0) < .6 || (next.crisesSeen || []).some(id => SYS.STATE_PEACE.ends.includes(id)))) { next.peaceOffered = turn; cards.push(peaceOfferCard()); } }
 
+    // The IMF programme (the President): the board decides after an application; every year
+    // under the programme it costs approval and prices, and the review decides the next tranche.
+    if (NAT && next.imf) {
+      const I = next.imf;
+      if (I.stage === "applied") cards.push(imfBoardCard());
+      if (I.stage === "active" && turn > I.approved) {
+        const D = SYS.imfDrag(I, turn);
+        if (D) { dApp += D.app; if (next.trade) next.trade = SYS.tradeApply(next.trade, { food: D.food }, turn);
+          notes.push(["🌐 A year under the IMF: prices rose and approval fell" + (D.protest ? "; students and unions marched again (\u201cIMF go home!\u201d)." : "."), "crisis"]);
+          if (D.probe && !I.probed) { next.imf = { ...next.imf, probed: turn }; cards.push(imfProbeCard()); } }
+        const R = SYS.imfReview(next.imf, { printed: next.printedTurn === turn, subsidyBack: false, debtB: s.debt || 0 }, turn);
+        next.imf = R.I;
+        if (R.pass && R.tranche) { setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + R.tranche) * 100) / 100, debt: Math.round(((p.debt || 0) + R.tranche) * 10) / 10 }));
+          notes.push(["🌐 The IMF review passed: tranche " + R.I.drawn + " of " + SYS.IMF_TRANCHES + " (" + naira(R.tranche) + ") is in the bank.", "success"]);
+          setTimeout(() => paper("IMF REVIEW PASSED; NEXT TRANCHE RELEASED", naira(R.tranche) + " for Nigeria", true, "./art/scenes/finance-ministry-office.webp"), 1000); }
+        else if (R.pass) notes.push(["🌐 The IMF review passed. All three tranches are drawn; what remains is repaying it.", "info"]);
+        else { notes.push(["🌐 The IMF review failed: " + R.misses.join("; ") + ". The tranche is suspended and Nigeria's rating is cut.", "crisis"]);
+          setTimeout(() => paper("IMF SUSPENDS TRANCHE; NIGERIA'S RATING CUT", R.misses[0].replace(/^./, c => c.toUpperCase()), false, "./art/scenes/finance-ministry-office.webp"), 1000); }
+      }
+    }
+
+    // Project loans (SYS.finance): each lender watches its site and writes at the year's end:
+    // a tranche to sign, a warning, a suspension, or (pre-financing) the bill at handover.
+    if ((loans || []).length) {
+      const peaceClosed = !!(((next.peace || {}).state || {}).closed);
+      const stateInsecure = !NAT && (Object.entries(next.stateStories || {}).some(([id, T]) => SYS.STATE_PEACE.ends.includes(id) && T && T.S && !T.S.closed)
+        || (["sit_at_home", "bandit_corridor"].includes(scenId) && next.scen && !next.scen.broken) || (s.sec || 0) < .35);
+      const SI = SYS.strikeImpact(next.labour, NAT);
+      const nl = loans.map(L0 => {
+        const P = (projects || []).find(x => x.id === L0.projId); if (!P) return L0;
+        // Contractor pre-financing: the bill falls due when the work is handed over.
+        if (L0.pre) {
+          if ((P.status === "delivered" || P.status === "built") && !L0.billed) cards.push(finBillCard(L0, P));
+          return L0;
+        }
+        if (P.status !== "in_progress" || L0.drawn >= L0.tranches) return L0;
+        const zoneOf = NAT ? ((STATES[P.lga] || {}).zone || null) : null;
+        const sig = { year: turn, cor: s.cor || 0, peace: peaceClosed,
+          attack: (next.chains || []).some(b => b.kind === "crisis" && !b.done && (NAT ? b.zone === zoneOf : b.place === P.lga) && (pol || []).some(x => x.id === b.polId && x.blocked)),
+          fled: (next.chains || []).some(b => b.kind === "japa" && b.projId === P.id),
+          strike: (SYS.strikeBlock(SI, { type: P.type, sector: P.sector }) || {}).status === "stop",
+          insecure: (NAT ? Object.entries(next.fronts || {}).some(([k, v]) => v >= 65 && SYS.FRONTS[k] && SYS.FRONTS[k].zone === zoneOf) : stateInsecure) && L0.guarded !== turn };
+        const W = SYS.lenderWatch(L0, sig), L = W.L;
+        if (W.act === "hold" || W.act === "suspend") cards.push(finHoldCard(L, P, W));
+        else if (W.act === "warn") cards.push(finWarnCard(L, P, W));
+        else { if (W.act === "lift") notes.push(["🏦 " + finFrom(L) + " has lifted the suspension on " + P.title + ": the money flows again.", "success"]); cards.push(finTrancheCard(L, P)); }
+        return L;
+      });
+      setLoans(nl);
+    }
+
     // The scenario (SYS.scenarios): while it lasts it bites every year; the rival makes a move;
     // the front pages count down; at the deadline the threat lands (full-screen, see openDoom).
     if (scenR && scenR.goal && next.scen && next.scen.day1) {
@@ -8155,15 +8278,87 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const acceptOfferNow = (F0) => {
     const o = F0.offer; if (!o) return;
     if (loans.some(l => l.key === o.key)) { setPflow({ step: "contractor", projId: F0.projId }); return; }
-    setLoans(l => SYS.acceptOffer(l, o, turn));
-    setS(p => ({ ...p, debt: p.debt + SYS.toB(o.principalM) })); // the only point where this debt is created
-    setProjects(prev => prev.map(x => x.id === F0.projId ? { ...x, loanLeftM: (x.loanLeftM || 0) + o.principalM, loanKey: o.key, status: x.status === "pending_finance" ? "pending_procurement" : x.status, decisions: [...(x.decisions || []), { year: turn, text: "Borrowed " + SYS.fmtM(o.principalM) + " from " + o.lender + " at " + Math.round(o.rate * 1000) / 10 + "% over " + o.years + " years." }] } : x));
+    // A loan is a schedule of tranches (SYS.finance): only the first is drawn now, and only drawn money is debt.
+    // Contractor pre-financing: the contractor carries the cost; the whole bill falls due at handover.
+    const L = SYS.scheduleLoan(o, F0.projId, turn), inHand = L.pre ? o.principalM : L.drawnM;
+    setLoans(l => l.some(x => x.key === o.key) ? l : [...l, L]);
+    if (!L.pre) setS(p => ({ ...p, debt: p.debt + SYS.toB(L.drawnM) }));
+    setProjects(prev => prev.map(x => x.id === F0.projId ? { ...x, loanLeftM: (x.loanLeftM || 0) + inHand, loanKey: o.key, status: x.status === "pending_finance" ? "pending_procurement" : x.status, decisions: [...(x.decisions || []), { year: turn, text: L.pre ? "The contractor will pre-finance " + SYS.fmtM(o.principalM) + "; the bill of " + SYS.fmtM(L.billM) + " is due at handover." : "Borrowed " + SYS.fmtM(o.principalM) + " from " + o.lender + " in " + L.tranches + " tranches; the first, " + SYS.fmtM(L.drawnM) + ", is drawn." }] } : x));
     addL("🏦 Accepted " + o.lender + "'s offer: " + SYS.fmtM(o.principalM) + " at " + Math.round(o.rate * 1000) / 10 + "% over " + o.years + " years (about " + SYS.fmtM(o.serviceM) + " a year).", "policy");
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "loan_accepted", actor: "governor", target: o.lender, gravity: 1, evidence: 3, decision: "Borrowed " + SYS.fmtM(o.principalM), note: o.nm }); } catch (e) {}
     const p0 = (projects || []).find(x => x.id === F0.projId);
-    setLastCon({ turn, icon: "🏦", text: SYS.fmtM(o.principalM) + " from " + o.lender + " is in hand for " + (p0 ? p0.title : "the project") + ". Next: award the contract." });
+    setLastCon({ turn, icon: "🏦", text: (L.pre ? "The contractor pre-finances " + (p0 ? p0.title : "the project") + "; " + SYS.fmtM(L.billM) + " is due at handover." : SYS.fmtM(L.drawnM) + " (tranche 1 of " + L.tranches + ") from " + o.lender + " is in hand for " + (p0 ? p0.title : "the project") + "; the rest comes as tranches you sign each year.") + " Next: award the contract." });
     setPflow({ step: "done", kind: "funded", projId: F0.projId, fromAt: p0 ? SYS.milestoneOf(p0) : 1, loanKey: o.key, amountM: o.principalM, lender: o.lender, at: Date.now() });
   };
+  /* The lenders' letters (SYS.finance). Every one changes what is real: signing draws the
+     money and adds the debt; not signing charges the penalty and stops the site for the year;
+     a suspension stops the money until the reason is gone; the contractor's bill is paid,
+     by you or by court order. */
+  const finRule = (L) => SYS.TRANCHE_RULES[L.lenderId] || SYS.TRANCHE_RULES.bank;
+  const finName = (L) => NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).nm || L.nm : L.nm;
+  const finFrom = (L) => NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).from || L.lender : finRule(L).from;
+  const finWho = (L) => NAT ? (SYS.PRES_NAMES[L.lenderId] || {}).who || "investor-foreign" : finRule(L).who;
+  const yearShareM = (P) => Math.ceil(Math.max(0, (P.approvedM || 0) - (P.spentM || 0)) / Math.max(1, (P.startYear || turn) + (P.years || 1) - turn));
+  const finDraw = (L, P, why) => { const R = SYS.drawTranche(L, turn), m = R.m; if (!m) return 0;
+    setLoans(ls => ls.map(x => x.key === L.key ? { ...SYS.drawTranche(x, turn).L, suspended: null } : x));
+    setS(p => ({ ...p, debt: Math.round(((p.debt || 0) + SYS.toB(m)) * 100) / 100 }));
+    setProjects(prev => prev.map(x => x.id === P.id ? { ...x, loanLeftM: (x.loanLeftM || 0) + m, decisions: [...(x.decisions || []), { year: turn, text: why + ": tranche " + (L.drawn + 1) + " of " + L.tranches + " (" + SYS.fmtM(m) + ") drawn." }] } : x));
+    return m; };
+  const finTrancheCard = (L, P, warn) => { const k = L.drawn + 1, m = SYS.nextTrancheM(L), pen = SYS.skipCostM(L, yearShareM(P)), R = finRule(L);
+    const guard = NAT ? 5 : .3;
+    return { key: "fin_tr_" + L.key + "_" + turn, kicker: "🏦 " + finName(L) + " · " + P.title, color: CL.blu, from: finFrom(L), art: ["finance-ministry-office", finWho(L), null, null],
+      title: (warn ? "A warning, and tranche " : "Tranche ") + k + " of " + L.tranches + ": " + P.title,
+      brief: (warn ? "We note " + warn.why + (P.lga ? " near " + P.lga : "") + ". Unless it improves by our next review, we will suspend the remaining tranches. " : "") + R.ask(k, L.tranches) + " Amount: " + SYS.fmtM(m) + ".",
+      stakes: "Sign and the work goes on. Don't, and nothing is built on the site this year, and you pay " + SYS.fmtM(pen) + " in penalties.",
+      options: [
+        { label: "Sign the " + R.letter + ": " + SYS.fmtM(m), chips: [{ text: "Debt +" + SYS.fmtM(m), color: CL.org }, { text: "The work goes on", color: CL.grn }], run: () => {
+          finDraw(L, P, "Signed"); addL("🖋️ You signed tranche " + k + " of " + L.tranches + " for " + P.title + ": " + SYS.fmtM(m) + " from " + finName(L) + ".", "policy");
+          return { icon: "🖋️", title: "Tranche " + k + " signed", text: SYS.fmtM(m) + " is released for " + P.title + ". The work goes on.", tone: "good", rows: [{ l: "Debt", v: "+" + SYS.fmtM(m), good: false }, { l: "Tranches drawn", v: k + " of " + L.tranches, good: true }] }; } },
+        warn && { label: "Put police on the site, and tell them", note: "It reassures them for a year; it does not end the insecurity.", chips: [{ text: naira(guard), color: CL.org }], run: () => {
+          if (!spendB(guard, "Guarding " + P.title)) return; finDraw(L, P, "Signed after guarding the site");
+          setLoans(ls => ls.map(x => x.key === L.key ? { ...x, guarded: turn + 1, warned: null } : x));
+          addL("🛡️ Police posted at " + P.title + "; " + finFrom(L) + " is reassured for now. Tranche " + k + " signed.", "policy");
+          return { icon: "🛡️", title: "The site is guarded", text: "The lender is reassured for a year, and tranche " + k + " is released. The insecurity around it is still yours to end.", tone: "good", rows: [{ l: "Cost", v: naira(guard), good: false }, { l: "Debt", v: "+" + SYS.fmtM(m), good: false }] }; } },
+        { label: "Don't sign this year", note: "The penalty and the contractor's idle crew are paid either way.", chips: [{ text: "Penalty " + SYS.fmtM(pen), color: CL.red }, { text: "No work this year", color: CL.red }], run: () => {
+          scFx({ debt: SYS.toB(pen) });
+          setLoans(ls => ls.map(x => x.key === L.key ? { ...x, skipped: (x.skipped || 0) + 1, penaltiesM: (x.penaltiesM || 0) + pen } : x));
+          setProjects(prev => prev.map(x => x.id === P.id ? { ...x, holdYear: turn, decisions: [...(x.decisions || []), { year: turn, text: "Tranche " + k + " not signed: no work this year; " + SYS.fmtM(pen) + " in penalties." }] } : x));
+          addL("🏦 You did not sign tranche " + k + " for " + P.title + ": " + SYS.fmtM(pen) + " in penalties, and the site is idle this year.", "political");
+          return { icon: "⏸️", title: "Not signed", text: "Nothing is built on " + P.title + " this year. The bank's commitment fee and the contractor's standby bill come to " + SYS.fmtM(pen) + ".", tone: "bad", rows: [{ l: "Penalty", v: SYS.fmtM(pen), good: false }, { l: "The site", v: "Idle this year", good: false }] }; } },
+      ].filter(Boolean) }; };
+  const finWarnCard = (L, P, W) => finTrancheCard(L, P, W);
+  const finHoldCard = (L, P, W) => { const m = SYS.nextTrancheM(L), odds = Math.max(.1, Math.min(.8, (L.lenderId === "dfi" ? .2 : .35) + ((s.app || 50) - 50) / 200)), fix = W.why === "armed men attacked the site" ? "Deal with the attack on the Desk, and they will release it." : W.why.startsWith("the site is shut") ? "End the strike, and they will release it." : W.why.startsWith("the contractor left") ? "Appoint a new contractor, and they will release it." : W.why === "insecurity around the site" ? "Make the area safe (a Peace Plan step, or the crisis ended), and they will release it." : "Clean up the books, and they will release it.";
+    return { key: "fin_hold_" + L.key + "_" + turn, kicker: "🏦 " + finName(L) + " · tranche suspended", color: CL.red, from: finFrom(L), art: ["finance-ministry-office", finWho(L), null, null],
+      title: "Tranche " + (L.drawn + 1) + " suspended: " + P.title, brief: "We have suspended the next tranche (" + SYS.fmtM(m) + "): " + W.why + ". " + fix,
+      stakes: "The site runs only on the money already drawn and what the bank can pay.",
+      options: [
+        { label: "Pay this year's share from the bank instead", note: "The state's own money keeps the work going.", chips: [{ text: SYS.fmtM(m), color: CL.org }], run: () => {
+          if (!spendB(SYS.toB(m), "Paying " + P.title + " from the bank")) return;
+          setProjects(prev => prev.map(x => x.id === P.id ? { ...x, loanLeftM: (x.loanLeftM || 0) + m, decisions: [...(x.decisions || []), { year: turn, text: "The lender suspended its tranche; the state paid " + SYS.fmtM(m) + " itself." }] } : x));
+          addL("🏦 " + finName(L) + " suspended its tranche for " + P.title + "; the state paid " + SYS.fmtM(m) + " itself.", "policy");
+          return { icon: "🏦", title: "Paid from the bank", text: "The work goes on with the state's own money. The lender's tranche stays suspended until " + W.why + " is dealt with.", tone: "neutral", rows: [{ l: "From the bank", v: SYS.fmtM(m), good: false }] }; } },
+        { label: "Ask them to reconsider", note: "About " + Math.round(odds * 100) + "% they agree.", chips: [{ text: "A gamble", color: CL.org }], run: () => {
+          if (Math.random() < odds) { finDraw(L, P, "Released after you asked"); addL("🏦 " + finName(L) + " reconsidered and released tranche " + (L.drawn + 1) + " for " + P.title + ".", "success");
+            return { icon: "🏦", title: "They reconsidered", text: SYS.fmtM(m) + " is released. They will be watching.", tone: "good", rows: [{ l: "Debt", v: "+" + SYS.fmtM(m), good: false }] }; }
+          addL("🏦 " + finName(L) + " refused to release the tranche for " + P.title + ".", "political");
+          return { icon: "🏦", title: "They said no", text: "The tranche stays suspended. " + fix, tone: "bad" }; } },
+        { label: "Wait until it is resolved", note: "The work slows to what the money in hand can pay.", chips: [{ text: "Free", color: CL.grn }], run: () => { addL("🏦 The tranche for " + P.title + " stays suspended.", "info"); return null; } },
+      ] }; };
+  const finBillCard = (L, P) => { const bill = L.billM, court = Math.round(bill * (1 + SYS.PRE_COURT_COST));
+    const mark = (how) => setLoans(ls => ls.map(x => x.key === L.key ? { ...x, billed: how, outstandingM: 0 } : x));
+    return { key: "fin_bill_" + L.key, kicker: "🏗️ " + finName(L) + " · the bill", color: CL.org, from: finFrom(L), art: ["finance-ministry-office", NAT ? finWho(L) : "contractor", null, null],
+      title: "The bill for " + P.title, brief: "We pre-financed the work and handed it over. Our bill, with the financing charge: " + SYS.fmtM(bill) + ".",
+      stakes: "Refuse, and they will go to court.",
+      options: [
+        { label: "Pay the bill: " + SYS.fmtM(bill), chips: [{ text: SYS.fmtM(bill), color: CL.org }], run: () => {
+          scFx({ debt: SYS.toB(bill) }); mark("paid"); addL("🏗️ You paid the contractor's bill for " + P.title + ": " + SYS.fmtM(bill) + ".", "policy");
+          return { icon: "🏗️", title: "Paid", text: SYS.fmtM(bill) + " to the contractor, from the bank first and borrowed if it ran short.", tone: "neutral", rows: [{ l: "Paid", v: SYS.fmtM(bill), good: false }] }; } },
+        { label: "Refuse to pay", note: "The courts will order you to pay, with costs.", chips: [{ text: "To court", color: CL.red }], run: () => {
+          scFx({ debt: SYS.toB(court), app: -3 }); mark("court");
+          addL("⚖️ You refused the contractor's bill for " + P.title + ". The court ordered the state to pay " + SYS.fmtM(court) + " with costs.", "crisis"); scWiki("Controversies", "Refused to pay the contractor who pre-financed " + P.title + "; the court ordered payment with costs.");
+          setTimeout(() => paper("COURT ORDERS " + (NAT ? "FEDERAL GOVERNMENT" : "STATE") + " TO PAY CONTRACTOR", P.title + ": " + SYS.fmtM(court) + " with costs", false, "./art/scenes/news-court-steps.webp"), 500);
+          return { icon: "⚖️", img: "./art/characters/judge.webp", title: "The court ordered you to pay", text: "The contractor won. The state paid " + SYS.fmtM(court) + ", the bill and the legal costs, and it is in the papers.", tone: "bad", rows: [{ l: "Paid", v: SYS.fmtM(court), good: false }, { l: "Approval", v: "−3", good: false }] }; } },
+      ] }; };
   const awardProject = (id, cid, mth) => {
     const p = (projects || []).find(x => x.id === id), C = SYS.contractorById(cid), M = SYS.PROCUREMENT[mth] || SYS.PROCUREMENT.open; if (!p || !C) return;
     const est = Math.round(p.estimateM * M.price);
@@ -8240,10 +8435,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       const m = minById(p.ministryId);
       // The bank pays this year's share; if it runs short, lenders may lend the rest; past that, work slows or stops.
-      const canM = bankM + SYS.toM(SYS.borrowRoomB({ ...moneyRef.current, debt: (moneyRef.current.debt || 0) + SYS.toB(owedM) }, lvl));
+      // What the site can spend: the state's bank and the loan money you signed for. No silent borrowing:
+      // a project short of money slows down or stops, and says why.
+      const canM = bankM;
       const WH = workHalt.current, haltNow = WH && WH.t === year && (!WH.sectors || WH.sectors.includes(p.sector));
-      const SB = haltNow ? { status: "stop", why: "work on every site was stopped this year" } : SYS.strikeBlock(SYS.strikeImpact(stc.labour, NAT), { type: p.type, sector: p.sector });
-      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost: (boost || 0) + (p.fast ? .5 : 0), ...(SB ? { halt: SB.status === "stop" ? 0 : .5, haltWhy: SB.why || SB.who + (SB.status === "stop" ? " are on strike" : " are on a go-slow") } : {}) });
+      const SB = p.holdYear === year ? { status: "stop", why: "you did not sign the lender's tranche, so no money came" } : haltNow ? { status: "stop", why: "work on every site was stopped this year" } : SYS.strikeBlock(SYS.strikeImpact(stc.labour, NAT), { type: p.type, sector: p.sector });
+      const LN = p.loanKey && (loans || []).find(l => l.key === p.loanKey), moreComing = !!(LN && !LN.pre && SYS.undrawnM(LN) > 0);
+      const r = SYS.tickProject(p, year, { moreComing, cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost: (boost || 0) + (p.fast ? .5 : 0), ...(SB ? { halt: SB.status === "stop" ? 0 : .5, haltWhy: SB.why || SB.who + (SB.status === "stop" ? " are on strike" : " are on a go-slow") } : {}) });
       const used = r.cashUsedM || 0, fromBank = Math.min(bankM, used);
       bankM -= fromBank; paidM += fromBank; owedM += used - fromBank;
       next[p.id] = r.p;
@@ -8851,11 +9049,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const lm = labourMin(), divert = [];
     (pol || []).filter(p => p.tl > 0 && (p.c || 0) >= (NAT ? 50 : 2)).sort((a, b) => (b.c || 0) - (a.c || 0)).slice(0, 1).forEach(p => divert.push({ id: p.id, nm: p.nm, kind: "pol", place: chainPlace(p).place }));
     (projects || []).filter(p => p.status === "in_progress").sort((a, b) => (b.cost || 0) - (a.cost || 0)).slice(0, 1).forEach(p => divert.push({ id: p.id, nm: p.title, kind: "proj", place: p.lga || stName }));
-    return { nat: NAT, cash: s.cash || 0, rev: Math.max(NAT ? 200 : 5, (s.igr || 0) + (s.faac || 0)), cor: s.cor, minister: lm ? (lm.perf == null ? 55 : lm.perf) : null, turn, divert };
+    return { nat: NAT, cash: s.cash || 0, rev: Math.max(NAT ? 200 : 5, (s.igr || 0) + (s.faac || 0)), cor: s.cor, minister: lm ? (lm.perf == null ? 55 : lm.perf) : null, turn, divert, noPrint: SYS.imfActive(stc.imf) };
   };
   const strikeOf = (id) => id === "ult" ? (stc.labour && stc.labour.ult ? { ...SYS.startStrike("nlc", stc.labour.ult.cause, turn), sessions: (stc.labour.ultSessions || 0), rounds: { t: turn, n: stc.labour.ultSessions || 0 } } : null) : ((stc.labour || {}).strikes || {})[id] || null;
   const roundsLeft = (id) => { const st = strikeOf(id); return !st ? 0 : SYS.ROUNDS_A_YEAR - (st.rounds && st.rounds.t === turn ? st.rounds.n : 0); };
   const reverseCause = (cause) => {
+    if (cause === "imf") { if (stc.imf && stc.imf.stage === "applied") imfWithdraw(true); else if (SYS.imfActive(stc.imf)) imfWalk(); return; }
     if (cause === "vat" || cause === "levy" || cause === "property") {
       const mId = cause === "vat" ? "f_vat" : cause, m = REVM().find(x => x.id === mId), a = m && m.adopt({ s, stc, turn });
       const back = a ? (a.sched || []).reduce((t, x) => t + (x.revIGR || 0), 0) : 0;
@@ -8918,6 +9117,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try {
       window.SOP_outcome({ present: { img: "./art/characters/" + U.img(NAT) + (R.tone === "good" ? "-pleased" : R.tone === "bad" ? "-angry" : "") + ".webp", bg: "./art/" + U.table + ".webp", name: U.leader(NAT), text: R.say, urgent: R.tone === "bad", ok: "Continue" } });
       if (opt.id === "mou" && R.suspend) window.SOP_outcome({ icon: "📝", img: "./art/objects/mou-document.webp", title: "The MoU is signed", text: "30% paid today; " + naira(R.st.mou.owed) + " falls due next year. Miss it and they are back out.", tone: "neutral" });
+      if (opt.id === "print") setStc(p => ({ ...p, printedTurn: turn }));
       if (opt.id === "print") window.SOP_outcome({ icon: "🖨️", img: "./art/objects/printed-naira.webp", title: "The Central Bank prints it", text: "Ways and Means: " + naira(SYS.demandOf(st, ctx)) + " created overnight. The bank balance is untouched; the bill comes later, as inflation.", tone: "neutral" });
       const lmN = labourMin();
       if (lmN && crack) window.SOP_outcome({ present: { img: labourMinArt("angry"), bg: "./art/scenes/" + (NAT ? "soldiers-substation" : "nlc-march") + ".webp", name: "Hon. " + lmN.minister + " · " + (NAT ? "Minister" : "Commissioner") + " of Labour", text: R.escalated ? "Your Excellency, this has blown up. Every union is out in solidarity, and the embassies are calling. We will be years repairing this." : R.freed ? "The court threw it out, Your Excellency, and called the arrests unlawful. The unions will not trust a word we say now." : "It is quiet, Your Excellency, but it is the quiet before sabotage. The workers will remember how it ended.", urgent: true, ok: "Continue" } });
@@ -9054,7 +9254,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ].map(o => !NAT ? o : o.id === "cash" ? { ...o, lender: "The Federal Treasury" }
       // The President borrows for the nation: no Abuja guarantee, no federal fund to apply to.
       : o.id === "bank" ? { ...o, nm: "Treasury bills and FGN bonds", lender: "Nigerian banks and pension funds, via the Debt Management Office", terms: "Quick, but dear: about 30% more in interest, and it crowds out lending to business." }
-      : o.id === "bond" ? { ...o, nm: "Eurobond", lender: "International investors, via the Debt Management Office", odds: pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0)),
+      : o.id === "bond" ? { ...o, nm: "Eurobond", lender: "International investors, via the Debt Management Office", odds: pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0) + Math.min(0, ((stc.imf || {}).rating || 0)) * .15),
           terms: "Dollar debt at about 15%: cheap until the naira falls. The National Assembly must approve the borrowing plan.", why: [cor > .4 ? "✗ Rating agencies mark Nigeria down for corruption." : "✓ Nigeria's rating is acceptable.", hs.loyal < hs.seats / 2 ? "✗ The National Assembly is hostile and may refuse the borrowing plan." : "✓ The National Assembly will approve it."] }
       : o.id === "dfi" ? { ...o, nm: "World Bank / African Development Bank loan", lender: "The World Bank and the African Development Bank", odds: !multi ? 0 : pc(.85 - Math.max(0, cor - .3) * 2 - (proj.needsEIA && !proj.eiaDone ? .4 : 0)),
           terms: "The cheapest money there is (about 5%), but slow: the banks check safeguards and procurement.", why: !multi ? ["Development banks don't fund " + t + " projects."] : [cor > .35 ? "✗ Their integrity checks flag corruption (" + Math.round(cor * 100) + "%)." : "✓ Your books pass their checks.", proj.needsEIA && !proj.eiaDone ? "✗ No environmental assessment yet." : null] }
@@ -10347,7 +10547,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k.startsWith("sc#pres_bk") || k === "flagship"; // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
+    const WAR = (k) => k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_"); // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
     const keep = ranked.filter(x => !TRIP(x.k) && !WAR(x.k)).filter((x, n) => n < cap || x.p >= 100).concat(ranked.filter(x => WAR(x.k)), ranked.filter(x => TRIP(x.k)));
     const dropped = ranked.filter(x => !keep.includes(x));
     q.length = 0; keep.forEach(x => q.push(x.k));
@@ -14129,7 +14329,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
         </OL>
         <OL show={!!pflow}>
-          {pflow && <ProjectsView year={turn} projects={projects || []} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
+          {pflow && <ProjectsView year={turn} projects={projects || []} loans={loans} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </OL>
         <OL show={!!secr}>
           {secr && <SecretariatView year={turn} ministries={ministries} cases={cases.filter(c => !c.agency || c.stage === "decided" || c.stage === "closed" || (c.stage === "findings" && !stc.hos))} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
@@ -14593,7 +14793,12 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 </div>;
                 return <div style={{ display: "grid", gap: 8, marginBottom: 6 }}>
                   <div style={{ fontSize: fz.m, color: CL.txt }}><b>Your debt: ₦{(s.debt || 0).toFixed(1)}B</b> · repayments ₦{svc.toFixed(1)}B a year ({share}% of income){stc.defDebt ? " · ₦" + stc.defDebt.amt.toFixed(1) + "B pushed " + (stc.defDebt.due ? "to your second term" : "to your successor") : ""}</div>
-                  {NAT ? SYS.FED_CREDITORS.map(C => row(C.id, C.icon + " " + C.nm, C.note + " Odds now: about " + Math.round(C.odds(credCtx()) * 100) + "%.", !debtDone(C.id) && (s.debt || 0) >= 20, (s.debt || 0) < 20 ? "Only worth asking when the debt is ₦20B or more." : null, () => askCreditor(C))) : null}
+                  {NAT && (() => { const I = stc.imf;
+                    if (!I || ["withdrawn", "repaid", "walked"].includes(I.stage)) return row("imf_apply", "🌐 Apply to the IMF", "The last resort: money in three tranches, if you float the naira, end the fuel subsidy, accept a borrowing ceiling and raise VAT. The NLC strikes the day you apply; the students march." + (I ? " (Last time: " + I.stage + ".)" : ""), true, null, () => decide(imfApplyNow));
+                    if (I.stage === "applied") return row("imf_withdraw", "↩️ Withdraw the IMF application", "The board meets at the year's end. Withdraw now and the NLC and the students stand down.", true, null, () => decide(() => imfWithdraw()));
+                    return <>{row("imf_repay", "💵 Repay the Fund: " + naira(I.outstandingB), "Under the programme since " + ((setup?.startYear || 2027) + I.approved - 1) + ": tranche " + I.drawn + " of " + SYS.IMF_TRANCHES + " drawn, " + (I.fails ? I.fails + " review(s) failed" : "every review passed") + ". Repay it and the conditions are lifted.", SYS.imfCanRepay(I, s.cash || 0), SYS.imfCanRepay(I, s.cash || 0) ? null : "The bank needs " + naira(I.outstandingB) + "; it holds " + naira(s.cash || 0) + ".", imfRepay)}
+                      {row("imf_walk", "🚪 Walk away from the programme", "The conditions end, but the loan is called in at once and the rating agencies cut Nigeria.", true, null, imfWalk)}</>; })()}
+                  {NAT ? SYS.FED_CREDITORS.filter(C => C.id !== "imf").map(C => row(C.id, C.icon + " " + C.nm, C.note + " Odds now: about " + Math.round(C.odds(credCtx()) * 100) + "%.", !debtDone(C.id) && (s.debt || 0) >= 20, (s.debt || 0) < 20 ? "Only worth asking when the debt is ₦20B or more." : null, () => askCreditor(C))) : null}
                   {!NAT && row("relief", "🇳🇬 Ask Abuja to write off 80% of the debt", "A long shot: about " + Math.round(reliefOdds() * 100) + "% now. Better with good federal relations, clean books and revenue reforms. Success costs you federal goodwill and a debt of loyalty to the President.", !debtDone("relief") && (s.debt || 0) >= 6, (s.debt || 0) < 6 ? "Only worth asking when debt is ₦6B or more." : null, askRelief)}
                   {row("defer", "🏦 Push repayments to the next administration", "Moves 60% of the debt off your books for now. " + (termNow === 1 ? "If you are re-elected, it comes back at the start of your second term." : "Your successor inherits it, and so does your Wikipedia page."), !debtDone("defer") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to restructure." : null, deferDebt)}
                   {row("notes", "📜 Pay contractors in promissory notes at a discount", "Cuts about 12% of the debt. Contractors slow down on every site, and the party's contractor-financiers sulk (party −2).", !debtDone("notes") && (s.debt || 0) >= 2, (s.debt || 0) < 2 ? "Nothing much to discount." : null, discountDebt)}
@@ -14824,7 +15029,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "con" && <div className="sop-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 29 }}><Cd><h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>✅ CAN</h3>{CONST_CAN.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd><Cd><h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>❌ CANNOT</h3>{CONST_CANT.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd></div>}
 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
-        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
+        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} loans={loans} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && NAT && FedCouncilsPanel()}
         {nav === "coun" && !NAT && !needSetup && StateEconPanel()}

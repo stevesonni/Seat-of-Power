@@ -71,6 +71,7 @@ export const letterKind = (key) => {
   if (k.startsWith("sc#impeach_")) return ["house", 3];
   if (k.startsWith("sc#peace_")) return ["crisis", 3];
   if (k.startsWith("sc#scen_move")) return ["crisis", 3];
+  if (k.startsWith("sc#fin_")) return ["budget", 2];
   if (k.startsWith("sc#handover_")) return ["briefing", 3];
   if (k.startsWith("sc#dipl_")) return ["diplomacy", 2];
   if (k.startsWith("sc#econ_")) return ["econ", 2];

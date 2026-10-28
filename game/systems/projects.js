@@ -247,7 +247,8 @@ export const tickProject = (p, year, ctx = {}) => {
   // Within 2% of the end counts as done: the last snags are cleared at handover.
   if (builtM >= p.estimateM * .98 - 1) status = p.facility && !(p.equipped && p.staffed) ? "built" : "delivered";
   else if (p.approvedM - (p.spentM + pay) < 1 && builtM < p.estimateM - 1) { status = "stalled"; events.push("Year " + year + ": the approved money is spent and " + fmtM(p.estimateM - builtM) + " of work is not done. The contractor has left the site."); }
-  else if (value < 1) { status = "stalled"; events.push("Year " + year + ": no money released this year; work stopped."); }
+  // No money this year: a project with loan tranches still to come waits for them (idle); otherwise it stalls.
+  else if (value < 1) { if (!ctx.moreComing) status = "stalled"; events.push("Year " + year + ": no money released this year; " + (ctx.moreComing ? "the site is idle until the next tranche." : "work stopped.")); }
   // Money borrowed for this project is spent first; the rest comes from ctx.cashM (the state's bank).
   const fromLoan = Math.min(p.loanLeftM || 0, pay);
   const n = { ...p, loanLeftM: Math.max(0, (p.loanLeftM || 0) - fromLoan), spentM: p.spentM + pay, builtM, progress: Math.min(100, Math.round(builtM / p.estimateM * 100)), quality: Math.round(q * 100) / 100, status, ticked: year,

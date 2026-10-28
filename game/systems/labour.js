@@ -113,7 +113,7 @@ export const roundtable = (st, ctx) => {
       : { id: "force", l: nat ? "Send soldiers into the control rooms; arrest the leaders" : "Send the police in; arrest the leaders", note: "A huge escalation: every union may walk out in solidarity, a court may free them, and the world will condemn you.", cost: 0 },
   ];
   (ctx.divert || []).slice(0, 2).forEach(w => o.push({ id: "divert", w, l: "Cancel " + w.nm + " to pay them", note: "The strike ends. The contractor sues, investors there leave, and " + (w.place || "that region") + " turns against you.", cost: 0 }));
-  if (nat) o.push({ id: "print", l: "Order the Central Bank to print it (Ways and Means)", note: "The strike ends and the bank is untouched. Inflation follows in two years.", cost: 0 });
+  if (nat && !ctx.noPrint) o.push({ id: "print", l: "Order the Central Bank to print it (Ways and Means)", note: "The strike ends and the bank is untouched. Inflation follows in two years.", cost: 0 });
   return { demand: D, options: o };
 };
 
