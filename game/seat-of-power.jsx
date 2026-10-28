@@ -560,7 +560,7 @@ const SHOCK_EVENTS = [
       { l: "🕊️ Interfaith Healing", d: "Focus on unity. Interfaith prayers. Compensation for victims.", fx: { app: 6, hp: .01 }, sk: { religious: 12, media: 8, traditional: 6 }, log: "Governor leads interfaith response. Unity amid tragedy." },
       { l: "📢 Blame Federal Security", d: "'We warned Abuja. They did nothing. This blood is on their hands.'", fx: { app: 3 }, fgRel: -20, sk: { media: 10, youth: 5 }, log: "Governor blames FG for security failure. Tensions rise." },
     ]},
-  { id: "sh_bank_crisis", icon: "🏦💥", title: "BANKING CRISIS — STATE ACCOUNTS FROZEN", desc: "A major bank where your state holds ₦4B in accounts is under CBN intervention. Your accounts are frozen. Salary payments, contractor payments, project funding — all halted.", autoFx: { igr: -2 },
+  { id: "sh_bank_crisis", icon: "🏦💥", title: "BANKING CRISIS — STATE ACCOUNTS FROZEN", desc: "A major bank where your state holds ₦4B in accounts is under CBN intervention. Your accounts are frozen for weeks: payments run late and ₦2B of this year's revenue is stuck for good.", autoFx: { igr: -2 },
     opts: [
       { l: "🏦 Diversify Immediately", d: "Open accounts in 3 other banks. Never depend on one again.", fx: { app: 2, cor: -.01 }, sk: { business: 5 }, log: "State accounts diversified. Lesson learned." },
       { l: "📢 Demand CBN Release Funds", d: "Put public pressure on CBN. 'Workers must be paid!'", fx: { app: 4 }, fgRel: -10, sk: { media: 8, unions: 6 }, log: "Governor pressures CBN. Partial funds released after 2 weeks." },
@@ -574,9 +574,9 @@ const JUDICIARY_TRIGGERS = [
   { id: "jud_land", trigger: "investor_approved", title: "⚖️ Community Sues Over Land Allocation", desc: "Displaced residents have filed a suit at the State High Court challenging the land allocation to {company}. They argue the process violated the Land Use Act and proper compensation was not paid.", winChance: .55, statute: "Land Use Act, 1978 — S.28-29" },
   { id: "jud_budget", trigger: "forced_budget", title: "⚖️ Opposition Challenges Forced Budget", desc: "The opposition has filed suit arguing your budget was passed without proper House of Assembly approval, violating Section 121 of the 1999 Constitution.", winChance: .35, statute: "S.121 — Appropriation Bill" },
   { id: "jud_corrupt", trigger: "high_corruption", title: "⚖️ Anti-Corruption Group Files Suit", desc: "A civil society group has obtained a court order demanding an audit of your administration's procurement processes. State corruption index: {corruption}%.", winChance: .45, statute: "Public Procurement Act, 2007" },
-  { id: "jud_policy", trigger: "policy_enacted", title: "⚖️ Injunction Against Your Policy", desc: "A group of affected citizens has obtained an injunction from the High Court halting your {policy} policy, arguing it violates their constitutional rights.", winChance: .50, statute: "S.36 — Right to Fair Hearing" },
+  { id: "jud_policy", trigger: "policy_enacted", title: "⚖️ Injunction Against Your Policy", desc: "A group of affected citizens has asked the High Court to halt your {policy} programme, arguing it violates their constitutional rights. It runs until the court rules.", winChance: .50, statute: "S.36 — Right to Fair Hearing" },
   { id: "jud_security", trigger: "security_action", title: "⚖️ Human Rights Challenge", desc: "The Nigerian Bar Association has filed suit challenging your security operations, alleging extrajudicial detentions and excessive force.", winChance: .40, statute: "S.35 — Right to Personal Liberty" },
-  { id: "jud_mining", trigger: "mining_approved", title: "⚖️ Environmental Groups Sue Over Mining", desc: "Environmental organizations have obtained a court order challenging the mining license you approved. They cite potential mercury contamination and community displacement.", winChance: .50, statute: "Environmental Impact Assessment Act, 1992" },
+  { id: "jud_mining", trigger: "mining_approved", title: "⚖️ Environmental Groups Sue Over Mining", desc: "Environmental organizations have gone to court to cancel the mining license you approved. They cite potential mercury contamination and community displacement.", winChance: .50, statute: "Environmental Impact Assessment Act, 1992" },
 ];
 
 // Deputy Governor candidates (player chooses one during setup)
@@ -2220,6 +2220,12 @@ const CouncilTable = ({ T, onPick, onClose }) => {
             {o.note && <span style={{ color: "var(--muted)", fontSize: "var(--fs-label)" }}>{o.note}</span>}
             {(o.chips || []).length > 0 && <div className="meta"><LvChips chips={o.chips} /></div>}
           </button>)}</div>
+        </div> : T.result ? <div className="dq sop-slide-up" data-testid="council-result">
+          {T.result.img && <img src={T.result.img} alt="" style={{ width: "100%", maxHeight: "calc(180px*var(--k))", objectFit: /\/(scenes|backgrounds|decisions)\//.test(T.result.img) ? "cover" : "contain", borderRadius: 12 }} />}
+          <h2 className="h-title">{T.result.icon && !T.result.img ? T.result.icon + " " : ""}{T.result.title}</h2>
+          {T.result.text && <p className="sub">{T.result.text}</p>}
+          {(T.result.rows || []).length > 0 && <div className="meta"><LvChips chips={T.result.rows.slice(0, 8).map(r => ({ text: r.l + (r.v ? ": " + r.v : ""), color: r.good === true ? "#0b7a4b" : r.good === false ? "#b3261e" : "#8a6410" }))} /></div>}
+          <button className="btn btn-gold btn-block" style={{ maxWidth: "calc(420px*var(--k))", justifySelf: "end", marginTop: 10 }} onClick={onClose}>{T.doneLabel || "Close the session"}</button>
         </div> : <button className="btn btn-gold btn-block" style={{ maxWidth: "calc(420px*var(--k))", justifySelf: "end" }} onClick={onClose}>{T.doneLabel || "Close the session"}</button>}
       </div>
     </div>
@@ -5992,7 +5998,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ...(fx.sec ? [{ text: "Security " + (fx.sec > 0 ? "+" : "") + Math.round(fx.sec * 100), color: fx.sec > 0 ? CL.grn : CL.red }] : []),
     ...(fx.igr ? [{ text: "IGR +₦" + fx.igr + "B", color: CL.grn }] : []),
   ];
-  const stallWork = (sectors) => setNeeds(ns => ns.map(n => n.status === "started" && (!sectors || sectors.includes(needType(n)?.sector)) ? { ...n, status: "stalled", stall: (n.stall || 0) + 1 } : n));
+  // Work that stops this year stops everywhere: the needs being answered and the building sites (see the project tick).
+  const workHalt = React.useRef(null);
+  const stallWork = (sectors) => { workHalt.current = { t: turn, sectors: sectors || null }; stallNeeds(sectors); };
+  const stallNeeds = (sectors) => setNeeds(ns => ns.map(n => n.status === "started" && (!sectors || sectors.includes(needType(n)?.sector)) ? { ...n, status: "stalled", stall: (n.stall || 0) + 1 } : n));
   const scWiki = (section, txt) => { try { setWikiEvents(w => [{ turn, section, txt }, ...w]); } catch (e) {} };
   const makePromises = (term) => {
     const r = rng(state.length * 211 + term * 37 + turn);
@@ -6704,9 +6713,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const scenMoveCard = (m) => ({ key: "scen_move_" + m.id + "_" + turn, kicker: (scenDef ? scenDef.nm : "The scenario") + " · " + m.by, color: CL.red, art: [m.bg || "governor-office", m.who, null, m.scene || null],
     from: m.by, title: m.title, brief: m.says, stakes: "Your goal: " + scenR.goal.label + ".",
     options: scenOpts(m.options, m.who).map((x, i) => ({ ...x, run: () => { track("scen_move", scenId + ":" + m.id + ":" + m.options[i].id); return x.run(); } })) });
+  // Free of the godfather (the scenario's goal): he stops making demands, his power is gone, and what you "owed" him is settled.
+  const gfFree = () => { setGodfatherPower(0); setStc(p => ({ ...p, gf: p.gf === "dead" ? p.gf : "freed" }));
+    try { const M = window.SOP_MEMORY; (M && M.owed ? M.owed("godfather") : []).forEach(d => M.settle(d.id, "Free of him")); } catch (e) {} };
   // The godfather's pay-off, and any other scenario action, from the Desk strip.
   const scenAction = (a) => { const cost = SYS.scenarioCostB(a, scenRevB()); if (cost && !spendB(cost, a.l)) return;
-    scenApply({ ...a, cost: 0, costPct: 0 }); addL("🎩 " + a.say, "political"); scWiki("Governorship", a.l + ".");
+    scenApply({ ...a, cost: 0, costPct: 0 }); if (a.set && a.set.freed) gfFree(); addL("🎩 " + a.say, "political"); scWiki("Governorship", a.l + ".");
     try { window.SOP_outcome({ icon: scenDef ? scenDef.icon : "📜", title: a.l, text: a.say, tone: "good", rows: cost ? [{ l: "Cost", v: naira(cost), good: false }] : [] }); } catch (e) {} };
   // Playing an uno card spends it.
   const unoSpend = (sp = {}) => {
@@ -6915,17 +6927,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Salaries against the monthly FAAC allocation.
     if ((bud.salaries || 0) / bs * 100 < 12) { next.arrears += 1; notes.push(["💸 The budget's salary line is too thin: another month of wages unpaid.", "crisis"]); }
     const A = next.arrears;
+    // One NLC strike, not two: unpaid salaries start the same strike the labour engine runs
+    // (the Desk card, the roundtable, the yearly toll), and it ends the same way.
+    const nlc0 = next.labour && next.labour.strikes && next.labour.strikes.nlc, nlcOn = !!(nlc0 && nlc0.on);
     if (A >= 5) {
-      dApp -= 5; dStat.hp = -.02; dStat.lit = -.02;
-      notes.push(["🪧 GENERAL STRIKE: the NLC has shut schools, hospitals and ministries over " + A + " months of unpaid salaries.", "crisis"]);
-      if (!next.strike) scWiki("Controversies", "Workers went on a general strike after being owed " + A + " months' salary.");
-      next.strike = true; stallWork(["health", "education"]);
+      if (!nlcOn) {
+        next.labour = { ...(next.labour || {}), strikes: { ...((next.labour || {}).strikes || {}), nlc: { ...SYS.startStrike("nlc", "arrears", turn), fresh: true } } };
+        notes.push(["🪧 GENERAL STRIKE: the NLC has walked out over " + A + " months of unpaid salaries.", "crisis"]);
+        scWiki("Controversies", "Workers went on a general strike after being owed " + A + " months' salary.");
+      } else notes.push(["🪧 Workers are owed " + A + " months of salary, and the NLC strike goes on.", "crisis"]);
+      next.strike = true;
     } else if (A >= 3) {
       dApp -= 3; notes.push(["📢 NLC ultimatum: pay " + A + " months of arrears within 21 days or the state shuts down.", "crisis"]);
       if (!next.ultimatum) scWiki("Controversies", "The Nigeria Labour Congress issued an ultimatum over " + A + " months of unpaid salaries.");
-      next.ultimatum = true; next.strike = false;
-    } else if (A >= 1) { dApp -= 1; notes.push(["😟 Civil servants are owed " + A + " month" + (A === 1 ? "" : "s") + " of salary.", "political"]); next.strike = false; }
-    else next.strike = false;
+      next.ultimatum = true; next.strike = nlcOn && nlc0.cause === "arrears";
+    } else if (A >= 1) { dApp -= 1; notes.push(["😟 Civil servants are owed " + A + " month" + (A === 1 ? "" : "s") + " of salary.", "political"]); next.strike = nlcOn && nlc0.cause === "arrears"; }
+    else next.strike = nlcOn && nlc0.cause === "arrears";
     // The shortfall follows the oil price swing logged at the end of the year,
     // so the FAAC card never contradicts an "oil rally" headline.
     const sw = faacSwingRef.current;
@@ -6945,7 +6962,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       if (A > 0) {
         const all = Math.round(A * mw * 10) / 10;
-        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: ((s.cash || 0) >= Math.round(A * mw * 10) / 10 ? "Paid from the bank. " : "Partly borrowed. ") + "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); setStc(p => ({ ...p, arrears: 0, ultimatum: false, strike: false })); addL("✅ All salary arrears cleared (₦" + all + "B). The NLC calls off its action.", "success"); } });
+        opts.push({ label: "Clear all " + A + " months of arrears (₦" + all + "B)", note: ((s.cash || 0) >= Math.round(A * mw * 10) / 10 ? "Paid from the bank. " : "Partly borrowed. ") + "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); const sal = !!(nlc0 && nlc0.on && nlc0.cause === "arrears");
+          setStc(p => { const n = p.labour && p.labour.strikes && p.labour.strikes.nlc, ends = n && n.on && n.cause === "arrears"; return { ...p, arrears: 0, ultimatum: false, strike: false, labour: ends ? { ...p.labour, strikes: { ...p.labour.strikes, nlc: { ...n, on: false, over: "paid" } } } : p.labour }; });
+          addL("✅ All salary arrears cleared (₦" + all + "B). " + (sal ? "The NLC calls off its strike." : "The unions withdraw their ultimatum."), "success"); } });
         if (f >= .95) opts.push({ label: "Pay one month of arrears", note: "A gesture. The unions want it all.", chips: fxChips({ debt: mw }), run: () => { scFx({ debt: mw }); setStc(p => ({ ...p, arrears: Math.max(0, p.arrears - 1) })); addL("🧾 Paid one month of salary arrears.", "policy"); } });
         if (f >= .95) opts.push({ label: "Keep owing them", note: "The arrears stay. So does the anger.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); addL("🧾 Salary arrears left unpaid another year.", "political"); } });
       }
@@ -7002,7 +7021,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const billCovered = Object.entries(BILL_CRISIS).filter(([b]) => houseBillsSeen.includes(b)).map(([, c]) => c);
         const recent = Object.keys(CRISIS_TOPIC).map(k => CRISIS_TOPIC[k]).filter(tp => topicRecent(tp));
         const safe = ((next.peace || {}).state || {}).closed; // a state made safe by its Peace Plan has no new security crises
-        const pool = stateCrisesFor(state).filter(c => SYS.STATE_STORIES[c.id] && !ST[c.id] && !(safe && SYS.STATE_PEACE.ends.includes(c.id)) && !next.crisesSeen.includes(c.id) && !billCovered.includes(c.id) && !needTopics.includes(CRISIS_TOPIC[c.id]) && !recent.includes(CRISIS_TOPIC[c.id]));
+        // The scenario's own crisis is told by the scenario: never a second, separate story of it.
+        const scenOwn = scenId && !(next.scen && next.scen.broken) ? ({ school_abduction: ["school_abduction"], sit_at_home: ["sit_at_home"], bandit_corridor: ["bandits_tax"], flood: ["flood"] }[scenId] || []) : [];
+        const pool = stateCrisesFor(state).filter(c => SYS.STATE_STORIES[c.id] && !ST[c.id] && !scenOwn.includes(c.id) && !(safe && SYS.STATE_PEACE.ends.includes(c.id)) && !next.crisesSeen.includes(c.id) && !billCovered.includes(c.id) && !needTopics.includes(CRISIS_TOPIC[c.id]) && !recent.includes(CRISIS_TOPIC[c.id]));
         if (pool.length) {
           const C = pool[Math.floor(r() * pool.length)], d = SYS.STATE_STORIES[C.id];
           const zi = Math.floor(r() * 3), lgas = lgaCluster(getLGAs(state), zi), lga = lgas.length ? lgas[Math.floor(r() * lgas.length)] : stName;
@@ -7149,7 +7170,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     // The godfather is a person: he rises, falls out with you, defects, and dies.
     const gfName = cast?.godfather?.name || "Your godfather";
-    const gfGone = next.gf === "dead" || next.gf === "opposition";
+    const gfGone = next.gf === "dead" || next.gf === "opposition" || next.gf === "freed";
     const setGf = (st0, extra = {}) => setStc(p => ({ ...p, gf: st0, ...extra }));
     const houseAdd = (k) => setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + k * MEM)) } } : p);
     if (!gfGone && turn >= 3 && !asked.gf_rise && godfatherRel >= 60 && godfatherPower >= 45) {
@@ -7434,19 +7455,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               { label: "Abandon the project", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); setProjects(prev => prev.map(x => x.id === P.id ? SYS.abandon(x, turn) : x)); addL("🚧 " + P.title + " abandoned after the contractor fled.", "crisis"); return { icon: "🚧", title: "Abandoned", text: "Another abandoned project for the papers.", tone: "bad" }; } }] });
         } else if (b.kind === "eo_court") {
           const inv = "Van der Berg Logistics";
+          // Struck down for good: the order's own savings stop, and it no longer counts as in force.
+          const strikeOrder = () => { const O = ORDERS_().find(o => b.id === "eo_court_" + o.id); if (!O) return;
+            if (O.rev) setS(p => ({ ...p, revIGR: Math.round(((p.revIGR || 0) - O.rev) * 100) / 100 }));
+            setStc(p => ({ ...p, struckOrders: { ...(p.struckOrders || {}), [O.id]: turn } })); };
           cards.push({ key: "chain_court_" + b.id, beat: b, kicker: "The courts", color: CL.pur, art: ["courtroom", "judge", null, null], title: "The court has struck down your Ease of Doing Business order",
             brief: "A suit by rival interests succeeded: the court says the order oversteps the law. An email from " + inv + ": “The legal uncertainty is too high. We are considering pulling our investment out.”",
             options: [
               { label: "Appeal to the higher court", note: "The court will weigh how clean your government is.", chips: [{ text: "Corruption " + Math.round((s.cor || 0) * 100) + "%", color: (s.cor || 0) < .5 ? CL.grn : CL.red }], run: () => {
                 const ok = SYS.appealGranted(s.cor);
-                if (ok) scFx({ app: 2 }); else { scFx({ app: -2 }); setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) - (NAT ? 4 : .3)) * 100) / 100), invJobs: Math.max(0, (p.invJobs || 0) - (NAT ? 12000 : 1500)) })); }
+                if (ok) scFx({ app: 2 }); else { scFx({ app: -2 }); strikeOrder(); setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) - (NAT ? 4 : .3)) * 100) / 100), invJobs: Math.max(0, (p.invJobs || 0) - (NAT ? 12000 : 1500)) })); }
                 addL("⚖️ The appeal on the Ease of Doing Business order was " + (ok ? "granted: the order stands, and the investors stay." : "dismissed: investors are pulling out."), ok ? "success" : "crisis");
                 scWiki(ok ? "Governorship" : "Controversies", "The Ease of Doing Business order was struck down, then " + (ok ? "restored on appeal." : "lost on appeal; investors left."));
                 setTimeout(() => { try { postMail([letterOf("chain_inv_mail_" + b.id, { key: "chain_inv_mail_" + b.id, live: true, kind: "investment", stakes: 1, lines: [{ ok, line: ok ? "The appeal court has restored the order. We are staying, and expanding." : "The appeal failed. We cannot plan under this uncertainty; we are pulling out." }], tip: ["Pieter van der Berg, " + inv + " 🇳🇱", "./art/characters/investor-foreign.webp", ok ? "We are staying" : "We are leaving", "After the appeal ruling"] })]); } catch (e) {} paper(ok ? "APPEAL COURT RESTORES BUSINESS ORDER" : "INVESTORS PULL OUT AFTER APPEAL FAILS", ok ? "Investors say they are staying" : "Jobs and revenue go with them", ok, "./art/backgrounds/courtroom.webp"); }, 300);
                 return { icon: "⚖️", img: "./art/characters/judge.webp", title: ok ? "Appeal granted" : "Appeal dismissed", text: ok ? "The higher court restored the order: a clean government's word holds." : "The court did not trust a government with corruption at " + Math.round((s.cor || 0) * 100) + "%. The investors are leaving.", tone: ok ? "good" : "bad" };
               } },
               { label: "Accept the ruling", note: "The investors leave.", chips: fxChips({ app: -1 }), run: () => {
-                scFx({ app: -1 }); setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) - (NAT ? 4 : .3)) * 100) / 100), invJobs: Math.max(0, (p.invJobs || 0) - (NAT ? 12000 : 1500)) }));
+                scFx({ app: -1 }); strikeOrder(); setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) - (NAT ? 4 : .3)) * 100) / 100), invJobs: Math.max(0, (p.invJobs || 0) - (NAT ? 12000 : 1500)) }));
                 addL("⚖️ You accepted the ruling against the Ease of Doing Business order. Investors are pulling out.", "political");
                 return { icon: "🧳", title: "The investors are leaving", text: "Without the order, permits are back to months of waiting. " + inv + " is packing up.", tone: "bad" };
               } }] });
@@ -7459,13 +7484,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const L = { ...(next.labour || {}), strikes: { ...((next.labour || {}).strikes || {}) } }, started = [], rev = Math.max(NAT ? 200 : 5, (s.igr || 0) + (s.faac || 0));
       if (window.SOP_TEST && window.SOP_TEST.labour && !L.test) { L.test = true; L.ult = SYS.ultimatum(NAT ? "vat" : "levy", NAT, turn - 1); if (window.SOP_TEST.labour === "asuu") { L.strikes.asuu = SYS.startStrike("asuu", null, turn); L.had = { asuu: true }; } }
       if (L.ult && L.ult.turn < turn) { L.strikes.nlc = SYS.startStrike("nlc", L.ult.cause, turn); L.ult = null; started.push("nlc"); }
+      if (L.strikes.nlc && L.strikes.nlc.fresh) { const { fresh, ...st } = L.strikes.nlc; L.strikes.nlc = st; started.push("nlc"); }
       if (!L.strikes.asuu && PACE !== "relaxed" && !(window.SOP_TEST && window.SOP_TEST.noStrikes) && SYS.asuuStrikes({ turn, edu: (bud && bud.education) || 15, had: !!(L.had && L.had.asuu) }, rE)) { L.strikes.asuu = SYS.startStrike("asuu", null, turn); L.had = { ...(L.had || {}), asuu: true }; started.push("asuu"); }
       const lab = [];
       Object.keys(L.strikes).forEach(id => {
         let st = L.strikes[id]; const U = SYS.UNIONS[id];
         if (st.mou && st.mou.due <= turn) {
           const R = SYS.mouDue(st, { cash: s.cash });
-          if (R.paid && R.spend) { setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) - R.spend) * 100) / 100) })); lab.push([U.short + ": the MoU's last instalment of " + naira(R.spend) + " is paid. The strike is over.", "success"]); setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/" + U.img(NAT) + "-pleased.webp", bg: "./art/" + U.table + ".webp", name: U.leader(NAT), text: "The last instalment is in our account. For once, a government has kept its word. The strike is over.", ok: "Continue" } }); } catch (e) {} }, 900); }
+          if (R.paid && R.spend) { setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) - R.spend) * 100) / 100) })); if (st.cause === "arrears") { next.arrears = 0; next.ultimatum = false; next.strike = false; } lab.push([U.short + ": the MoU's last instalment of " + naira(R.spend) + " is paid. The strike is over.", "success"]); setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/" + U.img(NAT) + "-pleased.webp", bg: "./art/" + U.table + ".webp", name: U.leader(NAT), text: "The last instalment is in our account. For once, a government has kept its word. The strike is over.", ok: "Continue" } }); } catch (e) {} }, 900); }
           else if (!R.paid) { lab.push([U.short + " is back on strike: the MoU instalment was not paid.", "crisis"]); setTimeout(() => paper(U.short + " RESUMES STRIKE AS GOVERNMENT DEFAULTS ON MOU", "“We warned them. The paper they signed is worthless”", false, "./art/" + U.bg + ".webp"), 900); started.push(id); }
           st = R.st;
         }
@@ -7688,7 +7714,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           c = scenCtx(next, s, turn);
         }
       }
+      if (scenId === "godfather_candidate" && next.gf === "dead" && !next.scen.broken) { next.scen = { ...next.scen, prog: 100 }; c = scenCtx(next, s, turn); }
       const Y = SYS.scenarioYear(scenR, c, next.scen);
+      if (Y.fresh && scenId === "godfather_candidate") { gfFree(); next.gf = next.gf === "dead" ? next.gf : "freed"; }
       if (Y.fresh) { next.scen = { ...next.scen, broken: turn };
         notes.push(["🔓 The logjam is broken: " + scenR.goal.label + ". " + (scenR.threat ? "The threat is off the table." : ""), "success"]);
         scWiki("Governorship", "Broke the logjam of " + (scenDef ? scenDef.nm : "the scenario") + ": " + scenR.goal.label + " in " + absYear + ".");
@@ -8213,8 +8241,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const m = minById(p.ministryId);
       // The bank pays this year's share; if it runs short, lenders may lend the rest; past that, work slows or stops.
       const canM = bankM + SYS.toM(SYS.borrowRoomB({ ...moneyRef.current, debt: (moneyRef.current.debt || 0) + SYS.toB(owedM) }, lvl));
-      const SB = SYS.strikeBlock(SYS.strikeImpact(stc.labour, NAT), { type: p.type, sector: p.sector });
-      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost: (boost || 0) + (p.fast ? .5 : 0), ...(SB ? { halt: SB.status === "stop" ? 0 : .5, haltWhy: SB.who + (SB.status === "stop" ? " are on strike" : " are on a go-slow") } : {}) });
+      const WH = workHalt.current, haltNow = WH && WH.t === year && (!WH.sectors || WH.sectors.includes(p.sector));
+      const SB = haltNow ? { status: "stop", why: "work on every site was stopped this year" } : SYS.strikeBlock(SYS.strikeImpact(stc.labour, NAT), { type: p.type, sector: p.sector });
+      const r = SYS.tickProject(p, year, { cashM: canM, cor: s.cor || 0, oversight: m ? ((m.perf || 50) - 50) / 50 : 0, boost: (boost || 0) + (p.fast ? .5 : 0), ...(SB ? { halt: SB.status === "stop" ? 0 : .5, haltWhy: SB.why || SB.who + (SB.status === "stop" ? " are on strike" : " are on a go-slow") } : {}) });
       const used = r.cashUsedM || 0, fromBank = Math.min(bankM, used);
       bankM -= fromBank; paidM += fromBank; owedM += used - fromBank;
       next[p.id] = r.p;
@@ -8853,7 +8882,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           if (R.paper) setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + tw.bg + ".webp"), 300);
           track("strike_twist_" + tw.id, o.id + (R.won == null ? "" : R.won ? ":won" : ":lost"));
           const speaker = R.end ? U.leader(NAT) : tw.who[1], face = R.end ? "./art/characters/" + U.img(NAT) + "-pleased.webp" : /^(judge|governors-forum-chair|traditional-ruler-emir|market-women-group-angry)$/.test(tw.who[0]) ? art("") : art(R.mood === "pleased" ? "pleased" : R.mood === "angry" ? "angry" : "");
-          return { icon: R.end ? "🤝" : "✊", img: face, title: o.l, text: (speaker ? speaker + ": " : "") + "“" + R.say + "”", tone: R.end || (R.paper && R.paper[2]) ? "good" : (R.fx.app || 0) < 0 || R.won === false ? "bad" : "neutral",
+          return { icon: R.end ? "🤝" : "✊", img: face, title: o.l, text: (speaker ? speaker + ": " : "") + "“" + R.say + "”" + (R.end ? "" : " The strike goes on."), tone: R.end ? "good" : (R.fx.app || 0) < 0 || R.won === false ? "bad" : "neutral",
             rows: [{ l: U.short + " strike", v: R.end ? "Over" : "Goes on", good: R.end }].concat(R.st.cut ? [{ l: "Their demand", v: "−" + Math.round(R.st.cut * 100) + "%", good: true }] : []) };
         } }; }) }; };
   const tableAct = (id, opt) => {
@@ -8868,13 +8897,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (R.utas && (pol || []).some(p => p.id === "f_ippis")) addL("📉 Lecturers move to UTAS: your biometric payroll no longer checks them.", "political");
     if (R.cancel) {
       const w = R.cancel;
-      if (w.kind === "pol") setPol(pp => pp.filter(x => x.id !== w.id)); else setProjects(prev => (prev || []).map(x => x.id === w.id ? { ...x, status: "abandoned" } : x));
+      if (w.kind === "pol") dropPol(w.id); else setProjects(prev => (prev || []).map(x => x.id === w.id ? { ...x, status: "abandoned" } : x));
       scFx({ app: -1 }, null, 0); setS(p => ({ ...p, invJobs: Math.max(0, Math.round((p.invJobs || 0) * .95)) }));
       addL("🚧 " + String(w.nm).replace(/^⭐\s*/, "") + " cancelled to pay the " + U.short + ". The contractor is suing; investors in " + w.place + " are leaving.", "crisis");
       scWiki("Controversies", "Cancelled " + String(w.nm).replace(/^⭐\s*/, "") + " to fund a settlement with the " + U.short + "; the contractor sued.");
     }
+    // A settlement over unpaid salaries pays them: in full, or 30% now under an MoU.
+    const salPaid = st.cause === "arrears" && !(opt.id === "force") && (R.end && (R.spend || 0) > 0 ? 1 : R.suspend ? .3 : 0);
     setStc(p => {
       const L = { ...(p.labour || {}), strikes: { ...((p.labour || {}).strikes || {}) } };
+      if (salPaid) { p = { ...p, arrears: salPaid === 1 ? 0 : Math.floor((p.arrears || 0) * .7), ultimatum: salPaid === 1 ? false : p.ultimatum, strike: !(salPaid === 1) && p.strike }; }
       if (id === "ult") { if (R.end || R.suspend) { L.ult = null; L.ultSessions = 0; if (R.suspend) L.strikes.nlc = R.st; } else L.ultSessions = (L.ultSessions || 0) + 1; }
       else L.strikes[id] = R.st;
       return { ...p, labour: L, chains: R.later ? [...(p.chains || []), ...R.later] : p.chains };
@@ -8913,7 +8945,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <div style={{ fontSize: tall ? TS(16) : TS(23), opacity: .9, marginBottom: it.quiet ? 0 : 10, lineHeight: 1.4 }}>{it.line}</div>
       {!it.quiet && <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         {roundsLeft(it.id) > 0 ? <Bt onClick={() => setTable({ id: it.id })}><Ico n="icon-roundtable" s={tall ? 22 : 30} style={{ marginRight: 6 }} />Convene the roundtable ({roundsLeft(it.id)} {roundsLeft(it.id) === 1 ? "session" : "sessions"} left this year)</Bt> : <span style={{ fontSize: tall ? TS(16) : TS(22), fontWeight: 700 }}>No more talks this year. The strike goes on.</span>}
-        {it.id === "ult" && <Bt v="ghost" onClick={() => { reverseCause(L.ult.cause); setStc(p => ({ ...p, labour: { ...(p.labour || {}), ult: null } })); scFx({ app: 2 }); try { window.SOP_outcome({ present: { img: "./art/characters/" + SYS.UNIONS.nlc.img(NAT) + "-pleased.webp", bg: "./art/scenes/nlc-march.webp", name: SYS.UNIONS.nlc.leader(NAT), text: "The government has listened. The ultimatum is withdrawn.", ok: "Continue" } }); } catch (e) {} setTimeout(() => paper("GOVERNMENT BACKS DOWN; NLC WITHDRAWS ULTIMATUM", "The tax rise is reversed", true, "./art/scenes/labour-strike.webp"), 300); }} style={{ color: "#fff", borderColor: "#fff" }}>↩️ Reverse it</Bt>}
+        {it.id === "ult" && ["vat", "levy", "property"].includes(L.ult.cause) && <Bt v="ghost" onClick={() => { reverseCause(L.ult.cause); setStc(p => ({ ...p, labour: { ...(p.labour || {}), ult: null } })); scFx({ app: 2 }); try { window.SOP_outcome({ present: { img: "./art/characters/" + SYS.UNIONS.nlc.img(NAT) + "-pleased.webp", bg: "./art/scenes/nlc-march.webp", name: SYS.UNIONS.nlc.leader(NAT), text: "The government has listened. The ultimatum is withdrawn.", ok: "Continue" } }); } catch (e) {} setTimeout(() => paper("GOVERNMENT BACKS DOWN; NLC WITHDRAWS ULTIMATUM", (SYS.CAUSES[L.ult.cause] || "The tax rise").replace(/^./, c => c.toUpperCase()) + " is reversed", true, "./art/scenes/labour-strike.webp"), 300); }} style={{ color: "#fff", borderColor: "#fff" }}>↩️ Reverse it</Bt>}
       </div>}
     </div>)}</div>;
   };
@@ -9169,6 +9201,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return false;
   };
 
+  /* Carrying out a ruling: what was challenged actually stops. A programme is struck
+     down; an investor's land deal or mining licence is cancelled (its taxes and jobs go
+     with it); a forced budget freezes new work until the House passes one. */
+  // A programme stopped before it finished (struck down, cancelled): the need it was answering is open again, not "met".
+  const dropPol = (id) => { setPol(pp => pp.filter(x => x.id !== id)); setNeeds(ns => ns.map(n => n.link === id && n.status !== "met" ? { ...n, status: "open", link: null } : n)); };
+  const courtReverse = (C) => {
+    const T = C && C.target; let refund = 0, refundDesc = "";
+    if (T && T.kind === "pol") { const P = (pol || []).find(x => x.id === T.id);
+      if (P) { refund = Math.round((P.c || 0) * .6 * 10) / 10; dropPol(P.id); }
+      refundDesc = T.nm + " is struck down and stops today." + (refund ? " ₦" + refund.toFixed(1) + "B of its money is recovered; the rest is gone." : ""); }
+    else if (T && T.kind === "inv") { const I = INVESTORS.find(x => x.id === T.id);
+      if (I && investorsApproved.includes(I.id)) {
+        setInvestorsApproved(p => p.filter(x => x !== I.id));
+        setS(p => ({ ...p, igr: Math.max(0, Math.round(((p.igr || 0) - I.igrBoost) * 100) / 100), invIGR: Math.max(0, (p.invIGR || 0) - I.igrBoost), invJobs: Math.max(0, (p.invJobs || 0) - I.jobs), totalJobs: Math.max(0, (p.totalJobs || 0) - I.jobs) }));
+        refundDesc = (C.id === "jud_mining" ? "The mining licence is revoked" : "The land allocation is cancelled") + ": " + I.nm + " closes, with its " + I.jobs.toLocaleString() + " jobs and " + naira(I.igrBoost) + " a year in taxes.";
+        scWiki("Controversies", "The courts cancelled " + I.nm + "; the governor complied."); } }
+    else if (T && T.kind === "budget") { stallWork(null); refundDesc = "The forced budget is void: new work is frozen until the House passes next year's budget."; }
+    return { refund, refundDesc };
+  };
   const resolveJudiciary = (mode) => decide(() => {
     let out = null;
     // mode: true = comply, false = defy, "fasttrack" = pay lawyers, "appeal" = delay
@@ -9185,7 +9236,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     };
     if (mode === true) {
       applyPenalty(1);
-      if (judEvent.target) setPol(pp => pp.filter(p => p.nm !== judEvent.target));
+      if (judEvent.target) { const P = (pol || []).find(p => p.nm === judEvent.target); if (P) dropPol(P.id); }
       setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 5) }));
       addL("⚖️ COURT RULING: Complied swiftly with " + judEvent.nm + ". Media and civil society applaud rule of law.", "judicial");
       out = { icon: "⚖️", title: "You obeyed the court", text: judEvent.nm + ": ruling carried out" + (judEvent.target ? "; " + judEvent.target + " is struck down." : ".") + " The press and civil society applaud.", tone: "neutral" };
@@ -9515,7 +9566,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       // Regional security shocks tied to zone
       const _rtp = { NE: "displaced", NW: "kidnap", NC: "farm", SE: "sitathome", SS: "oil" }[_zoneSec] || "cult";
-      if (!topicRecent(_rtp) && Math.random() < _D.shockP * .4) {
+      // Not once the state is safe for good (the Peace Plan closed its security crises).
+      if (!topicRecent(_rtp) && !(((stc.peace || {}).state || {}).closed) && Math.random() < _D.shockP * .4) {
         passiveTopics.current[_rtp] = turn;
         let evt;
         if (_zoneSec === "NE") evt = "☠️ Boko Haram/ISWAP raid on border LGA. IDPs flooding state capital.";
@@ -9535,18 +9587,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         _shocks.push({ t: "✊ NLC declares 3-day warning strike over unpaid salaries & subsidy. Workers down tools." + (salShare != null && salShare < 18 ? " The union says salaries got only " + salShare + "% of your last budget." : " The union cites food prices; salaries got " + salShare + "% of your last budget."), k: "crisis" });
       }
       // ASUU strike (state university)
-      if (Math.random() < _D.shockP * .2 && n.lit < .65) {
+      if (false) { // ASUU strikes are real strikes now (SYS.labour): never a line in the log with nothing on the Desk
         n.lit = cl(n.lit - .02); n.app = cl100(n.app - 2);
         _shocks.push({ t: "🎓 State University ASUU branch joins national strike. Lectures suspended indefinitely.", k: "crisis" });
       }
       // Flooding: the rainy season comes every year
-      if (!topicRecent("flood") && Math.random() < _D.shockP * .45) {
+      if (!topicRecent("flood") && scenId !== "flood" && Math.random() < _D.shockP * .45) { // in the Flood Year the second flood is the scenario's own threat; after it, the embankments hold
         passiveTopics.current.flood = turn;
         n.infra = cl(n.infra - .04); n.app = cl100(n.app - 3); n.agr = cl(n.agr - .03);
         _shocks.push({ t: "🌊 NIMET-warned floods overwhelm drainage. Farmlands submerged. NEMA mobilising.", k: "crisis" });
       }
       // Cholera / Lassa / meningitis outbreak when health is weak
-      if (n.hp < .45 && !activeNeeds.some(x => x.k === "water" || x.k === "clinic") && Math.random() < _D.shockP * .35) {
+      if (n.hp < .45 && scenId !== "cholera" && !activeNeeds.some(x => x.k === "water" || x.k === "clinic") && Math.random() < _D.shockP * .35) { // the Cholera Year tells its own outbreak
         n.hp = cl(n.hp - .04); n.app = cl100(n.app - 3);
         _shocks.push({ t: "🦠 NCDC confirms cholera outbreak. Cases climbing. WHO sends technical team.", k: "crisis" });
       }
@@ -10295,7 +10347,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k.startsWith("sc#pres_bk"); // the war's two decisions and one trip never crowd out the rest of the year
+    const WAR = (k) => k.startsWith("sc#pres_bk") || k === "flagship"; // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
     const keep = ranked.filter(x => !TRIP(x.k) && !WAR(x.k)).filter((x, n) => n < cap || x.p >= 100).concat(ranked.filter(x => WAR(x.k)), ranked.filter(x => TRIP(x.k)));
     const dropped = ranked.filter(x => !keep.includes(x));
     q.length = 0; keep.forEach(x => q.push(x.k));
@@ -10344,7 +10396,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     // LAYER 2: Godfather (once a year) — NOT for Primary
     const gfNow = scLast.current?.gf, gfStory = (scPending.current || []).some(c => c.key.startsWith("gf_"));
-    if (lv !== "easy" && godfatherPower > 20 && turn > 1 && gfNow !== "dead" && gfNow !== "opposition" && !gfStory) {
+    if (lv !== "easy" && godfatherPower > 20 && turn > 1 && gfNow !== "dead" && gfNow !== "opposition" && gfNow !== "freed" && !gfStory) {
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
       const dem = gfFrame(pickGfDemand(unseen, rE));
       if (dem) { setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); q.push("godfather"); }
@@ -10407,8 +10459,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       else if (investorsApproved.includes("mining_co") && !courtsSeen.includes("jud_mining")) judTrigger = JUDICIARY_TRIGGERS.find(j => j.id === "jud_mining");
       if (judTrigger) {
         const jd = { ...judTrigger };
-        jd.desc = jd.desc.replace("{company}", investorsApproved.length > 0 ? (INVESTORS.find(inv => inv.id === investorsApproved[investorsApproved.length - 1])?.co || "the investor") : "the company").replace("{corruption}", Math.round(s.cor * 100)).replace("{policy}", pol.length > 0 ? pol[0].nm : "your");
-        jd.cause = jd.id === "jud_land" ? "You approved " + (INVESTORS.find(inv => inv.id === investorsApproved[investorsApproved.length - 1])?.nm || "an investor's land deal") + "." : jd.id === "jud_budget" ? "You forced the budget through without the House." : jd.id === "jud_corrupt" ? "Corruption in your government reached " + Math.round(s.cor * 100) + "%." : jd.id === "jud_policy" ? "You enacted " + pol.slice(-1).map(x => x.nm.replace(/^⭐\s*/, ""))[0] + "." : jd.id === "jud_mining" ? "You approved the gold mining operation." : "";
+        // One target for the whole case: the description, the cause and the ruling all name the same thing.
+        const tPol = pol.length > 0 ? pol[pol.length - 1] : null, tInvId = jd.id === "jud_mining" ? "mining_co" : investorsApproved[investorsApproved.length - 1], tInv = INVESTORS.find(inv => inv.id === tInvId);
+        jd.target = jd.id === "jud_policy" && tPol ? { kind: "pol", id: tPol.id, nm: tPol.nm.replace(/^⭐\s*/, "") } : (jd.id === "jud_land" || jd.id === "jud_mining") && tInv ? { kind: "inv", id: tInv.id, nm: tInv.nm } : jd.id === "jud_budget" ? { kind: "budget" } : null;
+        jd.desc = jd.desc.replace("{company}", tInv ? tInv.co : "the company").replace("{corruption}", Math.round(s.cor * 100)).replace("{policy}", tPol ? tPol.nm.replace(/^⭐\s*/, "") : "your");
+        jd.cause = jd.id === "jud_land" ? "You approved " + (tInv ? tInv.nm : "an investor's land deal") + "." : jd.id === "jud_budget" ? "You forced the budget through without the House." : jd.id === "jud_corrupt" ? "Corruption in your government reached " + Math.round(s.cor * 100) + "%." : jd.id === "jud_policy" ? "You enacted " + (tPol ? tPol.nm.replace(/^⭐\s*/, "") : "the programme") + "." : jd.id === "jud_mining" ? "You approved the gold mining operation." : "";
         setCurCourt(jd);
         setCourtStage(0);
         setCourtsSeen(p => [...p, jd.id]);
@@ -12189,20 +12244,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 {/* Comply immediately — get partial refund for reversed action */}
                 <Cd onClick={() => {
                   // Calculate refund — 60% of related policy/investment cost recovered (40% lost to legal fees + sunk costs)
-                  let refund = 0;
-                  let refundDesc = "";
-                  if (curCourt.trigger === "investor_approved" && investorsApproved.length > 0) {
-                    const lastInv = INVESTORS.find(inv => inv.id === investorsApproved[investorsApproved.length - 1]);
-                    if (lastInv) { refund = lastInv.igrBoost * 0.4; refundDesc = "Land returned. Partial IGR from " + lastInv.co + " recovered minus legal costs."; }
-                  }
-                  if (curCourt.trigger === "policy_enacted" && pol.length > 0) {
-                    const lastPol = pol[pol.length - 1];
-                    refund = lastPol.c * 0.6; refundDesc = lastPol.nm + " reversed. ₦" + refund.toFixed(1) + "B of ₦" + lastPol.c + "B budget recovered. Rest lost to sunk costs.";
-                    setPol(pp => pp.filter(p => p.id !== lastPol.id));
-                  }
-                  if (curCourt.trigger === "forced_budget") { refundDesc = "Budget must be re-submitted with House approval."; }
+                  let { refund, refundDesc } = courtReverse(curCourt);
                   if (curCourt.trigger === "high_corruption") { refundDesc = "Procurement reforms mandated by court. Some recovered funds."; refund = 0.5; }
-                  if (curCourt.trigger === "mining_approved") { refundDesc = "Mining license revoked. Land returned to communities."; }
                   setS(p => ({ ...p, app: cl100(p.app - 2), cor: cl(p.cor - .01), debt: Math.max(0, p.debt - refund) }));
                   addL("⚖️ Governor complies with " + stage + " ruling. Rule of law upheld." + (refund > 0 ? " ₦" + refund.toFixed(1) + "B recovered." : ""), "policy");
                   const efx = [
@@ -12235,15 +12278,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ display: "grid", gap: 29 }}>
               <Cd onClick={() => {
                 // Partial refund on compliance
-                let refund = 0;
-                if (curCourt?.trigger === "investor_approved" && investorsApproved.length > 0) {
-                  const lastInv = INVESTORS.find(inv => inv.id === investorsApproved[investorsApproved.length - 1]);
-                  if (lastInv) refund = lastInv.igrBoost * 0.4;
-                }
-                if (curCourt?.trigger === "policy_enacted" && pol.length > 0) {
-                  refund = pol[pol.length - 1].c * 0.6;
-                  setPol(pp => pp.slice(0, -1));
-                }
+                const { refund, refundDesc } = courtReverse(curCourt || {});
                 setS(p => ({ ...p, app: cl100(p.app - 3), debt: Math.max(0, p.debt - refund) }));
                 setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 8), business: cl100((p.business || 50) + 5) }));
                 addL("⚖️ Governor obeys Supreme Court. Constitution upheld." + (refund > 0 ? " ₦" + refund.toFixed(1) + "B recovered." : ""), "policy");
@@ -12253,7 +12288,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   { icon: "✨", text: "Rule of law strengthened", good: true },
                 ];
                 if (refund > 0) efx2.push({ icon: "💰", text: "Partial budget recovered", value: "+₦" + refund.toFixed(1) + "B", good: true });
-                showResult({ icon: "✅", title: "Rule of Law Prevails", narrative: "You complied with the Supreme Court's ruling. The legal community celebrates." + (refund > 0 ? " ₦" + refund.toFixed(1) + "B of your original investment was recovered — the rest was lost to sunk costs and legal fees." : ""), effects: efx2, tone: "good", nextFn: () => { setCurCourt(null); setCourtStage(0); nextEvent(); } });
+                if (refundDesc) efx2.push({ icon: "📋", text: refundDesc });
+                showResult({ icon: "✅", title: "Rule of Law Prevails", narrative: "You complied with the Supreme Court's ruling. " + (refundDesc ? refundDesc + " " : "") + "The legal community celebrates." + (refund > 0 ? " ₦" + refund.toFixed(1) + "B of your original investment was recovered — the rest was lost to sunk costs and legal fees." : ""), effects: efx2, tone: "good", nextFn: () => { setCurCourt(null); setCourtStage(0); nextEvent(); } });
               }} style={{ padding: 43, borderColor: CL.grn + "44" }}>
                 <div style={{ fontWeight: 600, fontSize: TS(48), color: CL.grn }}>✅ Obey the Supreme Court</div>
                 <div style={{ fontSize: TS(34), color: CL.td }}>Comply with the ruling. Reverse your action. Recover ~60% of budget spent. -3 approval, but rule of law preserved.</div>
@@ -12384,7 +12420,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 onPick={(o) => { let r = null; try { r = o.raw.run(); } catch (e) { console.error("[mission]", e); } if (r && r.title) setTimeout(() => { try { window.SOP_outcome(r); } catch (e) {} }, 60); }} />
               <div style={{ textAlign: "center", marginTop: 8 }}><Bt onClick={() => setVisit(null)} style={{ background: CL.card, color: CL.txt, border: "1px solid " + CL.bdr }}>Not now</Bt></div></>; })()}
         </OL>
-        {session && <CouncilTable key={session.id + ":" + turn} T={session} onPick={(o) => { setSession(null); let r = null; try { r = o.run(); } catch (e) { console.error("[council]", e); } if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => setSession(null)} />}
+        {session && <CouncilTable key={session.id + ":" + turn} T={session} onPick={(o) => { const T0 = session; setSession(null); let r = null; try { r = o.run(); } catch (e) { console.error("[council]", e); }
+          // The result is shown in the session itself (one screen per sitting), unless it needs its own pop-up (an action, a speaker).
+          if (r && !r.present && !r.paper && !r.action && !r.onClose) { try { window.SOP_sound && window.SOP_sound(r.tone === "good" ? "good" : r.tone === "bad" ? "bad" : "neutral"); } catch (e) {} setSession(cur => cur || { ...T0, decision: null, result: r, doneLabel: "Close the session" }); }
+          else if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => setSession(null)} />}
         {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
           return <LvDecision key={c.key} c={{ ...c, options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), disabled: o.disabled, raw: o })) }}
             advice={<>{fcStrip("sc#" + c.key)}{c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}</>}
