@@ -332,12 +332,15 @@ export const dailyFor = (n) => {
   return i < D.length ? D[ORDER[i]] : D2[ORDER2[i - D.length]]; // the oldest first, so nothing comes back soon
 };
 
-// Spoiler-free share text: three coloured squares for approval, money and party.
+// Spoiler-free share text: three coloured squares for approval, money and party,
+// and the link that opens the same day's decision (a share with no link is a dead end).
+export const SHARE_URL = "https://seatofpower.online";
+export const dailyLink = (n) => SHARE_URL + "/?daily=" + n;
 const sq = (v) => (v > 0 ? "🟩" : v < 0 ? "🟥" : "⬜");
 export const dailyShare = (n, opt, pct) => {
   const f = opt.fx || {};
   return "🏛️ Seat of Power · Daily #" + n + "\n" + sq(f.app) + sq(f.cash) + sq(f.party) + "  approval · money · party\n"
-    + (pct != null ? pct + "% of governors chose like me." : "") + "\nWhat would you do? Play Seat of Power on Lagos Life.";
+    + (pct != null ? pct + "% of governors chose like me." : "") + "\nWhat would you do? Play today's decision:\n" + dailyLink(n);
 };
 
 // The streak: days in a row with a play. days: sorted unique day numbers played.

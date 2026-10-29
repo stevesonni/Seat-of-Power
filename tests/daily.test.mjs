@@ -14,6 +14,7 @@ test("the share card gives nothing away", () => {
   const t = dailyShare(12, { label: "Pay the union", fx: { app: 4, cash: -1, party: 0 } }, 71);
   assert.match(t, /Daily #12/); assert.match(t, /🟩🟥⬜/); assert.match(t, /71%/);
   assert.doesNotMatch(t, /Pay the union/);
+  assert.match(t, /https:\/\/seatofpower\.online\/\?daily=12$/, "it ends with the link that opens the same decision");
 });
 test("streaks count days in a row; a freeze saves one missed day", () => {
   assert.equal(streakOf([8, 9, 10], 10).streak, 3);

@@ -2787,7 +2787,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
   const [hasPres, setHasPres] = useState(false);
   useEffect(() => { (async () => { try { const r = await window.storage.get(PRES_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setHasPres(true); } } catch (e) {} })(); }, []);
   const [saveName, setSaveName] = useState("");
-  const [sheet, setSheet] = useState(null); // "profile" | "me" | "scenarios"
+  const [sheet, setSheet] = useState(() => { try { return /[?&]daily=/.test(location.search) ? "daily" : null; } catch (e) { return null; } }); // "profile" | "me" | "scenarios"; a shared Daily link opens today's decision
   // Seats this phone holds in friends' governments.
   const [mems, setMems] = useState(() => cabMems());
   useEffect(() => { cabMemsSync().then(setMems); }, []);
@@ -2851,7 +2851,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
         {mems.length > 0 && onCabinet && <PillBtn tone="plain" onClick={onCabinet} style={{ width: "100%", maxWidth: 460 }}><Ico n="icon-cabinet-friends" s={28} style={{ marginRight: 6 }} />Your cabinet desk<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{(() => { const m = mems[mems.length - 1]; return ((SYS.seatById(m.seat, m.office) || {}).t || "Minister") + (m.gov ? " · " + (m.office === "president" ? "President " + m.gov + "'s administration" : m.gov + "'s government") : ""); })()}</span></PillBtn>}
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
-      {sheet === "daily" && <DailyScreen onClose={() => setSheet(null)} />}
+      {sheet === "daily" && <DailyScreen onClose={() => { setSheet(null); try { if (/[?&]daily=/.test(location.search)) history.replaceState(null, "", location.pathname); } catch (e) {} }} />}
       {sheet === "streak" && <StreakSheet st={st} onClose={() => setSheet(null)} />}
       {sheet === "career" && <CareerSheet onClose={() => setSheet(null)} />}
       {sheet === "company" && <CompanySheet onClose={() => setSheet(null)} />}
