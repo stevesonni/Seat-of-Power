@@ -2,6 +2,13 @@
 
 These are the 22 slow problems in the LGA Chairman, Senator and Ambassador careers. Each is modelled on something that really happened elsewhere in the world. They work today with stand-in pictures; when these arrive, Claude puts each one where it belongs.
 
+**Installed (Pack 29).** All 41 pictures are in the game, each on the stage this brief names:
+- The two icons are on every headscratcher badge.
+- The six objects sit on their cards as evidence: the bottles, the comma, the debt letter, the voting console, the memorial flowers and the evacuation list.
+- The store fire shows the school or, if the drums were moved there, the market.
+
+`tests/art-usage.test.mjs` checks that every picture is used on a stage; `tests/e2e/headscratchers.mjs` checks that they appear on screen.
+
 **Style:** the same as the rest of the pack: a flat-shaded cartoon with bold outlines.
 - All people are fictional. No real politicians, and nobody who looks like the real people in the stories that inspired these problems (no Assange, no Harry Dunn, no Flint).
 - No real logos, seals or flags apart from Nigeria's green-white. The Ambassador's host countries are invented, so their police, flags and uniforms should be invented too, in plain colours. Peacekeepers wear plain light-blue helmets with no UN emblem.

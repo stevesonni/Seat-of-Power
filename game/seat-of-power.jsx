@@ -15912,10 +15912,14 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
 
 // ── Headscratchers (game/systems/crises.js): the badge over an arc's card ──
 // "Inherited" on a predecessor's problem, then the clues gathered so far.
-const ArcBadge = ({ v, fz, fill = (t) => t }) => <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }}>
-  <span style={{ background: v.inherited ? "#fdecea" : "#fff2c9", color: v.inherited ? CL.red : "#7a5a00", border: "1px solid " + (v.inherited ? "#efc2bc" : "#e9cf8a"), borderRadius: 999, padding: "4px 12px", fontSize: fz.s, fontWeight: 800 }}>{v.inherited ? "📦 Inherited from your predecessor" : v.key === "open" ? "🧩 " + v.def.nm : "↩ " + v.def.nm + ", continued"}</span>
+// The evidence on the card (the bottles, the letter, the list) sits beside it.
+const ArcBadge = ({ v, fz, fill = (t) => t }) => <>
+  {v.art && v.art.obj && <img data-testid="arc-obj" src={"./art/objects/" + v.art.obj + ".webp"} alt="" style={{ display: "block", width: TALL() ? 110 : 150, height: TALL() ? 110 : 150, objectFit: "contain", margin: "-4px auto 4px", transform: "rotate(-4deg)", filter: "drop-shadow(0 8px 14px rgba(0,0,0,.18))" }} />}
+  <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }}>
+  <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: v.inherited ? "#fdecea" : "#fff2c9", color: v.inherited ? CL.red : "#7a5a00", border: "1px solid " + (v.inherited ? "#efc2bc" : "#e9cf8a"), borderRadius: 999, padding: "3px 12px 3px 6px", fontSize: fz.s, fontWeight: 800 }}><Ico n={v.inherited ? "icon-inherited" : "icon-headscratcher"} s={TALL() ? 22 : 28} />{v.inherited ? "Inherited from your predecessor" : v.key === "open" ? v.def.nm : "↩ " + v.def.nm + ", continued"}</span>
   {[...v.clues, ...(v.clue && !v.clues.includes(v.clue) ? [v.clue] : [])].map((c, i) => <span key={i} data-testid="arc-clue" style={{ background: "#eef4fb", color: "#1d3a5c", border: "1px solid #c9dcf0", borderRadius: 999, padding: "4px 12px", fontSize: fz.s, fontWeight: 700 }}>🔎 {fill(c)}</span>)}
-</div>;
+  </div>
+</>;
 const arcTone = (end) => end === "good" ? "good" : end === "bad" ? "bad" : "neutral";
 
 // ── THE LGA CHAIRMAN CAREER ──

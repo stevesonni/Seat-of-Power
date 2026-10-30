@@ -20,6 +20,7 @@ const career = async (g, row) => { await g.page.mouse.click(28, 26); await g.wai
   await g.page.evaluate((src) => { const r = [...document.querySelectorAll("[role=dialog] div")].find(d => new RegExp(src).test(d.textContent.trim()) && d.querySelector("button")); r.querySelector("button").click(); }, row.source); await g.wait(900); };
 const store = (g, key) => g.page.evaluate((k) => JSON.parse(localStorage.getItem(k) || "null"), key);
 const edit = async (g, key, f) => { await g.page.evaluate(([k, src]) => { const d = JSON.parse(localStorage.getItem(k)); const fn = new Function("d", src); fn(d); localStorage.setItem(k, JSON.stringify(d)); }, [key, f]); await g.page.reload(); await g.wait(1500); };
+const pics = (g) => g.page.evaluate(() => [...document.querySelectorAll("img")].filter(x => x.offsetParent).map(x => x.getAttribute("src")).join(" "));
 const arc = (stage, extra = {}) => ({ stage, due: 1, truth: null, flags: {}, hist: [], done: false, ...extra });
 
 // ── 1. The Chairman: forty drums by the school (inherited), left to burn ──
@@ -29,6 +30,7 @@ const arc = (stage, extra = {}) => ({ stage, due: 1, truth: null, flags: {}, his
   await career(g, /^LGA Chairman/);
   let t = await g.txt();
   check(/Forty drums by the school/.test(t) && /Inherited from your predecessor/.test(t), "the chairman inherits the forty drums, and the card says so");
+  check(/scenes\/drums-by-school\.webp/.test(await pics(g)) && /icons\/icon-inherited\.webp/.test(await pics(g)), "Pack 29: the drums by the school, and the inherited badge");
   if (SHOT) await g.page.screenshot({ path: SHOT + "/arc-lga-open.png" });
   check(!!(await tap(g, /^•Leave them/)), "leave them where they are"); await g.wait(500);
   t = await g.txt(); check(/This is not over/.test(t), "the result says the matter is not over"); await closeCards(g);
@@ -49,6 +51,7 @@ const arc = (stage, extra = {}) => ({ stage, due: 1, truth: null, flags: {}, his
   if (/your in-tray/i.test(await g.txt())) { await g.page.evaluate(() => { const boxes = [...document.querySelectorAll("button")].filter(b => /^⬜/.test(b.textContent.trim())); const f = boxes.find(b => /catches fire/.test(b.textContent)); [f, ...boxes.filter(b => b !== f)].slice(0, 2).forEach(b => b && b.click()); }); await g.wait(300); await tap(g, /^Handle these two/); await g.wait(600); await closeCards(g); }
   for (let i = 0; i < 20 && !/The store catches fire/.test(await g.txt()); i++) { await closeCards(g); await tap(g, /^(🏦Accept|•|💵)/); await g.wait(300); }
   t = await g.txt(); check(/The store catches fire/.test(t), "the fire comes, as the storekeeper warned");
+  check(/scenes\/store-fire\.webp/.test(await pics(g)), "Pack 29: the store fire at the school");
   check(!!(await tap(g, /^•Blame your predecessor/)), "blame your predecessor"); await g.wait(500); await closeCards(g);
   S = await store(g, "sop_lga");
   check(S.arcs.fuel.done && S.arcs.fuel.tag === "fuel_fire", "the arc ends, tagged fuel_fire");
@@ -71,6 +74,7 @@ const arc = (stage, extra = {}) => ({ stage, due: 1, truth: null, flags: {}, his
   await career(g, /^Senator/);
   let t = await g.txt();
   check(/You pressed the wrong button/.test(t) && /Telecoms Levy/.test(t), "the senator's wrong button comes up on the order paper");
+  check(/objects\/vote-console\.webp/.test(await pics(g)) && /icons\/icon-headscratcher\.webp/.test(await pics(g)), "Pack 29: the voting console on the card, and the headscratcher badge");
   check(!!(await tap(g, /^•Ask the Senate President for a re-vote/)), "ask for a re-vote"); await g.wait(500); await closeCards(g);
   t = await g.txt();
   check(/The re-vote|The record is the record/.test(t), "the Senate President's answer follows straight away (" + ((t.match(/The re-vote|The record is the record/) || ["none"])[0]) + ")");
@@ -99,8 +103,11 @@ const arc = (stage, extra = {}) => ({ stage, due: 1, truth: null, flags: {}, his
   await career(g, /^Ambassador/);
   let t = await g.txt();
   check(/180 seats, 400 names/.test(t) && /Kessenburg/.test(t), "the evacuation card names the posting's city");
+  check(/objects\/evacuation-list\.webp/.test(await pics(g)), "Pack 29: the evacuation list on the card");
+  if (SHOT) await g.page.screenshot({ path: SHOT + "/arc-amb-list.png" });
   await tap(g, /^•Get the host to clear whole families/); await g.wait(500); await closeCards(g);
   t = await g.txt(); check(/Families cleared in a day/.test(t), "a host that trusts you clears whole families, straight away");
+  check(/scenes\/families-boarding\.webp/.test(await pics(g)), "Pack 29: families boarding together");
   await tap(g, /^•Fly them/); await g.wait(500); await closeCards(g);
   let S = await store(g, "sop_amb");
   check(S.arcs.list.stage === "second" && S.helped >= 1, "families fly together; the second plane is next half-year");

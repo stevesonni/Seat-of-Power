@@ -65,7 +65,7 @@ test("every icon, seal, Chief of Staff, mailbox, newspaper and attire picture is
   const chief = fs.readFileSync(path.join(root, "game/systems/chief.js"), "utf8");
   const all = src + chief;
   const icons = fs.readdirSync(path.join(root, "public/art/icons")).filter(f => f.endsWith(".webp")).map(f => f.replace(/\.webp$/, ""));
-  assert.equal(icons.length, 92, "92 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons + impeach + the diplomacy seal and icon + the cabinet's three + the six lenders' seals)");
+  assert.equal(icons.length, 94, "94 icons (48 + the five office icons + the five trip icons + the Bakunda seal + the Aso Rock visit + the five Pack 24 icons + the six council seals and four trade icons + the five neighbour icons + impeach + the diplomacy seal and icon + the cabinet's three + the six lenders' seals + the two headscratcher badges)");
   assert.deepEqual(icons.filter(f => !all.includes('"' + f + '"') && !all.includes("/" + f + ".webp")), [], "every icon is used by name or path");
   ["chief-of-staff-fixer", "chief-of-staff-matriarch", "chief-of-staff-technocrat", "chief-of-staff-veteran"].forEach(f => assert.ok(chief.includes(f) && fs.existsSync(path.join(root, "public/art/characters", f + ".webp")), f));
   ["mailbox-tray", "letter-sealed", "letter-open"].forEach(f => assert.ok(src.includes(f) && fs.existsSync(path.join(root, "public/art/objects", f + ".webp")), f));
@@ -234,4 +234,23 @@ test("every lender, tranche and IMF picture is used", () => {
     assert.ok(all.includes('"' + n + '"') || all.includes("/" + n + ".webp"), d + "/" + n + " referenced");
   }));
   assert.equal(Object.values(names).flat().length, 27);
+});
+
+// Pack 29: the headscratchers. Every picture is on the stage the brief placed it.
+test("every headscratcher picture is used, on its stage", async () => {
+  const SYS = await import("../game/systems/index.js");
+  const names = { icons: ["icon-headscratcher", "icon-inherited"],
+    characters: ["deputy-head-of-mission", "embassy-maid", "grieving-mother", "journalist-guest", "school-bursar", "whistleblower-engineer"],
+    objects: ["brown-water-bottles", "debt-letter", "evacuation-list", "memorial-flowers", "missing-comma", "vote-console"],
+    scenes: ["bloggers-arrested", "burial-graveside", "bus-stuck", "carried-out", "cyclist-crash", "drums-by-school", "embassy-siege", "families-boarding", "gate-crush", "heated-empty-barn", "market-stampede", "measles-ward", "mural-fading", "mural-ruined", "okada-gridlock", "peacekeeper-camp", "playground-pump", "rat-farm", "rat-tails-queue", "river-intake", "roof-fire", "senate-inquiry", "store-fire", "vaccine-town-hall", "village-clinic-tent", "weekend-academy", "women-pushing-pump"] };
+  assert.equal(Object.values(names).flat().length, 41);
+  Object.entries(names).forEach(([d, ns]) => ns.forEach(n => assert.ok(fs.existsSync(path.join(root, "public/art", d, n + ".webp")), d + "/" + n + " shipped")));
+  names.icons.forEach(n => assert.ok(src.includes('"' + n + '"'), n + " is on the badge"));
+  // Every scene, person and object is the art of an actual stage (both branches of the fire).
+  const used = new Set(); const K = { bg: "backgrounds", who: "characters", scene: "scenes", obj: "objects" };
+  for (const defs of Object.values(SYS.ARCS)) for (const def of Object.values(defs)) for (const st of Object.values(def.stages)) for (const market of [true, false]) {
+    const a = typeof st.art === "function" ? st.art({ A: { flags: { market } } }) : (st.art || def.art);
+    Object.entries(K).forEach(([k, d]) => { if (a[k]) { used.add(d + "/" + a[k]); assert.ok(fs.existsSync(path.join(root, "public/art", d, a[k] + ".webp")), d + "/" + a[k] + " exists"); } });
+  }
+  ["characters", "objects", "scenes"].forEach(d => names[d].forEach(n => assert.ok(used.has(d + "/" + n), d + "/" + n + " is on a stage")));
 });
