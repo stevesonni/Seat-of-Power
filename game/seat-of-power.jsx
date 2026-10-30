@@ -4688,6 +4688,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
         {(p.decisions || []).length > 0 && <div style={{ marginTop: 4 }}>Record: {p.decisions.slice(-4).map(x => "Year " + x.year + ": " + x.text).join(" · ")}</div>}
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>
           {(p.status === "stalled" || p.status === "in_progress") && SYS.toFinishM(p) > 0 && <button className="sp-btn ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.toFinishM(p))}</button>}
+          {SYS.stallCause(p) === "cash" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "restart")}>Restart the work</button>}
           {["stalled", "in_progress", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</button>}
           {(p.status === "stalled" || p.status === "in_progress") && <button className="sp-btn ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</button>}
           {p.status === "in_progress" && !p.fast && <button className="sp-btn ghost" onClick={() => onAction(p.id, "accelerate")}>Speed it up (+15%)</button>}
@@ -8150,7 +8151,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const n = nextOf(p);
     if (n.id === "finance") return setPflow({ step: "finance", projId: p.id, needM: Math.max(100, p.needM || Math.round(p.approvedM / 2)), tried: p.triedLenders || [] });
     if (n.id === "contractor" || n.id === "blocked_contractor") return setPflow({ step: "contractor", projId: p.id });
-    if (n.id === "equip" || n.id === "staff" || n.id === "repair" || n.id === "resume") return projAction(p.id, n.id);
+    if (n.id === "equip" || n.id === "staff" || n.id === "repair" || n.id === "resume" || n.id === "replace") return projAction(p.id, n.id);
+    if (n.id === "stall_fund") return projAction(p.id, "fund");
+    if (n.id === "restart") return projAction(p.id, "restart");
     return setPflow({ step: "dossier", projId: p.id });
   };
   const [lastCon, setLastCon] = useState(() => ld?.lastCon || null); // the most recent consequence, shown on the desk
@@ -8394,11 +8397,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const projAction = (id, act) => decide(() => {
     const p = (projects || []).find(x => x.id === id); if (!p) return;
     let n = p, text = "", tone = "neutral";
-    if (act === "fund") { const add = SYS.toFinishM(p, s.cor || 0); n = SYS.addFunding(p, add, turn); text = "Added " + SYS.fmtM(add) + ". The money still has to be released from the budget or borrowed."; }
+    if (act === "fund") { const add = SYS.toFinishM(p, s.cor || 0); n = SYS.addFunding(p, add, turn); text = (p.status === "stalled" && n.status === "in_progress" ? "Work restarts: " + SYS.fmtM(add) + " added, and the bank pays this year's share at the year's end." : p.status === "stalled" ? "Added " + SYS.fmtM(add) + ". " + (SYS.stallCause(n) === "fled" ? "It stays stalled until a new contractor is appointed." : "It is still short.") : "Added " + SYS.fmtM(add) + ". The bank pays it as the work is done."); }
+    // A stall the bank caused: the money is approved, so restart, and this year's share is paid at the year's end.
+    else if (act === "restart") { const R0 = SYS.restartWork(p, turn); n = R0.p; const short = R0.shareM > SYS.toM(s.cash || 0); text = "Work restarts. " + SYS.fmtM(R0.shareM) + " is paid from the bank at the year's end." + (short ? " The bank holds " + naira(s.cash || 0) + " today: if it is still short then, the work stops again." : ""); tone = short ? "bad" : "good"; }
     // Speed it up: a second shift and overtime, for 15% of what is left, so it can open before you leave.
     else if (act === "accelerate") { const extraM = Math.max(10, Math.round(SYS.remainingM(p) * .15)); if (!spendB(SYS.toB(extraM), "Speeding up " + p.title)) return null; n = { ...p, fast: true, decisions: [...(p.decisions || []), { year: turn, text: "Sped up: a second shift and overtime, " + SYS.fmtM(extraM) + "." }] }; text = "A second shift and overtime, for " + SYS.fmtM(extraM) + ". It builds about half as fast again from next year."; tone = "good"; }
     else if (act === "fit") { const r = SYS.fitScope(p, roomM(p.sector) + ((p.alloc || {})[turn] || 0), turn); if (!r.ok) return { icon: "🚧", title: "It still does not fit", text: r.why, tone: "bad" }; n = r.p; text = r.factor < 1 ? "Scope cut to " + Math.round(r.factor * 100) + "% (" + SYS.fmtM(n.estimateM) + ") so the budget line pays for it without a loan. Next: award the contract." : "The budget line can pay for it without a loan. Next: award the contract."; setLastCon({ turn, icon: "✂️", text: p.title + ": " + text }); }
-    else if (act === "reduce") { n = SYS.reduceScope(p, Math.max(.3, (p.approvedM - 0) / Math.max(1, p.estimateM)), turn); text = "The scope now fits the money approved. " + SYS.fmtM(p.spentM) + " already spent stays spent."; }
+    else if (act === "reduce") { n = SYS.reduceScope(p, p.status === "stalled" ? SYS.scopeThatFits(p, s.cor || 0) : Math.max(.3, (p.approvedM - 0) / Math.max(1, p.estimateM)), turn); /* a stalled project shrinks to what its unspent money can finish */ text = (p.status === "stalled" ? (n.status === "in_progress" ? "Work restarts on a smaller scope (" + SYS.fmtM(n.estimateM) + ") that the money left can finish. " : SYS.stallCause(n) === "fled" ? "The scope is cut, but it stays stalled until a new contractor is appointed. " : "The scope is cut, but it is still short: add money to restart it. ") : "The scope now fits the money approved. ") + SYS.fmtM(p.spentM) + " already spent stays spent."; }
     else if (act === "replace") { const alt = SYS.eligible(p.type, projects, p.id + ":replace").filter(c => c.id !== p.contractorId && !c.full && !c.nepotism).sort((a, b) => b.reliability - a.reliability)[0]; if (!alt) return { icon: "🚧", title: "No one free", text: "No other qualified contractor has capacity this year.", tone: "bad" }; n = SYS.replaceContractor(p, alt.id, turn); text = alt.name + " takes over. The handover adds " + SYS.fmtM(n.estimateM - p.estimateM) + "; nothing already paid is paid again."; }
     else if (act === "suspend") { n = SYS.suspend(p, turn); text = "Work stops. " + SYS.fmtM(p.spentM) + " spent so far."; }
     else if (act === "resume") { n = { ...p, status: "in_progress", decisions: [...p.decisions, { year: turn, text: "Resumed." }] }; text = "Work resumes."; }
@@ -8429,7 +8434,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (!p.japaChecked && (p.progress || 0) < 40 && p.startTurn != null && p.startTurn < turn) {
         if (Math.random() < SYS.japaRisk({ cor: s.cor || 0, soleSource: /direct/i.test(p.method || "") }) * (PACE === "relaxed" ? .5 : 1)) {
           const to = SYS.JAPA_TO[hashStr(p.id) % SYS.JAPA_TO.length], lossM = Math.round((p.contractM || p.estimateM || 0) * .15);
-          next[p.id] = { ...p, status: "stalled", japaChecked: true, decisions: [...(p.decisions || []), { year: turn, text: "The contractor took the mobilisation fee (" + SYS.fmtM(lossM) + ") and fled to " + to + "." }] };
+          next[p.id] = { ...p, status: "stalled", japaChecked: true, fled: true, decisions: [...(p.decisions || []), { year: turn, text: "The contractor took the mobilisation fee (" + SYS.fmtM(lossM) + ") and fled to " + to + "." }] };
           setStc(st => ({ ...st, chains: [...(st.chains || []), { id: "japa_" + p.id, kind: "japa", due: turn + 1, projId: p.id, firm: p.contractor || "The contractor", to, lossM }] }));
           notes.push(["🧳 Japa: " + (p.contractor || "the contractor") + " took " + SYS.fmtM(lossM) + " of mobilisation fee for " + p.title + " and fled to " + to + ".", "crisis"]);
           setTimeout(() => paper("CONTRACTOR 'JAPAS' WITH " + SYS.fmtM(lossM).toUpperCase() + " MOBILISATION FEE", p.title + ": the site is empty, the directors are in " + to, false, "./art/scenes/japa-departure.webp"), 1200);

@@ -187,7 +187,10 @@ export const contractCover = (p, C, method) => {
 };
 // The money still needed to finish: the work left at this contractor's rate (a crooked
 // one pads it), less what is approved and unspent.
-export const toFinishM = (p, cor = 0) => { const C = contractorById(p.contractorId); const rate = C ? C.price * (C.integrity < .5 ? 1 + (1 - C.integrity) * .25 + cor * .15 : 1) : 1; return Math.max(0, Math.round(remainingM(p) * rate - Math.max(0, p.approvedM - p.spentM))); };
+const rateOf = (p, cor = 0) => { const C = contractorById(p.contractorId); return C ? C.price * (C.integrity < .5 ? 1 + (1 - C.integrity) * .25 + cor * .15 : 1) : 1; };
+export const toFinishM = (p, cor = 0) => Math.max(0, Math.round(remainingM(p) * rateOf(p, cor) - Math.max(0, p.approvedM - p.spentM)));
+// The share of the scope the money left can finish: what is built, plus what the unspent money buys.
+export const scopeThatFits = (p, cor = 0) => p.estimateM ? Math.min(1, (p.builtM + Math.max(0, p.approvedM - p.spentM) / rateOf(p, cor)) / p.estimateM) : 1;
 export const committedM = (p) => Math.max(0, p.approvedM - p.spentM);
 export const remainingM = (p) => Math.max(0, p.estimateM - p.builtM);
 
@@ -248,7 +251,7 @@ export const tickProject = (p, year, ctx = {}) => {
   if (builtM >= p.estimateM * .98 - 1) status = p.facility && !(p.equipped && p.staffed) ? "built" : "delivered";
   else if (p.approvedM - (p.spentM + pay) < 1 && builtM < p.estimateM - 1) { status = "stalled"; events.push("Year " + year + ": the approved money is spent and " + fmtM(p.estimateM - builtM) + " of work is not done. The contractor has left the site."); }
   // No money this year: a project with loan tranches still to come waits for them (idle); otherwise it stalls.
-  else if (value < 1) { if (!ctx.moreComing) status = "stalled"; events.push("Year " + year + ": no money released this year; " + (ctx.moreComing ? "the site is idle until the next tranche." : "work stopped.")); }
+  else if (value < 1) { if (!ctx.moreComing) status = "stalled"; events.push("Year " + year + ": no money released this year" + (ctx.moreComing ? "; the site is idle until the next tranche." : ctx.cashM != null && ctx.cashM < 1 ? ": the bank could not pay this year's share, so work stopped." : "; work stopped.")); }
   // Money borrowed for this project is spent first; the rest comes from ctx.cashM (the state's bank).
   const fromLoan = Math.min(p.loanLeftM || 0, pay);
   const n = { ...p, loanLeftM: Math.max(0, (p.loanLeftM || 0) - fromLoan), spentM: p.spentM + pay, builtM, progress: Math.min(100, Math.round(builtM / p.estimateM * 100)), quality: Math.round(q * 100) / 100, status, ticked: year,
@@ -263,12 +266,22 @@ export const benefitFactor = (p) => {
   return Math.round((p.quality == null ? .7 : p.quality) * built * working * 100) / 100;
 };
 
+/* Why a stalled project stopped, which decides what restarts it:
+   fled: the contractor ran off with the fee (only a new contractor restarts it);
+   money: the approved money is spent (add money, or cut the scope to fit);
+   cash: the money is approved but the bank could not pay the year's share
+   (restart it, and the bank pays at the year's end). */
+// Saves from before the flag: the record says the contractor fled, and no one replaced them since.
+const fledOf = (p) => p.fled != null ? !!p.fled : (() => { const d = (p.decisions || []).map(x => x.text || ""), f = d.map(t => /fled to/.test(t)).lastIndexOf(true); return f >= 0 && f > d.map(t => /^Replaced the contractor/.test(t)).lastIndexOf(true); })();
+export const stallCause = (p) => !p || p.status !== "stalled" ? null : fledOf(p) ? "fled" : toFinishM(p) > 0 ? "money" : "cash";
+// A project restarts only if nothing still stops it.
+const restartIf = (p) => p.status === "stalled" && !fledOf(p) && toFinishM(p) <= 0 ? { ...p, status: "in_progress" } : p;
 /* Recovery. Sunk money stays sunk; nothing is charged twice. */
-export const addFunding = (p, m, year) => ({ ...p, approvedM: p.approvedM + Math.round(m), alloc: { ...p.alloc, [year]: (p.alloc[year] || 0) + Math.round(m) }, status: p.status === "stalled" ? "in_progress" : p.status, decisions: [...p.decisions, { year, text: "Added " + fmtM(m) + "." }] });
+export const addFunding = (p, m, year) => restartIf({ ...p, approvedM: p.approvedM + Math.round(m), alloc: { ...p.alloc, [year]: (p.alloc[year] || 0) + Math.round(m) }, decisions: [...p.decisions, { year, text: "Added " + fmtM(m) + "." }] });
 export const reduceScope = (p, factor, year) => {
   const f = Math.max(.2, Math.min(1, factor));
   const est = Math.max(p.builtM, Math.round(p.estimateM * f));
-  return { ...p, qty: Math.round(p.qty * f * 10) / 10, estimateM: est, equipM: Math.round(p.equipM * f), opsPerYearM: Math.round(p.opsPerYearM * f), decisions: [...p.decisions, { year, text: "Scope cut to " + Math.round(f * 100) + "%." }] };
+  return restartIf({ ...p, qty: Math.round(p.qty * f * 10) / 10, estimateM: est, equipM: Math.round(p.equipM * f), opsPerYearM: Math.round(p.opsPerYearM * f), decisions: [...p.decisions, { year, text: "Scope cut to " + Math.round(f * 100) + "%." }] }); // a stalled project that now fits its money restarts
 };
 /* When no lender will fund it: cut the scope to what the budget line can pay
    over the project's years. Nothing is borrowed; it goes to procurement. */
@@ -280,9 +293,12 @@ export const fitScope = (p, roomPerYearM, year) => {
   const q = reduceScope(p, f, year);
   return { ok: true, factor: f, p: { ...q, approvedM: q.estimateM, needM: 0, status: "pending_procurement", alloc: { ...p.alloc, [year]: Math.min(q.estimateM, Math.round(roomPerYearM)) } } };
 };
+// Restart a project the bank could not pay for: this year's share is released at the year's end.
+export const restartWork = (p, year) => { const left = Math.max(0, p.approvedM - p.spentM), share = Math.ceil(left / Math.max(1, (p.startYear || year) + (p.years || 1) - year));
+  return { p: { ...p, status: "in_progress", alloc: { ...p.alloc, [year]: Math.max((p.alloc || {})[year] || 0, share) }, decisions: [...p.decisions, { year, text: "Restarted: " + fmtM(share) + " to be paid from the bank this year." }] }, shareM: share }; };
 export const replaceContractor = (p, newId, year) => {
   const remob = Math.round(remainingM(p) * .08); // remobilisation: a new contractor prices the handover
-  return { ...p, contractorId: newId, contractor: (contractorById(newId) || {}).name, status: remainingM(p) > 0 ? "in_progress" : p.status, estimateM: p.estimateM + remob, decisions: [...p.decisions, { year, text: "Replaced the contractor; handover adds " + fmtM(remob) + "." }] };
+  return { ...p, fled: false, contractorId: newId, contractor: (contractorById(newId) || {}).name, status: remainingM(p) > 0 ? "in_progress" : p.status, estimateM: p.estimateM + remob, decisions: [...p.decisions, { year, text: "Replaced the contractor; handover adds " + fmtM(remob) + "." }] };
 };
 export const repairCostM = (p) => Math.round(p.builtM * Math.max(0, .7 - (p.quality || .7)) * .5);
 export const repair = (p, year) => ({ ...p, quality: Math.max(p.quality || 0, .72), approvedM: p.approvedM + repairCostM(p), spentM: p.spentM + repairCostM(p), decisions: [...p.decisions, { year, text: "Repaired defects for " + fmtM(repairCostM(p)) + "." }] });
@@ -331,7 +347,10 @@ export const nextStep = (p, ctx = {}) => {
     return { id: "contractor", due: true, button: "Review " + short(p) + " procurement", say: "Governor, " + t + " is approved and the money is in place. The next step is to review its procurement and award the contract." };
   }
   if (p.status === "in_progress") return { id: "wait", due: false, say: t + " is under construction. Progress is measured at the end of the year.", when: "year end" };
-  if (p.status === "stalled") return { id: "stalled", due: true, blocked: true, button: "Fix the funding", say: t + " has stalled: " + fmtM(remainingM(p)) + " of work is left and the approved money is spent. Add funding, cut the scope or change the contractor." };
+  if (p.status === "stalled") { const why = stallCause(p);
+    if (why === "fled") return { id: "replace", due: true, blocked: true, button: "Replace the contractor", say: t + " has stalled: the contractor fled with the mobilisation fee. Appoint a new contractor to restart the work." };
+    if (why === "money") return { id: "stall_fund", due: true, blocked: true, button: "Add " + fmtM(toFinishM(p)) + " and restart", say: t + " has stalled: the approved money is spent and " + fmtM(remainingM(p)) + " of work is left. Add the money to restart it, or cut the scope to what is approved." };
+    return { id: "restart", due: true, blocked: true, button: "Restart the work", say: t + " has stalled: the money is approved, but the bank could not pay this year's share. Restart it, and the bank pays at the year's end." }; }
   if (p.status === "built") return { id: !p.equipped ? "equip" : "staff", due: true, button: !p.equipped ? "Equip it (" + fmtM(p.equipM) + ")" : "Staff it (" + fmtM(p.opsPerYearM) + " a year)", say: t + " is built but empty. It needs " + (FACILITY[p.type] || {}).what + " before it serves anyone." };
   if (p.status === "suspended") return { id: "resume", due: false, button: "Resume", say: t + " is suspended by your order." };
   if (p.status === "delivered" && (p.quality || 1) < .6) return { id: "repair", due: true, button: "Repair defects", say: t + " is open, but badly built. Repairs cost " + fmtM(repairCostM(p)) + "." };

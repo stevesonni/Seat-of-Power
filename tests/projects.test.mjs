@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { eligible, estimate, assessFunding, makeProject, tickProject, benefitFactor, addFunding, reduceScope, replaceContractor, equip, staff, abandon, committedM, remainingM, repairCostM, repair } from "../game/systems/projects.js";
+import * as SYS from "../game/systems/projects.js";
 import { assessLoan, acceptOffer, serviceLoans } from "../game/systems/loans.js";
 import { parseProposal } from "../game/systems/proposals.js";
 import { planRestructure, applyRestructure, expireTaskForces } from "../game/systems/ministries.js";
@@ -141,4 +142,38 @@ test("an esports arena and a tourist attraction are projects the state can build
   assert.equal(parseP2("a beach resort", {}).proposal.type, "tourist");
   assert.equal(parseP2("a 20,000 seat stadium", {}).proposal.type, "stadium");
   ["esports", "tourist"].forEach(k => { assert.ok(U2[k]); assert.ok(TS2[k]); });
+});
+
+// A player with ₦3B in the bank could not restart a stalled project: "Fix the funding"
+// offered no fix when the money was approved but the bank had been empty, and
+// cutting the scope never restarted anything. Every stall now names its cause and its fix.
+test("a stalled project says why, and its fix restarts it", () => {
+  const mk = SYS.makeProject({ id: "p1", title: "Ring Road", type: "road", qty: 20, lga: "Ikeja", ministryId: "works", approvedM: 10000, thisYearM: 5000, year: 1 });
+  const base = { ...mk, approvedM: Math.ceil(mk.estimateM * 1.2), status: "in_progress", contractorId: "kestrel", startTurn: 1, startYear: 1, years: 2 }; // fully funded: the money is approved
+  // The bank had nothing at the year's end: the money is approved, nothing was paid.
+  const T = SYS.tickProject(base, 1, { cashM: 0 }); const P = T.p;
+  assert.equal(P.status, "stalled"); assert.match(T.events.join(" "), /the bank could not pay this year's share/);
+  assert.equal(SYS.stallCause(P), "cash");
+  const N = SYS.nextStep(P); assert.equal(N.id, "restart"); assert.match(N.say, /money is approved, but the bank could not pay/); assert.doesNotMatch(N.say, /approved money is spent/);
+  // Restart: the share is released, and with ₦3B in the bank the work goes on next year.
+  const R = SYS.restartWork(P, 2); assert.equal(R.p.status, "in_progress"); assert.ok(R.shareM > 0);
+  const T2 = SYS.tickProject(R.p, 2, { cashM: 3000 }); assert.ok(T2.p.builtM > P.builtM, "work is done once the bank pays"); assert.notEqual(T2.p.status, "stalled");
+  // The approved money ran out: add it, or cut the scope to fit, and either restarts it.
+  const spent = { ...P, approvedM: 3000, spentM: 3000, builtM: 3000, alloc: {} };
+  assert.equal(SYS.stallCause(spent), "money"); assert.equal(SYS.nextStep(spent).id, "stall_fund");
+  assert.equal(SYS.addFunding(spent, SYS.toFinishM(spent), 2).status, "in_progress", "adding the money restarts it");
+  const leaky = { ...P, approvedM: Math.round(P.estimateM * .6), spentM: Math.round(P.estimateM * .55), builtM: Math.round(P.estimateM * .45), alloc: {} }; // money lost along the way
+  assert.equal(SYS.stallCause(leaky), "money");
+  assert.equal(SYS.reduceScope(leaky, leaky.approvedM / leaky.estimateM, 2).status, "stalled", "cutting to the approved total is not enough when money was lost");
+  const fit = SYS.reduceScope(leaky, SYS.scopeThatFits(leaky), 2);
+  assert.equal(fit.status, "in_progress", "cutting the scope to what the unspent money can finish restarts it"); assert.equal(SYS.toFinishM(fit), 0);
+  // The contractor fled: only a new contractor restarts it, and money alone does not.
+  const fled = { ...P, fled: true };
+  assert.equal(SYS.stallCause(fled), "fled"); assert.equal(SYS.nextStep(fled).id, "replace");
+  assert.equal(SYS.addFunding(fled, 500, 2).status, "stalled"); assert.equal(SYS.reduceScope(fled, .5, 2).status, "stalled");
+  assert.equal(SYS.replaceContractor(fled, "kestrel", 2).status, "in_progress");
+  // An older save: the record says the contractor fled.
+  const old = { ...P, fled: undefined, decisions: [...P.decisions, { year: 1, text: "The contractor took the mobilisation fee (₦1.5B) and fled to Dubai." }] };
+  assert.equal(SYS.stallCause(old), "fled");
+  assert.equal(SYS.stallCause({ ...old, decisions: [...old.decisions, { year: 2, text: "Replaced the contractor; handover adds ₦0.2B." }] }), "cash");
 });

@@ -1103,3 +1103,17 @@ Tests:
   - the wrong button's immediate re-vote, and an option the war chest cannot pay for;
   - the evacuation, with a trusting host and a community that finds every family.
   It then checks the record, and a later governor of Ogun hearing about the fire on day one.
+
+### Stalled projects can always be restarted
+A player on X had ₦3B in the bank and could not resume a stalled project. The cause:
+- **"Fix the funding" offered no fix** when a project stalled because the bank had nothing to pay that year's share. The money was still approved, so "Add ₦X" was hidden, and the card wrongly said "the approved money is spent".
+- **"Cut the scope" never restarted** a stalled project.
+
+Now every stall names its cause, and its main button is the fix (`SYS.stallCause`, `nextStep`):
+- **The bank could not pay** → **Restart the work**: this year's share is paid from the bank at the year's end. If the bank is still short today, the card says so.
+- **The approved money ran out** → **Add ₦X and restart**. "Cut the scope" also restarts it now: it shrinks the work to what the unspent money can finish, counting money the contractor wasted (`SYS.scopeThatFits`).
+- **The contractor fled** → **Replace the contractor**. Money alone does not restart it. Older saves are read from the project's record.
+
+The year-end report says when it was the bank that could not pay. Results lead with the outcome ("Work restarts…"), since result cards show only their first two sentences.
+
+Tests: `tests/projects.test.mjs` covers every cause and its fix; `tests/e2e/stalled.mjs` plays all four fixes in the browser with ₦3B in the bank.
