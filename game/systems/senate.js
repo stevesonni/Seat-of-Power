@@ -4,6 +4,7 @@
    Abuja decides what the vote can buy. Every roll is seeded from the run's
    seed and the session, so a reload replays the same Senate. */
 import { seeded } from "./rng.js";
+import { arcNotes } from "./crises.js";
 
 const cl = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 const cl1 = (v) => Math.max(0, Math.min(1, v));
@@ -237,3 +238,6 @@ export const LEARN = {
 
 /* The free first year: sessions 1 and 2 are free; then the unlock. */
 export const TRIAL_SESSIONS = 2;
+
+// The headscratchers' notebook pages: the lesson, and where it really happened.
+Object.assign(LEARN, arcNotes("senate"));

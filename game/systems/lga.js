@@ -4,6 +4,7 @@
    two half-years each. Every roll is seeded, so a reload replays it. */
 import { seeded } from "./rng.js";
 import { withCallbacks } from "./consequence.js";
+import { arcItems, arcNotes } from "./crises.js";
 
 const cl = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 const cl1 = (v) => Math.max(0, Math.min(1, v));
@@ -91,7 +92,7 @@ export const lgaAgenda = (seed, n, S) => {
 
 /* The half-year's queue: callbacks that have come due go first. */
 export const lgaCallback = (key) => LGA_CALLBACKS[key] || (key.startsWith("neglect:") ? (() => { const x = LGA_PROBLEMS.find(p => p.id === key.slice(8)); return x ? neglectCard(x) : null; })() : null);
-export const lgaTurn = (seed, n, S) => { const table = {}; (S.seeds || []).forEach(x => { const c = lgaCallback(x.key); if (c) table[x.key] = c; }); const items = withCallbacks(S, n, lgaAgenda(seed, n, S), table);
+export const lgaTurn = (seed, n, S) => { const table = {}; (S.seeds || []).forEach(x => { const c = lgaCallback(x.key); if (c) table[x.key] = c; }); const items = withCallbacks(S, n, [...lgaAgenda(seed, n, S), ...arcItems(S, n, "lga")], table); // the headscratchers due this half-year come after the regular agenda
   // The rainy season of year 2 tests the road, whatever was decided.
   return n === 4 && S.road && S.road.builder && !S.road.tested ? [{ k: "roadtest", id: "test" }, ...items] : items; };
 /* The chairman's three named people (names are made per run). */
@@ -232,3 +233,6 @@ export const LGA_LEARN = {
   rulers: "Traditional rulers have no powers under the Constitution, but councils work through them, and their word settles many land disputes.",
   land: "Under the Land Use Act, land in towns is controlled by the governor and rural land by the council. Plots are a common political reward.",
 };
+
+// The headscratchers' notebook pages: the lesson, and where it really happened.
+Object.assign(LGA_LEARN, arcNotes("lga"));

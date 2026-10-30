@@ -12,6 +12,7 @@ export * from "./senate.js";
 export * from "./lga.js";
 export * from "./ambassador.js";
 export * from "./consequence.js";
+export * from "./crises.js";
 export * from "../../server/company-name.mjs";
 export * from "./loans.js";
 export * from "./proposals.js";

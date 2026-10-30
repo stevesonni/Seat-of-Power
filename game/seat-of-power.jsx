@@ -11431,13 +11431,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (stc.echoDone) return;
     (async () => { try {
       const r0 = await window.storage.get(SYS.RECORD_KEY); const rec = r0 && r0.value ? JSON.parse(r0.value) : null;
-      const E = SYS.chairmanEchoes(rec, state); setStc(p => ({ ...p, echoDone: true })); if (!E) return;
+      const E0 = SYS.chairmanEchoes(rec, state), AE = SYS.arcEchoes(rec, state); setStc(p => ({ ...p, echoDone: true }));
+      const E = E0 || AE.length ? { place: E0 ? E0.place : null, lines: [...(E0 ? E0.lines : []), ...AE].slice(0, 3) } : null; if (!E) return;
       const sum = E.lines.reduce((a, l) => { Object.entries(l.fx).forEach(([k, v]) => a[k] = (a[k] || 0) + v); return a; }, {});
       setS(p => ({ ...p, app: cl100(p.app + (sum.app || 0)), pStab: cl100(p.pStab + (sum.pStab || 0)) }));
       if (sum.house) setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal + sum.house) } }) : p);
       E.lines.forEach(l => addL("🏘️ " + l.text, (l.fx.app || 0) + (l.fx.pStab || 0) >= 0 && !l.fx.house ? "success" : "political"));
       track("chairman_echo", E.lines.length);
-      window.SOP_outcome && window.SOP_outcome({ icon: "🏘️", img: "./art/backgrounds/lga-secretariat.webp", title: "Your past in " + (E.place || "your LGA") + " meets you", text: E.lines[0].text, rows: [].concat(sum.app ? [{ l: "Approval", v: (sum.app > 0 ? "+" : "−") + Math.abs(sum.app), good: sum.app > 0 }] : [], sum.pStab ? [{ l: "Party", v: "+" + sum.pStab, good: true }] : [], sum.house ? [{ l: "House", v: "−1 loyal", good: false }] : []), tone: (sum.app || 0) + (sum.pStab || 0) >= 0 ? "good" : "bad", ok: "Take office" });
+      window.SOP_outcome && window.SOP_outcome({ icon: "🏘️", img: "./art/backgrounds/lga-secretariat.webp", title: E.place ? "Your past in " + E.place + " meets you" : "Your past meets you", text: E.lines[0].text, rows: [].concat(sum.app ? [{ l: "Approval", v: (sum.app > 0 ? "+" : "−") + Math.abs(sum.app), good: sum.app > 0 }] : [], sum.pStab ? [{ l: "Party", v: "+" + sum.pStab, good: true }] : [], sum.house ? [{ l: "House", v: "−1 loyal", good: false }] : []), tone: (sum.app || 0) + (sum.pStab || 0) >= 0 ? "good" : "bad", ok: "Take office" });
     } catch (e) {} })();
   }, []);
   const nextSaid = React.useRef({});
@@ -15576,7 +15577,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   const [fundPick, setFundPick] = useState([]), [pocket, setPocket] = useState(false), [book, setBook] = useState(false);
   useEffect(() => {
     const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
-    (async () => { try { const r = await window.storage.get(SEN_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over && (!rec || d.name === rec.name)) setG(d); } } catch (e) {} setLoaded(true); })();
+    (async () => { try { const r = await window.storage.get(SEN_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over && (!rec || d.name === rec.name)) { if (!d.arcs) d.arcs = SYS.arcPlan(d.seed, "senate", { from: (d.n || 0) + 1 }); setG(d); } } } catch (e) {} setLoaded(true); })();
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   useEffect(() => { if (g) { try { window.storage.set(SEN_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
@@ -15600,7 +15601,8 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     const govParty = r() < .5;
     const S = { v: 1, seed: Date.now(), name: who.name, avatar: who.avatar, state: who.state || "Lagos", district: who.district != null ? who.district : 1, party: myP.id, from,
       govParty, home: base.home, clout: base.clout, loyalty: base.loyalty, cor: base.cor, chest: base.chest, godfather: !!base.godfather,
-      oppName: gN(r, STATES[who.state]?.zone || "SW", who.state), step: "race", n: 0, race: null, items: [], log: [], delivered: [], projects: [], sponsored: 0, ownUsed: [], seen: [], defected: false, committee: null };
+      oppName: gN(r, STATES[who.state]?.zone || "SW", who.state), step: "race", n: 0, race: null, items: [], log: [], delivered: [], projects: [], sponsored: 0, ownUsed: [], seen: [], defected: false, committee: null, story: [] };
+    S.arcs = SYS.arcPlan(S.seed, "senate"); // this term's headscratchers
     S.race = SYS.raceStart(S);
     setG(S); trk("career_start", "senator_" + from);
   };
@@ -15636,7 +15638,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     const extra = n % 2 === 1 ? [{ k: "hearing", id: SYS.hearingFor(S.seed, n).id }] : [{ k: "fund" }];
     const ev = SYS.eventFor(S.seed, n, S);
     const own = n % 2 === 1 && SYS.OWN_BILLS.some(b => !(S.ownUsed || []).includes(b.id)) ? [{ k: "own" }] : [];
-    return [...bills, ...extra, ...(ev ? [{ k: "event", id: ev.id }] : []), ...own];
+    return [...bills, ...SYS.arcItems(S, n, "senate"), ...extra, ...(ev ? [{ k: "event", id: ev.id }] : []), ...own];
   };
   const next = (p) => { const items = p.items.slice(1); return { items }; };
   const billOf = (id) => SYS.sessionBills(g.seed, g.n).find(b => b.id === id) || SYS.BILLS.find(b => b.id === id);
@@ -15683,12 +15685,23 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     up(p => ({ ...SYS.applyFx(p, res.fx), ownUsed: [...p.ownUsed, b.id], sponsored: p.sponsored + (res.passed ? 1 : 0), ...next(p) }));
     card({ icon: res.passed ? "📜" : "📭", img: res.passed ? "./art/scenes/senate-vote.webp" : undefined, title: res.passed ? "Your bill passes" : "Your bill stalls", text: res.passed ? "The " + b.t + " clears both chambers. Your name is on a law." : "The " + b.t + " dies in committee. Bills need allies; build standing and try again.", rows: senFxRows(res.fx).concat(learnRow("vote")), tone: res.passed ? "good" : "neutral", ok: "Next" });
   };
+  // A headscratcher: effects, the arc's next stage or its end, and a law with your name if it made one.
+  const chooseArc = (it, o) => {
+    if (!o.available) return;
+    const res = SYS.arcChoose(g, it.id, o.id, g.n, R("arc" + it.id + ((g.arcs[it.id] || {}).stage || "")), "senate"); if (!res) return;
+    trk("senate_arc", it.id + "_" + o.id + (res.end ? "_" + res.end : ""));
+    up(p => ({ ...SYS.applyFx(p, res.fx), arcs: { ...p.arcs, [it.id]: res.A }, items: res.now ? [{ k: "arc", id: it.id }, ...p.items.slice(1)] : p.items.slice(1), sponsored: p.sponsored + (res.law ? 1 : 0), story: res.story ? [...(p.story || []), res.story] : (p.story || []) }));
+    card({ icon: res.end === "good" ? "✅" : res.end === "bad" ? "📰" : res.end ? "📌" : "⏳", title: o.l, text: res.out + (res.end ? "" : " This is not over."), rows: senFxRows(res.fx).concat(res.learnKey ? learnRow(res.learnKey) : []), tone: res.end ? arcTone(res.end) : "neutral", ok: "Next" });
+  };
+  // One life: what this Senate term leaves in the player's record (the arcs' tags, for a later governorship).
+  const saveRecord = (ending, grade) => { try { (async () => { const r0 = await window.storage.get(SYS.RECORD_KEY); const rec0 = r0 && r0.value ? JSON.parse(r0.value) : null;
+    await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec0, { office: "senator", ending, grade, cor: g.cor, state: g.state, place: districtName(g), S: { seeds: SYS.arcTags(g).map(k => ({ key: k, due: 0, at: g.n })), npcs: {} }, keepTags: SYS.arcTagList("senate") }))); })(); } catch (e) {} };
   const endSession = () => {
     // A district that has given up on you can recall you.
     if (g.home < 20) {
       const removed = R("recall")() < .5;
       trk("senate_recall", removed ? "removed" : "survived");
-      if (removed) { up({ step: "over", over: true, ending: "recalled" }); card({ icon: "📝", title: "Recalled", text: "More than half of your district's registered voters signed the petition, and the referendum went against you.", rows: learnRow("recall"), tone: "bad", ok: "Continue" }); return; }
+      if (removed) { up({ step: "over", over: true, ending: "recalled" }); saveRecord("recalled", SYS.senateGrade(SYS.senateScore(g))); card({ icon: "📝", title: "Recalled", text: "More than half of your district's registered voters signed the petition, and the referendum went against you.", rows: learnRow("recall"), tone: "bad", ok: "Continue" }); return; }
       card({ icon: "📝", title: "A recall petition fails", text: "Your opponents gathered signatures but fell short. Your district is warning you.", rows: learnRow("recall"), tone: "bad", ok: "Continue" });
     }
     if (g.n >= SYS.SESSIONS) { up({ step: "reelect" }); return; }
@@ -15699,6 +15712,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     const score = SYS.senateScore(g), grade = SYS.senateGrade(score);
     trk("senate_end", !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated"); trk("senate_grade", grade);
     up({ step: "over", over: true, ending: !res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated", reRes: res, score, grade });
+    saveRecord(!res.ticket ? "no_ticket" : res.won ? "reelected" : "defeated", grade);
     try { (async () => { const r0 = await window.storage.get("sop_career"); const L = r0 && r0.value ? JSON.parse(r0.value) : []; await window.storage.set("sop_career", JSON.stringify([...L, { office: "senator", state: g.state, grade, ending: res.won ? "complete" : "defeated", at: Date.now(), name: g.name }].slice(-200))); })(); } catch (e) {}
   };
 
@@ -15813,6 +15827,16 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
         </div>
       </Frame>);
     }
+    if (it.k === "arc") {
+      const v = SYS.arcView(G, it.id, "senate");
+      if (!v) return wrap(<Frame bg="senate-chamber"><H kick={kicker} title="Settled" sub="This matter has already been dealt with." /><Bt onClick={() => up(p => ({ items: p.items.slice(1) }))} style={{ width: "100%" }}>Next →</Bt></Frame>);
+      return wrap(<Frame {...v.art}>
+        <ArcBadge v={v} fz={fz} />
+        <H kick={kicker} title={v.t} sub={v.d} />
+        {header}{progress}
+        <div style={{ display: "grid", gap: 8 }}>{v.opts.map(o => <Opt key={o.id} ic="•" l={o.l} d={!o.available ? o.why : null} right={o.fx && o.fx.chest < 0 ? "₦" + Math.round(-o.fx.chest * 1000) + "M" : null} disabled={!o.available} tone={(o.fx && o.fx.cor > 0) ? "bad" : null} onClick={() => chooseArc(it, o)} />)}</div>
+      </Frame>);
+    }
     if (it.k === "hearing") {
       const h = SYS.HEARINGS.find(x => x.id === it.id);
       return wrap(<Frame bg="senate-hearing-room" who="minister-witness-worried">
@@ -15874,6 +15898,8 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
       <div style={{ fontSize: TS(tall ? 110 : 150), lineHeight: 1, fontWeight: 900, fontFamily: F.d, color: grade === "A" || grade === "B" ? CL.grn : grade === "F" ? CL.red : CL.gold }}>{grade}</div>
       <div style={{ fontSize: fz.s, color: CL.td }}>Score {score} · home {G.home}% · standing {G.clout} · corruption {Math.round(G.cor * 100)}%</div>
       <div style={{ fontSize: fz.s, color: CL.tm, marginTop: 8, lineHeight: 1.5 }}>{G.delivered.length} things built at home · {G.projects.length} federal projects won · {G.sponsored} law{G.sponsored === 1 ? "" : "s"} in your name{G.defected ? " · crossed the floor" : ""}</div>
+      {(G.story || []).length > 0 && <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 8, textAlign: "left" }}><b style={{ color: CL.txt }}>Your term:</b> you {G.story.slice(-5).join("; ")}.</div>}
+      {SYS.arcOpen(G, "senate").length > 0 && <div data-testid="arc-left" style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 8, textAlign: "left" }}><b style={{ color: CL.txt }}>Still unresolved:</b> {SYS.arcOpen(G, "senate").map(x => x.left).join("; ")}.</div>}
     </Cd>}
     <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: "#1d3a5c" }}>📘 Senate notebook: {senNotes().length} of {SEN_NOTE_KEYS().length} notes found.</div><Bt v="secondary" onClick={() => setBook(true)} style={{ marginTop: 8 }}>Open the notebook</Bt></Cd>
     <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
@@ -15883,6 +15909,14 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     </div>
   </Frame>);
 };
+
+// ── Headscratchers (game/systems/crises.js): the badge over an arc's card ──
+// "Inherited" on a predecessor's problem, then the clues gathered so far.
+const ArcBadge = ({ v, fz, fill = (t) => t }) => <div style={{ display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }}>
+  <span style={{ background: v.inherited ? "#fdecea" : "#fff2c9", color: v.inherited ? CL.red : "#7a5a00", border: "1px solid " + (v.inherited ? "#efc2bc" : "#e9cf8a"), borderRadius: 999, padding: "4px 12px", fontSize: fz.s, fontWeight: 800 }}>{v.inherited ? "📦 Inherited from your predecessor" : v.key === "open" ? "🧩 " + v.def.nm : "↩ " + v.def.nm + ", continued"}</span>
+  {[...v.clues, ...(v.clue && !v.clues.includes(v.clue) ? [v.clue] : [])].map((c, i) => <span key={i} data-testid="arc-clue" style={{ background: "#eef4fb", color: "#1d3a5c", border: "1px solid #c9dcf0", borderRadius: 999, padding: "4px 12px", fontSize: fz.s, fontWeight: 700 }}>🔎 {fill(c)}</span>)}
+</div>;
+const arcTone = (end) => end === "good" ? "good" : end === "bad" ? "bad" : "neutral";
 
 // ── THE LGA CHAIRMAN CAREER ──
 // The man in between: the people bring every small problem to the council,
@@ -15900,7 +15934,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const [g, setG] = useState(null), [loaded, setLoaded] = useState(false), [ents, setEnts] = useState(() => window.SOP_ENTS || {}), [busy, setBusy] = useState(false), [book, setBook] = useState(false);
   useEffect(() => {
     const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
-    (async () => { try { const r = await window.storage.get(LGA_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setG(d); } } catch (e) {} setLoaded(true); })();
+    (async () => { try { const r = await window.storage.get(LGA_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) { if (!d.arcs) { d.arcs = SYS.arcPlan(d.seed, "lga", { from: (d.n || 1) + 1 }); d.seen = [...(d.seen || []), ...SYS.arcExcludes("lga", d.arcs)]; } setG(d); } } } catch (e) {} setLoaded(true); })();
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   useEffect(() => { if (g) { try { window.storage.set(LGA_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
@@ -15922,6 +15956,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
       people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "promise", items: [], seen: [], seenOpt: [], story: [], fixed: 0, log: [], courtWon: 0, road: {}, trayDone: 0,
       govName: "Gov. " + nm(), seeds: [], elecMod: 0,
       npcs: { party: { name: "Chief " + nm(), role: "Party Chairman", rel: k === "anointed" ? 65 : k === "grassroots" ? 40 : 50 }, cllr: { name: "Hon. " + nm(), role: "Councillor", rel: 50 } } };
+    S.arcs = SYS.arcPlan(seed, "lga"); S.seen = SYS.arcExcludes("lga", S.arcs); // this term's headscratchers, and the agenda items they replace
     S.items = SYS.lgaTurn(S.seed, 1, S);
     setG(S); trk("career_start", "chairman_" + k);
   };
@@ -15956,18 +15991,37 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     const eRows = o.elec ? [{ l: "Election day", v: (o.elec > 0 ? "+" : "−") + Math.abs(o.elec), good: o.elec > 0 }] : [];
     card({ icon: res.bad ? "📰" : fixed ? "🏗️" : key ? "↩️" : "📌", img: fixed ? "./art/scenes/chairman-flag-off.webp" : undefined, title: fill(o.l), text: res.bad ? "It goes wrong in public, and everyone in the ward knows whose decision it was." : fixed ? "Work starts this week. People stop you on the street to say thank you." : o.seed ? "Done. People will remember this." : "Done.", rows: lgaFxRows(res.fx, o.cost).concat(nRows, eRows), tone: res.bad ? "bad" : fixed || (x.good) ? "good" : "neutral", ok: "Next" });
   };
+  // A headscratcher: the option's effects, the arc's next stage (or its end), and what people say.
+  const chooseArc = (it, o, staff) => { // staff: put off for lack of money, so nothing is spent that is not there
+    if (!staff && (!o.available || (o.cost > 0 && o.cost > g.purse))) return;
+    const res0 = SYS.arcChoose(g, it.id, o.id, g.n, R("arc" + it.id + ((g.arcs[it.id] || {}).stage || "")), "lga"); if (!res0) return;
+    const res = staff && res0.cost > g.purse ? { ...res0, cost: 0 } : res0;
+    trk("lga_arc", it.id + "_" + o.id + (res.end ? "_" + res.end : ""));
+    if (res.learnKey) learn(res.learnKey);
+    up(p => { let q = SYS.moveRel(SYS.applyLga(p, res.fx, res.cost), res.npc || {});
+      return { ...q, arcs: { ...p.arcs, [it.id]: res.A }, items: res.now ? [{ k: "arc", id: it.id }, ...p.items.slice(1)] : p.items.slice(1), seen: [...p.seen, ...res.seen], story: res.story ? [...(p.story || []), fill(res.story)] : (p.story || []), fixed: p.fixed + (res.fixed ? 1 : 0), elecMod: (p.elecMod || 0) + (res.elec || 0) }; });
+    const nRows = Object.entries(res.npc || {}).filter(([k2, v]) => v && g.npcs && g.npcs[k2]).map(([k2, v]) => ({ l: g.npcs[k2].name, v: (v > 0 ? "+" : "−") + Math.abs(v), good: v > 0 }));
+    card({ icon: res.end === "good" ? "✅" : res.end === "bad" ? "📰" : res.end ? "📌" : "⏳", title: fill(o.l), text: fill(res.out) + (res.end ? "" : " This is not over."), rows: lgaFxRows(res.fx, res.cost).concat(nRows, res.elec ? [{ l: "Election day", v: (res.elec > 0 ? "+" : "−") + Math.abs(res.elec), good: res.elec > 0 }] : []), tone: res.end ? arcTone(res.end) : "neutral", ok: "Next" });
+  };
   // Names in callbacks and motions: {gov}, {party}, {cllr}.
   const fill = (t) => String(t || "").replace(/\{gov\}/g, (g && g.govName) || "the governor").replace(/\{party\}/g, (g && g.npcs && g.npcs.party.name) || "the party chairman").replace(/\{cllr\}/g, (g && g.npcs && g.npcs.cllr.name) || "a councillor");
   // The in-tray: pick the matters you handle yourself; staff do the rest, cheaply.
   const [tray, setTray] = useState([]);
-  const choosable = (it) => ["alloc", "problem", "motion", "gov", "road"].includes(it.k);
+  const choosable = (it) => ["alloc", "problem", "motion", "gov", "road", "arc"].includes(it.k);
   const itemOf = (it) => it.k === "road" ? SYS.ROAD[it.id] : it.k === "problem" ? SYS.LGA_PROBLEMS.find(y => y.id === it.id) : it.k === "motion" ? SYS.LGA_MOTIONS.find(y => y.id === it.id) : it.k === "gov" ? SYS.GOV_ASKS.find(y => y.id === it.id) : null;
-  const itemTitle = (it) => it.k === "alloc" ? "The allocation from the state" : fill((itemOf(it) || {}).t);
+  const arcV = (id, S0) => SYS.arcView(S0 || g, id, "lga");
+  const itemTitle = (it) => it.k === "alloc" ? "The allocation from the state" : it.k === "arc" ? fill((arcV(it.id) || {}).t) : fill((itemOf(it) || {}).t);
   const settleTray = () => {
     const keepRaw = g.items.filter((it, i) => !choosable(it) || tray.includes(i)), away = g.items.filter((it, i) => choosable(it) && !tray.includes(i));
     const keep = [...keepRaw.filter(it => it.k === "alloc"), ...keepRaw.filter(it => it.k !== "alloc")]; // money first
     let q = { ...g }, lines = [];
     away.forEach(it => {
+      // A headscratcher left to staff: they take its "leave it" option, and the fuse burns.
+      if (it.k === "arc") { const v0 = arcV(it.id, q), res = SYS.arcIgnore(q, it.id, q.n, R("arc" + it.id + ((q.arcs[it.id] || {}).stage || "")), "lga"); if (!res) return;
+        q = SYS.moveRel(SYS.applyLga(q, res.fx, Math.max(0, res.cost) <= q.purse ? res.cost : 0), res.npc || {});
+        q = { ...q, arcs: { ...q.arcs, [it.id]: res.A }, seen: [...q.seen, ...res.seen], story: res.story ? [...(q.story || []), fill(res.story)] : (q.story || []), fixed: q.fixed + (res.fixed ? 1 : 0), elecMod: (q.elecMod || 0) + (res.elec || 0) };
+        if (res.learnKey) learn(res.learnKey);
+        lines.push(fill(v0.t) + ": your staff chose \u201c" + fill(res.o.l).toLowerCase() + "\u201d."); return; }
       const x = itemOf(it), o = SYS.delegated(it.k, x || {});
       if (it.k === "alloc") { const al = SYS.allocation(q, R("alloc")); q = SYS.applyLga(q, o.fx, -al.net); lines.push("The treasurer accepted the allocation: ₦" + al.net + "M after the state's cut and salaries."); return; }
       q = SYS.moveRel(SYS.applyLga(q, o.fx || {}, Math.max(0, o.cost || 0) <= q.purse ? (o.cost || 0) : 0), o.npc || {});
@@ -15986,7 +16040,8 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     card({ icon: res.held ? "🛣️" : "🌊", img: res.held ? "./art/scenes/market-road-finished.webp" : "./art/scenes/market-road-washout.webp", title: res.held ? "The road holds" : "The road washes away", text: res.held ? "The first big rains come and the market road holds. Trucks arrive from three LGAs." : "The first big rains come. The road you opened is a river of red mud, and the traders know whose road it was.", rows: lgaFxRows(res.fx, -res.purse).concat([{ l: "Election day", v: (res.elec > 0 ? "+" : "−") + Math.abs(res.elec), good: res.held }]), tone: res.held ? "good" : "bad", ok: "Next" });
   };
   // Nothing affordable: put it off, and let the staff do the least they can.
-  const putOff = (it) => { const x = it.k === "callback" ? SYS.lgaCallback(it.id) : itemOf(it), o = it.k === "callback" ? x.opts[x.opts.length - 1] : SYS.delegated(it.k, x);
+  const putOff = (it) => { if (it.k === "arc") { const v0 = arcV(it.id), o0 = v0 && v0.opts.find(o => o.id === v0.ignore); if (!o0) return; chooseArc(it, o0, true); return; }
+    const x = it.k === "callback" ? SYS.lgaCallback(it.id) : itemOf(it), o = it.k === "callback" ? x.opts[x.opts.length - 1] : SYS.delegated(it.k, x);
     trk("lga_putoff", it.k + "_" + it.id);
     up(p => { let q = SYS.moveRel(SYS.applyLga(p, o.fx || {}, 0), o.npc || {}); if (it.k === "callback") q = SYS.markFired(q, it.id); if (it.k === "problem") q = SYS.plant(q, "neglect:" + x.id, p.n, {}, [1, 2]); if (it.k === "road" && o.road) q = { ...q, road: { ...p.road, ...(o.road.builder ? { builder: o.road.builder, quality: o.road.quality * .8 } : {}), warned: it.id === "warn" ? true : p.road.warned } };
       return { ...q, items: p.items.slice(1), seen: it.k === "callback" || it.k === "road" ? p.seen : [...p.seen, x.id] }; });
@@ -16007,7 +16062,8 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   };
   // One life: what this chairmanship leaves in the player's record.
   const saveRecord = (ending, grade) => { try { (async () => { const r0 = await window.storage.get(SYS.RECORD_KEY); const rec = r0 && r0.value ? JSON.parse(r0.value) : null; const roadSeed = g.road && g.road.tested ? [{ key: g.road.held ? "road_held" : "road_failed", due: 0, at: g.n }] : [];
-      await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec, { office: "chairman", ending, grade, cor: g.cor, state: g.state, place: g.lga, S: { ...g, seeds: [...(g.seeds || []), ...roadSeed], npcs: { gov: { name: g.govName, role: "Governor", rel: g.gov }, ...g.npcs } }, keepTags: ["land_given", "sued_governor", "payroll_padded", "cert_fee", "drain_crony", "clinic_staffed", "market_rebuilt", "teachers_paid", "road_held", "road_failed"] }))); })(); } catch (e) {} };
+      const arcSeeds = SYS.arcTags(g).map(k => ({ key: k, due: 0, at: g.n }));
+      await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec, { office: "chairman", ending, grade, cor: g.cor, state: g.state, place: g.lga, S: { ...g, seeds: [...(g.seeds || []), ...roadSeed, ...arcSeeds], npcs: { gov: { name: g.govName, role: "Governor", rel: g.gov }, ...g.npcs } }, keepTags: ["land_given", "sued_governor", "payroll_padded", "cert_fee", "drain_crony", "clinic_staffed", "market_rebuilt", "teachers_paid", "road_held", "road_failed", ...SYS.arcTagList("lga")] }))); })(); } catch (e) {} };
   const election = () => {
     const res = SYS.lgaElection(g, R("election")), score = SYS.lgaScore(g), grade = SYS.lgaGrade(score);
     learn("siec");
@@ -16096,7 +16152,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
       <img src="./art/objects/in-tray.webp" alt="Your in-tray" style={{ display: "block", width: tall ? 200 : 260, height: "auto", margin: "8px auto 0", filter: "drop-shadow(0 12px 18px rgba(0,0,0,.18))" }} />
       <H kick={kicker + " · your in-tray"} title={"Pick the " + SYS.ATTENTION + " matters you will handle yourself"} sub="Your staff will deal with the rest the cheap way. Some things can wait; some will not." />
       {header}{people}{roadLine}
-      <div style={{ display: "grid", gap: 8 }}>{choosableIdx.map(i => { const it2 = G.items[i], on = tray.includes(i), full = tray.length >= SYS.ATTENTION; return <Opt key={i} on={on} ic={on ? "☑️" : "⬜"} l={itemTitle(it2)} d={it2.k === "alloc" ? "Left alone: the treasurer accepts whatever the state sends." : it2.k === "road" ? "Left alone: the party decides." : it2.k === "gov" ? "Left alone: the governor is told you are busy." : it2.k === "motion" ? "Left alone: the council decides without you." : "Left alone: the department does the least it can, and it may get worse."} onClick={() => setTray(p => on ? p.filter(x => x !== i) : full ? p : [...p, i])} />; })}</div>
+      <div style={{ display: "grid", gap: 8 }}>{choosableIdx.map(i => { const it2 = G.items[i], on = tray.includes(i), full = tray.length >= SYS.ATTENTION; return <Opt key={i} on={on} ic={on ? "☑️" : "⬜"} l={itemTitle(it2)} d={it2.k === "alloc" ? "Left alone: the treasurer accepts whatever the state sends." : it2.k === "road" ? "Left alone: the party decides." : it2.k === "gov" ? "Left alone: the governor is told you are busy." : it2.k === "arc" ? (() => { const v0 = arcV(it2.id), o0 = v0 && v0.opts.find(o => o.id === v0.ignore); return "Left alone: " + (o0 ? fill(o0.l).replace(/^./, c => c.toLowerCase()) : "your staff decide") + "."; })() : it2.k === "motion" ? "Left alone: the council decides without you." : "Left alone: the department does the least it can, and it may get worse."} onClick={() => setTray(p => on ? p.filter(x => x !== i) : full ? p : [...p, i])} />; })}</div>
       <Bt onClick={settleTray} disabled={tray.length !== SYS.ATTENTION} style={{ width: "100%", marginTop: 12 }}>{tray.length === SYS.ATTENTION ? "Handle these two; delegate the rest →" : "Pick " + (SYS.ATTENTION - tray.length) + " more"}</Bt>
     </Frame>);
     const it = G.items[0];
@@ -16122,6 +16178,16 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
         <H kick={kicker + (it.id === "warn" ? " · a warning" : " · the market road")} title={x.t} sub={fill(d)} />
         {header}{people}{roadLine}{left}<Learn k={x.learn} />
         <div style={{ display: "grid", gap: 8 }}>{x.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : null} disabled={o.cost > 0 && o.cost > G.purse} onClick={() => choose(x, o, "road")} />)}<PutOff it={it} opts={x.opts} /></div>
+      </Frame>);
+    }
+    if (it.k === "arc") {
+      const v = arcV(it.id);
+      if (!v) return wrap(<Frame><H kick={kicker} title="Settled" sub="This matter has already been dealt with." /><Bt onClick={() => up(p => ({ items: p.items.slice(1) }))} style={{ width: "100%" }}>Next →</Bt></Frame>);
+      return wrap(<Frame {...v.art}>
+        <ArcBadge v={v} fz={fz} fill={fill} />
+        <H kick={kicker + " · " + lgaNm(G)} title={fill(v.t)} sub={fill(v.d)} />
+        {header}{people}{roadLine}{left}
+        <div style={{ display: "grid", gap: 8 }}>{v.opts.map(o => <Opt key={o.id} ic={o.cost > 0 ? "💵" : o.cost < 0 ? "💰" : "•"} l={fill(o.l)} right={o.cost > 0 ? "₦" + o.cost + "M" : o.cost < 0 ? "+₦" + -o.cost + "M" : null} disabled={!o.available || (o.cost > 0 && o.cost > G.purse)} tone={(o.fx && o.fx.cor > 0) ? "bad" : null} onClick={() => chooseArc(it, o)} />)}<PutOff it={it} opts={v.opts} /></div>
       </Frame>);
     }
     if (it.k === "callback") {
@@ -16158,6 +16224,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 8 }}>{SYS.lgaVerdict(G, G.ending).map(([k2, v, w]) => <div key={k2} style={{ background: CL.bg, borderRadius: 14, padding: "10px 12px", textAlign: "center" }}>
         <div style={{ fontSize: fz.s, color: CL.td }}>{k2}</div><b style={{ fontSize: fz.l, fontFamily: F.d, color: v >= 75 ? CL.grn : v >= 50 ? CL.gold : CL.red }}>{w}</b></div>)}</div>
       {(G.story || []).length > 0 && <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 12 }}><b style={{ color: CL.txt }}>Your term:</b> you {G.story.slice(-5).join("; ")}.</div>}
+      {SYS.arcOpen(G, "lga").length > 0 && <div data-testid="arc-left" style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 8 }}><b style={{ color: CL.txt }}>Still unresolved:</b> {SYS.arcOpen(G, "lga").map(x => fill(x.left)).join("; ")}.</div>}
       {G.npcs && <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 8 }}><b style={{ color: CL.txt }}>Who you leave behind:</b> {G.govName}, {SYS.relWord(G.gov)}; {G.npcs.party.name}, {SYS.relWord(G.npcs.party.rel)}; {G.npcs.cllr.name}, {SYS.relWord(G.npcs.cllr.rel)}.</div>}
     </Cd>
     <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: CL.txt, fontWeight: 700 }}>Which decision would you change?</div><div style={{ fontSize: fz.s, color: CL.td, margin: "4px 0 8px" }}>Tell us. It shapes how the careers grow.</div><Bt v="secondary" onClick={() => { try { window.SOP_feedbackForm({ where: "chairman_end", year: "LGA", state: G.state }); } catch (e) {} }}>Tell us</Bt></Cd>
@@ -16191,7 +16258,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const [g, setG] = useState(null), [loaded, setLoaded] = useState(false), [ents, setEnts] = useState(() => window.SOP_ENTS || {}), [busy, setBusy] = useState(false), [book, setBook] = useState(false), [post, setPost] = useState(null);
   useEffect(() => {
     const f = (e) => setEnts(e.detail || {}); window.addEventListener("sop-ents", f);
-    (async () => { try { const r = await window.storage.get(AMB_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setG(d); } } catch (e) {} setLoaded(true); })();
+    (async () => { try { const r = await window.storage.get(AMB_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) { if (!d.arcs) { d.arcs = SYS.arcPlan(d.seed, "amb", { from: (d.n || 1) + 1 }); d.seen = [...(d.seen || []), ...SYS.arcExcludes("amb", d.arcs)]; } setG(d); } } } catch (e) {} setLoaded(true); })();
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   useEffect(() => { if (g) { try { window.storage.set(AMB_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
@@ -16209,7 +16276,8 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const begin = (postId, k) => {
     const Pp = SYS.POSTINGS[postId], B = SYS.AMB_STARTS[k];
     const S = { v: 1, seed: Date.now(), name: profile.first + " " + profile.last, avatar: profile.avatar, post: postId, from: k,
-      abuja: B.abuja, host: Pp.host + B.hostAdj, diaspora: Pp.diaspora + B.diasporaAdj, trade: 0, cor: B.cor, n: 1, step: "credentials", items: [], seen: [], helped: 0 };
+      abuja: B.abuja, host: Pp.host + B.hostAdj, diaspora: Pp.diaspora + B.diasporaAdj, trade: 0, cor: B.cor, n: 1, step: "credentials", items: [], seen: [], helped: 0, story: [] };
+    S.arcs = SYS.arcPlan(S.seed, "amb"); S.seen = SYS.arcExcludes("amb", S.arcs); // this posting's headscratchers, and the cases they replace
     setG(S); trk("career_start", "ambassador_" + k + "_" + postId);
     fly("out", Pp.nm.split(" ").pop(), "Abuja");
   };
@@ -16227,17 +16295,30 @@ const AmbassadorCareer = ({ profile, onExit }) => {
     card({ icon: res.bad ? "📰" : it.k === "cable" ? "📨" : helped ? "🤝" : "📌", img: it.k === "cable" ? "./art/objects/diplomatic-cable.webp" : x.id === "passports" ? "./art/objects/passport-green.webp" : undefined, title: o.l,
       text: res.bad ? "It goes wrong: the story is in the host country's papers and on Abuja's desk by morning." : helped ? "Word spreads through the community that the embassy came through." : "Done.", rows: ambFxRows(res.fx), tone: res.bad ? "bad" : helped ? "good" : "neutral", ok: "Next" });
   };
+  // Names in the arcs: {city}, {country}.
+  const afill = (t) => String(t || "").replace(/\{city\}/g, g ? P(g).city : "the capital").replace(/\{country\}/g, g ? P(g).nm.replace(/^the /, "") : "the host country");
+  const chooseArc = (it, o) => {
+    if (!o.available) return;
+    const res = SYS.arcChoose(g, it.id, o.id, g.n, R("arc" + it.id + ((g.arcs[it.id] || {}).stage || "")), "amb"); if (!res) return;
+    trk("amb_arc", it.id + "_" + o.id + (res.end ? "_" + res.end : ""));
+    if (res.learnKey) learn(res.learnKey);
+    up(p => ({ ...SYS.applyAmb(p, res.fx), arcs: { ...p.arcs, [it.id]: res.A }, items: res.now ? [{ k: "arc", id: it.id }, ...p.items.slice(1)] : p.items.slice(1), helped: p.helped + (res.helped ? 1 : 0), story: res.story ? [...(p.story || []), afill(res.story)] : (p.story || []) }));
+    card({ icon: res.end === "good" ? "✅" : res.end === "bad" ? "📰" : res.end ? "📌" : "⏳", title: afill(o.l), text: afill(res.out) + (res.end ? "" : " This is not over."), rows: ambFxRows(res.fx), tone: res.end ? arcTone(res.end) : "neutral", ok: "Next" });
+  };
+  // One life: what the posting leaves in the player's record (the arcs' tags, heard by a later governor).
+  const saveRecord = (ending, grade) => { try { (async () => { const r0 = await window.storage.get(SYS.RECORD_KEY); const rec0 = r0 && r0.value ? JSON.parse(r0.value) : null;
+    await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec0, { office: "ambassador", ending, grade, cor: g.cor, state: null, place: P(g).nm, S: { seeds: SYS.arcTags(g).map(k => ({ key: k, due: 0, at: g.n })), npcs: {} }, keepTags: SYS.arcTagList("amb") }))); })(); } catch (e) {} };
   const endHalf = () => {
     const t = SYS.ambThreats(g, R("threat"));
     if (t) {
       learn(t.kind === "expelled" ? "vienna" : "mfa"); trk("amb_end", t.kind);
       fly("home", P(g).nm.split(" ").pop(), "Abuja");
-      up({ step: "over", over: true, ending: t.kind });
+      up({ step: "over", over: true, ending: t.kind }); saveRecord(t.kind, SYS.ambGrade(SYS.ambScore(g)));
       card({ icon: t.kind === "expelled" ? "🚫" : "📞", img: "./art/backgrounds/evacuation-airport.webp", title: t.kind === "expelled" ? "Declared persona non grata" : "Recalled to Abuja", text: t.kind === "expelled" ? "The host government gives you 72 hours to leave the country." : "A one-line cable: return to Abuja for consultations. Everyone knows what that means.", rows: [], tone: "bad", ok: "Continue" });
       return;
     }
     if (g.n >= SYS.AMB_HALVES) { const end = SYS.ambEnding(g), score = SYS.ambScore(g), grade = SYS.ambGrade(score); trk("amb_end", end); trk("amb_grade", grade);
-      up({ step: "over", over: true, ending: end, score, grade });
+      up({ step: "over", over: true, ending: end, score, grade }); saveRecord(end, grade);
       fly("home", P(g).nm.split(" ").pop(), "Abuja");
       try { (async () => { const r0 = await window.storage.get("sop_career"); const L = r0 && r0.value ? JSON.parse(r0.value) : []; await window.storage.set("sop_career", JSON.stringify([...L, { office: "ambassador", post: g.post, grade, ending: end, at: Date.now(), name: g.name }].slice(-200))); })(); } catch (e) {}
       return; }
@@ -16310,6 +16391,16 @@ const AmbassadorCareer = ({ profile, onExit }) => {
       {header}
       <Bt onClick={endHalf} style={{ width: "100%" }}>{G.n >= SYS.AMB_HALVES ? "Read Abuja's verdict →" : "Next half-year →"}</Bt>
     </Frame>);
+    if (it.k === "arc") {
+      const v = SYS.arcView(G, it.id, "amb");
+      if (!v) return wrap(<Frame bg="embassy-office"><H kick={kicker} title="Settled" sub="This matter has already been dealt with." /><Bt onClick={() => up(p => ({ items: p.items.slice(1) }))} style={{ width: "100%" }}>Next →</Bt></Frame>);
+      return wrap(<Frame {...v.art}>
+        <ArcBadge v={v} fz={fz} fill={afill} />
+        <H kick={kicker} title={afill(v.t)} sub={afill(v.d)} />
+        {header}{left}
+        <div style={{ display: "grid", gap: 8 }}>{v.opts.map(o => <Opt key={o.id} ic="•" l={afill(o.l)} d={!o.available ? o.why : null} tone={(o.fx && o.fx.cor > 0) ? "bad" : null} onClick={() => chooseArc(it, o)} />)}</div>
+      </Frame>);
+    }
     const x = ALL().find(y => y.id === it.id);
     const art = it.k === "cable" ? { bg: "embassy-office", who: "foreign-minister-nigeria" } : AMB_ART[x.id] || { bg: "embassy-office" };
     return wrap(<Frame {...art}>
@@ -16328,6 +16419,8 @@ const AmbassadorCareer = ({ profile, onExit }) => {
       {(G.ending === "promoted" || G.ending === "completed") && <img src="./art/badges/badge-ambassador.webp" alt="Ambassador badge" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, display: "block", margin: "0 auto 4px" }} />}
       <div style={{ fontSize: TS(tall ? 110 : 150), lineHeight: 1, fontWeight: 900, fontFamily: F.d, color: grade === "A" || grade === "B" ? CL.grn : grade === "F" ? CL.red : CL.gold }}>{grade}</div>
       <div style={{ fontSize: fz.s, color: CL.td }}>Score {score} · Nigerians abroad {G.diaspora}% · {G.helped} helped · {G.trade} deal{G.trade === 1 ? "" : "s"}</div>
+      {(G.story || []).length > 0 && <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 8, textAlign: "left" }}><b style={{ color: CL.txt }}>Your posting:</b> you {G.story.slice(-5).join("; ")}.</div>}
+      {SYS.arcOpen(G, "amb").length > 0 && <div data-testid="arc-left" style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.55, marginTop: 8, textAlign: "left" }}><b style={{ color: CL.txt }}>Still unresolved:</b> {SYS.arcOpen(G, "amb").map(x => afill(x.left)).join("; ")}.</div>}
     </Cd>
     <Cd style={{ marginTop: 10 }}><div style={{ fontSize: fz.s, color: "#1d3a5c" }}>📘 The ambassador's notebook: {notesHave()} of {notesAll} notes found.</div><Bt v="secondary" onClick={() => setBook(true)} style={{ marginTop: 8 }}>Open the notebook</Bt></Cd>
     <div style={{ display: "grid", gap: 8, marginTop: 12 }}>

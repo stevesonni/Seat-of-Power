@@ -1074,3 +1074,32 @@ game/systems/finance.js, tests/finance.test.mjs, tests/e2e/finance.mjs, tests/e2
 
 ### Pack 28 installed (lenders, tranches, IMF)
 All 27 pictures are wired in. Each lender's letter is closed with its own seal: the bank, the bond trustee, the development banks, the contractor, China Exim and the Fund. The letters come on the lender's own letterhead and enclose the payment order, the mission report, the invoice or the letter of intent. The decision scenes are the signing, the mission's site visit, the boardroom suspension and the IMF negotiations. The results show the idle site, the court's payment order, the floating naira, the students' march, the sovereignty rally and the walkout, and the newspapers show the petrol queue, the rally and the walkout. A project's loan line shows the tranche schedule. tests/art-usage checks all 27; the finance and IMF browser tests check that they appear on screen.
+
+### Headscratchers for the Chairman, the Senator and the Ambassador
+Twenty-two slow problems, each modelled on something that really happened somewhere else in the world (`game/systems/crises.js`). None of them needs a villain: a saving, a bounty, a missing comma or an act of hospitality is enough.
+- **LGA Chairman (8):** the rat bounty (Hanoi), the cheaper water (Flint), odd and even okadas (Mexico City), twenty buses too wide for the roads (France), the palace mural (Borja), forty drums of seized fuel by a school (Beirut, inherited from your predecessor), the playground pump (PlayPumps), and the vaccine scare (the Philippines).
+- **Senator (8):** your Clean Heat Act (Northern Ireland's "cash for ash"), the solar jobs fund (Australia's insulation scheme), the missing comma (Maine), the debt letters (Robodebt), the software that cannot be wrong (Horizon, inherited from the last Senate), the wrong button, the burial and the vote, and your false-information law.
+- **Ambassador (6):** the First Secretary's wife (Harry Dunn), your deputy and her maid (Khobragade), a shot from the embassy (London, 1984), the guest in Room 4 (Assange, inherited), cholera downstream of the peacekeepers' camp (Haiti), and 180 seats for 400 names (Kabul).
+
+How they play:
+- Each run plans three. An inherited one is on the desk from day one. Across replays, all of them come up.
+- Each is two to four cards over several turns, and each choice schedules the next stage. Some stages follow straight away (the re-vote, the families cleared).
+- **Hidden truths:** whether it was the vaccine, whether the software is wrong, whether the lab finds lead, whether the maid was underpaid, whether the camp caused the cholera. Only a choice that looks reveals them.
+- **Clues** show on the card as you gather them.
+- **Fuses:** a stage left to the chairman's staff (the in-tray) or put off for lack of money takes its "leave it" option, which usually lets the fuse burn. Unaffordable costs are waived rather than taken from an empty purse.
+- **Preparation pays:** a host government that trusts you clears families; a community you looked after finds them; a senator with standing gets the re-vote.
+- **Sync:**
+  - Arcs replace the career content they duplicate: the okada bye-law motion and the generic evacuation case. A market fire caused by the drums replaces the agenda's own market fire.
+  - Arc effects use each career's own numbers, purse, named people and election-day modifier. Solved problems count towards the Chairman's delivery, laws towards the Senator's, and Nigerians helped towards the Ambassador's.
+  - Story lines feed each ending's "Your term" or "Your posting". Arcs still open at the end are listed as "Still unresolved".
+- **Notebooks:** each arc that ends adds a page with the real-law lesson and where it happened.
+- **One life:** endings write their tags into the player's record (the Senator and the Ambassador now record too). A later governor or president hears about them on day one, alongside the chairmanship's own echoes, up to three lines.
+- **Older saves** get a plan from the next turn on.
+
+Tests:
+- `tests/crises.test.mjs` walks every option of every stage in every world (each truth, high and low standing, each flag). It checks that every option leads to a real stage and every arc can end, then plays full terms and checks tags, the agendas, the notebooks and the echoes.
+- `tests/e2e/headscratchers.mjs` plays three arcs in the browser:
+  - the drums burning after being left to staff;
+  - the wrong button's immediate re-vote, and an option the war chest cannot pay for;
+  - the evacuation, with a trusting host and a community that finds every family.
+  It then checks the record, and a later governor of Ogun hearing about the fire on day one.

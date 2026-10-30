@@ -4,6 +4,7 @@
    when things go wrong. The countries are invented. One posting is three
    years of two halves each. Every roll is seeded. */
 import { seeded } from "./rng.js";
+import { arcItems, arcNotes } from "./crises.js";
 
 const cl = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
 const cl1 = (v) => Math.max(0, Math.min(1, v));
@@ -74,7 +75,7 @@ export const HOST_ITEMS = [
 export const ambAgenda = (seed, n, S) => {
   const r = seeded(seed, "amb", n), seen = S.seen || [];
   const pick = (list) => { const c = list.filter(x => !seen.includes(x.id)); return c.length ? c[Math.floor(r() * c.length)] : null; };
-  return [["cable", CABLES], ["case", CASES], ["host", HOST_ITEMS]].map(([k, list]) => { const x = pick(list); return x && { k, id: x.id }; }).filter(Boolean);
+  return [["cable", CABLES], ["case", CASES], ["host", HOST_ITEMS]].map(([k, list]) => { const x = pick(list); return x && { k, id: x.id }; }).filter(Boolean).concat(arcItems(S, n, "amb"));
 };
 
 export const applyAmb = (S, fx = {}) => ({ ...S,
@@ -110,3 +111,6 @@ export const AMB_LEARN = {
   deathrow: "Some countries execute foreigners convicted of drug trafficking. Nigerian missions plead for clemency but cannot overturn a foreign court.",
   diasporavote: "Nigerians abroad cannot vote in Nigerian elections from where they live. Allowing it needs changes to the Constitution and the Electoral Act.",
 };
+
+// The headscratchers' notebook pages: the lesson, and where it really happened.
+Object.assign(AMB_LEARN, arcNotes("amb"));
