@@ -29,7 +29,7 @@ export const BAKUNDA_LEARN = {
   war: "Section 5(4)(a): the President cannot declare a state of war with another country without the approval of the National Assembly in a joint sitting. Section 218: the President is Commander-in-Chief of the armed forces.",
   forces: "Nigeria's armed forces are the Army, the Navy and the Air Force (Section 217). Each fits different ground: the Army takes and holds land, the Navy rules water, the Air Force strikes far and fast but cannot hold ground. The Navy's Special Boat Service is its commando arm, for raids and rescues from the water.",
   summit: "The ECOWAS Authority of Heads of State and Government is the community's highest body. It can impose sanctions and authorise a standby force.",
-  ally: "Foreign military assistance comes with conditions: under United States law, units that receive training or equipment must be vetted for human-rights abuses. A partner's help can shorten a war, and bind how it is fought.",
+  ally: "Foreign military help comes with conditions: under United States law, units that receive training or equipment must be vetted for human-rights abuses. A partner's help can shorten a war, and bind how it is fought.",
   treaty: "Section 12: a treaty Nigeria signs has the force of law here only when the National Assembly enacts it. A peace accord that is never enacted binds no Nigerian court.",
   refugees: "Nigeria hosts refugees under the National Commission for Refugees, Migrants and Internally Displaced Persons, and the 1969 OAU Refugee Convention it ratified.",
 };

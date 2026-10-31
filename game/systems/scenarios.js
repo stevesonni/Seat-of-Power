@@ -343,7 +343,7 @@ export const SCENARIO_RULES = {
         says: "Your Excellency, cement has doubled. Without a variation of forty percent we stop work on Monday.",
         options: [
           opt("pay", "Pay the variation", "The wall gets built.", { costPct: .05, prog: 30, say: "Work goes on through the dry season." }),
-          opt("retender", "Terminate and re-tender", "Honest, and slow.", { costPct: .02, prog: 15, fx: { cor: -.01 }, say: "A new contractor is on site in two months." }),
+          opt("retender", "Cancel and re-tender", "Honest, and slow.", { costPct: .02, prog: 15, fx: { cor: -.01 }, say: "A new contractor is on site in two months." }),
           opt("cheap", "Tell him to use less cement", "It will stand, until it doesn't.", { prog: 30, set: { weakWall: true }, fx: { cor: .02 }, say: "The work goes on. The engineers stop signing the reports." }),
         ] },
       { id: "relief", who: "civil-servant", bg: "governor-office", scene: "flood", by: "The NEMA coordinator", title: "The relief is stuck at the depot",

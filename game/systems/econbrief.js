@@ -133,7 +133,7 @@ const GOV = [
     t: () => "Retirees protest unpaid pensions",
     d: () => "Old teachers and nurses sit at the Government House gate. Some have not been paid for a year.",
     opts: [O("pay", "Pay ₦1B of the arrears now", { cost: 1, app: 3 }, { past: "paid ₦1B of pension arrears" }),
-      O("verify", "Verify the list first", { cost: .1 }, { later: { text: "The verification found 900 dead pensioners still being paid.", fx: { igr: .3, cor: -.01 } }, past: "ordered a pension verification" }),
+      O("verify", "Check the list first", { cost: .1 }, { later: { text: "The verification found 900 dead pensioners still being paid.", fx: { igr: .3, cor: -.01 } }, past: "ordered a pension verification" }),
       O("later", "Promise them next year", { app: -2 }, { later: { text: "The retirees occupied the Government House gate for a week.", fx: { app: -2 } }, past: "promised the retirees next year" })] },
   { id: "contractors", pri: (c) => c.turn >= 3 ? 40 : -1, when: (c) => c.turn >= 3,
     t: () => "Contractors are owed money from the last government",

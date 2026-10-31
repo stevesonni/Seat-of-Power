@@ -487,13 +487,13 @@ const FG_EVENTS = [
     ]},
   { id: "fg_military", type: "punish", title: "🪖 Military Deployment to Your State", desc: "The President has deployed a military task force to your state citing 'security concerns.' Your state security outfit is sidelined. The military answers to Abuja, not you.", fx: { sec: .03 },
     opts: [
-      { l: "🤝 Welcome the Troops", d: "Cooperate. Provide logistics. Show unity of purpose.", fx: { sec: .02, app: -2 }, fgRel: 15, sk: { media: -3 }, log: "Governor welcomes military. Security improves but autonomy reduced." },
+      { l: "🤝 Welcome the Troops", d: "Work with them. Lend trucks and fuel. Show a united front.", fx: { sec: .02, app: -2 }, fgRel: 15, sk: { media: -3 }, log: "Governor welcomes military. Security improves but autonomy reduced." },
       { l: "📢 Demand Withdrawal", d: "Publicly demand the President withdraw troops. 'This is our state.'", fx: { app: 4 }, fgRel: -25, sk: { media: 10, youth: 8 }, log: "Governor demands military withdrawal. Federal-state tensions escalate." },
       { l: "🔇 Say Nothing", d: "Neither welcome nor oppose. Let it play out.", fx: { app: -1 }, fgRel: 0, log: "Governor stays silent on military deployment. Citizens confused." },
     ]},
   { id: "fg_road", type: "reward", title: "🛣️ Federal Road Approval", desc: "The Federal Government has approved a federal highway through your state! ₦25B project. But they want you to provide right-of-way and matching funds.", fx: {},
     opts: [
-      { l: "✅ Provide Everything", d: "Allocate land and ₦3B matching funds. The road transforms your state.", fx: { infra: .06, app: 8 }, fgRel: 10, dc: 3, log: "Federal highway approved. Governor provides matching funds. Infrastructure boom." },
+      { l: "✅ Give them everything", d: "Give the land and ₦3B of matching funds. The road transforms your state.", fx: { infra: .06, app: 8 }, fgRel: 10, dc: 3, log: "Federal highway approved. Governor provides matching funds. Infrastructure boom." },
       { l: "🤝 Negotiate Terms", d: "Offer land but resist matching funds. 'It's a federal road.'", fx: { infra: .03, app: 4 }, fgRel: -5, dc: 1, log: "Highway negotiations ongoing. Partial funding agreed." },
       { l: "❌ Decline", d: "You can't afford ₦3B. The highway goes to another state.", fx: { app: -4 }, fgRel: -10, sk: { business: -10 }, log: "Governor declines federal highway. Business community furious." },
     ]},
@@ -510,7 +510,7 @@ const FG_EVENTS = [
     ]},
   { id: "fg_party_pressure", type: "punish", title: "🏛️ Aso Rock Demands Party Loyalty", desc: "The President's Chief of Staff calls. 'Your Excellency, Mr. President notices you've been... independent. He expects you to mobilize your state for the party's national campaign. Resources will be provided. Or not.'", fx: {},
     opts: [
-      { l: "🤝 Comply", d: "Mobilize your machinery for the President. Use state resources for party events.", fx: { app: -3, cor: .03 }, fgRel: 20, sk: { party: 10 }, log: "Governor mobilizes state for party campaign. Loyalty demonstrated." },
+      { l: "🤝 Comply", d: "Mobilize your machinery for the President. Use state resources for party events.", fx: { app: -3, cor: .03 }, fgRel: 20, sk: { party: 10 }, log: "Governor mobilizes state for party campaign. Loyalty shown." },
       { l: "🔇 Minimal Compliance", d: "Do the bare minimum. Attend one rally. Send your deputy to the rest.", fx: { app: 0 }, fgRel: -5, sk: { party: -3 }, log: "Governor gives lukewarm support to party campaign." },
       { l: "❌ Refuse", d: "'My state comes first. I won't use public resources for party politics.'", fx: { app: 6 }, fgRel: -25, sk: { party: -15, media: 10, youth: 8 }, log: "Governor refuses presidential directive. Political independence — at a cost." },
     ]},
@@ -573,7 +573,7 @@ const SHOCK_EVENTS = [
 const JUDICIARY_TRIGGERS = [
   { id: "jud_land", trigger: "investor_approved", title: "⚖️ Community Sues Over Land Allocation", desc: "Displaced residents have filed a suit at the State High Court challenging the land allocation to {company}. They argue the process violated the Land Use Act and proper compensation was not paid.", winChance: .55, statute: "Land Use Act, 1978 — S.28-29" },
   { id: "jud_budget", trigger: "forced_budget", title: "⚖️ Opposition Challenges Forced Budget", desc: "The opposition has filed suit arguing your budget was passed without proper House of Assembly approval, violating Section 121 of the 1999 Constitution.", winChance: .35, statute: "S.121 — Appropriation Bill" },
-  { id: "jud_corrupt", trigger: "high_corruption", title: "⚖️ Anti-Corruption Group Files Suit", desc: "A civil society group has obtained a court order demanding an audit of your administration's procurement processes. State corruption index: {corruption}%.", winChance: .45, statute: "Public Procurement Act, 2007" },
+  { id: "jud_corrupt", trigger: "high_corruption", title: "⚖️ Anti-Corruption Group Files Suit", desc: "A civil society group has won a court order for an audit of how your government awards contracts. State corruption index: {corruption}%.", winChance: .45, statute: "Public Procurement Act, 2007" },
   { id: "jud_policy", trigger: "policy_enacted", title: "⚖️ Injunction Against Your Policy", desc: "A group of affected citizens has asked the High Court to halt your {policy} programme, arguing it violates their constitutional rights. It runs until the court rules.", winChance: .50, statute: "S.36 — Right to Fair Hearing" },
   { id: "jud_security", trigger: "security_action", title: "⚖️ Human Rights Challenge", desc: "The Nigerian Bar Association has filed suit challenging your security operations, alleging extrajudicial detentions and excessive force.", winChance: .40, statute: "S.35 — Right to Personal Liberty" },
   { id: "jud_mining", trigger: "mining_approved", title: "⚖️ Environmental Groups Sue Over Mining", desc: "Environmental organizations have gone to court to cancel the mining license you approved. They cite potential mercury contamination and community displacement.", winChance: .50, statute: "Environmental Impact Assessment Act, 1992" },
@@ -1640,7 +1640,7 @@ const GODFATHER_DEMANDS = [
 const DILEMMAS_EXTRA = [
   { id: "religious2", nm: "Religious Crisis", d: "A blasphemy accusation sparks riots. 3 churches and 2 mosques burned. 8 dead.", ch: [{ l: "Impose curfew + deploy Amotekun/VGN", fx: { sec: .03, app: 3 }, sk: { religious: -5, youth: -6 }, rk: "Civil liberties concerns" }, { l: "Emergency interfaith dialogue", fx: { sec: .01, app: 4 }, sk: { religious: 10, traditional: 8 }, rk: "Slow while people die" }, { l: "Arrest ringleaders on both sides", fx: { sec: .04, app: 2 }, sk: { religious: -8, media: 5 }, rk: "Both sides hate you" }] },
   { id: "kidnap", nm: "Schoolchildren Kidnapped", d: "Armed men abduct 87 students from a secondary school. Parents are at Government House.", ch: [{ l: "Pay ransom secretly", fx: { app: 5, sec: -.03 }, sk: { media: -10, youth: 8 }, rk: "Encourages more kidnapping", dc: 2 }, { l: "Military rescue operation", fx: { sec: .04, app: 3 }, sk: { media: 8, youth: 5 }, rk: "Children could die" }, { l: "Negotiate without paying", fx: { app: -2, sec: .01 }, sk: { media: 3 }, rk: "Takes weeks. Parents suffer." }] },
-  { id: "asuu", nm: "ASUU Strike", d: "State university lecturers join nationwide ASUU strike. 45,000 students stuck at home. Parents furious. Youth stakeholders plummeting.", ch: [{ l: "Pay state university lecturers separately", fx: { app: 6, lit: .02 }, sk: { youth: 12, unions: 8 }, rk: "₦1.5B cost. Other states may resent you.", dc: 1.5 }, { l: "Wait for federal resolution", fx: { app: -4 }, sk: { youth: -12, unions: -5 }, rk: "Students lose a year. You look helpless." }, { l: "Sack striking lecturers — hire replacements", fx: { app: -8, lit: -.03 }, sk: { youth: -15, unions: -25, media: -12, religious: -5 }, rk: "NIC WILL order reinstatement. Education quality collapses. National outrage.", nicTrigger: true }, { l: "Convert to state university system", fx: { lit: .03, app: 2 }, sk: { youth: 5, unions: -8 }, rk: "Constitutional grey area. ₦3B cost.", dc: 3 }] },
+  { id: "asuu", nm: "ASUU Strike", d: "State university lecturers join nationwide ASUU strike. 45,000 students stuck at home. Parents furious. Young people turn on you.", ch: [{ l: "Pay state university lecturers separately", fx: { app: 6, lit: .02 }, sk: { youth: 12, unions: 8 }, rk: "₦1.5B cost. Other states may resent you.", dc: 1.5 }, { l: "Wait for federal resolution", fx: { app: -4 }, sk: { youth: -12, unions: -5 }, rk: "Students lose a year. You look helpless." }, { l: "Sack striking lecturers — hire replacements", fx: { app: -8, lit: -.03 }, sk: { youth: -15, unions: -25, media: -12, religious: -5 }, rk: "NIC WILL order reinstatement. Education quality collapses. National outrage.", nicTrigger: true }, { l: "Convert to state university system", fx: { lit: .03, app: 2 }, sk: { youth: 5, unions: -8 }, rk: "Constitutional grey area. ₦3B cost.", dc: 3 }] },
   { id: "oil_spill", nm: "Oil Spill Disaster", d: "Pipeline explosion contaminates 30km of farmland and water sources. Fishing communities devastated.", ch: [{ l: "Demand federal compensation + clean up", fx: { app: 5, agr: -.02 }, sk: { media: 6, traditional: 5 }, rk: "FG drags feet" }, { l: "State funds emergency cleanup", fx: { app: 8, agr: .01, hp: .01 }, sk: { media: 10, business: 5 }, rk: "₦3B cost", dc: 3 }, { l: "Sue the oil company", fx: { app: 3 }, sk: { media: 8, business: -5 }, rk: "Case takes years" }] },
   { id: "market_fire", nm: "Central Market Fire", d: "The state's largest market burns. 2,000 traders lose everything. ₦15B in goods destroyed.", ch: [{ l: "Emergency relief fund", fx: { app: 10 }, sk: { business: 12, unions: 8, media: 5 }, rk: "₦2B cost", dc: 2 }, { l: "Promise to rebuild (later)", fx: { app: -3 }, sk: { business: -10, media: -8 }, rk: "Traders feel abandoned" }, { l: "Rebuild immediately with modern design", fx: { app: 8, infra: .03 }, sk: { business: 15, youth: 5 }, rk: "₦5B heavy cost", dc: 5 }] },
   { id: "cholera", nm: "Cholera Outbreak", d: "Cholera hits 12 LGAs. 200 dead. Hospitals overwhelmed. WHO issues alert.", ch: [{ l: "Declare health emergency, all resources", fx: { hp: .04, app: 8 }, sk: { media: 8, religious: 5 }, rk: "₦2B cost", dc: 2 }, { l: "Request federal health intervention", fx: { app: -3, hp: .01 }, sk: { media: -5 }, rk: "FG slow. More die." }, { l: "Target worst LGAs only", fx: { hp: .02, app: 3 }, sk: { media: 3 }, rk: "Other LGAs feel ignored", dc: 0.8 }] },
@@ -1742,7 +1742,7 @@ const INTL_INVITES = [
   { id: "sweden_pm", personal: true, icon: "🇸🇪", from: "Rosenbad, Stockholm", who: "The Prime Minister of Sweden", what: "Sweden wants to discuss development aid, renewable energy partnerships, and good governance benchmarking. SIDA has earmarked funds for pilot states.", goFx: { igr: 1.5, hp: .02, app: 3 }, goSk: { business: 8, media: 5 }, goCost: 0.3, goLog: "Met Swedish PM. SIDA development partnership signed. ₦1.5B in aid pipeline.", delFx: { app: 0 }, delSk: { business: 2 }, delLog: "Delegation met Swedish officials. Cordial but non-committal.", decFx: { app: -1 }, decSk: { media: -3 }, decLog: "Declined Swedish PM invitation. Development partners took note." },
   { id: "uk_trade", icon: "🇬🇧", from: "10 Downing Street, London", who: "The UK Secretary of State for Business and Trade", what: "Post-Brexit, the UK is looking for direct trade partnerships with Nigerian states. Your state's agricultural exports caught their attention.", goFx: { igr: 2, agr: .03, app: 4 }, goSk: { business: 12, traditional: 4 }, goCost: 0.4, goLog: "Met UK trade officials at Downing Street. Agricultural export deal signed. ₦2B boost.", delFx: { app: 1, agr: .01 }, delSk: { business: 4 }, delLog: "Trade delegation went to London. Minor agreements reached.", decFx: { app: -1 }, decSk: { business: -6 }, decLog: "Declined UK trade invitation. Business community frustrated." },
   { id: "china_infra", icon: "🇨🇳", from: "Beijing, China", who: "China's Minister of Commerce", what: "China is offering infrastructure loans and construction partnerships — roads, bridges, housing. The terms are generous but the politics are complicated.", goFx: { infra: .05, app: 3 }, goSk: { business: 8, media: -5, youth: -3 }, goCost: 0.2, goLog: "Signed infrastructure deal with China. Roads and bridges coming — but critics call it 'debt trap diplomacy.'", delFx: { infra: .02 }, delSk: { business: 3 }, delLog: "Delegation explored China options. Framework agreement signed.", decFx: { app: 1 }, decSk: { media: 5, youth: 3 }, decLog: "Declined Chinese infrastructure loan. Media praised independence from 'debt trap.'" },
-  { id: "un_sdg", personal: true, icon: "🇺🇳", from: "The Global Goals Summit, New York", who: "A global development envoy", what: "An invitation to speak at the Global Goals Summit side event on SDG implementation at subnational level. Your state has been identified as a model.", goFx: { app: 6, hp: .01 }, goSk: { media: 12, youth: 8, religious: 4 }, goCost: 0.4, goLog: "Spoke at the Global Goals Summit. International recognition. 'A model governor' — summit press release.", delFx: { app: 1 }, delSk: { media: 3 }, delLog: "Deputy spoke at the summit side event. Decent representation.", decFx: { app: -2 }, decSk: { media: -4, youth: -5 }, decLog: "Declined the summit invitation. 'Too busy governing' — but the world noticed your absence." },
+  { id: "un_sdg", personal: true, icon: "🇺🇳", from: "The Global Goals Summit, New York", who: "A global development envoy", what: "An invitation to speak at a side event of the Global Goals Summit on how states can meet the goals. Your state has been picked as a model.", goFx: { app: 6, hp: .01 }, goSk: { media: 12, youth: 8, religious: 4 }, goCost: 0.4, goLog: "Spoke at the Global Goals Summit. International recognition. 'A model governor' — summit press release.", delFx: { app: 1 }, delSk: { media: 3 }, delLog: "Deputy spoke at the summit side event. Decent representation.", decFx: { app: -2 }, decSk: { media: -4, youth: -5 }, decLog: "Declined the summit invitation. 'Too busy governing' — but the world noticed your absence." },
   { id: "uae_invest", personal: true, icon: "🇦🇪", from: "Abu Dhabi, UAE", who: "A Gulf sovereign wealth fund", what: "UAE sovereign wealth fund exploring real estate and agro-industrial investment in Nigerian states. They want to meet the governor personally before committing.", goFx: { igr: 3, infra: .03, app: 4 }, goSk: { business: 15 }, goCost: 0.5, goLog: "Met Abu Dhabi investors. Massive real estate and agro-industrial investment secured. ₦3B IGR boost.", delFx: { app: 0 }, delSk: { business: 3 }, delLog: "Sent team to Abu Dhabi. Investors wanted the governor. 'We deal with principals, not agents.'", decFx: { app: -1 }, decSk: { business: -8 }, decLog: "Declined Abu Dhabi meeting. ₦3B investment went to a rival state." },
   { id: "ge_power", icon: "⚡", from: "Meridian Power, Boston, USA", who: "Meridian Power's head of Africa power projects", what: "Meridian wants to install gas turbines for an independent power plant in your state, fix part of the transmission network and train 300 local engineers. They want the governor at the table before they commit capital.", goFx: { igr: 1.5, infra: .04, app: 4 }, goSk: { business: 12, youth: 6 }, goCost: 0.5, goLog: "Met Meridian Power in Boston. A 250MW independent power plant and an engineering academy agreed.", delFx: { infra: .02, app: 1 }, delSk: { business: 4 }, delLog: "The delegation met Meridian Power. A feasibility study is agreed; the turbines wait for the governor's own signature.", decFx: { app: -1 }, decSk: { business: -5 }, decLog: "Declined Meridian Power. The power plant goes to a neighbouring state." },
   { id: "world_bank", icon: "🏦", from: "The Global Development Fund, Washington D.C.", who: "The Global Development Fund's director for Nigeria", what: "Low-interest financing to rebuild primary schools and health centres, on one condition: the state publishes its budget and every procurement contract online.", goFx: { lit: .03, hp: .02, app: 3 }, goSk: { media: 8, youth: 6 }, goCost: 0.3, goLog: "Signed a Global Development Fund programme for schools and clinics, tied to publishing the budget and contracts online.", delFx: { lit: .01, app: 1 }, delSk: { media: 3 }, delLog: "The delegation opened talks with the Global Development Fund. The money waits for a commitment only the governor can make.", decFx: { app: -1 }, decSk: { media: -4 }, decLog: "Declined the Global Development Fund programme. Civil society asks what the state is hiding." },
@@ -2366,7 +2366,7 @@ const HowToPlay = ({ show, onClose }) => {
     { t: "⚡ Shock Events", c: "8 unpredictable national crises: oil price crash (FAAC -25%), naira devaluation, pandemic, #EndSARS protests, fuel subsidy removal, flooding, terrorist attack, banking crisis.\n\n30% chance each turn, max 2 per game. Auto-effects hit BEFORE you choose your response. No two playthroughs are the same." },
     { t: "🏛️ Civil Service & Bureaucracy", c: "6 Permanent Secretaries with types: Technocrat (efficient), Old Guard (resists change), Party Plant (godfather's man), Reformer, Corrupt Bureaucrat, Silent Worker. They affect project delivery, sector performance, and corruption.\n\n5 reforms available: Audit, Compulsory Retirement, Capacity Building, Digitize Civil Service, Political Appointments. Mass sacking triggers the National Industrial Court — you'll face a ruling and must choose to comply or defy." },
     { t: "⚖️ Judiciary System", c: "Courts challenge your actions based on what you do: approve investor land → community sues; force budget → opposition sues; high corruption → civil society sues.\n\n3-court appeal chain: State High Court (55% win) → Court of Appeal (43%) → Supreme Court (31%). At each level: fight or comply (get ~60% of spent money back).\n\nDefying the Supreme Court = CONSTITUTIONAL CRISIS: approval capped at 32% then -15%, party -20%, corruption +8%, near-certain impeachment. S.287: all authorities shall comply.\n\nThe National Industrial Court (S.254C) handles labour disputes. Sacking workers triggers NIC. You can comply (reinstate + pay arrears), partially comply (payment plan), or DEFY (criminal contempt, general strike, impeachment)." },
-    { t: "🔗 Trust Network & Cascades", c: "Stakeholders are connected. When one crashes, it pulls others down: Media ↓ → Youth drops 40% of the hit. Unions ↓ → Youth and Media drop. Traditional rulers ↓ → Party and Religious drop.\n\nOne bad decision can cascade through your entire support network. You don't lose approval — you lose THE SYSTEM." },
+    { t: "🔗 Trust Network & Cascades", c: "The groups are connected. When one turns on you, it pulls others down: Media ↓ → Youth drops 40% of the hit. Unions ↓ → Youth and Media drop. Traditional rulers ↓ → Party and Religious drop.\n\nOne bad decision can cascade through your entire support network. You don't lose approval — you lose THE SYSTEM." },
     { t: "📖 Narrative Engine", c: "The game tracks your dominant public narrative: The Strong Leader 💪, The Technocrat 🧠, The People's Governor ✊, The Corrupt Politician 💀, The Builder 🏗️, The Reformer ✨, The Weak Governor 😰, The Survivor 🛡️.\n\nNarrative affects: approval drift each turn, re-election scoring (-8 for 'corrupt', +5 for 'reformer'), and your Wikipedia biography. Even with good stats, a bad narrative loses elections." },
     { t: "🔍 Hidden Threats & Investigations", c: "Not everything is visible. Hidden corruption festers in your ministries — ghost workers, land fraud, expired drugs, inflated contracts. Your SA hints: 'Something feels off in the Works Ministry...'\n\nInvestigate (₦300M) = catch it early, limited damage. Ignore = it EXPLODES in 3 turns with -6 approval and +5% corruption. Strategic patience vs cost management." },
     { t: "⏰ Time Delays", c: "Policies don't give instant results. Education investment = +0 now, +5 approval in 3 turns. Health = payoff in 2 turns. Agriculture = IGR boost in 2 turns.\n\nThis creates tension: invest in education (payoff in 3 turns) when you need approval NOW to survive impeachment?" },
@@ -2416,7 +2416,7 @@ const PROFILE_KEY = "sop_profile";
 // are deleted (purchases and settings stay), then the page reloads clean.
 const FRESH_KEYS = ["sop_save", "sop_profile", "sop_preelection", "sop_record", "sop_career", "sop_senate", "sop_lga", "sop_amb", "sop_notebook", "sop_pres"];
 const startAfresh = async () => {
-  const ok = await window.SOP_confirm("Start afresh?\n\nYour politician, the game in progress, your career map and the record of every office you have held are deleted. This cannot be undone.\n\nYour purchases and settings stay.", "Delete and start afresh", "Keep playing");
+  const ok = await window.SOP_confirm("Start over?\n\nYour politician, the game in progress, your career map and the record of every office you have held are deleted. This cannot be undone.\n\nYour purchases and settings stay.", "Delete and start over", "Keep playing");
   if (!ok) return;
   for (const k of FRESH_KEYS) { try { await window.storage.set(k, ""); } catch (e) {} try { localStorage.removeItem(k); } catch (e) {} }
   try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {}
@@ -2888,7 +2888,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ...(!VATAR && window.SOP_installable && window.SOP_installable() ? [["icon-share", "Install the app", "On your home screen, full-screen, one tap away", () => { setSheet(null); try { window.SOP_install(); } catch (e) {} }]] : []),
             ["icon-ask-sa", "Tell us what to improve", "What you like, what you don't, what you want to see", () => { setSheet(null); try { window.SOP_feedbackForm({ where: "title" }); } catch (e) {} }],
             ["icon-sound", soundOn ? "Sound on" : "Sound off", "Tap to switch", () => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }],
-          ].concat(profile ? [["icon-politician", "Start afresh", "Delete your politician and records, and begin again", () => { setSheet(null); startAfresh(); }]] : []).map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
+          ].concat(profile ? [["icon-politician", "Start over", "Delete your politician and records, and begin again", () => { setSheet(null); startAfresh(); }]] : []).map(([ic, t, sub, go, dot]) => <button key={t} onClick={go} style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: UI.ink }}>
             <span style={{ width: 48, height: 48, borderRadius: 14, background: UI.tints[1], display: "grid", placeItems: "center", fontSize: 24, opacity: ic === "icon-sound" && !soundOn ? .45 : 1 }}><Ico n={ic} s={38} /></span>
             <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{t}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{sub}</span></span>
             {dot ? <span style={{ display: "flex", alignItems: "center", gap: 4, background: "#e9b949", color: UI.ink, borderRadius: 999, padding: "3px 10px 3px 4px", fontSize: DS.t.meta, fontWeight: 800 }}><Ico n="icon-new" s={20} />NEW</span> : <span style={{ color: UI.dim }}>›</span>}
@@ -4263,7 +4263,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
       <SceneArt bg="assembly-chamber-wide" who="speaker-pleased" alt={speakerName} h={TALL() ? 170 : 230} />
       <h3 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>APPROPRIATION BILL PASSED</h3>
       <p style={{ color: CL.tm, fontSize: TS(36), marginBottom: 43 }}>The House of Assembly has approved your budget.</p>
-      <Bt onClick={onPass}>PROCEED TO POLICIES →</Bt>
+      <Bt onClick={onPass}>ON TO POLICIES →</Bt>
     </div>
   );
 
@@ -4276,7 +4276,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
         {reasons.map((r2, i) => (
           <div key={i} style={{ padding: "10px 0", borderTop: i ? "1px solid " + CL.red + "20" : "none" }}>
             <div style={{ display: "flex", alignItems: "center", fontSize: TS(34), color: CL.txt, lineHeight: 1.4 }}><LawFace who={r2.who} /><span><b>{r2.who}</b> — {r2.why || r2.t}</span></div>
-            <div style={{ fontSize: TS(30), color: r2.good ? CL.grn : CL.red, marginTop: 4 }}>{r2.good ? "Fair reason: the bill has a real problem." : r2.grudge ? "Leverage, not policy: this is about what you did, not what the bill says." : "Political: your own side is not with you."}</div>
+            <div style={{ fontSize: TS(30), color: r2.good ? CL.grn : CL.red, marginTop: 4 }}>{r2.good ? "Fair reason: the bill has a real problem." : r2.grudge ? "Pressure, not policy: this is about what you did, not what the bill says." : "Political: your own side is not with you."}</div>
           </div>
         ))}
       </div>
@@ -4609,12 +4609,12 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
     const d = F0.draft, e = estOf(d), P = F0.plan;
     const a = SYS.assessFunding({ needM: e.buildM, approvedM: P.approvedM, thisYearM: P.thisYearM, years: e.years });
     const room = roomM(SYS.TYPE_SECTOR[d.type]), gap = Math.max(a.shortM, P.thisYearM - room), overRoom = P.thisYearM > room;
-    const choices = { increase: ["Approve the full cost", "Set the budget to " + SYS.fmtM(e.buildM) + "."], reduce: ["Cut the scope to fit", "About " + Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)) + " " + e.unit + "s instead of " + d.qty + "."], finance: ["Seek financing", "Apply to lenders for " + SYS.fmtM(gap) + ". No debt until you accept an offer."], defer: ["Defer it", "Nothing starts this year. No agenda used."], proceed: ["Go ahead anyway", "On the record: you were warned the money runs out first."] };
+    const choices = { increase: ["Approve the full cost", "Set the budget to " + SYS.fmtM(e.buildM) + "."], reduce: ["Cut the scope to fit", "About " + Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)) + " " + e.unit + "s instead of " + d.qty + "."], finance: ["Seek financing", "Apply to lenders for " + SYS.fmtM(gap) + ". No debt until you accept an offer."], defer: ["Put it off", "Nothing starts this year. No agenda used."], proceed: ["Go ahead anyway", "On the record: you were warned the money runs out first."] };
     const head = a.kind === "short" ? "Funding gap: " + SYS.fmtM(a.shortM) : overRoom ? "This year's share is more than the bank can pay" : a.kind === "phased" ? "Phased over " + e.years + (e.years === 1 ? " year" : " years") : "Fully funded";
     const late = SYS.finishesAfterTerm(year, e.years, lastYear);
     return <Dossier icon={SECTOR_ICON[SYS.TYPE_SECTOR[d.type]]} kicker="Budget" title={d.title} place={placeLabel(d)} at={0}>
       {late && <div data-testid="proj-late" style={{ margin: "0 0 10px", padding: "10px 12px", borderRadius: 12, background: "#fff4e5", color: "#7a4a00", fontSize: 15, fontFamily: F.b, lineHeight: 1.4 }}>⏳ Started now, it finishes in {year + e.years - 1 > lastYear ? "year " + (year + e.years - 1) : "your last year"}: after your time in office. Your successor decides whether it is finished. A smaller size, or speeding it up once it starts, can open it before you leave.</div>}
-      <Situation tone={a.kind === "short" ? "bad" : overRoom ? "warn" : null} head={head} text={a.kind === "short" ? "The project cannot proceed as planned. Close the gap, cut the scope, or go ahead knowing the money runs out first." : overRoom ? "The bank can pay " + SYS.fmtM(room) + " towards it this year. The rest must be borrowed, or the work goes slower." : "Approval sets the budget. It is not a contract: nothing is paid until a contractor is chosen."} />
+      <Situation tone={a.kind === "short" ? "bad" : overRoom ? "warn" : null} head={head} text={a.kind === "short" ? "The project can't go ahead as planned. Close the gap, cut the scope, or go ahead knowing the money runs out first." : overRoom ? "The bank can pay " + SYS.fmtM(room) + " towards it this year. The rest must be borrowed, or the work goes slower." : "Approval sets the budget. It is not a contract: nothing is paid until a contractor is chosen."} />
       <Tiles items={[["Estimated cost", SYS.fmtM(e.buildM)], ["Approved", SYS.fmtM(P.approvedM), a.kind === "short" ? "bad" : null], ["Funding gap", SYS.fmtM(Math.max(0, a.shortM)), a.shortM ? "bad" : "good"], ["Bank can pay", SYS.fmtM(room), overRoom ? "bad" : null]]} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <div>{spLab("Total budget (₦M)")}<input type="number" min={0} step={50} value={P.approvedM} onChange={x => onFlow({ ...F0, plan: { ...P, approvedM: Math.max(0, Math.round(+x.target.value || 0)), choice: null } })} style={spField} /></div>
@@ -4624,7 +4624,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
       <Brief><div>{a.text}</div><div style={{ marginTop: 4 }}>Phasing (the whole scope funded over several years) is normal. A gap (approving less than the scope costs) means work stops when the money does, quality suffers, and the site may be abandoned.</div></Brief>
       <Actions>
         <button className="sp-btn quiet" onClick={() => onFlow({ ...F0, step: "propose" })}>‹ Back</button>
-        <button className="sp-btn" disabled={(a.kind === "short" || overRoom) && !P.choice} onClick={() => onConfirmPlan(F0, a, overRoom)}>{P.choice === "defer" ? "Defer" : "Approve the project"}</button>
+        <button className="sp-btn" disabled={(a.kind === "short" || overRoom) && !P.choice} onClick={() => onConfirmPlan(F0, a, overRoom)}>{P.choice === "defer" ? "Put it off" : "Approve the project"}</button>
       </Actions>
       <div style={{ textAlign: "right", font: "600 13px 'Plus Jakarta Sans', sans-serif", color: "#7a6c4c", marginTop: 6 }}>Approving uses 1 of your {agendaLeft} big moves left this year.</div>
     </Dossier>;
@@ -4678,7 +4678,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
       {survive && !["delivered", "built", "abandoned"].includes(p.status) && (() => { const S = survive(p); return <div data-testid="proj-survive" style={{ marginTop: 8, fontSize: 14, color: S.odds >= .7 ? "#0b6b42" : S.odds >= .45 ? "#9a5b12" : "#a3271c", fontFamily: F.b }}>
         If you left office today: <b>{Math.round(S.odds * 100)}%</b> chance it gets finished. {S.kind}{p.fast ? " · Sped up" : ""}{p.protected ? " · Protected" : ""}</div>; })()}
       {n.due && (n.id === "blocked_finance"
-        ? <Actions><button className="sp-btn quiet" onClick={() => onAction(p.id, "abandon")}>Defer indefinitely</button><button className="sp-btn" onClick={() => onAction(p.id, "fit")}>Fit the scope to the budget</button></Actions>
+        ? <Actions><button className="sp-btn quiet" onClick={() => onAction(p.id, "abandon")}>Shelve it</button><button className="sp-btn" onClick={() => onAction(p.id, "fit")}>Fit the scope to the budget</button></Actions>
         : <Actions><button className="sp-btn" onClick={() => onOpenStep(p)}>{n.button}</button></Actions>)}
       <Brief>
         <div>Committed, not yet spent: {SYS.fmtM(SYS.committedM(p))} · {SYS.toFinishM(p) > 0 ? "Short of finishing by: " + SYS.fmtM(SYS.toFinishM(p)) : "Enough approved to finish"}{p.loanLeftM > 0 ? " · Loan money in hand: " + SYS.fmtM(p.loanLeftM) : ""}.</div>
@@ -4693,7 +4693,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
           {(p.status === "stalled" || p.status === "in_progress") && <button className="sp-btn ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</button>}
           {p.status === "in_progress" && !p.fast && <button className="sp-btn ghost" onClick={() => onAction(p.id, "accelerate")}>Speed it up (+15%)</button>}
           {p.status === "in_progress" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</button>}
-          {["stalled", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "abandon")}>{p.status === "pending_finance" ? "Defer indefinitely" : "Abandon"}</button>}
+          {["stalled", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "abandon")}>{p.status === "pending_finance" ? "Shelve it" : "Abandon"}</button>}
           {p.facility && p.status === "built" && p.equipped && !p.staffed && <button className="sp-btn ghost" onClick={() => onAction(p.id, "staff")}>Staff it</button>}
         </div>
       </Brief>
@@ -5553,7 +5553,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { const f = () => setEntsTick(t => t + 1); window.addEventListener("sop-ents", f); return () => window.removeEventListener("sop-ents", f); }, []);
   const buySecondChance = () => {
     window.SOP_buy("second_chance").then(() => window.SOP_outcome({ icon: "🔁", title: "Second Chance ready", text: "If the voters turn you out at the re-election, you can rerun the campaign from the start. Once per game.", tone: "good" }))
-      .catch((e) => { if (!e || e.code !== "cancelled") window.SOP_outcome({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); });
+      .catch((e) => { if (!e || e.code !== "cancelled") window.SOP_outcome({ icon: "⚠️", title: "You didn't buy anything", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); });
   };
   // ── YEAR REPORT AND HONOURS ──
   // When a new year's budget opens, one card says what changed since the
@@ -8781,7 +8781,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     { label: "Cabinet", done: !!(ministries && ministries.length >= 4), urgent: !(ministries && ministries.length >= 4), detail: ministries && ministries.length ? ministries.length + " ministries convened" : "No ministries convened", action: () => goTab("min") },
     NAT ? { label: "FEC and Security Council", done: councilsOk, urgent: !!(ministries && ministries.length >= 4 && !councilsOk), detail: councilsOk ? "Both councils sitting" : "Not yet convened", action: () => goTab("coun") }
       : { label: "Traditional Council", done: !!council, urgent: !!(ministries && ministries.length >= 4 && !council), detail: council ? "Palace channel active" : "Rural legitimacy not yet secured", action: () => goTab("coun") },
-    { label: "Budget", done: bs === 100, urgent: bs !== 100, detail: bs === 100 ? "Appropriation balances" : "Allocated " + bs + "% — House will query it", action: () => goTab("gov") },
+    { label: "Budget", done: bs === 100, urgent: bs !== 100, detail: bs === 100 ? "Appropriation balances" : "Shared out " + bs + "% — the House will query it", action: () => goTab("gov") },
     { label: "Projects", done: (projects || []).some(p => p.status === "delivered" || p.status === "in_progress"), urgent: false, detail: (projects || []).length + " project file" + ((projects || []).length === 1 ? "" : "s"), action: () => goTab("prj") },
   ];
   // Proactive SA push — never miss an update. Toasts whenever the brief title
@@ -8938,8 +8938,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Mirror into enacted policies so the built-in policy list shows it as taken.
     setPol(pp => [...pp, { ...p, pending: true, projectId: proj.id }]);
     try { const [forS, againstS] = policySides(p); window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "policy_enacted", actor: "governor", gravity: 1, evidence: 3, financial: p.c, decision: "Started " + title, note: p.d, beneficiaries: [forS], losers: [againstS], relatedEntity: "policy:" + p.id, meta: { id: p.id, sector: p.s, project: proj.id } }); } catch (e) {}
-    addL("🏗️ PROJECT INITIATED: " + title + " under " + (min?.name || "state ministry") + ". Proceed to bidder selection.", "policy");
-    try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Initiated " + title + " under " + (min?.name || "a state ministry") + ", estimated at ₦" + (+p.c).toFixed(1) + "B" + (proj.needsEIA ? (eia ? " after commissioning an EIA." : ", despite requiring an EIA.") : ".") }, ...w]); } catch(e){}
+    addL("🏗️ PROJECT STARTED: " + title + " under " + (min?.name || "state ministry") + ". Next: choose the contractor.", "policy");
+    try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Started " + title + " under " + (min?.name || "a state ministry") + ", estimated at ₦" + (+p.c).toFixed(1) + "B" + (proj.needsEIA ? (eia ? " after commissioning an EIA." : ", despite requiring an EIA.") : ".") }, ...w]); } catch(e){}
     // Next: decide how to pay for it, then pick a contractor (sop-realism.js).
     setFinProj({ proj, tried: [] });
     setCapProj(null);
@@ -9326,7 +9326,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const tryU = (u) => {
     if (uTried(u)) return;
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "unconst_order", actor: "governor", gravity: 3, evidence: 4, decision: "Executive order: " + u.nm, note: u.r, meta: { id: u.id } }); } catch (e) {}
-    addL("⚠️ EXECUTIVE ORDER: Governor attempts to " + u.nm + "!", "political");
+    addL("⚠️ EXECUTIVE ORDER: Governor tries to " + u.nm + "!", "political");
     setNeeds(ns => { const i = ns.findIndex(n => n.status === "open" && (needType(n)?.eo || []).includes(u.id)); if (i < 0) return ns; const c = ns.slice(); c[i] = { ...c[i], status: "started", link: "eo:" + u.id }; return c; });
     setConstChallenge(u);
     setPhase("const_challenge");
@@ -9498,7 +9498,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (ch.fx?.hp) effects.push({ icon: "🏥", text: "Health " + (ch.fx.hp > 0 ? "improved" : "worsened"), value: (ch.fx.hp > 0 ? "+" : "") + Math.round(ch.fx.hp * 100) + "%", good: ch.fx.hp > 0, bad: ch.fx.hp < 0 });
     if (ch.fx?.corM) effects.push({ icon: ch.fx.corM < 0 ? "✨" : "💀", text: "Corruption " + (ch.fx.corM < 0 ? "reduced" : "increased"), value: Math.round(Math.abs(ch.fx.corM) * 100) + "%", good: ch.fx.corM < 0, bad: ch.fx.corM > 0 });
     if (ch.dc > 0) effects.push({ icon: "💰", text: "Paid from the state's money", value: "₦" + ch.dc + "B", bad: true });
-    Object.entries(ch.sk || {}).forEach(([k, v]) => { effects.push({ icon: v > 0 ? "👥" : "⚠️", text: k.charAt(0).toUpperCase() + k.slice(1) + " stakeholders " + (v > 0 ? "pleased" : "angry"), value: (v > 0 ? "+" : "") + v, good: v > 0, bad: v < 0 }); });
+    Object.entries(ch.sk || {}).forEach(([k, v]) => { effects.push({ icon: v > 0 ? "👥" : "⚠️", text: (SK_PLAIN[k] || k.charAt(0).toUpperCase() + k.slice(1)) + " " + (v > 0 ? "pleased" : "angry"), value: (v > 0 ? "+" : "") + v, good: v > 0, bad: v < 0 }); });
     // NIC trigger — sacking workers triggers National Industrial Court
     if (ch.nicTrigger) {
       effects.push({ icon: "⚖️", text: "NATIONAL INDUSTRIAL COURT will be triggered", value: "S.254C", bad: true });
@@ -9507,7 +9507,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("⚠️ SA " + (cast.adviser.name) + ": \"Your Excellency, the " + (curD.id === "asuu" ? "Academic Staff Union" : "labour unions") + " will file at the National Industrial Court immediately. Under S.254C of the Constitution, the NIC has EXCLUSIVE jurisdiction. You CANNOT avoid this court.\"", "crisis");
     }
     const nm = curD.nm; setCurD(null);
-    showResult({ icon: "⚖️", title: nm + " — Resolved", narrative: ch.rk || "Your decision has been implemented. The consequences will ripple through your state.", effects, tone: (ch.fx?.app || 0) >= 0 ? "good" : "bad", nextFn: () => nextEvent() });
+    showResult({ icon: "⚖️", title: nm + " — Resolved", narrative: ch.rk || "Your decision is in effect. Its effects will spread across your state.", effects, tone: (ch.fx?.app || 0) >= 0 ? "good" : "bad", nextFn: () => nextEvent() });
   };
   const useFlagship = () => { if (flagUsed) return; setFlagUsed(true); setS(p => ({ ...p, app: cl100(p.app + 15) })); addL("🚀 FLAGSHIP! +15 approval", "flagship"); };
 
@@ -9702,7 +9702,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       });
       completed.forEach(p => {
         Object.entries(p.fx).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (n[k] !== undefined) n[k] = cl(n[k] + v); });
-        const desc = p.compDesc || p.nm + " fully implemented";
+        const desc = p.compDesc || p.nm + " fully in place";
         // Economic sector boost on completion
         if (p.ecoSec && n.econ?.[p.ecoSec]) {
           n.econ[p.ecoSec] = { ...n.econ[p.ecoSec], out: cl(n.econ[p.ecoSec].out + (p.ecoBoost || .03)) };
@@ -10009,7 +10009,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
       if (worstPS[1].eff < 40) {
         const rn2 = PS_ROLES.find(r => r.k === worstPS[0]);
-        addL("🏛️ BUREAUCRACY: " + worstPS[1].nm + " (" + (rn2?.t || "Perm Sec") + ") is blocking progress. Type: " + worstPS[1].type + ". Efficiency: " + worstPS[1].eff + "%. " + (worstPS[1].type === "Old Guard" ? "Resists all reform attempts." : worstPS[1].type === "Corrupt Bureaucrat" ? "Running a parallel economy in the ministry." : "Incompetent and unmotivated."), "crisis");
+        addL("🏛️ BUREAUCRACY: " + worstPS[1].nm + " (" + (rn2?.t || "Perm Sec") + ") is blocking progress. Type: " + worstPS[1].type + ". Efficiency: " + worstPS[1].eff + "%. " + (worstPS[1].type === "Old Guard" ? "Fights every reform." : worstPS[1].type === "Corrupt Bureaucrat" ? "Running a parallel economy in the ministry." : "Incompetent and unmotivated."), "crisis");
       }
       if (bestPS[1].eff > 65) {
         const rn2 = PS_ROLES.find(r => r.k === bestPS[0]);
@@ -11535,34 +11535,34 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const angryStk = STAKEHOLDERS.filter(x => (skApp[x.id] || 50) < 35);
 
     // Build sections
-    const wikiIntro = pName + " served as Governor of " + state.replace("_", " ") + " State, Nigeria, on the platform of the " + (pa?.nm || party) + ". " + (depGov ? "The deputy governor was " + depGov.nm + ", a " + depGov.bg.toLowerCase() + " described as \"" + depGov.desc.split(".")[0].toLowerCase() + ".\" " : "") + (gEnd === "impeached" ? "The tenure was cut short by impeachment proceedings initiated by the State House of Assembly under Section 188 of the 1999 Constitution." : gEnd === "defeated" ? "After completing one four-year term, " + pName + " lost the re-election bid, leaving office with an approval rating of " + Math.round(s.app) + "%." : gEnd === "stepped_down" ? "After one term, " + pName + " chose not to seek re-election, announcing a decision to step down voluntarily — a rare move in Nigerian politics that was seen by supporters as principled and by critics as a sign of fatigue." : gEnd === "pres_bid" ? pName + " served one term before resigning the governorship to contest the presidential election, seeking to leverage a strong governance record into national leadership." : "The governor served the full constitutional maximum of two four-year terms (Section 182), departing office with an approval rating of " + Math.round(s.app) + "%.");
+    const wikiIntro = pName + " served as Governor of " + state.replace("_", " ") + " State, Nigeria, on the platform of the " + (pa?.nm || party) + ". " + (depGov ? "The deputy governor was " + depGov.nm + ", a " + depGov.bg.toLowerCase() + " described as \"" + depGov.desc.split(".")[0].toLowerCase() + ".\" " : "") + (gEnd === "impeached" ? "The tenure was cut short by impeachment proceedings initiated by the State House of Assembly under Section 188 of the 1999 Constitution." : gEnd === "defeated" ? "After completing one four-year term, " + pName + " lost the re-election bid, leaving office with an approval rating of " + Math.round(s.app) + "%." : gEnd === "stepped_down" ? "After one term, " + pName + " chose not to seek re-election, announcing a decision to step down voluntarily — a rare move in Nigerian politics that was seen by supporters as principled and by critics as a sign of fatigue." : gEnd === "pres_bid" ? pName + " served one term before resigning the governorship to contest the presidential election, hoping a strong record would carry them to national office." : "The governor served the full constitutional maximum of two four-year terms (Section 182), departing office with an approval rating of " + Math.round(s.app) + "%.");
 
-    const wikiEarlyTenure = "Upon taking office, " + state.replace("_", " ") + " State had a literacy rate of " + Math.round(STATES[state].lit * 100) + "%, infrastructure index of " + Math.round(STATES[state].infra * 100) + "%, and security rating of " + Math.round(STATES[state].sec * 100) + "%. The state's Internally Generated Revenue stood at " + naira(STATES[state].igr) + " with FAAC allocation of " + naira(STATES[state].faac) + ". Key challenges included " + (STATES[state].issues || []).join(", ") + ".";
+    const wikiEarlyTenure = "On taking office, " + state.replace("_", " ") + " State had a literacy rate of " + Math.round(STATES[state].lit * 100) + "%, infrastructure index of " + Math.round(STATES[state].infra * 100) + "%, and security rating of " + Math.round(STATES[state].sec * 100) + "%. The state's Internally Generated Revenue stood at " + naira(STATES[state].igr) + " with FAAC allocation of " + naira(STATES[state].faac) + ". Key challenges included " + (STATES[state].issues || []).join(", ") + ".";
 
     const wikiPolicies = allCompleted.length > 0 ? "The administration successfully delivered " + allCompleted.length + " major " + (allCompleted.length === 1 ? "initiative" : "initiatives") + ": " + completedDescs.slice(0, 6).join("; ") + (allCompleted.length > 6 ? "; among others" : "") + "." + (allCompleted.reduce((s2, p) => s2 + p.cost, 0) > 0 ? " Total investment exceeded " + naira(allCompleted.reduce((s2, p) => s2 + p.cost, 0)) + "." : "") + (nRef > 0 ? " Anti-corruption and digital governance reforms aimed to improve transparency." : "") : "The administration failed to complete any major projects during its tenure — a damning indictment of either ambition or capacity.";
     const awardedProjects = (projects || []).filter(p => p.contractor);
     const activeProjects = (projects || []).filter(p => p.status && p.status !== "delivered");
     const liveProjectSpend = awardedProjects.reduce((sum, p) => sum + (p.cost || p.baseCost || 0), 0);
-    const wikiProjects = (projects && projects.length) ? "Beyond broad policies, the administration initiated " + projects.length + " capital project" + (projects.length === 1 ? "" : "s") + ". " + (awardedProjects.length ? "Contracts were awarded for " + awardedProjects.slice(0, 6).map(p => p.title + " to " + (p.contractor || "an unnamed contractor") + (p.method ? " via " + p.method : "") + (p.cost ? " at " + naira(p.cost) : "")).join("; ") + (awardedProjects.length > 6 ? "; among others" : "") + ". " : "Several projects remained at pre-procurement stage, drawing criticism over slow implementation. ") + (liveProjectSpend ? "Total awarded project value stood at approximately " + naira(liveProjectSpend) + ". " : "") + (activeProjects.length ? activeProjects.length + " project" + (activeProjects.length === 1 ? " was" : "s were") + " still active, suspended, abandoned, or awaiting procurement at the close of this record. " : "") + ((projects || []).some(p => p.nepotism) ? "At least one contract carried nepotism or beneficial-ownership concerns, later cited by civil society groups." : "") : "No separately tracked capital projects were initiated through the procurement portfolio.";
+    const wikiProjects = (projects && projects.length) ? "Beyond broad policies, the administration started " + projects.length + " capital project" + (projects.length === 1 ? "" : "s") + ". " + (awardedProjects.length ? "Contracts were awarded for " + awardedProjects.slice(0, 6).map(p => p.title + " to " + (p.contractor || "an unnamed contractor") + (p.method ? " via " + p.method : "") + (p.cost ? " at " + naira(p.cost) : "")).join("; ") + (awardedProjects.length > 6 ? "; among others" : "") + ". " : "Several projects remained at pre-procurement stage, drawing criticism for slow progress. ") + (liveProjectSpend ? "Contracts awarded were worth about " + naira(liveProjectSpend) + ". " : "") + (activeProjects.length ? activeProjects.length + " project" + (activeProjects.length === 1 ? " was" : "s were") + " still active, suspended, abandoned, or awaiting procurement at the close of this record. " : "") + ((projects || []).some(p => p.nepotism) ? "At least one contract carried nepotism or beneficial-ownership concerns, later cited by civil society groups." : "") : "No capital projects were started through the procurement process.";
     const wikiInvestors = investorsApproved.length > 0 ? "The administration attracted " + investorsApproved.length + " major private investment(s), including " + investorsApproved.map(id => INVESTORS.find(inv => inv.id === id)?.nm || id).slice(0, 4).join(", ") + ". Total jobs created from private investment: " + investorsApproved.reduce((sum, id) => { const inv = INVESTORS.find(x => x.id === id); return sum + (inv?.jobs || 0); }, 0).toLocaleString() + "." : "The administration failed to attract significant private investment — a missed opportunity for job creation and economic diversification.";
     const narrObj = NARRATIVES.find(n => n.id === narrative) || NARRATIVES[7];
     const wikiNarrative = "By the end of the tenure, " + pName + " was widely perceived as \"" + narrObj.nm + "\" " + narrObj.icon + " — " + (narrative === "technocrat" ? "a data-driven administrator who prioritised evidence over politics." : narrative === "corrupt" ? "a governor whose administration was marred by persistent corruption allegations." : narrative === "strongman" ? "a decisive leader who kept order through force of personality and security apparatus." : narrative === "populist" ? "a governor who was loved by the masses despite questions about institutional discipline." : narrative === "builder" ? "a governor remembered for physical infrastructure that transformed the state." : narrative === "reformer" ? "a rare governor who left institutions stronger than they found them." : narrative === "weak" ? "a governor who struggled to maintain control and was seen as ineffective." : "a political survivor who navigated crises without ever fully thriving.");
     const wikiEFCC = s.cor > .55 ? "Following departure from office, " + pName + " was arrested by the Economic and Financial Crimes Commission (EFCC) within 72 hours. With the expiration of gubernatorial immunity under Section 308 of the 1999 Constitution, the former governor faced multiple charges of financial misconduct. Bank accounts were frozen, properties traced, and several former commissioners were also detained for questioning. The case is pending at the Federal High Court." : s.cor > .45 ? "After leaving office, the EFCC opened a formal investigation into the financial dealings of the " + pName + " administration. Several bank accounts linked to the former governor and associates were placed under surveillance. No formal charges have been filed as at the time of writing, but the investigation remains active." : s.cor > .35 ? "The EFCC placed the former governor on a financial watchlist following departure from office, citing an elevated corruption index during the administration. No charges were filed." : "The former governor left office with a clean financial record. No investigations or charges were pursued by anti-corruption agencies.";
     const wikiConst = (constViolations > 0 || constReversals > 0) ? "The administration attempted " + (constViolations + constReversals) + " action(s) that violated the Constitution." + (constViolations > 0 ? " In " + constViolations + " case(s), the governor chose to fight the Federal Government in the Supreme Court and lost — a public humiliation that raised questions about the governor's understanding of federalism and the limits of state power." : "") + (constReversals > 0 ? " In " + constReversals + " case(s), the governor wisely reversed the order before it reached the Supreme Court." : "") : "";
 
-    const wikiInfra = "By the end of the tenure, the state's infrastructure index " + (s.infra > STATES[state].infra + .1 ? "had improved significantly from " + Math.round(STATES[state].infra * 100) + "% to " + Math.round(s.infra * 100) + "%" : s.infra > STATES[state].infra ? "saw modest improvement to " + Math.round(s.infra * 100) + "%" : "remained largely unchanged at " + Math.round(s.infra * 100) + "%" + (s.infra < STATES[state].infra ? ", actually declining from the inherited " + Math.round(STATES[state].infra * 100) + "%" : "")) + ". Literacy " + (s.lit > STATES[state].lit + .05 ? "improved to " + Math.round(s.lit * 100) + "% from " + Math.round(STATES[state].lit * 100) + "%" : "remained at approximately " + Math.round(s.lit * 100) + "%") + ". Healthcare access " + (s.hp > STATES[state].hp + .05 ? "expanded notably" : "showed limited change") + ", while agricultural output " + (s.agr > STATES[state].agr + .05 ? "grew under targeted investment" : "remained relatively stagnant") + ".";
+    const wikiInfra = "By the end of the tenure, the state's infrastructure index " + (s.infra > STATES[state].infra + .1 ? "had improved significantly from " + Math.round(STATES[state].infra * 100) + "% to " + Math.round(s.infra * 100) + "%" : s.infra > STATES[state].infra ? "saw modest improvement to " + Math.round(s.infra * 100) + "%" : "remained largely unchanged at " + Math.round(s.infra * 100) + "%" + (s.infra < STATES[state].infra ? ", actually declining from the inherited " + Math.round(STATES[state].infra * 100) + "%" : "")) + ". Literacy " + (s.lit > STATES[state].lit + .05 ? "improved to " + Math.round(s.lit * 100) + "% from " + Math.round(STATES[state].lit * 100) + "%" : "stayed at about " + Math.round(s.lit * 100) + "%") + ". Healthcare access " + (s.hp > STATES[state].hp + .05 ? "expanded notably" : "showed limited change") + ", while agricultural output " + (s.agr > STATES[state].agr + .05 ? "grew under targeted investment" : "remained relatively stagnant") + ".";
 
     const wikiSecurity = "Security, a " + (STATES[state].sec < .4 ? "critical challenge inherited by the administration" : "manageable situation at the start of the tenure") + ", " + (s.sec > STATES[state].sec + .1 ? "improved substantially under dedicated investment and community policing initiatives." : s.sec > STATES[state].sec ? "saw some improvement." : s.sec < STATES[state].sec ? "actually deteriorated during the tenure, drawing criticism from civil society organizations." : "remained largely unchanged.");
 
     const wikiCrises = dilemmasFaced.length > 0 || crisisEvents.length > 0 ? "The administration faced " + (dilemmasFaced.length + crisisEvents.length) + " significant " + (dilemmasFaced.length + crisisEvents.length === 1 ? "crisis" : "crises") + " during its tenure" + (dilemmasFaced.length > 0 ? ", including: " + dilemmasFaced.slice(0, 4).map(d => d.split(" → ")[0]).join("; ") : "") + ". " + (usedFlagship ? "At one point, approval dropped so low that the governor deployed an emergency flagship policy intervention to restore public confidence. " : "") + (impSurv ? "Most dramatically, the governor survived impeachment proceedings — a testament to political resilience but also an indicator of the depth of the governance crisis." : "") : "The tenure was relatively uneventful in terms of major crises.";
 
-    const wikiCorr = scandals.length > 0 ? "The administration was dogged by " + scandals.length + " corruption " + (scandals.length === 1 ? "scandal" : "scandals") + ", with civil society groups estimating that approximately " + naira(corW) + " in public funds were diverted or misappropriated. " + (s.cor > .5 ? "By the end of the tenure, corruption had become a defining feature of the administration, with international watchdogs flagging " + state.replace("_", " ") + " State as a case study in governance failure." : s.cor > .3 ? "While not the worst in the country, the corruption record tarnished an otherwise mixed legacy." : "However, the administration took corrective action and corruption levels remained moderate overall.") : s.cor < .15 ? "The administration was widely praised for its clean governance. Anti-corruption initiatives were implemented early, and the governor maintained a reputation for fiscal transparency throughout the tenure. This stands as a model for other states." : s.cor < .3 ? "The administration maintained a relatively clean record, though not entirely free of controversy." : "Despite no major scandals breaking publicly, corruption indicators suggest systemic issues in procurement and contract management that were not adequately addressed.";
+    const wikiCorr = scandals.length > 0 ? "The administration was dogged by " + scandals.length + " corruption " + (scandals.length === 1 ? "scandal" : "scandals") + ", with civil society groups estimating that about " + naira(corW) + " in public funds were diverted or misappropriated. " + (s.cor > .5 ? "By the end of the tenure, corruption had become a defining feature of the administration, with international watchdogs flagging " + state.replace("_", " ") + " State as a case study in governance failure." : s.cor > .3 ? "While not the worst in the country, the corruption record tarnished an otherwise mixed legacy." : "However, the administration took corrective action and corruption levels remained moderate overall.") : s.cor < .15 ? "The administration was widely praised for its clean governance. Anti-corruption measures came in early, and the governor maintained a reputation for fiscal transparency throughout the tenure. This stands as a model for other states." : s.cor < .3 ? "The administration maintained a relatively clean record, though not entirely free of controversy." : "Despite no major scandals breaking publicly, corruption indicators suggest systemic issues in procurement and contract management that were not adequately addressed.";
 
     const cabScandals = logs.filter(l => l.tx.includes("SCANDAL:") && l.tx.includes("Commissioner")).length;
     const cabLeaks = logs.filter(l => l.tx.includes("LEAK:")).length;
     const cabAchievements = logs.filter(l => l.tx.includes("🌟")).length;
     const activeCabinet = ministries && ministries.length ? ministries : [];
-    const wikiCabinet = activeCabinet.length ? "The governor's cabinet consisted only of the Executive Council ministries personally convened during the tenure: " + activeCabinet.map(m => m.name + " under Hon. " + m.minister).slice(0, 8).join("; ") + (activeCabinet.length > 8 ? "; among others" : "") + ". " + (firedCom > 0 ? "The council saw " + firedCom + " reshuffle(s), with commissioners fired or replaced directly by the governor. " : "No major commissioner dismissal was recorded. ") + (cabScandals > 0 ? "The administration was marred by " + cabScandals + " ministry-level corruption scandal(s), raising questions about appointment judgment. " : "") + (cabLeaks > 0 ? "Notably, " + cabLeaks + " instance(s) of cabinet disloyalty saw commissioners briefing the opposition, undermining executive cohesion. " : "") + (cabAchievements > 0 ? "On the positive side, competent ministries delivered " + cabAchievements + " notable achievement(s), including programme launches and successful policy implementations that boosted development metrics. " : "") + (houseRejections > 0 ? "Relations with the House of Assembly were contentious — the legislature rejected budget proposals on " + houseRejections + " occasion(s)." : housePasses > 0 ? "Budget relations with the House of Assembly were generally cooperative." : "") : "No Executive Council ministries were formally convened, leaving the administration without an actionable cabinet structure.";
+    const wikiCabinet = activeCabinet.length ? "The governor's cabinet consisted only of the Executive Council ministries personally convened during the tenure: " + activeCabinet.map(m => m.name + " under Hon. " + m.minister).slice(0, 8).join("; ") + (activeCabinet.length > 8 ? "; among others" : "") + ". " + (firedCom > 0 ? "The council saw " + firedCom + " reshuffle(s), with commissioners fired or replaced directly by the governor. " : "No major commissioner dismissal was recorded. ") + (cabScandals > 0 ? "The administration was marred by " + cabScandals + " ministry-level corruption scandal(s), raising questions about appointment judgment. " : "") + (cabLeaks > 0 ? "Notably, " + cabLeaks + " instance(s) of cabinet disloyalty saw commissioners briefing the opposition, undermining executive cohesion. " : "") + (cabAchievements > 0 ? "On the positive side, competent ministries delivered " + cabAchievements + " notable achievement(s), including programme launches and policies that worked and boosted development metrics. " : "") + (houseRejections > 0 ? "Relations with the House of Assembly were contentious — the legislature rejected budget proposals on " + houseRejections + " occasion(s)." : housePasses > 0 ? "Budget relations with the House of Assembly were generally cooperative." : "") : "No Executive Council ministries were formally convened, leaving the administration without an actionable cabinet structure.";
 
     const wikiPeople = happyPersonas.length > 0 || angryPersonas.length > 0 ? "Public sentiment varied significantly across demographic groups. " + (happyPersonas.length > 0 ? "Groups that benefited most included " + happyPersonas.slice(0, 3).map(p => p.nm).join(", ") + ". " : "") + (angryPersonas.length > 0 ? "However, " + angryPersonas.slice(0, 3).map(p => p.nm).join(", ") + " expressed deep dissatisfaction with the administration's priorities. " : "") + "Approval " + appTrend + " over the tenure, peaking at " + appPeak + "% and hitting a low of " + appLow + "%." : "Public approval " + appTrend + " over the course of the tenure.";
 
@@ -11573,7 +11573,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
     const wikiFiscal = "Fiscally, the state's debt " + (s.debt > Math.max(15, ((stc.oldDebt || {}).total || 0) * 1.15) ? "ballooned to " + naira(s.debt) + ", raising concerns about the sustainability of the administration's spending patterns and the burden on future administrations." : s.debt > 5 ? "rose to " + naira(s.debt) + ", though within manageable limits." : "was kept under control at " + naira(s.debt) + ", reflecting fiscal discipline.") + " IGR " + (s.igr > STATES[state].igr * 1.2 ? "grew from " + naira(STATES[state].igr) + " to " + naira(s.igr) + ", a sign that economic reforms were bearing fruit." : "did not see significant growth from its initial " + naira(STATES[state].igr) + " baseline.");
 
-    const wikiLegacy = ov > 70 ? "Historians and political analysts widely regard " + pName + "'s tenure as one of the most transformative in " + state.replace("_", " ") + " State's history. The combination of infrastructure development, clean governance, and strong public approval set a standard that successors would be measured against. Young politicians across Nigeria point to this administration as proof that good governance is possible." : ov > 55 ? pName + " left a generally positive legacy, with notable achievements in governance that improved the lives of many residents. While not without flaws, the administration demonstrated that competent leadership can make meaningful progress even within Nigeria's challenging federal system." : ov > 40 ? "The legacy of " + pName + "'s administration remains contested. Supporters point to specific policy achievements, while critics argue that the governor failed to fully capitalize on the state's potential. " + (s.cor > .3 ? "Corruption allegations further complicated the historical assessment." : "The governor's relatively clean record, however, stands as a positive note.") + " For young Nigerians studying governance, this tenure illustrates how even well-intentioned leadership can produce mixed results when structural challenges are not addressed." : "Political commentators largely view " + pName + "'s time in office as a cautionary tale. " + (s.cor > .4 ? "Corruption eroded public trust and diverted resources from critical needs." : "Despite relatively low corruption,") + " the administration's failure to meaningfully improve key development indicators left the state in a position not significantly better than where it started. For students of governance, this tenure demonstrates how quickly a mandate can be squandered" + (gEnd === "impeached" ? " — culminating in the humiliation of impeachment, a stain that follows a political career permanently." : gEnd === "defeated" ? " — as evidenced by the voters' decisive rejection at the polls." : ".");
+    const wikiLegacy = ov > 70 ? "Historians and political analysts widely regard " + pName + "'s tenure as one of the most transformative in " + state.replace("_", " ") + " State's history. The combination of infrastructure development, clean governance, and strong public approval set a standard that successors would be measured against. Young politicians across Nigeria point to this administration as proof that good governance is possible." : ov > 55 ? pName + " left a generally positive legacy, with notable achievements in governance that improved the lives of many residents. While not without flaws, the administration showed that competent leadership can make meaningful progress even within Nigeria's challenging federal system." : ov > 40 ? "The legacy of " + pName + "'s administration remains contested. Supporters point to specific policy achievements, while critics argue that the governor failed to fully capitalize on the state's potential. " + (s.cor > .3 ? "Corruption allegations further complicated the historical assessment." : "The governor's relatively clean record, however, stands as a positive note.") + " For young Nigerians studying governance, this tenure illustrates how even well-intentioned leadership can produce mixed results when structural challenges are not addressed." : "Political commentators largely view " + pName + "'s time in office as a cautionary tale. " + (s.cor > .4 ? "Corruption eroded public trust and diverted resources from critical needs." : "Despite relatively low corruption,") + " the administration's failure to meaningfully improve key development indicators left the state in a position not significantly better than where it started. For students of governance, this tenure shows how quickly a mandate can be squandered" + (gEnd === "impeached" ? " — culminating in the humiliation of impeachment, a stain that follows a political career permanently." : gEnd === "defeated" ? " — as evidenced by the voters' decisive rejection at the polls." : ".");
 
     if (showWiki) return (
       <div style={{ minHeight: "100%", background: "#f6f6f6", padding: "43px" }}>
@@ -11779,7 +11779,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>
               <p style={{ fontSize: TS(36), color: CL.tm, lineHeight: 1.5, marginBottom: 22 }}>
                 {ecor > .55
-                  ? "Within 72 hours of leaving office, the EFCC moved in. Your immunity under S.308 of the Constitution expired the moment you ceased to be governor. Operatives arrived at your residence with an arrest warrant. Your accounts have been frozen. Properties are being traced. The corruption index of your administration (" + Math.round(s.cor * 100) + "%) made you a priority target. You are now facing trial at the Federal High Court."
+                  ? "Within 72 hours of leaving office, the EFCC moved in. Your immunity under S.308 of the Constitution expired the moment you stopped being governor. Operatives arrived at your residence with an arrest warrant. Your accounts have been frozen. Properties are being traced. The corruption index of your administration (" + Math.round(s.cor * 100) + "%) made you a priority target. You are now facing trial at the Federal High Court."
                   : ecor > .45
                   ? "Three months after leaving office, the EFCC opened a formal investigation into your administration's finances. Your corruption index (" + Math.round(s.cor * 100) + "%) raised red flags. Bank accounts are being scrutinised. Former commissioners are being questioned. You have not been arrested — yet — but your lawyers are busy."
                   : "The EFCC has placed you on a watchlist. Your administration's corruption index (" + Math.round(s.cor * 100) + "%) is above the threshold for automatic review. No formal charges yet, but your financial movements are being monitored. This may affect your political future."}
@@ -11830,7 +11830,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const WIKI_SCREEN = { id: "wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] };
   const menuItems = () => [
     ["🏠 Home screen (your game is saved)", async () => { await saveGame(); onEnd("restart"); }],
-    ["🗑️ Start afresh: a new politician", () => startAfresh()],
+    ["🗑️ Start over: a new politician", () => startAfresh()],
     ["💾 Save game", () => { saveGame(); try { window.SOP_toast && window.SOP_toast("Game saved", "ok"); } catch (e) {} }],
     ["Help", () => onHelp(), "icon-help"],
     [(fc ? "Your government of friends" : fed && !NAT ? "President " + (fed.pres || "") + "'s federation" : cabOpen() ? "Govern with your friends" : "Govern with your friends · coming soon"), () => { setMenuOpen(false); if (fc || fed || cabOpen()) setNav("cab"); else cabSoon(); }, "icon-cabinet-friends"],
@@ -11885,7 +11885,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (delFx.app) effects.push({ icon: "📈", text: "Approval", value: "+" + Math.round(delFx.app * k * 10) / 10 + "%", good: true });
     if (tech) effects.push({ icon: "🛠️", text: "Knew the file: part of the in-person deal agreed", value: "40%", good: true });
     if (kind === "deputy") effects.push({ icon: "🏛️", text: "The party likes a ticket that shares the stage", value: "+2 party", good: true });
-    if (kind === "adviser") effects.push({ icon: "🤫", text: "Low profile: stakeholders barely notice", value: "Half effect" });
+    if (kind === "adviser") effects.push({ icon: "🤫", text: "Low profile: few people notice", value: "Half effect" });
     if (inv.personal) { effects.unshift({ icon: "🔒", text: inv.who + " would only meet the Governor. No deal.", bad: true }); setS(p => ({ ...p, app: cl100(p.app - 1) })); }
     setCurInvite(null);
     showResult({ icon: "📤", title: "Delegation — " + inv.from.split(",")[0], narrative: inv.delLog + " " + (kind === "commissioner" ? "Because your commissioner knew the file, part of what you would have won in person was agreed." : kind === "deputy" ? "Your deputy handled the ceremony well; the hard commitments wait for you." : "Your adviser kept it quiet and practical."), effects, tone: "neutral", nextFn: () => nextEvent() });
@@ -12498,7 +12498,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 addL("⚖️ Governor obeys Supreme Court. Constitution upheld." + (refund > 0 ? " ₦" + refund.toFixed(1) + "B recovered." : ""), "policy");
                 const efx2 = [
                   { icon: "📉", text: "Approval drops from policy reversal", value: "-3%", bad: true },
-                  { icon: "📰", text: "Media and business stakeholders approve", good: true },
+                  { icon: "📰", text: "The media and business approve", good: true },
                   { icon: "✨", text: "Rule of law strengthened", good: true },
                 ];
                 if (refund > 0) efx2.push({ icon: "💰", text: "Partial budget recovered", value: "+₦" + refund.toFixed(1) + "B", good: true });
@@ -12712,7 +12712,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <Cd style={{ borderColor: CL.red, textAlign: "center" }}>
             <div style={{ fontSize: TS(113), marginBottom: 22 }}>⚠️</div>
             <h3 style={{ fontFamily: F.d, color: CL.red, fontSize: TS(72), fontWeight: 700 }}>IMPEACHMENT PROCEEDINGS</h3>
-            <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 22 }}>The House of Assembly has initiated impeachment proceedings under S.188.</p>
+            <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 22 }}>The House of Assembly has started impeachment under S.188.</p>
             <p style={{ color: CL.td, fontSize: TS(36), marginBottom: 29 }}>Your approval: {Math.round(s.app)}% · Party stability: {Math.round(s.pStab)}%</p>
             <p style={{ color: CL.td, fontSize: TS(34), marginBottom: 43 }}>Fight chance: {s.app > 70 ? "95%" : s.app > 50 ? "80%" : s.app > 40 ? "65%" : "50%"} — {s.app > 50 ? "The people are with you. Hard for the House to remove a popular governor." : "Low approval makes it hard to resist."}</p>
             <div style={{ display: "flex", gap: 29, justifyContent: "center" }}>
@@ -12976,7 +12976,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Cd onClick={() => {
                 setS(p => ({ ...p, app: cl100(Math.min(p.app, 35) - 12), pStab: cl100(p.pStab - 15), cor: cl(p.cor + .05) }));
                 setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) - 25), media: cl100((p.media || 50) - 20), youth: cl100((p.youth || 50) - 10), business: cl100((p.business || 50) - 10) }));
-                addL("🚨 GOVERNOR DEFIES NATIONAL INDUSTRIAL COURT! Contempt proceedings initiated. Criminal referral possible.", "crisis");
+                addL("🚨 GOVERNOR DEFIES NATIONAL INDUSTRIAL COURT! Contempt case opened. Criminal charges possible.", "crisis");
                 showResult({ icon: "🚨", title: "CONTEMPT OF COURT", narrative: "You have refused to comply with a binding order of the National Industrial Court. This is not just a political crisis — it is a CRIMINAL matter. The NIC has referred you for contempt proceedings. The NBA is calling for impeachment. Foreign investors are pulling out. Labour unions have declared an indefinite general strike.", effects: [
                   { icon: "💥", text: "Approval CRASHES — capped at 35% then -12%", value: "-12%+", bad: true },
                   { icon: "🏛️", text: "Party stability collapses", value: "-15%", bad: true },
@@ -13246,15 +13246,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   { icon: "👷", text: inv.jobs.toLocaleString() + " new jobs created in " + inv.sector, value: "+" + inv.jobs.toLocaleString(), good: true },
                   { icon: "💰", text: "State IGR increases from new tax revenue", value: "+" + naira(inv.igrBoost), good: true },
                   { icon: "📊", text: inv.sector.charAt(0).toUpperCase() + inv.sector.slice(1) + " sector output boosted", value: "+6%", good: true },
-                  { icon: "🏘️", text: inv.landCost + " of land allocated", value: inv.landCost },
+                  { icon: "🏘️", text: inv.landCost + " of land given", value: inv.landCost },
                 ];
                 if (inv.appBoost + inv.appRisk > 0) efx.push({ icon: "📈", text: "Public approves", value: "+" + (inv.appBoost + inv.appRisk), good: true });
                 if (inv.appRisk < -2) efx.push({ icon: "😤", text: "Community displaced — some residents angry", value: inv.appRisk + " approval", bad: true });
                 if (corHit) efx.push({ icon: "💀", text: "Land allocation scandal! Kickbacks detected.", value: "+3% corruption", bad: true });
-                efx.push({ icon: "🤝", text: "Business stakeholders pleased", value: "+8", good: true });
-                showResult({ icon: "🏗️", img: "./art/scenes/money-investor-factory.webp", title: inv.nm + " — APPROVED", narrative: inv.co + " has begun construction. Workers are being hired. " + inv.landCost + " of state land has been allocated. " + (corHit ? "However, reports of irregular payments in the land allocation process are already emerging. EFCC may take notice." : "The project is expected to be operational within 18 months. Revenue will start flowing to the state treasury."), effects: efx, tone: "good", nextFn: () => nextEvent() });
+                efx.push({ icon: "🤝", text: "Business people pleased", value: "+8", good: true });
+                showResult({ icon: "🏗️", img: "./art/scenes/money-investor-factory.webp", title: inv.nm + " — APPROVED", narrative: inv.co + " has begun construction. Workers are being hired. " + inv.landCost + " of state land is given to them. " + (corHit ? "However, reports of irregular payments in the land allocation process are already emerging. EFCC may take notice." : "The project is expected to be operational within 18 months. Revenue will start flowing to the state treasury."), effects: efx, tone: "good", nextFn: () => nextEvent() });
               }} style={{ padding: 36 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.grn, marginBottom: 10 }}>✅ Approve — Allocate Land</div>
+                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.grn, marginBottom: 10 }}>✅ Approve — Give the land</div>
                 <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 10 }}>Grant them the land and approve the project. Jobs and revenue start flowing. Some community displacement.</div>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><Bg text={"+" + curInvestor.jobs + " jobs"} color={CL.grn} /><Bg text={"+" + naira(curInvestor.igrBoost) + " IGR"} color={CL.grn} />{curInvestor.appRisk < -2 && <Bg text={curInvestor.appRisk + " community"} color={CL.red} />}{curInvestor.corRisk > .15 && <Bg text="Corruption risk" color={CL.red} />}</div>
               </Cd>
@@ -13278,7 +13278,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   { icon: "👷", text: inv.jobs.toLocaleString() + " jobs created", value: "+" + inv.jobs.toLocaleString(), good: true },
                   { icon: "📊", text: inv.sector + " sector gets major boost", value: "+8%", good: true },
                   { icon: "💰", text: "State bears incentive costs", value: "₦" + (inv.igrBoost * 0.3).toFixed(1) + "B debt", bad: true },
-                  { icon: "🤝", text: "Business stakeholders very pleased", value: "+12", good: true },
+                  { icon: "🤝", text: "Business people very pleased", value: "+12", good: true },
                 ], tone: "good", nextFn: () => nextEvent() });
               }} style={{ padding: 36 }}>
                 <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.blu, marginBottom: 10 }}>🎁 Approve with Tax Incentives</div>
@@ -13294,7 +13294,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const inv = curInvestor; setCurInvestor(null);
                 showResult({ icon: "❌", title: inv.nm + " — REJECTED", narrative: envClean ? inv.co + " leaves your state confused and disappointed. There was no environmental concern to justify the rejection. The business community is asking: why did the governor turn away " + inv.jobs.toLocaleString() + " jobs? The company is already in talks with a neighbouring state." : "You've protected your communities and environment from " + inv.co + "'s project. " + inv.envRisk + " The people in the affected area are relieved. But " + inv.jobs.toLocaleString() + " potential jobs have gone elsewhere, and the business community is concerned about your 'anti-investment' reputation.", effects: [
                   { icon: "🚫", text: "No jobs created — opportunity lost", value: "0 jobs", bad: true },
-                  { icon: "📉", text: "Business stakeholders upset", value: "-8", bad: true },
+                  { icon: "📉", text: "Business people upset", value: "-8", bad: true },
                   envClean ? { icon: "😤", text: "Public confused by rejection", value: "-3 approval", bad: true } : { icon: "🌿", text: "Environment protected — public approves", value: "+2 approval", good: true },
                 ], tone: envClean ? "bad" : "neutral", nextFn: () => nextEvent() });
               }} style={{ padding: 36, borderColor: CL.bdr }}>
@@ -13388,7 +13388,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                     { icon: "💸", text: "FAAC bonus from bilateral goodwill", value: "+₦0.8B", good: true },
                     { icon: "🌾", text: "Agriculture sector boosted", value: "+4%", good: true },
                     { icon: "📈", text: "Public approves the deal", value: "+6 approval", good: true },
-                    { icon: "🤝", text: "Business stakeholders delighted", value: "+12", good: true },
+                    { icon: "🤝", text: "Business people delighted", value: "+12", good: true },
                     { icon: "💰", text: "Trip cost", value: "-₦0.3B", bad: true },
                   ], tone: "good", nextFn: () => nextEvent() });
                 } else {
@@ -13417,7 +13417,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setSkApp(p => ({ ...p, business: cl100((p.business || 50) - 4) }));
                 addL("📞 Declined Netherlands trip. Sent delegation.", "political");
                 showResult({ icon: "📞", title: "Delegation Sent — You Stayed", narrative: "Your commissioner attended in your place. The investors were respectful but clearly disappointed. 'We wanted to meet the governor personally,' they said. The deal is unlikely to materialise without your direct involvement.", effects: [
-                  { icon: "👔", text: "Business stakeholders note your absence", value: "-4", bad: true },
+                  { icon: "👔", text: "Business people note your absence", value: "-4", bad: true },
                   { icon: "💰", text: "No trip cost — budget preserved", value: "₦0", good: true },
                   { icon: "❌", text: "Deal unlikely without governor present", bad: true },
                 ], tone: "neutral", nextFn: () => nextEvent() });
@@ -13426,7 +13426,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <div style={{ fontSize: TS(34), color: CL.td, marginBottom: 14 }}>Save the trip cost. Your commissioner goes instead. But investors wanted to meet the decision-maker.</div>
                 <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
                   <Bg text="No cost" color={CL.grn} />
-                  <Bg text="-4 business stakeholder" color={CL.red} />
+                  <Bg text="-4 business" color={CL.red} />
                   <Bg text="Deal unlikely without you" color={CL.org} />
                 </div>
               </TripOpt>
@@ -13561,7 +13561,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 if (curInvite.goFx.hp) goEffects.push({ icon: "🏥", text: "Health improved", good: true });
                 if (curInvite.goFx.agr) goEffects.push({ icon: "🌾", text: "Agriculture improved", good: true });
                 if (curInvite.goCost) goEffects.push({ icon: "💸", text: "Travel costs", value: "₦" + curInvite.goCost + "B", bad: true });
-                Object.entries(curInvite.goSk || {}).forEach(([k, v]) => { if (v > 0) goEffects.push({ icon: "👥", text: k + " stakeholders pleased", value: "+" + v, good: true }); });
+                Object.entries(curInvite.goSk || {}).forEach(([k, v]) => { if (v > 0) goEffects.push({ icon: "👥", text: (SK_PLAIN[k] || k) + " pleased", value: "+" + v, good: true }); });
                 const invRef = curInvite;
                 setCurInvite(null);
                 showResult({ icon: invRef.icon, title: "International Visit — " + invRef.from.split(",")[0], narrative: invRef.goLog + " Your personal presence opened doors that a delegation never could. International media covered your visit, boosting your state's global profile.", effects: goEffects, tone: "good", nextFn: () => nextEvent() });
@@ -13600,7 +13600,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 addL("❌ " + curInvite.decLog, "political"); track("trip", "declined");
                 const decEffects = [{ icon: "❌", text: "Invitation declined", bad: true }];
                 if (curInvite.decFx.app) decEffects.push({ icon: "📉", text: "Approval", value: curInvite.decFx.app + "%", bad: true });
-                Object.entries(curInvite.decSk || {}).forEach(([k, v]) => { decEffects.push({ icon: "⚠️", text: k + " stakeholders", value: v, bad: v < 0 }); });
+                Object.entries(curInvite.decSk || {}).forEach(([k, v]) => { decEffects.push({ icon: "⚠️", text: SK_PLAIN[k] || k, value: v, bad: v < 0 }); });
                 const invRef3 = curInvite;
                 setCurInvite(null);
                 showResult({ icon: "❌", title: "Declined — " + invRef3.from.split(",")[0], narrative: invRef3.decLog + " Some see focus. Others see a missed opportunity for your state.", effects: decEffects, tone: "bad", nextFn: () => nextEvent() });
@@ -13997,7 +13997,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <Bg text="Re-Election Convention" color={CL.pur} />
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(72), fontWeight: 600 }}>Deputy Governor Decision</h3>
               <p style={{ color: CL.tm, fontSize: TS(38), lineHeight: 1.5, marginBottom: 22 }}>
-                Before the campaign begins, the party convention must ratify your ticket. 
+                Before the campaign begins, the party convention must confirm your ticket. 
                 You can retain your current deputy or replace them — but dropping a deputy is a political earthquake. Choose your running mate, then face the electorate.
               </p>
             </div>
@@ -14405,7 +14405,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <div style={{ textAlign: "center", marginBottom: 29 }}>
                 <ObjArt name="contract-envelope" alt="" size={TALL() ? 96 : 130} />
                 <Bg text="Step 1 of 3: the project" color={CL.org} />
-                <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(58), fontWeight: 600, margin: "14px 0 7px" }}>Initiate {p.nm}</h3>
+                <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TS(58), fontWeight: 600, margin: "14px 0 7px" }}>Start {p.nm}</h3>
                 <div style={{ fontSize: TS(36), color: CL.td }}>₦{p.c.toFixed(1)}B · {p.t} year{p.t === 1 ? "" : "s"} to build</div>
               </div>
 
@@ -14617,7 +14617,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                           <button onClick={() => step(sec.k, 1)} aria-label={"More " + sec.l} style={stepBtn}>+</button>
                         </div>
                         {open && <div style={{ fontSize: fs.s, color: CL.tm, lineHeight: 1.45, padding: "6px 0 2px" }}>
-                          {meta.funds} Healthy range {meta.min}–{meta.max}%.{st !== "ok" ? " " + (st === "low" ? "If you submit this: " + meta.low : "Waste flag: " + meta.high) : ""}
+                          {meta.funds} Healthy range {meta.min}–{meta.max}%.{st !== "ok" ? " " + (st === "low" ? "If you send this: " + meta.low : "Waste flag: " + meta.high) : ""}
                         </div>}
                       </div>;
                     })}
@@ -14627,7 +14627,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </div>)}
                   </div>}
                 <button onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} disabled={bs !== 100} style={{ width: "100%", marginTop: 16, border: 0, borderRadius: 14, padding: tall ? "14px" : "18px", fontWeight: 800, fontSize: fz.m, fontFamily: F.b, background: "#e9c46a", color: "#1b1404", opacity: bs === 100 ? 1 : .55, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
-                  {bs === 100 ? "Submit to the House of Assembly →" : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
+                  {bs === 100 ? "Send to the House of Assembly →" : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
                 </button>
               </div>;
             })()}
@@ -14685,7 +14685,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   <div style={{ fontSize: PFS.m, fontWeight: 700, color: CL.red, marginBottom: 10 }}>❌ The House rejected the {billReject.bill.nm}</div>
                   {billReject.reasons.map((r2, i) => <div key={i} style={{ padding: "8px 0" }}>
                     <div style={{ fontSize: PFS.s, color: CL.txt, lineHeight: 1.4 }}><b>{r2.who}</b> — {r2.why}</div>
-                    <div style={{ fontSize: PFS.s, color: r2.good ? CL.grn : CL.red }}>{r2.good ? "Fair reason." : r2.grudge ? "Leverage, not policy." : "Political: your own side is not with you."}</div>
+                    <div style={{ fontSize: PFS.s, color: r2.good ? CL.grn : CL.red }}>{r2.good ? "Fair reason." : r2.grudge ? "Pressure, not policy." : "Political: your own side is not with you."}</div>
                   </div>)}
                   {billReject.reasons.some(r2 => r2.grudge) && <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
                     <div style={{ fontSize: PFS.s, fontWeight: 800, color: CL.txt }}>Clear the way, then send it back</div>
@@ -14942,7 +14942,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   <Bt onClick={() => setMeetMin(m.id)} disabled={m.met === turn} style={{ fontSize: TS(29), padding: "7px 22px" }}>{m.met === turn ? "Met this year" : "🤝 Meet"}</Bt>
                   <Bt v="danger" onClick={() => fireMinister(m.id)} style={{ fontSize: TS(29), padding: "7px 22px" }}>{fireCase(m).justified ? "Fire: " + (m.flag ? OFFENCE[m.flag.kind].label.toLowerCase() : "weak record") : "Fire"}</Bt>
                   <Bt v="ghost" onClick={() => { const old = m.permSec; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, permSec: gen(), perf: Math.min(100, x.perf + 5) } : x)); addL("🔀 Reassigned PS " + old + " → new PS in " + m.name + ".", "political"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Reassigned the Permanent Secretary of " + m.name + ", replacing " + old + " during an administrative shake-up." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>Reassign PS</Bt>
-                  <Bt v="ghost" onClick={() => { const raise = 0.5; if (!spendB(raise, "Boosting " + m.name)) return; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, budget: (x.budget || 0) + raise, perf: Math.min(100, x.perf + 3) } : x));  addL("💰 Boosted " + m.name + " budget by ₦" + raise + "B.", "policy"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Increased the budget of " + m.name + " by ₦" + raise + "B to accelerate implementation." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>+₦0.5B</Bt>
+                  <Bt v="ghost" onClick={() => { const raise = 0.5; if (!spendB(raise, "Boosting " + m.name)) return; setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, budget: (x.budget || 0) + raise, perf: Math.min(100, x.perf + 3) } : x));  addL("💰 Boosted " + m.name + " budget by ₦" + raise + "B.", "policy"); setWikiEvents(w => [{ turn, section: "Governorship", txt: "Increased the budget of " + m.name + " by ₦" + raise + "B to speed it up." }, ...w]); }} style={{ fontSize: TS(29), padding: "7px 22px" }}>+₦0.5B</Bt>
                 </div>
               </Cd>;
             })}</div>
@@ -14955,7 +14955,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {(nav === "cs" || nav === "cab") && <div>
           <Cd style={{ marginBottom: 29 }}>
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 14px", fontSize: TS(50), fontWeight: 600 }}>🏛️ Civil Service — Permanent Secretaries</h3>
-            <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.4, marginBottom: 22 }}>These career bureaucrats run your ministries day-to-day. Commissioners set direction — permanent secretaries implement. Their efficiency determines whether your policies actually reach the people. Their corruption determines how much money disappears along the way.</div>
+            <div style={{ fontSize: TS(34), color: CL.td, lineHeight: 1.4, marginBottom: 22 }}>These career bureaucrats run your ministries day-to-day. Commissioners set direction; permanent secretaries carry it out. Their efficiency determines whether your policies actually reach the people. Their corruption determines how much money disappears along the way.</div>
             <div style={{ display: "flex", gap: 22, marginBottom: 29, flexWrap: "wrap" }}>
               <Bg text={"Avg Efficiency: " + Math.round(Object.values(ps).reduce((s2, p) => s2 + p.eff, 0) / Object.values(ps).length) + "%"} color={Object.values(ps).reduce((s2, p) => s2 + p.eff, 0) / Object.values(ps).length > 55 ? CL.grn : CL.red} />
               <Bg text={"Avg Corruption: " + Math.round(Object.values(ps).reduce((s2, p) => s2 + p.cor, 0) / Object.values(ps).length) + "%"} color={Object.values(ps).reduce((s2, p) => s2 + p.cor, 0) / Object.values(ps).length < 30 ? CL.grn : CL.red} />
@@ -15011,7 +15011,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   if (ref.id === "cs_digital") {
                     setPS(p => { const n2 = { ...p }; Object.entries(n2).forEach(([k, v]) => { n2[k] = { ...v, cor: Math.max(5, v.cor - 20) }; }); return n2; });
                     setS(p => ({ ...p, cor: cl(p.cor - .05) }));
-                    addL("💻 DIGITAL CIVIL SERVICE: Ghost workers eliminated. Procurement digitized. Corruption reduced across the board.", "success");
+                    addL("💻 DIGITAL CIVIL SERVICE: Ghost workers removed. Contracts go online. Corruption reduced across the board.", "success");
                   }
                   if (ref.id === "cs_replace") {
                     setPS(p => {
@@ -15147,7 +15147,7 @@ const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
 
   // ── The gate: inside a Vatar world the run is a purchase ──
   const locked = VATAR && window.SOP_canBuy && window.SOP_canBuy() && !(ents.presidential_run > 0);
-  const buy = () => { setBusy(true); window.SOP_buy("presidential_run").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("presidential_run").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "You didn't buy anything", text: e && e.code === "payment_failed" ? "The payment didn't go through." : "Something went wrong. Try again in a moment.", tone: "bad" }); }); };
 
   // ── Starting a run ──
   const PARTY_IDS = MAIN_PARTY_IDS.filter(id => PARTIES.find(p => p.id === id));
@@ -15595,7 +15595,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   // A lesson goes into the notebook.
   const learnRow = (k) => { const t = senLearnText(k); if (t && !lessons.current.includes(t)) { senNote(k); lessons.current.push(t); } return []; };
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_senator > 0;
-  const buy = () => { setBusy(true); window.SOP_buy("career_senator").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("career_senator").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "You didn't buy anything", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
 
   // ── Starting ──
   const who = rec ? { name: rec.name, avatar: rec.avatar, state: rec.state, party: rec.party, district: rec.district }
@@ -15915,6 +15915,8 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   </Frame>);
 };
 
+// The groups whose support you track, by the names people use.
+const SK_PLAIN = { media: "The media", business: "Business people", unions: "The unions", traditional: "Traditional rulers", party: "Your party", youth: "Young people", religious: "Religious leaders" };
 // ── Headscratchers (game/systems/crises.js): the badge over an arc's card ──
 // "Inherited" on a predecessor's problem, then the clues gathered so far.
 // The evidence on the card (the bottles, the letter, the list) sits beside it.
@@ -15954,7 +15956,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_chairman > 0;
-  const buy = () => { setBusy(true); window.SOP_buy("career_chairman").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("career_chairman").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "You didn't buy anything", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
   const lgaNm = (G) => G.lga || "your local government";
 
   // ── Starting: how you got the ticket, then the council election ──
@@ -16279,7 +16281,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_ambassador > 0;
-  const buy = () => { setBusy(true); window.SOP_buy("career_ambassador").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "No purchase made", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
+  const buy = () => { setBusy(true); window.SOP_buy("career_ambassador").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "You didn't buy anything", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
   const P = (G) => SYS.POSTINGS[G.post];
 
   const begin = (postId, k) => {
@@ -16479,10 +16481,10 @@ const ADV = {
   conventionResult: (accepted) => accepted ? "Excellent choice. The party is united. That's a strong start." : "You have the running mate you wanted, and a deal with the party. Keep your side of it; they will keep count.",
   campaign: "Campaign time! Take your message to the people. Your slogan, your agenda, your deputy — everything comes together now. Win the hearts and minds of your state!",
   govHouse: (name, state, saName, flag) => "Congratulations, Your Excellency! Welcome to Government House, " + state.replace("_", " ") + " State. I'm " + saName + ", your Special Adviser, and I'm standing right beside you." + (flag ? " " + flag.nm + " starts on day one: the people heard you promise to " + flag.goal + ", and they will count." : "") + " Let's make history!",
-  budget: (amount) => "Your Excellency, it's budget time. You have " + amount + " to allocate across 8 sectors. The House of Assembly will review your Appropriation Bill — make sure it's balanced.",
+  budget: (amount) => "Your Excellency, it's budget time. You have " + amount + " to share across 8 sectors. The House of Assembly will review your Appropriation Bill — make sure it's balanced.",
   house_vote: "The House of Assembly must approve your budget under Section 121. They'll tell you their concerns before voting. If they reject it, you can amend or force it through — though I wouldn't recommend the latter.",
   policy: "Time to choose your policies and projects. Each one has costs, timelines, and some carry corruption risk. You can also sponsor bills through the House.",
-  dilemma: "Your Excellency, wahala don land! 😤 This one no easy o. Every choice get consequence — think carefully about the people, the stakeholders, and your political future.",
+  dilemma: "Your Excellency, wahala don land! 😤 This one no easy o. Every choice get consequence — think carefully about the people, the groups that back you, and your political future.",
   godfather: "Chai! The Godfather don show face again. 🎩 This man no dey joke o. You accept, your hands dirty. You refuse, your party shakes. Na you sabi.",
   trip: "An invitation has arrived, Your Excellency. Going in person opens doors that delegations cannot. But remember — every day abroad is a day away from your state.",
   reelection: "Your Excellency, four years have passed. The people will now decide if you deserve four more years. Your record speaks — for better or worse.",
@@ -16931,7 +16933,7 @@ function App() {
     try {
       let r = window.SOP_chStart ? await window.SOP_chStart() : { ok: true };
       if (!r.ok && r.need === "challenge_retry") {
-        const yes = await window.SOP_confirm("You have played this week's challenge. Another attempt costs ₦100. Your best score this week is the one that counts.", "Play again · ₦100", "Not now");
+        const yes = await window.SOP_confirm("You have played this week's challenge. Another go costs ₦100. Your best score this week is the one that counts.", "Play again · ₦100", "Not now");
         if (!yes) return;
         await window.SOP_buy("challenge_retry");
         r = await window.SOP_chStart();

@@ -1117,3 +1117,26 @@ Now every stall names its cause, and its main button is the fix (`SYS.stallCause
 The year-end report says when it was the bank that could not pay. Results lead with the outcome ("Work restarts…"), since result cards show only their first two sentences.
 
 Tests: `tests/projects.test.mjs` covers every cause and its fix; `tests/e2e/stalled.mjs` plays all four fixes in the browser with ₦3B in the bank.
+
+### Plain words ("don't purchase when you can buy")
+I audited the player-facing text for formal words with simpler equivalents and swapped them:
+- **Buttons and results:**
+  - "No purchase made" → "You didn't buy anything"
+  - "Submit to the House" → "Send to the House"
+  - "Proceed to policies" → "On to policies"
+  - "Defer indefinitely" → "Shelve it", and "Defer" → "Put it off"
+  - "Start afresh" → "Start over"
+  - "Initiate" → "Start"
+  - "Verify the list" → "Check the list"
+  - "Terminate and re-tender" → "Cancel and re-tender"
+  - "Provide / Allocate the land" → "Give the land"
+  - "Another attempt" → "Another go"
+  - "Leverage, not policy" → "Pressure, not policy"
+- **Group reactions** read "Young people angry" and "Business people pleased" instead of "youth stakeholders angry" (`SK_PLAIN`).
+- **The end-of-term Wikipedia page:** "approximately" → "about", "initiated" → "started", "Upon taking office" → "On taking office", "demonstrated" → "showed", "ceased to be governor" → "stopped being governor".
+- **Kept on purpose:**
+  - legal quotations and court orders ("reinstate");
+  - bill clauses, which are written in bill language;
+  - names of laws ("Proceeds of Crime Bill", "AfCFTA (Implementation) Bill");
+  - glossary expansions;
+  - real terms the game teaches (procurement, tranche, mobilisation fee).

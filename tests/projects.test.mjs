@@ -132,7 +132,7 @@ test("when every lender says no, fitting the scope leads to procurement, never b
   const r = fitScope({ ...p, approvedM: p.estimateM }, p.estimateM / p.years / 2, 1);
   assert.ok(r.ok); assert.equal(r.p.status, "pending_procurement"); assert.ok(r.p.estimateM < p.estimateM);
   assert.equal(nextStep(r.p, { tried: all, lenders: LENDERS, projects: [] }).id, "contractor");
-  const no = fitScope(p, 1, 1); assert.equal(no.ok, false); assert.match(no.why, /Defer it/);
+  const no = fitScope(p, 1, 1); assert.equal(no.ok, false); assert.match(no.why, /Put it off/);
 });
 // Projects that need their own commissioner: esports and tourist sites read from plain words.
 import { parseProposal as parseP2 } from "../game/systems/proposals.js";

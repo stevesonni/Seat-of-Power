@@ -288,7 +288,7 @@ export const reduceScope = (p, factor, year) => {
 export const fitScope = (p, roomPerYearM, year) => {
   const fundable = Math.max(0, Math.round(roomPerYearM)) * Math.max(1, p.years || 1);
   const f = fundable / Math.max(1, p.estimateM);
-  if (f < .2) return { ok: false, why: "The bank can pay only " + fmtM(fundable) + " over " + (p.years || 1) + " years, under a fifth of the scope. Defer it, or raise the line in next year's budget." };
+  if (f < .2) return { ok: false, why: "The bank can pay only " + fmtM(fundable) + " over " + (p.years || 1) + " years, under a fifth of the scope. Put it off, or raise the line in next year's budget." };
   if (f >= 1) return { ok: true, p: { ...p, status: "pending_procurement", needM: 0, decisions: [...p.decisions, { year, text: "Paid from the budget line, without a loan." }] }, factor: 1 };
   const q = reduceScope(p, f, year);
   return { ok: true, factor: f, p: { ...q, approvedM: q.estimateM, needM: 0, status: "pending_procurement", alloc: { ...p.alloc, [year]: Math.min(q.estimateM, Math.round(roomPerYearM)) } } };
@@ -338,7 +338,7 @@ export const nextStep = (p, ctx = {}) => {
   const t = p.title;
   if (p.status === "pending_finance") {
     const tried = (ctx.tried || []).length, total = Object.keys(ctx.lenders || {}).length || 4;
-    if (tried >= total) return { id: "blocked_finance", due: true, blocked: true, button: "Revise the scope", say: "Governor, every lender has turned down " + t + ". It cannot start until the scope fits what the bank can pay, or you defer it.", options: ["reduce", "defer"] };
+    if (tried >= total) return { id: "blocked_finance", due: true, blocked: true, button: "Revise the scope", say: "Governor, every lender has turned down " + t + ". It cannot start until the scope fits what the bank can pay, or you put it off.", options: ["reduce", "defer"] };
     return { id: "finance", due: true, button: "Find the money", say: "Governor, " + t + " is approved, but the bank can't pay for it this year. The next step is to find the money: a loan offer, or a smaller scope." };
   }
   if (p.status === "pending_procurement") {

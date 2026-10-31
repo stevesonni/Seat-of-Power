@@ -182,7 +182,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   check(!!(await g.click(/^Revise the scope( →)?$/)), "9. its button opens the project");
   await g.wait(400);
   const t = await g.txt();
-  check(/Blocked/.test(t) && /Fit the scope to the budget/.test(t) && /Defer indefinitely/.test(t), "9. the dossier says Blocked and offers the two real ways out");
+  check(/Blocked/.test(t) && /Fit the scope to the budget/.test(t) && /Shelve it/.test(t), "9. the dossier says Blocked and offers the two real ways out");
   await g.click(/^Fit the scope to the budget$/); await g.wait(1200);
   if (await g.click(/^Spread it over 4 years/)) { await g.wait(600); await g.click(/^Got it$/); await g.wait(400); await g.click(/^Revise the scope( →)?$/); await g.wait(400); await g.click(/^Fit the scope to the budget$/); await g.wait(1200); } // the debt choice came up first
   let t2 = await g.txt();

@@ -32,7 +32,7 @@ export const assessLoan = (lenderId, { projectId, amountM, year }, ctx) => {
   const rate = Math.max(.02, L.rate - (ctx.rateCut || 0) + Math.max(0, ctx.cor - .35) * .1);
   const amt = Math.round(amountM);
   return { ok: true, odds: p, reasons, offer: { key: "loan:" + projectId + ":" + lenderId, lenderId, lender: L.lender, nm: L.nm, principalM: amt, rate: Math.round(rate * 1000) / 1000, years: L.years,
-    serviceM: annualServiceM(amt, rate, L.years), repayM: totalRepayM(amt, rate, L.years), conditions: lenderId === "dfi" ? "Disbursed against verified milestones; safeguard reviews." : lenderId === "pre" ? "Repaid from the state's FAAC; the contractor keeps the margin." : "Repaid by deduction from FAAC.", year } };
+    serviceM: annualServiceM(amt, rate, L.years), repayM: totalRepayM(amt, rate, L.years), conditions: lenderId === "dfi" ? "Paid out as each milestone is checked; safeguard reviews." : lenderId === "pre" ? "Repaid from the state's FAAC; the contractor keeps the margin." : "Repaid by deduction from FAAC.", year } };
 };
 
 // Accepting: the only moment debt is created. Same key twice → recorded once.

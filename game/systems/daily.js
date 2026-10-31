@@ -205,7 +205,7 @@ const D2 = [
     options: [
       { label: "Pay six months now, the rest by a schedule", fx: { app: 3, cash: -0.9, party: 0 }, out: "The march ends. They will be back on the schedule's dates." },
       { label: "Pay all of it", fx: { app: 5, cash: -2.0, party: 0 }, out: "Every pensioner paid. The treasury is thin for the rest of the year." },
-      { label: "Verify them first: there are ghost pensioners", fx: { app: -2, cash: 0.2, party: 0 }, out: "The audit finds 900 ghosts. It also takes six months." } ] },
+      { label: "Check them first: there are ghost pensioners", fx: { app: -2, cash: 0.2, party: 0 }, out: "The audit finds 900 ghosts. It also takes six months." } ] },
   { id: "birthday", icon: "🎂", title: "Your party plans your birthday", brief: "The party wants to fill the stadium for your birthday: billboards, musicians, ₦300M. 'The people love you,' they say.", bg: "rally", who: "party-chairman",
     options: [
       { label: "Cancel it: give the money to the children's hospital", fx: { app: 4, cash: 0, party: -1 }, out: "The hospital gets a new ward. The musicians are disappointed." },
