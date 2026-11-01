@@ -944,6 +944,14 @@ const HONOURS = [
 // fixed by name. Each year they act on it, and what they do is on record.
 // Anonymous choice tallies for the makers (see server /api/track): what players pick, never who.
 const track = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+// The experiment (SYS.PILLARS): this phone's pillars, each on or off at random, kept for good.
+// A test link (?exp=all, ?exp=none, ?exp=front:1,money:0) can force them. Off leaves the game as it was.
+const EXP = (() => { let cur = null; try { cur = JSON.parse(localStorage.getItem(SYS.EXP_KEY) || "null"); } catch (e) {}
+  cur = SYS.completeAssignment(cur);
+  try { const o = SYS.parseExpOverride(new URLSearchParams(location.search).get("exp"), cur); if (o) cur = o; } catch (e) {}
+  try { localStorage.setItem(SYS.EXP_KEY, JSON.stringify(cur)); } catch (e) {}
+  return cur; })();
+const pillarOn = (id) => !!EXP[id];
 const hashStr = (t) => { let h = 7; for (const ch of String(t || "")) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
 const traits = (name) => { const h = hashStr(name); return { comp: 32 + (h % 58), hon: 28 + ((h >>> 7) % 66) }; };
 const MIN_SECTOR = { works: "infrastructure", health: "health", educ: "education", agric: "agriculture", sec: "security" };
@@ -16870,6 +16878,8 @@ const FedPanel = ({ role, fed, view, busy, onCreate, onGrant, onProject, onAnswe
 };
 
 function App() {
+  // Each session reports this phone's side of the experiment, so the dashboard can compare the groups.
+  useEffect(() => { SYS.PILLAR_IDS.forEach(id => track("exp_" + id, EXP[id] ? "on" : "off")); }, []);
   // Re-render on rotation so TALL() layouts switch with the screen.
   const [, setShape] = useState(TALL());
   useEffect(() => {

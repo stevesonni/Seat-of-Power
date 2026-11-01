@@ -8,15 +8,17 @@ const pw = (() => { for (const m of ["playwright-core", "playwright", "/opt/node
 const { chromium } = pw;
 import fs from "node:fs";
 export const CHROME = process.env.CHROME || ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find(p => fs.existsSync(p));
-export async function open(port, { test = {}, seed = 7, phone = true, save } = {}) {
+export async function open(port, { test = {}, seed = 7, phone = true, save, exp = "none" } = {}) {
   const browser = await chromium.launch({ executablePath: CHROME });
   const ctx = await browser.newContext(phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 } : { viewport: { width: 1366, height: 768 } });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com|lagoslife/, r => r.abort());
-  await ctx.addInitScript(({ test, seed, save }) => {
+  await ctx.addInitScript(({ test, seed, save, exp }) => {
     window.SOP_TEST = test;
+    // The experiment's pillars: off unless the test asks ("all", or { front: true, ... }).
+    if (!localStorage.getItem("sop_exp")) { const ids = ["front", "wait", "money", "integrity", "plan", "region"]; localStorage.setItem("sop_exp", JSON.stringify(Object.fromEntries(ids.map(id => [id, exp === "all" || !!(exp && exp[id])])))); }
     let s = seed; Math.random = () => (s = (s * 16807) % 2147483647) / 2147483647;
     if (save && !sessionStorage.getItem("sop_e2e_loaded")) { for (const [k, v] of Object.entries(save)) localStorage.setItem(k, v); sessionStorage.setItem("sop_e2e_loaded", "1"); }
-  }, { test, seed, save });
+  }, { test, seed, save, exp });
   const page = await ctx.newPage();
   const errors = []; page.on("pageerror", e => errors.push(e.message));
   await page.goto(`http://localhost:${port}/seat-of-power.html`); await page.waitForTimeout(1500);

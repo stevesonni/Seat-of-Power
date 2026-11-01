@@ -19,6 +19,7 @@ import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from 
 import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntries, playedAgain } from "./hall-rules.mjs";
 import { makeCabinets } from "./cabinet.mjs";
 import { makeFederation } from "./federation.mjs";
+import { experimentSummary } from "./experiment.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -409,7 +410,7 @@ http.createServer(async (req, res) => {
       const S = statsNow(), evs = Object.entries(S.ev).sort((a, b) => Object.keys(b[1].players).length - Object.keys(a[1].players).length);
       if (url.searchParams.get("format") === "stats") {
         const out = {}; evs.forEach(([e, E]) => { const np = Object.keys(E.players).length; out[e] = { players: np, values: Object.fromEntries(Object.entries(E.values).map(([v, V]) => [v, { players: Object.keys(V.p).length, times: V.n, pct: np ? Math.round(Object.keys(V.p).length / np * 100) : 0 }])) }; });
-        out._playtime = playSummary(S);
+        out._playtime = playSummary(S); out._experiment = experimentSummary(S);
         return send(res, 200, out);
       }
       const statsHtml = evs.length ? evs.map(([e, E]) => { const np = Object.keys(E.players).length, vs = Object.entries(E.values).map(([v, V]) => [v, Object.keys(V.p).length, V.n]).sort((a, b) => b[1] - a[1]);
@@ -421,6 +422,12 @@ http.createServer(async (req, res) => {
       const coHtml = '<h2 style="margin:22px 0 8px">Player companies</h2><div class="m" style="margin-bottom:8px">Every player sees these names. Hide any that copy a real firm or person, or are rude; the owner then renames for free.</div>'
         + (coList.length ? '<div class="c">' + coList.slice(0, 300).map(c => '<div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #efe8db"><span' + (c.hidden ? ' style="text-decoration:line-through;color:#9aa39c"' : '') + '><b>' + esc(c.name) + '</b> <span class="m">· ' + esc(c.sector) + ' · hired by ' + Object.keys(c.hiredBy || {}).length + ' · ' + esc(new Date(c.at).toISOString().slice(0, 10)) + '</span></span><a href="' + kq + (c.hidden ? '&show=' : '&hide=') + encodeURIComponent(c.id) + '">' + (c.hidden ? 'Show' : 'Hide') + '</a></div>').join("") + '</div>' : '<p>No companies yet.</p>');
       const PS = playSummary(S), bmax = Math.max(1, ...PS.buckets.map(b => b.n));
+      // The experiment: each pillar on for half the players, off for the rest.
+      const XS = experimentSummary(S), cell = (v, good) => v == null ? '<span class="m">–</span>' : '<b style="color:' + (good ? "#0b6b42" : "#13261c") + '">' + v + '%</b>';
+      const expHtml = '<h2 style="margin:22px 0 8px">The experiment</h2><div class="m" style="margin-bottom:8px">Each new player gets each change on or off at random. Compare the two rows: fewer early quits, more finished terms and more shares mean it helps. Trust a difference only once both groups have a hundred players or more.</div>'
+        + XS.map(x => { const better = (a, b, lower) => a != null && b != null && (lower ? a < b : a > b);
+          return '<div class="c"><b>' + esc(x.nm) + '</b><div style="display:grid;grid-template-columns:70px repeat(4,1fr);gap:6px;margin-top:8px;font-size:14px"><span class="m"></span><span class="m">players</span><span class="m">left under 5 min</span><span class="m">finished a term</span><span class="m">shared a card</span>'
+            + [["on", x.on, x.off], ["off", x.off, x.on]].map(([g, A, B]) => '<span><b>' + g + '</b></span><span>' + A.players + '</span><span>' + cell(A.earlyPct, better(A.earlyPct, B.earlyPct, true)) + '</span><span>' + cell(A.finishedPct, better(A.finishedPct, B.finishedPct)) + '</span><span>' + cell(A.sharedPct, better(A.sharedPct, B.sharedPct)) + '</span>').join("") + '</div></div>'; }).join("");
       const playHtml = '<h2 style="margin:22px 0 8px">Play time</h2>' + (PS.players ? '<div class="k"><div><b>' + hm(PS.totalSec) + '</b>played in all</div><div><b>' + hm(PS.avgSec) + '</b>average per player</div><div><b>' + hm(PS.medianSec) + '</b>typical player (median)</div><div><b>' + PS.players + '</b>players timed</div></div>'
         + '<div class="c"><b>How long players stay</b>' + PS.buckets.map(b => '<div style="display:grid;grid-template-columns:110px 3fr 64px;gap:8px;align-items:center;margin-top:6px"><span>' + b.l + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(b.n / bmax * 100) + '%;background:#0b6b42"></span></span><span class="m" style="text-align:right">' + b.n + '</span></div>').join("") + '</div>'
         + '<div class="c"><b>Longest players</b> <span class="m">· anonymous ids</span>' + PS.top.slice(0, 20).map((p, i) => '<div style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;margin-top:6px"><span class="m">' + (i + 1) + '</span><span>Player ' + esc(p.who.slice(0, 6)) + ' <span class="m">· ' + p.days + ' day' + (p.days === 1 ? '' : 's') + ' · last ' + esc(new Date(p.last).toISOString().slice(0, 10)) + '</span></span><b>' + hm(p.s) + '</b></div>').join("") + '</div>' : '<p>No play time recorded yet.</p>');
@@ -430,6 +437,7 @@ http.createServer(async (req, res) => {
         + '<main><h1>Player feedback</h1><div class="m">Seat of Power · newest first · <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=csv">download CSV</a></div>'
         + '<div class="k"><div><b>' + rows.length + '</b>messages</div><div><b>' + avg + ' ★</b>average of ' + rated.length + '</div><div><b>' + new Set(rows.map(r => r.player)).size + '</b>players</div></div>'
         + playHtml
+        + expHtml
         + coHtml
         + '<h2 style="margin:22px 0 8px">What players choose</h2><div class="m" style="margin-bottom:8px">Anonymous: each player counts once per answer. <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=stats">as JSON</a></div>' + statsHtml
         + '<h2 style="margin:22px 0 8px">Messages</h2>'
