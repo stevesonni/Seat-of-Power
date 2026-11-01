@@ -55,3 +55,5 @@ export * from "./peace.js";
 export * from "./legacy.js";
 export * from "./scenarios.js";
 export * from "./finance.js";
+export * from "./pillars.js";
+export * from "./i18n.js";

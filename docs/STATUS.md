@@ -1140,3 +1140,45 @@ I audited the player-facing text for formal words with simpler equivalents and s
   - names of laws ("Proceeds of Crime Bill", "AfCFTA (Implementation) Bill");
   - glossary expansions;
   - real terms the game teaches (procurement, tranche, mobilisation fee).
+
+## The six pillars, split-tested (owner, November 2026)
+One build. Each pillar is switched on or off at random per player (`server/experiment.mjs`, stored in `sop_exp`;
+`?exp=all`, `?exp=none` or `?exp=front:1,money:0` overrides it for testing). The dashboard's "The experiment"
+section compares the two groups for each pillar: left in under 5 minutes, finished a term, shared a card.
+Trust a difference only once both groups have a hundred players or more. The measures only count players
+inside Vatar (that is where `/api/track` is sent from).
+
+Rules live in `game/systems/pillars.js` (unit tests: `tests/pillars.test.mjs`); browser tests in `tests/e2e/pillars.mjs`.
+
+1. **Front door** (`front`). A first-time player (no politician, no save, no career) starts on day one in office:
+   the FAAC credit alert, three decisions (who to pay, Ward 7's borehole, ghost workers), each result saying what
+   happens next, a ribbon to cut, then "Six months earlier…" and the campaign. Skippable; seen once (`sop_prologue`);
+   funnel tracked as `ftue`. In office: a 💡 Hint button (the adviser says what to do now, and takes you there),
+   the tabs say what is behind them in the first two years (Desk: letters and decisions; State: money and projects;
+   People: cabinet and the public), each number on a result card is explained the first time it appears, the first
+   year's result cards end with "Next: …", and the outgoing government leaves 15% of a year's FAAC in the bank.
+2. **Never wait** (`wait`). Every year three quick wins (₦0.25–0.45B) that are finished before the year ends, with a
+   ribbon picture; a big project opens its first section at half way (approval +1.5); things happen on site
+   (youths at the gate, rain, old pots, missing cement) and go into the project's history.
+3. **Money as an enemy** (`money`). From year 2, each FAAC day shows what leaked before it reached anyone (ghost
+   workers, padded contracts, private accounts, cash levies: 20% of FAAC when nothing is plugged) and takes it from
+   the bank. Reforms plug one leak each; without the yearly upkeep they lose a third of their strength a year.
+4. **Ministries with integrity** (`integrity`). Every commissioner is a technocrat, loyalist, hustler or crusader
+   (fixed per game). The DSS offers to vet them (₦0.3B); whistleblowers mostly point at hustlers. Investigate (true:
+   money recovered, the commissioner resigns; false: forged papers), move them quietly, or ignore it (true: it is
+   in the newspapers next year).
+5. **Your own plan** (`plan`). The chairman picks one ambition for the term (judged at the end) and meets a rival
+   councillor who moves every other half-year. A governor can pilot a programme in one LGA first (a quarter of a
+   year's cost); next year it worked (cheaper and stronger rollout) or struggled. Eight combos: two programmes
+   that work together give a bonus ("Home-grown school feeding", "Eyes and ears", …).
+6. **Regional influence** (`region`). A governor races the governor of a neighbouring state (a factory, the market
+   levy, a festival, a border farm); the press keeps score. A President fights a trade war with the Republic of
+   Lokassa (fictional): border, ECOWAS court or talks; every path ends within three steps.
+
+**Not split:** the six end-of-term cards (Biography, WAEC report card, front page of the Daily Ledger, cabinet,
+election result, "Beat my score" with a `?ch=STATE-SEED` link that starts the same state with the same luck).
+Each saves a 1080×1350 picture and opens WhatsApp; sharing is tracked as `card_share`.
+
+**Languages:** Pidgin, Yorùbá, Hausa and Igbo (`game/systems/i18n.js`), picked on the title screen or in ☰.
+The cold open, the hints, the tabs, the four numbers, common buttons and the cards' headings are translated;
+everything else stays in English. Players are asked to report wrong wording through "Tell us what to improve".

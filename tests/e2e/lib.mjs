@@ -8,7 +8,9 @@ const pw = (() => { for (const m of ["playwright-core", "playwright", "/opt/node
 const { chromium } = pw;
 import fs from "node:fs";
 export const CHROME = process.env.CHROME || ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find(p => fs.existsSync(p));
-export async function open(port, { test = {}, seed = 7, phone = true, save, exp = "none" } = {}) {
+// EXP=all (or EXP=front,money) runs any e2e test with those pillars switched on.
+const EXP_ENV = process.env.EXP ? (process.env.EXP === "all" ? "all" : Object.fromEntries(process.env.EXP.split(",").map(k => [k.trim(), 1]))) : "none";
+export async function open(port, { test = {}, seed = 7, phone = true, save, exp = EXP_ENV } = {}) {
   const browser = await chromium.launch({ executablePath: CHROME });
   const ctx = await browser.newContext(phone ? { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 } : { viewport: { width: 1366, height: 768 } });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com|lagoslife/, r => r.abort());
@@ -117,7 +119,7 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
       if (cards.length) { cards[0].click(); return "card " + cards[0].textContent.trim().slice(0, 50); }
       return null;
     }, [SKIP.source, stuck]);
-    if (!hit) { if (!(await g.click(/^(Govern|Today)$/))) { await g.click(/^Desk\s*\d*$/); await g.wait(200); await g.click(/^(Govern|Today)$/); } await g.wait(250); hit = "→ Govern"; }
+    if (!hit) { if (!(await g.click(/^(Govern|Today)$/))) { await g.click(/^Desk(\s*\d*$|Letters and decisions)/); await g.wait(200); await g.click(/^(Govern|Today)$/); } await g.wait(250); hit = "→ Govern"; }
     clicks.push(hit); if (log) console.log(i, hit);
     await g.wait(300);
   }

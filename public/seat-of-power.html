@@ -579,10 +579,12 @@
             i.textContent = r.good === true ? '+' : r.good === false ? '−' : '§';
             i.style.background = r.good === true ? 'var(--green)' : r.good === false ? 'var(--red)' : '#8a6410';
             c.appendChild(i); c.appendChild(document.createTextNode(r.l + (r.v ? ': ' + r.v : '')));
+            try { var hh = window.SOP_ROWHELP && window.SOP_ROWHELP(r.l); if (hh) { var hs = document.createElement('div'); hs.className = 'rowhelp'; hs.textContent = hh; hs.style.cssText = 'flex-basis:100%;font-size:13px;font-weight:500;color:#5b6b61;margin:2px 0 0 30px;line-height:1.3'; c.style.flexWrap = 'wrap'; c.appendChild(hs); } } catch (e) {}
             g.appendChild(c);
           });
           bdy.appendChild(g);
         }
+        try { var nl = o.rows && o.rows.length && window.SOP_NEXTLINE && window.SOP_NEXTLINE(o); if (nl) { var nx = document.createElement('div'); nx.className = 'nextline'; nx.textContent = nl; nx.style.cssText = 'margin:10px 0 0;padding:8px 12px;border-radius:12px;background:#eef7f0;border-left:4px solid #0b6b42;font-size:14px;font-weight:600;color:#17301f'; bdy.appendChild(nx); } } catch (e) {}
         // No "How it really works" box in any office (the lessons live in the Wiki and the notebooks).
         var b = document.createElement('button'); b.type = 'button'; b.textContent = o.ok || 'Okay';
         b.className = 'btn btn-main btn-block';
