@@ -1,5 +1,7 @@
 # Lovable art: the achievement cards (Pack 30)
 
+**Installed (Pack 30).** All 23 pictures are in the game. The 19 medals are on their cards (`game/systems/achievements.js`). The backdrop, sunburst, plaque and confetti make up the popup and the shared 1080×1350 picture. `tests/art-usage.test.mjs` checks every file is used; `tests/e2e/achievements.mjs` checks a card is earned in play, pops up, shares and appears in the album.
+
 These are 24 cards that pop up when a player earns something, for example "6 foreign trips in one term. Junketer-in-chief!". Each card can be shared on WhatsApp in one tap, so it has to look good enough that people want to post it. Every card is built from:
 - a medal (the badge);
 - a card background;

@@ -254,3 +254,12 @@ test("every headscratcher picture is used, on its stage", async () => {
   }
   ["characters", "objects", "scenes"].forEach(d => names[d].forEach(n => assert.ok(used.has(d + "/" + n), d + "/" + n + " is on a stage")));
 });
+// Pack 30: the achievement cards. Every medal is on a card, and the four card pieces are used.
+test("Pack 30: every achievement medal and card piece is used", async () => {
+  const A = await import("../game/systems/achievements.js");
+  assert.equal(A.ACHIEVEMENTS.length, 24);
+  A.ACHIEVEMENTS.forEach(a => assert.ok(fs.existsSync(path.join(root, "public/art/badges", a.art + ".webp")), a.art));
+  const p30 = ["stay-at-home", "quick-fix", "ghostbuster", "leak-plumber", "salary-day", "supreme-court", "whistle", "border-champion", "combo", "debt-slayer", "trade-war", "diplomat", "road-held", "promise-kept", "lawmaker", "every-family", "streak", "peoples-favourite", "ward-to-aso-rock"].map(x => "badge-" + x);
+  p30.forEach(b => assert.ok(A.ACHIEVEMENTS.some(a => a.art === b), b + " is on a card"));
+  A.CARD_ART.forEach(f => { assert.ok(fs.existsSync(path.join(root, "public/art/brand", f + ".webp")), f); assert.ok(src.includes("brand/" + f + ".webp"), f + " is used"); });
+});

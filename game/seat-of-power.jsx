@@ -2654,7 +2654,7 @@ const MusicSlider = () => {
 // (our server), and a streak of days played. A year of governing also counts.
 const DAILY_KEY = "sop_daily";
 const loadDaily = async () => { try { const r = await window.storage.get(DAILY_KEY); const d = r?.value ? JSON.parse(r.value) : null; return { days: [], picks: {}, ...(d || {}) }; } catch (e) { return { days: [], picks: {} }; } };
-const saveDaily = async (d) => { try { await window.storage.set(DAILY_KEY, JSON.stringify(d)); } catch (e) {} try { window.dispatchEvent(new CustomEvent("sop-daily", { detail: d })); } catch (e) {} };
+const saveDaily = async (d) => { try { await window.storage.set(DAILY_KEY, JSON.stringify(d)); } catch (e) {} try { window.dispatchEvent(new CustomEvent("sop-daily", { detail: d })); } catch (e) {} try { const st = SYS.streakOf(d.days, SYS.dayNo(), 0); if (st.streak >= 7) setTimeout(() => window.SOP_earnCards && window.SOP_earnCards({ streak: st.streak }), 1200); } catch (e) {} };
 const markPlayed = async () => { const d = await loadDaily(), n = SYS.dayNo(); if (!d.days.includes(n)) { d.days = [...d.days, n].slice(-400); await saveDaily(d); } return d; };
 if (typeof window !== "undefined") window.SOP_markPlayed = markPlayed;
 // Streak state, spending Streak Freezes on missed days when the player owns them.
@@ -3003,6 +3003,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             </button>; })}
           {packLocked("portrait_frames") && <PillBtn onClick={() => window.SOP_buy("portrait_frames").catch(() => {})}>Unlock all 4 frames · ₦100</PillBtn>}
         </div>
+        <CardAlbum />
         <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🏅 Titles</b>
         {(() => { const got = new Set((profile.games || []).map(g => g.title)); return <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 14 }} aria-label={got.size + " of " + ALL_TITLES.length + " titles earned"}>
           {ALL_TITLES.map(t => <span key={t} title={got.has(t) ? "Earned" : "Not yet earned"} style={{ padding: "6px 12px", borderRadius: 999, fontSize: DS.t.meta, fontWeight: 800, background: got.has(t) ? UI.green + "18" : "#efe9dc", color: got.has(t) ? UI.green : UI.dim, border: "1px solid " + (got.has(t) ? UI.green + "55" : UI.line) }}>{got.has(t) ? "🏅 " + t : "🔒 " + t}</span>)}
@@ -4478,6 +4479,77 @@ const TermCards = ({ cards }) => <div data-testid="term-cards" style={{ maxWidth
     </div>
   </div>)}</div>
 </div>;
+/* Achievement cards (Pack 30): a popup the moment one is earned, a 1080×1350 picture to
+   share, and an album on the profile. Rules: game/systems/achievements.js. */
+const loadCards = () => { try { return JSON.parse(localStorage.getItem(SYS.CARDS_KEY) || "{}") || {}; } catch (e) { return {}; } };
+const saveCards = (c) => { const v = JSON.stringify(c); try { localStorage.setItem(SYS.CARDS_KEY, v); } catch (e) {} try { window.storage && window.storage.set(SYS.CARDS_KEY, v); } catch (e) {} };
+const whoDefault = () => { try { const p = JSON.parse(localStorage.getItem("sop_profile") || "null"); return p ? "Hon. " + p.first + " " + p.last : ""; } catch (e) { return ""; } };
+const achBig = (c) => c.big || null;
+const achImg = (src) => new Promise(res => { const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src; });
+const achCardPng = async (c) => {
+  const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H; const g = cv.getContext("2d");
+  const [bd, sun, medal, plq] = await Promise.all(["./art/brand/card-backdrop.webp", "./art/brand/card-sunburst.webp", "./art/badges/" + c.art + ".webp", "./art/brand/card-plaque.webp"].map(achImg));
+  const serif = "Georgia, 'Times New Roman', serif", sans = "Arial, Helvetica, sans-serif";
+  if (bd) g.drawImage(bd, 0, 0, W, H); else { g.fillStyle = "#0b4d2c"; g.fillRect(0, 0, W, H); }
+  if (sun) { g.globalAlpha = .95; g.drawImage(sun, 90, 0, 900, 900); g.globalAlpha = 1; }
+  g.save(); g.shadowColor = "rgba(0,0,0,.45)"; g.shadowBlur = 40; g.shadowOffsetY = 18; if (medal) g.drawImage(medal, 260, 120, 560, 560); g.restore();
+  if (plq) g.drawImage(plq, 110, 690, 860, 210);
+  g.textAlign = "center"; g.fillStyle = "#3b2a05"; let fs = 70; g.font = "bold " + fs + "px " + serif; while (g.measureText(c.t).width > 700 && fs > 36) { fs -= 2; g.font = "bold " + fs + "px " + serif; } g.fillText(c.t, 540, 795 + fs * .35);
+  const big = achBig(c); let y = 960;
+  if (big) { g.fillStyle = "#f2c14e"; let bs = 96; g.font = "bold " + bs + "px " + serif; while (g.measureText(big).width > 900 && bs > 48) { bs -= 4; g.font = "bold " + bs + "px " + serif; } g.fillText(big, 540, y + 30); y += 96; }
+  g.fillStyle = "#ffffff"; g.font = "38px " + sans; const ws = String(c.line).split(/\s+/); let line = "", n = 0;
+  for (const w0 of ws) { const t = line ? line + " " + w0 : w0; if (g.measureText(t).width > 880 && line) { g.fillText(line, 540, y); y += 50; line = w0; if (++n >= 3) break; } else line = t; } if (line) { g.fillText(line, 540, y); y += 50; }
+  g.fillStyle = "#f2c14e"; g.font = "bold 32px " + sans; if (c.who) g.fillText(c.who, 540, 1225);
+  g.fillStyle = "#ffffff"; g.font = "bold 34px " + sans; g.fillText("The Seat of Power · play free: seatofpower.online", 540, 1285);
+  return await new Promise(res => cv.toBlob(res, "image/png"));
+};
+const shareAchCard = async (c) => {
+  track("card_share", "ach_" + c.id);
+  const text = c.t + "! " + (c.big ? c.big + ". " : "") + c.line + " Play The Seat of Power: " + SYS.SHARE_URL;
+  try { const blob = await achCardPng(c), file = new File([blob], "seat-of-power-" + c.id + ".png", { type: "image/png" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text }); return; }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { if (e && e.name === "AbortError") return; }
+  const u = "https://wa.me/?text=" + encodeURIComponent(text); try { window.open(u, "_blank"); } catch (e) { location.href = u; }
+};
+const achQueue = []; let achOpen = false;
+const showAchCard = (c) => { achQueue.push(c); achNext(); };
+const achNext = () => {
+  if (achOpen || !achQueue.length || typeof document === "undefined") return; const c = achQueue.shift(); achOpen = true;
+  if (!document.getElementById("sop-ach-css")) { const st = document.createElement("style"); st.id = "sop-ach-css"; st.textContent = "@keyframes achSpin{to{transform:rotate(360deg)}}@keyframes achPop{0%{transform:scale(.3);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}@keyframes achFall{0%{transform:translateY(-60%);opacity:0}20%{opacity:1}100%{transform:translateY(10%);opacity:0}}@keyframes achIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.ach-anim{animation:none!important}}"; document.head.appendChild(st); }
+  const back = document.createElement("div"); back.setAttribute("role", "dialog"); back.setAttribute("aria-modal", "true"); back.setAttribute("data-ach", c.id);
+  back.style.cssText = "position:fixed;inset:0;z-index:9990;background:rgba(4,12,8,.86);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;overflow:auto";
+  const big = achBig(c);
+  back.innerHTML = '<div class="ach-anim" style="position:relative;flex:0 0 auto;width:min(92vw,420px);aspect-ratio:1080/1350;border-radius:22px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6);background:#0b4d2c url(./art/brand/card-backdrop.webp) center/cover;animation:achIn .35s ease-out both;font-family:\'Plus Jakarta Sans\',sans-serif">'
+    + '<img src="./art/brand/card-sunburst.webp" alt="" class="ach-anim" style="position:absolute;left:8%;top:0;width:84%;animation:achSpin 40s linear infinite">'
+    + '<img src="./art/badges/' + c.art + '.webp" alt="" class="ach-anim" style="position:absolute;left:24%;top:9%;width:52%;filter:drop-shadow(0 12px 18px rgba(0,0,0,.45));animation:achPop .7s .15s cubic-bezier(.2,.8,.2,1) both">'
+    + '<img src="./art/brand/card-confetti.webp" alt="" class="ach-anim" style="position:absolute;left:0;top:0;width:100%;pointer-events:none;animation:achFall 2.6s .2s ease-in both">'
+    + '<div style="position:absolute;left:10%;right:10%;top:51%;height:15.5%;background:url(./art/brand/card-plaque.webp) center/100% 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:0 9%"><b class="ach-t" style="font:800 clamp(17px,5.6vw,25px)/1.1 Fraunces,Georgia,serif;color:#3b2a05;text-align:center"></b></div>'
+    + '<div style="position:absolute;left:7%;right:7%;top:68%;text-align:center;color:#fff">' + (big ? '<div class="ach-b" style="font:800 clamp(26px,8.4vw,40px)/1.05 Fraunces,Georgia,serif;color:#f2c14e"></div>' : '') + '<div class="ach-l" style="font-size:clamp(13px,3.8vw,16px);line-height:1.35;margin-top:4px"></div></div>'
+    + '<div class="ach-w" style="position:absolute;left:0;right:0;bottom:3.2%;text-align:center;color:#f2c14e;font-weight:800;font-size:12px;letter-spacing:.4px"></div></div>'
+    + '<div style="display:flex;gap:10px;width:min(92vw,420px);margin-top:12px;flex:0 0 auto"><button type="button" class="ach-x" style="flex:1;min-height:50px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font:800 16px \'Plus Jakarta Sans\',sans-serif;cursor:pointer">Keep playing</button><button type="button" class="ach-s" style="flex:1.4;min-height:50px;border-radius:999px;border:0;background:#25D366;color:#fff;font:800 16px \'Plus Jakarta Sans\',sans-serif;cursor:pointer">' + tr("Share on WhatsApp") + '</button></div>';
+  back.querySelector(".ach-t").textContent = c.t; if (big) back.querySelector(".ach-b").textContent = big; back.querySelector(".ach-l").textContent = c.line; back.querySelector(".ach-w").textContent = c.who || "";
+  const close = () => { back.remove(); achOpen = false; setTimeout(achNext, 250); };
+  back.querySelector(".ach-x").onclick = close; back.querySelector(".ach-s").onclick = () => shareAchCard(c);
+  document.body.appendChild(back); try { window.SOP_sound && window.SOP_sound("good"); } catch (e) {}
+  // On phones the page is zoomed down to fit the stage; the card is drawn at the phone's own size.
+  try { const cd = back.firstElementChild, k = cd.getBoundingClientRect().width / parseFloat(getComputedStyle(cd).width); if (k > 0 && Math.abs(k - 1) > .05) back.style.zoom = String(1 / k); } catch (e) {}
+};
+// Award whatever this moment earns. who: the name and place printed on the card.
+const earnCards = (ctx, who) => { const have = loadCards(), fresh = SYS.cardsEarned(ctx, have); if (!fresh.length) return [];
+  fresh.forEach(c => { have[c.id] = { n: c.n, big: c.big, line: c.line, who: who || whoDefault(), at: Date.now() }; track("card_earned", c.id); }); saveCards(have);
+  fresh.forEach(c => showAchCard({ ...c, who: who || whoDefault() })); return fresh; };
+if (typeof window !== "undefined") { window.SOP_earnCards = earnCards; window.SOP_achPng = achCardPng; }
+const CardAlbum = () => { const have = loadCards(), n = SYS.ACH_IDS.filter(id => have[id]).length;
+  return <div data-testid="card-album" style={{ marginBottom: 14 }}>
+    <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 4px" }}>🃏 My cards</b>
+    <div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 8 }}>{n} of {SYS.ACHIEVEMENTS.length} earned. Tap one to share it again.</div>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>{SYS.ACHIEVEMENTS.map(a => { const h = have[a.id];
+      return <button key={a.id} disabled={!h} onClick={() => h && showAchCard({ id: a.id, t: a.t, art: a.art, n: h.n, big: h.big, line: h.line, who: h.who })} title={a.t} style={{ border: 0, background: "transparent", padding: 2, cursor: h ? "pointer" : "default", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+        <img src={"./art/badges/" + a.art + ".webp"} alt="" style={{ width: "100%", maxWidth: 72, aspectRatio: "1", objectFit: "contain", filter: h ? "none" : "grayscale(1) opacity(.35)" }} />
+        <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.15, color: h ? UI.dark : UI.sub, textAlign: "center" }}>{a.t}</span>
+      </button>; })}</div>
+  </div>; };
 const wikiShareCard = async (w, kind) => {
   const W = kind === "x" ? 1200 : 1080, H = kind === "x" ? 675 : 1920;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
@@ -5681,6 +5753,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // When a new year's budget opens, one card says what changed since the
   // last one, what happened, and any honour earned.
   const reportRef = React.useRef(ld?.reportAt ? { t: ld.reportAt, snap: ld.reportSnap } : null);
+  // Achievement cards (Pack 30): checked as the year moves on, and once more when the term ends.
+  useEffect(() => { try {
+    const RV = stc.rivalry || {}, P = (stc.plugs || {}).payroll, last = (stc.leakHist || []).slice(-1)[0], ids = (pol || []).map(a => a.id);
+    const ctx = { office: NAT ? "president" : "governor", turn, trips: stc.trips || 0, termDone: turn >= 5 || gEnd === "complete", delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length,
+      quickWins: (stc.qwDone || []).length, plugYears: P && SYS.plugStrength(P) > 0 ? turn - P.since : 0, leakPct: last ? last.pct : null, arrearsMax: stc.arrearsMax || 0, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"),
+      whistleTrue: Object.values(stc.integ || {}).filter(v => v === "exposed").length, rivalUs: RV.us || 0, rivalThem: RV.them || 0, nb: RV.nb ? RV.nb.replace(/_/g, " ") : null, state: stName,
+      combos: SYS.COMBOS.filter(c => ids.includes(c.a) && ids.includes(c.b)).length, gEnd, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, peace: !!(stc.bakunda && stc.bakunda.done) || (stc.peaceClosed || 0) > 0,
+      cor: s.cor || 0, twEnd: stc.tw && stc.tw.end, presTrips: NAT ? ((stc.pres || {}).seen || []).filter(id => SYS.PRES_WORLD.some(c => c.id === id)).length : 0, app: s.app };
+    earnCards(ctx, (NAT ? "President " : "Gov. ") + pName + " · " + stName + (NAT ? "" : " State") + " · " + absYear);
+    if (NAT && turn === 1) window.storage.get("sop_career").then(r => { const L = r && r.value ? JSON.parse(r.value) : []; if (L.some(x => x.office === "chairman") && L.some(x => x.office === "governor")) earnCards({ ladder: true }, "President " + pName); }).catch(() => {});
+  } catch (e) { console.warn("[cards]", e); } }, [turn, phase, gEnd]);
   const honourCtx = () => ({ peace: !!(stc.bakunda && stc.bakunda.done), turn, secondChance: !!stc.secondChance, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
   useEffect(() => {
     if (phase !== "budget" || gEnd) return;
@@ -15848,6 +15931,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   useEffect(() => { if (g) { try { window.storage.set(SEN_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  useEffect(() => { if (!g) return; earnCards({ office: "senator", lawsBacked: (g.log || []).filter(x => x.passed && x.v !== "no").length + (g.sponsored || 0) }, "Sen. " + (g.name || "")); }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
   const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
@@ -16211,6 +16295,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   useEffect(() => { if (g) { try { window.storage.set(LGA_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  useEffect(() => { if (!g || !g.n) return; earnCards({ office: "chairman", roadHeld: !!(g.road && g.road.tested && g.road.held), ambitionMet: !!(g.over && g.ambition && SYS.ambitionMet(g)), ambition: g.ambition && SYS.AMBITIONS[g.ambition] ? SYS.AMBITIONS[g.ambition].l : null }, "Chairman " + g.name + " · " + (g.lga || "") + " LGA"); }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
   const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
@@ -16555,6 +16640,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   useEffect(() => { if (g) { try { window.storage.set(AMB_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  useEffect(() => { if (!g || !g.arcs) return; earnCards({ office: "ambassador", evacDone: SYS.arcTags(g).includes("evac_done") }, "Amb. " + (g.name || "")); }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
   const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook

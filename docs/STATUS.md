@@ -1182,3 +1182,16 @@ Each saves a 1080×1350 picture and opens WhatsApp; sharing is tracked as `card_
 **Languages:** Pidgin, Yorùbá, Hausa and Igbo (`game/systems/i18n.js`), picked on the title screen or in ☰.
 The cold open, the hints, the tabs, the four numbers, common buttons and the cards' headings are translated;
 everything else stays in English. Players are asked to report wrong wording through "Tell us what to improve".
+
+## Achievement cards (Pack 30, owner, November 2026)
+24 cards that pop up the moment a player earns them (`game/systems/achievements.js`; unit tests
+`tests/achievements.test.mjs`, browser test `tests/e2e/achievements.mjs`). Each card shows the medal on a
+turning gold sunburst, the title on a gold plaque, a big number ("6 trips abroad", "81% approval",
+"Ogun 3 – 0 Oyo"), one funny line, and the player's name, office, state and year. Share on WhatsApp makes a
+1080×1350 picture on the phone (shared as a file where the phone allows, otherwise saved, then WhatsApp opens
+with the text and link). Each card is earned once per player (`sop_cards`), two at once come one after the
+other, and every card is kept in "My cards" on the profile, where earned ones can be shared again.
+Tracked: `card_earned` (which card) and `card_share` (`ach_<id>`), so the dashboard's "shared a card" counts them.
+Where they are checked: the governor's and President's year (each step of the year and at the end), the
+chairman's, senator's and ambassador's careers, and the Daily streak. Not built: "Earned by 4% of players"
+(it needs a public count from the server; next step if wanted).
