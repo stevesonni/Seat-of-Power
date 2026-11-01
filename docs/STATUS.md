@@ -1145,7 +1145,7 @@ I audited the player-facing text for formal words with simpler equivalents and s
 One build. Each pillar is switched on or off at random per player (`server/experiment.mjs`, stored in `sop_exp`;
 `?exp=all`, `?exp=none` or `?exp=front:1,money:0` overrides it for testing). The dashboard's "The experiment"
 section compares the two groups for each pillar: left in under 5 minutes, finished a term, shared a card.
-Trust a difference only once both groups have a hundred players or more. The measures only count players
+Trust a difference only once both groups have a hundred players or more. Columns: left under 5 minutes, reached an ending (any), served the full term, ended early (impeached, dissolved, removed, recalled, broke), shared a card. The front door also has "new" rows: first-time players only (`first_visit`, sent once by every new player in either group), because the cold open never plays for a returning player. The measures only count players
 inside Vatar (that is where `/api/track` is sent from).
 
 Rules live in `game/systems/pillars.js` (unit tests: `tests/pillars.test.mjs`); browser tests in `tests/e2e/pillars.mjs`.

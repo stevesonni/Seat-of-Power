@@ -17276,8 +17276,13 @@ function App() {
     const h = SYS.rowHelp(label, seen); if (!h) return null; try { localStorage.setItem("sop_rowhelp", JSON.stringify([...seen, h.key])); } catch (e) {} return h.text; }; }, []);
   // The cold open, for a first-time player in the "front" group: no politician, no save, never seen it.
   const [pro, setPro] = useState(false), [campaignNow, setCampaignNow] = useState(0);
-  useEffect(() => { if (!pillarOn("front")) return; let seen = false; try { seen = !!localStorage.getItem(SYS.PROLOGUE_KEY) || /[?&](cab|desk|fed|daily|ch|preview)=/.test(location.search); } catch (e) {} if (seen) return;
-    Promise.all([window.storage.get("sop_save").catch(() => null), loadProfile().catch(() => null), window.storage.get("sop_career").catch(() => null)]).then(([sv, p, c]) => { if (!(sv && sv.value) && !p && !(c && c.value)) setPro(true); }); }, []);
+  // A first-time player (no save, no politician, no career) is counted once in either group, so the dashboard can judge the front door on them alone.
+  useEffect(() => { let seen = false, linked = false; try { seen = !!localStorage.getItem(SYS.PROLOGUE_KEY); linked = /[?&](cab|desk|fed|daily|ch|preview)=/.test(location.search); } catch (e) {}
+    Promise.all([window.storage.get("sop_save").catch(() => null), loadProfile().catch(() => null), window.storage.get("sop_career").catch(() => null)]).then(([sv, p, c]) => {
+      if ((sv && sv.value) || p || (c && c.value)) return;
+      let counted = false; try { counted = !!localStorage.getItem("sop_first_visit"); localStorage.setItem("sop_first_visit", String(Date.now())); } catch (e) {}
+      if (!counted) track("first_visit", linked ? "link" : "direct");
+      if (pillarOn("front") && !seen && !linked) setPro(true); }); }, []);
   // Re-render on rotation so TALL() layouts switch with the screen.
   const [, setShape] = useState(TALL());
   useEffect(() => {

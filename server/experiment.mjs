@@ -32,15 +32,31 @@ export const completeAssignment = (cur, r = Math.random) => { const out = { ...(
 
 /* The dashboard's comparison. S: the server's stats ({ ev, play }). For each
    pillar, the players in each group and how many of them left in under five
-   minutes, finished a term (reached any career's ending) and shared a card. */
+   minutes, reached an ending, served the full term (or ended early: impeached,
+   dissolved, removed, recalled, broke) and shared a card. The front door can only
+   change a first-time player's game, so it is also compared on first-timers
+   alone (the "first_visit" event, sent by every new player in either group). */
 export const ENDING_EVENTS = ["ending", "lga_end", "senate_end", "amb_end"];
+export const FULL_TERM = {
+  ending: ["Served two terms", "Stepped down", "Voted out", "Ran for President"],
+  lga_end: ["reelected", "defeated", "no_ticket"],
+  senate_end: ["reelected", "defeated", "no_ticket"],
+  amb_end: ["promoted", "completed"],
+};
+const playersOf = (E, vals) => Object.entries((E || {}).values || {}).filter(([v]) => !vals || vals.includes(v)).flatMap(([, x]) => Object.keys((x || {}).p || {}));
 export const experimentSummary = (S) => {
   const ev = (S && S.ev) || {}, play = (S && S.play) || {};
   const finished = new Set(ENDING_EVENTS.flatMap(e => Object.keys((ev[e] || {}).players || {})));
+  const full = new Set(ENDING_EVENTS.flatMap(e => playersOf(ev[e], FULL_TERM[e])));
+  const early = new Set([...finished].filter(w => !full.has(w)));
   const shared = new Set(Object.keys((ev.card_share || {}).players || {}));
-  const group = (who) => { const n = who.length, timed = who.filter(w => play[w]), early = timed.filter(w => (play[w].s || 0) < 300).length, fin = who.filter(w => finished.has(w)).length, sh = who.filter(w => shared.has(w)).length;
-    const pc = (a, b) => b ? Math.round(a / b * 1000) / 10 : null;
-    return { players: n, timed: timed.length, earlyPct: pc(early, timed.length), finishedPct: pc(fin, n), sharedPct: pc(sh, n) }; };
+  const firsts = new Set(Object.keys((ev.first_visit || {}).players || {}));
+  const pc = (a, b) => b ? Math.round(a / b * 1000) / 10 : null;
+  const group = (who) => { const n = who.length, timed = who.filter(w => play[w]), quit = timed.filter(w => (play[w].s || 0) < 300).length;
+    return { players: n, timed: timed.length, earlyPct: pc(quit, timed.length), finishedPct: pc(who.filter(w => finished.has(w)).length, n),
+      fullPct: pc(who.filter(w => full.has(w)).length, n), endedEarlyPct: pc(who.filter(w => early.has(w)).length, n), sharedPct: pc(who.filter(w => shared.has(w)).length, n) }; };
   return PILLARS.map(p => { const E = ev["exp_" + p.id] || { values: {} }, ids = (g) => Object.keys((E.values[g] || {}).p || {});
-    return { id: p.id, nm: p.nm, on: group(ids("on")), off: group(ids("off")) }; });
+    const row = { id: p.id, nm: p.nm, on: group(ids("on")), off: group(ids("off")) };
+    if (p.id === "front") { row.onNew = group(ids("on").filter(w => firsts.has(w))); row.offNew = group(ids("off").filter(w => firsts.has(w))); }
+    return row; });
 };
