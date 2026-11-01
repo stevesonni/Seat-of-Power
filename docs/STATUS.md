@@ -1195,3 +1195,17 @@ Tracked: `card_earned` (which card) and `card_share` (`ach_<id>`), so the dashbo
 Where they are checked: the governor's and President's year (each step of the year and at the end), the
 chairman's, senator's and ambassador's careers, and the Daily streak. Not built: "Earned by 4% of players"
 (it needs a public count from the server; next step if wanted).
+
+## Districts ask before they sulk (player feedback, Chinaza, November 2026)
+"Instead of getting a minus from other zones, they can place demands that are reasonable and you can do, and
+if you don't, then you get the minus." For every player, not part of the split (`game/systems/zoneasks.js`;
+tests `tests/zoneasks.test.mjs`, `tests/e2e/zone-asks.mjs`). Three automatic minuses became requests:
+- a big project that left a district out (was −1 at once);
+- a lopsided cabinet (was −2 every year from the first year; now a request for a seat first, and the yearly −2 only
+  after a refusal, a broken promise or two years with no answer);
+- the governor and running mate from the same district (was −2 for every other district on day one).
+Each request is one affordable thing in one of its own LGAs (₦0.25–0.6B for a district, six times that for a
+President's zone): tar a road, boreholes in five wards, the hospital's generator, school roofs, streetlights,
+your next project there, or a seat in the cabinet. Do it now (+3 for the district, +1 approval), promise it for
+next year, or say no (−2). A broken promise costs −3; no answer for two years, −2. One open request per district,
+at most two on the Desk a year.
