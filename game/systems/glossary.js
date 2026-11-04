@@ -3,6 +3,20 @@
    line on what it means for you. The page underlines each one where it
    appears; a tap shows this. */
 export const GLOSSARY = {
+  // Words of government a new player meets in the first year (the audit, November 2026)
+  "Appropriation Bill": ["The budget law", "The year's budget, written as a law. The House of Assembly must pass it before the money can be spent."],
+  "budget law": ["The Appropriation Bill", "The year's budget, written as a law. The House of Assembly must pass it before the money can be spent."],
+  "Head of Service": ["The top civil servant", "Runs the state civil service: the permanent staff who stay when governors change."],
+  "top civil servant": ["The Head of Service", "Runs the state civil service: the permanent staff who stay when governors change."],
+  "Executive Council": ["Your cabinet", "The governor, the deputy and the commissioners, meeting to approve contracts, programmes and policies."],
+  commissioner: ["A state minister", "Runs one ministry for the governor, who appoints them with the House's approval."],
+  commissioners: ["State ministers", "Each runs one ministry for the governor, who appoints them with the House's approval."],
+  Speaker: ["The head of the House of Assembly", "Chairs the House and decides which bills come to the floor, and when."],
+  constituency: ["A lawmaker's home area", "The place a member of the House was elected to represent."],
+  senatorial: ["Senatorial district", "Each state has three, one for each of its senators. The game calls them districts."],
+  procurement: ["Buying for government", "How contracts are awarded: in the open, with bids, or quietly to a friend."],
+  tribunal: ["The election tribunal", "The court that hears cases against an election result. Its rulings can go to the Court of Appeal and the Supreme Court."],
+  impeachment: ["Removal from office by the House", "Two-thirds of the House must vote for it, after a panel investigates the charges."],
   // Money
   FAAC: ["Federation Account Allocation Committee", "Shares the country's oil and tax money out to the states every month: most of a state's income."],
   IGR: ["Internally Generated Revenue", "The taxes, levies and fees your state collects itself, on top of its share from Abuja."],

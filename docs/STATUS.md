@@ -1262,3 +1262,31 @@ your own), probe ₦60B of untraced subsidy, find your ally's family in it, and 
 your people in three ministries, or to become a party elder. The successor (grateful, independent or ambitious;
 always ambitious if the godfather chose them) answers, then cancels your flagship; you say nothing, go public, or
 call your loyalists in the House. Six ways to be remembered, from "the elder statesman" to "the kingmaker".
+
+## The rebuild, step by step (owner's plan after the audit, November 2026)
+Each step is a pillar of the experiment (`server/experiment.mjs`), so the dashboard compares it on and off;
+step 1 is for everyone. Rules: `express.js`, `plainwords.js`, `drama.js`; tests `tests/rebuild.test.mjs`.
+
+1. **Where players leave** (everyone). The game sends `at` with the screen a player is on once it has stayed
+   for 3 seconds: the app screen, the setup step, or the governing phase, tab and Desk card. The server keeps each
+   player's last screen (`S.last`), and the dashboard's "Where players leave" chart counts the players not seen
+   for 30 minutes by their last screen. Anonymous counts only; counted from 5 November 2026.
+2. **The short start** (`start`). After making a politician: the godfather's deal (all, half or none of his
+   money), one rally (home, the opponent's heartland or the capital's market), and election night with the count
+   coming in district by district. Win rates run from about 85% (all his money, the market) to about 45% (none
+   of it); a loss offers "Run again". Then the oath and straight to Government House: no adviser, running-mate or
+   TV-report screens (the recommended picks are made for you). Same setup record as the long path.
+3. **Four meters and one card** (`screen`). The strip shows People, Party, Treasury and Godfather as words and
+   colours (for example "Treasury: Tight", "Godfather: Watching"), with "▲ up" / "▼ down" instead of numbers.
+   Today shows what just changed and the next decision; the needs, the street, visits and labour sit behind "More".
+4. **A gentler first year** (`stagger`). The Chief of Staff forms an interim cabinet and calls the palaces
+   together, without the two council sessions; the Head of Service letter waits for year 2; the year-one budget is
+   three stances (Balanced, Populist, Reformer) with nothing to fine-tune; the Treasury visit is optional.
+5. **Plain words** (`words`). On screen: "budget law" for Appropriation Bill, "top civil servant" for Head of
+   Service, "cabinet" for Executive Council, "district" for senatorial district, "home area" for constituency,
+   "contracts" for procurement. Desk cards are cut to two sentences and 25 words, result cards to 25 words.
+   The glossary (for everyone) now also explains appropriation, Head of Service, Executive Council, commissioner,
+   Speaker, constituency, senatorial, procurement, tribunal and impeachment, and the plain words.
+6. **Headlines and calls** (`drama`). A front page after every Desk decision, the godfather on the phone once a
+   year (what he says depends on how you stand with him), and "My story in five lines" first among the share cards
+   (who, what you are remembered as, the proudest moment, the lowest, the verdict); the full bio is "Read the full story".

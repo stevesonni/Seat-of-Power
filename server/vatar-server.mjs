@@ -19,7 +19,7 @@ import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from 
 import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntries, playedAgain } from "./hall-rules.mjs";
 import { makeCabinets } from "./cabinet.mjs";
 import { makeFederation } from "./federation.mjs";
-import { experimentSummary } from "./experiment.mjs";
+import { dropOff, experimentSummary } from "./experiment.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -267,6 +267,7 @@ const api = {
       if (Object.keys(E.values).length > 300 && !E.values[v]) return; // no unbounded growth
       const V = E.values[v] = E.values[v] || { n: 0, p: {} };
       V.n++; if (!V.p[who]) { V.p[who] = 1; } E.players[who] = 1; statsDirty = true;
+      if (e === "at") { (S.last = S.last || {})[who] = { v, t: Date.now() }; } // where this player is now (the drop-off chart)
     });
     return { ok: true };
   },
@@ -410,7 +411,7 @@ http.createServer(async (req, res) => {
       const S = statsNow(), evs = Object.entries(S.ev).sort((a, b) => Object.keys(b[1].players).length - Object.keys(a[1].players).length);
       if (url.searchParams.get("format") === "stats") {
         const out = {}; evs.forEach(([e, E]) => { const np = Object.keys(E.players).length; out[e] = { players: np, values: Object.fromEntries(Object.entries(E.values).map(([v, V]) => [v, { players: Object.keys(V.p).length, times: V.n, pct: np ? Math.round(Object.keys(V.p).length / np * 100) : 0 }])) }; });
-        out._playtime = playSummary(S); out._experiment = experimentSummary(S);
+        out._playtime = playSummary(S); out._experiment = experimentSummary(S); out._dropoff = dropOff(S);
         return send(res, 200, out);
       }
       const statsHtml = evs.length ? evs.map(([e, E]) => { const np = Object.keys(E.players).length, vs = Object.entries(E.values).map(([v, V]) => [v, Object.keys(V.p).length, V.n]).sort((a, b) => b[1] - a[1]);
@@ -431,6 +432,10 @@ http.createServer(async (req, res) => {
             + rows([["on", x.on, x.off], ["off", x.off, x.on]])
             + (x.onNew ? rows([["on · new", x.onNew, x.offNew], ["off · new", x.offNew, x.onNew]]) : '') + '</div>'
             + (x.onNew ? '<div class="m" style="margin-top:6px;font-size:13px">The cold open only plays for a player with no save and no politician, so judge this change on the "new" rows: first-time players only (counted from this version on).</div>' : '') + '</div>'; }).join("");
+      // Where players leave: each player's last screen, for players not seen in 30 minutes.
+      const DO = dropOff(S), dmax = Math.max(1, ...DO.screens.map(x => x.n));
+      const dropHtml = '<h2 style="margin:22px 0 8px">Where players leave</h2><div class="m" style="margin-bottom:8px">The last screen each player was on, for players not seen in the last 30 minutes (' + DO.left + ' left, ' + DO.here + ' playing or just stopped). Counted from 5 November 2026; anonymous counts only.</div>'
+        + (DO.screens.length ? '<div class="c">' + DO.screens.slice(0, 30).map(x => '<div style="display:grid;grid-template-columns:minmax(0,2fr) 3fr 80px;gap:8px;align-items:center;margin-top:6px;font-size:14px"><span style="overflow-wrap:anywhere">' + esc(x.screen) + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(x.n / dmax * 100) + '%;background:#b3261e"></span></span><span class="m" style="text-align:right">' + x.n + ' · ' + x.pct + '%</span></div>').join("") + '</div>' : '<div class="c m">No one has left yet since this started counting.</div>');
       const playHtml = '<h2 style="margin:22px 0 8px">Play time</h2>' + (PS.players ? '<div class="k"><div><b>' + hm(PS.totalSec) + '</b>played in all</div><div><b>' + hm(PS.avgSec) + '</b>average per player</div><div><b>' + hm(PS.medianSec) + '</b>typical player (median)</div><div><b>' + PS.players + '</b>players timed</div></div>'
         + '<div class="c"><b>How long players stay</b>' + PS.buckets.map(b => '<div style="display:grid;grid-template-columns:110px 3fr 64px;gap:8px;align-items:center;margin-top:6px"><span>' + b.l + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(b.n / bmax * 100) + '%;background:#0b6b42"></span></span><span class="m" style="text-align:right">' + b.n + '</span></div>').join("") + '</div>'
         + '<div class="c"><b>Longest players</b> <span class="m">· anonymous ids</span>' + PS.top.slice(0, 20).map((p, i) => '<div style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;margin-top:6px"><span class="m">' + (i + 1) + '</span><span>Player ' + esc(p.who.slice(0, 6)) + ' <span class="m">· ' + p.days + ' day' + (p.days === 1 ? '' : 's') + ' · last ' + esc(new Date(p.last).toISOString().slice(0, 10)) + '</span></span><b>' + hm(p.s) + '</b></div>').join("") + '</div>' : '<p>No play time recorded yet.</p>');
@@ -440,7 +445,7 @@ http.createServer(async (req, res) => {
         + '<main><h1>Player feedback</h1><div class="m">Seat of Power · newest first · <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=csv">download CSV</a></div>'
         + '<div class="k"><div><b>' + rows.length + '</b>messages</div><div><b>' + avg + ' ★</b>average of ' + rated.length + '</div><div><b>' + new Set(rows.map(r => r.player)).size + '</b>players</div></div>'
         + playHtml
-        + expHtml
+        + dropHtml + expHtml
         + coHtml
         + '<h2 style="margin:22px 0 8px">What players choose</h2><div class="m" style="margin-bottom:8px">Anonymous: each player counts once per answer. <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=stats">as JSON</a></div>' + statsHtml
         + '<h2 style="margin:22px 0 8px">Messages</h2>'

@@ -62,3 +62,6 @@ export * from "./zoneasks.js";
 export * from "./replay.js";
 export * from "./legislature.js";
 export * from "./elder.js";
+export * from "./express.js";
+export * from "./plainwords.js";
+export * from "./drama.js";

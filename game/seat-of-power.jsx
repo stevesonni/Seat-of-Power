@@ -975,6 +975,15 @@ const installTranslator = () => {
   fix(document.body);
   new MutationObserver(ms => ms.forEach(m => { if (m.type === "characterData") fix(m.target); else m.addedNodes.forEach(fix); })).observe(document.body, { childList: true, subtree: true, characterData: true });
 };
+// Plain words (pillar "words"): everyday words for the jargon, everywhere on screen; result cards capped at 25 words.
+const installPlainWords = () => {
+  if (typeof document === "undefined" || window.__sopPlain) return; window.__sopPlain = true; window.SOP_PLAIN = true;
+  const SKIP = /^(SCRIPT|STYLE|TEXTAREA|INPUT|SELECT|OPTION)$/;
+  const fixText = (x) => { if (!x.parentElement || SKIP.test(x.parentElement.nodeName)) return; const t = SYS.plainText(x.nodeValue); if (t !== x.nodeValue) x.nodeValue = t; };
+  const fix = (n) => { if (n.nodeType === 3) return fixText(n); if (n.nodeType !== 1 || SKIP.test(n.nodeName)) return; const w = document.createTreeWalker(n, 4); let x; while ((x = w.nextNode())) fixText(x); };
+  fix(document.body);
+  new MutationObserver(ms => ms.forEach(m => { if (m.type === "characterData") fixText(m.target); else m.addedNodes.forEach(fix); })).observe(document.body, { childList: true, subtree: true, characterData: true });
+};
 const LangPicker = ({ dark }) => <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
   <span style={{ fontWeight: 800, fontSize: 15, color: dark ? "#f3f7ef" : CL.td }}>🌐 {tr("Language")}</span>
   {SYS.LANGS.map(l => <button key={l.id} onClick={() => l.id !== LANG && setLang(l.id)} aria-pressed={l.id === LANG} style={{ padding: "6px 12px", minHeight: 40, borderRadius: 999, border: "1px solid " + (l.id === LANG ? CL.grn : CL.bdr), background: l.id === LANG ? CL.grn : "#fff", color: l.id === LANG ? "#fff" : CL.txt, fontWeight: 700, fontSize: 15, cursor: "pointer" }}>{l.nm}</button>)}
@@ -3066,12 +3075,12 @@ const ANCHORS = { m: { first: "Ibrahim", last: "Danjuma" }, f: { first: "Funmi",
 // a bubble pointing at whoever is speaking, and their names on the bar.
 // One of the four numbers in the top strip: an icon, the value, a thin meter,
 // and a short flash with the change when it moves (green good, red bad).
-const StatPill = ({ label, value, color, icon, pct, raw, invert, dark }) => {
+const StatPill = ({ label, value, color, icon, pct, raw, invert, dark, words }) => {
   const prev = React.useRef(raw), [d, setD] = useState(null);
   useEffect(() => {
     const p = prev.current; prev.current = raw;
-    if (p == null || raw == null || Math.abs(raw - p) < (label === "In the bank" ? .05 : .5)) return;
-    const up = raw > p; setD({ up, good: invert ? !up : up, txt: label === "In the bank" ? (up ? "+" : "−") + naira(Math.abs(raw - p)) : (up ? "+" : "−") + Math.round(Math.abs(raw - p)), k: Date.now() });
+    if (p == null || raw == null || Math.abs(raw - p) < (label === "In the bank" || label === "Treasury" ? .05 : .5)) return;
+    const up = raw > p; setD({ up, good: invert ? !up : up, txt: words ? (up ? "▲" : "▼") : label === "In the bank" ? (up ? "+" : "−") + naira(Math.abs(raw - p)) : (up ? "+" : "−") + Math.round(Math.abs(raw - p)), k: Date.now() });
     const t = setTimeout(() => setD(null), 1800); return () => clearTimeout(t);
   }, [raw]);
   const tall = TALL(), ink = dark ? "#f3f7ef" : CL.txt;
@@ -3082,7 +3091,7 @@ const StatPill = ({ label, value, color, icon, pct, raw, invert, dark }) => {
       {pct != null ? <span style={{ height: tall ? 4 : 5, borderRadius: 3, background: dark ? "rgba(255,255,255,.15)" : CL.bdr, overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.max(4, Math.min(100, pct)) + "%", background: color || "#2fa866", transition: "width .6s ease" }} /></span> : null}
       <span style={{ fontSize: tall ? TS(14) : TS(21), opacity: .75, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: pct == null && color ? color : undefined }}>{tall && label === "In the bank" ? "Bank" : label}</span>
     </span>
-    {d && <span className="sop-delta" style={{ position: "absolute", right: 0, top: tall ? -12 : -18, fontSize: tall ? TS(15) : TS(22), fontWeight: 800, color: "#fff", background: d.good ? "#2fa866" : "#e0574c", borderRadius: 999, padding: "1px 7px", pointerEvents: "none" }}>{d.txt}</span>}
+    {d && <span className="sop-delta" style={{ position: "absolute", right: 0, top: words ? (tall ? -16 : -22) : tall ? -12 : -18, fontSize: tall ? TS(15) : TS(22), fontWeight: 800, color: "#fff", background: d.good ? "#2fa866" : "#e0574c", borderRadius: 999, padding: "1px 7px", pointerEvents: "none" }}>{d.txt}</span>}
   </span>;
 };
 
@@ -3320,6 +3329,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   const [zf, setZf] = useState(null);
   const [openZone, setOpenZone] = useState(null); // phone: the one region open in the state list
   const [step, setStep] = useState(1);
+  useEffect(() => { window.__sopStep = "step " + step; return () => { window.__sopStep = null; }; }, [step]); // where the player is (the drop-off chart)
   const [showFCT, setShowFCT] = useState(false);
   const [sCampRound, setSCampRound] = useState(0);
   const [sCampScore, setSCampScore] = useState(0);
@@ -4463,6 +4473,7 @@ const termCardPng = (card) => new Promise((done) => {
   g.fillStyle = "#17301f"; g.font = "bold 72px " + serif; let y = wrap(card.title, 60, 290, W - 120, 84, 3);
   if (card.sub) { g.font = "36px " + sans; g.fillStyle = "#4b5b50"; y = wrap(card.sub, 60, y + 10, W - 120, 46, 3); }
   y += 30;
+  if (card.lines) { g.font = "40px " + sans; card.lines.slice(0, 5).forEach((ln, i) => { g.fillStyle = i === 4 ? col : "#17301f"; if (i === 4) g.font = "bold 40px " + sans; y = wrap(ln, 60, y + 18, W - 120, 52, 3) + 10; }); }
   (card.rows || []).slice(0, 9).forEach(([l, v], i) => { g.fillStyle = i % 2 ? "#fffaf0" : "#f4ecd9"; g.fillRect(40, y - 52, W - 80, 76); g.fillStyle = "#2b3a2f"; g.font = "36px " + sans; g.fillText(String(l).slice(0, 40), 64, y);
     g.font = "bold 40px " + sans; g.fillStyle = col; const vv = String(v == null ? "" : v); g.fillText(vv, W - 64 - g.measureText(vv).width, y); y += 80; });
   g.fillStyle = "#12301f"; g.fillRect(0, H - 130, W, 130); g.fillStyle = "#fff"; g.font = "bold 40px " + sans; g.fillText(card.foot || "Play free: seatofpower.online", 60, H - 52);
@@ -4483,12 +4494,67 @@ const TermCards = ({ cards }) => <div data-testid="term-cards" style={{ maxWidth
     <div style={{ padding: "10px 14px" }}>
       <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: 20, color: CL.txt }}>{c.title}</div>
       {c.sub && <div style={{ fontSize: 14, color: CL.td, margin: "2px 0 6px" }}>{c.sub}</div>}
+      {(c.lines || []).map((ln, i) => <div key={i} style={{ fontSize: 15, lineHeight: 1.4, padding: "3px 0", fontWeight: i === 4 ? 800 : 500, borderTop: i ? "1px solid " + CL.bdr + "66" : 0 }}>{ln}</div>)}
       {(c.rows || []).slice(0, 4).map(([l, v]) => <div key={l} style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 14, borderTop: "1px solid " + CL.bdr + "88", padding: "4px 0" }}><span>{l}</span><b>{v}</b></div>)}
       {(c.rows || []).length > 4 && <div style={{ fontSize: 13, color: CL.td }}>+{c.rows.length - 4} more on the card</div>}
       <button onClick={() => shareTermCard(c, c.text)} style={{ marginTop: 8, width: "100%", minHeight: 46, borderRadius: 999, border: 0, background: "#25D366", color: "#fff", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>{tr("Share on WhatsApp")}</button>
     </div>
   </div>)}</div>
 </div>;
+/* The short start (pillar "start", SYS.DEAL / SYS.RALLY / SYS.electionNight): from a politician to the oath
+   in three big moments, then straight to Government House. It hands the governing screen the same setup
+   the long path does. */
+const ExpressStart = ({ profile, level, onDone, onExit }) => {
+  const st = (profile && STATES[profile.origin] && profile.origin !== "FCT") ? profile.origin : recState(null);
+  const seed = React.useMemo(() => Date.now() % 1e9, []), r = React.useMemo(() => rng(seed % 99991 + 3), [seed]);
+  const hd = profile && profile.district != null ? profile.district : 1, z = STATES[st].zone;
+  const nm = profile ? profile.first + " " + profile.last : gN(r, z, st);
+  const party = profile && MAIN_PARTY_IDS.includes(profile.leaning) ? profile.leaning : recParty(st), P = PARTIES.find(x => x.id === party) || PARTIES[0];
+  const O = PARTIES.find(x => MAIN_PARTY_IDS.includes(x.id) && x.id !== party) || PARTIES[1];
+  const people = React.useMemo(() => { const used = new Set([nm]), names = []; for (let i = 0; i < 6; i++) { let x = ""; for (let j = 0; j < 12 && (!x || used.has(x)); j++) x = gN(r, z, st); used.add(x); names.push(x); } return names; }, [seed]);
+  const gf = "Chief " + people[0].split(" ").slice(-1)[0], oppName = people[1], dists = districtNamesOf(st);
+  const [step, setStep] = useState(0), [deal, setDeal] = useState(null), [rally, setRally] = useState(null), [res, setRes] = useState(null), [tick, setTick] = useState(0);
+  useEffect(() => { track("start_short", "open"); }, []);
+  const night = React.useMemo(() => deal && rally ? SYS.electionNight(seed, { deal: deal.id, rally: rally.id, homeDistrict: hd, forceWin: !!(window.SOP_TEST && window.SOP_TEST.win) }) : null, [deal, rally]);
+  useEffect(() => { if (step !== 4 || !night) return; setTick(0); const t = setInterval(() => setTick(k => { if (k >= 20) { clearInterval(t); return k; } return k + 1; }), 220); return () => clearInterval(t); }, [step]);
+  const done = () => {
+    const deps = SYS.genDeputies({ stateId: st, playerDistrict: hd, names: people.slice(2, 6) }), dep = deps.find(c => c.partyFav) || deps[0];
+    const loans = deal.loanB ? SYS.addLoan([], { key: "campaign_" + deal.id, amountM: SYS.toM(deal.loanB), reason: gf + " paid for the campaign" }) : [];
+    track("start_short", "sworn_in");
+    onDone({ nm, firstNm: profile ? profile.first : nm.split(" ")[0], lastNm: profile ? profile.last : nm.split(" ").slice(-1)[0], party, state: st, depGov: dep, avatar: (profile && profile.avatar) || AVATARS[0].id,
+      agenda: recAgenda(st), slogan: recSlogan(st), saName: SYS.SA_SHORTLIST[0], partyAccepted: true, startingStab: SYS.PARTY_ACCEPTED.pStab, gfDebt: SYS.toB(SYS.loanTotalM(loans)), gfLoans: loans, favours: deal.favours,
+      gfMandates: [], homeDistrict: hd, homeLga: lgaCluster(getLGAs(st), hd)[0] || null, partyDeal: "accepted", partyPromise: null, level, warChestRemaining: Math.max(0, deal.chest - .6),
+      election: { opp: oppName, oppParty: O.id, zonesWon: night.zonesWon, marginPct: night.marginPct, votes: night.you.reduce((a, b) => a + b, 0), oppVotes: night.opp.reduce((a, b) => a + b, 0) }, short: true });
+  };
+  const box = { maxWidth: 560, margin: "0 auto", background: "#fffaf0", borderRadius: 24, overflow: "hidden", boxShadow: "0 18px 50px rgba(0,0,0,.18)" };
+  const opt = { display: "block", width: "100%", textAlign: "left", padding: "13px 16px", minHeight: 52, borderRadius: 16, border: "1.5px solid #e2d7bd", background: "#fff", fontWeight: 700, fontSize: 17, color: "#17301f", cursor: "pointer", marginTop: 8, fontFamily: F.b };
+  const main = { display: "block", width: "100%", padding: "14px 16px", minHeight: 52, borderRadius: 999, border: 0, background: "#12301f", color: "#fff", fontWeight: 800, fontSize: 18, cursor: "pointer", marginTop: 12, fontFamily: F.b };
+  const art = step <= 1 ? "./art/backgrounds/veranda-night.webp" : step <= 3 ? "./art/scenes/camp-mega-rally.webp" : "./art/backgrounds/collation-board-lga.webp";
+  const F2 = (t) => String(t).replace("{gf}", gf);
+  const shown = (i) => night ? Math.min(1, tick / 20 * (1 + i * .15)) : 0;
+  return <div data-sop-short style={{ minHeight: "100%", background: CL.bg, padding: "16px 12px 40px", fontFamily: F.b }}>
+    <div style={box} className="sp-step" key={step}>
+      <img src={art} alt="" style={{ display: "block", width: "100%", height: 170, objectFit: "cover" }} />
+      <div style={{ padding: "16px 18px 18px" }}>
+        <div className="sp-kicker">{nm} · {P.id} · {st.replace(/_/g, " ")}</div>
+        {step === 0 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 26 }}>{F2(SYS.DEAL.t)}</h2><p style={{ margin: 0, fontSize: 17, lineHeight: 1.45 }}>{SYS.DEAL.d}</p>
+          {SYS.DEAL.opts.map(o => <button key={o.id} className="sp-opt" style={opt} onClick={() => { setDeal(o); track("start_deal", o.id); setStep(1); }}>{o.l}</button>)}</>}
+        {step === 1 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 24 }}>{deal.l.replace(/ \(.*\)$/, "")}</h2><p style={{ margin: 0, fontSize: 17 }}>{deal.out}</p><button style={main} onClick={() => setStep(2)}>On to the campaign →</button></>}
+        {step === 2 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 26 }}>{SYS.RALLY.t}</h2><p style={{ margin: 0, fontSize: 17 }}>{SYS.RALLY.d}</p>
+          {SYS.RALLY.opts.map(o => <button key={o.id} className="sp-opt" style={opt} onClick={() => { setRally(o); track("start_rally", o.id); setStep(3); }}>{o.l}</button>)}</>}
+        {step === 3 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 24 }}>{rally.l}</h2><p style={{ margin: 0, fontSize: 17 }}>{rally.out}</p><button style={main} onClick={() => setStep(4)}>Election night →</button></>}
+        {step === 4 && night && <><h2 style={{ fontFamily: F.d, margin: "6px 0 4px", fontSize: 26 }}>Election night</h2><p style={{ margin: "0 0 8px", fontSize: 16, color: CL.td }}>You against {oppName} ({O.id}). The results come in.</p>
+          {dists.slice(0, 3).map((d, i) => { const k = shown(i), you = Math.round(night.you[i] * k), op = Math.round(night.opp[i] * k), pc = you + op ? Math.round(you / (you + op) * 1000) / 10 : 0;
+            return <div key={d} style={{ margin: "8px 0" }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 700 }}><span>{d}</span><span>{k >= 1 ? (night.shares[i] > 50 ? "✓ yours" : "✗ theirs") : "counting…"}</span></div>
+              <div style={{ height: 14, borderRadius: 7, background: "#e6dfd2", overflow: "hidden", display: "flex" }}><span style={{ width: (k * pc) + "%", background: CL.grn, transition: "width .2s" }} /><span style={{ width: (k * (100 - pc)) + "%", background: "#b3261e", transition: "width .2s" }} /></div>
+              <div style={{ fontSize: 13, color: CL.td, fontVariantNumeric: "tabular-nums" }}>You {you.toLocaleString()} · {oppName.split(" ").slice(-1)[0]} {op.toLocaleString()}</div></div>; })}
+          {tick >= 20 && <><div className="sop-pop" style={{ textAlign: "center", fontFamily: F.d, fontSize: 30, fontWeight: 700, color: night.won ? CL.grn : CL.red, margin: "10px 0 0" }}>{night.won ? "You win by " + night.marginPct + "%" : "You lose by " + Math.abs(night.marginPct) + "%"}</div>
+            {night.won ? <button style={main} className="sop-next" onClick={() => setStep(5)}>Take the oath →</button> : <><button style={main} onClick={() => { track("start_short", "lost"); setStep(0); setDeal(null); setRally(null); }}>Run again</button><button style={{ ...main, background: "transparent", color: CL.txt, border: "1px solid " + CL.bdr }} onClick={onExit}>Back to the title</button></>}</>}</>}
+        {step === 5 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 26 }}>Governor of {st.replace(/_/g, " ")} State</h2><p style={{ margin: 0, fontSize: 17 }}>{SYS.SWORN}</p><button style={main} className="sop-next" onClick={done}>Begin your tenure →</button></>}
+      </div>
+    </div>
+  </div>;
+};
 /* Life after office (SYS.ROLES, SYS.firstAnswer, SYS.elderEnding): three moments in your successor's first term. */
 const ElderEpilogue = ({ seed, gfSucc, flag, name, state, onClose }) => {
   const kind = SYS.heirKind(seed, gfSucc), [role, setRole] = useState(null), [first, setFirst] = useState(null), [end, setEnd] = useState(null);
@@ -5502,7 +5568,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [houseBillsSeen, setHouseBillsSeen] = useState(ld?.houseBillsSeen || []);
   const [pendingHouseBill, setPendingHouseBill] = useState(null);
   const [showWiki, setShowWiki] = useState(false);
-  const [elder, setElder] = useState(false); // life after office: the epilogue with your successor
+  const [elder, setElder] = useState(false);
+  const [todayMore, setTodayMore] = useState(false);
+ // pillar "screen": the rest of Today, behind More // life after office: the epilogue with your successor
   const [headline, setHeadline] = useState(null);
   const [achPopup, setAchPopup] = useState(null);
   const [gEnd, setGEnd] = useState(ld?.gEnd || null);
@@ -5787,6 +5855,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // When a new year's budget opens, one card says what changed since the
   // last one, what happened, and any honour earned.
   const reportRef = React.useRef(ld?.reportAt ? { t: ld.reportAt, snap: ld.reportSnap } : null);
+  // Where the player is, for the drop-off chart: the year's phase, the tab, and the Desk card if one is open.
+  useEffect(() => { window.__sopGov = (gEnd ? "ending" : phase + " · " + nav + (phase === "sc" && scCards[0] ? " · " + String(scCards[0].key).split("_").filter(x => !/\d/.test(x)).slice(0, 2).join("_") : "")) + (turn === 1 ? " · year 1" : ""); });
   // Achievement cards (Pack 30): checked as the year moves on, and once more when the term ends.
   useEffect(() => { try {
     const RV = stc.rivalry || {}, P = (stc.plugs || {}).payroll, last = (stc.leakHist || []).slice(-1)[0], ids = (pol || []).map(a => a.id);
@@ -5838,6 +5908,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const ORD = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"];
   /* The journey: where you are in the whole game, and how much is left.
      Campaign, four years, the re-election, four more, and your legacy. */
+  const liteToday = pillarOn("screen") && !todayMore; // pillar "screen": Today shows only the next decision
   const Journey = () => {
     const tall = TALL(), done = (y) => y < turn, now = (y) => y === turn;
     const dot = (y) => <span key={y} title={"Year " + y} style={{ width: now(y) ? (tall ? 14 : 18) : (tall ? 9 : 12), height: now(y) ? (tall ? 14 : 18) : (tall ? 9 : 12), borderRadius: "50%", background: done(y) ? CL.grn : now(y) ? CL.gold : CL.bdr, boxShadow: now(y) ? "0 0 0 3px " + CL.gold + "44" : "none", flexShrink: 0 }} />;
@@ -5895,6 +5966,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => { if (actCount > actPrev.current) lastActTurn.current = turn; actPrev.current = actCount; }, [actCount]);
   const councilsOk = NAT ? !!(fedCouncils && fedCouncils.fec && fedCouncils.nsc) : !!council;
   const needSetup = !ministries || !ministries.length || !councilsOk;
+  // A gentler first year (pillar "stagger"): the Chief of Staff forms an interim cabinet and calls the palaces together;
+  // the commissioners and rulers bring their matters from year 2.
+  useEffect(() => { if (!pillarOn("stagger") || NAT || turn !== 1 || !needSetup) return; const t = setTimeout(() => { try { silentSeat.current = true;
+      if (!ministries || !ministries.length) window.SOP_REALISM.initMinistries(); if (!council) window.SOP_REALISM.conveneCouncil(); track("stagger", "auto_setup");
+      addL("🏛️ Your Chief of Staff formed an interim cabinet and called the palaces together. You can change them from year 2.", "info"); } catch (e) { console.warn("[stagger]", e); } }, 400); return () => clearTimeout(t); }, [needSetup, turn]);
   const activeNeeds = needs.filter(n => n.status === "open" || n.status === "started" || n.status === "stalled");
   // The Desk shows only what still needs you: work already under way steps aside.
   const deskNeeds = activeNeeds.filter(n => n.status !== "started"), workingNeeds = activeNeeds.filter(n => n.status === "started");
@@ -6162,11 +6238,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   // The governor's councils, at the same table: the Executive Council when it is first formed, and the palaces.
   // Opens when the Executive Council or the rulers' council is first formed, from any button (sop-realism or the Desk).
+  const silentSeat = React.useRef(false); // pillar "stagger": the year-one cabinet and palaces are formed without the two sessions
   const prevSeat = React.useRef({ min: (ministries || []).length, council: !!council });
   const rulerImg = (r) => "./art/characters/" + (/hausa|fulani|kanuri|nupe|north/i.test(r.bloc || "") || /Emir|Sarki|Etsu|Mai|Lamido/i.test(r.title || "") ? "traditional-ruler-emir" : "traditional-ruler-oba-obi") + ".webp";
   useEffect(() => {
     const P0 = prevSeat.current; prevSeat.current = { min: (ministries || []).length, council: !!council };
-    if (NAT) return;
+    if (NAT || silentSeat.current) return;
     if (!P0.min && (ministries || []).length) { openTable({ id: "exco", sealKind: "exco", title: "The " + stName + " State Executive Council", sub: "First sitting · Government House", bg: "council-table-state", by: { name: "The Secretary to the State Government", role: "Secretary to the Council", img: "./art/characters/permanent-secretary.webp" }, declaration: "The " + stName + " State Executive Council is inaugurated with " + ministries.length + " commissioners. It will meet every week, run the government's programmes, and answer to the Governor.", doneLabel: "Close the session" }); }
     else if (!P0.council && council && council.rulers) { openTable({ id: "rulers", sealKind: "rulers", title: "The Traditional Rulers Council", sub: "In session · the palaces of " + stName, bg: council.rulers.some(r => /Emir|Sarki|Etsu|Lamido/i.test(r.title || "")) ? "emirs-palace-courtyard" : "council-table-palace", by: (() => { const c = council.rulers.find(r => r.id === council.chair) || council.rulers[0]; return { name: c.name, role: "Chairman, Traditional Rulers Council", img: rulerImg(c) }; })(), declaration: "The royal fathers of " + stName + " are in council. We will carry your government to the villages, and the villages' voice to you.", doneLabel: "Close the session" }); }
   }, [ministries, council]);
@@ -7681,6 +7758,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, fx: o.later.fx, desc: o.later.desc }]); track("wildcard_" + k.id, o.id); addL("⚡ " + k.t + ": " + o.out, (o.fx && (o.fx.app || 0) < 0) ? "crisis" : "political");
             return { icon: "⚡", title: o.l, text: o.out, rows: [], tone: (o.fx && (o.fx.app || 0) < 0) ? "bad" : "neutral" }; } })) }); } } } catch (e) { console.error("[wildcard]", e); }
     next.asked = asked;
+    // Headlines and calls (pillar "drama"): the godfather rings once a year, late at night.
+    if (pillarOn("drama") && !NAT && !gfGone && turn >= 2) { const kind = (next.persona || {}).gf, C = SYS.gfCall(godfatherRel, SYS.personaTell("gf", kind, turn), turn); track("gf_call", C.mood || "neutral");
+      setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/godfather" + (C.mood ? "-" + C.mood : "") + ".webp", name: gfName + " · on the phone, " + C.hour, text: C.line, urgent: C.mood === "angry", ok: "Hang up" } }); } catch (e) {} }, 1600); }
 
     // Election petitions: a narrow win gets challenged. Tribunal, Court of
     // Appeal, then the Supreme Court; your corruption feeds their evidence.
@@ -11924,7 +12004,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ...cases.filter(c => c.agency && c.stage === "allegation").map(c => ({ key: "secr:agency:" + c.id, secr: { agency: c.id }, ministryId: c.ministryId, title: SYS.agencyLetter(c).title, line: c.what, stakes: 3 })),
     ...(stc.hos ? (audiences.length || hosFailingNow.length || agencyN || (stc.hosReport && stc.hosReport.turn === turn && stc.hosSigned !== turn) ? [{ key: "secr:hosbrief:" + turn, secr: { hosBrief: true }, title: "The Head of Service's annual brief", line: [stc.hosReport && stc.hosReport.turn === turn ? "the cabinet report" : null, hosFailingNow.length ? hosFailingNow.length + " failing commissioner" + (hosFailingNow.length === 1 ? "" : "s") : null, audiences.length ? audiences.length + " request" + (audiences.length === 1 ? "" : "s") + ", decided" : null].filter(Boolean).join(" · ") + (agencyN ? (audiences.length || hosFailingNow.length ? " · " : "") + agencyN + " anti-graft finding" + (agencyN === 1 ? "" : "s") : "") + ". Reverse anything before you sign" }] : [])
       : audiences.map(a => ({ key: "secr:aud:" + a.id, secr: { audience: a.id }, ministryId: a.ministryId, title: "A request to see you", line: a.reason }))),
-    ...(!stc.hos && (ministries || []).some(m => m.minister) ? [{ key: "secr:hosappoint", secr: { hosAppoint: true }, title: "Appoint a Head of Service", line: "The commissioners' requests will go to them. " + cast.adviser.name.split(" ").slice(-2).join(" ") + " has a recommendation" }] : []),
+    ...(!stc.hos && (ministries || []).some(m => m.minister) && !(pillarOn("stagger") && turn === 1) ? [{ key: "secr:hosappoint", secr: { hosAppoint: true }, title: "Appoint a Head of Service", line: "The commissioners' requests will go to them. " + cast.adviser.name.split(" ").slice(-2).join(" ") + " has a recommendation" }] : []),
     ...cases.filter(c => c.stage !== "closed" && c.stage !== "decided" && (!c.agency || (c.stage === "findings" && !stc.hos))).map(c => ({ key: "secr:case:" + c.id, secr: { caseId: c.id }, ministryId: c.ministryId, title: "A file on " + c.ministryName, line: c.what + " · " + SYS.STAGE_NAME[c.stage] })),
   ];
   const secrSig = secrItems.map(x => x.key + "|" + x.line).join(";");
@@ -11992,7 +12072,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const head = { complete: who.toUpperCase() + " BOWS OUT", stepped_down: who.toUpperCase() + " STEPS ASIDE", pres_bid: who.toUpperCase() + " EYES ASO ROCK", defeated: "VOTERS SHOW " + who.toUpperCase() + " THE DOOR", impeached: "IMPEACHED!", nullified: "COURT SACKS " + who.toUpperCase(), bankrupt: st.toUpperCase() + " IS BROKE" }[gEnd] || who.toUpperCase() + " LEAVES OFFICE";
     const ch = SYS.challengeLink(link, state, (stc.pseed || Date.now()) % 1000000);
     const cab = (ministries || []).filter(m => m.minister).slice(0, 8).map(m => [m.minister, (stc.vetted ? SYS.ARCHETYPES[SYS.archetypeOf(m.minister, stc.pseed || 1)].nm : (m.perf || 50) >= 65 ? "Delivered" : (m.perf || 50) >= 45 ? "Average" : "Let me down")]);
+    const bestP = (completedProjects || []).slice(-1)[0], worstL = logs.find(l => l.tp === "scandal" || l.tp === "crisis");
+    const story5 = SYS.storyLines({ who, office, years: termsServed, title: rcTitle, best: bestP ? "opening " + (bestP.nm || bestP.title || "a project") : (FLAGSHIP[setup?.agenda] ? "launching " + FLAGSHIP[setup.agenda].nm : null), worst: worstL ? worstL.tx.replace(/^\S+\s/, "").split(/[.:]/)[0].toLowerCase() : null, end: END, grade: gr });
     return [
+      ...(pillarOn("drama") ? [{ id: "story", kicker: "My story in five lines", title: who, sub: null, color: "#12301f", lines: story5, text: story5.join(" ") + " Play: " + link }] : []),
       { id: "bio", kicker: tr("Biography"), title: who, sub: office + " · " + termsServed, color: "#0b5d3b", rows: [["Party", party], ["Deputy", (depGov && depGov.nm) || "—"], ["Flagship", (FLAGSHIP[setup?.agenda] || {}).nm || "—"], ["Known as", rcTitle], ["How it ended", END]], text: "My time as " + office + " in The Seat of Power: " + rcTitle + ". Play: " + link },
       { id: "waec", kicker: tr("Report card"), title: "Grade " + gr + " · score " + ov, sub: "The people's report card on " + who, color: "#1d3a5c", rows: SYS.reportCard(s), text: "My report card as " + office + ": grade " + gr + ". Can you do better? " + link },
       { id: "news", kicker: tr("Front page"), title: head, sub: "The Daily Ledger · " + rcTitle + ". Approval at the end: " + Math.round(s.app) + "%.", color: "#8e0c0c", rows: [["Approval", Math.round(s.app) + "%"], ["Debt", naira(s.debt || 0)], ["Corruption", Math.round((s.cor || 0) * 100) + "%"]], text: head + ". My front page in The Seat of Power: " + link },
@@ -12207,7 +12290,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           })()}
           {!VATAR && <div style={{ marginTop: 36 }}><ShareCard img={heroImg} name={"Gov. " + pName} line1={state.replace("_", " ") + " State · " + party + " · " + termsServed} line2={"Approval " + Math.round(s.app) + "% · Score " + ov + " · #SeatOfPower"} grade={gr} /></div>}
           <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "22px 0 43px" }}>
-            <Bt onClick={() => setShowWiki(true)}>📖 Wikipedia Bio</Bt>
+            <Bt onClick={() => setShowWiki(true)}>{pillarOn("drama") ? "📖 Read the full story" : "📖 Wikipedia Bio"}</Bt>
             {!VATAR && <Bt onClick={() => { try { navigator.clipboard?.writeText(shareT); window.SOP_toast && window.SOP_toast("Copied: paste it anywhere", "ok"); } catch (e) {} }} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>}
             {!VATAR && <Bt onClick={() => window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareT))} style={{ background: "#000", color: "#fff", fontSize: TS(34) }}>𝕏</Bt>}
             {!VATAR && <Bt onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(shareT))} style={{ background: "#25D366", color: "#fff", fontSize: TS(34) }}>WhatsApp</Bt>}
@@ -12385,8 +12468,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30), "icon-party", s.pStab],
     ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55), "icon-corruption", (s.cor || 0) * 100, null, true],
   ];
+  // Four meters in words and colours (pillar "screen"): People, Party, Treasury, Godfather.
+  const meterWord = (v, cuts, words) => { for (let i = 0; i < cuts.length; i++) if (v >= cuts[i]) return words[i]; return words[words.length - 1]; };
+  const gfGoneNow = stc.gf === "dead" || stc.gf === "opposition" || stc.gf === "freed";
+  const METERS = [
+    ["People", meterWord(s.app, [65, 50, 40], ["Behind you", "Warm", "Restless", "Angry"]), tone(s.app, 60, 40), "icon-people", s.app, s.app],
+    ["Party", meterWord(s.pStab, [70, 50, 35], ["United", "Steady", "Shaky", "Split"]), tone(s.pStab, 50, 30), "icon-party", s.pStab, s.pStab],
+    ["Treasury", meterWord((s.cash || 0) / Math.max(.1, monthWage()), [6, 2, .01], ["Healthy", "Steady", "Tight", "Empty"]), tone((s.cash || 0) / Math.max(.1, monthWage()), 6, 2), "icon-bank", Math.min(100, (s.cash || 0) / Math.max(.1, monthWage()) * 10), s.cash || 0],
+    ["Godfather", gfGoneNow ? ({ dead: "Gone", opposition: "Against you", freed: "You are free" })[stc.gf] : meterWord(godfatherRel, [70, 45, 25], ["Close", "Watching", "Cold", "Hostile"]), gfGoneNow ? "#2fa866" : godfatherRel >= 45 ? "#d9a21b" : "#e0574c", "seal-godfather", gfGoneNow ? 100 : godfatherRel, godfatherRel],
+  ];
   const statusStrip = (dark) => <button onClick={() => { setSosOpen(true); setMenuOpen(false); }} aria-label="Open the State sheet" style={{ flex: 1, minWidth: 0, display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: TALL() ? 6 : 10, background: dark ? "transparent" : CL.card, border: dark ? 0 : "1px solid " + CL.bdr, borderRadius: 18, padding: dark ? 0 : "10px 12px", cursor: "pointer", color: dark ? "#f3f7ef" : CL.txt, fontFamily: F.b }}>
-    {STRIP.map(([l, v, c, ic, pct, raw, inv]) => <StatPill key={l} label={l} value={v} color={c} icon={ic} pct={pct} raw={raw != null ? raw : pct} invert={inv} dark={dark} />)}
+    {pillarOn("screen") ? METERS.map(([l, v, c, ic, pct, raw]) => <StatPill key={l} label={l} value={v} color={c} icon={ic} pct={pct} raw={raw} dark={dark} words />)
+      : STRIP.map(([l, v, c, ic, pct, raw, inv]) => <StatPill key={l} label={l} value={v} color={c} icon={ic} pct={pct} raw={raw != null ? raw : pct} invert={inv} dark={dark} />)}
   </button>;
 
   // Who represents the state abroad when the governor stays home. A commissioner
@@ -12547,7 +12640,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
               style={{ position: "relative", border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
               <img src={"./art/icons/" + sc.img + ".webp"} alt="" style={{ width: TS(48), height: TS(48), objectFit: "contain" }} />{sc.l}{pillarOn("front") && turn <= 2 && <span style={{ fontSize: TS(14), fontWeight: 600, opacity: .85, lineHeight: 1.1 }}>{tr(SYS.TAB_HINT[sc.id])}</span>}
-              {sc.id === "map" && !treSeen && turn > 1 && <span className="sop-pop" aria-label="Treasury visit due" style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e9b949", color: "#1b1405", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>₦</span>}{sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e0574c", color: "#fff", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 2, padding: "0 5px" }}><Ico n="icon-mail" s={14} />{mail.length}</span>}
+              {sc.id === "map" && !treSeen && turn > 1 && !pillarOn("stagger") && <span className="sop-pop" aria-label="Treasury visit due" style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e9b949", color: "#1b1405", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>₦</span>}{sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e0574c", color: "#fff", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 2, padding: "0 5px" }}><Ico n="icon-mail" s={14} />{mail.length}</span>}
             </button>;
           })}
         </div> : <div data-sop-nav style={{ position: "sticky", top: 0, zIndex: 20, background: CL.bg, margin: TALL() ? "0 -20px 22px" : "0 0 29px", padding: TALL() ? "8px 20px 10px" : "8px 0 10px" }}>
@@ -12561,7 +12654,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
                 style={{ position: "relative", padding: "14px 6px", borderRadius: 16, border: "2px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn : CL.card, color: on ? "#fff" : CL.txt, fontFamily: F.c, fontWeight: 800, fontSize: TS(30), letterSpacing: .5, cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, boxShadow: on ? "0 3px 0 rgba(0,0,0,.18)" : "none" }}>
                 <img src={"./art/icons/" + sc.img + ".webp"} alt="" style={{ width: TS(58), height: TS(58), objectFit: "contain" }} />{sc.l}{pillarOn("front") && turn <= 2 && <span style={{ fontSize: TS(18), fontWeight: 600, opacity: .85 }}>{tr(SYS.TAB_HINT[sc.id])}</span>}
-                {sc.id === "map" && !treSeen && turn > 1 && <span className="sop-pop" aria-label="Treasury visit due" style={{ position: "absolute", top: 6, right: 10, minWidth: 30, height: 30, borderRadius: 15, background: "#e9b949", color: "#1b1405", fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 7px" }}>₦</span>}{sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 6, right: 10, minWidth: 30, height: 30, borderRadius: 15, background: "#e0574c", color: "#fff", fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", gap: 3, padding: "0 7px" }}><Ico n="icon-mail" s={18} />{mail.length}</span>}
+                {sc.id === "map" && !treSeen && turn > 1 && !pillarOn("stagger") && <span className="sop-pop" aria-label="Treasury visit due" style={{ position: "absolute", top: 6, right: 10, minWidth: 30, height: 30, borderRadius: 15, background: "#e9b949", color: "#1b1405", fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 7px" }}>₦</span>}{sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 6, right: 10, minWidth: 30, height: 30, borderRadius: 15, background: "#e0574c", color: "#fff", fontSize: 16, fontWeight: 800, display: "flex", alignItems: "center", gap: 3, padding: "0 7px" }}><Ico n="icon-mail" s={18} />{mail.length}</span>}
               </button>;
             })}
           </div>
@@ -12686,7 +12779,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 16 }}><Bt onClick={() => setHubSheet(null)} style={{ width: "100%" }}>Back to the compound</Bt></div>
           </Cd>; })()}
         </OL>
-        {(nav === "gov" || nav === "hub") && !gEnd && turn >= 1 && Journey()}
+        {(nav === "gov" || nav === "hub") && !gEnd && turn >= 1 && !(nav === "gov" && liteToday) && Journey()}
         {nav === "gov" && !gEnd && scenStrip()}
         {nav === "gov" && deskSteps()}
         {/* The first-year guide panel is retired (owner, October 2026): the adviser and the Desk lead the way. */}
@@ -12720,7 +12813,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {saBrief.urgent && !/^Balance the Appropriation|^Allegation in /.test(saBrief.title) && <AdviserDesk key={saBrief.title} name={saOffice.adviser && saOffice.adviser.name} alert={!!saBrief.urgent} say={saBrief.title + (/[.?!]$/.test(saBrief.title) ? "" : ".")} why={saBrief.body} action={saBrief.action ? saBrief.actionLabel : null} onAction={saBrief.action} onLater={() => setSaDeferred(d => [...d.filter(x => x.endsWith("|" + turn)), saBrief.title + "|" + turn])} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </div>}
 
-        {nav === "gov" && !needSetup && !NAT && opens(2) && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+        {nav === "gov" && !liteToday && !needSetup && !NAT && opens(2) && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="icon-visit-president" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit the President at Aso Rock</b>
             <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Once a year: fly to Abuja with one request. Your standing with Abuja: {Math.round(fgRelation)}/100.</div></div>
@@ -12737,9 +12830,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setVisitOpen(false)} style={{ width: "100%" }}>Not this year</Bt></div>
           </Cd>}
         </OL>
-        {nav === "gov" && !needSetup && LabourDesk()}
+        {nav === "gov" && !liteToday && !needSetup && LabourDesk()}
         <OL show={!!table}>{table && RoundTable()}</OL>
-        {nav === "gov" && !needSetup && !NAT && opens(2) && lgaToursLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+        {nav === "gov" && !liteToday && !needSetup && !NAT && opens(2) && lgaToursLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="icon-lga-tour" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Tour a local government</b>
             <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Meet the chairman or hold a town hall; what they ask for comes to your Desk. {lgaToursLeft()} {lgaToursLeft() === 1 ? "tour" : "tours"} left this year.</div></div>
@@ -12759,7 +12852,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setLgaTour(null)} style={{ width: "100%" }}>Not now</Bt></div>
           </Cd>}
         </OL>
-        {nav === "gov" && !needSetup && NAT && opens(2) && stateVisitsLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
+        {nav === "gov" && !liteToday && !needSetup && NAT && opens(2) && stateVisitsLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="trip-jet" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit a state</b>
             <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Any state, announced or by surprise. {stateVisitsLeft()} {stateVisitsLeft() === 1 ? "visit" : "visits"} left this year.</div></div>
@@ -12779,7 +12872,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setStateVisit(null)} style={{ width: "100%" }}>Not now</Bt></div>
           </Cd>}
         </OL>
-        {nav === "gov" && !needSetup && (() => {
+        {nav === "gov" && !liteToday && !needSetup && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
           const bIdx = balanceIssue();
           const sv = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: bIdx != null ? zoneName(bIdx) : null, turn });
@@ -12835,8 +12928,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             })()}
           </div>;
         })()}
-        {nav === "gov" && !needSetup && !needsAll && deskNeeds.length === 0 && workingNeeds.length > 0 && <button onClick={() => setNeedsAll(true)} style={{ display: "block", maxWidth: TALL() ? 900 : 1320, width: "100%", margin: TALL() ? "0 0 14px" : "0 auto 18px", textAlign: "left", background: CL.grn + "0d", border: "1px dashed " + CL.grn + "55", borderRadius: 14, padding: "10px 14px", color: CL.grn, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(26), cursor: "pointer", fontFamily: F.b }}>🚧 {workingNeeds.length === 1 ? "1 need is" : workingNeeds.length + " needs are"} being worked on. Nothing new needs you ▼</button>}
-        {nav === "gov" && !needSetup && activeNeeds.length > 0 && (needsAll || deskNeeds.length > 0) && <div id="sop-needs" style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", scrollMarginTop: TALL() ? 100 : 20 }}>
+        {nav === "gov" && !liteToday && !needSetup && !needsAll && deskNeeds.length === 0 && workingNeeds.length > 0 && <button onClick={() => setNeedsAll(true)} style={{ display: "block", maxWidth: TALL() ? 900 : 1320, width: "100%", margin: TALL() ? "0 0 14px" : "0 auto 18px", textAlign: "left", background: CL.grn + "0d", border: "1px dashed " + CL.grn + "55", borderRadius: 14, padding: "10px 14px", color: CL.grn, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(26), cursor: "pointer", fontFamily: F.b }}>🚧 {workingNeeds.length === 1 ? "1 need is" : workingNeeds.length + " needs are"} being worked on. Nothing new needs you ▼</button>}
+        {nav === "gov" && !liteToday && !needSetup && activeNeeds.length > 0 && (needsAll || deskNeeds.length > 0) && <div id="sop-needs" style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", scrollMarginTop: TALL() ? 100 : 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "0 2px 8px" }}>
             <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>What the state needs</b>
             {(deskNeeds.length > 1 || workingNeeds.length > 0) ? <button onClick={() => setNeedsAll(v => !v)} style={{ background: "transparent", border: 0, cursor: "pointer", fontSize: TALL() ? TS(18) : TS(26), color: CL.grn, fontWeight: 800, fontFamily: F.b }}>{needsAll ? "Show fewer ▲" : "All " + activeNeeds.length + " ▼"}</button> : <span style={{ fontSize: TALL() ? TS(18) : TS(26), color: CL.td }}>Answer it or pay for it</span>}
@@ -13174,16 +13267,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           if (r && !r.present && !r.paper && !r.action && !r.onClose) { try { window.SOP_sound && window.SOP_sound(r.tone === "good" ? "good" : r.tone === "bad" ? "bad" : "neutral"); } catch (e) {} setSession(cur => cur || { ...T0, decision: null, result: r, doneLabel: "Close the session" }); }
           else if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => setSession(null)} />}
         {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
-          return <LvDecision key={c.key} c={{ ...c, options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), disabled: o.disabled, raw: o })) }}
+          return <LvDecision key={c.key} c={{ ...c, ...(pillarOn("words") ? { brief: SYS.cut25(c.brief), stakes: c.stakes ? SYS.cut25(c.stakes, 1, 20) : c.stakes } : {}), options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), disabled: o.disabled, raw: o })) }}
             advice={<>{fcStrip("sc#" + c.key)}{c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}</>}
-            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} />; })()}
+            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); if (pillarOn("drama")) { const H = SYS.headlineFor(state, c.title, o.raw.label); setTimeout(() => paper(H.head, H.sub, H.good), 700); } nextEvent(); })} />; })()}
         <OL show={phase === "sc" && scCards.length > 0 && !!(scCards[0].letter || scCards[0].military || scCards[0].doc)}>
           {scCards[0] && (() => { const c = scCards[0]; return <>{fcStrip("sc#" + c.key) && <div style={{ maxWidth: 600, margin: "0 auto 12px" }}>{fcStrip("sc#" + c.key)}</div>}{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
               <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
             </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), raw: o }))}
-            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); nextEvent(); })} /></>; })()}
+            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); if (pillarOn("drama")) { const H = SYS.headlineFor(state, c.title, o.raw.label); setTimeout(() => paper(H.head, H.sub, H.good), 700); } nextEvent(); })} /></>; })()}
         </OL>
 
         <OL show={phase === "succession_race" && !!stc.race}>
@@ -15089,16 +15182,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               // tap away under "Fine-tune"; the explanations sit behind "What's in the pot?".
               const tall = TALL();
               const fs = { s: tall ? TS(20) : TS(30), m: tall ? TS(24) : TS(36), l: tall ? TS(32) : TS(56) };
+              const simpleBud = pillarOn("stagger") && turn === 1 && !NAT; // pillar "stagger": three choices, nothing to fine-tune
               const STANCES = [
                 ["recommended", "Balanced", "Every sector healthy"],
                 ["populist", "Populist", "Wages and roads first"],
                 ["reformer", "Reformer", "Pay down debt"],
                 ["godfather", NAT ? "Party barons' budget" : "Godfather's budget", "Big contracts"],
-              ];
+              ].slice(0, simpleBud ? 3 : 4);
               const same = (a, b) => BSECTORS.every(sec => (a[sec.k] || 0) === (b[sec.k] || 0));
               const warnCount = (v) => BSECTORS.filter(sec => { const m = SEC_META[sec.k], x = v[sec.k] || 0; return m && (x < m.min || x > m.max); }).length;
               const GRP_SHORT = { "Human Development": "People", "Growth Engines": "Growth", "Obligations": "Running costs" };
-              const cards = (STANCES.some(([k]) => same(bud, presets[k])) ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "On your desk" : "Not balanced: " + bs + "%", bud]])
+              const cards = (STANCES.some(([k]) => same(bud, presets[k])) || simpleBud ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "On your desk" : "Not balanced: " + bs + "%", bud]])
                 .concat(STANCES.map(([k, l, d]) => [k, l, d, presets[k]]))
                 // The cabinet of friends: Finance's proposed budget, with the other ministers' bids.
                 .concat(fcv && fcv.split && fcv.year === turn ? [["__cab", "👥 " + fcv.split.by + "'s budget (Finance)", (fcv.split.note ? "“" + fcv.split.note + "” " : "") + (Object.values(fcv.bids || {}).map(b => b.by + " asked " + Object.entries(b.ask).map(([l2, v2]) => SYS.LINE_NAME[l2] + " " + v2 + "%").join(", ")).join(" · ") || "From your cabinet"), fcv.split.shares]] : []);
@@ -15133,7 +15227,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                       </button>; })}
                   </div>
                 </div>
-                <button onClick={() => setBudTune(o => !o)} aria-expanded={budTune} style={{ background: "none", border: "1.5px solid rgba(233,196,106,.5)", borderRadius: 12, padding: "10px 16px", marginTop: 16, color: "#e9c46a", fontSize: fz.s, fontWeight: 700, cursor: "pointer", fontFamily: F.b }}>🎚️ {budTune ? "Hide the eight sectors" : "Fine-tune the eight sectors"}</button>
+                {!simpleBud && <button onClick={() => setBudTune(o => !o)} aria-expanded={budTune} style={{ background: "none", border: "1.5px solid rgba(233,196,106,.5)", borderRadius: 12, padding: "10px 16px", marginTop: 16, color: "#e9c46a", fontSize: fz.s, fontWeight: 700, cursor: "pointer", fontFamily: F.b }}>🎚️ {budTune ? "Hide the eight sectors" : "Fine-tune the eight sectors"}</button>}
                 {(budTune || activeNeeds.some(n => n.status !== "open" && (bud[needType(n).sector] || 0) < BUDGET_MIN[needType(n).sector])) && <div style={{ background: CL.card, color: CL.txt, borderRadius: 16, padding: tall ? "8px 12px" : "12px 20px", marginTop: 12 }}>
                 {budTune && <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1fr 1fr", columnGap: 48, margin: "4px 0 8px" }}>
                     {grpOrder.flatMap(g => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g)).map(sec => {
@@ -15266,7 +15360,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 <p style={{ color: CL.td, fontSize: PFS.s, margin: "0 0 10px" }}>You can sign these too. The courts will strike them down, and it will cost you.</p>
                 <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>{UNCONST.filter(u => !uTried(u)).map(u => <Cd key={u.id} onClick={() => tryU(u)} style={{ padding: 14, borderColor: CL.red + "33" }}><div style={{ fontSize: PFS.s, color: CL.red, fontWeight: 600 }}>{u.nm}</div><div style={{ fontSize: PFS.s, color: CL.td }}>{u.r}</div></Cd>)}</div>
               </>}</div>}
-              <Bt onClick={() => { if (!treSeen && turn > 1) { present("Your Excellency, before the year closes the Treasury needs you: what we owe, what comes in, and the reforms that raise more.", "neutral", () => goTab("tre"), "Open the Treasury"); return; } setPhase("end_turn"); endTurn(); }} style={{ width: "100%", marginTop: 22 }}>Done: end the year →</Bt>
+              <Bt onClick={() => { if (!treSeen && turn > 1 && !pillarOn("stagger")) { present("Your Excellency, before the year closes the Treasury needs you: what we owe, what comes in, and the reforms that raise more.", "neutral", () => goTab("tre"), "Open the Treasury"); return; } setPhase("end_turn"); endTurn(); }} style={{ width: "100%", marginTop: 22 }}>Done: end the year →</Bt>
             </Cd>}
             {phase === "end_turn" && !curD && (() => {
               // The year's end (Lovable's design, sop-screens.css .lv-ey): the front page, the sealed letter, what happened, Continue.
@@ -15298,6 +15392,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               </main></div>; })()}
           </div>
         </div>}
+        {nav === "gov" && pillarOn("screen") && !needSetup && <button onClick={() => { setTodayMore(v => !v); track("today_more", todayMore ? "close" : "open"); }} aria-expanded={todayMore} style={{ display: "block", width: "100%", maxWidth: TALL() ? 900 : 1320, margin: "12px auto 0", padding: "10px 14px", minHeight: 46, borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, color: CL.td, fontWeight: 700, fontSize: TALL() ? TS(18) : TS(24), cursor: "pointer", fontFamily: F.b, order: 99 }}>{todayMore ? "Show less ▲" : "More: what the state needs, the street, visits ▾"}</button>}
 
         {nav === "tre" && (() => {
           // The Treasury: where the state's money comes from, what it owes, and the
@@ -17435,7 +17530,7 @@ const FedPanel = ({ role, fed, view, busy, onCreate, onGrant, onProject, onAnswe
 function App() {
   // Each session reports this phone's side of the experiment, so the dashboard can compare the groups.
   useEffect(() => { SYS.PILLAR_IDS.forEach(id => track("exp_" + id, EXP[id] ? "on" : "off")); }, []);
-  useEffect(() => { installTranslator(); }, []);
+  useEffect(() => { installTranslator(); if (pillarOn("words")) installPlainWords(); }, []);
   useEffect(() => { try { window.storage.get("sop_career").then(r => { const L = r && r.value ? JSON.parse(r.value) : []; window.__sopVeteran = L.some(x => x.office === "governor" || x.office === "president"); }).catch(() => {}); } catch (e) {} }, []);
   // A result card explains each number the first time it appears (pillar "front").
   useEffect(() => { if (!pillarOn("front")) return; window.SOP_ROWHELP = (label) => { let seen = []; try { seen = JSON.parse(localStorage.getItem("sop_rowhelp") || "[]"); } catch (e) {}
@@ -17458,6 +17553,11 @@ function App() {
   }, []);
   // A friend's invite link (?cab=…) opens the cabinet desk instead of the title.
   const [scr, setScr] = useState(() => { try { const q = new URLSearchParams(location.search); return q.get("cab") || (q.get("desk") && cabMems().length) ? "cab" : "title"; } catch (e) { return "title"; } });
+  // The drop-off chart: report the screen the player is on once it has stayed for a few seconds (counts only, anonymous).
+  useEffect(() => { let last = null, prev = null; const keyNow = () => { const pro = document.querySelector("[data-sop-prologue]") ? "cold open" : null; const card = document.querySelector("[data-ach]") ? null : null;
+      const sub = scr === "gov" ? window.__sopGov : scr === "setup" ? window.__sopStep : null; return pro || (scr + (sub ? " · " + sub : "")); };
+    const t = setInterval(() => { const k = keyNow(); if (k === prev && k !== last) { last = k; track("at", k.slice(0, 60)); } prev = k; }, 3000);
+    return () => clearInterval(t); }, [scr]);
   const [level, setLevel] = useState("medium");
   const [setup, setSetup] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
@@ -17643,7 +17743,8 @@ function App() {
       {pro && scr === "title" && <Prologue onDone={(how) => { setPro(false); if (how === "done") setCampaignNow(Date.now()); }} />}
       {scr === "title" && <TitleScreen campaignNow={campaignNow} onPreview={presidencyPreview} onSenate={() => { setFinalStats(null); setScr("senate"); }} onChairman={() => setScr("chairman")} onAmbassador={() => setScr("ambassador")} onChallenge={beginChallenge} onScenario={beginScenario} onBoard={openBoard} onCabinet={() => setScr("cab")} onPresident={() => { setFinalStats(null); setScr("pres"); }} profile={profile} setProfile={setProfile} onStart={(p) => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(p || null); setStartMode(null); setScr("setup"); }} onHelp={() => setShowHelp(true)} onLoad={loadGame} />}
       {scr === "setup" && <button onClick={async () => { if (await window.SOP_confirm("Leave the campaign?\n\nIt is not saved until you take office: next time you start the campaign again.", "Go to the home screen", "Keep campaigning")) rst(); }} aria-label="Home screen" style={{ position: "fixed", top: "calc(env(safe-area-inset-top, 0px) + 8px)", right: 10, zIndex: 70, background: "rgba(255,255,255,.92)", border: "1px solid " + CL.bdr, borderRadius: 999, padding: "6px 12px", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(18) : TS(24), color: CL.txt, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,.08)" }}>🏠 Home</button>}
-      {scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
+      {scr === "setup" && pillarOn("start") && !startMode && startProfile ? <ExpressStart profile={startProfile} level={level} onExit={() => setScr("title")} onDone={s => { setSetup({ ...s, level }); setLoadedSave(null); setScr("gov"); }} />
+        : scr === "setup" && <SetupScreen profile={startProfile} mode={startMode} level={level} setLevel={setLevel} onDone={s => { setSetup({ ...s, level, mode: startMode || undefined }); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "title" && fedInv && <EntranceSheet title="🇳🇬 An invitation from the President" onClose={() => setFedInv(null)}>
         <div data-testid="fed-invite" style={{ fontFamily: F.b, color: UI.ink }}>
           {fedInv.bad ? <div style={{ fontSize: DS.t.body, lineHeight: 1.5 }}>This invitation is no longer valid. Ask the President for a new link.</div> : <>

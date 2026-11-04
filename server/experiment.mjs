@@ -10,6 +10,12 @@ export const PILLARS = [
   { id: "integrity", nm: "Ministries with integrity", d: "Commissioner types, a background check before appointing, and whistleblowers." },
   { id: "plan", nm: "Your own plan", d: "The Chairman's ambition and rival, pilot policies in one LGA, and policy combos." },
   { id: "region", nm: "Regional influence", d: "A trade war with a neighbouring country for the President, and a neighbouring state's rivalry for the governor." },
+  // The rebuild (November 2026), one step each:
+  { id: "start", nm: "The short start", d: "A real decision within a minute; the campaign as three big moments and a live election night; under 400 words before the oath." },
+  { id: "screen", nm: "Four meters and one card", d: "People, Party, Treasury and Godfather as words and colours, and only the next decision on the main screen; the rest behind More." },
+  { id: "stagger", nm: "A gentler first year", d: "Year 1 is the people, the House and a three-choice budget; the cabinet and the palaces are formed for you; the Treasury visit is optional." },
+  { id: "words", nm: "Plain words", d: "At most two sentences and 25 words on a card, and everyday words for the jargon (the real term stays in the glossary)." },
+  { id: "drama", nm: "Headlines and calls", d: "A front page after each big decision, calls from the godfather, and the life story as a five-line card to share." },
 ];
 export const PILLAR_IDS = PILLARS.map(p => p.id);
 export const EXP_KEY = "sop_exp";
@@ -59,4 +65,14 @@ export const experimentSummary = (S) => {
     const row = { id: p.id, nm: p.nm, on: group(ids("on")), off: group(ids("off")) };
     if (p.id === "front") { row.onNew = group(ids("on").filter(w => firsts.has(w))); row.offNew = group(ids("off").filter(w => firsts.has(w))); }
     return row; });
+};
+
+/* Where players leave (counts only). The game sends "at" with the screen a player is on
+   whenever it changes; the server keeps each player's last screen and when it was sent
+   (S.last). A player not seen for idleMs has left, and counts on that screen. */
+export const SCREEN_NAMES = { title: "Title screen", setup: "Making a politician / the campaign", gov: "Governing", senate: "Senator", chairman: "Chairman", ambassador: "Ambassador", pres: "Road to Aso Rock", cab: "Cabinet of friends" };
+export const dropOff = (S, now = Date.now(), idleMs = 30 * 60e3) => {
+  const L = Object.values((S && S.last) || {}), gone = L.filter(x => x && now - (x.t || 0) > idleMs), n = gone.length;
+  const by = {}; gone.forEach(x => { by[x.v] = (by[x.v] || 0) + 1; });
+  return { players: L.length, left: n, here: L.length - n, screens: Object.entries(by).map(([v, k]) => ({ screen: v, n: k, pct: n ? Math.round(k / n * 1000) / 10 : 0 })).sort((a, b) => b.n - a.n) };
 };

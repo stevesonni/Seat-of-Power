@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import * as SYS from "../game/systems/index.js";
 
 test("six pillars, each on or off at random, completed and overridable", () => {
-  assert.deepEqual(SYS.PILLAR_IDS, ["front", "wait", "money", "integrity", "plan", "region"]);
+  assert.deepEqual(SYS.PILLAR_IDS, ["front", "wait", "money", "integrity", "plan", "region", "start", "screen", "stagger", "words", "drama"]);
   const a = SYS.assignPillars(() => .2), b = SYS.assignPillars(() => .8);
   assert.ok(Object.values(a).every(v => v === true) && Object.values(b).every(v => v === false));
   assert.deepEqual(Object.keys(SYS.completeAssignment({ front: true }, () => .9)), SYS.PILLAR_IDS, "an older assignment gets the new pillars");
@@ -21,7 +21,7 @@ test("the dashboard compares the two groups on early quits, finished terms and s
   const X = SYS.experimentSummary(S).find(x => x.id === "money");
   assert.deepEqual(X.on, { players: 2, timed: 2, earlyPct: 0, finishedPct: 100, fullPct: 0, endedEarlyPct: 100, sharedPct: 50 });
   assert.deepEqual(X.off, { players: 2, timed: 2, earlyPct: 100, finishedPct: 0, fullPct: 0, endedEarlyPct: 0, sharedPct: 0 });
-  assert.equal(SYS.experimentSummary({}).length, 6, "no data yet: six empty rows, no crash");
+  assert.equal(SYS.experimentSummary({}).length, 11, "no data yet: eleven empty rows, no crash");
 });
 
 test("a full term is told apart from an early ending, and the front door is judged on first-timers", () => {

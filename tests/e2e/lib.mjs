@@ -17,7 +17,7 @@ export async function open(port, { test = {}, seed = 7, phone = true, save, exp 
   await ctx.addInitScript(({ test, seed, save, exp }) => {
     window.SOP_TEST = test;
     // The experiment's pillars: off unless the test asks ("all", or { front: true, ... }).
-    if (!localStorage.getItem("sop_exp")) { const ids = ["front", "wait", "money", "integrity", "plan", "region"]; localStorage.setItem("sop_exp", JSON.stringify(Object.fromEntries(ids.map(id => [id, exp === "all" || !!(exp && exp[id])])))); }
+    if (!localStorage.getItem("sop_exp")) { const ids = ["front", "wait", "money", "integrity", "plan", "region", "start", "screen", "stagger", "words", "drama"]; localStorage.setItem("sop_exp", JSON.stringify(Object.fromEntries(ids.map(id => [id, exp === "all" || !!(exp && exp[id])])))); }
     let s = seed; Math.random = () => (s = (s * 16807) % 2147483647) / 2147483647;
     if (save && !sessionStorage.getItem("sop_e2e_loaded")) { for (const [k, v] of Object.entries(save)) localStorage.setItem(k, v); sessionStorage.setItem("sop_e2e_loaded", "1"); }
   }, { test, seed, save, exp });
