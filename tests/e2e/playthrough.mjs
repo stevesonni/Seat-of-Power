@@ -12,6 +12,7 @@ async function firstTerm(test) {
   const g = await open(port, { test });
   check((await campaign(g)) === "won", "first election won (test switch)");
   await takeOffice(g);
+  check(!/NaN/.test(await g.txt()), "the governing screen shows real numbers (no NaN)");
   const seen = { y1gold: false, y2esc: false, years: [] };
   const r = await playUntil(g, (t) => {
     const m = t.match(/Year (\d) of 4 \((\d{4})\)/); if (m && !seen.years.includes(+m[1])) seen.years.push(+m[1]);
