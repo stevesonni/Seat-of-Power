@@ -59,3 +59,6 @@ export * from "./pillars.js";
 export * from "./i18n.js";
 export * from "./achievements.js";
 export * from "./zoneasks.js";
+export * from "./replay.js";
+export * from "./legislature.js";
+export * from "./elder.js";

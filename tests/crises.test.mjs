@@ -8,8 +8,8 @@ const STATS = { lga: ["people", "gov", "council", "cor"], senate: ["home", "clou
 const worlds = (career) => [true, false].flatMap(truth => [20, 80].map(lvl => ({ truth, S: { ...CAREERS[career], ...Object.fromEntries(STATS[career].filter(k => k !== "cor").map(k => [k, lvl])) } })));
 const rolls = [() => .1, () => .9];
 
-test("22 headscratchers: 8 for the chairman, 8 for the senator, 6 for the ambassador", () => {
-  assert.equal(Object.keys(SYS.ARCS.lga).length, 8); assert.equal(Object.keys(SYS.ARCS.senate).length, 8); assert.equal(Object.keys(SYS.ARCS.amb).length, 6);
+test("23 headscratchers: 8 for the chairman, 9 for the senator (with the investigation), 6 for the ambassador", () => {
+  assert.equal(Object.keys(SYS.ARCS.lga).length, 8); assert.equal(Object.keys(SYS.ARCS.senate).length, 9); assert.equal(Object.keys(SYS.ARCS.amb).length, 6);
   for (const [career, defs] of Object.entries(SYS.ARCS)) for (const [id, def] of Object.entries(defs)) {
     assert.ok(def.nm && def.where && def.learn && def.left, career + "/" + id + ": name, where it happened, the lesson, what is left");
     assert.ok(def.stages.open, id + " has an opening");

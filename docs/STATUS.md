@@ -1209,3 +1209,56 @@ President's zone): tar a road, boreholes in five wards, the hospital's generator
 your next project there, or a seat in the cabinet. Do it now (+3 for the district, +1 approval), promise it for
 next year, or say no (−2). A broken promise costs −3; no answer for two years, −2. One open request per district,
 at most two on the Desk a year.
+
+## Replay variety, the living House, and life after office (player feedback, November 2026)
+"It's getting repetitive when you restart... the games four years seems too short. Make it less predictable...
+expand the senate and house of assembly challenges... more interactions with godfathers, rivals,
+ministers/commissioners, party members and councils." Plan agreed with Gemini's and Perplexity's reviews.
+For every player (not part of the split). Rules: `game/systems/replay.js`, `legislature.js`, `elder.js`, the
+`oversight` arc in `crises.js`. Tests: `tests/replay.test.mjs`, `tests/e2e/living-house.mjs`.
+
+**Replay variety**
+- Card memory (`sop_seen_cards`): the governor's invitations, godfather demands, House bills, investors, federal
+  events, shocks, media and dilemmas, and the chairman's problems, motions and asks prefer cards this player has
+  not met in earlier runs. A preference, never a ban: consequences of your own choices are never held back.
+- Personalities, rolled per run (`stc.persona`), shown by what they say and ask for, never labelled:
+  - godfather: greedy (cash, contracts), power (appointments, the Speaker), vindictive (hits back 1.8× when refused),
+    patron (asks half as often, forgives more);
+  - Speaker: fixer (deals cost 0.8×), ambitious (1.2×), principled (1.5×); the Speaker race decides which;
+  - party chairman: mercenary (contracts for financiers), reformer (open primaries), the godfather's man (his lists).
+    The chairman asks every other year.
+  - The deputy already had a fixed character (`deputy.js`), unchanged.
+- Three starting situations on a day-one front page (not in scenarios, challenges or comebacks): a House split down
+  the middle, two months of inherited salary arrears, or an oil windfall (+20% of a year's FAAC in the bank).
+- The year line reads "1st Term — Year 1 of 4 (2027) · re-election possible" (and "· final term" in the second).
+- Veterans (a finished governorship or presidency on record): one more decision a year, never the easy godfather,
+  more surprises.
+- Once a run, a surprise (18%, veterans 30%, from year 2): you fall ill abroad, a court sacks your Speaker, a
+  commissioner's "go and die" video, or the late godfather's sons fight over his network.
+
+**The living House** (governor; not in scenarios)
+- Six named members (two of yours, two opposition, two swing), each with an interest: a constituency, a policy,
+  a committee chair, party discipline, ambition, or money. Only one can be bought.
+- Year 1 (or 2 if year 1 is full): the Speaker race, always seen. Back the winner and the Speaker owes you (+2 members); back the loser and they remember.
+- From year 2, the budget battle: the opposition's leader offers votes for a published allocation formula. The year after,
+  your party wants the projects for itself: keep the formula (party −6, a lasting partner) or break it
+  (party +4, the opposition gone for good).
+- A member's interest in year 2 and odd years; a Public Accounts hearing in even years (send the commissioner,
+  the permanent secretary, or nobody; a technocrat does well, a hustler does not).
+- A cabinet meeting each year from year 2: two commissioners argue over how to deliver your flagship (for health:
+  nurses for the clinics we have, or a new specialist hospital); back one, the other, or a little of both.
+- Impeachment counted vote by vote is not built yet (it should reuse these members).
+
+**Godfathers** (on top of the existing rise, fall-out, defection and death)
+- Breaking free is built, not bought: when you stand on three of four legs (approval 60+, 60% of the House,
+  a quarter of a year's FAAC in the bank, party 60+), you can break with him in public, cut his share quietly,
+  or keep him close.
+- Year 7: he wants to choose your successor (deliver his candidate, name your own, or let the primary decide).
+
+**The Senate:** a ninth headscratcher, "The investigation": take a committee chair with an ally's help (or on
+your own), probe ₦60B of untraced subsidy, find your ally's family in it, and face a motion to remove you.
+
+**Life after office:** after two full terms, "Stay in the game: your successor". Choose to advise, to ask for
+your people in three ministries, or to become a party elder. The successor (grateful, independent or ambitious;
+always ambitious if the godfather chose them) answers, then cancels your flagship; you say nothing, go public, or
+call your loyalists in the House. Six ways to be remembered, from "the elder statesman" to "the kingmaker".

@@ -13,12 +13,13 @@ await g.click(/^Continue/); await g.wait(2000);
 const save = () => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
 let seen = null;
 const r = await playUntil(g, (t) => { const m = t.match(/(\S[^\n]*) · a request/i); if (m && !seen) seen = t.slice(t.search(/a request/i) - 60, t.search(/a request/i) + 400).replace(/\s+/g, " "); return /Year 3 of 4/.test(t); },
-  { max: 500, prefer: [/^(Borrow and do it now|Do it now) \(/] });
+  { max: 500, prefer: [/^(Borrow and do it now|Do it now) \(/, /^Agree: /] });
 check(r.ok, "played on through the year");
 check(!!seen, "the left-out district's request reached the Desk"); if (seen) console.log("  " + seen.slice(0, 300));
 const d = await save(), A = ((d.stc || {}).zoneAsks || []).find(a => a.zone === 1);
-check(A && A.status === "met", "doing it settles the request (" + (A && A.kind + " · " + A.status) + ")");
-check((d.logs || []).some(l => /^🤝 Done for /.test(l.tx)), "the district got what it asked for, on the record");
+const money = A && ["road", "water", "hospital", "school", "lights"].includes(A.kind);
+check(A && (money ? A.status === "met" : A.status === "promised" || A.status === "met"), "the request is settled: paid for, or promised for one you can only promise (" + (A && A.kind + " · " + A.status) + ")");
+check(!money || (d.logs || []).some(l => /^🤝 Done for /.test(l.tx)), "a paid request is on the record");
 check(!(d.logs || []).some(l => /feel(s)? left out \(−1\)/.test(l.tx)), "no automatic minus for being left out");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close && srv.close();

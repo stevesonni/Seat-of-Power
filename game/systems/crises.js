@@ -366,6 +366,37 @@ const SENATE_ARCS = {
         ] },
     } },
 
+  oversight: { nm: "The investigation", art: { bg: "senate-hearing-room", who: "senator-veteran-male" },
+    where: "United States, 1973–74: a Senate committee's hearings into a break-in led, step by step, to the President's own staff.",
+    learn: "Senate committees can summon ministers and officials, demand documents and hold public hearings (sections 88 and 89 of the Constitution). What they find goes to the full Senate, the police or the anti-graft agencies.",
+    left: "your committee's investigation is still open",
+    stages: {
+      open: { t: "A senior senator offers you a committee chair", art: { bg: "senate-chamber", who: "senator-veteran-male" }, ignore: "take",
+        d: "The chair of the Petroleum committee is vacant. A senior senator from your bloc can deliver it, \u201cbetween friends\u201d. You could also run for it on your own and risk losing.",
+        opts: [
+          { id: "take", l: "Take the chair with his help", fx: { clout: 5, loyalty: 2 }, set: { ally: true }, next: "probe", wait: [1, 1], story: "took the Petroleum committee chair with a senior senator's help", out: "You chair the Petroleum committee. Your new friend reminds you, warmly, who got you there." },
+          { id: "own", l: "Run for it on your own", fx: { clout: 1, home: 2 }, next: "probe", wait: [1, 1], story: "won the Petroleum committee chair on their own", out: "You win it by two votes, owing nobody." },
+        ] },
+      probe: { t: "₦60B of fuel subsidy nobody can trace", art: { scene: "senate-inquiry" }, ignore: "quiet",
+        d: "Your committee's clerks find ₦60B paid for fuel imports that never arrived. The minister's office stops answering letters.",
+        opts: [
+          { id: "summon", l: "Summon the minister in public", fx: { home: 4, loyalty: -3 }, next: ({ A }) => A.flags.ally ? "ally" : "challenge", wait: [1, 1], story: "summoned the petroleum minister over ₦60B of untraced subsidy", out: "The minister comes, sweating, with a lawyer. The cameras love it." },
+          { id: "quiet", l: "Settle it quietly with the ministry", fx: { clout: 2, cor: .02 }, end: "mixed", tag: "probe_buried", story: "settled the subsidy probe quietly", out: "The report is shelved. A few people are grateful, and they will remember." },
+        ] },
+      ally: { t: "The trail leads to your friend", art: { bg: "senator-office-abuja", who: "senator-veteran-male" }, ignore: "spare",
+        d: "One of the importers that was paid for fuel it never delivered is owned by the brother-in-law of the senator who got you the chair. He calls you to dinner.",
+        opts: [
+          { id: "name", l: "Name everyone, your friend's family included", fx: { home: 6, clout: -3 }, next: "challenge", wait: [1, 1], story: "named their own ally's family in the subsidy report", out: "The report names every importer. Your friend stops speaking to you, and starts counting votes." },
+          { id: "spare", l: "Leave his family out of the report", fx: { clout: 3, cor: .03 }, end: "bad", tag: "probe_spared", story: "left an ally's family out of the subsidy report", out: "The report is published with a gap in it. A journalist is already asking about the gap." },
+        ] },
+      challenge: { t: "A motion to remove you as chair", art: { scene: "senate-vote" }, ignore: "fight",
+        d: ({ A }) => (A.flags.ally ? "Your old friend" : "The minister's allies") + " gather signatures to remove you as committee chair before your report is debated.",
+        opts: [
+          { id: "fight", l: "Fight the motion on the floor", fx: { clout: 2, home: 3, loyalty: -3 }, end: "good", tag: "probe_survived", out: "The motion fails. Your report goes to the full Senate, and on to the anti-graft agency." },
+          { id: "deal", l: "Step down if the report goes to the agency", fx: { clout: -2, home: 3 }, end: "mixed", tag: "probe_handed", out: "You lose the chair. The report goes to the anti-graft agency with your name on it." },
+        ] },
+    } },
+
   comma: { nm: "The missing comma", art: { bg: "senator-office-abuja", who: "senior-advocate" },
     where: "Maine, USA, 2017: a missing comma in an overtime law decided a court case, and a dairy company paid its drivers $5 million.",
     learn: "Bills are drafted by the National Assembly's legal officers, but the senator who sponsors one answers for its words. Courts read the words as written.",

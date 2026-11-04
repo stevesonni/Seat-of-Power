@@ -78,7 +78,8 @@ export const GOV_ASKS = [
    or a request from the governor, in turn. */
 export const lgaAgenda = (seed, n, S) => {
   const r = seeded(seed, "lga", n), seen = S.seen || [];
-  const pick = (list) => { const c = list.filter(x => !seen.includes(x.id) && (!x.needsLow || S[x.needsLow] < 40)); return c.length ? c[Math.floor(r() * c.length)] : null; };
+  const known = S.known || {}; // cards from earlier runs (replay variety): preferred last, never banned
+  const pick = (list) => { const c0 = list.filter(x => !seen.includes(x.id) && (!x.needsLow || S[x.needsLow] < 40)), c1 = c0.filter(x => !known[x.id]), c = c1.length ? c1 : c0; return c.length ? c[Math.floor(r() * c.length)] : null; };
   const items = [{ k: "alloc" }];
   const p = pick(LGA_PROBLEMS); if (p) items.push({ k: "problem", id: p.id });
   const m = n % 2 === 1 ? pick(LGA_MOTIONS) : null; if (m) items.push({ k: "motion", id: m.id });

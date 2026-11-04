@@ -198,6 +198,12 @@ const cl = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const cl100 = (v) => Math.max(0, Math.min(100, v));
 const rng = (s) => { let x = ((Math.abs(s) + 1) % 2147483647) || 1; return () => { x = (x * 16807) % 2147483647; return (x - 1) / 2147483646; }; };
 const pick = (a, r) => a[Math.floor(r() * a.length)];
+// Replay variety: across runs, cards this player has not seen come first (SYS.preferUnseen); seen ones are kept, never banned.
+const seenStore = () => { try { return JSON.parse(localStorage.getItem("sop_seen_cards") || "{}") || {}; } catch (e) { return {}; } };
+const noteSeen = (ids) => { try { localStorage.setItem("sop_seen_cards", JSON.stringify(SYS.markSeen(seenStore(), ids.filter(Boolean)))); } catch (e) {} };
+// A player who has finished a governorship or presidency before plays the veteran's game: harder people, a fuller Desk.
+const VETERAN = () => { if (typeof window !== "undefined" && window.__sopVeteran != null) return window.__sopVeteran; try { const L = JSON.parse(localStorage.getItem("sop_career") || "[]"); return L.some(x => x.office === "governor" || x.office === "president"); } catch (e) { return false; } };
+const pickFresh = (pool, r) => { const x = pick(SYS.preferUnseen(pool, seenStore()), r); if (x && x.id) noteSeen([x.id]); return x; };
 const ri = (a, b, r) => Math.floor(a + r() * (b - a + 1));
 const naira = (v) => typeof v === "number" && Math.abs(v) >= 1000 ? "₦" + (v / 1000).toFixed(2) + "T" : "₦" + (typeof v === "number" ? v.toFixed(1) : v) + "B";
 const ZONES = { SW: "South-West", SS: "South-South", SE: "South-East", NW: "North-West", NE: "North-East", NC: "North-Central" };
@@ -4479,6 +4485,29 @@ const TermCards = ({ cards }) => <div data-testid="term-cards" style={{ maxWidth
     </div>
   </div>)}</div>
 </div>;
+/* Life after office (SYS.ROLES, SYS.firstAnswer, SYS.elderEnding): three moments in your successor's first term. */
+const ElderEpilogue = ({ seed, gfSucc, flag, name, state, onClose }) => {
+  const kind = SYS.heirKind(seed, gfSucc), [role, setRole] = useState(null), [first, setFirst] = useState(null), [end, setEnd] = useState(null);
+  const succ = React.useMemo(() => "Gov. " + gN(rng(seed % 99991 + 5), "SW", null), [seed]);
+  const box = { maxWidth: 620, margin: "0 auto", background: "#fffaf0", borderRadius: 24, padding: "18px 18px 20px", boxShadow: "0 24px 60px rgba(0,0,0,.4)" };
+  const opt = { display: "block", width: "100%", textAlign: "left", padding: "12px 16px", minHeight: 52, borderRadius: 16, border: "1.5px solid #e2d7bd", background: "#fff", fontWeight: 700, fontSize: 17, color: "#17301f", cursor: "pointer", marginTop: 8 };
+  return <div role="dialog" aria-modal="true" data-sop-elder style={{ position: "fixed", inset: 0, zIndex: 85, background: "rgba(6,14,10,.85)", overflowY: "auto", padding: "16px 12px 40px", fontFamily: F.b }}>
+    <div style={box} className="sp-step" key={(role || "") + (first ? 1 : 0) + (end ? 2 : 0)}>
+      <img src="./art/backgrounds/veranda-night.webp" alt="" style={{ display: "block", width: "100%", height: 170, objectFit: "cover", borderRadius: 16, marginBottom: 12 }} />
+      {!role && <><div className="sp-kicker">After office · {state}</div><h2 style={{ fontFamily: F.d, margin: "6px 0 8px" }}>{succ} is sworn in</h2>
+        <p style={{ margin: 0, fontSize: 17, lineHeight: 1.45 }}>Eight years are over. Your successor takes the oath in the stadium you built, and thanks you by name. What will you be now?</p>
+        {Object.entries(SYS.ROLES).map(([k, R]) => <button key={k} className="sp-opt" style={opt} onClick={() => { track("elder_role", k); setRole(k); setFirst(SYS.firstAnswer(kind, k)); }}><b>{R.l}</b><span style={{ display: "block", fontWeight: 500, fontSize: 14, color: "#5b6b55" }}>{R.d}</span></button>)}</>}
+      {role && first && !end && <><div className="sp-kicker">A year later</div><h2 style={{ fontFamily: F.d, margin: "6px 0 8px" }}>{succ.replace(/^Gov\. /, "")} gives their answer</h2>
+        <p style={{ margin: "0 0 10px", fontSize: 17, lineHeight: 1.45 }}>{first.line}</p>
+        <div style={{ background: "#fde8e6", borderRadius: 14, padding: "10px 12px", fontWeight: 700 }}>{SYS.IGNORED.t}</div>
+        <p style={{ margin: "8px 0 0", fontSize: 16, lineHeight: 1.45 }}>{SYS.IGNORED.d.replace("{flag}", flag)}</p>
+        {SYS.IGNORED.opts.map(o => <button key={o.id} className="sp-opt" style={opt} onClick={() => { const E = SYS.elderEnding(kind, role, first, o.id); track("elder_end", E.title); setEnd(E); }}><b>{o.l}</b><span style={{ display: "block", fontWeight: 500, fontSize: 14, color: "#5b6b55" }}>{o.note}</span></button>)}</>}
+      {end && <><div className="sp-kicker">How you are remembered</div><h2 style={{ fontFamily: F.d, margin: "6px 0 8px" }}>{end.title}</h2>
+        <p style={{ margin: 0, fontSize: 17, lineHeight: 1.45 }}>{end.line}</p>
+        <button className="sp-btn" style={{ width: "100%", marginTop: 14 }} onClick={onClose}>Back to your record</button></>}
+    </div>
+  </div>;
+};
 /* Achievement cards (Pack 30): a popup the moment one is earned, a 1080×1350 picture to
    share, and an album on the profile. Rules: game/systems/achievements.js. */
 const loadCards = () => { try { return JSON.parse(localStorage.getItem(SYS.CARDS_KEY) || "{}") || {}; } catch (e) { return {}; } };
@@ -5469,6 +5498,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [houseBillsSeen, setHouseBillsSeen] = useState(ld?.houseBillsSeen || []);
   const [pendingHouseBill, setPendingHouseBill] = useState(null);
   const [showWiki, setShowWiki] = useState(false);
+  const [elder, setElder] = useState(false); // life after office: the epilogue with your successor
   const [headline, setHeadline] = useState(null);
   const [achPopup, setAchPopup] = useState(null);
   const [gEnd, setGEnd] = useState(ld?.gEnd || null);
@@ -5821,7 +5851,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <div style={{ fontSize: tall ? TS(14) : TS(19), color: CL.tm, marginTop: 4, fontWeight: 700 }}>You are here: {where}.</div>
     </div>;
   };
-  const yr = (termNum === 1 ? "1st Term" : "2nd Term") + " — Year " + termTurn + " of 4 (" + absYear + ")" + (termNum === 2 ? " · " + ORD[Math.min(8, turn)] + " year in office" : "");
+  const yr = (termNum === 1 ? "1st Term" : "2nd Term") + " — Year " + termTurn + " of 4 (" + absYear + ")" + (termNum === 2 ? " · " + ORD[Math.min(8, turn)] + " year in office · final term" : " · re-election possible");
   const setSkApp = (u) => _setSkApp(prev => {
     const next = typeof u === "function" ? u(prev) : u;
     try { Object.keys(next || {}).forEach(k => { if ((next[k] || 0) < (prev[k] || 0) - 0.5 && lastAct.current) skBlame.current[k] = lastAct.current; }); } catch (e) {}
@@ -7172,6 +7202,32 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       next.revSched = (next.revSched || []).filter(x => x.t > turn);
     }
 
+    // Replay variety: this run's people and situation (SYS.rollPersonas, SYS.SITUATIONS).
+    try {
+      if (!next.pseed) next.pseed = Date.now() % 1e9;
+      if (!next.persona) { next.persona = SYS.rollPersonas(next.pseed, { veteran: VETERAN() }); track("persona_gf", next.persona.gf); track("persona_speaker", next.persona.speaker); }
+      const modeK = setup && setup.mode && setup.mode.kind;
+      if (turn === 1 && !NAT && !next.situ && !modeK && !scenId && !(setup && setup.comeback)) {
+        const k = SYS.situationFor(next.pseed), SI = SYS.SITUATIONS[k], extra = SI.cashMul ? Math.round((s.faac || 10) * SI.cashMul * 10) / 10 : 0;
+        next.situ = k; track("situation", k);
+        if (SI.house) { const seats = (next.house && next.house.seats) || houseSeats(sd.pop || 5); next.house = { ...(next.house || {}), seats, loyal: Math.round(seats * SI.house) }; }
+        if (SI.arrears) { next.arrears = (next.arrears || 0) + SI.arrears; next.arrearsMax = Math.max(next.arrearsMax || 0, next.arrears); }
+        if (extra) setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + extra) * 100) / 100 }));
+        notes.push(["🗞️ " + SI.note.replace("{cash}", String(extra)), "political"]);
+        setTimeout(() => paper(SI.head, SI.sub, k === "windfall", k === "split" ? "./art/backgrounds/assembly-chamber.webp" : k === "arrears" ? "./art/scenes/labour-roundtable.webp" : undefined), 900);
+        if (VETERAN()) notes.push(["🎖️ You have governed before. This time the people around you are harder to please, and the Desk is fuller.", "info"]);
+      }
+      // The party chairman's yearly ask, in the chairman's own voice (from year 2).
+      const ck = next.persona && next.persona.chair, CA = ck && SYS.CHAIR_ASKS[ck];
+      if (CA && turn >= 2 && turn % 2 === 0 && !NAT) {
+        const nm = (cast && cast.partyChair && cast.partyChair.name) || "The party chairman";
+        cards.push({ key: "chair_" + turn, kicker: "The party · " + nm, color: CL.pur, art: ["party-convention-hall", "party-chairman"], title: CA.t, brief: "“" + SYS.personaTell("chair", ck, turn) + "” " + CA.d, stakes: "The party decides whether you are its candidate again.",
+          options: CA.opts.map(o => ({ label: o.l, chips: fxChips(o.fx), run: () => { scFx(o.fx); track("chair_ask", ck + "_" + o.id);
+            if (o.house) setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + o.house * MEM)) } }) : p);
+            if (o.gf) setGodfatherPower(v => Math.max(0, Math.min(100, v + o.gf)));
+            addL("🏛️ The party chairman: you chose to " + o.l.replace(/^./, c => c.toLowerCase()) + ".", "political"); } })) });
+      }
+    } catch (e) { console.error("[replay]", e); }
     // House of Assembly: members drift with your party grip and your standing.
     if (!next.house || NAT && next.house.seats !== NASS_SEATS) { const seats = NAT ? NASS_SEATS : houseSeats(sd.pop || 5); next.house = { seats, loyal: Math.round(seats * Math.min(.8, .5 + (s.pStab - 50) / 200 + .08)) }; }
     else {
@@ -7193,7 +7249,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       next.houseCardTurn = turn;
       const buy = Math.round(H.seats * .05 * 10) / 10 + .4;
       cards.push({ key: "house", kicker: "House of Assembly", color: CL.red, art: ["assembly-chamber", "speaker"], title: "You have lost the House majority",
-        brief: against + " of " + H.seats + " members now sit against you. The Speaker, " + (cast?.speaker?.name || "the Speaker") + ", is sitting on your bills, and the opposition is counting towards the " + impNeed + " votes needed to impeach.",
+        brief: ((next.persona && next.persona.speaker) ? "\u201c" + SYS.personaTell("speaker", next.persona.speaker, turn) + "\u201d " : "") + against + " of " + H.seats + " members now sit against you. The Speaker, " + (cast?.speaker?.name || "the Speaker") + ", is sitting on your bills, and the opposition is counting towards the " + impNeed + " votes needed to impeach.",
         stakes: "If " + impNeed + " members turn against you, impeachment proceedings start.",
         options: [
           { label: "Constituency projects for every member", note: "Roads and boreholes in their wards, through their contractors.", chips: fxChips({ debt: buy, cor: .02 }).concat([{ text: "+" + 4 * MEM + " members", color: CL.grn }]), run: () => { scFx({ debt: buy, cor: .02 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 4 * MEM) } })); addL("🏛️ Constituency projects for Assembly members won back " + 4 * MEM + " votes (debt +₦" + buy + "B).", "political"); } },
@@ -7201,6 +7257,72 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           { label: "Go over their heads to the people", note: s.app >= 55 ? "You are popular. Members fear their own voters." : "With your approval this low, they may call your bluff.", chips: [{ text: s.app >= 55 ? "+" + 2 * MEM + " members" : "Risky", color: s.app >= 55 ? CL.grn : CL.org }], run: () => { if (s.app >= 55) { setStc(p => ({ ...p, house: { ...p.house, loyal: Math.min(p.house.seats, p.house.loyal + 2 * MEM) } })); addL("📣 You took the fight to their wards. " + 2 * MEM + " members came back.", "success"); } else { scFx({ app: -2 }); setStc(p => ({ ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal - 1 * MEM) } })); addL("📣 Your appeal to the people fell flat. Another member defected.", "crisis"); } } },
         ] });
     }
+
+    // The living House (SYS.makeMembers): the Speaker race, the budget battle and the promise that
+    // comes due, one member's interest a year, a committee hearing, and a cabinet meeting on your flagship.
+    try { if (!NAT && !scenId) {
+      if (!next.leg) { const rn = rng((next.pseed || 7) % 99991 + 31), used = new Set([pName]), names = [];
+        for (let i = 0; i < 6; i++) { let x = ""; for (let j = 0; j < 12 && (!x || used.has(x)); j++) x = gN(rn, sd.zone, state); used.add(x); names.push(x); }
+        next.leg = { members: SYS.makeMembers(next.pseed || 7, names), promises: [], asked: [] }; }
+      const L = next.leg, H0 = next.house || { seats: 24, loyal: 12 }, ratio = H0.loyal / Math.max(1, H0.seats);
+      const houseBy = (k) => { if (k) setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + k * MEM)) } }) : p); };
+      const legSet = (f) => setStc(p => ({ ...p, leg: f(p.leg || L) }));
+      const relRow = (m, d) => ({ l: m.name, v: (d > 0 ? "+" : "−") + Math.abs(d), good: d > 0 });
+      // 1. The Speaker race (year one).
+      if (turn <= 2 && !L.speaker) { const C = SYS.speakerCandidates(L);
+        const run = (id) => () => { const R = SYS.speakerRace(next.pseed || 7, L, id, ratio), W = SYS.memberOf(L, R.winner);
+          setStc(p => ({ ...p, leg: { ...(p.leg || L), speaker: R }, persona: { ...(p.persona || {}), speaker: R.kind } })); houseBy(R.owes ? 2 : R.crossed ? -2 : 0);
+          setCast(c => ({ ...c, speaker: { ...c.speaker, name: "Rt. Hon. " + W.name.replace(/^Hon\. /, "") } })); track("leg_speaker", (id ? (id === R.winner ? "backed_winner" : "backed_loser") : "stayed_out") + "_" + R.kind);
+          addL("🏛️ " + W.name + " is the new Speaker" + (R.owes ? ", and owes you." : R.crossed ? ". You backed the other candidate, and the new Speaker knows it." : "."), R.crossed ? "political" : "success");
+          return { icon: "🏛️", title: W.name.replace(/^Hon\. /, "Rt. Hon. ") + " is Speaker", text: R.owes ? "Your candidate won. The Speaker owes you, and the House knows it." : R.crossed ? "Your candidate lost. The new Speaker will remember who you backed." : "You stayed out. The new Speaker owes you nothing, and resents you for nothing.", rows: [{ l: "Members with you", v: R.owes ? "+" + 2 * MEM : R.crossed ? "−" + 2 * MEM : "±0", good: R.owes ? true : R.crossed ? false : undefined }], tone: R.crossed ? "bad" : "good" }; };
+        cards.push({ key: "leg_speaker", kicker: "House of Assembly · the Speaker race", color: CL.pur, art: ["assembly-chamber", "speaker"], title: "The House elects its Speaker this week",
+          brief: C[0].name + " is your party's candidate. " + C[1].name + " is a swing member, popular on both sides. Whoever wins decides which of your bills come to the floor.", stakes: "Back the winner and the Speaker owes you. Back the loser and the Speaker remembers.",
+          options: C.map(c => ({ label: "Back " + c.name, note: c.bloc === "ours" ? "Your party's choice." : "Liked across the aisle.", chips: [], run: run(c.id) })).concat([{ label: "Stay out of it", note: "Whoever wins owes you nothing.", chips: [], run: run(null) }]) });
+      }
+      // 2. The budget battle, and the promise that comes due the year after.
+      const F = (L.promises || []).find(x => x.kind === "formula"), opp = SYS.memberOf(L, F ? F.member : null) || SYS.budgetOffer(L);
+      if (F && F.status === "made" && F.turn < turn) {
+        cards.push({ key: "leg_formula_" + turn, kicker: "Your promise to " + opp.name, color: CL.red, art: ["assembly-chamber", "speaker"], title: "Your party wants its own projects",
+          brief: "Last year " + opp.name + " brought the opposition behind your budget, because you promised " + SYS.FORMULA + ". Now your party's members want this year's capital projects steered to their constituencies, formula or not.", stakes: "Keep your word and your party grumbles. Break it and the opposition never trusts you again.",
+          options: [{ label: "Keep the formula", note: "Your party is angry. The opposition stays a partner.", chips: fxChips({ pStab: -6 }), run: () => { scFx({ pStab: -6 }); houseBy(1); legSet(l => ({ ...SYS.moveMember(l, opp.id, 15), promises: l.promises.map(x => x.kind === "formula" ? { ...x, status: "kept", done: turn } : x) })); track("leg_formula", "kept");
+              addL("📜 You kept the allocation formula. Your party grumbles; " + opp.name + " says you are a governor who keeps his word.", "success"); return { icon: "📜", title: "You kept your word", text: opp.name + " stands up in the House to say so. Your own party's members are less pleased.", rows: [{ l: "Party", v: "−6", good: false }, relRow(opp, 15)], tone: "good" }; } },
+            { label: "Steer the projects to your party", note: "Your party cheers. The formula is dead.", chips: fxChips({ pStab: 4 }), run: () => { scFx({ pStab: 4 }); houseBy(-2); legSet(l => ({ ...SYS.moveMember(l, opp.id, -40), promises: l.promises.map(x => x.kind === "formula" ? { ...x, status: "broken", done: turn } : x) })); track("leg_formula", "broken");
+              addL("📜 You broke the allocation formula promise. " + opp.name + " takes the opposition back with them.", "political"); return { icon: "📜", title: "A broken promise", text: opp.name + " reads your promise aloud in the House. The opposition will not help you again.", rows: [{ l: "Party", v: "+4", good: true }, relRow(opp, -40)], tone: "bad" }; } }] });
+      } else if (!F && opp && turn >= 2 && SYS.memberOf(L, opp.id).rel < 90) {
+        cards.push({ key: "leg_budget_" + turn, kicker: "House of Assembly · the budget battle", color: CL.pur, art: ["assembly-chamber", "speaker"], title: opp.name + " offers the opposition's votes",
+          brief: opp.name + " leads the opposition members on the budget. They will vote for your capital budget if you promise " + SYS.FORMULA + ". Your party's members will not like it.", stakes: ratio < .5 ? "You do not have a majority without them." : "You have a majority, just. Their votes make it safe.",
+          options: [{ label: "Promise the formula", note: "Their votes now. Your party's anger later, when the projects are shared.", chips: [{ text: "Due next year", color: CL.org }], run: () => { houseBy(2); legSet(l => ({ ...SYS.moveMember(l, opp.id, 30), promises: [...(l.promises || []), { kind: "formula", member: opp.id, turn, status: "made" }] })); track("leg_budget", "promise");
+              addL("🤝 " + opp.name + " brings the opposition behind your budget. You promised " + SYS.FORMULA + ".", "policy"); return { icon: "🤝", title: "The opposition votes with you", text: opp.name + " delivers the votes. Next year your party will want the projects for itself.", rows: [relRow(opp, 30)], tone: "good" }; } },
+            { label: "Make a deal through the Speaker (" + naira(.5) + ")", note: "Constituency projects for the members who need them.", chips: fxChips({ debt: .5, cor: .01 }), run: () => { scFx({ debt: .5, cor: .01 }); houseBy(1); track("leg_budget", "deal"); addL("🤝 The budget passed after a deal through the Speaker.", "political"); } },
+            { label: "Go without them", note: ratio < .5 ? "The budget may be held up for months." : "You have the numbers, just.", chips: fxChips(ratio < .5 ? { app: -2 } : {}), run: () => { if (ratio < .5) scFx({ app: -2 }); legSet(l => SYS.moveMember(l, opp.id, -10)); track("leg_budget", "alone"); addL("🏛️ You went to the House without the opposition" + (ratio < .5 ? ". The budget is held up for two months." : "."), ratio < .5 ? "political" : "policy"); } }] });
+      }
+      // 3. One member and their interest (odd years from 3, and year 2).
+      if (turn >= 2 && (turn === 2 || turn % 2 === 1)) { const MA = SYS.memberAskFor(next.pseed || 7, turn, L, L.asked || []);
+        if (MA && MA.A) { const { m, A } = MA, T = (t) => SYS.fillM(t, m);
+          const run = (o, yes) => () => { if (o.cost && !spendB(o.cost, T(A.t))) return; scFx(o.fx || {}); houseBy(o.house || 0); legSet(l => ({ ...SYS.moveMember(l, m.id, o.rel || 0), asked: [...(l.asked || []), m.id] })); track("leg_member", m.interest + (yes ? "_yes" : "_no"));
+            addL("🏛️ " + m.name + ": you chose to " + T(o.l).replace(/^./, c => c.toLowerCase()) + ".", yes ? "policy" : "political"); return { icon: "🏛️", title: T(o.l), text: yes ? m.name + " will remember this, and so will the members who watched." : m.name + " leaves unhappy, and tells the tea room.", rows: [relRow(m, o.rel || 0)].concat(o.cost ? [{ l: "Bank", v: "−" + naira(o.cost), good: false }] : []), tone: yes ? "good" : "neutral" }; };
+          cards.push({ key: "leg_member_" + turn, kicker: "House of Assembly · " + m.name + " (" + (m.bloc === "ours" ? "your party" : m.bloc === "opp" ? "opposition" : "swing") + ")", color: CL.pur, art: ["assembly-chamber", "speaker"], title: T(A.t), brief: T(A.d), stakes: "Members remember who helped them, and who did not.",
+            options: [{ label: T(A.yes.l) + (A.yes.cost ? " (" + naira(A.yes.cost) + ")" : ""), chips: fxChips({ ...(A.yes.fx || {}), debt: A.yes.cost || 0 }), run: run(A.yes, true) }, { label: T(A.no.l), chips: fxChips(A.no.fx || {}), run: run(A.no, false) }] }); } }
+      // 4. A committee hearing (even years).
+      if (turn >= 2 && turn % 2 === 0) { const ms = (ministries || []).filter(x => x.minister), M = ms.find(x => /financ|works|budget/i.test(x.name)) || ms[0];
+        if (M) { const arch = SYS.archetypeOf(M.minister, next.pseed || 1), go = (who) => () => { const R = SYS.hearing(next.pseed || 7, turn, who, { perf: M.perf || 50, kind: arch }); scFx(R.fx); houseBy(R.house); track("leg_hearing", who + "_" + R.out);
+            if (who === "comm") setMinistries(xs => (xs || []).map(x => x.id === M.id ? { ...x, perf: Math.max(0, Math.min(100, (x.perf || 50) + (R.out === "good" ? 6 : -6))) } : x));
+            addL("🎙️ Public Accounts hearing: " + R.line, R.out === "bad" || R.out === "snub" ? "political" : "policy"); return { icon: "🎙️", title: R.out === "good" ? "A good hearing" : R.out === "bad" ? "A bad day at the committee" : R.out === "snub" ? "An empty chair" : "Nothing learned, nothing lost", text: R.line, rows: [], tone: R.out === "good" ? "good" : R.out === "safe" ? "neutral" : "bad" }; };
+          cards.push({ key: "leg_hearing_" + turn, kicker: "House of Assembly · Public Accounts Committee", color: CL.blu, art: ["assembly-chamber", "commissioner-male-suit-worried"], title: "The committee summons the " + M.name.replace(/^Ministry of /, "") + " ministry",
+            brief: "The Public Accounts Committee wants to know where last year's " + M.name.replace(/^Ministry of /, "").toLowerCase() + " money went. Someone has to sit in front of the cameras.", stakes: "A good hearing wins members over. A bad one is on the evening news.",
+            options: [{ label: "Send " + M.minister + ", the commissioner", note: "Strong if they know the file, a disaster if they do not.", chips: [], run: go("comm") }, { label: "Send the permanent secretary", note: "Safe and dull.", chips: [], run: go("perm") }, { label: "Refuse to send anyone", note: "The committee will not forget.", chips: fxChips({ app: -1 }), run: go("nobody") }] }); } }
+      // 5. The cabinet meeting: two commissioners argue over how to deliver your flagship.
+      const D = turn >= 2 ? SYS.debateFor(setup?.agenda, ministries || []) : null, FG = FLAGSHIP[setup?.agenda];
+      if (D && FG) { const side = (X, Y, both) => () => { const cost = both ? Math.round((D.a.cost + D.b.cost) * 60) / 100 : X.cost; if (!spendB(cost, FG.nm)) return;
+          const fx = both ? Object.fromEntries([...new Set([...Object.keys(D.a.fx), ...Object.keys(D.b.fx)])].map(k => [k, ((D.a.fx[k] || 0) + (D.b.fx[k] || 0)) * .5])) : X.fx; scFx(fx);
+          setMinistries(xs => (xs || []).map(x => both ? x : x.id === X.ministry.id ? { ...x, perf: Math.min(100, (x.perf || 50) + 8) } : x.id === Y.ministry.id ? { ...x, perf: Math.max(0, (x.perf || 50) - 4) } : x)); track("exco", (setup?.agenda || "") + (both ? "_both" : X === D.a ? "_a" : "_b"));
+          addL("🗂️ Cabinet meeting on " + FG.nm + ": " + (both ? "a little of both." : X.plan.replace(/^./, c => c.toLowerCase()) + ". " + Y.ministry.minister + " lost the argument."), "policy");
+          return { icon: "🗂️", title: both ? "A little of both" : X.plan, text: both ? "Both commissioners get something. Neither gets enough, and the money goes further on paper than on the ground." : X.ministry.minister + " won the argument. " + Y.ministry.minister + " says so, loudly, to anyone who will listen.", rows: [{ l: "Bank", v: "−" + naira(cost), good: false }], tone: "good" }; };
+        cards.push({ key: "exco_" + turn, kicker: "Executive Council · " + FG.nm, color: CL.grn, art: ["council-table-state", "commissioner-technocrat"], title: "Your cabinet cannot agree how to deliver " + FG.nm,
+          brief: D.a.ministry.minister + " (" + D.a.ministry.name.replace(/^Ministry of /, "") + "): “" + D.a.plan + ".” " + D.b.ministry.minister + " (" + D.b.ministry.name.replace(/^Ministry of /, "") + "): “" + D.b.plan + ".” Both say theirs is what you promised.", stakes: "Neither is wrong. You are choosing how your flagship is remembered.",
+          options: [{ label: D.a.plan + " (" + naira(D.a.cost) + ")", note: "Back " + D.a.ministry.minister + ".", chips: fxChips({ debt: D.a.cost }), run: side(D.a, D.b) }, { label: D.b.plan + " (" + naira(D.b.cost) + ")", note: "Back " + D.b.ministry.minister + ".", chips: fxChips({ debt: D.b.cost }), run: side(D.b, D.a) },
+            { label: "A little of both (" + naira(Math.round((D.a.cost + D.b.cost) * 60) / 100) + ")", note: "Everyone gets something, nobody gets enough.", chips: [], run: side(D.a, D.b, true) }] }); }
+    } } catch (e) { console.error("[legislature]", e); }
 
     // Salaries against the monthly FAAC allocation.
     if ((bud.salaries || 0) / bs * 100 < 12) { next.arrears += 1; notes.push(["💸 The budget's salary line is too thin: another month of wages unpaid.", "crisis"]); }
@@ -7531,6 +7653,29 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           { label: "Let it scatter: a new era", note: "No godfathers. Some barons drift to the opposition.", chips: fxChips({ app: 2, pStab: -3 }), run: () => { dead(); scFx({ app: 2, pStab: -3 }); addL("⚰️ With " + gfName + " gone, you declared the end of godfatherism in the state.", "success"); } },
         ] });
     }
+    // Breaking free is built, not bought: once you stand on your own (the people, the House, the bank, the party), you can end it.
+    try { if (!NAT && !gfGone && godfatherPower > 20 && turn >= 3 && !asked.gf_free) {
+      const Hh = next.house || { loyal: 0, seats: 1 }, base = [s.app >= 60, Hh.loyal / Math.max(1, Hh.seats) >= .6, (s.cash || 0) >= (s.faac || 10) * .25, s.pStab >= 60], have = base.filter(Boolean).length;
+      if (have >= 3) { asked.gf_free = turn; track("gf_free_offered", have + "/4");
+        cards.push({ key: "gf_free", kicker: "Your godfather", color: CL.grn, art: ["veranda-night", "godfather-worried"], title: "You no longer need " + gfName,
+          brief: "Your people, your House, your own money and your party: you stand on " + have + " of the four legs a governor needs. " + gfName + " can feel it. His calls have become requests.", stakes: "You can end it now, on your terms. Or keep him close: he is still dangerous.",
+          options: [{ label: "Break with him in public", note: "The people cheer. His loyalists sulk.", chips: fxChips({ app: 4, pStab: -3 }), run: () => { gfFree(); scFx({ app: 4, pStab: -3 }); setGodfatherRel(v => cl100(v - 40)); track("gf_free", "public"); scWiki("Governorship", "Broke publicly with political godfather " + gfName + "."); addL("🕊️ You broke with " + gfName + " in public. The people cheer; his loyalists sulk.", "success"); return { icon: "🕊️", title: "Free", text: "You told the state you answer to the people, not to " + gfName + ". He has not said a word. Yet.", rows: [{ l: "Approval", v: "+4", good: true }, { l: "Party", v: "−3", good: false }], tone: "good" }; } },
+            { label: "Cut his share quietly", note: "No headlines. His reach shrinks.", chips: [{ text: "Godfather weaker", color: CL.grn }], run: () => { setGodfatherPower(v => Math.max(0, v - 25)); track("gf_free", "quiet"); addL("🎩 You cut " + gfName + "'s share of the state, quietly.", "political"); } },
+            { label: "Keep him close", note: "Better inside the tent.", chips: [], run: () => { setGodfatherRel(v => cl100(v + 5)); track("gf_free", "stay"); } }] }); } } } catch (e) { console.error("[gf free]", e); }
+    // The last demand: he wants to choose who comes after you.
+    try { if (!NAT && !gfGone && godfatherPower > 20 && turn === MT - 1 && !asked.gf_succ) { asked.gf_succ = turn;
+      cards.push({ key: "gf_succ", kicker: "Your godfather", color: CL.org, art: ["veranda-night", "godfather"], title: gfName + " wants to choose your successor",
+        brief: "“You have had your eight years. Now it is my turn to choose.” " + gfName + " has a candidate, and expects you to deliver the party's ticket.", stakes: "Whoever follows you decides what happens to your projects, and your files.",
+        options: [{ label: "Deliver his candidate", note: "Peace now. Your successor will owe him, not you.", chips: fxChips({ pStab: 6 }), run: () => { scFx({ pStab: 6 }); setStc(p => ({ ...p, gfSucc: "his" })); track("gf_succ", "his"); addL("🎩 You agreed to deliver " + gfName + "'s candidate as your successor.", "political"); } },
+          { label: "Name your own successor", note: "He takes it as war.", chips: fxChips({ pStab: -3 }), run: () => { scFx({ pStab: -3 }); setGodfatherRel(v => cl100(v - 30)); setStc(p => ({ ...p, gfSucc: "mine" })); track("gf_succ", "mine"); addL("🎩 You told " + gfName + " you will choose your own successor.", "political"); } },
+          { label: "Let the party primary decide", note: "Neither of you chooses. The members do.", chips: fxChips({ app: 2, pStab: -1 }), run: () => { scFx({ app: 2, pStab: -1 }); setStc(p => ({ ...p, gfSucc: "open" })); track("gf_succ", "open"); addL("🗳️ You said the party's primary will choose your successor.", "policy"); } }] }); } } catch (e) { console.error("[gf succ]", e); }
+    // Once a run, something nobody planned for (SYS.WILDCARDS).
+    try { if (!NAT && !scenId && turn >= 2 && !next.wild && r() < (VETERAN() ? .3 : .18)) {
+      const k = SYS.wildcardFor(next.pseed || 7, turn, { gfDead: next.gf === "dead", speaker: !!(next.leg && next.leg.speaker), ministries: (ministries || []).filter(m => m.minister) }); if (k) { next.wild = { id: k.id, turn }; track("wildcard", k.id);
+        cards.push({ key: "wild_" + k.id, kicker: "Nobody planned for this", color: CL.red, art: k.art, title: k.t, brief: k.d, stakes: k.stakes,
+          options: k.opts.map(o => ({ label: o.l, note: o.note, chips: fxChips(o.fx || {}), run: () => { scFx(o.fx || {}); if (o.house) setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + o.house * MEM)) } }) : p);
+            if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, fx: o.later.fx, desc: o.later.desc }]); track("wildcard_" + k.id, o.id); addL("⚡ " + k.t + ": " + o.out, (o.fx && (o.fx.app || 0) < 0) ? "crisis" : "political");
+            return { icon: "⚡", title: o.l, text: o.out, rows: [], tone: (o.fx && (o.fx.app || 0) < 0) ? "bad" : "neutral" }; } })) }); } } } catch (e) { console.error("[wildcard]", e); }
     next.asked = asked;
 
     // Election petitions: a narrow win gets challenged. Tribunal, Court of
@@ -8135,14 +8280,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // 4. Ministries with integrity: who your commissioners really are.
       if (pillarOn("integrity")) {
         const ms = (ministries || []).filter(m => m.minister);
-        if (ms.length && !next.vetted && !next.vetAsked) { next.vetAsked = turn;
+        if (ms.length && !next.vetted && !next.vetAsked) { // asked until answered: a card crowded out comes back next year
           cards.push({ key: "pil_vet", kicker: "The DSS · a confidential offer", color: CL.blu, art: ["state-secretariat", "commissioner-technocrat"], title: "Vet your commissioners before they cost you",
             brief: "The security service can look into each commissioner: their accounts, their friends and their last jobs. Some are technocrats, some loyalists, some crusaders, and some are in it for themselves.", stakes: "Without vetting, you find out when a whistleblower tells you, or the newspapers do.",
-            options: [{ label: "Vet them all (" + naira(SYS.VET_COST) + ")", note: "You will know who is who.", chips: fxChips({ debt: SYS.VET_COST }), run: () => { scFx({ debt: SYS.VET_COST }); setStc(p => ({ ...p, vetted: turn })); track("pil_vet", "yes");
+            options: [{ label: "Vet them all (" + naira(SYS.VET_COST) + ")", note: "You will know who is who.", chips: fxChips({ debt: SYS.VET_COST }), run: () => { scFx({ debt: SYS.VET_COST }); setStc(p => ({ ...p, vetted: turn, vetAsked: turn })); track("pil_vet", "yes");
                 const rows = ms.slice(0, 8).map(m => { const a = SYS.ARCHETYPES[SYS.archetypeOf(m.minister, PS)]; return { l: m.minister + " (" + m.name.replace(/^Ministry of /, "") + ")", v: a.nm, good: a.nm === "Hustler" ? false : a.nm === "Loyalist" ? undefined : true }; });
                 const h = ms.filter(m => SYS.archetypeOf(m.minister, PS) === "hustler").length;
                 return res("🕵️", "The vetting report", h ? h + " of your commissioners " + (h === 1 ? "is" : "are") + " in it for themselves. Watch their ministries." : "Nobody is in it for themselves. For now.", rows, h ? "bad" : "good"); } },
-              { label: "Trust your own judgement", note: "No cost. No report.", chips: [], run: () => { track("pil_vet", "no"); } }] });
+              { label: "Trust your own judgement", note: "No cost. No report.", chips: [], run: () => { setStc(p => ({ ...p, vetAsked: turn })); track("pil_vet", "no"); } }] });
         }
         const sc0 = next.integScandal; if (sc0 && sc0.turn === turn) { dApp -= 5; setS(p => ({ ...p, cor: cl(p.cor + .03) })); notes.push(["📰 SCANDAL: the newspapers print the whistleblower's file on " + sc0.minister + " (" + sc0.ministry + "). You were told last year and did nothing.", "crisis"]); next.integScandal = null; track("pil_scandal", "printed"); }
         const w = SYS.whistleFor(PS, turn, ministries || [], next.integ || {});
@@ -10586,7 +10731,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const pickGfDemand = (unseen, r) => {
     const M = window.SOP_MEMORY;
-    if (!M) return unseen.length ? pick(unseen, r) : null;
+    if (!M) return unseen.length ? pickFresh(SYS.gfPreferred(unseen, ((scLast.current || stc).persona || {}).gf), r) : null;
     const owed = M.owed("godfather");
     const holdsWorks = !!M.did("godfather_contract", { relatedEntity: "ministry:works" });
     const pool = unseen.filter(d => {
@@ -10599,14 +10744,20 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (works && owed.some(o => /works/i.test(o.what))) return works;
     const money = pool.find(d => d.id === "gf_money");
     if (money) return money;
-    return pick(pool, r);
+    const kind = ((scLast.current || stc).persona || {}).gf;
+    return pickFresh(SYS.gfPreferred(pool, kind), r);
   };
   // The godfather gets the road: a running road project is taken from its
   // contractor and given to his company at an inflated price. His loyalists in
   // the House come over to you; an investor who watched will write next year.
   // He asks for whatever is being built: a road, the intra-state rail, a hospital.
   const gfTarget = () => { const live = (projects || []).filter(p => !["delivered", "abandoned", "cancelled"].includes(p.status) && !p.nepotism); return live.find(p => p.status === "in_progress" && p.contractor) || live.find(p => p.contractor) || live[0] || null; };
-  const gfFrame = (dem) => {
+  // The godfather's kind (SYS.PERSONAS.gf): his words, and how hard he hits back when refused.
+  const gfVoice = (dem) => { if (!dem) return dem; const kind = ((scLast.current || stc).persona || {}).gf, P = kind && SYS.PERSONAS.gf[kind]; if (!P) return dem;
+    const rf = Object.fromEntries(Object.entries(dem.rejectFx || {}).map(([k, v]) => [k, typeof v === "number" ? Math.round(v * P.rejectMul * 100) / 100 : v]));
+    return { ...dem, d: SYS.personaTell("gf", kind, turn) + " " + dem.d, rejectFx: rf }; };
+  const gfFrame = (dem) => gfVoice(gfFrame0(dem));
+  const gfFrame0 = (dem) => {
     if (!dem || dem.id !== "gf_contract") return dem;
     const t = gfTarget();
     if (!t) return { ...dem, d: "The next big contract this state awards goes to my company. No bidding.", acceptLog: "Promised him the next big contract, no bidding." };
@@ -10808,6 +10959,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return out;
   };
   const houseDeal = (cost, reasons, what) => {
+    { const sk = (stc.persona || {}).speaker, SP = sk && SYS.PERSONAS.speaker[sk]; if (SP) cost = Math.round(cost * SP.dealMul * 10) / 10; } // a fixer deals cheap; a principled Speaker makes you pay for doing it the wrong way
     if ((reasons || []).some(r => /opposition majority/.test(r.who || ""))) cost = Math.round((cost + scenRevB() * .04) * 10) / 10;
     if (!spendB(cost, "Constituency projects for the House")) return false;
     setS(p => ({ ...p, cor: cl(p.cor + .01 + .005 * (reasons || []).length) }));
@@ -10901,15 +11053,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Invitations still come: going means the Air Force, a charter or the road (airportGate). Investors cannot fly in.
     if (groundedRef.current) { const gone = q.filter(k => k === "investor"); if (gone.length) { const keep = q.filter(k => !gone.includes(k)); q.length = 0; keep.forEach(k => q.push(k)); addL("✈️ The airports are shut by the strike: the investors' visit is cancelled this year.", "crisis"); } }
     const cap0 = NAT ? (turn === 1 ? 4 : lv === "easy" ? 5 : lv === "hard" ? 7 : 6) /* the Security Council's letter included; Bakunda's come on top */ : turn === 1 ? 2 : lv === "easy" ? 3 : lv === "hard" ? 5 : 4;
-    const cap = PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0;
-    const pri = (k) => k.startsWith("sc#zask_") ? 79 : k.startsWith("sc#pil_leak") || k === "sc#pil_vet" ? 88 : k.startsWith("sc#pil_rival") || k.startsWith("sc#pil_tw") ? 86 : k.startsWith("sc#pil_pilot") ? 77 : k.startsWith("sc#pil_whistle") ? 72 : k.startsWith("sc#pil_") ? 60 : k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
+    const cap = (PACE === "relaxed" ? Math.max(2, cap0 - (NAT ? 2 : 1)) : PACE === "intense" ? cap0 + 1 : cap0) + (VETERAN() && turn > 1 ? 1 : 0);
+    const pri = (k) => k.startsWith("sc#wild_") || k === "sc#gf_free" || k === "sc#gf_succ" ? 86 : k === "sc#leg_speaker" || k.startsWith("sc#leg_formula") || k.startsWith("sc#leg_budget") ? 84 : k.startsWith("sc#exco_") ? 72 : k.startsWith("sc#leg_") ? 65 : k.startsWith("sc#zask_") ? 79 : k.startsWith("sc#pil_leak") || k === "sc#pil_vet" ? 88 : k.startsWith("sc#pil_rival") || k.startsWith("sc#pil_tw") ? 86 : k.startsWith("sc#pil_pilot") ? 77 : k.startsWith("sc#pil_whistle") ? 72 : k.startsWith("sc#pil_") ? 60 : k.startsWith("sc#pres_bk") ? 99 : k.startsWith("sc#lab_tw_") ? 92 : k.startsWith("sc#chain_crisis") || k.startsWith("sc#chain_court") ? 95 : k.startsWith("sc#chain_inv") || k.startsWith("sc#chain_japa") ? 87 : k.startsWith("sc#chain_nass") || k.startsWith("sc#chain_palace") ? 89 : k.startsWith("sc#chain_cabal") ? 76 : k.startsWith("sc#rival") ? 86 : k.startsWith("sc#pres_nsc") ? 92 : k.startsWith("sc#pres_coup") || k.startsWith("sc#pres_crisis") ? 100 : k.startsWith("sc#pres_callback") ? 88 : k.startsWith("sc#pres_trade") ? 84 : k.startsWith("sc#pres_med") ? 80 : k.startsWith("sc#pres_card") ? 82 : k.startsWith("sc#pres_world") ? 72 : k === "judiciary" || k === "nic_ruling" || k === "sc#succession" || k === "sc#house" || k === "sc#petition" ? 100
       : k === "sc#faac" ? 90 : k === "flagship" ? 85 : k.startsWith("sc#lg") || k.startsWith("sc#gf") ? 80 : k.startsWith("sc#crisis") ? 75 : k.startsWith("sc#impeach_") ? 100 : k.startsWith("sc#scen_move") ? 96 : k.startsWith("sc#peace_") ? 87 : k.startsWith("sc#handover_") ? 97 : k.startsWith("sc#dipl_unga") ? 88 : k.startsWith("sc#dipl_") ? 86 : k.startsWith("sc#econ_") ? 91 : k.startsWith("sc#export_") ? 74 : k.startsWith("sc#inter_") ? 73 : k === "shock" ? 70
       : k === "godfather" ? 62 : k.startsWith("sc#ruler") ? 60 : k === "dilemma" ? 58 : k === "federal" ? 52 : k === "abuja" || k === "netherlands" || k === "wedding" ? 50
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw"); // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
-    const keep = ranked.filter(x => !TRIP(x.k) && !WAR(x.k)).filter((x, n) => n < cap || x.p >= 100).concat(ranked.filter(x => WAR(x.k)), ranked.filter(x => TRIP(x.k)));
+    const WAR = (k) => k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
+    // A district's request is always seen (an unseen one could lapse unfairly), and one House or cabinet matter a year has its own slot.
+    const ASK = (k) => k.startsWith("sc#zask_"), PEOPLE = (k) => /^sc#(exco_|leg_member_|leg_hearing_|chair_)/.test(k);
+    const pType = (k) => k.startsWith("sc#exco_") ? 0 : k.startsWith("sc#chair_") ? 2 : 1; // the slot turns: the House, then the cabinet, then the party
+    const peopleOne = ranked.filter(x => PEOPLE(x.k)).sort((a, b) => (pType(a.k) + turn) % 3 - (pType(b.k) + turn) % 3)[0];
+    const keep = ranked.filter(x => !TRIP(x.k) && !WAR(x.k) && !ASK(x.k) && x !== peopleOne).filter((x, n) => n < cap || x.p >= 100).concat(ranked.filter(x => WAR(x.k) || ASK(x.k)), peopleOne ? [peopleOne] : [], ranked.filter(x => TRIP(x.k)));
     const dropped = ranked.filter(x => !keep.includes(x));
     q.length = 0; keep.forEach(x => q.push(x.k));
     const scKeys = keep.filter(x => x.k.startsWith("sc#")).map(x => x.k.slice(3));
@@ -10951,13 +11107,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       else if (lv !== "easy" && !weddingVisited && turn >= 6) q.push("wedding");
       else {
         const unseen = INVITES().filter(inv => !intlInvites.includes(inv.id));
-        if (unseen.length > 0) { const inv = pick(unseen, rE); setCurInvite(inv); setIntlInvites(p => [...p, inv.id]); q.push("intl_invite"); }
+        if (unseen.length > 0) { const inv = pickFresh(unseen, rE); setCurInvite(inv); setIntlInvites(p => [...p, inv.id]); q.push("intl_invite"); }
       }
     }
 
     // LAYER 2: Godfather (once a year) — NOT for Primary
     const gfNow = scLast.current?.gf, gfStory = (scPending.current || []).some(c => c.key.startsWith("gf_"));
-    if (lv !== "easy" && godfatherPower > 20 && turn > 1 && gfNow !== "dead" && gfNow !== "opposition" && gfNow !== "freed" && !gfStory) {
+    const gfKind = ((scLast.current || stc).persona || {}).gf;
+    if (lv !== "easy" && godfatherPower > 20 && turn > 1 && !(gfKind === "patron" && rE() < SYS.PERSONAS.gf.patron.skip) && gfNow !== "dead" && gfNow !== "opposition" && gfNow !== "freed" && !gfStory) {
       const unseen = GODFATHER_DEMANDS.filter(d2 => !godfatherSeen.includes(d2.id));
       const dem = gfFrame(pickGfDemand(unseen, rE));
       if (dem) { setGodfatherDemand(dem); setGodfatherSeen(p => [...p, dem.id]); q.push("godfather"); }
@@ -10968,7 +11125,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (unseenBills.length > 0) {
       const billTurn = lv === "easy" ? (turn === 3 || turn === 6) : (turn % 2 === 1 || turn >= 5);
       if (billTurn) {
-        const bill = pick(unseenBills, rE);
+        const bill = pickFresh(unseenBills, rE);
         setPendingHouseBill(bill); setHouseBillsSeen(p => [...p, bill.id]); q.push("house_bill");
       }
     }
@@ -10977,7 +11134,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if ((turn === 1 || turn === 3 || turn === 5 || turn === 7) && investorsSeen.length < 6) {
       const unseen = INVESTORS.filter(inv => !investorsSeen.includes(inv.id));
       if (unseen.length > 0) {
-        const inv = pick(unseen, rE);
+        const inv = pickFresh(unseen, rE);
         setCurInvestor(inv);
         setInvestorsSeen(p => [...p, inv.id]);
         q.push("investor");
@@ -10991,7 +11148,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const pool2 = fgRelation < 40 ? unseenFG.filter(e => e.type === "punish") : fgRelation > 65 ? unseenFG.filter(e => e.type === "reward") : unseenFG;
       const fgPool = (pool2.length > 0 ? pool2 : unseenFG);
       if (fgPool.length > 0) {
-        const fgEv = pick(fgPool, rE);
+        const fgEv = pickFresh(fgPool, rE);
         setCurFgEvent(fgEv);
         setFgEventsSeen(p => [...p, fgEv.id]);
         q.push("federal");
@@ -11003,7 +11160,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const localIds = stateCrisesFor(state).map(c => c.id);
       const unseenShocks = SHOCK_EVENTS.filter(e => !shocksSeen.includes(e.id) && !(e.id === "sh_flood" && localIds.includes("flood")) && !(e.id === "sh_terror" && localIds.includes("insurgent_attack")));
       if (unseenShocks.length > 0) {
-        const shock = pick(unseenShocks, rE);
+        const shock = pickFresh(unseenShocks, rE);
         setCurShock(shock);
         setShocksSeen(p => [...p, shock.id]);
         q.push("shock");
@@ -11038,7 +11195,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (unseenMedia.length > 0) {
         const contextual = s.app < 40 ? unseenMedia.filter(m => m.severity === "high" || m.severity === "medium") : s.app > 60 ? unseenMedia.filter(m => m.severity === "positive") : unseenMedia;
         const pool = contextual.length > 0 ? contextual : unseenMedia;
-        const mev = pick(pool, rE);
+        const mev = pickFresh(pool, rE);
         setCurMedia(mev);
         setMediaSeen(p => [...p, mev.id]);
         q.push("media");
@@ -11071,7 +11228,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const filt = fresh.filter(d => themePref.some(t => ((d.nm||"") + " " + (d.d||"") + " " + (d.id||"")).toLowerCase().includes(t)));
         if (filt.length) pool = filt;
       }
-      if (pool.length) { setCurD(pick(pool, rE)); q.push("dilemma"); }
+      if (pool.length) { setCurD(pickFresh(pool, rE)); q.push("dilemma"); }
     }
 
     // Module cards join after the core events, minus duplicates.
@@ -11096,7 +11253,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (next === "intl_invite" && !curInvite) {
       const rE = rng(turn * 111 + state.length * 53 + Date.now() % 5000);
       const unseen = INVITES().filter(inv => !intlInvites.includes(inv.id));
-      if (unseen.length > 0) { const inv = pick(unseen, rE); setCurInvite(inv); setIntlInvites(p => [...p, inv.id]); }
+      if (unseen.length > 0) { const inv = pickFresh(unseen, rE); setCurInvite(inv); setIntlInvites(p => [...p, inv.id]); }
     }
     if (next === "godfather" && !godfatherDemand) {
       const rE = rng(turn * 888 + state.length * 41);
@@ -12052,10 +12209,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {!VATAR && <Bt onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(shareT))} style={{ background: "#25D366", color: "#fff", fontSize: TS(34) }}>WhatsApp</Bt>}
           </div>
           <TermCards cards={termCardsFor({ gr, ov, rcTitle, termsServed })} />
+          {elder && <ElderEpilogue seed={stc.pseed || 1} gfSucc={stc.gfSucc} flag={(FLAGSHIP[setup?.agenda] || {}).nm || "your flagship"} name={pName} state={stName} onClose={() => setElder(false)} />}
           {gEnd === "complete" && (
             <Cd style={{ borderColor: CL.grn + "44" }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>What Next?</h3>
               <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap" }}>
+                <Bt v="secondary" onClick={() => setElder(true)}>🎩 Stay in the game: your successor</Bt>
                 <Bt v="secondary" onClick={() => onEnd("retire", s)}>🏡 Retire</Bt>
                 {!NAT && <Bt v="secondary" onClick={() => onEnd("senate", { ...s, rec: presRec() })}>🏛️ Senate</Bt>}
                 {!NAT && <Bt onClick={() => onEnd("president", { ...s, rec: presRec() })} disabled={!canP}>🇳🇬 President</Bt>}
@@ -16325,6 +16484,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
     return () => window.removeEventListener("sop-ents", f);
   }, []);
   useEffect(() => { if (g) { try { window.storage.set(LGA_KEY, JSON.stringify(g)); } catch (e) {} } }, [g]);
+  useEffect(() => { if (g && g.items) noteSeen(g.items.filter(it => it.k === "problem" || it.k === "motion" || it.k === "gov").map(it => it.id)); }, [g && g.n]);
   useEffect(() => { if (!g || !g.n) return; earnCards({ office: "chairman", roadHeld: !!(g.road && g.road.tested && g.road.held), ambitionMet: !!(g.over && g.ambition && SYS.ambitionMet(g)), ambition: g.ambition && SYS.AMBITIONS[g.ambition] ? SYS.AMBITIONS[g.ambition].l : null }, "Chairman " + g.name + " · " + (g.lga || "") + " LGA"); }, [g]);
   const up = (f) => setG(p => ({ ...p, ...(typeof f === "function" ? f(p) : f) }));
   const lessons = React.useRef([]);
@@ -16344,6 +16504,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
       people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "promise", items: [], seen: [], seenOpt: [], story: [], fixed: 0, log: [], courtWon: 0, road: {}, trayDone: 0,
       govName: "Gov. " + nm(), seeds: [], elecMod: 0,
       npcs: { party: { name: "Chief " + nm(), role: "Party Chairman", rel: k === "anointed" ? 65 : k === "grassroots" ? 40 : 50 }, cllr: { name: "Hon. " + nm(), role: "Councillor", rel: 50 } } };
+    S.known = seenStore(); // what this player has met in earlier runs comes last
     S.arcs = SYS.arcPlan(seed, "lga"); S.seen = SYS.arcExcludes("lga", S.arcs); // this term's headscratchers, and the agenda items they replace
     S.items = SYS.lgaTurn(S.seed, 1, S);
     setG(S); trk("career_start", "chairman_" + k);
@@ -17271,6 +17432,7 @@ function App() {
   // Each session reports this phone's side of the experiment, so the dashboard can compare the groups.
   useEffect(() => { SYS.PILLAR_IDS.forEach(id => track("exp_" + id, EXP[id] ? "on" : "off")); }, []);
   useEffect(() => { installTranslator(); }, []);
+  useEffect(() => { try { window.storage.get("sop_career").then(r => { const L = r && r.value ? JSON.parse(r.value) : []; window.__sopVeteran = L.some(x => x.office === "governor" || x.office === "president"); }).catch(() => {}); } catch (e) {} }, []);
   // A result card explains each number the first time it appears (pillar "front").
   useEffect(() => { if (!pillarOn("front")) return; window.SOP_ROWHELP = (label) => { let seen = []; try { seen = JSON.parse(localStorage.getItem("sop_rowhelp") || "[]"); } catch (e) {}
     const h = SYS.rowHelp(label, seen); if (!h) return null; try { localStorage.setItem("sop_rowhelp", JSON.stringify([...seen, h.key])); } catch (e) {} return h.text; }; }, []);
