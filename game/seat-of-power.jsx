@@ -84,6 +84,10 @@ const VATAR = typeof window !== "undefined" && !!window.SOP_VATAR;
 const SAVE_VERSION = 4;
 function migrateSave(d) {
   if (!d || typeof d !== "object") return d;
+  // Repair (November 2026): new games from 1 to 5 November started with no party value, which also
+  // spread into the House count. Give them a middling party and recount the House from it.
+  try { if (d.s && !Number.isFinite(d.s.pStab)) { d.s.pStab = 60; d.repairedParty = true; }
+    const H = d.stc && d.stc.house; if (H && !Number.isFinite(H.loyal)) H.loyal = Math.round((H.seats || 24) * .58); } catch (e) {}
   if (!d.sv) {
     // v1: no ledger was ever stored, and the phase is untrustworthy.
     d.sv = 1;
@@ -5393,7 +5397,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // A comeback after defeat is the final term (S.182: two terms in all): it starts at year 5.
   const [turn, setTurn] = useState(ld?.turn || (setup?.comeback ? 5 : 1));
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: pillarOn("front") && !ld ? SYS.firstYearCushion(sd.faac) : 0, cashYear: 0, zoneMood: {}, // the other districts ask first (statecraftTurn, SYS.makeAsk "start") instead of starting at −2 pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
+  const [s, setS] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: pillarOn("front") && !ld ? SYS.firstYearCushion(sd.faac) : 0, cashYear: 0, zoneMood: {} /* the other districts ask first (statecraftTurn, SYS.makeAsk "start") instead of starting at −2 */, pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
