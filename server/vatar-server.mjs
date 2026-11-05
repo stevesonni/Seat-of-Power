@@ -19,6 +19,7 @@ import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from 
 import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntries, playedAgain } from "./hall-rules.mjs";
 import { makeCabinets } from "./cabinet.mjs";
 import { makeFederation } from "./federation.mjs";
+import { careerOf, careerName, keepBackup } from "./saves.mjs";
 import { dropOff, dropOffSplit, DROP_PILLARS, PILLARS, experimentSummary } from "./experiment.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
@@ -150,7 +151,10 @@ const who = async (session) => {
   if (typeof session !== "string" || session.length > 4096) return null;
   const c = seen.get(session);
   if (c && c.exp > Date.now()) return c.playerId;
-  const v = await vatar("/session/verify", { session });
+  // Lagos Life's check sometimes fails on their side (500, 502, 503): ask again before giving up,
+  // or the game falls back to the phone's storage and the player's career seems to vanish.
+  let v = await vatar("/session/verify", { session }).catch(() => ({ http: 0 }));
+  for (const ms of [400, 1200]) { if (!(v.http === 0 || v.http >= 500)) break; await new Promise(r => setTimeout(r, ms)); v = await vatar("/session/verify", { session }).catch(() => ({ http: 0 })); }
   if (v.http !== 200 || !/^[pt]_[A-Za-z0-9_-]{1,80}$/.test(v.playerId || "")) { verifyFailed(v); return null; }
   seen.set(session, { playerId: v.playerId, username: v.username || v.displayName || v.name || null, exp: Math.min(v.exp || 0, Date.now() + 14 * 60e3) });
   if (seen.size > 5000) for (const [k, x] of seen) if (x.exp < Date.now()) seen.delete(k);
@@ -166,10 +170,17 @@ const withP = (id, fn) => { const prev = locks.get(id) || Promise.resolve(); con
 
 const KEY_OK = /^[a-z_]{1,32}$/; // sop_save, sop_profile, sop_preelection…
 const api = {
-  "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents) }; },
+  "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents), bak: (p.bak || []).map((x, i) => ({ i, t: x.t, name: careerName(x.v) })) }; },
+  // Bring back a career kept in p.bak; the one in its place is kept in turn.
+  "/api/restore": async (b, id) => withP(id, (p) => {
+    const i = +b.i, x = (p.bak || [])[i]; if (!x) return { ok: false };
+    const cur = p.data.sop_save; p.bak = p.bak.filter((_, j) => j !== i);
+    if (cur && careerOf(cur) !== careerOf(x.v)) p.bak = [{ t: Date.now(), v: cur }, ...p.bak].slice(0, 3);
+    p.data.sop_save = x.v; writeP(id, p); return { ok: true, value: x.v };
+  }),
   "/api/save": async (b, id) => withP(id, (p) => {
     const d = b.data && typeof b.data === "object" ? b.data : {};
-    for (const [k, v] of Object.entries(d)) { if (!KEY_OK.test(k)) continue; if (v == null || v === "") delete p.data[k]; else if (typeof v === "string" && v.length < 900_000) p.data[k] = v; }
+    for (const [k, v] of Object.entries(d)) { if (!KEY_OK.test(k)) continue; if (typeof v === "string" || v == null) keepBackup(p, k, v); if (v == null || v === "") delete p.data[k]; else if (typeof v === "string" && v.length < 900_000) p.data[k] = v; }
     writeP(id, p); return { ok: true };
   }),
   // Spend one credit of a consumable (Second Chance).

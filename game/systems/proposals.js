@@ -80,11 +80,13 @@ const BENEFIT = {
   airport: () => "A new terminal: more flights, more visitors, and cargo for exporters.",
 };
 
-export const parseProposal = (text, { lgas = [], federal = false } = {}) => {
+export const parseProposal = (text, { lgas = [], federal = false, type: picked = null } = {}) => {
   const t = String(text || "").trim();
-  if (t.length < 4) return { status: "clarify", question: "What do you want to build, and where?", choices: Object.keys(UNIT).slice(0, 8) };
-  for (const [re, why, who] of UNSUPPORTED) if ((!who || who === (federal ? "fed" : "gov")) && re.test(t)) return { status: "unsupported", why };
-  const hits = TYPE_WORDS.filter(([k, re]) => (federal || !FED_ONLY.includes(k)) && re.test(t)).map(([k]) => k);
+  // A kind picked from the list is that kind, whatever its short name reads like ("dam", "coe").
+  const forced = picked && UNIT[picked] && (federal || !FED_ONLY.includes(picked)) ? picked : null;
+  if (t.length < 4 && !forced) return { status: "clarify", question: "What do you want to build, and where?", choices: Object.keys(UNIT).slice(0, 8) };
+  if (!forced) for (const [re, why, who] of UNSUPPORTED) if ((!who || who === (federal ? "fed" : "gov")) && re.test(t)) return { status: "unsupported", why };
+  const hits = forced ? [forced] : TYPE_WORDS.filter(([k, re]) => (federal || !FED_ONLY.includes(k)) && re.test(t)).map(([k]) => k);
   if (!hits.length) return { status: "clarify", question: "Which of these is it closest to? The state can build these kinds of projects.", choices: ["road", "hospital", "school", "water", "power", "market", "housing", "cctv"] };
   // "beds" alone is a hospital, "road to the hospital" is a road: prefer the type named with a number, then the first match.
   const numbered = hits.find(k => UNIT_WORDS[k] && UNIT_WORDS[k].test(t));

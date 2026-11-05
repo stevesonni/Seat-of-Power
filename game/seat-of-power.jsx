@@ -2947,10 +2947,13 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
           <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{dailyDone ? "Today's decision: done" : "Today's decision #" + st.today}</b><span style={{ fontSize: DS.t.meta, opacity: .85 }}>{dailyDone ? "See how other governors chose · new one tomorrow" : "60 seconds · " + (st.streak ? "keep your " + st.streak + "-day streak" : "start a streak")}</span></span>
           <Flame n={st.streak} lit={st.streak > 0} />
         </button>
-        <PillBtn onClick={async () => { if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nA new game replaces it once you take office. To keep playing it, press Continue instead.", "Start a new game", "Keep my career"))) return; if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
+        <PillBtn onClick={async () => { if (!hasSave && window.SOP_CLOUD_DOWN && !(await window.SOP_confirm("We could not reach your Lagos Life save just now, so a career you have may not show here.\n\nClose the game and open it again to check first.", "Start a new game anyway", "Not now"))) return; if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nA new game replaces it once you take office. To keep playing it, press Continue instead.", "Start a new game", "Keep my career"))) return; if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
         {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
         {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
         {mems.length > 0 && onCabinet && <PillBtn tone="plain" onClick={onCabinet} style={{ width: "100%", maxWidth: 460 }}><Ico n="icon-cabinet-friends" s={28} style={{ marginRight: 6 }} />Your cabinet desk<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{(() => { const m = mems[mems.length - 1]; return ((SYS.seatById(m.seat, m.office) || {}).t || "Minister") + (m.gov ? " · " + (m.office === "president" ? "President " + m.gov + "'s administration" : m.gov + "'s government") : ""); })()}</span></PillBtn>}
+        {(window.SOP_BACKUPS || []).length > 0 && <button onClick={async () => { const b = window.SOP_BACKUPS[0]; if (!(await window.SOP_confirm("Bring back " + b.name + "?\n\nThe game you have now is kept too, so you can switch back the same way.", "Bring it back", "Not now"))) return;
+          try { const r = await window.SOP_restore(b.i); track("restore", r && r.ok ? "ok" : "no"); if (r && r.ok) location.reload(); else window.SOP_toast && window.SOP_toast("That career could not be found.", "bad"); } catch (e) { window.SOP_toast && window.SOP_toast("Open the game inside Lagos Life to bring it back.", "bad"); } }}
+          style={{ background: "none", border: 0, color: "#fff", opacity: .85, textDecoration: "underline", fontSize: DS.t.meta, cursor: "pointer", fontFamily: F.b }}>↩️ Bring back an earlier career</button>}
         <div style={{ marginTop: 8 }}><LangPicker /></div>
         <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
       </div>
@@ -4845,12 +4848,12 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
     return <Dossier icon={d.type ? SECTOR_ICON[SYS.TYPE_SECTOR[d.type]] : "🏗️"} kicker="New project" title={d.title || "What will you build?"} place={placeLabel(d)} at={0}>
       <Situation head={d.type ? "Check the proposal, then set its budget." : "Describe it, or answer one of the state's needs."} text={d.need ? "This answers: " + ((needs || []).find(n => n.id === d.need) || {}).label?.replace(/^\S+\s/, "") + "." : null} />
       {!d.type && <>
-        {(needs || []).length > 0 && <div style={{ display: "grid", gap: 8 }}>{needs.slice(0, 4).map(n => <button key={n.id} className="sp-opt" onClick={() => { const r = SYS.parseProposal(n.type + " in " + (n.lga || ""), { lgas, federal: SEAT.nat }); onFlow({ ...F0, draft: { ...r.proposal, title: n.label.replace(/^\S+\s/, ""), need: n.id } }); }}><b style={{ fontSize: 16 }}>{n.label}</b></button>)}</div>}
+        {(needs || []).length > 0 && <div style={{ display: "grid", gap: 8 }}>{needs.slice(0, 4).map(n => <button key={n.id} className="sp-opt" onClick={() => { const r = SYS.parseProposal(n.type + " in " + (n.lga || ""), { lgas, federal: SEAT.nat, type: n.type }); onFlow({ ...F0, draft: { ...r.proposal, title: n.label.replace(/^\S+\s/, ""), need: n.id } }); }}><b style={{ fontSize: 16 }}>{n.label}</b></button>)}</div>}
         {spLab("In your own words")}
         <textarea value={F0.text || ""} onChange={e => onFlow({ ...F0, text: e.target.value })} rows={2} placeholder="e.g. A 120-bed maternity hospital in Oredo" style={{ ...spField, resize: "vertical" }} />
         <Actions><button className="sp-btn ghost" onClick={() => { const r = SYS.parseProposal(F0.text, { lgas, federal: SEAT.nat }); onFlow({ ...F0, parsed: r, draft: r.status === "ok" ? { ...r.proposal, title: r.proposal.name } : d }); }}>Read it</button></Actions>
         {P && P.status === "clarify" && <Situation tone="warn" head={P.question} text={null} />}
-        {P && P.status === "clarify" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} className="sp-btn ghost" style={{ minHeight: 40, padding: "6px 14px", fontSize: 15 }} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas, federal: SEAT.nat }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name } }); }}>{SYS.UNIT[c].nm}</button>)}</div>}
+        {P && P.status === "clarify" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} className="sp-btn ghost" style={{ minHeight: 40, padding: "6px 14px", fontSize: 15 }} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas, federal: SEAT.nat, type: c }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name } }); }}>{SYS.UNIT[c].nm}</button>)}</div>}
         {P && P.status === "unsupported" && <Situation tone="bad" head="Not something the state can build" text={P.why} />}
       </>}
       {gate && <Situation tone="warn" head={(adviser || "Your adviser") + ": “Your Excellency, who will run it? We have no Commissioner for " + gate.name + ".”"} text={"A " + SYS.UNIT[d.type].nm.toLowerCase() + " needs its own ministry to plan it and run it after the ribbon. Create the Ministry of " + gate.name + " (" + naira(gate.cost) + " a year) and this project can start."} />}
@@ -4860,7 +4863,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
         <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: "0 12px" }}>
           <div>{spLab("Name")}<input value={d.title || ""} onChange={e => onFlow({ ...F0, draft: { ...d, title: e.target.value } })} style={spField} /></div>
 
-          <div>{spLab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas, federal: SEAT.nat }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need, srcPolicy: d.srcPolicy, ministryId: null } }); }} style={spField}>{TYPES_FOR().map(k => <option key={k} value={k}>{(SEAT.nat && SYS.UNIT[k].fed) || SYS.UNIT[k].nm}</option>)}</select></div>
+          <div>{spLab("Kind")}<select value={d.type} onChange={e => { const r = SYS.parseProposal(e.target.value + " " + (d.lga || ""), { lgas, federal: SEAT.nat, type: e.target.value }); onFlow({ ...F0, draft: { ...d, ...r.proposal, title: d.title, need: d.need, srcPolicy: d.srcPolicy, ministryId: null } }); }} style={spField}>{TYPES_FOR().map(k => <option key={k} value={k}>{(SEAT.nat && SYS.UNIT[k].fed) || SYS.UNIT[k].nm}</option>)}</select></div>
 
           <div>{spLab("Supervising ministry")}<select value={d.ministryId || ""} onChange={e => onFlow({ ...F0, draft: { ...d, ministryId: e.target.value } })} style={spField}>{(ministries || []).map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select></div>
         </div>
@@ -9496,7 +9499,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const type = POLICY_TYPE[p.id] || "road";
     const need = openNeedsForProj.find(n => n.type === type) || null;
     const qty = Math.max(1, Math.round(((+p.c || 1) * 1000) / SYS.UNIT[type].per));
-    const r = SYS.parseProposal(type + " " + qty + " " + SYS.UNIT[type].unit + "s " + (need ? need.lga : ""), { lgas: getLGAs(state), federal: NAT });
+    const r = SYS.parseProposal(type + " " + qty + " " + SYS.UNIT[type].unit + "s " + (need ? need.lga : ""), { lgas: getLGAs(state), federal: NAT, type });
     setPflow({ step: "propose", draft: { ...r.proposal, title: p.nm.replace(/^⭐\s*/, "").replace(/^\d[\d,]*\s*(km|-bed)?\s+/i, ""), qty, need: need ? need.id : null, srcPolicy: p.id, ministryId: null } });
   };
   const confirmCapital = () => {
@@ -12308,6 +12311,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           <TermCards cards={tcards} />
           </>}
           {elder && <ElderEpilogue seed={stc.pseed || 1} gfSucc={stc.gfSucc} flag={(FLAGSHIP[setup?.agenda] || {}).nm || "your flagship"} name={pName} state={stName} onClose={() => setElder(false)} />}
+          {/* Players asked to run for president "with the same profile": the way there, in plain sight. */}
+          {!NAT && canP && <button data-testid="run-president" onClick={() => { track("end_president", gEnd); onEnd("president", { ...s, rec: presRec() }); }} style={{ display: "flex", alignItems: "center", gap: 14, width: "100%", maxWidth: 900, margin: "8px auto 22px", textAlign: "left", border: "2px solid " + CL.gold, borderRadius: 22, padding: "14px 18px", cursor: "pointer", background: "linear-gradient(135deg,#0f3d24,#14482b)", color: "#fff", fontFamily: F.b, boxShadow: "0 10px 26px rgba(0,0,0,.18)" }}>
+            <span style={{ fontSize: TALL() ? 36 : 48 }}>🇳🇬</span>
+            <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontFamily: F.d, fontSize: TALL() ? TS(30) : TS(44) }}>Run for president with {pName}</b>
+              <span style={{ fontSize: TALL() ? TS(19) : TS(28), opacity: .9 }}>Same politician, same record: your {Math.round(s.app)}% approval and grade {gr} go with you.</span></span>
+            <span style={{ fontSize: TALL() ? 26 : 34 }}>→</span>
+          </button>}
+          {!NAT && !canP && gEnd === "defeated" && <p style={{ fontSize: TS(30), color: CL.td, maxWidth: 900, margin: "8px auto 18px" }}>🇳🇬 To run for president with this politician, a governor has to finish their time in office: win a second term, or step down at the end of the first.</p>}
           {gEnd === "complete" && (
             <Cd style={{ borderColor: CL.grn + "44" }}>
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 22px", fontSize: TS(50), fontWeight: 600 }}>What Next?</h3>

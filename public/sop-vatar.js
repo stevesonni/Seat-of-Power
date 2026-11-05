@@ -35,16 +35,25 @@
   // A purchase becomes real only after our server checks it with Vatar.
   function claim(p) { return call("/claim", { purchaseId: p.purchaseId }).then(function (r) { setEnts(r.ents); return r; }); }
 
+  // Loading the save is retried: Lagos Life's session check sometimes fails for a moment, and a
+  // failed load used to look like a lost career (the title showed no game to continue).
+  function retry(fn, waits) { return fn().catch(function (e) { if (!waits.length) throw e; return new Promise(function (ok) { setTimeout(ok, waits[0]); }).then(function () { return retry(fn, waits.slice(1)); }); }); }
+  window.SOP_BACKUPS = [];
   var ready = !hasSdk ? Promise.resolve(false) : window.Vatar.init().then(function (r) {
     window.SOP_PLAYER = r.player;
-    return call("/api/load");
+    return retry(function () { return call("/api/load"); }, [800, 2500, 6000]);
   }).then(function (d) {
-    cache = d.data || {}; setEnts(d.ents);
+    cache = d.data || {}; setEnts(d.ents); window.SOP_BACKUPS = d.bak || [];
     // Paid earlier but interrupted (a crash, a reload, a trip to the payment page).
     window.Vatar.purchases().then(function (list) { (list || []).forEach(function (p) { claim(p).catch(function () {}); }); }).catch(function () {});
     window.Vatar.onPurchase(function (p) { claim(p).catch(function () {}); });
     return true;
-  }).catch(function (e) { console.warn("[vatar] saving on this device instead:", e && (e.code || e.message)); return false; });
+  }).catch(function (e) { console.warn("[vatar] saving on this device instead:", e && (e.code || e.message));
+    // In Lagos Life but the save could not be reached: the title warns before a new game.
+    if (hasSdk) window.SOP_CLOUD_DOWN = true;
+    return false; });
+  // An earlier career kept by the server (replaced by a new game): bring it back.
+  window.SOP_restore = function (i) { return ready.then(function (on) { if (!on) throw new Error("offline"); return call("/api/restore", { i: i }).then(function (r) { if (r && r.ok) { cache.sop_save = r.value; local.set("sop_save", r.value); } return r; }); }); };
 
   function flush() {
     var d = dirty; dirty = {};

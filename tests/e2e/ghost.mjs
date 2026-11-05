@@ -18,5 +18,8 @@ const log = await g.page.evaluate(() => (JSON.parse(localStorage.getItem("sop_sa
 console.log("  log:", log.slice(0, 400));
 await g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/ghost.png" });
 check(/Ghost workers purged|Adopted: Biometric payroll|Two reforms this year|agenda is full|Already in place/.test(t), "pressing it does something visible");
+// The first time the adviser offers it, nothing stands in the way: it must purge, not refuse.
+const done = await g.page.evaluate(() => { const d = JSON.parse(localStorage.getItem("sop_save") || "{}"); return !!((d.stc || {}).rev || {}).payroll || /Biometric payroll/.test(JSON.stringify(d.logs || [])); });
+check(/Ghost workers purged|Adopted: Biometric payroll/.test(t) || done, "the purge happens (the payroll reform is adopted)");
 check(!g.errors.length, "no page errors: " + g.errors.join(" | "));
 await g.browser.close(); srv.close(); process.exit(fails ? 1 : 0);

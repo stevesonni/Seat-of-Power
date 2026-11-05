@@ -903,6 +903,38 @@
    <script src="./sop-app.js"></script>
 
 
+  <script>
+  /* The phone's back button stays in the game (players were thrown out of it). The page keeps one
+     history entry of its own; "back" takes it, and the game goes back one step instead: it closes
+     the sheet or pop-up on top, or presses the screen's own Back button. With nothing to go back
+     to, it says the game is saved and how to leave (Home in the menu). */
+  (function () {
+    try { if (!history.state || !history.state.sop) history.pushState({ sop: 1 }, ""); } catch (e) { return; }
+    var BACK = /^(←\s*)?(Back|Close|Not now|Later|Hang up|Cancel|✕|×)$/i;
+    function vis(e) { var r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden"; }
+    function backIn(root) {
+      var bs = [].slice.call(root.querySelectorAll("button, [role=button]")).filter(vis);
+      return bs.find(function (b) { return /^(back|close)$/i.test(b.getAttribute("aria-label") || ""); }) || bs.find(function (b) { return BACK.test((b.textContent || "").trim()); });
+    }
+    function topLayer() {
+      var all = [].slice.call(document.body.querySelectorAll("div, section")).filter(function (e) { var cs = getComputedStyle(e); if (cs.position !== "fixed" || !vis(e)) return false; var r = e.getBoundingClientRect(); return r.width >= innerWidth * .6 && r.height >= innerHeight * .5 && (+cs.zIndex || 0) >= 50; });
+      all.sort(function (a, b) { return (+getComputedStyle(b).zIndex || 0) - (+getComputedStyle(a).zIndex || 0); });
+      return all[0] || null;
+    }
+    window.SOP_back = function () {
+      var top = topLayer(), b = top ? backIn(top) : null;
+      if (!b && !top) b = backIn(document.body);
+      if (b) { b.click(); return "step"; }
+      try { window.SOP_storageFlush && window.SOP_storageFlush(); } catch (e) {}
+      try { window.SOP_toast && window.SOP_toast("Your game is saved. To leave, use Home in the ☰ menu.", "ok"); } catch (e) {}
+      return "stay";
+    };
+    window.addEventListener("popstate", function () {
+      try { history.pushState({ sop: 1 }, ""); } catch (e) {}
+      var r = window.SOP_back(); try { window.SOP_track && window.SOP_track("back", r); } catch (e) {}
+    });
+  })();
+  </script>
 </body>
 
 

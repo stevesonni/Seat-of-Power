@@ -67,6 +67,7 @@ const end = await g.txt(), endWords = (end.match(/[A-Za-z₦\d'’-]+/g) || []).
 check(/My story in five lines/i.test(end) && /Remembered as /.test(end) && /Grade [A-F]\./.test(end), "the life story in five lines");
 check(!/Your term in six cards|REPORT CARD|Wikipedia Bio/.test(end), "the six cards and the bio wait behind Read the full story");
 check(endWords < 200, "the ending screen is under 200 words (" + endWords + ")");
+check(/Run for president with /.test(end) && await g.page.evaluate(() => !!document.querySelector("[data-testid=run-president]")), "the ending points to running for president with the same politician");
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Read the full story/.test(x.textContent)); b && b.click(); }); await g.wait(800);
 check(/Your term in six cards/i.test(await g.txt()) && /Wikipedia Bio/.test(await g.txt()), "Read the full story opens the cards and the bio");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");

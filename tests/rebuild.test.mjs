@@ -66,3 +66,14 @@ test("plain words: the state's own revenue, not IGR", () => {
   assert.equal(SYS.plainText("IGR −₦0.5B this year"), "State's own revenue −₦0.5B this year");
   assert.ok(SYS.explain("own revenue"), "own revenue is in the glossary");
 });
+
+test("bug: a kind picked from the list is that kind (a dam stays a dam, with or without a place)", () => {
+  for (const federal of [true, false]) {
+    const types = federal ? SYS.FED_TYPES : Object.keys(SYS.UNIT).filter(k => !SYS.FED_ONLY.includes(k));
+    for (const k of types) for (const place of ["", "Ikeja", "Bridgeport"]) {
+      const r = SYS.parseProposal(k + " " + place, { lgas: ["Ikeja", "Bridgeport"], federal, type: k });
+      assert.equal(r.status, "ok", k + " " + place); assert.equal(r.proposal.type, k, (federal ? "federal " : "") + k + " " + place);
+    }
+  }
+  assert.equal(SYS.parseProposal("dam ", {}).status, "clarify", "typed text still asks when it is too short");
+});

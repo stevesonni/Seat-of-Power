@@ -1303,3 +1303,20 @@ step 1 is for everyone. Rules: `express.js`, `plainwords.js`, `drama.js`; tests 
   "After you", the post-office consequences and the bio wait behind "Read the full story".
 - Dashboard: "Where players leave" is also split by half for the five rebuild pillars (on vs off), and the JSON
   has `_dropoffSplit`.
+
+## Four player-reported bugs, checked (5 November 2026)
+- **Choosing a dam picked a bridge** (also College of Education). The Kind list fed the type's short name through the
+  free-text reader ("dam " is under four letters with no place yet), which asked to clarify and left the old type.
+  `parseProposal` now takes `type`, and every list-picked kind uses it. Test: `tests/rebuild.test.mjs`.
+- **Back left the game.** The page now keeps one history entry of its own. The phone's back closes the sheet on
+  top or presses the screen's own Back; with nothing to go back to, it says the game is saved and how to leave
+  (`SOP_back` in `seat-of-power.html`). Test: `tests/e2e/back.mjs` (fails on the old page).
+- **Lost careers.** The 24 October autosave fix stands. The logs show Lagos Life's session check failing
+  (HTTP 500/502/503) several times a day. A failure at load made the game fall back to the phone's storage, often
+  blocked in the app, so the career seemed gone, and a new game could then replace it in the cloud. Now: the server
+  asks again (two retries); the game retries the load (0.8 s, 2.5 s, 6 s) and, if it still fails, warns before
+  New game; and the server keeps the last three careers a different game replaced or ended (`server/saves.mjs`),
+  which the title offers back ("Bring back an earlier career", `/api/restore`). Test: `tests/saves-server.test.mjs`.
+- **The ghost-workers button.** Fixed on 24 October; the test now requires the purge itself, not just a message.
+- The ending points to the presidency: "Run for president with <name>" when the record allows, and a line saying
+  how to qualify after a defeat.
