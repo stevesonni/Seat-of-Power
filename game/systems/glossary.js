@@ -20,6 +20,7 @@ export const GLOSSARY = {
   // Money
   FAAC: ["Federation Account Allocation Committee", "Shares the country's oil and tax money out to the states every month: most of a state's income."],
   IGR: ["Internally Generated Revenue", "The taxes, levies and fees your state collects itself, on top of its share from Abuja."],
+  "own revenue": ["IGR (Internally Generated Revenue)", "The taxes, levies and fees your state collects itself, on top of its share from Abuja."],
   VAT: ["Value Added Tax", "A tax on goods and services, shared between Abuja, the states and the councils."],
   TSA: ["Treasury Single Account", "All government money kept in one account at the Central Bank, so none can hide in secret accounts."],
   DMO: ["Debt Management Office", "The federal office that approves and tracks government borrowing."],

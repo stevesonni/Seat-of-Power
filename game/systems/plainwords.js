@@ -8,6 +8,8 @@ export const PLAIN = [
   [/ Senatorial District\b/g, " district"], [/ Senatorial\b/g, ""], [/\bsenatorial districts?\b/g, "districts"], [/\bsenatorial zones?\b/g, "districts"],
   [/\bconstituency projects\b/g, "projects in members' home areas"], [/\bconstituencies\b/g, "home areas"], [/\bconstituency\b/g, "home area"],
   [/\bProcurement\b/g, "Contracts"], [/\bprocurement\b/g, "contracts"],
+  [/\b(Boost|Raise|Triple|Grow|Share|Cap|Lift) IGR\b/g, "$1 own revenue"], [/(^|[\n.!?]\s*)IGR\b/g, "$1State's own revenue"],
+  [/\b([A-Z][a-z]+) IGR\b/g, "$1's own revenue"], [/\bstate's IGR\b/g, "state's own revenue"], [/\bIGR\b/g, "own revenue"],
 ];
 export const plainText = (t) => { let x = String(t == null ? "" : t); PLAIN.forEach(([rx, to]) => { x = x.replace(rx, to); }); return x; };
 /* At most two sentences and 25 words; if two sentences run over, one; if one still runs over, its first 25 words. */

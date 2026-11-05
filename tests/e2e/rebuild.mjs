@@ -25,6 +25,11 @@ check(/Begin your tenure/.test(await g.txt()), "the oath");
 console.log("  words from New game to the oath: " + total);
 check(total < 500, "far fewer words before the oath than the 1,304 of the long path (" + total + ")");
 await g.click(/^Begin your tenure/); await g.wait(3000);
+// Round 2: the first Chief of Staff is three cards, a line each, under 80 words.
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /^Continue$/.test(x.textContent.trim())); b && b.click(); }); await g.wait(500);
+const cos = await g.page.evaluate(() => { const d = document.querySelector('[role=dialog][aria-label="Pick your Chief of Staff"]'); if (!d) return null; const box = d.closest(".sop-sheet") || d; return { cards: d.querySelectorAll("button").length, words: (box.innerText.match(/[A-Za-z₦\d'’-]+/g) || []).length }; });
+check(cos && cos.cards === 3 && cos.words < 80, "the Chief of Staff: three cards, under 80 words (" + JSON.stringify(cos) + ")");
+await g.page.evaluate(() => { const b = document.querySelector('[role=dialog][aria-label="Pick your Chief of Staff"] button'); b && b.click(); }); await g.wait(800);
 for (let j = 0; j < 6; j++) { if (!(await g.click(/^(Okay|Got it|Continue|Close|Keep playing)$/))) break; await g.wait(300); }
 check(!/Choose your Special Adviser|A unity ticket|STATE HOUSE REPORT/i.test(await g.txt()), "no adviser, running-mate or TV-report screens");
 // 3. Four meters and one card.
@@ -32,6 +37,7 @@ const strip = await g.txt();
 check(/People/.test(strip) && /Treasury/.test(strip) && /Godfather/.test(strip) && !/Corruption/.test(strip), "the four meters: People, Party, Treasury, Godfather");
 check(/Behind you|Warm|Restless|Angry/.test(strip) && /Healthy|Steady|Tight|Empty/.test(strip), "the meters read as words");
 check(!/NaN/.test(strip), "no NaN");
+check(!/Big moves|🚀 FLAGSHIP|Approval below/.test(strip), "the first view: no Big moves line, no Flagship, no approval warning");
 // 4. A gentler first year: the cabinet and the palaces are formed for you; a three-choice budget.
 await g.wait(1500);
 const d0 = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
@@ -57,9 +63,12 @@ check(tr.length >= 3 && tr.some(v => /^gov · /.test(v)), "the screen a player i
 // The five-line story at the end.
 await g.page.evaluate(() => window.SOP.setGEnd("complete")); await g.wait(3500);
 for (let i = 0; i < 8; i++) { await g.page.evaluate(() => { const b = document.querySelector("[data-ach] .ach-x"); b && b.click(); }); await g.wait(300); }
-const end = await g.txt();
-check(/My story in five lines/i.test(end) && /Remembered as /.test(end) && /Grade [A-F]\./.test(end), "the life story in five lines, first among the cards");
-check(/Read the full story/.test(end), "the full bio is optional");
+const end = await g.txt(), endWords = (end.match(/[A-Za-z₦\d'’-]+/g) || []).length;
+check(/My story in five lines/i.test(end) && /Remembered as /.test(end) && /Grade [A-F]\./.test(end), "the life story in five lines");
+check(!/Your term in six cards|REPORT CARD|Wikipedia Bio/.test(end), "the six cards and the bio wait behind Read the full story");
+check(endWords < 200, "the ending screen is under 200 words (" + endWords + ")");
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Read the full story/.test(x.textContent)); b && b.click(); }); await g.wait(800);
+check(/Your term in six cards/i.test(await g.txt()) && /Wikipedia Bio/.test(await g.txt()), "Read the full story opens the cards and the bio");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close();
 // The control group: none of it.

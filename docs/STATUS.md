@@ -1290,3 +1290,16 @@ step 1 is for everyone. Rules: `express.js`, `plainwords.js`, `drama.js`; tests 
 6. **Headlines and calls** (`drama`). A front page after every Desk decision, the godfather on the phone once a
    year (what he says depends on how you stand with him), and "My story in five lines" first among the share cards
    (who, what you are remembered as, the proudest moment, the lowest, the verdict); the full bio is "Read the full story".
+
+### Round two (5 November 2026)
+- `screen`: the first view is the four meters and the next decision. The approval warning, the Flagship button and
+  the "Big moves" line moved behind "More"; the meter change is an arrow (▲ / ▼).
+- `words`: "IGR" reads as "own revenue" ("Ogun's own revenue crosses ₦13B"); the glossary keeps the term.
+- `start`: the first Chief of Staff is three cards (the Fixer, the Technocrat, the Civil Service Veteran), a line
+  each, about 55 words. The opening cards fill the phone: the picture takes the free height, the godfather stands
+  on the veranda for his deal, and the type is larger.
+- `stagger`: the adviser's welcome says an acting cabinet is in place, instead of asking you to appoint one.
+- `drama`: the ending is the five-line story, about 100 words, plus "What next". The six cards, the report card,
+  "After you", the post-office consequences and the bio wait behind "Read the full story".
+- Dashboard: "Where players leave" is also split by half for the five rebuild pillars (on vs off), and the JSON
+  has `_dropoffSplit`.

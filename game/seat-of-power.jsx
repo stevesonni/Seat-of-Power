@@ -2280,6 +2280,8 @@ const Flag = () => React.createElement("div", { style: { display: "flex", height
   React.createElement("div", { style: { flex: 1, background: UI.green } })
 );
 
+/* The first Chief of Staff, in a line each (pillar "start"). */
+const COS_PITCH = { fixer: "Keeps the party and the godfather sweet. Weak on money.", technocrat: "Brilliant with money and projects. The party finds him cold.", veteran: "Knows every file in the civil service. Gets projects finished." };
 const OL = ({ children, show }) => {
   if (!show) return null;
   if (TALL()) {
@@ -4487,8 +4489,8 @@ const shareTermCard = async (card, text) => {
   } catch (e) { if (e && e.name === "AbortError") return; }
   const u = "https://wa.me/?text=" + encodeURIComponent(text); try { window.open(u, "_blank"); } catch (e) { location.href = u; }
 };
-const TermCards = ({ cards }) => <div data-testid="term-cards" style={{ maxWidth: 900, margin: "22px auto 0", textAlign: "left" }}>
-  <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 4px", fontSize: TALL() ? TS(30) : TS(46) }}>{tr("Your term in six cards")}</h3>
+const TermCards = ({ cards, title }) => <div data-testid="term-cards" style={{ maxWidth: 900, margin: "22px auto 0", textAlign: "left" }}>
+  <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "0 0 4px", fontSize: TALL() ? TS(30) : TS(46) }}>{title || tr("Your term in six cards")}</h3>
   <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(2, 1fr)", gap: 12, marginTop: 10 }}>{cards.map(c => <div key={c.id} style={{ background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 18, overflow: "hidden" }}>
     <div style={{ background: c.color || "#0b5d3b", color: "#fff", padding: "8px 14px", fontWeight: 800, fontSize: 13, letterSpacing: 1.2, textTransform: "uppercase" }}>{c.kicker}</div>
     <div style={{ padding: "10px 14px" }}>
@@ -4526,31 +4528,33 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
       gfMandates: [], homeDistrict: hd, homeLga: lgaCluster(getLGAs(st), hd)[0] || null, partyDeal: "accepted", partyPromise: null, level, warChestRemaining: Math.max(0, deal.chest - .6),
       election: { opp: oppName, oppParty: O.id, zonesWon: night.zonesWon, marginPct: night.marginPct, votes: night.you.reduce((a, b) => a + b, 0), oppVotes: night.opp.reduce((a, b) => a + b, 0) }, short: true });
   };
-  const box = { maxWidth: 560, margin: "0 auto", background: "#fffaf0", borderRadius: 24, overflow: "hidden", boxShadow: "0 18px 50px rgba(0,0,0,.18)" };
-  const opt = { display: "block", width: "100%", textAlign: "left", padding: "13px 16px", minHeight: 52, borderRadius: 16, border: "1.5px solid #e2d7bd", background: "#fff", fontWeight: 700, fontSize: 17, color: "#17301f", cursor: "pointer", marginTop: 8, fontFamily: F.b };
-  const main = { display: "block", width: "100%", padding: "14px 16px", minHeight: 52, borderRadius: 999, border: 0, background: "#12301f", color: "#fff", fontWeight: 800, fontSize: 18, cursor: "pointer", marginTop: 12, fontFamily: F.b };
+  // The card fills the phone: the picture takes whatever height the words leave free.
+  const box = { width: "100%", maxWidth: 560, margin: "0 auto", flex: "1 1 auto", display: "flex", flexDirection: "column", background: "#fffaf0", borderRadius: 24, overflow: "hidden", boxShadow: "0 18px 50px rgba(0,0,0,.18)" };
+  const opt = { display: "block", width: "100%", textAlign: "left", padding: "15px 18px", minHeight: 58, borderRadius: 16, border: "1.5px solid #e2d7bd", background: "#fff", fontWeight: 700, fontSize: 22, color: "#17301f", cursor: "pointer", marginTop: 10, fontFamily: F.b };
+  const main = { display: "block", width: "100%", padding: "16px 18px", minHeight: 58, borderRadius: 999, border: 0, background: "#12301f", color: "#fff", fontWeight: 800, fontSize: 22, cursor: "pointer", marginTop: 14, fontFamily: F.b };
   const art = step <= 1 ? "./art/backgrounds/veranda-night.webp" : step <= 3 ? "./art/scenes/camp-mega-rally.webp" : "./art/backgrounds/collation-board-lga.webp";
   const F2 = (t) => String(t).replace("{gf}", gf);
   const shown = (i) => night ? Math.min(1, tick / 20 * (1 + i * .15)) : 0;
-  return <div data-sop-short style={{ minHeight: "100%", background: CL.bg, padding: "16px 12px 40px", fontFamily: F.b }}>
+  return <div data-sop-short style={{ minHeight: "var(--sop-short-h, 100vh)", display: "flex", flexDirection: "column", background: CL.bg, padding: "12px 12px max(16px, env(safe-area-inset-bottom, 0px))", fontFamily: F.b, boxSizing: "border-box" }} ref={el => { try { if (el) { const z = parseFloat((document.getElementById("sop-stage") || {}).style?.zoom) || 1; el.style.setProperty("--sop-short-h", Math.round(window.innerHeight / z) + "px"); } } catch (e) {} }}>
     <div style={box} className="sp-step" key={step}>
-      <img src={art} alt="" style={{ display: "block", width: "100%", height: 170, objectFit: "cover" }} />
-      <div style={{ padding: "16px 18px 18px" }}>
-        <div className="sp-kicker">{nm} · {P.id} · {st.replace(/_/g, " ")}</div>
-        {step === 0 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 26 }}>{F2(SYS.DEAL.t)}</h2><p style={{ margin: 0, fontSize: 17, lineHeight: 1.45 }}>{SYS.DEAL.d}</p>
+      <div style={{ position: "relative", flex: "1 1 auto", minHeight: 220 }}><img src={art} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        {step <= 1 && <img src={"./art/characters/godfather" + (step === 1 && deal && deal.id === "none" ? "-angry" : step === 1 ? "-pleased" : "") + ".webp"} alt={gf} style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", height: "92%", width: "auto", maxWidth: "90%", objectFit: "contain", objectPosition: "bottom", filter: "drop-shadow(0 12px 24px rgba(0,0,0,.5))" }} />}</div>
+      <div style={{ padding: "18px 20px 22px", flex: "none" }}>
+        <div className="sp-kicker" style={{ fontSize: 14 }}>{nm} · {P.id} · {st.replace(/_/g, " ")}</div>
+        {step === 0 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>{F2(SYS.DEAL.t)}</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{SYS.DEAL.d}</p>
           {SYS.DEAL.opts.map(o => <button key={o.id} className="sp-opt" style={opt} onClick={() => { setDeal(o); track("start_deal", o.id); setStep(1); }}>{o.l}</button>)}</>}
-        {step === 1 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 24 }}>{deal.l.replace(/ \(.*\)$/, "")}</h2><p style={{ margin: 0, fontSize: 17 }}>{deal.out}</p><button style={main} onClick={() => setStep(2)}>On to the campaign →</button></>}
-        {step === 2 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 26 }}>{SYS.RALLY.t}</h2><p style={{ margin: 0, fontSize: 17 }}>{SYS.RALLY.d}</p>
+        {step === 1 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 32, lineHeight: 1.12 }}>{deal.l.replace(/ \(.*\)$/, "")}</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{deal.out}</p><button style={main} onClick={() => setStep(2)}>On to the campaign →</button></>}
+        {step === 2 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>{SYS.RALLY.t}</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{SYS.RALLY.d}</p>
           {SYS.RALLY.opts.map(o => <button key={o.id} className="sp-opt" style={opt} onClick={() => { setRally(o); track("start_rally", o.id); setStep(3); }}>{o.l}</button>)}</>}
-        {step === 3 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 24 }}>{rally.l}</h2><p style={{ margin: 0, fontSize: 17 }}>{rally.out}</p><button style={main} onClick={() => setStep(4)}>Election night →</button></>}
-        {step === 4 && night && <><h2 style={{ fontFamily: F.d, margin: "6px 0 4px", fontSize: 26 }}>Election night</h2><p style={{ margin: "0 0 8px", fontSize: 16, color: CL.td }}>You against {oppName} ({O.id}). The results come in.</p>
+        {step === 3 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 32, lineHeight: 1.12 }}>{rally.l}</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{rally.out}</p><button style={main} onClick={() => setStep(4)}>Election night →</button></>}
+        {step === 4 && night && <><h2 style={{ fontFamily: F.d, margin: "6px 0 4px", fontSize: 34, lineHeight: 1.12 }}>Election night</h2><p style={{ margin: "0 0 8px", fontSize: 16, color: CL.td }}>You against {oppName} ({O.id}). The results come in.</p>
           {dists.slice(0, 3).map((d, i) => { const k = shown(i), you = Math.round(night.you[i] * k), op = Math.round(night.opp[i] * k), pc = you + op ? Math.round(you / (you + op) * 1000) / 10 : 0;
             return <div key={d} style={{ margin: "8px 0" }}><div style={{ display: "flex", justifyContent: "space-between", fontSize: 15, fontWeight: 700 }}><span>{d}</span><span>{k >= 1 ? (night.shares[i] > 50 ? "✓ yours" : "✗ theirs") : "counting…"}</span></div>
               <div style={{ height: 14, borderRadius: 7, background: "#e6dfd2", overflow: "hidden", display: "flex" }}><span style={{ width: (k * pc) + "%", background: CL.grn, transition: "width .2s" }} /><span style={{ width: (k * (100 - pc)) + "%", background: "#b3261e", transition: "width .2s" }} /></div>
               <div style={{ fontSize: 13, color: CL.td, fontVariantNumeric: "tabular-nums" }}>You {you.toLocaleString()} · {oppName.split(" ").slice(-1)[0]} {op.toLocaleString()}</div></div>; })}
           {tick >= 20 && <><div className="sop-pop" style={{ textAlign: "center", fontFamily: F.d, fontSize: 30, fontWeight: 700, color: night.won ? CL.grn : CL.red, margin: "10px 0 0" }}>{night.won ? "You win by " + night.marginPct + "%" : "You lose by " + Math.abs(night.marginPct) + "%"}</div>
             {night.won ? <button style={main} className="sop-next" onClick={() => setStep(5)}>Take the oath →</button> : <><button style={main} onClick={() => { track("start_short", "lost"); setStep(0); setDeal(null); setRally(null); }}>Run again</button><button style={{ ...main, background: "transparent", color: CL.txt, border: "1px solid " + CL.bdr }} onClick={onExit}>Back to the title</button></>}</>}</>}
-        {step === 5 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 26 }}>Governor of {st.replace(/_/g, " ")} State</h2><p style={{ margin: 0, fontSize: 17 }}>{SYS.SWORN}</p><button style={main} className="sop-next" onClick={done}>Begin your tenure →</button></>}
+        {step === 5 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>Governor of {st.replace(/_/g, " ")} State</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{SYS.SWORN}</p><button style={main} className="sop-next" onClick={done}>Begin your tenure →</button></>}
       </div>
     </div>
   </div>;
@@ -5568,6 +5572,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [houseBillsSeen, setHouseBillsSeen] = useState(ld?.houseBillsSeen || []);
   const [pendingHouseBill, setPendingHouseBill] = useState(null);
   const [showWiki, setShowWiki] = useState(false);
+  const [endFull, setEndFull] = useState(false); // pillar "drama": the ending is the five-line story until you ask for more
   const [elder, setElder] = useState(false);
   const [todayMore, setTodayMore] = useState(false);
  // pillar "screen": the rest of Today, behind More // life after office: the epilogue with your successor
@@ -10697,7 +10702,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Economic headlines
     if (s.gdp > 30) hlOpts.push("ECONOMIC BOOM: " + state.replace("_", " ") + " GDP surges past ₦" + Math.round(s.gdp) + "B");
     if (s.totalJobs > s.pop * 50000) hlOpts.push("JOBS SURGE: " + state.replace("_", " ") + " employment hits record numbers");
-    if (s.igr > 10) hlOpts.push("REVENUE CHAMPION: " + state.replace("_", " ") + " IGR crosses ₦" + Math.round(s.igr) + "B mark");
+    if (s.igr > 10) hlOpts.push("REVENUE CHAMPION: " + state.replace("_", " ") + (pillarOn("words") ? "'s own revenue crosses ₦" : " IGR crosses ₦") + Math.round(s.igr) + "B mark");
     if (s.econ?.manufacturing?.out > .4) hlOpts.push("INDUSTRIAL REVOLUTION: " + state.replace("_", " ") + " manufacturing sector booming");
     if (s.econ?.tech?.out > .25) hlOpts.push("TECH HUB: " + state.replace("_", " ") + " emerges as technology destination");
     if (hlOpts.length === 0) hlOpts.push(state.replace("_", " ").toUpperCase() + " WATCH: What is the governor up to?");
@@ -11424,6 +11429,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setCosPickOpen(true);
     addL("🔥 " + c.name + " is out as Chief of Staff.", "political");
   };
+  const cosLite = pillarOn("start") && !(cosOffice.history && cosOffice.history.length) && !cosOffice.cos; // pillar "start": three cards, a line each
   const cosLeft = SYS.COS_ROSTER.filter(c => !(cosOffice.history || []).some(h => h.id === c.id));
 
   // Mail lands: the Desk tab counts it, and a note pops up.
@@ -11968,7 +11974,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The adviser announces each new step of the year in person, full-screen,
   // then takes the governor there.
   const NEXT_SAY = {
-    "Set up your government": "Welcome to Government House, Your Excellency. First things first: set up your government. Appoint your commissioners so the ministries can start work.",
+    "Set up your government": pillarOn("stagger") && !NAT ? "Welcome to Government House, Your Excellency. An acting cabinet is in place, so you can start work at once." : "Welcome to Government House, Your Excellency. First things first: set up your government. Appoint your commissioners so the ministries can start work.",
     "Pass this year's budget": "A new year starts with the budget. You decide what each ministry gets; the House then votes on it.",
     "Take the budget to the House": "The budget is ready. Now the House of Assembly must pass it, and members will want to be asked.",
     "Sign programmes and orders": "The budget is through. Now sign the programmes and orders that deliver what you promised.",
@@ -12073,7 +12079,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ch = SYS.challengeLink(link, state, (stc.pseed || Date.now()) % 1000000);
     const cab = (ministries || []).filter(m => m.minister).slice(0, 8).map(m => [m.minister, (stc.vetted ? SYS.ARCHETYPES[SYS.archetypeOf(m.minister, stc.pseed || 1)].nm : (m.perf || 50) >= 65 ? "Delivered" : (m.perf || 50) >= 45 ? "Average" : "Let me down")]);
     const bestP = (completedProjects || []).slice(-1)[0], worstL = logs.find(l => l.tp === "scandal" || l.tp === "crisis");
-    const story5 = SYS.storyLines({ who, office, years: termsServed, title: rcTitle, best: bestP ? "opening " + (bestP.nm || bestP.title || "a project") : (FLAGSHIP[setup?.agenda] ? "launching " + FLAGSHIP[setup.agenda].nm : null), worst: worstL ? worstL.tx.replace(/^\S+\s/, "").split(/[.:]/)[0].toLowerCase() : null, end: END, grade: gr });
+    const story5 = SYS.storyLines({ who, office, years: termsServed, title: rcTitle, best: bestP ? "opening " + (bestP.nm || bestP.title || "a project") : (FLAGSHIP[setup?.agenda] ? "launching " + FLAGSHIP[setup.agenda].nm : null), worst: worstL ? worstL.tx.replace(/^\S+\s/, "").split(/[.:]/)[0].replace(/^([A-Z])(?![A-Z])/, c => c.toLowerCase()) : null, end: END, grade: gr });
     return [
       ...(pillarOn("drama") ? [{ id: "story", kicker: "My story in five lines", title: who, sub: null, color: "#12301f", lines: story5, text: story5.join(" ") + " Play: " + link }] : []),
       { id: "bio", kicker: tr("Biography"), title: who, sub: office + " · " + termsServed, color: "#0b5d3b", rows: [["Party", party], ["Deputy", (depGov && depGov.nm) || "—"], ["Flagship", (FLAGSHIP[setup?.agenda] || {}).nm || "—"], ["Known as", rcTitle], ["How it ended", END]], text: "My time as " + office + " in The Seat of Power: " + rcTitle + ". Play: " + link },
@@ -12231,6 +12237,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </>}
       </div>
     </div>;
+    const endLite = pillarOn("drama") && !endFull, tcards = termCardsFor({ gr, ov, rcTitle, termsServed });
     return (
       <div style={{ minHeight: "100%", background: CL.bg, padding: "58px 43px" }}>
         {anchorEl}
@@ -12249,6 +12256,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {gEnd === "complete" && <p style={{ color: CL.grn, fontSize: TS(36), marginBottom: 29 }}>You served the full 8 years — two complete terms.</p>}
           {gEnd === "stepped_down" && <p style={{ color: CL.blu, fontSize: TS(36), marginBottom: 29 }}>You chose not to seek re-election. A principled decision — or was it strategic?</p>}
           {gEnd === "pres_bid" && <p style={{ color: CL.gold, fontSize: TS(36), marginBottom: 29 }}>You resigned the governorship to pursue the presidency of Nigeria.</p>}
+          {endLite && <TermCards title={tr("Your story")} cards={tcards.filter(c => c.id === "story")} />}
+          {endLite && <Bt onClick={() => { setEndFull(true); track("end_full", gEnd); }} style={{ margin: "18px auto 30px", display: "block" }}>📖 Read the full story</Bt>}
+          {!endLite && <>
           <div style={{ display: "flex", justifyContent: "center", gap: 36, marginBottom: 58, flexWrap: "wrap" }}>
             <Cd style={{ minWidth: 192, textAlign: "center" }}><div style={{ fontSize: TS(102), fontFamily: F.d, color: gc, fontWeight: 700 }}>{gr}</div><div style={{ fontSize: TS(29), color: CL.td }}>GRADE</div></Cd>
             <Cd style={{ minWidth: 192, textAlign: "center" }}><div style={{ fontSize: TS(72), fontFamily: F.m, color: CL.gold }}>{ov}</div><div style={{ fontSize: TS(29), color: CL.td }}>SCORE</div></Cd>
@@ -12290,12 +12300,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           })()}
           {!VATAR && <div style={{ marginTop: 36 }}><ShareCard img={heroImg} name={"Gov. " + pName} line1={state.replace("_", " ") + " State · " + party + " · " + termsServed} line2={"Approval " + Math.round(s.app) + "% · Score " + ov + " · #SeatOfPower"} grade={gr} /></div>}
           <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", margin: "22px 0 43px" }}>
-            <Bt onClick={() => setShowWiki(true)}>{pillarOn("drama") ? "📖 Read the full story" : "📖 Wikipedia Bio"}</Bt>
+            <Bt onClick={() => setShowWiki(true)}>📖 Wikipedia Bio</Bt>
             {!VATAR && <Bt onClick={() => { try { navigator.clipboard?.writeText(shareT); window.SOP_toast && window.SOP_toast("Copied: paste it anywhere", "ok"); } catch (e) {} }} v="secondary" style={{ fontSize: TS(34) }}>📋 Copy</Bt>}
             {!VATAR && <Bt onClick={() => window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareT))} style={{ background: "#000", color: "#fff", fontSize: TS(34) }}>𝕏</Bt>}
             {!VATAR && <Bt onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(shareT))} style={{ background: "#25D366", color: "#fff", fontSize: TS(34) }}>WhatsApp</Bt>}
           </div>
-          <TermCards cards={termCardsFor({ gr, ov, rcTitle, termsServed })} />
+          <TermCards cards={tcards} />
+          </>}
           {elder && <ElderEpilogue seed={stc.pseed || 1} gfSucc={stc.gfSucc} flag={(FLAGSHIP[setup?.agenda] || {}).nm || "your flagship"} name={pName} state={stName} onClose={() => setElder(false)} />}
           {gEnd === "complete" && (
             <Cd style={{ borderColor: CL.grn + "44" }}>
@@ -12356,6 +12367,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {gEnd === "nullified" && <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap", marginTop: 36 }}><Bt onClick={() => onEnd("comeback", { ...s, team: teamOf() })}>🔁 The comeback: run again in four years</Bt><Bt v="secondary" onClick={() => onEnd("restart", s)}>Play again</Bt></div>}
           {(gEnd === "impeached" || gEnd === "bankrupt") && <Bt onClick={() => onEnd("restart", s)} style={{ marginTop: 36 }}>PLAY AGAIN</Bt>}
 
+          {!endLite && <>
           {/* REPORT CARD and SUCCESSION */}
           <Cd style={{ marginTop: 43, textAlign: "left", maxWidth: 900, marginLeft: "auto", marginRight: "auto" }}>
             <div style={{ fontSize: TS(29), fontWeight: 700, color: CL.pur, fontFamily: F.m, letterSpacing: 2, marginBottom: 6 }}>REPORT CARD</div>
@@ -12428,6 +12440,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>
             </Cd>
           )}
+          </>}
         </div>
       </div>
     );
@@ -12633,7 +12646,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
           {statusStrip(false)}
         </div>}
-        {!flagUsed && s.app < 50 && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
+        {!flagUsed && s.app < 50 && (!pillarOn("screen") || (nav === "gov" && todayMore)) && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
         {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
           {SCREENS.map(sc => {
             const on = sc.id === curScreen.id;
@@ -12781,7 +12794,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
         {(nav === "gov" || nav === "hub") && !gEnd && turn >= 1 && !(nav === "gov" && liteToday) && Journey()}
         {nav === "gov" && !gEnd && scenStrip()}
-        {nav === "gov" && deskSteps()}
+        {nav === "gov" && !liteToday && deskSteps()}
         {/* The first-year guide panel is retired (owner, October 2026): the adviser and the Desk lead the way. */}
         {false && nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
           const fz = TALL() ? { s: TS(19), m: TS(23) } : { s: TS(28), m: TS(34) };
@@ -14679,7 +14692,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "12px 0 4px", fontSize: TALL() ? TS(34) : TS(56), fontWeight: 600 }}>{cosOffice.history && cosOffice.history.length ? "Appoint a new Chief of Staff" : "Pick your Chief of Staff"}</h3>
 
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(4,1fr)", gap: 10 }}>
+            {cosLite ? <div role="dialog" aria-label="Pick your Chief of Staff" style={{ display: "grid", gap: 16 }}>
+              <div style={{ textAlign: "center", color: CL.td, fontSize: TALL() ? TS(22) : TS(30), marginTop: -8 }}>They run your office. Pick one.</div>
+              {cosLeft.filter(c => COS_PITCH[c.id]).map(c => <button key={c.id} onClick={() => { track("cos_lite", c.id); appointCos(c); }} style={{ display: "flex", gap: 14, alignItems: "center", textAlign: "left", background: "#fff", border: "1.5px solid " + CL.gold + "66", borderRadius: 20, padding: 14, cursor: "pointer", fontFamily: F.b, color: CL.txt, boxShadow: "0 4px 14px rgba(0,0,0,.06)" }}>
+                <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: TALL() ? 116 : 130, height: TALL() ? 150 : 160, objectFit: "cover", objectPosition: "top", borderRadius: 14, background: CL.gold + "18", flexShrink: 0 }} />
+                <span style={{ display: "grid", gap: 4 }}>
+                  <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(30) : TS(40), lineHeight: 1.1 }}>{c.tag}</b>
+                  <span style={{ fontSize: TALL() ? TS(16) : TS(24), color: CL.td }}>{c.name.split(" ").slice(-2).join(" ")}</span>
+                  <span style={{ fontSize: TALL() ? TS(22) : TS(30), lineHeight: 1.35 }}>{COS_PITCH[c.id]}</span>
+                </span>
+              </button>)}
+            </div> : <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr 1fr" : "repeat(4,1fr)", gap: 10 }}>
               {cosLeft.map(c => <button key={c.id} onClick={() => appointCos(c)} style={{ display: "grid", gap: 4, justifyItems: "center", textAlign: "center", background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 16, padding: "10px 8px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
                 <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: TALL() ? 64 : 90, height: TALL() ? 76 : 108, objectFit: "cover", objectPosition: "top", borderRadius: 12, background: CL.gold + "18" }} />
                 <b style={{ fontSize: TALL() ? TS(19) : TS(28), lineHeight: 1.15 }}>{c.name}</b>
@@ -14687,7 +14710,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.grn }}>👍 {c.good.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
                 <span style={{ fontSize: TALL() ? TS(15) : TS(22), color: CL.red }}>👎 {c.bad.map(k => SYS.SEALS[k].nm.toLowerCase()).join(", ")}</span>
               </button>)}
-            </div>
+            </div>}
             {!cosLeft.length && <div style={{ fontSize: TS(30), color: CL.red, textAlign: "center", padding: 20 }}>Nobody else will take the job. Your deputy chief of staff acts.</div>}
             {(!cosLeft.length || cosNow) && <Bt v="ghost" onClick={() => setCosPickOpen(false)} style={{ width: "100%", marginTop: 12 }}>Close</Bt>}
           </Cd>}

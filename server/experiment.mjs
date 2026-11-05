@@ -71,8 +71,14 @@ export const experimentSummary = (S) => {
    whenever it changes; the server keeps each player's last screen and when it was sent
    (S.last). A player not seen for idleMs has left, and counts on that screen. */
 export const SCREEN_NAMES = { title: "Title screen", setup: "Making a politician / the campaign", gov: "Governing", senate: "Senator", chairman: "Chairman", ambassador: "Ambassador", pres: "Road to Aso Rock", cab: "Cabinet of friends" };
-export const dropOff = (S, now = Date.now(), idleMs = 30 * 60e3) => {
-  const L = Object.values((S && S.last) || {}), gone = L.filter(x => x && now - (x.t || 0) > idleMs), n = gone.length;
+export const dropOff = (S, now = Date.now(), idleMs = 30 * 60e3, only = null) => {
+  const L = Object.entries((S && S.last) || {}).filter(([w]) => !only || only.has(w)).map(([, x]) => x), gone = L.filter(x => x && now - (x.t || 0) > idleMs), n = gone.length;
   const by = {}; gone.forEach(x => { by[x.v] = (by[x.v] || 0) + 1; });
   return { players: L.length, left: n, here: L.length - n, screens: Object.entries(by).map(([v, k]) => ({ screen: v, n: k, pct: n ? Math.round(k / n * 1000) / 10 : 0 })).sort((a, b) => b.n - a.n) };
+};
+/* The same, for each half of a pillar: who had it on, who had it off (from the exp_<id> events). */
+export const DROP_PILLARS = ["start", "screen", "stagger", "words", "drama"];
+export const dropOffSplit = (S, id, now = Date.now(), idleMs = 30 * 60e3) => {
+  const E = ((S && S.ev) || {})["exp_" + id] || { values: {} }, half = (g) => new Set(Object.keys((E.values[g] || {}).p || {}));
+  return { id, on: dropOff(S, now, idleMs, half("on")), off: dropOff(S, now, idleMs, half("off")) };
 };

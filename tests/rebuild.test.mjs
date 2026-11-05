@@ -49,3 +49,20 @@ test("headlines, the godfather's call and the five-line story", () => {
   const L = SYS.storyLines({ who: "Gov. A", office: "Governor of Ogun State", years: "2 terms", title: "The Builder", best: "opening the ring road", worst: null, end: "Served the full term", grade: "B" });
   assert.equal(L.length, 5); assert.match(L[3], /No scandal stuck/); assert.match(L[4], /Grade B/);
 });
+
+test("where players leave, for each half of a pillar", async () => {
+  const { dropOffSplit, DROP_PILLARS } = await import("../server/experiment.mjs");
+  const now = 1e12, S = { last: { a: { v: "gov · budget", t: now - 40 * 60e3 }, b: { v: "setup", t: now - 40 * 60e3 }, c: { v: "gov", t: now } }, ev: { exp_start: { values: { on: { p: { a: 1 } }, off: { p: { b: 1, c: 1 } } } } } };
+  const X = dropOffSplit(S, "start", now);
+  assert.deepEqual([X.on.players, X.on.left, X.on.screens[0].screen], [1, 1, "gov · budget"]);
+  assert.deepEqual([X.off.players, X.off.left, X.off.here, X.off.screens[0].screen], [2, 1, 1, "setup"]);
+  assert.deepEqual(dropOffSplit({}, "words", now).on, { players: 0, left: 0, here: 0, screens: [] });
+  assert.deepEqual(DROP_PILLARS, ["start", "screen", "stagger", "words", "drama"]);
+});
+
+test("plain words: the state's own revenue, not IGR", () => {
+  assert.equal(SYS.plainText("REVENUE CHAMPION: Ogun IGR crosses ₦13B mark"), "REVENUE CHAMPION: Ogun's own revenue crosses ₦13B mark");
+  assert.equal(SYS.plainText("+₦1.5B IGR"), "+₦1.5B own revenue");
+  assert.equal(SYS.plainText("IGR −₦0.5B this year"), "State's own revenue −₦0.5B this year");
+  assert.ok(SYS.explain("own revenue"), "own revenue is in the glossary");
+});

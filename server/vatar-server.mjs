@@ -19,7 +19,7 @@ import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from 
 import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntries, playedAgain } from "./hall-rules.mjs";
 import { makeCabinets } from "./cabinet.mjs";
 import { makeFederation } from "./federation.mjs";
-import { dropOff, experimentSummary } from "./experiment.mjs";
+import { dropOff, dropOffSplit, DROP_PILLARS, PILLARS, experimentSummary } from "./experiment.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -411,7 +411,7 @@ http.createServer(async (req, res) => {
       const S = statsNow(), evs = Object.entries(S.ev).sort((a, b) => Object.keys(b[1].players).length - Object.keys(a[1].players).length);
       if (url.searchParams.get("format") === "stats") {
         const out = {}; evs.forEach(([e, E]) => { const np = Object.keys(E.players).length; out[e] = { players: np, values: Object.fromEntries(Object.entries(E.values).map(([v, V]) => [v, { players: Object.keys(V.p).length, times: V.n, pct: np ? Math.round(Object.keys(V.p).length / np * 100) : 0 }])) }; });
-        out._playtime = playSummary(S); out._experiment = experimentSummary(S); out._dropoff = dropOff(S);
+        out._playtime = playSummary(S); out._experiment = experimentSummary(S); out._dropoff = dropOff(S); out._dropoffSplit = DROP_PILLARS.map(id => dropOffSplit(S, id));
         return send(res, 200, out);
       }
       const statsHtml = evs.length ? evs.map(([e, E]) => { const np = Object.keys(E.players).length, vs = Object.entries(E.values).map(([v, V]) => [v, Object.keys(V.p).length, V.n]).sort((a, b) => b[1] - a[1]);
@@ -436,6 +436,11 @@ http.createServer(async (req, res) => {
       const DO = dropOff(S), dmax = Math.max(1, ...DO.screens.map(x => x.n));
       const dropHtml = '<h2 style="margin:22px 0 8px">Where players leave</h2><div class="m" style="margin-bottom:8px">The last screen each player was on, for players not seen in the last 30 minutes (' + DO.left + ' left, ' + DO.here + ' playing or just stopped). Counted from 5 November 2026; anonymous counts only.</div>'
         + (DO.screens.length ? '<div class="c">' + DO.screens.slice(0, 30).map(x => '<div style="display:grid;grid-template-columns:minmax(0,2fr) 3fr 80px;gap:8px;align-items:center;margin-top:6px;font-size:14px"><span style="overflow-wrap:anywhere">' + esc(x.screen) + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(x.n / dmax * 100) + '%;background:#b3261e"></span></span><span class="m" style="text-align:right">' + x.n + ' · ' + x.pct + '%</span></div>').join("") + '</div>' : '<div class="c m">No one has left yet since this started counting.</div>');
+      // The same chart for each half of the five rebuild pillars: where the "on" players leave, and where the "off" ones do.
+      const halfList = (D) => D.screens.length ? D.screens.slice(0, 6).map(x => '<div style="display:grid;grid-template-columns:minmax(0,1fr) 54px;gap:6px;margin-top:4px;font-size:13px"><span style="overflow-wrap:anywhere">' + esc(x.screen) + '</span><span style="text-align:right">' + x.pct + '%</span></div>').join("") : '<div class="m" style="font-size:13px">Nobody has left yet.</div>';
+      const dropSplitHtml = '<div class="m" style="margin:10px 0 6px">By half: the top screens where players left, for players with each change on and off. With few players, wait a week or two before reading much into it.</div>'
+        + DROP_PILLARS.map(id => { const X = dropOffSplit(S, id), nm = (PILLARS.find(p => p.id === id) || {}).nm || id;
+          return '<div class="c"><b>' + esc(nm) + '</b><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;margin-top:6px"><div><div class="m" style="font-size:13px">On · ' + X.on.left + ' left of ' + X.on.players + '</div>' + halfList(X.on) + '</div><div><div class="m" style="font-size:13px">Off · ' + X.off.left + ' left of ' + X.off.players + '</div>' + halfList(X.off) + '</div></div></div>'; }).join("");
       const playHtml = '<h2 style="margin:22px 0 8px">Play time</h2>' + (PS.players ? '<div class="k"><div><b>' + hm(PS.totalSec) + '</b>played in all</div><div><b>' + hm(PS.avgSec) + '</b>average per player</div><div><b>' + hm(PS.medianSec) + '</b>typical player (median)</div><div><b>' + PS.players + '</b>players timed</div></div>'
         + '<div class="c"><b>How long players stay</b>' + PS.buckets.map(b => '<div style="display:grid;grid-template-columns:110px 3fr 64px;gap:8px;align-items:center;margin-top:6px"><span>' + b.l + '</span><span style="height:10px;border-radius:5px;background:#e6dfd2;overflow:hidden"><span style="display:block;height:100%;width:' + Math.round(b.n / bmax * 100) + '%;background:#0b6b42"></span></span><span class="m" style="text-align:right">' + b.n + '</span></div>').join("") + '</div>'
         + '<div class="c"><b>Longest players</b> <span class="m">· anonymous ids</span>' + PS.top.slice(0, 20).map((p, i) => '<div style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;margin-top:6px"><span class="m">' + (i + 1) + '</span><span>Player ' + esc(p.who.slice(0, 6)) + ' <span class="m">· ' + p.days + ' day' + (p.days === 1 ? '' : 's') + ' · last ' + esc(new Date(p.last).toISOString().slice(0, 10)) + '</span></span><b>' + hm(p.s) + '</b></div>').join("") + '</div>' : '<p>No play time recorded yet.</p>');
@@ -445,7 +450,7 @@ http.createServer(async (req, res) => {
         + '<main><h1>Player feedback</h1><div class="m">Seat of Power · newest first · <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=csv">download CSV</a></div>'
         + '<div class="k"><div><b>' + rows.length + '</b>messages</div><div><b>' + avg + ' ★</b>average of ' + rated.length + '</div><div><b>' + new Set(rows.map(r => r.player)).size + '</b>players</div></div>'
         + playHtml
-        + dropHtml + expHtml
+        + dropHtml + dropSplitHtml + expHtml
         + coHtml
         + '<h2 style="margin:22px 0 8px">What players choose</h2><div class="m" style="margin-bottom:8px">Anonymous: each player counts once per answer. <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=stats">as JSON</a></div>' + statsHtml
         + '<h2 style="margin:22px 0 8px">Messages</h2>'
