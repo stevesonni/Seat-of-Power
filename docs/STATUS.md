@@ -1323,8 +1323,8 @@ step 1 is for everyone. Rules: `express.js`, `plainwords.js`, `drama.js`; tests 
 
 ## The mailbox (Pack 31, 11 November 2026)
 The letter lists are gone. Mail lives in a green Government House letter box in the bottom-right corner of the
-Desk (Compound and Today): open, with up to three letters hanging out of the slot over the brass rim, each with
-its wax seal (brown envelopes for official mail: budget, courts, Abuja, House, councils); closed when there is
+Desk (Compound and Today): open, with the letters popping out of the slot toward the player (their back ends in
+the dark of the opening, a shadow on the box below), the front one showing its wax seal (brown envelopes for official mail: budget, courts, Abuja, House, councils); closed when there is
 nothing. Beside it, "N unread" (red, with the urgent icon, when a letter is urgent) and **Next message**, which
 opens the most urgent letter; tapping a letter opens that one. A letter has "← Close the letter" and, when more
 wait, "Next letter →". The box steps aside while a sheet or pop-up is open, and during the budget and the House

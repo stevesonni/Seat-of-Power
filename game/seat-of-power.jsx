@@ -4517,13 +4517,13 @@ const MailboxStand = ({ letters, onNext, onOpen, w = 132 }) => {
   useEffect(() => { const look = () => { try { setCovered(!![...document.querySelectorAll(".sop-ol, [role=dialog], [role=alertdialog], [data-sop-short]")].find(e => { const r = e.getBoundingClientRect(); return r.width > 40 && r.height > 40 && getComputedStyle(e).visibility !== "hidden"; })); } catch (e) {} }; look(); const t = setInterval(look, 400); return () => clearInterval(t); }, []);
   useEffect(() => { if (n > prevN.current) { setFresh(true); const t = setTimeout(() => setFresh(false), 1200); prevN.current = n; return () => clearTimeout(t); } prevN.current = n; }, [n]);
   const urgent = letters.some(l => l.urgent), H = Math.round(w / .69), canvas = w * 1.82;
-  // Letters come out of the slot and hang over the brass rim: the most urgent in front,
-  // up to two more fanned just behind it so their seals peek out.
-  const FAN = [{ x: 41.5, y: 44, r: 0, sx: 39 }, { x: 40, y: 43.6, r: -7, sx: 14 }, { x: 44, y: 43.6, r: 8, sx: 64 }];
+  // Letters come out of the slot toward the viewer: their back ends in the dark of the opening, the fronts
+  // sticking out over the brass rim with a shadow on the box. The slot is x 40.2-66% and y 41.9-49% of the
+  // canvas; nothing shows above or beside it, only what has come out over the rim.
+  const FAN = [{ x: 3, y: 4, rx: 62, rz: 0, sx: 38 }, { x: -3, y: 1, rx: 60, rz: -6, sx: 12 }, { x: 9, y: 1, rx: 60, rz: 5, sx: 66 }];
   const shown = letters.slice(0, 3);
-  if (covered) return null;
   return <div data-sop-mailbox style={{ display: "flex", alignItems: "flex-end", gap: 8, pointerEvents: "none" }}>
-    <style>{"@keyframes sopMailIn{0%{transform:translateY(-28%);opacity:0}100%{transform:translateY(0);opacity:1}}"}</style>
+    <style>{"@keyframes sopMailIn{0%{transform:translateY(-70%)}100%{transform:translateY(0)}}"}</style>
     {n > 0 && <div style={{ display: "grid", justifyItems: "end", gap: 6, pointerEvents: "auto", marginBottom: Math.round(H * .3) }}>
       <b style={{ fontFamily: F.b, fontWeight: 800, fontSize: 17, color: "#fff", background: urgent ? "#b3261e" : "rgba(12,40,24,.86)", borderRadius: 999, padding: "4px 12px", boxShadow: "0 3px 10px rgba(0,0,0,.25)" }}>{urgent && <img src="./art/icons/icon-urgent.webp" alt="Urgent" style={{ width: 18, height: 18, verticalAlign: "-3px", marginRight: 4 }} />}{n} unread</b>
       <button onClick={onNext} style={{ minHeight: 48, padding: "0 18px", borderRadius: 14, border: 0, background: "linear-gradient(180deg,#2f8de4,#1c6fc0)", color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: 17, letterSpacing: .5, cursor: "pointer", boxShadow: "0 4px 0 #134f8a, 0 8px 18px rgba(0,0,0,.25)", whiteSpace: "nowrap" }}>Next message</button>
@@ -4532,14 +4532,18 @@ const MailboxStand = ({ letters, onNext, onOpen, w = 132 }) => {
       style={{ position: "relative", width: w, height: H, cursor: n ? "pointer" : "default", pointerEvents: n ? "auto" : "none", filter: "drop-shadow(0 10px 16px rgba(0,0,0,.28))" }}>
       <div style={{ position: "absolute", width: canvas, height: canvas, left: -canvas * .21, top: -canvas * .2 }}>
         <img src={"./art/objects/" + (n ? "mailbox-open" : "mailbox-closed") + ".webp"} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
-        {shown.map((l, i) => i).reverse().map(i => { const l = shown[i], f = FAN[i];
-          return <button key={l.id} onClick={(e) => { e.stopPropagation(); onOpen(l.id); }} aria-label={"Open: " + (l.title || "a letter")}
-            style={{ position: "absolute", left: f.x + "%", top: f.y + "%", width: "25%", padding: 0, border: 0, background: "none", cursor: "pointer", transform: "rotate(" + f.r + "deg)", transformOrigin: "50% 0" }}>
-            <span style={{ display: "block", position: "relative", animation: fresh && i === 0 ? "sopMailIn .6s cubic-bezier(.2,.8,.2,1)" : undefined }}>
-              <img src={"./art/objects/" + (l.brown ? "mail-edge-brown" : "mail-edge-cream") + ".webp"} alt="" style={{ width: "100%", display: "block" }} />
-              <img src={l.seal} alt="" style={{ position: "absolute", width: "22%", left: f.sx + "%", top: "38%", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.35))" }} />
-            </span>
-          </button>; })}
+        {n > 0 && <div style={{ position: "absolute", left: "40.2%", width: "25.8%", top: "41.9%", height: "40%", perspective: canvas * .478, perspectiveOrigin: "50% -60%",
+          clipPath: "polygon(0 0, 100% 0, 100% 17.5%, 160% 17.5%, 160% 100%, -60% 100%, -60% 17.5%, 0 17.5%)" }}>
+          {shown.map((l, i) => i).reverse().map(i => { const l = shown[i], f = FAN[i];
+            return <button key={l.id} onClick={(e) => { e.stopPropagation(); onOpen(l.id); }} aria-label={"Open: " + (l.title || "a letter")}
+              style={{ position: "absolute", left: f.x + "%", top: f.y + "%", width: "94%", padding: 0, border: 0, background: "none", cursor: "pointer", transformOrigin: "50% 0", transform: "rotateX(" + f.rx + "deg) rotateZ(" + f.rz + "deg)", filter: "drop-shadow(0 " + Math.round(w * .05) + "px " + Math.round(w * .025) + "px rgba(0,0,0,.5))" }}>
+              <span style={{ display: "block", position: "relative", animation: fresh && i === 0 ? "sopMailIn .7s cubic-bezier(.2,.8,.2,1)" : undefined }}>
+                <img src={"./art/objects/" + (l.brown ? "mail-edge-brown" : "mail-edge-cream") + ".webp"} alt="" style={{ width: "100%", display: "block" }} />
+                <img src={l.seal} alt="" style={{ position: "absolute", width: "24%", left: f.sx + "%", top: "40%" }} />
+                <span style={{ position: "absolute", left: 0, right: 0, top: 0, height: "42%", background: "linear-gradient(#000 0%, rgba(0,0,0,.85) 45%, rgba(0,0,0,0))" }} />
+              </span>
+            </button>; })}
+        </div>}
       </div>
     </div>
   </div>;
