@@ -4506,6 +4506,44 @@ const TermCards = ({ cards, title }) => <div data-testid="term-cards" style={{ m
     </div>
   </div>)}</div>
 </div>;
+/* The mailbox (Lovable Pack 31): where the governor sees the mail. Open, with up to three letters in its
+   mouth, each edge carrying its wax seal; closed when there is nothing. Beside it, the count and "Next
+   message", which opens the most urgent letter. Both mailbox pictures share one 1024 canvas; the box
+   spans about x 22-73% and y 20-100% of it, the mouth x 40-66% and y 42-49%. */
+const MAIL_BROWN = ["budget", "courts", "federal", "house", "fec", "nsc", "eac", "exco", "intel", "briefing"];
+const MailboxStand = ({ letters, onNext, onOpen, w = 132 }) => {
+  const n = letters.length, prevN = React.useRef(n), [fresh, setFresh] = useState(false), [covered, setCovered] = useState(false);
+  // Out of the way while a sheet or a pop-up is open on top of the Desk.
+  useEffect(() => { const look = () => { try { setCovered(!![...document.querySelectorAll(".sop-ol, [role=dialog], [role=alertdialog], [data-sop-short]")].find(e => { const r = e.getBoundingClientRect(); return r.width > 40 && r.height > 40 && getComputedStyle(e).visibility !== "hidden"; })); } catch (e) {} }; look(); const t = setInterval(look, 400); return () => clearInterval(t); }, []);
+  useEffect(() => { if (n > prevN.current) { setFresh(true); const t = setTimeout(() => setFresh(false), 1200); prevN.current = n; return () => clearTimeout(t); } prevN.current = n; }, [n]);
+  const urgent = letters.some(l => l.urgent), H = Math.round(w / .69), canvas = w * 1.82;
+  // Letters come out of the slot and hang over the brass rim: the most urgent in front,
+  // up to two more fanned just behind it so their seals peek out.
+  const FAN = [{ x: 41.5, y: 44, r: 0, sx: 39 }, { x: 40, y: 43.6, r: -7, sx: 14 }, { x: 44, y: 43.6, r: 8, sx: 64 }];
+  const shown = letters.slice(0, 3);
+  if (covered) return null;
+  return <div data-sop-mailbox style={{ display: "flex", alignItems: "flex-end", gap: 8, pointerEvents: "none" }}>
+    <style>{"@keyframes sopMailIn{0%{transform:translateY(-28%);opacity:0}100%{transform:translateY(0);opacity:1}}"}</style>
+    {n > 0 && <div style={{ display: "grid", justifyItems: "end", gap: 6, pointerEvents: "auto", marginBottom: Math.round(H * .3) }}>
+      <b style={{ fontFamily: F.b, fontWeight: 800, fontSize: 17, color: "#fff", background: urgent ? "#b3261e" : "rgba(12,40,24,.86)", borderRadius: 999, padding: "4px 12px", boxShadow: "0 3px 10px rgba(0,0,0,.25)" }}>{urgent && <img src="./art/icons/icon-urgent.webp" alt="Urgent" style={{ width: 18, height: 18, verticalAlign: "-3px", marginRight: 4 }} />}{n} unread</b>
+      <button onClick={onNext} style={{ minHeight: 48, padding: "0 18px", borderRadius: 14, border: 0, background: "linear-gradient(180deg,#2f8de4,#1c6fc0)", color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: 17, letterSpacing: .5, cursor: "pointer", boxShadow: "0 4px 0 #134f8a, 0 8px 18px rgba(0,0,0,.25)", whiteSpace: "nowrap" }}>Next message</button>
+    </div>}
+    <div role={n ? "button" : undefined} aria-label={n ? n + " unread: open the next letter" : "No mail"} onClick={n ? onNext : undefined}
+      style={{ position: "relative", width: w, height: H, cursor: n ? "pointer" : "default", pointerEvents: n ? "auto" : "none", filter: "drop-shadow(0 10px 16px rgba(0,0,0,.28))" }}>
+      <div style={{ position: "absolute", width: canvas, height: canvas, left: -canvas * .21, top: -canvas * .2 }}>
+        <img src={"./art/objects/" + (n ? "mailbox-open" : "mailbox-closed") + ".webp"} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
+        {shown.map((l, i) => i).reverse().map(i => { const l = shown[i], f = FAN[i];
+          return <button key={l.id} onClick={(e) => { e.stopPropagation(); onOpen(l.id); }} aria-label={"Open: " + (l.title || "a letter")}
+            style={{ position: "absolute", left: f.x + "%", top: f.y + "%", width: "25%", padding: 0, border: 0, background: "none", cursor: "pointer", transform: "rotate(" + f.r + "deg)", transformOrigin: "50% 0" }}>
+            <span style={{ display: "block", position: "relative", animation: fresh && i === 0 ? "sopMailIn .6s cubic-bezier(.2,.8,.2,1)" : undefined }}>
+              <img src={"./art/objects/" + (l.brown ? "mail-edge-brown" : "mail-edge-cream") + ".webp"} alt="" style={{ width: "100%", display: "block" }} />
+              <img src={l.seal} alt="" style={{ position: "absolute", width: "22%", left: f.sx + "%", top: "38%", filter: "drop-shadow(0 2px 3px rgba(0,0,0,.35))" }} />
+            </span>
+          </button>; })}
+      </div>
+    </div>
+  </div>;
+};
 /* The short start (pillar "start", SYS.DEAL / SYS.RALLY / SYS.electionNight): from a politician to the oath
    in three big moments, then straight to Government House. It hands the governing screen the same setup
    the long path does. */
@@ -11412,6 +11450,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [mailOpen, setMailOpen] = useState(false);
   const [mailPing, setMailPing] = useState(null);
   const [letterOpen, setLetterOpen] = useState(null);
+  // A letter answered or closed: the mail sheet closes with it (there is no list behind it any more).
+  useEffect(() => { if (mailOpen && !letterOpen) setMailOpen(false); }, [mailOpen, letterOpen]);
+  // A letter answered elsewhere (or gone with the year) is no longer open.
+  useEffect(() => { if (letterOpen && !mail.some(l => l.id === letterOpen)) setLetterOpen(null); });
   const mailOn = React.useRef((ld?.resume || ld?.phase) === "mail");
   const cosNow = cosOffice.cos;
   const mailRef = React.useRef(mail); mailRef.current = mail;
@@ -11878,6 +11920,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const SEAL_ART = { bakunda: "seal-bakunda", agenda: "seal-agenda", budget: "seal-budget", gold: "seal-gold", crisis: "seal-crisis", godfather: "seal-godfather", party: "seal-party", house: "seal-house", courts: "seal-courts", federal: "seal-abuja", community: "seal-community", press: "seal-press", travel: "seal-invitation", diplomacy: "seal-diplomacy", investment: "seal-investor", projects: "seal-projects", intel: "seal-intel", briefing: "seal-briefing", fec: "seal-fec", nsc: "seal-nsc", eac: "seal-eac", exco: "seal-exco", rulers: "seal-rulers", econ: "seal-econ" };
   const Seal = ({ kind, size = 44, art }) => { const S = SYS.SEALS[kind] || SYS.SEALS.briefing; if (art) return <Ico n={art} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />; if (SEAL_ART[kind]) return <Ico n={SEAL_ART[kind]} s={size} style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,.25))" }} />;
     return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
+  // The mailbox opens one letter at a time, the most urgent first.
+  const mailSorted = () => mail.slice().sort((a, b) => (b.stakes || 0) - (a.stakes || 0) || (!!a.cat - !!b.cat));
+  const openMail = (id) => { const L = mailSorted(), l = (id && L.find(x => x.id === id)) || L[0]; if (l) { setMailOpen(true); setLetterOpen(l.id); } };
+  const mailStand = () => mailSorted().map(l => { const v = letterView(l); return { id: l.id, title: v.title, urgent: l.stakes >= 3, brown: MAIL_BROWN.includes(l.kind), seal: "./art/icons/" + (sealOf(l) || SEAL_ART[l.kind] || "seal-briefing") + ".webp" }; });
   const mailboxView = (inline) => {
     const fz = TALL() ? { s: TS(19), m: TS(23), l: TS(30) } : { s: TS(28), m: TS(34), l: TS(48) };
     const c0 = cosNow || COS_ACTING, c = { ...c0, img: (SYS.cosById(c0.id) || c0).img }, first = c.name.split(" ").slice(-2, -1)[0] || c.name;
@@ -11948,24 +11994,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 </div>; })()}
           </div>
         </div>
-        <button onClick={() => setLetterOpen(null)} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, fontWeight: 700 }}>← Back to the mail</button>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+          <button aria-label="Close" onClick={() => { setLetterOpen(null); setMailOpen(false); }} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, fontWeight: 700, minHeight: 44 }}>← Close the letter</button>
+          {mail.length > 1 && <button onClick={() => { const L = mailSorted(), i = L.findIndex(x => x.id === open.id); setLetterOpen(L[(i + 1) % L.length].id); }} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, fontWeight: 700, minHeight: 44 }}>Next letter →</button>}
+        </div>
         </div>
       </div>;
     }
-    return <Cd style={{ padding: TALL() ? "16px 14px" : "26px 30px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
-        <img src={"./art/objects/" + (mail.length ? "letter-sealed" : "letter-open") + ".webp"} alt="" style={{ width: TALL() ? 48 : 64, height: TALL() ? 48 : 64, objectFit: "contain" }} />
-        <div style={{ flex: 1, minWidth: 0 }}><b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt }}>Your mail</b>
-          <div style={{ fontSize: fz.s, color: CL.td, display: "flex", alignItems: "center", gap: 6 }}>{mail.some(l => l.stakes >= 3) && <Ico n="icon-urgent" s={20} />}{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") + " waiting" : "Nothing waiting"}</div></div>
-      </div>
-      <div style={{ display: "grid", gap: 8 }}>
-        {mail.slice().sort((a, b) => (b.stakes || 0) - (a.stakes || 0) || (!!a.cat - !!b.cat)).map(l => { const v = letterView(l); return <button key={l.id} onClick={() => setLetterOpen(l.id)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center", textAlign: "left", background: "#fffaf0", border: "1px solid " + CL.bdr, borderRadius: 14, padding: TALL() ? "8px 10px" : "10px 14px", cursor: "pointer", fontFamily: F.b, color: CL.txt }}>
-          <Seal kind={l.kind} art={sealOf(l)} size={TALL() ? 38 : 48} />
-          <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{v.title}</b></span>
-          <span aria-label={l.stakes >= 3 ? "Urgent" : "Open"} style={{ fontSize: fz.s, color: l.stakes >= 3 ? CL.red : CL.td, fontWeight: 800 }}>{l.stakes >= 3 ? "❗" : "›"}</span>
-        </button>; })}
-      </div>
-      {inline && phase === "mail" && !yearStuff.length && !budgetWaiting && <Bt onClick={finishMail} style={{ width: "100%", marginTop: 14 }}>The tray is clear: on to {absYear + 1} →</Bt>}
+    // The letters are in the mailbox (bottom right); here, only who opens them with you and the way on.
+    return <Cd style={{ padding: TALL() ? "12px 14px" : "20px 26px" }}>
+      {!mail.length && <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fz.s, color: CL.td }}><img src="./art/objects/letter-open.webp" alt="" style={{ width: TALL() ? 44 : 56, height: TALL() ? 44 : 56, objectFit: "contain" }} />Every letter is answered.</div>}
+      {mail.length > 0 && <div style={{ fontSize: fz.s, color: CL.td }}>📬 {mail.length === 1 ? "A letter waits" : mail.length + " letters wait"} in the mailbox. Answer {mail.length === 1 ? "it" : "them"} to move on to {absYear + 1}.</div>}
+      {inline && phase === "mail" && !yearStuff.length && !budgetWaiting && <Bt onClick={finishMail} style={{ width: "100%", marginTop: mail.length ? 12 : 0 }}>The tray is clear: on to {absYear + 1} →</Bt>}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: fz.s, color: CL.td }}>
         <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
         <span style={{ flex: 1, minWidth: 0 }}>🗝️ <b style={{ color: CL.txt }}>{first}</b></span>
@@ -12745,10 +12785,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             </>; })()}
           </div>
         </div>}
-        {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); else setMailOpen(true); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
-        {/* Wide screens only: on phones the Desk tab already carries the count. */}
-        {!TALL() && curScreen.id === "desk" && mail.length > 0 && phase !== "mail" && <button onClick={() => setMailOpen(true)} aria-label={"Mail: " + mail.length} style={{ position: "fixed", right: 16, bottom: TALL() ? 104 : 24, zIndex: 65, display: "flex", alignItems: "center", gap: 6, background: CL.gold, color: "#1a2e05", border: 0, borderRadius: 999, padding: "6px 16px 6px 8px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), boxShadow: "0 8px 20px rgba(0,0,0,.25)", cursor: "pointer", fontFamily: F.b }}><img src="./art/objects/mailbox-tray.webp" alt="" style={{ width: 40, height: 40, objectFit: "contain" }} />📬 {mail.length}</button>}
-        <div ref={paneRef}>
+        {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); openMail(); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
+        {/* The mailbox (Pack 31): bottom right of the Desk, where the governor sees the mail. */}
+        {curScreen.id === "desk" && !gEnd && !letterOpen && (mail.length > 0 || !(nav === "gov" && (phase === "budget" || phase === "house_vote"))) && <div data-sop-mailstand style={{ position: "fixed", right: TALL() ? 8 : 24, bottom: TALL() ? "calc(86px + env(safe-area-inset-bottom, 0px))" : 24, zIndex: 55 }}><MailboxStand letters={mailStand()} onNext={() => openMail()} onOpen={(id) => openMail(id)} w={nav === "gov" && (phase === "budget" || phase === "house_vote") ? (TALL() ? 130 : 150) : TALL() ? 180 : 190} /></div>}
+        <div ref={paneRef} style={{ paddingBottom: curScreen.id === "desk" ? (TALL() ? 260 : 40) : 0 }}>
         {nav === "hub" && (() => {
           // The Desk (Lovable's design, sop-screens.css .lv-desk): the compound on the left; four figures, the adviser and the mail on the right.
           const appPrev = appH.length > 1 ? appH[appH.length - 2] : null, dApp = appPrev == null ? null : Math.round(s.app - appPrev);
@@ -12775,20 +12815,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <p>{adv.title}</p>
                   <button className="btn btn-gold btn-block" onClick={adv.action}>{adv.actionLabel || "Go"} →</button>
                 </div></div>}
-                <section className="card tray">
-                  <div className="head"><img src="./art/objects/mailbox-tray.webp" alt="" /><h2>Your mail</h2><span className="count">{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") : "Empty"}</span></div>
-                  {rows.map(l => { const v = letterView(l); return <button key={l.id} className="letter" onClick={() => { setMailOpen(true); setLetterOpen(l.id); }}>
-                    <Seal kind={l.kind} art={sealOf(l)} size={40} />
-                    <div className="t"><b>{v.title}</b>{v.from && <span>From: {String(v.from).split(",").slice(-1)[0].trim()}</span>}</div>
-                    {l.stakes >= 3 && <span className="urg" aria-label="Urgent">!</span>}
-                    <span className="chev">›</span>
-                  </button>; })}
-                  {!mail.length && <div className="letter" style={{ color: "var(--muted)" }}>No letters waiting.</div>}
-                  {phase === "mail" && <div className="clear">
+                {phase === "mail" && <section className="card tray">
+                  <div className="head"><img src="./art/objects/mailbox-closed.webp" alt="" style={{ objectFit: "cover", objectPosition: "50% 30%" }} /><h2>Your mail</h2><span className="count">{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") : "Empty"}</span></div>
+                  <div className="clear">
                     <button className="btn btn-main btn-block" disabled={!!(yearStuff.length || budgetWaiting)} style={yearStuff.length || budgetWaiting ? { opacity: .45 } : null} onClick={() => { if (!(yearStuff.length || budgetWaiting)) { finishMail(); setNav("gov"); } }}>The tray is clear: on to {absYear + 1} →</button>
-                    {(yearStuff.length > 0 || budgetWaiting) && <small>Answer every letter to move on</small>}
-                  </div>}
-                </section>
+                    {(yearStuff.length > 0 || budgetWaiting) && <small>Answer every letter in the mailbox to move on</small>}
+                  </div>
+                </section>}
               </div>
             </main>
           </div>; })()}
@@ -14696,7 +14729,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </Cd>
         </OL>
 
-        <OL show={mailOpen && phase !== "mail"}>{mailOpen && phase !== "mail" && mailboxView(false)}</OL>
+        <OL show={mailOpen && phase !== "mail" && !!letterOpen}>{mailOpen && phase !== "mail" && !!letterOpen && mailboxView(false)}</OL>
         <OL show={cosPickOpen && !gEnd}>
           {cosPickOpen && <Cd style={{ borderColor: CL.gold + "77" }}>
             <div style={{ textAlign: "center", marginBottom: 14 }}>

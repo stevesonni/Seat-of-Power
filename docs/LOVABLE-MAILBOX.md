@@ -1,5 +1,12 @@
 # Lovable art: the mailbox (Pack 31)
 
+**Installed (Pack 31, 11 November 2026).** In the game: `mailbox-open`, `mailbox-closed`, `mail-edge-cream` and
+`mail-edge-brown` (`MailboxStand` in `game/seat-of-power.jsx`). Two files were left out after a look in the game:
+the glow looked odd around the box, and the lip layer was not needed once the letters hang out of the slot over
+the brass rim (like the reference) instead of standing up inside it. The old wooden tray (`mailbox-tray.webp`) is
+retired. Tests: `tests/e2e/mail.mjs` (the year's letters arrive in the mailbox and are answered through Next
+message), `tests/art-usage.test.mjs`.
+
 The letter list on the Desk goes away. In its place is one mailbox, standing in the bottom-right corner of the
 screen. The mailbox is where players see their mail:
 

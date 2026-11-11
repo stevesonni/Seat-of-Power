@@ -83,7 +83,7 @@ export async function takeOffice(g) {
    `until(text)` is true. Clicks, in order: confirmations, setup, budget,
    House vote, policies, end of year, continue; otherwise the first offered
    choice (a button, or a clickable choice card). Returns the click log. */
-const SKIP = /^(🏠|🗑️|🔀 Restructure|☰|Compound|Govern|Today|News|Desk|Map|State|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Council|Personas|Public|Stakeholders|Money|💰 Treasury|Treasury|Economy|Contracts|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|🤵 Ask your SA$|Ask your SA$|Hide$|Less$|▼$|▲$|Open the councils?$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
+const SKIP = /^(Fire|🏠|🗑️|🔀 Restructure|☰|Compound|Govern|Today|News|Desk|Map|State|People|Wiki|Cast|Cabinet|Ministries|Civil Service|Trad\. Council|Council|Personas|Public|Stakeholders|Money|💰 Treasury|Treasury|Economy|Contracts|Projects|Policies|Budget|Overview|Skip guide|Show me ↓|Your promises|💰 Money|All \d|What.s in the pot|Fine-tune|\d+%Approval|🔊|🔇|💾|Standing|Help|🔁 Second Chance|See it$|↺ Replay$|⏭ Skip$|🔈 Voice off$|🔊 Voice on$|More ▾$|🤵 Ask your SA$|Ask your SA$|Hide$|Less$|▼$|▲$|Open the councils?$|Choose them yourself$|📋 Full year review$)|· \w+ zone|years? left|No action yet|Not started|In progress|\d+ open ▼/;
 const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound|Open the Treasury|Watch them decide|Not now)$/, /^Do it: /, /^✍️ Handle it personally$/, /^✍️ Sign off the investigation$/, /^.{6,}(›|❗)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Create and swear in/, /^Convene the council$/, /^Chair the first FEC$/, /^Convene the Security Council$/, /^(Submit|Send) to the (House of Assembly|National Assembly)/, /^🗳️ Call the vote/, /^(Proceed|On) to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/, /^(✍️ )?(Sign|Assent)$/];
 export async function playUntil(g, until, { max = 400, prefer = [], log = false, onStep = null, keepSession = false } = {}) {
   const clicks = [];
@@ -100,6 +100,8 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
     const recent = clicks.slice(-24), looping = (re) => recent.filter(c => re.test(c)).length >= 3;
     // The Head of Service picker: appoint the first candidate, as a player would (pressing "Later" every year leaves the letter, and the year, unfinished).
     if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button")].find(x => x.offsetParent && !x.disabled && /^(Appoint \S+|✍️ Sign it off.*)$/.test(x.textContent.trim())); if (b) { b.click(); return "btn " + b.textContent.trim(); } return null; });
+    // An opened letter: handle it personally, pressed directly (the click helper can miss buttons on the letter sheet).
+    if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && !x.disabled && /^✍️ Handle it personally$/.test(x.textContent.trim())); if (b) { b.click(); return "btn ✍️ Handle it personally"; } return null; });
     // Swearing in a commissioner: press it directly (the bot's cover check can miss it inside the sheet).
     if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && !x.disabled && /^Create and swear in/.test(x.textContent.trim())); if (b) { b.click(); return "btn Create and swear in"; } return null; });
     if (!hit) for (const re of [...prefer, ...PRIO]) { if (looping(re) && !/Leave the Secretariat/.test(re.source)) continue; hit = await g.click(re); if (hit) break; }
@@ -119,6 +121,8 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
       if (cards.length) { cards[0].click(); return "card " + cards[0].textContent.trim().slice(0, 50); }
       return null;
     }, [SKIP.source, stuck]);
+    // Letters wait in the mailbox (Pack 31, bottom right): open the next one, as a player would.
+    if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-sop-mailbox] button")].find(x => /^Next message$/.test(x.textContent.trim())); if (b) { b.click(); return "btn Next message"; } return null; });
     if (!hit) { if (!(await g.click(/^(Govern|Today)$/))) { await g.click(/^Desk(\s*\d*$|Letters and decisions)/); await g.wait(200); await g.click(/^(Govern|Today)$/); } await g.wait(250); hit = "→ Govern"; }
     clicks.push(hit); if (log) console.log(i, hit);
     await g.wait(300);
