@@ -15,14 +15,14 @@ const okay = async (g) => { for (let i = 0; i < 4 && await g.click(/^(Got it|Oka
 const SKIP = /no ministry to fix it|A REQUEST TO SEE YOU|A request to see you|A FILE ON |A file on |APPOINT A HEAD OF SERVICE|Appoint a Head of Service|ANNUAL BRIEF|annual brief|EFCC:|ICPC:/;
 const firstLetter = async (g) => {
   const opened = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-sop-mailbox] button")].find(x => /^Next message$/.test(x.textContent.trim())); if (!b) return false; b.click(); return true; });
-  if (!opened) return false; await g.wait(600);
+  if (!opened) return false; await g.wait(1400); // the letter flies out of the slot, then opens
   for (let i = 0; i < 10; i++) { const t = await g.txt(); if (/(Hand it to|Insist:|Noted)/.test(t) && !SKIP.test(t.slice(0, 600))) return true; if (!(await g.click(/^Next letter →$/))) break; await g.wait(400); }
   await g.click(/^← Close the letter$/); return false;
 };
 // Open the mailbox and turn the letters until one matches.
 const findLetter = async (g, re) => {
   if (!(await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-sop-mailbox] button")].find(x => /^Next message$/.test(x.textContent.trim())); if (!b) return false; b.click(); return true; }))) return false;
-  await g.wait(600); for (let i = 0; i < 12; i++) { if (re.test(await g.txt())) return true; if (!(await g.click(/^Next letter →$/))) break; await g.wait(400); } return false;
+  await g.wait(1400); for (let i = 0; i < 12; i++) { if (re.test(await g.txt())) return true; if (!(await g.click(/^Next letter →$/))) break; await g.wait(400); } return false;
 };
 
 const g = await open(port, { save: YEAR1 });
@@ -42,7 +42,7 @@ await okay(g); // the adviser announces urgent mail in person
 t = await g.txt();
 await g.wait(1000); t = await g.txt(); // the mailbox comes back a moment after the adviser's pop-up closes
 if (/Yours faithfully/.test(t)) { await g.click(/^← Close the letter$/); await g.wait(800); t = await g.txt(); } // the adviser opened the urgent letter: close it to see the mailbox
-check(/\d+ unread/.test(t) && /letters? waits? in the mailbox/.test(t) && await g.page.evaluate(() => document.querySelectorAll("[data-sop-mailbox] button[aria-label^=Open]").length > 0), "the year's matters arrive as letters in the mailbox (" + ((t.match(/(\d+) unread/) || [])[1]) + " unread)");
+check(/\d+ unread/.test(t) && /letters? waits? in the mailbox/.test(t) && await g.page.evaluate(() => !!document.querySelector("[data-sop-mailbox] img[src*=mailbox-open]")), "the year's matters arrive as letters in the mailbox (" + ((t.match(/(\d+) unread/) || [])[1]) + " unread)");
 check(!/The tray is clear/.test(t), "the year cannot move on while letters wait");
 check(presented, "the adviser steps in to announce the urgent letter");
 let handed = 0;

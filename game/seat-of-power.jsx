@@ -4506,44 +4506,61 @@ const TermCards = ({ cards, title }) => <div data-testid="term-cards" style={{ m
     </div>
   </div>)}</div>
 </div>;
-/* The mailbox (Lovable Pack 31): where the governor sees the mail. Open, with up to three letters in its
-   mouth, each edge carrying its wax seal; closed when there is nothing. Beside it, the count and "Next
-   message", which opens the most urgent letter. Both mailbox pictures share one 1024 canvas; the box
-   spans about x 22-73% and y 20-100% of it, the mouth x 40-66% and y 42-49%. */
+/* The mailbox (Lovable Pack 31): where the governor sees the mail. A letter is never stuck onto the box: at
+   rest the flap is open (or shut when there is nothing) and the count wears the seal of the most urgent
+   letter. A letter only shows while it moves: "Next message" (or a tap on the box) lifts it out of the slot,
+   flies it to the middle of the screen and opens it; a new one drops in from the top and the box jolts.
+   Both pictures share one 1024 canvas: the box spans x 22-73%, y 20-100%; the slot x 40-66%, y 42-49%. */
 const MAIL_BROWN = ["budget", "courts", "federal", "house", "fec", "nsc", "eac", "exco", "intel", "briefing"];
-const MailboxStand = ({ letters, onNext, onOpen, w = 132 }) => {
-  const n = letters.length, prevN = React.useRef(n), [fresh, setFresh] = useState(false), [covered, setCovered] = useState(false);
+const mailStill = () => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; } };
+// An envelope in flight, drawn over everything at the page's own scale (outside the zoomed stage).
+const mailEnvelope = (seal) => { const e = document.createElement("div"); e.setAttribute("aria-hidden", "true");
+  e.style.cssText = "position:fixed;left:0;top:0;width:74px;height:74px;z-index:9000;pointer-events:none;will-change:transform,clip-path,opacity";
+  e.innerHTML = '<img src="./art/objects/letter-sealed.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))"><img src="' + seal + '" alt="" style="position:absolute;width:25%;left:37.5%;top:38.5%">';
+  document.body.appendChild(e);
+  // On phones the whole page is drawn smaller (zoom); measure it, so screen positions land where they should.
+  const z = (e.getBoundingClientRect().width / 74) || 1;
+  e.at = (x, y, size, r) => "translate(" + (x / z - 37) + "px," + (y / z - 37) + "px) scale(" + (size / (74 * z)) + ") rotate(" + r + "deg)";
+  return e; };
+const MailboxStand = ({ letters, onNext, w = 132 }) => {
+  const n = letters.length, [shownN, setShownN] = useState(n), [covered, setCovered] = useState(false), [jolt, setJolt] = useState(0), [pop, setPop] = useState(0);
+  const cvRef = React.useRef(null), busy = React.useRef(false), prevN = React.useRef(n);
   // Out of the way while a sheet or a pop-up is open on top of the Desk.
   useEffect(() => { const look = () => { try { setCovered(!![...document.querySelectorAll(".sop-ol, [role=dialog], [role=alertdialog], [data-sop-short]")].find(e => { const r = e.getBoundingClientRect(); return r.width > 40 && r.height > 40 && getComputedStyle(e).visibility !== "hidden"; })); } catch (e) {} }; look(); const t = setInterval(look, 400); return () => clearInterval(t); }, []);
-  useEffect(() => { if (n > prevN.current) { setFresh(true); const t = setTimeout(() => setFresh(false), 1200); prevN.current = n; return () => clearTimeout(t); } prevN.current = n; }, [n]);
-  const urgent = letters.some(l => l.urgent), H = Math.round(w / .69), canvas = w * 1.82;
-  // Letters come out of the slot toward the viewer: their back ends in the dark of the opening, the fronts
-  // sticking out over the brass rim with a shadow on the box. The slot is x 40.2-66% and y 41.9-49% of the
-  // canvas; nothing shows above or beside it, only what has come out over the rim.
-  const FAN = [{ x: 3, y: 4, rx: 62, rz: 0, sx: 38 }, { x: -3, y: 1, rx: 60, rz: -6, sx: 12 }, { x: 9, y: 1, rx: 60, rz: 5, sx: 66 }];
-  const shown = letters.slice(0, 3);
+  const slot = () => { const r = cvRef.current && cvRef.current.getBoundingClientRect(); return r && r.width ? { x: r.left + r.width * .53, y: r.top + r.height * .455, w: r.width * .26 } : null; };
+  // A new letter drops in from the top of the screen; the box jolts and the count pops when it lands.
+  useEffect(() => {
+    const before = prevN.current; prevN.current = n;
+    if (n <= before) { setShownN(n); return; }
+    const S = slot(), L = letters[0];
+    if (!S || covered || mailStill() || !L || !document.body.animate) { setShownN(n); setJolt(j => j + 1); setPop(p => p + 1); return; }
+    const e = mailEnvelope(L.seal), d = S.w * .45;
+    e.animate([{ transform: e.at(innerWidth * .4, -80, 110, -18) }, { transform: e.at(S.x - 10, S.y - 110, 70, 6), offset: .6 }, { transform: e.at(S.x, S.y - d, S.w * 1.1, 0) }], { duration: 560, easing: "cubic-bezier(.45,0,.6,1)", fill: "forwards" }).finished
+      .then(() => e.animate([{ transform: e.at(S.x, S.y - d, S.w * 1.1, 0), clipPath: "inset(0 0 0% 0)" }, { transform: e.at(S.x, S.y + d, S.w, 0), clipPath: "inset(0 0 100% 0)" }], { duration: 220, easing: "ease-in", fill: "forwards" }).finished)
+      .catch(() => {}).then(() => { e.remove(); setShownN(n); setJolt(j => j + 1); setPop(p => p + 1); });
+  }, [n]);
+  // Next message: the box jolts, the envelope rises out of the slot from behind the rim, then flies to the middle and the letter opens.
+  const next = (e0) => { if (e0) e0.stopPropagation(); if (busy.current || !n) return; const S = slot(), L = letters[0];
+    if (!S || mailStill() || !document.body.animate) { onNext(); return; }
+    busy.current = true; setJolt(j => j + 1);
+    const e = mailEnvelope(L.seal), d = S.w * .45, cx = innerWidth / 2, cy = innerHeight * .4, big = Math.min(innerWidth * .8, 420);
+    e.animate([{ transform: e.at(S.x, S.y + d, S.w, 0), clipPath: "inset(0 0 100% 0)" }, { transform: e.at(S.x, S.y - d, S.w * 1.1, -4), clipPath: "inset(0 0 0% 0)" }], { duration: 320, easing: "cubic-bezier(.2,.8,.3,1)", fill: "forwards" }).finished
+      .then(() => e.animate([{ transform: e.at(S.x, S.y - d, S.w * 1.1, -4) }, { transform: e.at((S.x + cx) / 2 + 20, Math.max(80, S.y - 200), big * .55, 8), offset: .55 }, { transform: e.at(cx, cy, big, 0) }], { duration: 500, easing: "cubic-bezier(.35,.1,.25,1)", fill: "forwards" }).finished)
+      .catch(() => {}).then(() => { onNext(); e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: "forwards" }).finished.catch(() => {}).then(() => e.remove()); busy.current = false; });
+  };
+  if (covered) return null;
+  const m = Math.min(shownN, n), urgent = letters.some(l => l.urgent), H = Math.round(w / .69), canvas = w * 1.82, top = letters[0];
   return <div data-sop-mailbox style={{ display: "flex", alignItems: "flex-end", gap: 8, pointerEvents: "none" }}>
-    <style>{"@keyframes sopMailIn{0%{transform:translateY(-70%)}100%{transform:translateY(0)}}"}</style>
-    {n > 0 && <div style={{ display: "grid", justifyItems: "end", gap: 6, pointerEvents: "auto", marginBottom: Math.round(H * .3) }}>
-      <b style={{ fontFamily: F.b, fontWeight: 800, fontSize: 17, color: "#fff", background: urgent ? "#b3261e" : "rgba(12,40,24,.86)", borderRadius: 999, padding: "4px 12px", boxShadow: "0 3px 10px rgba(0,0,0,.25)" }}>{urgent && <img src="./art/icons/icon-urgent.webp" alt="Urgent" style={{ width: 18, height: 18, verticalAlign: "-3px", marginRight: 4 }} />}{n} unread</b>
-      <button onClick={onNext} style={{ minHeight: 48, padding: "0 18px", borderRadius: 14, border: 0, background: "linear-gradient(180deg,#2f8de4,#1c6fc0)", color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: 17, letterSpacing: .5, cursor: "pointer", boxShadow: "0 4px 0 #134f8a, 0 8px 18px rgba(0,0,0,.25)", whiteSpace: "nowrap" }}>Next message</button>
+    <style>{"@keyframes sopMailJolt{0%{transform:rotate(0)}30%{transform:rotate(-3deg) translateY(-3px)}60%{transform:rotate(2deg)}100%{transform:rotate(0)}}@keyframes sopMailPop{0%{transform:scale(.4)}100%{transform:scale(1)}}"}</style>
+    {m > 0 && <div style={{ display: "grid", justifyItems: "end", gap: 6, pointerEvents: "auto", marginBottom: Math.round(H * .3) }}>
+      <b key={"p" + pop} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: F.b, fontWeight: 800, fontSize: 16, color: "#fff", background: urgent ? "#b3261e" : "rgba(12,40,24,.9)", borderRadius: 999, padding: "4px 12px 4px 4px", boxShadow: "0 3px 10px rgba(0,0,0,.25)", animation: pop && !mailStill() ? "sopMailPop .45s cubic-bezier(.3,1.8,.5,1)" : undefined }}>
+        {top && <img src={top.seal} alt="" style={{ width: 26, height: 26 }} />}{urgent && <img src="./art/icons/icon-urgent.webp" alt="Urgent" style={{ width: 16, height: 16 }} />}{n} unread</b>
+      <button onClick={next} style={{ minHeight: 48, padding: "0 18px", borderRadius: 14, border: 0, background: "linear-gradient(180deg,#2f8de4,#1c6fc0)", color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: 17, letterSpacing: .5, cursor: "pointer", boxShadow: "0 4px 0 #134f8a, 0 8px 18px rgba(0,0,0,.25)", whiteSpace: "nowrap" }}>Next message</button>
     </div>}
-    <div role={n ? "button" : undefined} aria-label={n ? n + " unread: open the next letter" : "No mail"} onClick={n ? onNext : undefined}
-      style={{ position: "relative", width: w, height: H, cursor: n ? "pointer" : "default", pointerEvents: n ? "auto" : "none", filter: "drop-shadow(0 10px 16px rgba(0,0,0,.28))" }}>
-      <div style={{ position: "absolute", width: canvas, height: canvas, left: -canvas * .21, top: -canvas * .2 }}>
-        <img src={"./art/objects/" + (n ? "mailbox-open" : "mailbox-closed") + ".webp"} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
-        {n > 0 && <div style={{ position: "absolute", left: "40.2%", width: "25.8%", top: "41.9%", height: "40%", perspective: canvas * .478, perspectiveOrigin: "50% -60%",
-          clipPath: "polygon(0 0, 100% 0, 100% 17.5%, 160% 17.5%, 160% 100%, -60% 100%, -60% 17.5%, 0 17.5%)" }}>
-          {shown.map((l, i) => i).reverse().map(i => { const l = shown[i], f = FAN[i];
-            return <button key={l.id} onClick={(e) => { e.stopPropagation(); onOpen(l.id); }} aria-label={"Open: " + (l.title || "a letter")}
-              style={{ position: "absolute", left: f.x + "%", top: f.y + "%", width: "94%", padding: 0, border: 0, background: "none", cursor: "pointer", transformOrigin: "50% 0", transform: "rotateX(" + f.rx + "deg) rotateZ(" + f.rz + "deg)", filter: "drop-shadow(0 " + Math.round(w * .05) + "px " + Math.round(w * .025) + "px rgba(0,0,0,.5))" }}>
-              <span style={{ display: "block", position: "relative", animation: fresh && i === 0 ? "sopMailIn .7s cubic-bezier(.2,.8,.2,1)" : undefined }}>
-                <img src={"./art/objects/" + (l.brown ? "mail-edge-brown" : "mail-edge-cream") + ".webp"} alt="" style={{ width: "100%", display: "block" }} />
-                <img src={l.seal} alt="" style={{ position: "absolute", width: "24%", left: f.sx + "%", top: "40%" }} />
-                <span style={{ position: "absolute", left: 0, right: 0, top: 0, height: "42%", background: "linear-gradient(#000 0%, rgba(0,0,0,.85) 45%, rgba(0,0,0,0))" }} />
-              </span>
-            </button>; })}
-        </div>}
+    <div key={"j" + jolt} role={m ? "button" : undefined} aria-label={m ? n + " unread: open the next letter" : "No mail"} onClick={m ? next : undefined}
+      style={{ position: "relative", width: w, height: H, cursor: m ? "pointer" : "default", pointerEvents: m ? "auto" : "none", filter: "drop-shadow(0 10px 16px rgba(0,0,0,.28))", transformOrigin: "50% 100%", animation: jolt && !mailStill() ? "sopMailJolt .38s cubic-bezier(.3,1.6,.5,1)" : undefined }}>
+      <div ref={cvRef} style={{ position: "absolute", width: canvas, height: canvas, left: -canvas * .21, top: -canvas * .2 }}>
+        <img src={"./art/objects/" + (m ? "mailbox-open" : "mailbox-closed") + ".webp"} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />
       </div>
     </div>
   </div>;
@@ -12791,7 +12808,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>}
         {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); openMail(); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
         {/* The mailbox (Pack 31): bottom right of the Desk, where the governor sees the mail. */}
-        {curScreen.id === "desk" && !gEnd && !letterOpen && (mail.length > 0 || !(nav === "gov" && (phase === "budget" || phase === "house_vote"))) && <div data-sop-mailstand style={{ position: "fixed", right: TALL() ? 8 : 24, bottom: TALL() ? "calc(86px + env(safe-area-inset-bottom, 0px))" : 24, zIndex: 55 }}><MailboxStand letters={mailStand()} onNext={() => openMail()} onOpen={(id) => openMail(id)} w={nav === "gov" && (phase === "budget" || phase === "house_vote") ? (TALL() ? 130 : 150) : TALL() ? 180 : 190} /></div>}
+        {curScreen.id === "desk" && !gEnd && !letterOpen && (mail.length > 0 || !(nav === "gov" && (phase === "budget" || phase === "house_vote"))) && <div data-sop-mailstand style={{ position: "fixed", right: TALL() ? 8 : 24, bottom: TALL() ? "calc(86px + env(safe-area-inset-bottom, 0px))" : 24, zIndex: 55 }}><MailboxStand letters={mailStand()} onNext={() => openMail()} w={nav === "gov" && (phase === "budget" || phase === "house_vote") ? (TALL() ? 130 : 150) : TALL() ? 180 : 190} /></div>}
         <div ref={paneRef} style={{ paddingBottom: curScreen.id === "desk" ? (TALL() ? 260 : 40) : 0 }}>
         {nav === "hub" && (() => {
           // The Desk (Lovable's design, sop-screens.css .lv-desk): the compound on the left; four figures, the adviser and the mail on the right.

@@ -123,6 +123,7 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
     }, [SKIP.source, stuck]);
     // Letters wait in the mailbox (Pack 31, bottom right): open the next one, as a player would.
     if (!hit) hit = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-sop-mailbox] button")].find(x => /^Next message$/.test(x.textContent.trim())); if (b) { b.click(); return "btn Next message"; } return null; });
+    if (hit === "btn Next message") await g.wait(1100); // the letter flies out of the slot before it opens
     if (!hit) { if (!(await g.click(/^(Govern|Today)$/))) { await g.click(/^Desk(\s*\d*$|Letters and decisions)/); await g.wait(200); await g.click(/^(Govern|Today)$/); } await g.wait(250); hit = "→ Govern"; }
     clicks.push(hit); if (log) console.log(i, hit);
     await g.wait(300);

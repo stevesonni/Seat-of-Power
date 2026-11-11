@@ -1321,13 +1321,19 @@ step 1 is for everyone. Rules: `express.js`, `plainwords.js`, `drama.js`; tests 
 - The ending points to the presidency: "Run for president with <name>" when the record allows, and a line saying
   how to qualify after a defeat.
 
-## The mailbox (Pack 31, 11 November 2026)
+## The mailbox (Pack 31, 11 November 2026; motion pilot)
 The letter lists are gone. Mail lives in a green Government House letter box in the bottom-right corner of the
-Desk (Compound and Today): open, with the letters popping out of the slot toward the player (their back ends in
-the dark of the opening, a shadow on the box below), the front one showing its wax seal (brown envelopes for official mail: budget, courts, Abuja, House, councils); closed when there is
-nothing. Beside it, "N unread" (red, with the urgent icon, when a letter is urgent) and **Next message**, which
-opens the most urgent letter; tapping a letter opens that one. A letter has "← Close the letter" and, when more
-wait, "Next letter →". The box steps aside while a sheet or pop-up is open, and during the budget and the House
-vote shows only when letters wait, smaller. The year-end mail card now only says how many letters wait (or that
-all are answered) and holds the way on to the next year. The test bot opens letters with Next message, handles
-them personally, and leaves the Chief of Staff's "Fire" link alone.
+Desk (Compound and Today). After two looks with letters drawn sitting in the slot (they always looked stuck on:
+a flat envelope never matches the painted box's light and angle), the owner chose to pilot motion instead,
+until players complain:
+- At rest: the flap is open when mail waits and shut when there is none. Nothing sits in the slot. Beside the
+  box, "N unread" wears the seal of the most urgent letter (red, with the urgent icon, when it is urgent), and
+  **Next message**.
+- Next message (or a tap on the box): the box jolts, the envelope (`letter-sealed.webp`, with the letter's own
+  seal laid over the painted one) rises out of the slot from behind the rim, arcs to the middle of the screen,
+  grows, and the letter opens. A letter has "← Close the letter" and, when more wait, "Next letter →".
+- A new letter: an envelope drops from the top of the screen into the slot, the box jolts and the count pops.
+- The envelope flies at the page's own scale (phones draw the page at about 65%; it measures that and corrects).
+  No motion with reduced motion on. The box steps aside under sheets and pop-ups, and during the budget and the
+  House vote shows only when letters wait, smaller.
+- Demo of the motion: the "Mailbox Motion Study" artifact.
