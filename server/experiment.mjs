@@ -16,6 +16,12 @@ export const PILLARS = [
   { id: "stagger", nm: "A gentler first year", d: "Year 1 is the people, the House and a three-choice budget; the cabinet and the palaces are formed for you; the Treasury visit is optional." },
   { id: "words", nm: "Plain words", d: "At most two sentences and 25 words on a card, and everyday words for the jargon (the real term stays in the glossary)." },
   { id: "drama", nm: "Headlines and calls", d: "A front page after each big decision, calls from the godfather, and the life story as a five-line card to share." },
+  // Round three (12 November 2026): "I am the Governor" (the owner's research and Grok's review).
+  { id: "juice", nm: "Power you can see", d: "Meter changes show how big and whether good or bad; money flies into and out of the Treasury." },
+  { id: "why", nm: "Because you…", d: "When an earlier decision pays off or bites back, a card names it and the year you made it." },
+  { id: "reach", nm: "Power within reach", d: "A Next button on every tab, and the Governor's powers (fire, inspect, address the people, the godfather) one tap from the Desk." },
+  { id: "capital", nm: "Political capital", d: "Big moves are political capital: a little more each year, more earned by good approval, a strong Chief of Staff and kept promises." },
+  { id: "purse", nm: "A fairer purse", d: "A little more money in year one, and a clear way to refuse the godfather's loan in every start." },
 ];
 export const PILLAR_IDS = PILLARS.map(p => p.id);
 export const EXP_KEY = "sop_exp";
@@ -77,7 +83,7 @@ export const dropOff = (S, now = Date.now(), idleMs = 30 * 60e3, only = null) =>
   return { players: L.length, left: n, here: L.length - n, screens: Object.entries(by).map(([v, k]) => ({ screen: v, n: k, pct: n ? Math.round(k / n * 1000) / 10 : 0 })).sort((a, b) => b.n - a.n) };
 };
 /* The same, for each half of a pillar: who had it on, who had it off (from the exp_<id> events). */
-export const DROP_PILLARS = ["start", "screen", "stagger", "words", "drama"];
+export const DROP_PILLARS = ["start", "screen", "stagger", "words", "drama", "juice", "why", "reach", "capital", "purse"];
 export const dropOffSplit = (S, id, now = Date.now(), idleMs = 30 * 60e3) => {
   const E = ((S && S.ev) || {})["exp_" + id] || { values: {} }, half = (g) => new Set(Object.keys((E.values[g] || {}).p || {}));
   return { id, on: dropOff(S, now, idleMs, half("on")), off: dropOff(S, now, idleMs, half("off")) };

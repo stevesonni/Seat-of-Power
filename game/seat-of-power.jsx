@@ -3080,23 +3080,41 @@ const ANCHORS = { m: { first: "Ibrahim", last: "Danjuma" }, f: { first: "Funmi",
 // a bubble pointing at whoever is speaking, and their names on the bar.
 // One of the four numbers in the top strip: an icon, the value, a thin meter,
 // and a short flash with the change when it moves (green good, red bad).
+/* Coins that fly out of (or into) the Treasury meter (pillar "juice"): drawn over everything at the page's own
+   scale, transform and opacity only, a handful at most. */
+const coinFly = (el, out, n) => { try {
+  if (!el || !document.body.animate || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const r = el.getBoundingClientRect(); if (!r.width) return;
+  for (let i = 0; i < n; i++) { const c = document.createElement("img"); c.src = "./art/objects/coin-" + (1 + (i % 4)) + ".webp"; c.alt = ""; c.setAttribute("aria-hidden", "true");
+    c.style.cssText = "position:fixed;left:0;top:0;width:22px;height:22px;z-index:9001;pointer-events:none"; document.body.appendChild(c);
+    const z = (c.getBoundingClientRect().width / 22) || 1, x0 = r.left + r.width * (.3 + .4 * Math.random()), y0 = r.top + r.height * .5, dx = (Math.random() - .5) * 90, dy = 80 + Math.random() * 90;
+    const at = (x, y, sc, rot) => "translate(" + (x / z - 11) + "px," + (y / z - 11) + "px) scale(" + sc + ") rotate(" + rot + "deg)";
+    const k = out ? [{ transform: at(x0, y0, .9, 0), opacity: 1 }, { transform: at(x0 + dx, y0 + dy, .7, 240), opacity: 0 }] : [{ transform: at(x0 + dx, y0 + dy, .7, -200), opacity: 0 }, { transform: at(x0, y0, 1, 0), opacity: 1, offset: .85 }, { transform: at(x0, y0, .4, 0), opacity: 0 }];
+    c.animate(k, { duration: 650 + i * 60, delay: i * 70, easing: out ? "cubic-bezier(.3,.6,.5,1)" : "cubic-bezier(.2,.8,.3,1)", fill: "forwards" }).finished.catch(() => {}).then(() => c.remove()); }
+} catch (e) {} };
 const StatPill = ({ label, value, color, icon, pct, raw, invert, dark, words }) => {
-  const prev = React.useRef(raw), [d, setD] = useState(null);
+  const prev = React.useRef(raw), [d, setD] = useState(null), ref = React.useRef(null);
+  const money = label === "In the bank" || label === "Treasury", juice = pillarOn("juice");
   useEffect(() => {
     const p = prev.current; prev.current = raw;
-    if (p == null || raw == null || Math.abs(raw - p) < (label === "In the bank" || label === "Treasury" ? .05 : .5)) return;
-    const up = raw > p; setD({ up, good: invert ? !up : up, txt: words ? (up ? "▲" : "▼") : label === "In the bank" ? (up ? "+" : "−") + naira(Math.abs(raw - p)) : (up ? "+" : "−") + Math.round(Math.abs(raw - p)), k: Date.now() });
-    const t = setTimeout(() => setD(null), 1800); return () => clearTimeout(t);
+    if (p == null || raw == null || Math.abs(raw - p) < (money ? .05 : .5)) return;
+    const up = raw > p, mag = Math.abs(raw - p);
+    // Pillar "juice": small, medium and big changes look different (one, two or three arrows; a pulse ring when big).
+    const tier = !juice ? 1 : money ? (mag >= 2 ? 3 : mag >= .5 ? 2 : 1) : (mag >= 8 ? 3 : mag >= 3 ? 2 : 1), arrows = (up ? "▲" : "▼").repeat(tier);
+    const num = money ? (up ? "+" : "−") + naira(mag) : (up ? "+" : "−") + Math.round(mag);
+    setD({ up, good: invert ? !up : up, tier, txt: words ? (juice ? arrows : up ? "▲" : "▼") : juice && tier > 1 ? num + " " + arrows.slice(0, tier - 1) : num, k: Date.now() });
+    if (juice && money && mag >= .2) coinFly(ref.current, !up, Math.min(7, 2 + tier * 2));
+    const t = setTimeout(() => setD(null), juice ? 1600 + tier * 500 : 1800); return () => clearTimeout(t);
   }, [raw]);
   const tall = TALL(), ink = dark ? "#f3f7ef" : CL.txt;
-  return <span style={{ position: "relative", display: "grid", gridTemplateColumns: tall ? "1fr" : "auto 1fr", alignItems: "center", columnGap: 10, minWidth: 0, textAlign: "left" }}>
+  return <span ref={ref} key={d && d.tier === 3 ? "r" + d.k : "s"} style={{ position: "relative", display: "grid", gridTemplateColumns: tall ? "1fr" : "auto 1fr", alignItems: "center", columnGap: 10, minWidth: 0, textAlign: "left", borderRadius: 10, animation: d && d.tier === 3 ? "sopMeterRing" + (d.good ? "Good" : "Bad") + " 1.1s ease-out 2" : undefined }}>
     {!tall && <span style={{ gridRow: "span 2", width: 46, height: 46, borderRadius: "50%", background: dark ? "rgba(255,255,255,.1)" : CL.bg, display: "grid", placeItems: "center" }}><Ico n={icon} s={32} /></span>}
     <b style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0 }}>{tall && <Ico n={icon} s={17} />}<span key={d ? d.k : 0} className={d ? "sop-bump" : ""} style={{ fontFamily: F.m, fontSize: tall ? TS(22) : TS(38), lineHeight: 1.05, whiteSpace: "nowrap", color: d ? (d.good ? "#2fbf71" : "#ff6b5e") : ink, overflow: "hidden", textOverflow: "ellipsis" }}>{value}</span></b>
     <span style={{ display: "grid", gap: 3, minWidth: 0 }}>
       {pct != null ? <span style={{ height: tall ? 4 : 5, borderRadius: 3, background: dark ? "rgba(255,255,255,.15)" : CL.bdr, overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.max(4, Math.min(100, pct)) + "%", background: color || "#2fa866", transition: "width .6s ease" }} /></span> : null}
       <span style={{ fontSize: tall ? TS(14) : TS(21), opacity: .75, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: pct == null && color ? color : undefined }}>{tall && label === "In the bank" ? "Bank" : label}</span>
     </span>
-    {d && <span className="sop-delta" style={{ position: "absolute", right: 0, top: words ? (tall ? -16 : -22) : tall ? -12 : -18, fontSize: tall ? TS(15) : TS(22), fontWeight: 800, color: "#fff", background: d.good ? "#2fa866" : "#e0574c", borderRadius: 999, padding: "1px 7px", pointerEvents: "none" }}>{d.txt}</span>}
+    {d && <span className="sop-delta" style={{ position: "absolute", right: 0, top: words ? (tall ? -16 : -22) : tall ? -12 : -18, fontSize: (tall ? TS(15) : TS(22)) * (d.tier === 3 ? 1.3 : d.tier === 2 ? 1.12 : 1), letterSpacing: d.tier > 1 ? -1 : 0, whiteSpace: "nowrap", fontWeight: 800, color: "#fff", background: d.good ? "#2fa866" : "#e0574c", borderRadius: 999, padding: "1px 7px", pointerEvents: "none" }}>{d.txt}</span>}
   </span>;
 };
 
@@ -3344,6 +3362,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   const [sCampDays, setSCampDays] = useState(0); // campaign days spent on this week's main move
   const [election, setElection] = useState(null); // the first election's result, for the Wikipedia article
   const [warChest, setWarChest] = useState(0.8); // ₦800M starting campaign funds
+  const [peoplesFund, setPeoplesFund] = useState(false); // pillar "purse": the people's fund, once a campaign
   // Fees your company earned from other governors go into this campaign.
   useEffect(() => { let off = false; (async () => { try { const r = window.SOP_companyClaim ? await window.SOP_companyClaim() : null; if (off || !r || !(r.amountM > 0)) return; setWarChest(w => Math.round((w + r.amountM / 1000) * 100) / 100); window.SOP_outcome && window.SOP_outcome({ icon: "💼", title: r.name + " paid in", text: r.hires + " governor" + (r.hires === 1 ? "" : "s") + " hired your company. Its fees go into this campaign's war chest.", rows: [{ l: "War chest", v: "+" + SYS.fmtM(r.amountM), good: true }], tone: "good", ok: "Good" }); } catch (e) {} })(); return () => { off = true; }; }, []);
   // Personal campaign loans from the godfather: one record per accepted offer
@@ -3924,6 +3943,9 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       setStep(4);
     };
 
+    // Pillar "purse": a clean way to keep going without the godfather: small donations from supporters.
+    const askThePeople = () => { if (peoplesFund) return; setPeoplesFund(true); setWarChest(w => w + .35); setSCampScore(sc => sc + 15);
+      setSCampLog(c => [...c, "🤲 THE PEOPLE'S FUND: ₦0.35B in small donations from traders, students and the diaspora. Less money, but you owe nobody."]); track("purse_fund", "campaign"); };
     const borrowFromGF = () => {
       const amount = 0.8; // ₦800M from godfather
       if (gfLoans.some(l => l.key === "campaign")) return;
@@ -4057,6 +4079,10 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
             zones={pollZones} swingId={swingZone.id} money={warChest} days={daysLeft} maxDays={WEEK_DAYS} gfDebt={gfDebt} slogan={slogan} lastLog={sCampLog.length ? sCampLog[sCampLog.length - 1] : null} ev={isOpp ? oppEvts[Math.floor(sCampRound / 2)] : null} />
 
           {/* Money trouble */}
+          {!isOpp && warChest < 0.2 && !peoplesFund && pillarOn("purse") && <Cd onClick={askThePeople} style={{ padding: tall ? 14 : 20, borderColor: CL.grn + "55", marginBottom: 12 }}>
+            <div style={{ fontSize: fz.m, fontWeight: 700, color: CL.grn }}>🤲 Ask the people: a ₦0.35B fund of small donations</div>
+            <div style={{ fontSize: fz.s, color: CL.td }}>Less than the godfather offers, but you owe nobody once you win.</div>
+          </Cd>}
           {!isOpp && warChest < 0.2 && !gfBorrowed && level !== "easy" && <Cd onClick={borrowFromGF} style={{ padding: tall ? 14 : 20, borderColor: CL.red + "44", marginBottom: 12 }}>
             <div style={{ fontSize: fz.m, fontWeight: 700, color: CL.red }}>🎩 Borrow ₦0.8B from the godfather</div>
             <div style={{ fontSize: fz.s, color: CL.td }}>The debt follows you into office, and he will collect.</div>
@@ -5549,7 +5575,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [courtsSeen, setCourtsSeen] = useState(ld?.courtsSeen || []);
   const [nicPending, setNicPending] = useState(ld?.nicPending || null);
   const [narrative, setNarrative] = useState(ld?.narrative || "survivor");
-  const [delayedFx, setDelayedFx] = useState(ld?.delayedFx || []); // [{turn, fx, desc}]
+  const [delayedFx, setDelayedFx] = useState(ld?.delayedFx || []); // [{turn, fx, desc, made, from}]
+  // "Because you…" (pillar "why"): effects of earlier decisions that land this year are gathered into one card
+  // that names each decision and the year it was made (SYS.becauseCard). Each one is shown once.
+  const becauseQ = React.useRef([]), becauseT = React.useRef(null), becauseSeen = React.useRef(new Set());
+  const because = (items) => { if (!pillarOn("why")) return;
+    const L = (items || []).filter(x => x && x.from && !becauseSeen.current.has((x.made || 0) + "|" + x.from + "|" + (x.desc || x.id || ""))); if (!L.length) return;
+    L.forEach(x => becauseSeen.current.add((x.made || 0) + "|" + x.from + "|" + (x.desc || x.id || ""))); becauseQ.current.push(...L); clearTimeout(becauseT.current);
+    becauseT.current = setTimeout(() => { const card = SYS.becauseCard(becauseQ.current, setup?.startYear || 2027); becauseQ.current = []; if (card) try { window.SOP_outcome(card); track("because", String(card.rows.length)); } catch (e) {} }, 1800); };
+  const becauseLine = (d) => pillarOn("why") && d.from ? " (because you " + d.from + " in " + ((setup?.startYear || 2027) + (d.made || 1) - 1) + ")" : "";
   const [hiddenThreats, setHiddenThreats] = useState(ld?.hiddenThreats || []); // [{id, ministry, severity, desc, turn}]
   const [hiddenRevealed, setHiddenRevealed] = useState(ld?.hiddenRevealed || []);
   const [bud, setBud] = useState(ld?.bud || { education: 15, health: 12, infrastructure: 18, security: 12, agriculture: 10, administration: 8, salaries: 18, debt: 7 });
@@ -5884,14 +5918,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      the House takes three bills a year, and every order adds to the charge of
      ruling by decree. The Chief of Staff is read through a ref (declared later). */
   const cosRef = React.useRef(null);
-  const agendaBonusNow = () => { const c0 = cosRef.current && cosRef.current.cos, C = typeof c0 === "string" ? SYS.cosById(c0) : c0; return SYS.agendaBonus({ cosComp: (C && C.comp) || 0, perfs: (ministries || []).filter(m => m.minister).map(m => m.perf), app: s.app }); };
+  const stcRef = React.useRef(null); // the state record, read by agendaBonusNow (declared before stc)
+  const agendaBonusNow = () => { const c0 = cosRef.current && cosRef.current.cos, C = typeof c0 === "string" ? SYS.cosById(c0) : c0; const B = SYS.agendaBonus({ cosComp: (C && C.comp) || 0, perfs: (ministries || []).filter(m => m.minister).map(m => m.perf), app: s.app });
+    // Pillar "capital": big moves become political capital: a governor's mandate adds two a year, and keeping
+    // last year's flagship promise earns one more (on top of the cabinet, the Chief of Staff and approval).
+    if (pillarOn("capital")) { const F0 = stcRef.current && stcRef.current.flagship, kept = turn > 1 && F0 && F0.targets && (F0.met || 0) >= Math.min(F0.targets, turn - 1);
+      B.parts = [{ l: "Your mandate as " + (NAT ? "President" : "Governor"), n: 2 }, ...(kept ? [{ l: "You kept your flagship promise", n: 1 }] : []), ...B.parts]; B.n = B.parts.reduce((a, x) => a + x.n, 0); }
+    return B; };
+  const CAP = pillarOn("capital"), movesWord = CAP ? "political capital" : "big moves";
   const agendaSizeNow = () => SYS.agendaSize(setup?.level || "medium", agendaBonusNow().n);
   const agendaLeftNow = SYS.agendaLeft(agenda, turn, setup?.level || "medium", agendaBonusNow().n);
   // The agenda, explained: what counts, what does not, and what this year's went on.
   const explainAgenda = () => {
     const B = agendaBonusNow(), size = agendaSizeNow(), used = (agenda && agenda.turn === turn ? agenda.used : []) || [];
     const bl = SYS.billsLeft(agenda, turn), ords = SYS.ordersThisYear(agenda, turn);
-    try { window.SOP_outcome({ icon: "🗓️", title: size + " big moves this year", text: (used.length ? "You have used " + used.length + ", " + (size - used.length) + " left. " : "None used yet. ") + "Big moves are projects, revenue reforms, new ministries and investigations. Programmes do not count either: they are limited by money and by each ministry's capacity (two at a time per sector, three with a strong " + (NAT ? "minister" : "commissioner") + "). Bills and executive orders do not count: the " + (NAT ? "National Assembly" : "House") + " takes up to " + SYS.BILLS_A_YEAR + " of your bills a year (" + bl + " left), and orders are free, but more than three a year and the press calls it rule by decree. Never counted: letters, complaints, visits, meetings, the budget and appointments.",
+    try { window.SOP_outcome({ icon: CAP ? "⚡" : "🗓️", title: size + (CAP ? " political capital this year" : " big moves this year"), text: (used.length ? "You have used " + used.length + ", " + (size - used.length) + " left. " : "None used yet. ") + (CAP ? "You earn more with approval above 60, a capable Chief of Staff, strong commissioners and a kept flagship promise. It refills every January. " : "") + "Big moves are projects, revenue reforms, new ministries and investigations. Programmes do not count either: they are limited by money and by each ministry's capacity (two at a time per sector, three with a strong " + (NAT ? "minister" : "commissioner") + "). Bills and executive orders do not count: the " + (NAT ? "National Assembly" : "House") + " takes up to " + SYS.BILLS_A_YEAR + " of your bills a year (" + bl + " left), and orders are free, but more than three a year and the press calls it rule by decree. Never counted: letters, complaints, visits, meetings, the budget and appointments.",
       rows: [{ l: (setup?.level || "medium").replace(/^./, c => c.toUpperCase()) + " level", v: String(SYS.agendaSize(setup?.level || "medium")), good: true }].concat(B.parts.map(p => ({ l: p.l, v: "+" + p.n, good: true })), [{ l: "Bills this year", v: (SYS.BILLS_A_YEAR - bl) + " of " + SYS.BILLS_A_YEAR, good: bl > 0 }, { l: "Executive orders this year", v: String(ords), good: ords <= 3 }], used.map(u => ({ l: u.label, v: "used", good: true }))), tone: "neutral",
       learn: "Real leaders face the same limit: the civil service can carry only a few big reforms at once, and the legislature only so many bills in a session. A strong cabinet carries more for you." }); } catch (e) {}
   };
@@ -5899,7 +5940,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const B = agendaBonusNow(), r = SYS.spendAgenda(agendaRef.current, turn, setup?.level || "medium", { kind, label, key }, B.n);
     if (!r.ok) {
       try { window.SOP_outcome(r.why === "bills" ? { icon: "📜", title: "The " + (NAT ? "National Assembly" : "House") + " has your three bills for this year", text: "Members will not take another bill from you this year. Programmes, projects and executive orders are still open; the next bill can go in next year.", tone: "neutral" }
-        : { icon: "🗓️", title: "This year's big moves are used", text: "You have made " + agendaSizeNow() + " big moves this year (" + r.agenda.used.map(u => u.label).slice(-3).join(", ") + "…). Bills, executive orders, letters, complaints and visits are still open. A stronger cabinet earns more big moves next year.", tone: "neutral" }); } catch (e) {}
+        : { icon: "🗓️", title: CAP ? "Your political capital is spent for this year" : "This year's big moves are used", text: CAP ? "You have spent " + agendaSizeNow() + " this year (" + r.agenda.used.map(u => u.label).slice(-3).join(", ") + "…). Bills, orders, letters and visits are still open. Earn more next year: approval above 60, a capable Chief of Staff, strong commissioners, a kept promise." : "You have made " + agendaSizeNow() + " big moves this year (" + r.agenda.used.map(u => u.label).slice(-3).join(", ") + "…). Bills, executive orders, letters, complaints and visits are still open. A stronger cabinet earns more big moves next year.", tone: "neutral" }); } catch (e) {}
       return false;
     }
     agendaRef.current = r.agenda; setAgenda(r.agenda);
@@ -6154,6 +6195,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // House, state crises, succession). Runs once a year when the
   // events are built; its decisions arrive as "sc" cards.
   const [stc, setStc] = useState(() => ld?.stc || { oldDebt: { total: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, kind: null }, lastTurn: 0, arrears: scenarioStart(setup).arrears || 0, arrearsMax: scenarioStart(setup).arrears || 0, house: scenarioStart(setup).houseLoyal ? (() => { const seats = houseSeats(sd.pop || 5); return { seats, loyal: Math.max(Math.round(seats * scenarioStart(setup).houseLoyal), seats - Math.ceil(seats * 2 / 3) + 1) }; })() : null, ultimatum: false, strike: false, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
+  stcRef.current = stc;
   const [scCards, setScCards] = useState([]);
   const [promOpen, setPromOpen] = useState(false);
   const [needsAll, setNeedsAll] = useState(false);
@@ -6440,7 +6482,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/" + SYS.UNIONS.nlc.img(NAT) + "-angry.webp", bg: "./art/scenes/nlc-march.webp", name: SYS.UNIONS.nlc.leader(NAT), text: U.line, urgent: true, ok: "Continue" } }); } catch (e) {} paper(U.paper[0], U.paper[1], false, "./art/scenes/nlc-march.webp"); }, 900);
       addL("⏳ " + U.title + ": reverse it or face an indefinite strike.", "crisis");
     }
-    const now = (a.sched || []).filter(x => x.k === 0), later = (a.sched || []).filter(x => x.k > 0).map(x => ({ ...x, t: turn + x.k, id: m.id }));
+    const now = (a.sched || []).filter(x => x.k === 0), later = (a.sched || []).filter(x => x.k > 0).map(x => ({ ...x, t: turn + x.k, id: m.id, made: turn, from: "adopted " + m.t.charAt(0).toLowerCase() + m.t.slice(1) }));
     if (now.length) setS(p => applyRev(p, now));
     if (a.cashNow) noteMoney({ icon: m.icon, head: "Ghost workers purged", text: "The payroll audit removed names that drew salaries but did not exist: " + naira(a.cashNow) + " freed into the bank this year, and the same every year after.", amtB: a.cashNow, cash: true });
     setStc(p => ({ ...p, rev: { ...(p.rev || {}), [m.id]: turn }, revSched: [...(p.revSched || []), ...later], revCount: { t: turn, n: (p.revCount && p.revCount.t === turn ? p.revCount.n : 0) + 1 } }));
@@ -6508,7 +6550,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       trade: p.trade ? SYS.tradeApply(p.trade, { floated: true, food: 10, premium: -prem }, turn) : p.trade }; });
     // VAT to 10%, adopted with the programme.
     const m = REVM().find(x => x.id === "f_vat");
-    if (m && (stc.rev || {}).f_vat == null) { const a = m.adopt({ s, stc, turn }), now = (a.sched || []).filter(x => x.k === 0), later = (a.sched || []).filter(x => x.k > 0).map(x => ({ ...x, t: turn + x.k, id: m.id }));
+    if (m && (stc.rev || {}).f_vat == null) { const a = m.adopt({ s, stc, turn }), now = (a.sched || []).filter(x => x.k === 0), later = (a.sched || []).filter(x => x.k > 0).map(x => ({ ...x, t: turn + x.k, id: m.id, made: turn, from: "adopted " + m.t.charAt(0).toLowerCase() + m.t.slice(1) }));
       if (now.length) setS(p => applyRev(p, now)); setStc(p => ({ ...p, rev: { ...(p.rev || {}), f_vat: turn }, revSched: [...(p.revSched || []), ...later] })); }
     scFx({ app: -4 }); setS(p => ({ ...p, debt: Math.round(((p.debt || 0) + T) * 10) / 10 }));
     noteMoney({ icon: "🌐", head: "The IMF's first tranche", text: "The IMF programme is approved: " + naira(T) + " arrives, with the naira floated, the fuel subsidy gone, a borrowing ceiling and VAT at 10%.", amtB: T, cash: true });
@@ -7348,6 +7390,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const add = due.reduce((a, x) => a + (x.revIGR || 0), 0), pay = -due.reduce((a, x) => a + (x.debt || 0), 0), eff = due.reduce((a, x) => a + (x.taxEff || 0), 0);
       notes.push(["💰 Revenue reforms paying off: " + [add ? "+₦" + add.toFixed(1) + "B a year" : null, eff ? "taxes collected +" + Math.round(eff * 100) + "%" : null, pay ? "₦" + pay.toFixed(1) + "B of debt repaid" : null].filter(Boolean).join(", ") + ".", "success"]);
       next.revSched = (next.revSched || []).filter(x => x.t > turn);
+      because(due.map(x => ({ ...x, desc: "A revenue reform is paying off" })));
     }
 
     // Replay variety: this run's people and situation (SYS.rollPersonas, SYS.SITUATIONS).
@@ -7672,14 +7715,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const lost = vote.lost.filter(x => !vote.close.includes(x));
             scFx({ app: -1, cor: .02, pStab: 2 }); oppZof(lost).forEach(z => scFx({}, z, -2));
             setStc(p => ({ ...p, lg: { mode: "nudged", oppZones: oppZof(lost), oppLGAs: lost.map(x => x.lga), turn } }));
-            setDelayedFx(d => [...d, { turn: turn + 1, fx: { app: -2, pStab: -1 }, desc: "The tribunal is hearing petitions over the council results in " + names(vote.close, 3) + "; the papers call it rigging." }]);
+            setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "ran the local council elections", fx: { app: -2, pStab: -1 }, desc: "The tribunal is hearing petitions over the council results in " + names(vote.close, 3) + "; the papers call it rigging." }]);
             addL("🗳️ The commission 'reviewed' the close councils. You won " + (vote.won.length + vote.close.length) + " of " + N + ".", "political");
             return result(vote.won.length + vote.close.length, lost, "The close ones went your way. The losers are heading to the tribunal.");
           } }] : [])
         .concat([
           { label: "Make sure we win every council", chips: fxChips({ app: -3, cor: .03, pStab: 4 }), run: () => {
             scFx({ app: -3, cor: .03, pStab: 4 }); setStc(p => ({ ...p, lg: { mode: "rigged", oppZones: [], oppLGAs: [], turn } }));
-            setDelayedFx(d => [...d, { turn: turn + 1, fx: { app: -3 }, desc: "Protests in " + names(vote.lost, 3) + " over last year's council 'sweep' still have not died down." }]);
+            setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "swept the local council elections", fx: { app: -3 }, desc: "Protests in " + names(vote.lost, 3) + " over last year's council 'sweep' still have not died down." }]);
             addL("🗳️ The ruling party 'won' all " + N + " councils. Observers called it a coronation.", "crisis");
             scWiki("Controversies", "The ruling party won every council in local elections that observers described as a sham.");
             return { icon: "🗳️", title: "A clean sweep: " + N + " of " + N, text: "Observers walked out. Where you really lost (" + names(vote.lost, 3) + "), people are angry.", tone: "bad" };
@@ -7822,7 +7865,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const k = SYS.wildcardFor(next.pseed || 7, turn, { gfDead: next.gf === "dead", speaker: !!(next.leg && next.leg.speaker), ministries: (ministries || []).filter(m => m.minister) }); if (k) { next.wild = { id: k.id, turn }; track("wildcard", k.id);
         cards.push({ key: "wild_" + k.id, kicker: "Nobody planned for this", color: CL.red, art: k.art, title: k.t, brief: k.d, stakes: k.stakes,
           options: k.opts.map(o => ({ label: o.l, note: o.note, chips: fxChips(o.fx || {}), run: () => { scFx(o.fx || {}); if (o.house) setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + o.house * MEM)) } }) : p);
-            if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, fx: o.later.fx, desc: o.later.desc }]); track("wildcard_" + k.id, o.id); addL("⚡ " + k.t + ": " + o.out, (o.fx && (o.fx.app || 0) < 0) ? "crisis" : "political");
+            if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "chose “" + o.l + "”", fx: o.later.fx, desc: o.later.desc }]); track("wildcard_" + k.id, o.id); addL("⚡ " + k.t + ": " + o.out, (o.fx && (o.fx.app || 0) < 0) ? "crisis" : "political");
             return { icon: "⚡", title: o.l, text: o.out, rows: [], tone: (o.fx && (o.fx.app || 0) < 0) ? "bad" : "neutral" }; } })) }); } } } catch (e) { console.error("[wildcard]", e); }
     next.asked = asked;
     // Headlines and calls (pillar "drama"): the godfather rings once a year, late at night.
@@ -7936,7 +7979,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             if (o.debt && !spendB(o.debt, o.label + " (" + ru.name + ")")) return;
             scFx(o.fx, zone, o.dz);
             setCouncil(c0 => c0 ? { ...c0, rulers: c0.rulers.map(x => x.id === ru.id ? { ...x, rel: Math.max(0, Math.min(100, x.rel + o.rel)), kinds: [...(x.kinds || []).slice(-1), M.kind], promise: o.promise ? { ...o.promise, due: turn + 1 } : o.clear ? null : x.promise } : x) } : c0);
-            if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, fx: { app: o.later.app }, desc: o.later.desc }]);
+            if (o.later) setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "chose “" + o.label + "” with " + ru.name, fx: { app: o.later.app }, desc: o.later.desc }]);
             addL("👑 " + ru.name + ": you " + o.log + ".", o.res[2] === "bad" ? "political" : "policy"); track("ruler_" + M.kind, o.label);
             return { icon: "👑", title: o.res[0], text: o.res[1], tone: o.res[2], rows: [{ l: who, v: (o.rel > 0 ? "+" : "") + o.rel, good: o.rel > 0 }].concat(o.dz ? [{ l: ["North", "Central", "South"][zone] + " zone", v: (o.dz > 0 ? "+" : "") + o.dz, good: o.dz > 0 }] : []) };
           } })) });
@@ -8815,7 +8858,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (gEnd) return;
     if (s.cash == null) {
       const fresh = turn === 1 && (phase === "budget" || phase === "house_vote");
-      const a = SYS.yearAccounts(s, bud), owed = fresh ? SYS.inheritedDebtB(s) : 0;
+      const purse = fresh && pillarOn("purse") && !NAT; // pillar "purse": a quarter less inherited debt
+      const a = SYS.yearAccounts(s, bud), owed = fresh ? Math.round(SYS.inheritedDebtB(s) * (purse ? .75 : 1) * 10) / 10 : 0;
       setS(p => ({ ...p, cash: fresh ? 0 : a.workB, cashYear: fresh ? 0 : turn, debt: (p.debt || 0) + owed }));
       if (owed) setStc(p => ({ ...p, oldDebt: { total: owed, kind: null } }));
       return;
@@ -8843,6 +8887,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         .concat(bills ? [{ l: "Bills left unpaid", v: "−" + naira(bills), good: false }] : [])
         .concat([{ l: "In the bank", v: naira(total), good: total > 0 }, { l: "Still owed", v: naira(Math.max(0, a.debtAfter - payNow)), good: false }]) }); } catch (e) {}
   }, [phase, turn, s.cash == null, oldPlan && oldPlan.kind]);
+  // Pillar "purse": in year one the outgoing government leaves about six weeks of salaries in the bank (once).
+  useEffect(() => {
+    if (gEnd || NAT || turn !== 1 || !pillarOn("purse") || s.cash == null || stc.handover) return;
+    const hand = Math.max(.5, Math.round(monthWage() * 1.5 * 10) / 10);
+    setStc(p => ({ ...p, handover: hand })); setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + hand) * 100) / 100 }));
+    setTimeout(() => { try { noteMoney({ icon: "🏦", head: "The handover balance", text: "Your predecessor left " + naira(hand) + " in the bank: about six weeks of salaries. Spend it well.", amtB: hand, cash: true }); } catch (e) {} track("purse_hand", String(hand)); }, 1200);
+  }, [turn, s.cash == null, stc.handover]);
   // The three ways to deal with the last government's debt, with what each leaves you.
   const chooseOldDebt = (kind, auto = false) => {
     // Re-planned at the council after the money came in: pay from the bank now, or spread what is left.
@@ -9531,9 +9582,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "policy_enacted", actor: "governor", gravity: 1, evidence: 3, financial: p.c, decision: "Enacted " + p.nm, note: p.d, beneficiaries: [forS], losers: [againstS], relatedEntity: "policy:" + p.id, meta: { id: p.id, sector: p.s, flagship: !!onFlag } }); } catch (e) {}
     if (p.id === "anti_cor" || p.id === "digi_gov") setNRef(r => r + 1);
     // TIME DELAY: some policies have delayed payoffs
-    if (p.s === "education") setDelayedFx(d => [...d, { turn: turn + 3, fx: { lit: .03, app: 5 }, desc: p.nm + " is showing results — literacy rising, schools improving." }]);
-    if (p.s === "health") setDelayedFx(d => [...d, { turn: turn + 2, fx: { hp: .02, app: 3 }, desc: p.nm + " impact: health outcomes improving across the state." }]);
-    if (p.s === "agriculture") setDelayedFx(d => [...d, { turn: turn + 2, fx: { agr: .03, igr: 0.5 }, desc: p.nm + " paying off — harvest yields up, farm revenue flowing." }]);
+    if (p.s === "education") setDelayedFx(d => [...d, { turn: turn + 3, made: turn, from: "funded " + p.nm.replace(/^⭐\s*/, ""), fx: { lit: .03, app: 5 }, desc: p.nm + " is showing results — literacy rising, schools improving." }]);
+    if (p.s === "health") setDelayedFx(d => [...d, { turn: turn + 2, made: turn, from: "funded " + p.nm.replace(/^⭐\s*/, ""), fx: { hp: .02, app: 3 }, desc: p.nm + " impact: health outcomes improving across the state." }]);
+    if (p.s === "agriculture") setDelayedFx(d => [...d, { turn: turn + 2, made: turn, from: "funded " + p.nm.replace(/^⭐\s*/, ""), fx: { agr: .03, igr: 0.5 }, desc: p.nm + " paying off — harvest yields up, farm revenue flowing." }]);
     const later = { education: "In 3 years: literacy up, approval +5.", health: "In 2 years: better health, approval +3.", agriculture: "In 2 years: bigger harvests, revenue +₦0.5B." }[p.s];
     if (combo) return { icon: "★", img: decArt(p.id) || undefined, title: "Combo: " + combo.nm, text: combo.d + " " + p.nm.replace(/^⭐\s*/, "") + " launched at " + naira(perH) + " a year.", rows: Object.entries(combo.fx).map(([k, v]) => ({ l: ({ app: "Approval", agr: "Farms", sec: "Security", hp: "Health", lit: "Education", corM: "Corruption" })[k] || k, v: (v > 0 ? "+" : "−") + (k === "app" ? Math.abs(v) : Math.round(Math.abs(v) * 100)), good: k === "corM" ? v < 0 : v > 0 })), tone: "good" };
     return { icon: "📋", img: decArt(p.id) || undefined, title: p.nm.replace(/^⭐\s*/, "") + " launched", text: naira(perH) + " a year for " + p.t + (p.t === 1 ? " year." : " years.") + " " + forS + " welcome it; " + againstS.toLowerCase() + " object." + (later ? " " + later : ""), tone: "good" };
@@ -10518,8 +10569,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           if (d.fx.infra) n.infra = cl(n.infra + d.fx.infra);
           if (d.fx.cor) n.cor = cl(n.cor + d.fx.cor);
           if (d.fx.igr) n.igr += d.fx.igr;
-          addL("⏰ DELAYED EFFECT: " + d.desc, d.fx.app > 0 || d.fx.igr > 0 ? "success" : "crisis");
+          addL("⏰ DELAYED EFFECT: " + d.desc + becauseLine(d), d.fx.app > 0 || d.fx.igr > 0 ? "success" : "crisis");
         });
+        if (now.length) setTimeout(() => because(now), 0);
         return later;
       });
 
@@ -11751,7 +11803,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const r = SYS.delegate(c, "budget", budgetMin() ? 2 : 3, "the budget");
       setS(p => ({ ...p, app: cl100(p.app + r.fx.app), pStab: cl100(p.pStab + r.fx.pStab), cor: cl(p.cor + r.fx.cor + (budgetMin() ? 0 : .01)) }));
       addL("🗝️ " + (r.ok ? c.name + " sent last year's budget shares back to the House, and it passed." : c.name + " sent last year's figures to the House. Members sat on it; nothing new is funded until it moves."), r.ok ? "policy" : "political");
-      if (r.later) setDelayedFx(d => [...d, { turn: turn + 1, ...r.later }]);
+      if (r.later) setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "left the budget to " + c.name, ...r.later }]);
       bumpCos(); mailOn.current = false; setPhase("policy");
       return { icon: "🗝️", title: r.ok ? "The budget passed" : "The House sat on it", text: r.text + " The shares are last year's: nothing new for your priorities.", tone: r.ok ? "neutral" : "bad", rows: cosRows(r) };
     }
@@ -11783,7 +11835,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setMailOpen(false); prepEvent(l.key); deskGo(l.key);
     setS(p => ({ ...p, app: cl100(p.app + r.fx.app), pStab: cl100(p.pStab + r.fx.pStab), cor: cl(p.cor + r.fx.cor) }));
     if (l.key === "flagship") { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: c.name, gravity: 1, evidence: 2, decision: "Left to the Chief of Staff", note: r.text, meta: { delivered: false } }); } catch (e) {} }
-    if (r.later) setDelayedFx(d => [...d, { turn: turn + 1, ...r.later }]);
+    if (r.later) setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "left “" + v.title + "” to " + c.name, ...r.later }]);
     bumpCos();
     return null;
   });
@@ -11874,7 +11926,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const due = (delayedFx || []).filter(d => d.turn <= turn); if (!due.length) return;
     setDelayedFx(d => d.filter(x => x.turn > turn));
     setS(p => { const n = { ...p }; due.forEach(d => Object.entries(d.fx || {}).forEach(([k, v]) => { if (k === "app" || k === "pStab") n[k] = cl100((n[k] || 0) + v); else if (k === "igr") n.igr = (n.igr || 0) + v; else if (typeof n[k] === "number") n[k] = cl(n[k] + v); })); return n; });
-    due.forEach(d => addL((d.fx && d.fx.app < 0 ? "⚠️ " : "📈 ") + d.desc, d.fx && d.fx.app < 0 ? "political" : "success"));
+    due.forEach(d => addL((d.fx && d.fx.app < 0 ? "⚠️ " : "📈 ") + d.desc + becauseLine(d), d.fx && d.fx.app < 0 ? "political" : "success"));
+    because(due);
   }, [turn]);
   // A need no ministry owns: the adviser writes, once, and says which ministry to create.
   const NEED_OWNER = NAT ? SYS.FED_NEED_MINISTRY : NEED_MINISTRY;
@@ -12683,7 +12736,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
     {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
     {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
-    <span role="button" tabIndex={0} onClick={explainAgenda} title="Big moves left this year: projects, reforms, new ministries, investigations. Programmes (money and ministry capacity), bills (3 a year) and executive orders do not count." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>🗓️ Big moves {agendaLeftNow}/{agendaSizeNow()} · programmes, bills & orders separate</span>
+    <span role="button" tabIndex={0} onClick={explainAgenda} title="Big moves left this year: projects, reforms, new ministries, investigations. Programmes (money and ministry capacity), bills (3 a year) and executive orders do not count." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>{CAP ? "⚡ Political capital " : "🗓️ Big moves "}{agendaLeftNow}/{agendaSizeNow()}{CAP ? "" : " · programmes, bills & orders separate"}</span>
         {["Budget", "House vote", "Policies", "Review", "Mail"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
       background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
   </div>;
@@ -12807,6 +12860,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           </div>
         </div>}
         {mailPing && <button className="sop-pop" onClick={() => { setMailPing(null); if (phase === "mail") setNav("gov"); openMail(); }} style={{ position: "fixed", top: TALL() ? 12 : 20, left: "50%", transform: "translateX(-50%)", zIndex: 70, background: "#fffaf0", border: "2px solid " + CL.gold, borderRadius: 999, padding: "10px 20px", fontWeight: 800, fontSize: TALL() ? TS(20) : TS(30), color: CL.txt, boxShadow: "0 8px 24px rgba(0,0,0,.2)", cursor: "pointer", fontFamily: F.b }}>📬 {mailPing.n === 1 ? "A new letter" : mailPing.n + " new letters"} on your Desk</button>}
+        {/* Pillar "reach": away from the Desk, one Next button in the same corner: the next letter, else the year's next step. */}
+        {pillarOn("reach") && curScreen.id !== "desk" && !gEnd && !letterOpen && (mail.length > 0 || hubNext()) && (() => { const nx = hubNext();
+          return <button data-sop-next onClick={() => { track("reach_next", mail.length ? "mail" : nx.id); if (mail.length) openMail(); else hubArrive(nx.id); }}
+            style={{ position: "fixed", right: TALL() ? 12 : 24, bottom: TALL() ? "calc(92px + env(safe-area-inset-bottom, 0px))" : 24, zIndex: 55, display: "flex", alignItems: "center", gap: 8, maxWidth: "min(78vw, 360px)", minHeight: 50, padding: "0 16px 0 10px", borderRadius: 16, border: 0, background: "linear-gradient(180deg,#2f8de4,#1c6fc0)", color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(19) : TS(26), boxShadow: "0 4px 0 #134f8a, 0 10px 22px rgba(0,0,0,.25)", cursor: "pointer" }}>
+            <span style={{ fontSize: "1.3em" }}>{mail.length ? "📬" : "➡️"}</span>
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{mail.length ? mail.length + " unread · Next message" : "Next: " + nx.label}</span>
+          </button>; })()}
         {/* The mailbox (Pack 31): bottom right of the Desk, where the governor sees the mail. */}
         {curScreen.id === "desk" && !gEnd && !letterOpen && (mail.length > 0 || !(nav === "gov" && (phase === "budget" || phase === "house_vote"))) && <div data-sop-mailstand style={{ position: "fixed", right: TALL() ? 8 : 24, bottom: TALL() ? "calc(86px + env(safe-area-inset-bottom, 0px))" : 24, zIndex: 55 }}><MailboxStand letters={mailStand()} onNext={() => openMail()} w={nav === "gov" && (phase === "budget" || phase === "house_vote") ? (TALL() ? 130 : 150) : TALL() ? 180 : 190} /></div>}
         <div ref={paneRef} style={{ paddingBottom: curScreen.id === "desk" ? (TALL() ? 260 : 40) : 0 }}>
@@ -13628,7 +13688,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 spendB(1, "The court settlement", { force: true }); setS(p => ({ ...p, app: cl100(p.app - 3) }));
                 setSkApp(p => ({ ...p, unions: cl100((p.unions || 50) + 8) }));
                 addL("⚖️ Governor partially complies — reinstates workers but delays full arrears payment.", "political");
-                setDelayedFx(d => [...d, { turn: turn + 2, fx: { app: -3 }, desc: "⚖️ NIC issues enforcement order for unpaid arrears. Governor must pay or face contempt." }]);
+                setDelayedFx(d => [...d, { turn: turn + 2, made: turn, from: "left the workers' arrears unpaid", fx: { app: -3 }, desc: "⚖️ NIC issues enforcement order for unpaid arrears. Governor must pay or face contempt." }]);
                 showResult({ icon: "⚖️", title: "Partial Compliance", narrative: "You reinstated the " + nicPending.type + " but are negotiating down the arrears. The court accepted a payment plan. This buys time but doesn't resolve the underlying issue.", effects: [
                   { icon: "📉", text: "Approval dips", value: "-3%", bad: true },
                   { icon: "💰", text: "Partial payment", value: "+₦1B debt", bad: true },
@@ -15480,6 +15540,18 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
               </main></div>; })()}
           </div>
         </div>}
+        {/* Pillar "reach": the Governor's powers, one tap from the Desk (each opens a place that already exists). */}
+        {nav === "gov" && pillarOn("reach") && !gEnd && (() => { const P = [
+            ["🔥", NAT ? "Hire or fire ministers" : "Hire or fire commissioners", () => goTab("cab")],
+            ["🏗️", "Inspect your projects", () => goTab("prj")],
+            ...(!NAT && lgaToursLeft() > 0 ? [["📣", "Meet the people", () => setLgaTour({ lga: "" })]] : [["📣", "Hear the people", () => goTab("ppl")]]),
+            ["🏛️", NAT ? "The National Assembly" : "The House", () => hubArrive("assembly")],
+            ...(!NAT && opens(2) && stc.visitYear !== turn ? [["✈️", "Fly to Abuja", () => setVisitOpen(true)]] : []),
+          ];
+          return <div data-sop-powers aria-label="The Governor's powers" style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "10px 0 12px" : "14px auto 16px" }}>
+            <div style={{ fontSize: TALL() ? TS(15) : TS(22), fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: CL.td, margin: "0 0 6px 2px" }}>{NAT ? "The President's powers" : "The Governor's powers"}</div>
+            <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 2px 6px" }}>{P.map(([i, l, fn]) => <button key={l} onClick={() => { track("power", l); fn(); }} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, minHeight: 48, padding: "0 14px", borderRadius: 14, border: "1.5px solid " + CL.gold + "88", background: CL.card, color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(17) : TS(24), cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,.06)" }}><span style={{ fontSize: "1.25em" }}>{i}</span>{l}</button>)}</div>
+          </div>; })()}
         {nav === "gov" && pillarOn("screen") && !needSetup && <button onClick={() => { setTodayMore(v => !v); track("today_more", todayMore ? "close" : "open"); }} aria-expanded={todayMore} style={{ display: "block", width: "100%", maxWidth: TALL() ? 900 : 1320, margin: "12px auto 0", padding: "10px 14px", minHeight: 46, borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, color: CL.td, fontWeight: 700, fontSize: TALL() ? TS(18) : TS(24), cursor: "pointer", fontFamily: F.b, order: 99 }}>{todayMore ? "Show less ▲" : "More: what the state needs, the street, visits ▾"}</button>}
 
         {nav === "tre" && (() => {

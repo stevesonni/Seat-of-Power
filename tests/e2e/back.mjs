@@ -18,6 +18,11 @@ check(g.page.url() === url0, "back during setup stays on the page");
 check(await campaign(g) === "won", "campaign won"); await takeOffice(g);
 await back(); await back();
 check(g.page.url() === url0 && /Desk|State|People/.test(await g.txt()), "back while governing keeps the game");
+// A result card on top (one "Okay" button): back closes it, and the game stays.
+await g.page.evaluate(() => window.SOP_outcome({ icon: "✅", title: "Back test card", text: "Pressing back should close this.", tone: "good" })); await g.wait(900);
+check(/Back test card/.test(await g.txt()), "a result card is on screen");
+await back(); await g.wait(400);
+check(g.page.url() === url0 && !/Back test card/.test(await g.txt()), "back closes a result card (its Okay button), and the game stays");
 const saved = await g.page.evaluate(() => !!localStorage.getItem("sop_save"));
 check(saved, "the game is saved");
 const errs = g.errors.filter(e => !/Access is denied for this document/.test(e)); // the test's own setup on about:blank

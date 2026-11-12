@@ -229,6 +229,10 @@
     @keyframes sopRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
     @keyframes sopShine { from { background-position: -200% 0; } to { background-position: 200% 0; } }
     .sop-bump { display: inline-block; animation: sopBump .5s cubic-bezier(.2,1.4,.4,1); transition: color .6s; }
+    /* A big change on a meter (pillar "juice"): a ring pulses round it, green when good, red when bad. */
+    @keyframes sopMeterRingGood { 0% { box-shadow: 0 0 0 0 rgba(47,191,113,.75); } 100% { box-shadow: 0 0 0 12px rgba(47,191,113,0); } }
+    @keyframes sopMeterRingBad { 0% { box-shadow: 0 0 0 0 rgba(255,107,94,.8); } 100% { box-shadow: 0 0 0 12px rgba(255,107,94,0); } }
+    @media (prefers-reduced-motion: reduce) { [style*="sopMeterRing"] { animation: none !important; } }
     .sop-delta { animation: sopDelta 1.8s ease-out both; }
     .ds-option { position: relative; overflow: hidden; animation: sopRise .34s cubic-bezier(.2,.8,.2,1) both; }
     .ds-option:nth-child(2) { animation-delay: .06s; } .ds-option:nth-child(3) { animation-delay: .12s; } .ds-option:nth-child(4) { animation-delay: .18s; }
@@ -921,8 +925,16 @@
       all.sort(function (a, b) { return (+getComputedStyle(b).zIndex || 0) - (+getComputedStyle(a).zIndex || 0); });
       return all[0] || null;
     }
+    // A pop-up on top with no Back or Close (a result card, the adviser, a front page) is dismissed with its own
+    // single "Okay" / "Continue" button: that is what back means there. Decisions with options are left alone.
+    var DISMISS = /^(Okay|OK|Got it|Continue|Done|Noted|Thanks)$/i;
+    function dismissIn(root) {
+      var bs = [].slice.call(root.querySelectorAll("button, [role=button]")).filter(vis);
+      var d = bs.filter(function (b) { return DISMISS.test((b.textContent || "").trim()); });
+      return d.length === 1 ? d[0] : null;
+    }
     window.SOP_back = function () {
-      var top = topLayer(), b = top ? backIn(top) : null;
+      var top = topLayer(), b = top ? (backIn(top) || dismissIn(top)) : null;
       if (!b && !top) b = backIn(document.body);
       if (b) { b.click(); return "step"; }
       try { window.SOP_storageFlush && window.SOP_storageFlush(); } catch (e) {}

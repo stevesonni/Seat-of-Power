@@ -17,7 +17,7 @@ export async function open(port, { test = {}, seed = 7, phone = true, save, exp 
   await ctx.addInitScript(({ test, seed, save, exp }) => {
     window.SOP_TEST = test;
     // The experiment's pillars: off unless the test asks ("all", or { front: true, ... }).
-    if (!localStorage.getItem("sop_exp")) { const ids = ["front", "wait", "money", "integrity", "plan", "region", "start", "screen", "stagger", "words", "drama"]; localStorage.setItem("sop_exp", JSON.stringify(Object.fromEntries(ids.map(id => [id, exp === "all" || !!(exp && exp[id])])))); }
+    if (!localStorage.getItem("sop_exp")) { const ids = ["front", "wait", "money", "integrity", "plan", "region", "start", "screen", "stagger", "words", "drama", "juice", "why", "reach", "capital", "purse"]; localStorage.setItem("sop_exp", JSON.stringify(Object.fromEntries(ids.map(id => [id, exp === "all" || !!(exp && exp[id])])))); }
     let s = seed; Math.random = () => (s = (s * 16807) % 2147483647) / 2147483647;
     if (save && !sessionStorage.getItem("sop_e2e_loaded")) { for (const [k, v] of Object.entries(save)) localStorage.setItem(k, v); sessionStorage.setItem("sop_e2e_loaded", "1"); }
   }, { test, seed, save, exp });
@@ -115,7 +115,7 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
       const scope = sheets[sheets.length - 1] || document.getElementById("sop-task") || null;
       if (!scope) return null;
       const okText = (e) => { const t = e.textContent.trim().replace(/\s+/g, " "); return t.length > 1 && !skip.test(t) && !stuck.some(x => t.startsWith(x)); };
-      const bs = [...scope.querySelectorAll("button")].filter(b => vis(b) && okText(b) && !b.closest("[aria-label=Complaints]"));
+      const bs = [...scope.querySelectorAll("button")].filter(b => vis(b) && okText(b) && !b.closest("[aria-label=Complaints]") && !b.closest("[data-sop-powers]"));
       if (bs.length) { bs[0].click(); return "btn " + bs[0].textContent.trim().slice(0, 50); }
       const cards = [...scope.querySelectorAll("div, li, [role=button]")].filter(e => vis(e) && getComputedStyle(e).cursor === "pointer" && okText(e) && e.textContent.length < 400 && ![...e.querySelectorAll("div,li")].some(c => getComputedStyle(c).cursor === "pointer"));
       if (cards.length) { cards[0].click(); return "card " + cards[0].textContent.trim().slice(0, 50); }

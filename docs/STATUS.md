@@ -1337,3 +1337,27 @@ until players complain:
   No motion with reduced motion on. The box steps aside under sheets and pop-ups, and during the budget and the
   House vote shows only when letters wait, smaller.
 - Demo of the motion: the "Mailbox Motion Study" artifact.
+
+## Round three: "I am the Governor" (12 November 2026)
+From the research report (`reports/Seat of Power game improvements.md`) and an outside review (Grok): make the
+player feel in charge. One fix for everyone, five new pillars on the experiment (now 16):
+- **Back, for everyone:** the phone's back button now also closes a pop-up whose only button is "Okay",
+  "Continue", "Got it" and the like (result cards, the adviser, front pages). Decisions with options are left alone.
+  Test: `tests/e2e/back.mjs` (fails on the old page).
+- `juice` **Power you can see:** meter changes show their size (one, two or three arrows; on number meters the number
+  and arrows), a pulse ring on a big change, green or red by good or bad; coins drop out of the Treasury when money
+  goes out and fly in when it comes in (`coinFly`, transform and opacity only, page-scale corrected).
+- `why` **Because you…:** every scheduled effect now records the decision behind it and the year (`made`, `from`:
+  programmes, wildcard and palace choices, letters left to the Chief of Staff, council elections, unpaid arrears,
+  revenue reforms). When they land, one card names each ("2027 · You funded … → People up"), and the log line says
+  "because you … in 2027" (`SYS.becauseCard`, `SYS.fxWords` in `drama.js`).
+- `reach` **Power within reach:** away from the Desk, a Next button in the same corner opens the next letter or the
+  year's next step; on Today a row of the Governor's powers (hire or fire, inspect projects, meet the people, the
+  House, fly to Abuja), each opening a place that already exists.
+- `capital` **Political capital:** big moves are political capital: the mandate adds two a year, keeping the
+  flagship promise earns one more (on top of the cabinet, the Chief of Staff and approval); the labels and the
+  "spent" message say how to earn more.
+- `purse` **A fairer purse:** year one opens with a handover balance (about six weeks of salaries) and a quarter less
+  inherited debt; in the campaign, a people's fund of small donations (₦0.35B, owing nobody) appears before the
+  godfather's loan when money runs low.
+- Tests: `tests/round3.test.mjs`, `tests/e2e/round3.mjs`. The test bot leaves the powers row alone.

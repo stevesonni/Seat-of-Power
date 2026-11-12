@@ -57,7 +57,7 @@ test("where players leave, for each half of a pillar", async () => {
   assert.deepEqual([X.on.players, X.on.left, X.on.screens[0].screen], [1, 1, "gov · budget"]);
   assert.deepEqual([X.off.players, X.off.left, X.off.here, X.off.screens[0].screen], [2, 1, 1, "setup"]);
   assert.deepEqual(dropOffSplit({}, "words", now).on, { players: 0, left: 0, here: 0, screens: [] });
-  assert.deepEqual(DROP_PILLARS, ["start", "screen", "stagger", "words", "drama"]);
+  assert.deepEqual(DROP_PILLARS, ["start", "screen", "stagger", "words", "drama", "juice", "why", "reach", "capital", "purse"]);
 });
 
 test("plain words: the state's own revenue, not IGR", () => {
