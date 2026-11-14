@@ -31,6 +31,12 @@ Follow the reference board:
   choices sit in a cream panel over it.
 - **03 State map** is the State tab. It shows the state map with the meters in dark chips along the top and a
   legend, and when you tap a place, its card shows up beside the map (below it on a phone).
+  **The map is the most important screen.** Players must be able to say "that's my neighbourhood" and "see,
+  my market". So use the state's **real** local governments, towns, markets, roads and landmarks (for Ogun: Abeokuta,
+  Ijebu Ode, Sagamu, Ota, the Kuto market, the Lagos–Ibadan expressway). Every project the player builds appears as
+  a pin on the town it serves (the road, the clinic, the borehole), so the map fills up with their work year by
+  year. A tap on a town shows what they did there and how its people feel. Design it so it works for all 36 states,
+  using the same parts.
 - **04 Walkable world: do not build it.** It changes how the game plays.
 
 Style:

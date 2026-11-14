@@ -1384,3 +1384,18 @@ same order, same words, same rules.
   (`SOP_TEST.look`) turns it on.
 - Test: `tests/e2e/look.mjs` plays to the same decision with the look on and off and checks the choices are the
   same words in the same order, the gauges, tiles and seal appear only with the look on, and no page errors.
+
+## Front pages: quality control (14 November 2026)
+The owner: every decision went on a spinning front page with the button's words in quotes ("OGUN GOVERNOR: “PAY
+WORKERS”"). Now:
+- **Fewer:** the `drama` pillar's front page after a decision prints only when the choice makes a real headline,
+  at most once a year, and never when the card has its own written headline or another front page ran that year.
+- **Real headlines:** `SYS.headlineFor` writes a newspaper sentence in the third person ("GOV. ADEGOKE PAYS THE
+  WORKERS"): one known action verb, 3–7 words, with no "you", "him", "and", colon, money, secrets or idioms. Saying
+  no gets no front page. Of the game's 1,526 choice labels, about 100 make a headline; the rest print nothing.
+- **Every front page is checked** (`SYS.tidyPaper`, inside `paper()`): no emoji, no "undefined", no doubled words,
+  all in capitals, long ones cut at a word (never ending on "in the …"); broken text never prints.
+- **The page itself:** no spin (a short slide up), no thumbs, no fake grey text lines; a masthead, a dateline
+  ("Ogun · 2027"), a serif headline sized to its length, an italic deck, the photo and a black Continue button.
+- Tests: `tests/rebuild.test.mjs` (headlines and the checker), `tests/e2e/rebuild.mjs` (no front page quotes a
+  button; every front page is clean text).

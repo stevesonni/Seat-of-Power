@@ -41,10 +41,18 @@ test("plain words: everyday words for the jargon, and cards of two sentences and
 });
 
 test("headlines, the godfather's call and the five-line story", () => {
-  const H = SYS.headlineFor("Cross_River", "Three jobs you can finish this year", "Fix the streetlights on the market road (₦0.3B)");
-  assert.equal(H.head, "CROSS RIVER GOVERNOR: “FIX THE STREETLIGHTS ON THE MARKET ROAD”"); assert.ok(H.good);
-  assert.match(SYS.headlineFor("Ogun", "The envelopes", "Say no").head, /SAYS NO/);
-  assert.equal(SYS.headlineFor("Ogun", "x", "Borrow ₦2B and pay salaries in full").good, false);
+  // A real headline in the third person, never the button in quotes; anything that would read badly gets no front page.
+  const H = SYS.headlineFor("Cross_River", "Salaries are three months late", "Pay the workers (₦0.3B)", "Gov. Adegoke");
+  assert.equal(H.head, "GOV. ADEGOKE PAYS THE WORKERS"); assert.equal(H.sub, "Salaries are three months late"); assert.ok(H.good);
+  assert.equal(SYS.headlineFor("Ogun", "The envelopes", "Say no", "Gov. A"), null, "saying no makes no front page");
+  assert.equal(SYS.headlineFor("Ogun", "x", "Keep him close", "Gov. A"), null, "pronouns make no front page");
+  assert.equal(SYS.headlineFor("Ogun", "x", "Give them their constituency projects: ₦2B", "Gov. A"), null);
+  assert.equal(SYS.headlineFor("Ogun", "x", "Think about it carefully for a while first", "Gov. A"), null, "no known verb, no front page");
+  assert.equal(SYS.headlineFor("Ogun", "Three jobs you can finish this year", "Fix the streetlights on the market road", "Gov. A").sub, "", "a title that talks to the player is not a deck");
+  assert.equal(SYS.headlineFor("Ogun", "x", "Borrow ₦2B to pay salaries", "Gov. A").good, false);
+  assert.equal(SYS.tidyPaper("Gov. Adegoke Delivers: The Abeokuta North–Abeokuta South trunk road in the Ogun Central district", "").headline, "GOV. ADEGOKE DELIVERS: THE ABEOKUTA NORTH–ABEOKUTA SOUTH TRUNK ROAD", "cut at a word, never on 'in the'");
+  assert.equal(SYS.tidyPaper("💥 GOV. A  SIGNS  undefined", "x"), null, "broken text never prints");
+  assert.deepEqual(SYS.tidyPaper("📰 GOV. A SIGNS THE THE BILL.", "passed by the House."), { headline: "GOV. A SIGNS THE BILL", sub: "Passed by the House" });
   assert.equal(SYS.gfCall(20).mood, "angry"); assert.equal(SYS.gfCall(80).mood, "pleased"); assert.match(SYS.gfCall(50, "I hear things.").line, /^I hear things\./);
   const L = SYS.storyLines({ who: "Gov. A", office: "Governor of Ogun State", years: "2 terms", title: "The Builder", best: "opening the ring road", worst: null, end: "Served the full term", grade: "B" });
   assert.equal(L.length, 5); assert.match(L[3], /No scandal stuck/); assert.match(L[4], /Grade B/);

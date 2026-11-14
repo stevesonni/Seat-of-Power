@@ -205,7 +205,7 @@
     @keyframes flNearHome { from { transform: translate(-75%, 26%); } to { transform: translate(90%, -26%); } }
     @media (prefers-reduced-motion: reduce) { .sop-flight .fl-plane, .sop-flight .fl-clouds, .sop-flight .fl-bob, .sop-flight .fl-lbl { animation: none !important; } .sop-flight .fl-plane { left: 22%; top: 38%; } }
     .sp-still .sop-flight .fl-plane, .sp-still .sop-flight .fl-clouds, .sp-still .sop-flight .fl-bob, .sp-still .sop-flight .fl-lbl { animation: none !important; } .sp-still .sop-flight .fl-plane { left: 22%; top: 38%; }
-    @keyframes sopPaperIn { 0% { opacity: 0; transform: rotate(-8deg) scale(.6); } 100% { opacity: 1; transform: rotate(0) scale(1); } }
+    @keyframes sopPaperIn { 0% { opacity: 0; transform: translateY(24px); } 100% { opacity: 1; transform: none; } }
     @keyframes sopPresentIn { 0% { opacity: 0; transform: translateX(-40px); } 100% { opacity: 1; transform: translateX(0); } }
     @keyframes sopStamp { 0% { opacity: 0; transform: rotate(-14deg) scale(2.4); } 60% { opacity: 1; transform: rotate(-14deg) scale(.92); } 100% { opacity: 1; transform: rotate(-14deg) scale(1); } }
     @keyframes sopCoin { 0% { transform: translateY(0) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-78vh) rotate(25deg); opacity: 0; } }
@@ -467,23 +467,24 @@
           pb.style.cssText = 'position:fixed;inset:0;z-index:9950;background:rgba(6,14,10,.7);display:flex;align-items:center;justify-content:center;padding:18px;animation:sopFadeIn .18s ease-out';
           var pg = document.createElement('div'); pg.setAttribute('role', 'alertdialog'); pg.setAttribute('aria-modal', 'true');
           pg.style.cssText = 'background:#fbfaf7;color:#1b1b1b;max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:20px 22px 18px;border-radius:6px;box-shadow:8px 10px 0 rgba(0,0,0,.25),0 24px 60px rgba(0,0,0,.45);font-family:Georgia,serif;text-align:center;' + (still() ? '' : 'animation:sopPaperIn .45s cubic-bezier(.2,.8,.2,1)');
+          // A plain, serious front page: masthead, dateline, headline, deck, photo. No spin, no thumbs, no fake text lines.
           var mh = document.createElement('div'); mh.textContent = P.masthead || 'The Daily Tribune';
-          mh.style.cssText = 'font:900 30px/1.05 Georgia,serif;letter-spacing:-.5px;border-bottom:3px solid #1b1b1b;padding-bottom:8px;margin-bottom:12px';
-          var hl = document.createElement('div'); hl.textContent = P.headline || '';
-          hl.style.cssText = 'font:900 34px/1.08 "Plus Jakarta Sans",sans-serif;letter-spacing:-.5px;margin:6px 0 12px';
-          pg.appendChild(mh); pg.appendChild(hl);
+          mh.style.cssText = 'font:900 28px/1.05 Georgia,serif;letter-spacing:-.3px';
+          var dl = document.createElement('div'); dl.textContent = P.date || 'Front page';
+          dl.style.cssText = 'font:600 11px/1 "Plus Jakarta Sans",sans-serif;letter-spacing:2px;text-transform:uppercase;color:#555;border-top:1px solid #1b1b1b;border-bottom:3px double #1b1b1b;padding:6px 0;margin:8px 0 14px';
+          var hs = String(P.headline || ''), hz = hs.length > 60 ? 24 : hs.length > 40 ? 28 : 32;
+          var hl = document.createElement('div'); hl.textContent = hs;
+          hl.style.cssText = 'font:800 ' + hz + 'px/1.12 Georgia,"Times New Roman",serif;letter-spacing:-.2px;margin:0 0 10px;text-wrap:balance';
+          pg.appendChild(mh); pg.appendChild(dl); pg.appendChild(hl);
           if (P.sub) {
-            var sb = document.createElement('div'); sb.style.cssText = 'display:flex;align-items:center;gap:12px;text-align:left;border-top:2px solid #1b1b1b;border-bottom:2px solid #1b1b1b;padding:10px 0;margin-bottom:12px';
-            var th = document.createElement('span'); th.textContent = P.good === false ? '👎' : '👍'; th.style.cssText = 'flex:0 0 auto;width:46px;height:46px;border-radius:50%;background:#1b1b1b;display:flex;align-items:center;justify-content:center;font-size:24px';
-            var st = document.createElement('span'); st.textContent = P.sub; st.style.cssText = 'font:800 18px/1.25 "Plus Jakarta Sans",sans-serif;text-transform:uppercase';
-            sb.appendChild(th); sb.appendChild(st); pg.appendChild(sb);
+            var sb = document.createElement('div'); sb.textContent = P.sub;
+            sb.style.cssText = 'font:italic 500 17px/1.35 Georgia,serif;color:#333;margin:0 auto 14px;max-width:440px';
+            pg.appendChild(sb);
           }
-          var row = document.createElement('div'); row.style.cssText = 'display:grid;grid-template-columns:1fr 1.3fr;gap:12px;align-items:center;margin-bottom:14px';
-          var lines = document.createElement('div'); for (var li = 0; li < 7; li++) { var ln = document.createElement('div'); ln.style.cssText = 'height:6px;border-radius:3px;background:#2b2b2b;opacity:.75;margin:7px 0;width:' + [92, 70, 85, 60, 88, 74, 50][li] + '%'; lines.appendChild(ln); }
-          var ph = document.createElement('img'); ph.alt = ''; ph.src = P.img || './art/backgrounds/government-house.webp'; ph.style.cssText = 'width:100%;aspect-ratio:4/3;object-fit:cover;filter:grayscale(1) contrast(1.05);border:1px solid #999';
-          row.appendChild(lines); row.appendChild(ph); pg.appendChild(row);
+          var ph = document.createElement('img'); ph.alt = ''; ph.src = P.img || './art/backgrounds/government-house.webp'; ph.style.cssText = 'display:block;width:100%;aspect-ratio:16/9;object-fit:cover;filter:grayscale(1) contrast(1.08);border:1px solid #999;margin-bottom:14px';
+          pg.appendChild(ph);
           var pc = document.createElement('button'); pc.type = 'button'; pc.textContent = 'Continue';
-          pc.style.cssText = 'min-width:200px;min-height:52px;border:0;border-radius:14px;background:#1c7ed6;color:#fff;font:800 20px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 5px 0 #145ea0';
+          pc.style.cssText = 'min-width:200px;min-height:52px;border:0;border-radius:14px;background:#1b1b1b;color:#fbfaf7;font:800 18px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 4px 0 #000';
           pc.onclick = function () { pb.remove(); open = false; setTimeout(next, 120); };
           pg.appendChild(pc); pb.appendChild(pg); document.body.appendChild(pb);
           try { window.SOP_sound && window.SOP_sound('news'); } catch (e) {}
@@ -532,7 +533,7 @@
           var nm = document.createElement('div'); nm.textContent = R.name || 'Your adviser'; nm.style.cssText = 'font:800 14px "Plus Jakarta Sans",sans-serif;letter-spacing:1px;text-transform:uppercase;color:#0b6b42;margin-bottom:6px';
           var tx2 = document.createElement('div'); tx2.textContent = R.text || '';
           var go = document.createElement('button'); go.type = 'button'; go.textContent = R.ok || 'Continue';
-          go.style.cssText = 'display:block;margin:14px auto 0;min-width:200px;min-height:52px;border:0;border-radius:14px;background:#1c7ed6;color:#fff;font:800 20px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 5px 0 #145ea0';
+          go.style.cssText = 'display:block;margin:14px auto 0;min-width:200px;min-height:52px;border:0;border-radius:14px;background:#1b1b1b;color:#fbfaf7;font:800 18px "Plus Jakarta Sans",sans-serif;cursor:pointer;box-shadow:0 4px 0 #000';
           go.onclick = function () { rb.remove(); open = false; try { R.fn && R.fn(); } catch (e) {} setTimeout(next, 120); };
           bub.appendChild(nm); bub.appendChild(tx2); bub.appendChild(go);
           if (R.alt) { var al = document.createElement('button'); al.type = 'button'; al.textContent = R.alt; al.style.cssText = 'display:block;margin:8px auto 0;min-height:44px;border:0;background:none;color:#5b6b61;font:700 17px "Plus Jakarta Sans",sans-serif;cursor:pointer'; al.onclick = function () { rb.remove(); open = false; setTimeout(next, 120); }; bub.appendChild(al); }

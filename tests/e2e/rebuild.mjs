@@ -42,12 +42,12 @@ check(!/Big moves|🚀 FLAGSHIP|Approval below/.test(strip), "the first view: no
 await g.wait(1500);
 const d0 = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
 check((d0.ministries || []).length > 0 && !!d0.council, "the interim cabinet and the palaces are in place (" + (d0.ministries || []).length + " ministries)");
-let past1 = false, budgetSeen = false, fine = false, cards3 = 0, lawWord = false, hosWord = false, exco = false, head = false, call = false, more = false;
+let past1 = false, budgetSeen = false, fine = false, cards3 = 0, lawWord = false, hosWord = false, exco = false, badHead = false, heads = [], call = false, more = false;
 const r = await playUntil(g, (t) => {
   if (/Year [2-4] of 4/.test(t)) past1 = true;
   if (/to split for the next six months/.test(t) && !past1 && cards3 < 2) { /* the first budget, year one's */ budgetSeen = true; if (/Fine-tune/.test(t)) fine = true; cards3 = Math.max(cards3, ["Balanced", "Populist", "Reformer", "Godfather's budget"].filter(x => t.includes(x)).length); }
   if (/BUDGET LAW|budget law/.test(t)) lawWord = true; if (/Head of Service|APPROPRIATION/.test(t)) hosWord = true;
-  if (/State Executive Council/.test(t)) exco = true; if (/GOVERNOR: “|GOVERNOR SAYS NO/.test(t)) head = true; if (/on the phone, /i.test(t)) call = true; if (/More: what the state needs/.test(t)) more = true;
+  if (/State Executive Council/.test(t)) exco = true; if (/GOVERNOR: “|GOVERNOR SAYS NO/.test(t)) badHead = true; { const m = t.match(/Daily Tribune\s+\S[^\n]*\n+([^\n]+)/); if (m && !heads.includes(m[1])) heads.push(m[1]); } if (/on the phone, /i.test(t)) call = true; if (/More: what the state needs/.test(t)) more = true;
   return /Year 3 of 4/.test(t); }, { max: 700 });
 check(r.ok, "played on to year 3"); if (!r.ok) console.log("  last: " + r.clicks.slice(-12).join(" | "));
 check(budgetSeen && !fine && cards3 === 3, "year one's budget: three choices, nothing to fine-tune (" + cards3 + ")");
@@ -56,7 +56,8 @@ check(more, "the rest of Today is behind More");
 // 5. Plain words.
 check(lawWord, "\"budget law\" on screen"); check(!hosWord, "no \"Head of Service\" or \"APPROPRIATION\" on screen");
 // 6. Headlines and calls.
-check(head, "a front page after a decision"); check(call || (await g.page.evaluate(() => window.__tracked.some(([e]) => e === "gf_call"))), "the godfather calls");
+check(!badHead, "no front page quotes the button (“GOVERNOR: …”, “SAYS NO”)"); console.log("  front pages seen: " + heads.join(" | "));
+check(heads.every(h => !/undefined|null|NaN|[\u{1F000}-\u{1FFFF}]/u.test(h)), "every front page is clean text"); check(call || (await g.page.evaluate(() => window.__tracked.some(([e]) => e === "gf_call"))), "the godfather calls");
 // 1. Where players leave: the screen is reported.
 const tr = await g.page.evaluate(() => window.__tracked.filter(([e]) => e === "at").map(([, v]) => v));
 check(tr.length >= 3 && tr.some(v => /^gov · /.test(v)), "the screen a player is on is reported (" + tr.slice(0, 4).join(" / ") + ")");
