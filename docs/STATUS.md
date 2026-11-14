@@ -1423,3 +1423,6 @@ The owner: players should be able to say "that's my neighbourhood, see my market
 - Tests: `tests/maps.test.mjs` (every state has a map with every local government the game names) and
   `tests/e2e/map.mjs`.
 - Not yet: "Build something" does not pre-fill the place in the project form; the President has no map.
+- **First film installed (14 November):** `road.mp4` (the owner's Gemini clip: 6 seconds from 0:03, played at 1.5×,
+  so the okada on the new road rises into the wide view of the town). The installer takes `--from` and `--speed`.
+  Cards with a film are as wide as the phone (up to 560 px) with the film at 16:9, corrected for the stage zoom.

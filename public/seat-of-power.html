@@ -563,7 +563,7 @@
         // A short film of the finished work (o.video, art/reels/*.mp4): it plays once, muted, and stays on its last
         // frame. The picture (o.img) is its poster and stands in if the film is missing or motion is reduced.
         if (o.video && !still()) {
-          art.style.height = '220px';
+          art.style.height = 'auto'; art.style.aspectRatio = '16 / 9'; var stg = document.getElementById('sop-stage'), pz = (stg && (parseFloat(stg.style.zoom) || parseFloat(getComputedStyle(stg).zoom))) || 1; /* phones draw the page zoomed down (#sop-stage) */ card.style.maxWidth = 'none'; card.style.width = Math.round(Math.min(560, window.innerWidth - 24) / pz) + 'px';
           var vd = document.createElement('video'); vd.muted = true; vd.autoplay = true; vd.playsInline = true; vd.setAttribute('playsinline', ''); vd.setAttribute('muted', ''); vd.preload = 'auto';
           if (o.img) vd.poster = o.img; vd.src = o.video; vd.className = 'sop-reel';
           vd.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:none;filter:none';
