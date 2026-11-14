@@ -958,6 +958,8 @@ const track = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } ca
 // A test link (?exp=all, ?exp=none, ?exp=front:1,money:0) can force them. Off leaves the game as it was.
 const EXP = (() => { let cur = null; try { cur = JSON.parse(localStorage.getItem(SYS.EXP_KEY) || "null"); } catch (e) {}
   cur = SYS.completeAssignment(cur);
+  // "look" is held back (the owner did not like it; Lovable is redesigning): off for players, on only by a test link (?exp=look:1) or a test.
+  if (!(window.SOP_TEST && window.SOP_TEST.look)) cur.look = false;
   try { const o = SYS.parseExpOverride(new URLSearchParams(location.search).get("exp"), cur); if (o) cur = o; } catch (e) {}
   try { localStorage.setItem(SYS.EXP_KEY, JSON.stringify(cur)); } catch (e) {}
   return cur; })();

@@ -9,7 +9,7 @@ let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL "
 const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 const SHOT = process.env.SHOTS || null;
 async function run(look) {
-  const g = await open(srv.port, { save: Y1, exp: { reach: 1, look: look ? 1 : 0 } });
+  const g = await open(srv.port, { save: Y1, test: look ? { look: 1 } : {}, exp: { reach: 1, look: look ? 1 : 0 } });
   await g.click(/^Continue/); await g.wait(2500);
   await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await g.wait(1200);
   for (let i = 0; i < 10; i++) { if (!(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /^(Continue|Okay|Got it|Noted|Thanks)$/.test(x.textContent.trim())); if (b) { b.click(); return true; } return false; }))) break; await g.wait(700); }

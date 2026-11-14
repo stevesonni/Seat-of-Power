@@ -1379,5 +1379,8 @@ same order, same words, same rules.
 - **The Governor's powers** (with `reach`): picture tiles in a row instead of pills.
 - **Tab bar and phone header:** a deep green gradient, a gold line on the tab bar and a raised gold active tab.
 - Palette: green #0f3d24 / #12301f, gold #e9b949 / #c99a2e, cream #f6f2ea, paper #fffdf7, good #1f9d5c, bad #d4483c.
+- **Held back (14 November):** the owner did not like it and asked Lovable to redesign everything
+  (`docs/LOVABLE-REDESIGN.md`). `look` is now off for every player; only a test link (`?exp=look:1`) or a test
+  (`SOP_TEST.look`) turns it on.
 - Test: `tests/e2e/look.mjs` plays to the same decision with the look on and off and checks the choices are the
   same words in the same order, the gauges, tiles and seal appear only with the look on, and no page errors.
