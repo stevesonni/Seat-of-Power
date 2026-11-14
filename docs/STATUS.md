@@ -1399,3 +1399,12 @@ WORKERS”"). Now:
   ("Ogun · 2027"), a serif headline sized to its length, an italic deck, the photo and a black Continue button.
 - Tests: `tests/rebuild.test.mjs` (headlines and the checker), `tests/e2e/rebuild.mjs` (no front page quotes a
   button; every front page is clean text).
+
+## Project reels (14 November 2026)
+The owner: when a project is finished, show a 3–4 second film of it (made with Gemini), not an empty card.
+- `docs/GEMINI-REELS.md`: the shared style and one prompt for each of the 26 project types, file names and format.
+- The card after the ribbon is cut plays `art/reels/<type>.mp4` once, muted, staying on its last frame
+  (`SOP_outcome({ video })` in `seat-of-power.html`; `SYS.reelFor` and `SYS.REELS` in `projects.js`). A type with
+  two films alternates by project. No film yet, a missing file or reduced motion: the ribbon picture shows instead.
+- When films arrive: put them in `public/art/reels/`, then set their counts in `REELS`. `tests/reels.test.mjs`
+  checks every listed film exists and every film on disk is listed.

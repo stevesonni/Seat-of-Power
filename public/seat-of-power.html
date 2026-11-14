@@ -560,7 +560,17 @@
         card.setAttribute('role', 'alertdialog'); card.setAttribute('aria-modal', 'true');
         card.style.cssText = 'max-height:92vh;overflow:auto;animation:sopSlideUp .25s cubic-bezier(.2,.8,.2,1)';
         var art = document.createElement('div'); art.className = 'art';
-        if (o.img) {
+        // A short film of the finished work (o.video, art/reels/*.mp4): it plays once, muted, and stays on its last
+        // frame. The picture (o.img) is its poster and stands in if the film is missing or motion is reduced.
+        if (o.video && !still()) {
+          art.style.height = '220px';
+          var vd = document.createElement('video'); vd.muted = true; vd.autoplay = true; vd.playsInline = true; vd.setAttribute('playsinline', ''); vd.setAttribute('muted', ''); vd.preload = 'auto';
+          if (o.img) vd.poster = o.img; vd.src = o.video; vd.className = 'sop-reel';
+          vd.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:none;filter:none';
+          vd.onerror = function () { if (!o.img) return; var fb = document.createElement('img'); fb.src = o.img; fb.alt = ''; fb.style.cssText = vd.style.cssText; art.replaceChild(fb, vd); };
+          art.appendChild(vd);
+          try { var pp = vd.play(); if (pp && pp.catch) pp.catch(function () {}); } catch (e) {}
+        } else if (o.img) {
           var wide = /\/(scenes|backgrounds|decisions)\//.test(o.img), pic = document.createElement('img');
           pic.src = o.img; pic.alt = '';
           if (wide) { art.style.height = '180px'; pic.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:none;filter:none'; }

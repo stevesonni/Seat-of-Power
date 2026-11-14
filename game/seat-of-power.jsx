@@ -9957,7 +9957,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ribbonImg = RIBBON[p.type] ? "./art/scenes/" + RIBBON[p.type] + ".webp" : NAT ? "./art/scenes/federal-project-commissioning.webp" : "./art/backgrounds/project-ribbon-cutting.webp";
     try {
       window.SOP_outcome({ icon: "✂️", img: ribbonImg, badge: "./art/objects/ceremonial-scissors.webp", title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" });
-      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
+      // The finished work on film (art/reels, made with Gemini; docs/GEMINI-REELS.md); the ribbon picture if there is none yet.
+      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", video: SYS.reelFor(p.type, p.id), title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
     } catch (e) {}
     paper(RH.h, RH.sub, RH.good, ribbonImg);
   };

@@ -378,3 +378,13 @@ export const migrateOldProject = (p, year) => {
     decisions: [...(p.decisions || []), { year, text: "Carried over from an earlier save." }], events: p.events || [], migrated: true,
   };
 };
+
+/* The short film shown when a project opens (art/reels/<type>.mp4, 3–4 seconds, made with Gemini; see
+   docs/GEMINI-REELS.md). REELS lists the films that exist: a type with two films alternates between them by
+   project. A type with none returns null, and the ribbon picture is shown instead. */
+export const REELS = {};
+export const reelFor = (type, id) => {
+  const n = REELS[type] || 0; if (!n) return null;
+  const h = String(id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0), k = n > 1 ? h % n + 1 : 1;
+  return "./art/reels/" + type + (k > 1 ? "-" + k : "") + ".mp4";
+};
