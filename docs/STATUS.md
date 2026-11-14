@@ -1430,3 +1430,5 @@ The owner: players should be able to say "that's my neighbourhood, see my market
   down to the taps where a woman and girls fill buckets.
 - `school.mp4` (14 November): from 0:02.3 at 1.5× (skips the black bars at the start): children run out of a new
   blue-door school, then the camera rises over the town. Secondary schools borrow it (`REEL_SHARE`).
+- `hospital.mp4` (14 November): from 0:03.5 at 1.5×: the ambulance pulls up and two nurses walk into the new
+  hospital. Its lettering is garbled AI text, too small to read on a phone. Schools of nursing borrow it.

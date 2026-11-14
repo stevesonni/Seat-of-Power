@@ -382,9 +382,9 @@ export const migrateOldProject = (p, year) => {
 /* The short film shown when a project opens (art/reels/<type>.mp4, 3–4 seconds, made with Gemini; see
    docs/GEMINI-REELS.md). REELS lists the films that exist: a type with two films alternates between them by
    project. A type with none returns null, and the ribbon picture is shown instead. */
-export const REELS = {road: 1, school: 1, water: 1};
+export const REELS = {road: 1, hospital: 1, school: 1, water: 1};
 // A type without its own film borrows a close one (secondary schools use the school film).
-export const REEL_SHARE = { secondary: "school" };
+export const REEL_SHARE = { secondary: "school", nursing: "hospital" };
 export const reelFor = (type, id) => {
   if (!REELS[type] && REEL_SHARE[type]) type = REEL_SHARE[type];
   const n = REELS[type] || 0; if (!n) return null;
