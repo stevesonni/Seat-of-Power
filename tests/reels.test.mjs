@@ -14,6 +14,7 @@ test("reels: listed films exist and every film is listed", () => {
 });
 test("reels: no film means no reel; two films alternate by project", () => {
   assert.equal(SYS.reelFor("nothing-here", "p1"), null);
+  if (SYS.REELS.school && !SYS.REELS.secondary) assert.equal(SYS.reelFor("secondary", "p1"), "./art/reels/school.mp4", "a secondary school borrows the school film");
   SYS.REELS.__t = 2;
   const a = new Set(["p1", "p2", "p3", "p4", "p5", "p6"].map(id => SYS.reelFor("__t", id)));
   assert.deepEqual([...a].sort(), ["./art/reels/__t-2.mp4", "./art/reels/__t.mp4"]);

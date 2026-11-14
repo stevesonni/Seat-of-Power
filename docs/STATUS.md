@@ -1428,3 +1428,5 @@ The owner: players should be able to say "that's my neighbourhood, see my market
   Cards with a film are as wide as the phone (up to 560 px) with the film at 16:9, corrected for the stage zoom.
 - `water.mp4` (14 November): the owner's clip from 0:12 at 1.5× (the first ten seconds repeated the road): the tank, then
   down to the taps where a woman and girls fill buckets.
+- `school.mp4` (14 November): from 0:02.3 at 1.5× (skips the black bars at the start): children run out of a new
+  blue-door school, then the camera rises over the town. Secondary schools borrow it (`REEL_SHARE`).
