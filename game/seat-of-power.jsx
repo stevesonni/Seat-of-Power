@@ -2329,6 +2329,59 @@ const LookGauge = ({ pct, color, icon, size, dark }) => {
     <Ico n={icon} s={Math.round(size * .5)} />
   </span>;
 };
+/* Pillar "map": the player's state on a real map (public/art/maps/<State>.json, built by tools/build-maps.mjs from
+   geoBoundaries, CC BY 4.0). Each local government is coloured by how its people feel; the projects the player
+   built are pinned on the place they serve, and its open problems glow. A tap shows what happened there. */
+const MAP_ICON = { road: "🛣️", bridge: "🌉", hospital: "🏥", school: "🏫", secondary: "🏫", nursing: "🩺", coe: "🎓", polytechnic: "🎓", university: "🎓", water: "🚰", dam: "🏞️", power: "⚡", market: "🛒", housing: "🏘️", vehicles: "🚓", cctv: "📹", landfill: "♻️", industrial: "🏭", stadium: "🏟️", esports: "🎮", tourist: "🏝️" };
+const MAP_CACHE = {};
+const moodColour = (m) => m >= 62 ? "#7cc49a" : m >= 52 ? "#b9dcb0" : m >= 44 ? "#f0dfa3" : m >= 36 ? "#f2b58f" : "#e98c80";
+const StateMap = ({ state, home, projects, needs, mood, needTitle, needIcon, onNeed, onProjects }) => {
+  const [M, setM] = useState(MAP_CACHE[state] || null), [sel, setSel] = useState(null), [err, setErr] = useState(false);
+  useEffect(() => { if (MAP_CACHE[state]) { setM(MAP_CACHE[state]); return; } let on = true;
+    fetch("./art/maps/" + state + ".json").then(r => r.ok ? r.json() : Promise.reject(r.status)).then(j => { MAP_CACHE[state] = j; if (on) setM(j); }).catch(() => on && setErr(true));
+    return () => { on = false; }; }, [state]);
+  const at = (p, L) => p && (p.lga === L || (p.lgas || []).includes(L));
+  const built = (L) => (projects || []).filter(p => at(p, L) && p.status !== "abandoned");
+  const trouble = (L) => (needs || []).filter(n => n.lga === L && (n.status === "open" || n.status === "stalled"));
+  if (err) return null;
+  if (!M) return <div style={{ padding: 30, textAlign: "center", color: CL.td }}>Unfolding the map…</div>;
+  const names = M.lgas.map(l => l.n), first = names.find(n => trouble(n).length) || (names.includes(home) ? home : names[0]), cur = sel && names.includes(sel) ? sel : first;
+  const tall = TALL(), fs = Math.max(16, Math.min(30, 760 / Math.sqrt(M.lgas.length) / 3.2));
+  const L = M.lgas.find(l => l.n === cur), B = built(cur), T = trouble(cur), md = Math.round(mood(cur));
+  return <div data-sop-map style={{ maxWidth: tall ? 900 : 1200, margin: "0 auto", display: "grid", gap: 12, gridTemplateColumns: tall ? "1fr" : "1.4fr 1fr", alignItems: "start" }}>
+    <div style={{ background: "#eaf2f4", borderRadius: 20, border: "1px solid " + CL.bdr, padding: tall ? 8 : 14, position: "relative" }}>
+      <svg viewBox={"-30 -30 " + (M.w + 60) + " " + (M.h + 60)} style={{ width: "100%", height: "auto", display: "block", touchAction: "manipulation" }} role="img" aria-label={"Map of " + state.replace(/_/g, " ")}>
+        {M.lgas.map(l => <path key={l.n} d={l.d} fill={moodColour(mood(l.n))} stroke={l.n === cur ? "#c99a2e" : "#0f3d24"} strokeWidth={l.n === cur ? 7 : 1.6} strokeLinejoin="round" onClick={() => setSel(l.n)} style={{ cursor: "pointer" }}><title>{l.n}</title></path>)}
+        {L && <path d={L.d} fill="none" stroke="#c99a2e" strokeWidth="7" strokeLinejoin="round" pointerEvents="none" />}
+        {M.lgas.map(l => { const b = built(l.n), t = trouble(l.n), [x, y] = l.c; return <g key={l.n} pointerEvents="none">
+          {t.length > 0 && <circle cx={x} cy={y - fs * 1.6} r={fs * .9} fill="#d4483c" opacity=".9"><animate attributeName="r" values={fs * .7 + ";" + fs * 1.1 + ";" + fs * .7} dur="1.6s" repeatCount="indefinite" /></circle>}
+          {t.length > 0 && <text x={x} y={y - fs * 1.6 + fs * .35} fontSize={fs} textAnchor="middle">!</text>}
+          {b.slice(0, 3).map((p, i) => <text key={p.id} x={x + (i - (Math.min(3, b.length) - 1) / 2) * fs * 1.5} y={y + fs * 1.9} fontSize={fs * 1.3} textAnchor="middle" opacity={p.status === "delivered" ? 1 : .55}>{MAP_ICON[p.type] || "🏗️"}</text>)}
+          {l.n === home && <text x={x} y={y - (t.length ? fs * 3.2 : fs * 1.4)} fontSize={fs * 1.2} textAnchor="middle">⭐</text>}
+          <text x={x} y={y + fs * .35} fontSize={l.n === cur ? fs * 1.15 : fs * .9} fontWeight={l.n === cur ? 800 : 600} textAnchor="middle" fill="#13261c" stroke="#ffffffcc" strokeWidth={fs * .22} paintOrder="stroke" fontFamily="Plus Jakarta Sans, sans-serif">{l.n}</text>
+        </g>; })}
+      </svg>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px", fontSize: tall ? TS(14) : TS(18), color: CL.td, padding: "6px 6px 0" }}>
+        <span><b style={{ color: "#7cc49a" }}>■</b> Happy</span><span><b style={{ color: "#f0dfa3" }}>■</b> Unsure</span><span><b style={{ color: "#e98c80" }}>■</b> Angry</span><span>🔴 A problem</span><span>⭐ Home</span><span>Faded: being built</span>
+      </div>
+      <div style={{ fontSize: 10, color: CL.td, opacity: .7, padding: "2px 6px 0" }}>Boundaries: geoBoundaries (CC BY 4.0)</div>
+    </div>
+    <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 20, padding: tall ? "14px 14px" : "20px 22px", display: "grid", gap: 10 }}>
+      <div>
+        <div style={{ fontSize: tall ? TS(13) : TS(17), letterSpacing: 1.5, textTransform: "uppercase", fontWeight: 800, color: "#a87b1c" }}>{cur === home ? "Your home" : "Local government"}</div>
+        <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: tall ? TS(28) : TS(40), color: CL.txt, lineHeight: 1.1 }}>{cur}</div>
+      </div>
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: tall ? TS(16) : TS(22), fontWeight: 700, color: CL.txt }}><span>How people here feel</span><span>{md}%</span></div>
+        <div style={{ height: 8, borderRadius: 4, background: CL.bdr, overflow: "hidden", marginTop: 4 }}><div style={{ width: Math.max(4, Math.min(100, md)) + "%", height: "100%", background: moodColour(md) }} /></div>
+      </div>
+      {T.map(n => <button key={n.id} onClick={() => onNeed(n)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "10px 12px", minHeight: 52, borderRadius: 14, border: "1.5px solid #d4483c66", background: "#fbe7e4", color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(17) : TS(23), cursor: "pointer" }}><span style={{ fontSize: "1.3em" }}>{needIcon(n)}</span><span style={{ flex: 1 }}>{needTitle(n)}</span><span style={{ color: "#d4483c" }}>›</span></button>)}
+      <div style={{ fontSize: tall ? TS(16) : TS(22), fontWeight: 800, color: CL.txt }}>{B.length ? "What you built here" : "Nothing built here yet"}</div>
+      {B.map(p => <div key={p.id} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: tall ? TS(16) : TS(21), color: CL.txt }}><span style={{ fontSize: "1.3em" }}>{MAP_ICON[p.type] || "🏗️"}</span><span style={{ flex: 1, minWidth: 0 }}>{p.title}</span><span style={{ color: p.status === "delivered" ? CL.grn : CL.td, fontWeight: 700, whiteSpace: "nowrap" }}>{p.status === "delivered" ? "Open" : p.status === "suspended" || p.status === "stalled" ? "Stopped" : "Being built"}</span></div>)}
+      <button onClick={onProjects} style={{ minHeight: 50, borderRadius: 14, border: 0, background: "#0f3d24", color: "#fdf8ec", fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(18) : TS(24), cursor: "pointer" }}>🏗️ Build something in {cur}</button>
+    </div>
+  </div>;
+};
 const CouncilTable = ({ T, onPick, onClose }) => {
   const D = T.decision;
   const spk = (P) => P ? <div className="spk"><div className="av"><img src={P.img} alt="" /></div><div><b>{P.name}</b><span>{P.role}</span></div></div> : null;
@@ -12617,7 +12670,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // by key still works. Wiki, Constitution, Standing, Help and Sound live in the ☰ menu.
   const SCREENS = [
     { id: "desk", i: "🗂️", img: "icon-desk", l: "Desk", subs: [{ k: "hub", l: "Compound" }, { k: "gov", l: "Today" }] }, // the News tab is retired (owner, October 2026)
-    { id: "map", i: "🗺️", img: "icon-state", l: NAT ? "Nation" : "State", subs: [{ k: "tre", l: "💰 Treasury" }, { k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
+    { id: "map", i: "🗺️", img: "icon-state", l: NAT ? "Nation" : "State", subs: [...(pillarOn("map") && !NAT ? [{ k: "smap", l: "🗺️ Map" }] : []), { k: "tre", l: "💰 Treasury" }, { k: "econ", l: "Economy" }, { k: "prj", l: "Projects" }, { k: "proc", l: "Contracts" }] },
     { id: "people", i: "👥", img: "icon-people", l: "People", subs: [{ k: "cast", l: "Cast" }, { k: "cab", l: "Cabinet" }, { k: "min", l: "Ministries" }, { k: "coun", l: NAT ? "Councils" : "Council" }, { k: "ppl", l: "Public" }] },
   ];
   const WIKI_SCREEN = { id: "wiki", l: "Wiki", subs: [{ k: "bio", l: "Wiki Bio" }, { k: "con", l: "Constitution" }] };
@@ -15877,6 +15930,14 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "con" && <div className="sop-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 29 }}><Cd><h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>✅ CAN</h3>{CONST_CAN.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd><Cd><h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>❌ CANNOT</h3>{CONST_CANT.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd></div>}
 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
+        {nav === "smap" && !NAT && <StateMap state={state} home={setup && setup.homeLga} projects={projects || []} needs={needs || []}
+          mood={(L) => { const z = SYS.districtOf(state, L), here = (p) => p.lga === L || (p.lgas || []).includes(L);
+            // The state's mood, the district's, then this place's own story: what you opened here lifts it, problems left open sink it.
+            const done = (projects || []).filter(p => here(p) && p.status === "delivered").length, bad = (needs || []).filter(n => n.lga === L && (n.status === "open" || n.status === "stalled")).length;
+            return (s.app || 50) + (z >= 0 ? ((s.zoneMood || {})[z] || 0) : 0) + Math.min(9, done * 3) - bad * 5 + (zoneOfName(L, 7) - 3); }}
+          needTitle={(n) => { const T = needType(n); return T ? T.title(n.lga) : n.k; }} needIcon={(n) => { const T = needType(n); return T ? T.icon : "⚠️"; }}
+          onNeed={(n) => { track("map", "need"); setNav("gov"); setNeedsAll(true); setNeedOpen(n.id); setTimeout(() => { try { document.getElementById("sop-needs").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); }}
+          onProjects={() => { track("map", "build"); goTab("prj"); }} />}
         {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} loans={loans} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && NAT && FedCouncilsPanel()}

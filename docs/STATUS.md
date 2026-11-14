@@ -1408,3 +1408,18 @@ The owner: when a project is finished, show a 3–4 second film of it (made with
   two films alternates by project. No film yet, a missing file or reduced motion: the ribbon picture shows instead.
 - When films arrive: put them in `public/art/reels/`, then set their counts in `REELS`. `tests/reels.test.mjs`
   checks every listed film exists and every film on disk is listed.
+
+## Your state on the map (14 November 2026)
+The owner: players should be able to say "that's my neighbourhood, see my market" and feel in charge.
+- New pillar `map` (the experiment now has 18). The State tab opens on a real map of the player's state: every local
+  government in its true shape (from geoBoundaries, CC BY 4.0, credited on the map), coloured by how its people
+  feel: the state's approval, the senatorial district's mood, +3 for each project opened there (up to +9), −5 for
+  each problem left open there.
+- Projects are pinned on the place they serve (faded while being built). Open problems pulse red, and the home local
+  government has a star. A tap on a place shows its mood, its problems (a tap opens the problem on Today) and what was
+  built there, with "Build something in <place>", which opens Projects.
+- Data: `public/art/maps/<State>.json` (37 files, about 20 KB each), built by `node tools/build-maps.mjs adm1 adm2`
+  from the geoBoundaries ADM1 and ADM2 files; spellings are matched to the game's own names (`ALIAS` in the tool).
+- Tests: `tests/maps.test.mjs` (every state has a map with every local government the game names) and
+  `tests/e2e/map.mjs`.
+- Not yet: "Build something" does not pre-fill the place in the project form; the President has no map.
