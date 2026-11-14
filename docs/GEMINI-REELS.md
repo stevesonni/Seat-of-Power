@@ -60,7 +60,8 @@ country (for example, a road through northern savannah instead of southern hills
 
 ## What Claude does with them
 
-- Puts the files in `public/art/reels/` and lists each project type in `REELS` (`game/systems/projects.js`).
+- Runs `node tools/install-reels.mjs <folder>`: each file is trimmed to 4 seconds, its sound removed and it is
+  compressed for phones into `public/art/reels/`, and the list in `REELS` (`game/systems/projects.js`) updates itself.
 - Shows the film on the card after the ribbon is cut: it plays once, muted, and stays on its last frame.
 - If a type has no film yet, or the player has reduced motion turned on, the card shows the ribbon picture instead,
   so a card is never empty.
