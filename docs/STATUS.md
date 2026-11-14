@@ -1361,3 +1361,23 @@ player feel in charge. One fix for everyone, five new pillars on the experiment 
   inherited debt; in the campaign, a people's fund of small donations (₦0.35B, owing nobody) appears before the
   godfather's loan when money runs low.
 - Tests: `tests/round3.test.mjs`, `tests/e2e/round3.mjs`. The test bot leaves the powers row alone.
+
+## The richer look (14 November 2026)
+The owner approved the new look (mock: the "UI demo" artifact) on one condition: the game plays exactly the same.
+So it is paint only, behind its own pillar (`look`, the experiment now has 17). Same screens, same buttons in the
+same order, same words, same rules.
+- **Decision cards** (`LvDecision`): taller painted scene that fades into the paper, a gold-edged name plate, a gold
+  kicker and a darker serif title; each choice is a white card with a 2px border that turns gold on touch, the
+  cost in a gold pill on the right (taken from its "Costs ₦…" or debt chip, `LookOpt`), the other effects as small
+  pills with a picture and an arrow (`LookChips`: 👥 approval, 📍 zone, 🏛️ party, 🕳️ corruption, 🛡️ security,
+  💰 own revenue).
+- **Meters** (`StatPill`): an arc gauge around each meter's icon (`LookGauge`); on phones the label sits under the
+  gauge so it is not cut off. The bank keeps its number (it has no 0–100 scale).
+- **Result cards** (`SOP_outcome` in `seat-of-power.html`, read through `window.SOP_LOOK`): a wax seal slams onto
+  the picture (green tick, red cross, or gold with the card's own picture), rows and the "next" line in the new
+  colours, a dark green button. No new words.
+- **The Governor's powers** (with `reach`): picture tiles in a row instead of pills.
+- **Tab bar and phone header:** a deep green gradient, a gold line on the tab bar and a raised gold active tab.
+- Palette: green #0f3d24 / #12301f, gold #e9b949 / #c99a2e, cream #f6f2ea, paper #fffdf7, good #1f9d5c, bad #d4483c.
+- Test: `tests/e2e/look.mjs` plays to the same decision with the look on and off and checks the choices are the
+  same words in the same order, the gauges, tiles and seal appear only with the look on, and no page errors.

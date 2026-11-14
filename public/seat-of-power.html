@@ -567,6 +567,8 @@
           if (wide && o.badge) { var bd = document.createElement('img'); bd.src = o.badge; bd.alt = ''; bd.style.cssText = 'position:absolute;right:10px;bottom:6px;height:84px;transform:none'; art.appendChild(bd); }
           if (o.coins && !wide) { var burst = document.createElement('img'); burst.src = './art/objects/coins-burst.webp'; burst.alt = ''; burst.className = 'sop-burst'; burst.style.cssText = 'position:absolute;height:150px;opacity:.9;transform:none'; art.insertBefore(burst, pic); }
         } else { var ic = document.createElement('div'); ic.textContent = o.icon || '📣'; ic.style.cssText = 'position:relative;font-size:64px;line-height:1;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4))'; art.appendChild(ic); }
+        // Pillar "look": a wax seal pressed onto the picture (no words: a tick, a cross or the card's own picture).
+        if (window.SOP_LOOK) { card.classList.add('look'); var seal = document.createElement('div'); seal.className = 'look-seal ' + (o.tone === 'bad' ? 'bad' : o.tone === 'good' ? 'good' : 'mid'); seal.setAttribute('aria-hidden', 'true'); seal.textContent = o.tone === 'bad' ? '✖' : o.tone === 'good' ? '✔' : (o.icon || '✔'); art.appendChild(seal); }
         card.appendChild(art);
         var bdy = document.createElement('div'); bdy.className = 'bd';
         var KICK = { '✍️': 'Executive order signed', '📜': 'Bill sent to the House', '💰': 'Programme started', '🕊️': 'It is over' };

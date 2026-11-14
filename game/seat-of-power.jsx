@@ -962,6 +962,8 @@ const EXP = (() => { let cur = null; try { cur = JSON.parse(localStorage.getItem
   try { localStorage.setItem(SYS.EXP_KEY, JSON.stringify(cur)); } catch (e) {}
   return cur; })();
 const pillarOn = (id) => !!EXP[id];
+// The result cards (seat-of-power.html) are drawn outside React; they read this for the richer look.
+try { window.SOP_LOOK = !!EXP.look; } catch (e) {}
 // The player's language (Pidgin, Yoruba, Hausa, Igbo; English by default). Changing it reloads the page.
 const LANG = (() => { try { return SYS.langOf(localStorage.getItem(SYS.LANG_KEY)); } catch (e) { return "en"; } })();
 const tr = (s) => SYS.T(s, LANG);
@@ -2302,6 +2304,29 @@ const OL = ({ children, show }) => {
 const lvChip = (c) => c.color === CL.grn ? "chip up" : c.color === CL.red ? "chip down" : c.color === CL.org || /^₦|^Borrow/.test(c.text || "") ? "chip cost" : "chip";
 const lvTag = (t) => /^Programme/i.test(t) ? "tag prog" : /^Bill/i.test(t) ? "tag bill" : /order/i.test(t) ? "tag order" : null;
 const LvChips = ({ chips }) => (chips || []).slice(0, 4).map((c, j) => { const tg = lvTag(c.text || ""); return <span key={j} className={tg || lvChip(c)}>{tg ? c.text.replace(/^[^A-Za-z]+/, "") : c.text}</span>; });
+/* Pillar "look": the cost sits on the right of the choice in gold, the other effects become small pictures with
+   an arrow. Same words, same buttons, same taps. */
+const lookCost = (c) => /^(Costs|Debt|Borrow|₦)/.test((c && c.text) || "");
+const LOOK_ICONS = [[/^Approval/, "👥"], [/^Zone/, "📍"], [/^Party/, "🏛️"], [/^Corruption/, "🕳️"], [/^Security/, "🛡️"], [/^IGR|own revenue/i, "💰"], [/^Programme/i, "🌱"], [/^Bill/i, "📜"], [/order/i, "✒️"]];
+const LookOpt = ({ o }) => {
+  const cost = (o.chips || []).find(lookCost);
+  return <div className="lab look-lab"><span>{o.label}</span>{cost && <em className="look-cost">{cost.text.replace(/^Costs\s*/, "")}</em>}</div>;
+};
+const LookChips = ({ chips }) => (chips || []).filter(c => !lookCost(c)).slice(0, 4).map((c, j) => {
+  const t = c.text || "", hit = LOOK_ICONS.find(([r]) => r.test(t)), up = /\+|▲/.test(t), down = /−|-|▼/.test(t);
+  const cls = c.color === CL.grn ? "up" : c.color === CL.red ? "down" : "";
+  return <span key={j} className={"look-chip " + cls}>{hit && <i aria-hidden="true">{hit[1]}</i>}{t.replace(/^[^A-Za-z₦+−-]+/, "")}{(up || down) && <b aria-hidden="true">{up ? " ▲" : " ▼"}</b>}</span>;
+});
+const LookGauge = ({ pct, color, icon, size, dark }) => {
+  const r = 42, C = 2 * Math.PI * r, f = Math.max(.04, Math.min(1, (pct || 0) / 100)) * .75;
+  return <span style={{ position: "relative", width: size, height: size, display: "grid", placeItems: "center", flex: "none" }}>
+    <svg viewBox="0 0 100 100" width={size} height={size} style={{ position: "absolute", inset: 0, transform: "rotate(135deg)" }} aria-hidden="true">
+      <circle cx="50" cy="50" r={r} fill="none" stroke={dark ? "rgba(255,255,255,.16)" : "#e6dfd2"} strokeWidth="9" strokeLinecap="round" strokeDasharray={C * .75 + " " + C} />
+      <circle cx="50" cy="50" r={r} fill="none" stroke={color || "#e9b949"} strokeWidth="9" strokeLinecap="round" strokeDasharray={C * f + " " + C} style={{ transition: "stroke-dasharray .7s ease" }} />
+    </svg>
+    <Ico n={icon} s={Math.round(size * .5)} />
+  </span>;
+};
 const CouncilTable = ({ T, onPick, onClose }) => {
   const D = T.decision;
   const spk = (P) => P ? <div className="spk"><div className="av"><img src={P.img} alt="" /></div><div><b>{P.name}</b><span>{P.role}</span></div></div> : null;
@@ -2343,7 +2368,8 @@ const LvDecision = ({ c, onPick, advice }) => {
   const long = brief.length > 230, shown = long && !more ? brief.slice(0, 210).replace(/\s+\S*$/, "") + "…" : brief;
   const [bg, who, , scene] = c.art || [], pic = scene ? "./art/scenes/" + scene + ".webp" : bg ? "./art/backgrounds/" + bg + ".webp" : null;
   const plate = c.from ? String(c.from).split(/\s*[,·]\s*/) : null;
-  return <div className="lv lv-dec sop-fade-in" role="dialog" aria-label={c.title} style={{ position: "fixed", inset: 0, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+  const look = pillarOn("look");
+  return <div className={"lv lv-dec sop-fade-in" + (look ? " look" : "")} role="dialog" aria-label={c.title} style={{ position: "fixed", inset: 0, zIndex: 100, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
     <div className="dec">
       <div className="scene">
         {pic && <img className="bg" src={pic} alt="" />}
@@ -2358,8 +2384,8 @@ const LvDecision = ({ c, onPick, advice }) => {
         {recall && <div className="recall">↺ <span><b>Last year you</b> {recall}</span></div>}
         {c.stakes && <div className="recall" style={{ background: "#eef4ef", borderLeftColor: "var(--green)" }}>{c.stakes}</div>}
         <div className="opts">{(c.options || []).map((o, i) => <button key={i} className="opt" disabled={o.disabled} onClick={() => onPick(o, i)} style={o.disabled ? { opacity: .45, cursor: "not-allowed" } : null}>
-          <div className="lab">{o.label}</div>
-          {(o.chips || []).length > 0 ? <div className="meta"><LvChips chips={o.chips} /></div> : o.note ? <div style={{ fontSize: "var(--fs-label)", color: "var(--muted)" }}>{briefly(o.note, 60)}</div> : null}
+          {look ? <LookOpt o={o} /> : <div className="lab">{o.label}</div>}
+          {look && (o.chips || []).length > 0 ? <div className="meta"><LookChips chips={o.chips} /></div> : (o.chips || []).length > 0 ? <div className="meta"><LvChips chips={o.chips} /></div> : o.note ? <div style={{ fontSize: "var(--fs-label)", color: "var(--muted)" }}>{briefly(o.note, 60)}</div> : null}
           {o.risk && <div className="warnline">⚠ {briefly(o.risk, 60)}</div>}
         </button>)}</div>
       </section>
@@ -3106,7 +3132,15 @@ const StatPill = ({ label, value, color, icon, pct, raw, invert, dark, words }) 
     if (juice && money && mag >= .2) coinFly(ref.current, !up, Math.min(7, 2 + tier * 2));
     const t = setTimeout(() => setD(null), juice ? 1600 + tier * 500 : 1800); return () => clearTimeout(t);
   }, [raw]);
-  const tall = TALL(), ink = dark ? "#f3f7ef" : CL.txt;
+  const tall = TALL(), ink = dark ? "#f3f7ef" : CL.txt, gauge = pillarOn("look") && pct != null;
+  if (gauge) return <span ref={ref} key={d && d.tier === 3 ? "r" + d.k : "s"} data-sop-gauge="1" style={{ position: "relative", display: "grid", gridTemplateColumns: "auto 1fr", alignItems: "center", columnGap: tall ? 5 : 10, minWidth: 0, textAlign: "left", borderRadius: 999, animation: d && d.tier === 3 ? "sopMeterRing" + (d.good ? "Good" : "Bad") + " 1.1s ease-out 2" : undefined }}>
+    <LookGauge pct={pct} color={color} icon={icon} size={tall ? 30 : 58} dark={dark} />
+    <span style={{ display: tall ? "contents" : "grid", minWidth: 0 }}>
+      <span key={d ? d.k : 0} className={d ? "sop-bump" : ""} style={{ fontFamily: F.m, fontSize: tall ? TS(21) : TS(36), fontWeight: 800, lineHeight: 1.05, whiteSpace: "nowrap", color: d ? (d.good ? "#2fbf71" : "#ff6b5e") : ink, overflow: "hidden", textOverflow: "ellipsis" }}>{value}</span>
+      <span style={{ gridColumn: tall ? "1 / -1" : undefined, fontSize: tall ? TS(13) : TS(19), opacity: .75, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{tall && label === "In the bank" ? "Bank" : label}</span>
+    </span>
+    {d && <span className="sop-delta" style={{ position: "absolute", right: 0, top: tall ? -14 : -18, fontSize: (tall ? TS(15) : TS(22)) * (d.tier === 3 ? 1.3 : d.tier === 2 ? 1.12 : 1), whiteSpace: "nowrap", fontWeight: 800, color: "#fff", background: d.good ? "#1f9d5c" : "#d4483c", borderRadius: 999, padding: "1px 7px", pointerEvents: "none" }}>{d.txt}</span>}
+  </span>;
   return <span ref={ref} key={d && d.tier === 3 ? "r" + d.k : "s"} style={{ position: "relative", display: "grid", gridTemplateColumns: tall ? "1fr" : "auto 1fr", alignItems: "center", columnGap: 10, minWidth: 0, textAlign: "left", borderRadius: 10, animation: d && d.tier === 3 ? "sopMeterRing" + (d.good ? "Good" : "Bad") + " 1.1s ease-out 2" : undefined }}>
     {!tall && <span style={{ gridRow: "span 2", width: 46, height: 46, borderRadius: "50%", background: dark ? "rgba(255,255,255,.1)" : CL.bg, display: "grid", placeItems: "center" }}><Ico n={icon} s={32} /></span>}
     <b style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0 }}>{tall && <Ico n={icon} s={17} />}<span key={d ? d.k : 0} className={d ? "sop-bump" : ""} style={{ fontFamily: F.m, fontSize: tall ? TS(22) : TS(38), lineHeight: 1.05, whiteSpace: "nowrap", color: d ? (d.good ? "#2fbf71" : "#ff6b5e") : ink, overflow: "hidden", textOverflow: "ellipsis" }}>{value}</span></b>
@@ -12749,7 +12783,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {/* Phone: one slim row pinned to the top. Name and turn on the left,
             approval on the right; tap it for the "State of the state" sheet.
             The ☰ menu holds Save, Help, text size and fullscreen. */}
-        {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: NAT ? "linear-gradient(180deg, #0a2a18, #14482b)" : "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)", borderBottom: NAT ? "3px solid #c9a227" : 0 }}>
+        {TALL() && <div style={{ position: "sticky", top: 0, zIndex: 30, margin: "-20px -20px 16px", background: NAT ? "linear-gradient(180deg, #0a2a18, #14482b)" : pillarOn("look") ? "linear-gradient(180deg, #0f3d24, #12301f)" : "#0f3d24", color: "#f3f7ef", boxShadow: "0 6px 18px rgba(0,0,0,.2)", borderBottom: NAT ? "3px solid #c9a227" : 0 }}>
           {NAT && <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, fontSize: TS(13), letterSpacing: 3, fontWeight: 800, color: "#e9c766", padding: "6px 0 0" }}><img src="./art/objects/presidential-seal.webp" alt="" style={{ width: 22, height: 22 }} />THE PRESIDENCY · ASO ROCK VILLA</div>}
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
             <button onClick={() => { setMenuOpen(o => !o); setSosOpen(false); }} aria-label="Menu" aria-expanded={menuOpen} style={{ width: 56, height: 56, minHeight: 56, borderRadius: 14, border: "1px solid rgba(255,255,255,.25)", background: menuOpen ? "rgba(255,255,255,.15)" : "transparent", color: "#f3f7ef", fontSize: TS(25), cursor: "pointer", flexShrink: 0 }}><Ico n="icon-menu" s={32} /></button>
@@ -12772,11 +12806,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {statusStrip(false)}
         </div>}
         {!flagUsed && s.app < 50 && (!pillarOn("screen") || (nav === "gov" && todayMore)) && <div style={{ background: CL.org + "12", border: "1px solid " + CL.org + "30", borderRadius: 11, padding: "14px 36px", marginBottom: 22, display: "flex", justifyContent: "space-between", alignItems: "center" }}><span style={{ fontSize: TS(34), color: CL.org }}>⚠️ Approval below 50%</span><Bt v="danger" onClick={useFlagship} style={{ fontSize: TS(29), padding: "10px 36px" }}>🚀 FLAGSHIP</Bt></div>}
-        {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: "rgba(11,40,24,.96)", borderTop: "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
+        {TALL() ? <div data-sop-nav className="sop-tabbar" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 60, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, padding: "10px 12px calc(14px + env(safe-area-inset-bottom, 0px))", background: pillarOn("look") ? "linear-gradient(180deg,#12301f,#0b2416)" : "rgba(11,40,24,.96)", borderTop: pillarOn("look") ? "2px solid #c99a2e" : "1px solid rgba(255,255,255,.12)", boxShadow: "0 -10px 28px rgba(0,0,0,.25)" }}>
           {SCREENS.map(sc => {
             const on = sc.id === curScreen.id;
             return <button key={sc.id} onClick={() => setNav(navMemory.current[sc.id] || sc.subs[0].k)} aria-pressed={on}
-              style={{ position: "relative", border: 0, borderRadius: 16, padding: "10px 4px", background: on ? "#ffd166" : "transparent", color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
+              style={{ position: "relative", border: 0, borderRadius: 16, padding: "10px 4px", background: on ? (pillarOn("look") ? "linear-gradient(180deg,#f3cd66,#e9b949)" : "#ffd166") : "transparent", boxShadow: on && pillarOn("look") ? "0 4px 12px rgba(233,185,73,.35), inset 0 -2px 0 #c99a2e" : undefined, color: on ? "#1a2e05" : "#e6efe2", fontFamily: F.c, fontWeight: 800, fontSize: TS(21), cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 4, transition: "background .2s" }}>
               <img src={"./art/icons/" + sc.img + ".webp"} alt="" style={{ width: TS(48), height: TS(48), objectFit: "contain" }} />{sc.l}{pillarOn("front") && turn <= 2 && <span style={{ fontSize: TS(14), fontWeight: 600, opacity: .85, lineHeight: 1.1 }}>{tr(SYS.TAB_HINT[sc.id])}</span>}
               {sc.id === "map" && !treSeen && turn > 1 && !pillarOn("stagger") && <span className="sop-pop" aria-label="Treasury visit due" style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e9b949", color: "#1b1405", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 5px" }}>₦</span>}{sc.id === "desk" && mail.length > 0 && <span className="sop-pop" aria-label={mail.length + " letters"} style={{ position: "absolute", top: 2, right: "18%", minWidth: 22, height: 22, borderRadius: 11, background: "#e0574c", color: "#fff", fontSize: 13, fontWeight: 800, display: "flex", alignItems: "center", gap: 2, padding: "0 5px" }}><Ico n="icon-mail" s={14} />{mail.length}</span>}
             </button>;
@@ -15550,7 +15584,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
           ];
           return <div data-sop-powers aria-label="The Governor's powers" style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "10px 0 12px" : "14px auto 16px" }}>
             <div style={{ fontSize: TALL() ? TS(15) : TS(22), fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", color: CL.td, margin: "0 0 6px 2px" }}>{NAT ? "The President's powers" : "The Governor's powers"}</div>
-            <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 2px 6px" }}>{P.map(([i, l, fn]) => <button key={l} onClick={() => { track("power", l); fn(); }} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, minHeight: 48, padding: "0 14px", borderRadius: 14, border: "1.5px solid " + CL.gold + "88", background: CL.card, color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(17) : TS(24), cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,.06)" }}><span style={{ fontSize: "1.25em" }}>{i}</span>{l}</button>)}</div>
+            {pillarOn("look") ? <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: TALL() ? "minmax(92px,1fr)" : "minmax(150px,1fr)", gap: 8, overflowX: "auto", padding: "2px 2px 6px" }}>{P.map(([i, l, fn]) => <button key={l} onClick={() => { track("power", l); fn(); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", gap: 6, minHeight: TALL() ? 104 : 128, padding: "12px 4px 10px", overflowWrap: "anywhere", hyphens: "auto", borderRadius: 18, border: "1.5px solid #e9b94966", background: "linear-gradient(180deg,#fffdf7,#f6f2ea)", color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(14) : TS(21), lineHeight: 1.15, textAlign: "center", cursor: "pointer", boxShadow: "0 3px 0 #e6dfd2, 0 8px 18px -10px rgba(15,61,36,.35)" }}><span aria-hidden="true" style={{ width: TALL() ? 46 : 60, height: TALL() ? 46 : 60, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: TALL() ? 24 : 32, background: "radial-gradient(circle at 35% 30%,#1a5c38,#0f3d24)", boxShadow: "inset 0 0 0 2px #e9b949" }}>{i}</span>{l}</button>)}</div>
+            : <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 2px 6px" }}>{P.map(([i, l, fn]) => <button key={l} onClick={() => { track("power", l); fn(); }} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, minHeight: 48, padding: "0 14px", borderRadius: 14, border: "1.5px solid " + CL.gold + "88", background: CL.card, color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(17) : TS(24), cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,.06)" }}><span style={{ fontSize: "1.25em" }}>{i}</span>{l}</button>)}</div>}
           </div>; })()}
         {nav === "gov" && pillarOn("screen") && !needSetup && <button onClick={() => { setTodayMore(v => !v); track("today_more", todayMore ? "close" : "open"); }} aria-expanded={todayMore} style={{ display: "block", width: "100%", maxWidth: TALL() ? 900 : 1320, margin: "12px auto 0", padding: "10px 14px", minHeight: 46, borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, color: CL.td, fontWeight: 700, fontSize: TALL() ? TS(18) : TS(24), cursor: "pointer", fontFamily: F.b, order: 99 }}>{todayMore ? "Show less ▲" : "More: what the state needs, the street, visits ▾"}</button>}
 
