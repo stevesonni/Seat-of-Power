@@ -93,7 +93,7 @@ export function makeShop({ DATA, PRODUCTS, withP, writeP, env = process.env, fet
       if (mode !== "live" && b.test !== true) return { _code: 403, error: "test_mode" };
       if (!t.e) return { _code: 400, error: "no_email" };
       const reference = "sop_" + crypto.randomBytes(12).toString("hex");
-      const r = await paystack("/transaction/initialize", { email: t.e, amount: PRICES[product] * 100, currency: "NGN", reference, callback_url: BASE + "/?paid=" + reference, metadata: { acct: t.a, product, custom_fields: [{ display_name: "Item", variable_name: "item", value: NAMES[product] || product }] } }).catch(() => ({ http: 0 }));
+      const r = await paystack("/transaction/initialize", { email: t.e, amount: PRICES[product] * 100, currency: "NGN", reference, callback_url: BASE + "/play?paid=" + reference, metadata: { acct: t.a, product, custom_fields: [{ display_name: "Item", variable_name: "item", value: NAMES[product] || product }] } }).catch(() => ({ http: 0 }));
       if (r.http !== 200 || !r.status || !r.data || !r.data.authorization_url) return { _code: 502, error: "paystack_down" };
       return { ok: true, url: r.data.authorization_url, reference };
     },

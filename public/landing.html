@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Seat of Power · Govern Nigeria, one decision at a time</title>
+  <meta name="description" content="Seat of Power is a free Nigerian politics game for your phone. Win an election, then run a real state: the budget, the House, the godfather, the people. Rise from LGA Chairman to President." />
+  <meta property="og:title" content="Seat of Power" />
+  <meta property="og:description" content="Win the election. Run the state. Answer to the people. A free Nigerian politics game for your phone." />
+  <meta property="og:image" content="https://seatofpower.online/art/brand/share-card.jpg" />
+  <meta property="og:url" content="https://seatofpower.online/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#0b1a12" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet" />
+  <script>
+    // Inside a frame (Lagos Life, or anyone embedding us): straight to the game, never this page.
+    try { if (window.top !== window) location.replace("/play" + location.search); } catch (e) { location.replace("/play" + location.search); }
+  </script>
+  <style>
+    :root { --ink: #fff; --bg: #0b1a12; --gold1: #ffe08a; --gold2: #e9a52b; --green: #19a463; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--ink); font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
+    a { color: inherit; }
+    .top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 18px clamp(16px, 4vw, 48px); background: linear-gradient(180deg, rgba(0,0,0,.55), transparent); }
+    .brand { font-family: Anton, Impact, sans-serif; font-size: 26px; letter-spacing: 3px; text-decoration: none; }
+    .top a.small { font-weight: 800; letter-spacing: 2px; font-size: 13px; text-decoration: none; text-transform: uppercase; }
+    .hero { position: relative; min-height: 100svh; display: grid; place-items: end center; text-align: center; overflow: hidden; }
+    .hero img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.25) 0%, rgba(0,0,0,.05) 35%, rgba(8,20,13,.92) 82%, var(--bg) 100%); }
+    .hero .in { position: relative; z-index: 1; padding: 0 16px clamp(48px, 9vh, 96px); max-width: 900px; }
+    .kick { font-weight: 800; letter-spacing: 4px; font-size: 13px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; }
+    .kick i { width: 9px; height: 9px; border-radius: 50%; background: var(--green); display: inline-block; }
+    h1 { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: clamp(64px, 14vw, 168px); line-height: .92; letter-spacing: 1px; text-transform: uppercase; margin: 14px 0 12px;
+      background: linear-gradient(180deg, var(--gold1) 0%, var(--gold2) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 6px 18px rgba(0,0,0,.5)); }
+    .lead { font-size: clamp(17px, 2.2vw, 21px); line-height: 1.5; max-width: 620px; margin: 0 auto 26px; color: #e8efe9; }
+    .play { display: inline-block; padding: 16px 44px; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: 800; letter-spacing: 3px; font-size: 16px; text-transform: uppercase; background: rgba(0,0,0,.25); transition: background .2s, color .2s; }
+    .play:hover, .play:focus-visible { background: #fff; color: #0b1a12; outline: none; }
+    .play.gold { border-color: var(--gold2); background: linear-gradient(180deg, var(--gold1), var(--gold2)); color: #1d1404; }
+    .note { margin-top: 14px; font-size: 13px; color: #b9c8bf; letter-spacing: 1px; }
+    .sect { padding: clamp(56px, 9vw, 110px) clamp(16px, 4vw, 48px) 0; max-width: 1240px; margin: 0 auto; }
+    h2 { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: clamp(38px, 6vw, 64px); text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 26px; }
+    .careers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+    .career { position: relative; min-height: 460px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; padding: 22px 14px; text-decoration: none; }
+    .career img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
+    .career:hover img { transform: scale(1.05); }
+    .career::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 25%, rgba(5,12,8,.78) 52%, rgba(5,12,8,.96) 85%); }
+    .career b, .career span { text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+    .career > * { position: relative; z-index: 1; }
+    .career b { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: clamp(30px, 3.2vw, 44px); text-transform: uppercase; line-height: 1; background: linear-gradient(180deg, var(--gold1), var(--gold2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .career span { font-size: 14px; color: #d6e2da; margin: 8px 0 14px; max-width: 240px; line-height: 1.4; }
+    .career .play { padding: 11px 24px; font-size: 13px; }
+    .tag { position: absolute; top: 14px; left: 14px; z-index: 2; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; background: var(--green); color: #fff; }
+    .feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .feat { background: #12251a; border: 1px solid #22402e; padding: 22px; }
+    .feat .ic { font-size: 30px; }
+    .feat h3 { font-size: 19px; margin: 10px 0 6px; }
+    .feat p { color: #c7d5cc; line-height: 1.5; font-size: 15px; }
+    .final { text-align: center; padding: clamp(60px, 9vw, 110px) 16px; }
+    footer { border-top: 1px solid #1d3627; padding: 22px 16px 34px; text-align: center; color: #8fa699; font-size: 13px; line-height: 1.7; }
+    @media (max-width: 900px) { .careers { grid-template-columns: repeat(2, 1fr); } .career { min-height: 340px; } .feats { grid-template-columns: 1fr; } }
+    @media (max-width: 480px) { .careers { grid-template-columns: 1fr; } .career { min-height: 300px; } .top a.small { display: none; } }
+    @media (prefers-reduced-motion: reduce) { .career img { transition: none; } }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="/">SEAT OF POWER</a>
+    <a class="small" href="/play">Play free →</a>
+  </header>
+
+  <section class="hero">
+    <img class="bg" src="/art/scenes/inauguration-eagle-square.webp" alt="" fetchpriority="high" />
+    <div class="in">
+      <div class="kick"><i></i> Nigeria · free on your phone</div>
+      <h1>Seat of Power</h1>
+      <p class="lead">Win the election. Run a real Nigerian state. Pass the budget, face the House, answer the godfather, and fix the roads, water and schools of real towns. Every choice has a price.</p>
+      <a class="play gold" href="/play">Play now</a>
+      <div class="note">No download · no sign-up · plays in your browser</div>
+    </div>
+  </section>
+
+  <section class="sect" id="careers">
+    <h2>Choose your seat</h2>
+    <div class="careers">
+      <a class="career" href="/play"><span class="tag">Start here</span><img src="/art/scenes/camp-mega-rally.webp" alt="" loading="lazy" /><b>Governor</b><span>Campaign, win, and govern a state for up to eight years.</span><span class="play">Play now</span></a>
+      <a class="career" href="/play"><img src="/art/backgrounds/lga-secretariat.webp" alt="" loading="lazy" /><b>LGA Chairman</b><span>Run your own local government: markets, roads, chiefs and councillors.</span><span class="play">Play now</span></a>
+      <a class="career" href="/play"><img src="/art/backgrounds/senate-chamber.webp" alt="" loading="lazy" /><b>Senator</b><span>Write laws, win votes on the floor, and keep your district behind you.</span><span class="play">Play now</span></a>
+      <a class="career" href="/play"><img src="/art/scenes/aso-rock-arrival.webp" alt="" loading="lazy" /><b>President</b><span>From a governorship to Aso Rock: the whole country is yours to run.</span><span class="play">Play now</span></a>
+    </div>
+  </section>
+
+  <section class="sect">
+    <h2>Govern like it's real</h2>
+    <div class="feats">
+      <div class="feat"><div class="ic">🗺️</div><h3>Your state, your streets</h3><p>Every local government on a real map. Fix the borehole in your area, light your market, and watch how people feel change, place by place.</p></div>
+      <div class="feat"><div class="ic">💰</div><h3>Money is never enough</h3><p>Federal allocation, taxes, salaries, debt and contractors. Borrow, cut or reform, and live with the result.</p></div>
+      <div class="feat"><div class="ic">🏛️</div><h3>Politics, the Nigerian way</h3><p>The House, the courts, unions, traditional rulers and a godfather who made you. Keep them close or break free.</p></div>
+      <div class="feat"><div class="ic">📰</div><h3>Every choice comes back</h3><p>The papers, the street and the next election remember what you did, and why.</p></div>
+      <div class="feat"><div class="ic">🗣️</div><h3>In your language</h3><p>Play in English, Pidgin, Yorùbá, Hausa or Igbo.</p></div>
+      <div class="feat"><div class="ic">📚</div><h3>Learn how it really works</h3><p>Budgets, elections and the constitution, explained as you play. Everyone and every party in the game is fictional.</p></div>
+    </div>
+  </section>
+
+  <section class="final">
+    <h2>Your seat is waiting</h2>
+    <a class="play gold" href="/play">Play now</a>
+    <div class="note">Also available in Lagos Life</div>
+  </section>
+
+  <footer>Seat of Power · a SonniGames game · All people and parties in the game are fictional.<br />© 2026 SonniGames</footer>
+</body>
+</html>

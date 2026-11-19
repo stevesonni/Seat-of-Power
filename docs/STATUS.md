@@ -1477,3 +1477,10 @@ Built, switched off until its keys are set: Google sign-in and Paystack on seato
 Lagos Life, as the Vatar agreement requires). Same products and prices as the Vatar listing; granted only after
 Paystack confirms, once per payment, at the right amount. Test keys work only from `?shoptest=1`. See
 `docs/SHOP.md`; tests `tests/shop.test.mjs`.
+
+## The landing page (19 November 2026)
+seatofpower.online (and www) opens `public/landing.html`: the title over the inauguration scene, Play now, the four
+careers, what the game is, and Play now again. The game is at `/play` (and `/seat-of-power.html`). Lagos Life frames
+the Railway address, which still opens the game directly; any framed request (Sec-Fetch-Dest: iframe, and a script on
+the page) gets the game, never the landing page. Old links with a code (`/?desk=…`, `/?fed=…`) go straight to
+`/play`. Paystack now returns players to `/play?paid=…`.

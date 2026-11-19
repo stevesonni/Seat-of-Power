@@ -120,6 +120,8 @@ const loadPage = () => {
   if (page === html) throw new Error("seat-of-power.html: could not find the sop-app.js script tag");
 };
 loadPage();
+// The landing page for seatofpower.online (public/landing.html).
+let landing = ""; try { landing = fs.readFileSync(path.join(ROOT, "landing.html"), "utf8"); } catch (e) { landing = page; }
 
 const send = (res, code, body, type = "application/json") => {
   res.writeHead(code, { ...baseHeaders, "Content-Type": type, "Cache-Control": "no-store" });
@@ -494,7 +496,16 @@ http.createServer(async (req, res) => {
         + '</main>';
       res.writeHead(200, { ...baseHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }); return res.end(html);
     }
-    if (url.pathname === "/" || url.pathname === "/seat-of-power.html") return send(res, 200, page, TYPES[".html"]);
+    // seatofpower.online opens on the landing page; the game is at /play. Lagos Life frames the Railway address
+    // (and any frame gets the game), so the game itself never moves. Old links with a code (?desk=, ?fed=, …) go
+    // straight to the game.
+    const host = String(req.headers.host || "").toLowerCase().replace(/:\d+$/, ""), site = /^(www\.)?seatofpower\.online$/.test(host) || process.env.LANDING_ALL === "1";
+    if (url.pathname === "/" && site && req.headers["sec-fetch-dest"] !== "iframe") {
+      if (url.search) { res.writeHead(302, { ...baseHeaders, Location: "/play" + url.search }); return res.end(); }
+      return send(res, 200, landing, TYPES[".html"]);
+    }
+    if (url.pathname === "/play/") { res.writeHead(301, { ...baseHeaders, Location: "/play" + url.search }); return res.end(); } // the page uses ./ paths
+    if (url.pathname === "/" || url.pathname === "/play" || url.pathname === "/seat-of-power.html") return send(res, 200, page, TYPES[".html"]);
     // Static files from public/, never outside it.
     const f = path.resolve(ROOT, "." + decodeURIComponent(url.pathname));
     if (!f.startsWith(ROOT + path.sep)) return send(res, 404, "Not found", TYPES[".txt"]);
