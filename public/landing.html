@@ -42,6 +42,8 @@
     .note { margin-top: 14px; font-size: 13px; color: #b9c8bf; letter-spacing: 1px; }
     .sect { padding: clamp(56px, 9vw, 110px) clamp(16px, 4vw, 48px) 0; max-width: 1240px; margin: 0 auto; }
     h2 { font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: clamp(30px, 5vw, 54px); text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 26px; }
+    .trailer { position: relative; width: min(560px, 100%); aspect-ratio: 1 / 1; margin: 0 auto; background: #000; border: 2px solid var(--gold2); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+    .trailer iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
     .careers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
     .career { position: relative; min-height: 460px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; padding: 22px 14px; text-decoration: none; }
     .career img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
@@ -79,6 +81,14 @@
       <p class="lead">Win the election. Run a real Nigerian state. Pass the budget, face the House, answer the godfather, and fix the roads, water and schools of real towns. Every choice has a price.</p>
       <a class="play gold" href="/play">Play now</a>
       <div class="note">No download · no sign-up · plays in your browser</div>
+    </div>
+  </section>
+
+  <section class="sect" id="trailer">
+    <h2>See it in action</h2>
+    <div class="trailer">
+      <!-- The trailer (1:1). Hosted on Google Drive for now; tap to play. -->
+      <iframe src="https://drive.google.com/file/d/10oGTQVK9R-oXWOIutNHM644b8Vt5N4hJ/preview" title="Seat of Power trailer" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>
     </div>
   </section>
 
