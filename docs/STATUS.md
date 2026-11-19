@@ -1471,3 +1471,9 @@ From `reports/Experience audit 19 Nov 2026.md`, for every player (not an experim
 7. **Year one:** the budget usually passes in one banner, and its screens no longer say "APPROPRIATION".
 Measured with the same bot from year 1 to year 3: 191 → 157 taps (features off), 208 → 187 (all features on),
 with the same number of real decisions.
+
+## Our own shop (19 November 2026)
+Built, switched off until its keys are set: Google sign-in and Paystack on seatofpower.online only (never inside
+Lagos Life, as the Vatar agreement requires). Same products and prices as the Vatar listing; granted only after
+Paystack confirms, once per payment, at the right amount. Test keys work only from `?shoptest=1`. See
+`docs/SHOP.md`; tests `tests/shop.test.mjs`.

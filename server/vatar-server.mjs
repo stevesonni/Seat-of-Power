@@ -20,6 +20,7 @@ import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntrie
 import { makeCabinets } from "./cabinet.mjs";
 import { makeFederation } from "./federation.mjs";
 import { careerOf, careerName, keepBackup } from "./saves.mjs";
+import { makeShop } from "./shop.mjs";
 import { dropOff, dropOffSplit, DROP_PILLARS, PILLARS, experimentSummary } from "./experiment.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
@@ -114,7 +115,7 @@ const baseHeaders = { "Content-Security-Policy": "frame-ancestors " + FRAMERS, "
 let page = null;
 const loadPage = () => {
   const html = fs.readFileSync(path.join(ROOT, "seat-of-power.html"), "utf8");
-  const inject = '<script>window.SOP_VATAR = true;</script>\n  <script src="' + SDK + '"></script>\n  <script src="./sop-vatar.js"></script>\n  ';
+  const inject = '<script>window.SOP_VATAR = true;</script>\n  <script src="' + SDK + '"></script>\n  <script src="./sop-vatar.js"></script>\n  <script src="./sop-web.js"></script>\n  ';
   page = html.replace('<script src="./sop-app.js"></script>', inject + '<script src="./sop-app.js"></script>');
   if (page === html) throw new Error("seat-of-power.html: could not find the sop-app.js script tag");
 };
@@ -172,6 +173,8 @@ const writeP = (id, rec) => { const f = file(id), tmp = f + "." + process.pid + 
 const locks = new Map(); // one write at a time per player
 const withP = (id, fn) => { const prev = locks.get(id) || Promise.resolve(); const next = prev.then(() => fn(readP(id))).finally(() => { if (locks.get(id) === next) locks.delete(id); }); locks.set(id, next.catch(() => {})); return next; };
 
+// Our own shop on seatofpower.online (Google sign-in + Paystack): off unless WEB_SHOP=1 and its keys are set.
+const shop = makeShop({ DATA, PRODUCTS, withP, writeP });
 const KEY_OK = /^[a-z_]{1,32}$/; // sop_save, sop_profile, sop_preelection…
 const api = {
   "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents), bak: (p.bak || []).map((x, i) => ({ i, t: x.t, name: careerName(x.v) })) }; },
@@ -384,6 +387,22 @@ http.createServer(async (req, res) => {
       // A nudge only: the game claims purchases itself, and /claim checks them with the API.
       return send(res, 200, { ok: true });
     }
+    // Our own shop (seatofpower.online, outside Lagos Life): Paystack's signed webhook, then the shop's routes.
+    if (req.method === "POST" && url.pathname === "/api/paystack/webhook") {
+      const raw = await readBody(req, 64_000); const out = await shop.webhook(raw, req.headers["x-paystack-signature"]);
+      return send(res, out._code || 200, { ok: !out._code });
+    }
+    if (url.pathname.startsWith("/api/shop/") && shop.routes[url.pathname.slice(10)] && (req.method === "POST" || url.pathname === "/api/shop/config")) {
+      let b = {}; if (req.method === "POST") { try { b = JSON.parse(await readBody(req, 16_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); } }
+      const out = await shop.routes[url.pathname.slice(10)](b); return send(res, out._code || 200, out);
+    }
+    // A signed-in player on our own site uses the same saves and purchases as a Lagos Life player, under their
+    // own account id (w_…), never linked to a Lagos Life player.
+    if (req.method === "POST" && url.pathname.startsWith("/api/web/") && api["/api/" + url.pathname.slice(9)]) {
+      let b; try { b = JSON.parse(await readBody(req)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+      const t = shop.on && shop.readToken(b.token); if (!t) return send(res, 401, { error: "sign_in" });
+      const out = await api["/api/" + url.pathname.slice(9)](b, t.a); return send(res, out._code || 200, out);
+    }
     // Feedback from a player whose Lagos Life session could not be confirmed (or who opened
     // the game directly): kept all the same, marked anonymous, five a day per address.
     if (req.method === "POST" && url.pathname === "/api/feedback-open") {
@@ -409,7 +428,7 @@ http.createServer(async (req, res) => {
       return send(res, out._code || 200, out);
     }
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "method" });
-    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, keyMode: KEY_MODE, freeCareers: FREE_CAREERS });
+    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, keyMode: KEY_MODE, freeCareers: FREE_CAREERS, shop: shop.on, shopMode: shop.mode });
     if (url.pathname === "/feedback") {
       const k = Buffer.from(String(url.searchParams.get("key") || "").trim()), want = Buffer.from(FEEDBACK_KEY);
       if (!FEEDBACK_KEY || k.length !== want.length || !crypto.timingSafeEqual(k, want)) {
