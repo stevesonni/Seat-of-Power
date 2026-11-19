@@ -36,6 +36,9 @@ export function makeShop({ DATA, PRODUCTS, withP, writeP, env = process.env, fet
   const GCID = String(env.GOOGLE_CLIENT_ID || "").trim(), BASE = String(env.SHOP_BASE_URL || "https://seatofpower.online").replace(/\/$/, "");
   const on = env.WEB_SHOP === "1" && !!PSK && !!GCID;
   const mode = PSK.startsWith("sk_live_") ? "live" : PSK.startsWith("sk_test_") ? "test" : PSK ? "unknown" : "none";
+  // Which mode the shop runs in (never the keys themselves). A live secret key with a test public key, or the other
+  // way round, is a mix-up worth flagging.
+  if (env.WEB_SHOP === "1") console.log("[shop] " + (on ? "on" : "off (keys missing)") + " · " + mode + " mode" + (PPK && PSK && PPK.startsWith("pk_live_") !== PSK.startsWith("sk_live_") ? " · WARNING: public and secret keys are from different modes" : ""));
   // The key that signs our sessions: from the environment, else made once and kept with the data.
   let SS = String(env.SHOP_SECRET || "").trim();
   if (!SS) { const f = path.join(DATA, "shop-secret"); try { SS = fs.readFileSync(f, "utf8").trim(); } catch (e) { SS = crypto.randomBytes(32).toString("hex"); try { fs.mkdirSync(DATA, { recursive: true }); fs.writeFileSync(f, SS, { mode: 0o600 }); } catch (x) {} } }
