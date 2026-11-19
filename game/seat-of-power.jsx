@@ -2335,8 +2335,9 @@ const LookGauge = ({ pct, color, icon, size, dark }) => {
 const MAP_ICON = { road: "🛣️", bridge: "🌉", hospital: "🏥", school: "🏫", secondary: "🏫", nursing: "🩺", coe: "🎓", polytechnic: "🎓", university: "🎓", water: "🚰", dam: "🏞️", power: "⚡", market: "🛒", housing: "🏘️", vehicles: "🚓", cctv: "📹", landfill: "♻️", industrial: "🏭", stadium: "🏟️", esports: "🎮", tourist: "🏝️" };
 const MAP_CACHE = {};
 const moodColour = (m) => m >= 62 ? "#7cc49a" : m >= 52 ? "#b9dcb0" : m >= 44 ? "#f0dfa3" : m >= 36 ? "#f2b58f" : "#e98c80";
-const StateMap = ({ state, home, projects, needs, mood, needTitle, needIcon, onNeed, onProjects, jobs }) => {
-  const [M, setM] = useState(MAP_CACHE[state] || null), [sel, setSel] = useState(null), [err, setErr] = useState(false);
+const StateMap = ({ state, home, projects, needs, mood, needTitle, needIcon, onNeed, onProjects, jobs, focus }) => {
+  const [M, setM] = useState(MAP_CACHE[state] || null), [sel, setSel] = useState(focus || null), [err, setErr] = useState(false);
+  useEffect(() => { if (focus) setSel(focus); }, [focus]);
   useEffect(() => { if (MAP_CACHE[state]) { setM(MAP_CACHE[state]); return; } let on = true;
     fetch("./art/maps/" + state + ".json").then(r => r.ok ? r.json() : Promise.reject(r.status)).then(j => { MAP_CACHE[state] = j; if (on) setM(j); }).catch(() => on && setErr(true));
     return () => { on = false; }; }, [state]);
@@ -4070,7 +4071,9 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
         // The campaign itself is now where they fight you, so the final poll is a fair guide.
         // window.SOP_TEST is set only by the automated playthroughs (tests/e2e), never by the game.
         const testSwing = window.SOP_TEST ? (window.SOP_TEST.win ? 40 : window.SOP_TEST.lose ? -40 : 0) : 0;
-        const swing = (firstRun && !hardMode ? 2 : 0) + testSwing; // the campaign's points are already in the poll
+        // Leak 5: a player's very first election leans their way (5 points, not on hard), so a close first race
+        // is won and a newcomer reaches governing, the heart of the game. Later careers are fought straight.
+        const swing = (firstRun && !hardMode ? 5 : 0) + testSwing; // the campaign's points are already in the poll
         // Election-day noise is small: a player who leads the final poll should almost always win.
         const jitter = (eDay() - 0.5) * (hardMode ? 7 : 4);
         return { ...z, support: cl100(z.support + swing + jitter), opp: cl100(z.opp - swing * 0.4 + (hardMode ? 1 : .5) + (eDay() - 0.5) * (hardMode ? 5 : 3)) };
@@ -4454,6 +4457,13 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
   const statusColor = hardBlockers.length ? CL.red : concerns.length ? CL.org : CL.grn;
   const cleanDraft = { salaries: 18, debt: 8, administration: 7, health: 15, education: 15, security: 11, infrastructure: 16, agriculture: 10 };
 
+  // Leaks 2 and 4: a budget the House has nothing against passes in one banner, not three screens (the vote,
+  // "passed", "on to policies"). Concerns or blockers still bring the full vote.
+  const autoPass = !hardBlockers.length && !concerns.length;
+  useEffect(() => { if (!autoPass) return; const t = setTimeout(() => {
+    addL && addL("✅ The House passed your budget law without objections.", "policy");
+    try { window.SOP_impact && window.SOP_impact({ icon: "🏛️", title: "The House passes your budget law", text: "No objections from members.", tone: "good" }); } catch (e) {}
+    onPass(); }, 60); return () => clearTimeout(t); }, []);
   const doVote = () => {
     const passed = hardBlockers.length === 0;
     if (!passed) {
@@ -4484,16 +4494,16 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
         <Bg text={"Party: " + Math.round(pStab) + "%"} color={pStab > 50 ? CL.grn : CL.red} />
         <Bg text={statusLabel} color={statusColor} />
       </div>
-      <Bt onClick={doVote}>🗳️ CALL THE VOTE</Bt>
+      <Bt onClick={doVote}>🗳️ Call the vote</Bt>
     </div>
   );
 
   if (result === "pass") return (
     <div style={{ textAlign: "center" }}>
       <SceneArt bg="assembly-chamber-wide" who="speaker-pleased" alt={speakerName} h={TALL() ? 170 : 230} />
-      <h3 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>APPROPRIATION BILL PASSED</h3>
+      <h3 style={{ fontFamily: F.d, color: CL.grn, fontSize: TS(65), fontWeight: 600, margin: "0 0 14px" }}>Budget law passed</h3>
       <p style={{ color: CL.tm, fontSize: TS(36), marginBottom: 43 }}>The House of Assembly has approved your budget.</p>
-      <Bt onClick={onPass}>ON TO POLICIES →</Bt>
+      <Bt onClick={onPass}>On to policies →</Bt>
     </div>
   );
 
@@ -5997,6 +6007,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (silentRef.current) { silentNote(o.title, o.tone !== "bad"); return; }
     try {
       const rows = [...(o.rows || []), ...(before ? statRows(before, snapRef.current) : [])].filter((r, i, a) => a.findIndex(x => x.l === r.l) === i);
+      // Leak 1: a result that only says the choice back ("You chose…", "Done.", a line under 15 words with no
+      // picture) is a short banner with its numbers, not another card to dismiss. The meters move as before.
+      const words = String(o.text || "").trim().split(/\s+/).filter(Boolean).length;
+      const echo = o.echo || /^(You chose|Done\b)/.test(String(o.text || "").trim()) || (!o.img && words < 15 && !o.action && !o.onClose && !o.present && !o.paper && !o.ok && !o.learn && !o.coins);
+      if (echo && window.SOP_impact) { window.SOP_impact({ icon: o.icon, title: o.title, text: o.echo ? "" : o.text, rows, tone: o.tone }); return; }
       window.SOP_outcome && window.SOP_outcome({ ...o, rows, text: (o.text || "") + (rows.length ? "" : " Nothing changes at once; you will see the effect over the coming years.") });
     } catch (e) {}
   }, 250);
@@ -8972,7 +8987,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (oldPlan && oldPlan.kind && oldPlan.leftB > 0 && !firstOfNow(oldPlan)) setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, leftB: Math.max(0, Math.round((p.oldDebt.leftB - Math.min(p.oldDebt.leftB, p.oldDebt.perYearB)) * 100) / 100) } }));
     const news = (stc.moneyNews || []).filter(x => x.t === turn || (x.t === turn - 1 && !x.cash)).slice(-4);
     addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries and offices take " + naira(a.runB) + ", debt repayments " + naira(a.debtB + payNow) + "; " + naira(work) + " goes into the bank.", "info");
-    try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/" + (turn === 1 || total < .5 ? "treasury-chest-empty" : "treasury-chest") + ".webp", coins: turn > 1 && total >= .5, title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
+    // Leak 2: after the first year the money arrives as a banner (the coins still fly into the bank), not one more
+    // card to dismiss at the turn of the year. A year that leaves almost nothing for work still gets the full card.
+    if (turn > 1 && total >= a.inB * .2 && window.SOP_impact) { try { window.SOP_impact({ icon: "🏦", title: "Year " + turn + "'s money is in: " + naira(total) + " for this year's work", rows: [{ l: "From Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }, { l: "Salaries and offices", v: "−" + naira(a.runB), good: false }].concat(a.debtB >= .05 ? [{ l: "Debt", v: "−" + naira(a.debtB), good: false }] : []), tone: "good" }); } catch (e) {} }
+    else try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/" + (turn === 1 || total < .5 ? "treasury-chest-empty" : "treasury-chest") + ".webp", coins: turn > 1 && total >= .5, title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
       text: turn === 1 ? "The bank was empty, contractors were owed " + naira(bills) + ", and the state owes " + naira((oldPlan || {}).total || 0) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
       tone: total < a.inB * .2 ? "bad" : "good", ok: "Got it",
       rows: [{ l: "FAAC from Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }]
@@ -10018,7 +10036,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try {
       window.SOP_outcome({ icon: "✂️", img: ribbonImg, badge: "./art/objects/ceremonial-scissors.webp", title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" });
       // The finished work on film (art/reels, made with Gemini; docs/GEMINI-REELS.md); the ribbon picture if there is none yet.
-      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", video: SYS.reelFor(p.type, p.id), title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
+      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", video: SYS.reelFor(p.type, p.id), ...(pillarOn("map") && !NAT && (p.lga || (p.lgas || [])[0]) ? { action: { label: "🗺️ See it on the map", fn: () => { setMapFocus(p.lga || p.lgas[0]); setNav("smap"); } } } : {}), title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
     } catch (e) {}
     paper(RH.h, RH.sub, RH.good, ribbonImg);
   };
@@ -11669,6 +11687,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         fn: () => { if (news && news.news) anchors(news.news[0], news.news[1]); setTimeout(() => pingMail(bks.length, bks[0].key), 600); } } }); } catch (e) {} }, 400);
     }
   };
+  const scDirect = (l) => { const C = scOf(l); return C && !C.letter && !C.military && !C.doc && (C.options || []).length >= 2 && C.options.length <= 4 && C.options.every(o => !o.travel) ? C : null; };
   const scOf = (l) => l && l.key && l.key.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === l.key) || null : null;
   const sealOf = (l) => (l && l.seal) || (scOf(l) || {}).seal;
   const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: ((extra && extra.key) || key) + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
@@ -11756,6 +11775,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (urgent.length) setTimeout(() => { try { const t0 = letterView(urgent[0]).title.replace(/^Your agenda: /, "your promise, "); present("Your Excellency, " + t0 + (/[.!?]$/.test(t0) ? "" : ".") + " This one needs you." + (letters.length > 1 ? " " + letters.length + " letters are on your desk." : "")); } catch (e) {} }, 600);
   };
   // Each year event needs its data in place before it opens.
+  /* A statecraft card's choice, from the card itself or straight from its letter (leak 3: no "Handle it
+     personally" tap first). The result carries the card's picture; a result that would only repeat the button
+     is an "echo" and shows as a short banner, not another card to dismiss (leak 1). */
+  const scImg = (c) => { const [bg, , , scene] = c.art || []; return scene ? "./art/scenes/" + scene + ".webp" : bg ? "./art/backgrounds/" + bg + ".webp" : undefined; };
+  const pickSc = (c, o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { img: scImg(c), ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { echo: true, icon: c.icon || "📋", title: o.raw.label, text: "", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.filter(x => x.key !== c.key)); if (pillarOn("drama") && !o.raw.paper && !c.paper) { const H = SYS.headlineFor(state, c.title, o.raw.label, NAT ? "President " + String(pName || "").split(" ").pop() : govShort), pr = papersRef.current; if (H && !(pr.turn === turn && pr.n > 0)) setTimeout(() => { const q = papersRef.current; if (q.turn === turn && q.n > 0) return; paper(H.head, H.sub, H.good); }, 700); } nextEvent(); });
   const prepEvent = (next) => {
     prepNext(next);
     if (next.startsWith("sc#")) setScCards(cs => { const c = scPending.current.find(x => "sc#" + x.key === next); return c ? [c, ...cs.filter(x => x.key !== c.key)] : cs; });
@@ -12054,6 +12078,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Every front page is checked before it prints (SYS.tidyPaper); papersRef counts this year's front pages.
   const papersRef = React.useRef({ turn: 0, n: 0 });
   const localBusy = React.useRef({}); // neighbourhood jobs already tapped (pillar "local")
+  const [mapFocus, setMapFocus] = useState(null); // the place the map opens on (leak 6: "See it on the map")
   const paper = (headline0, sub0, good = true, img) => { if (silentRef.current) return; const T = SYS.tidyPaper(headline0, sub0); if (!T) return; const headline = T.headline, sub = T.sub;
     const pr = papersRef.current; if (pr.turn !== turn) { pr.turn = turn; pr.n = 0; } pr.n++; if (fcRef.current) setTimeout(() => fcPublish({ paper: { headline, sub, good, img } }), 0); try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: NAT ? "The Daily Impact" : "The " + stName + " Daily Tribune", date: (NAT ? "Abuja" : stName) + " · " + ((setup && setup.startYear || 2027) - 1 + (turn || 1)), headline, sub, good, img } }); } catch (e) {} };
   const [anchorNews, setAnchorNews] = useState(null);
@@ -12163,6 +12188,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   {pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, open.secr.audience ? "See them now" : open.secr.hosAppoint ? "Choose a Head of Service" : open.secr.hosBrief ? "Read the brief" : "Open the file", () => handleLetter(open), "s", true)}</div>
                 : open.cat ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-state" s={tall ? 30 : 38} />, "🏛️ Create the ministry", () => handleLetter(open), "c", true)}</div>
                 : isNote(open) ? <div style={{ display: "flex" }}>{pill(<Ico n="icon-ok" s={tall ? 30 : 38} />, "Noted", () => handleLetter(open), "n", true)}</div>
+                // Leak 3: a decision letter shows its choices on the letter itself (one tap, not two), with handing it
+                // to the Chief of Staff still there as the last choice.
+                : scDirect(open) ? (() => { const C = scDirect(open); return <div data-sop-letter-choices style={{ display: "grid", gap: tall ? 8 : 10 }}>
+                  <div style={{ fontFamily: F.d, fontWeight: 700, fontSize: LS.m, color: "#2b2117", lineHeight: 1.25 }}>{C.kicker && <span style={{ display: "block", fontFamily: F.b, fontSize: LS.xs, letterSpacing: 1, textTransform: "uppercase", color: "#8a6410" }}>{C.kicker}</span>}{C.title}</div>
+                  {C.options.map((o, i) => <button key={i} disabled={o.disabled} onClick={() => { track("letters", "handled personally"); takeLetter(open); setLetterOpen(null); setMailOpen(false); prepEvent(open.key); pickSc(C, { raw: o }); }} style={{ textAlign: "left", padding: tall ? "10px 14px" : "12px 18px", minHeight: tall ? 54 : 64, borderRadius: 16, border: "1.5px solid #b9ad97", background: o.disabled ? "#e7e3dc" : "#fffaf0", color: "#2b2117", fontFamily: F.b, fontWeight: 800, fontSize: LS.m, cursor: o.disabled ? "not-allowed" : "pointer", opacity: o.disabled ? .55 : 1, boxShadow: "0 2px 0 #cfc6b4" }}>
+                    {o.label}{(o.chips || []).length > 0 && <span style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>{o.chips.slice(0, 4).map((ch, j) => <span key={j} style={{ fontSize: LS.xs, fontWeight: 700, padding: "2px 8px", borderRadius: 999, background: ch.color === CL.grn ? "#e2f4ea" : ch.color === CL.red ? "#fbe7e4" : "#efe9dc", color: ch.color === CL.grn ? "#1f7a49" : ch.color === CL.red ? "#b3261e" : "#4b3d2a" }}>{ch.text}</span>)}</span>}
+                  </button>)}
+                  <div style={{ display: "flex" }}>{pill(<img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />, <>{risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first} <Ico n="icon-delegate" s={tall ? 18 : 24} /></>, () => delegateLetter(open), "d")}</div>
+                </div>; })()
                 : <div style={{ display: "flex", gap: tall ? 8 : 14 }}>
                   {pill(<img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top" }} />, <>{risk === "needs you" ? "Insist: " + first + " handles it" : "Hand it to " + first} <Ico n="icon-delegate" s={tall ? 18 : 24} /></>, () => delegateLetter(open), "d")}
                   {pill(<Ico n="icon-sign" s={tall ? 30 : 38} />, "✍️ Handle it personally", () => handleLetter(open), "h", true)}
@@ -13508,14 +13542,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
           return <LvDecision key={c.key} c={{ ...c, ...(pillarOn("words") ? { brief: SYS.cut25(c.brief), stakes: c.stakes ? SYS.cut25(c.stakes, 1, 20) : c.stakes } : {}), options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), disabled: o.disabled, raw: o })) }}
             advice={<>{fcStrip("sc#" + c.key)}{c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}</>}
-            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); if (pillarOn("drama") && !o.raw.paper && !c.paper) { const H = SYS.headlineFor(state, c.title, o.raw.label, NAT ? "President " + String(pName || "").split(" ").pop() : govShort), pr = papersRef.current; if (H && !(pr.turn === turn && pr.n > 0)) setTimeout(() => { const q = papersRef.current; if (q.turn === turn && q.n > 0) return; paper(H.head, H.sub, H.good); }, 700); } nextEvent(); })} />; })()}
+            onPick={(o) => pickSc(c, o)} />; })()}
         <OL show={phase === "sc" && scCards.length > 0 && !!(scCards[0].letter || scCards[0].military || scCards[0].doc)}>
           {scCards[0] && (() => { const c = scCards[0]; return <>{fcStrip("sc#" + c.key) && <div style={{ maxWidth: 600, margin: "0 auto 12px" }}>{fcStrip("sc#" + c.key)}</div>}{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
               <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
             </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), raw: o }))}
-            onPick={(o) => airportGate(o.raw.travel, () => { track("card_" + c.key.replace(/_?\d+$/, ""), o.raw.label); fcDecide("sc#" + c.key, o.raw.label); decide(() => { let res = null; try { res = o.raw.run(); } catch (e) { console.error("[statecraft card]", e); } const extra = (o.raw.chips || []).filter(ch => /^(Zone|Risk|Free)/.test(ch.text)).map(ch => ({ l: ch.text.replace(/^Zone/, "Your zone's mood"), v: "", good: ch.color === CL.grn ? true : ch.color === CL.red ? false : undefined })); return res && res.title ? { ...res, rows: [...(res.rows || []), ...extra.filter(x => !/^Risk|^Free/.test(x.l))] } : { icon: c.icon || "📋", title: c.title, text: "You chose: " + o.raw.label + ".", rows: extra.filter(x => !/^Risk|^Free/.test(x.l)) }; }); setScCards(cs => cs.slice(1)); if (pillarOn("drama") && !o.raw.paper && !c.paper) { const H = SYS.headlineFor(state, c.title, o.raw.label, NAT ? "President " + String(pName || "").split(" ").pop() : govShort), pr = papersRef.current; if (H && !(pr.turn === turn && pr.n > 0)) setTimeout(() => { const q = papersRef.current; if (q.turn === turn && q.n > 0) return; paper(H.head, H.sub, H.good); }, 700); } nextEvent(); })} /></>; })()}
+            onPick={(o) => pickSc(c, o)} /></>; })()}
         </OL>
 
         <OL show={phase === "succession_race" && !!stc.race}>
@@ -15654,6 +15688,11 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             {pillarOn("look") ? <div style={{ display: "grid", gridAutoFlow: "column", gridAutoColumns: TALL() ? "minmax(92px,1fr)" : "minmax(150px,1fr)", gap: 8, overflowX: "auto", padding: "2px 2px 6px" }}>{P.map(([i, l, fn]) => <button key={l} onClick={() => { track("power", l); fn(); }} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", gap: 6, minHeight: TALL() ? 104 : 128, padding: "12px 4px 10px", overflowWrap: "anywhere", hyphens: "auto", borderRadius: 18, border: "1.5px solid #e9b94966", background: "linear-gradient(180deg,#fffdf7,#f6f2ea)", color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(14) : TS(21), lineHeight: 1.15, textAlign: "center", cursor: "pointer", boxShadow: "0 3px 0 #e6dfd2, 0 8px 18px -10px rgba(15,61,36,.35)" }}><span aria-hidden="true" style={{ width: TALL() ? 46 : 60, height: TALL() ? 46 : 60, borderRadius: "50%", display: "grid", placeItems: "center", fontSize: TALL() ? 24 : 32, background: "radial-gradient(circle at 35% 30%,#1a5c38,#0f3d24)", boxShadow: "inset 0 0 0 2px #e9b949" }}>{i}</span>{l}</button>)}</div>
             : <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "2px 2px 6px" }}>{P.map(([i, l, fn]) => <button key={l} onClick={() => { track("power", l); fn(); }} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 8, minHeight: 48, padding: "0 14px", borderRadius: 14, border: "1.5px solid " + CL.gold + "88", background: CL.card, color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(17) : TS(24), cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,.06)" }}><span style={{ fontSize: "1.25em" }}>{i}</span>{l}</button>)}</div>}
           </div>; })()}
+        {/* Leak 6: the map and its neighbourhood jobs, offered on Today (they were easy to walk past). */}
+        {nav === "gov" && pillarOn("map") && !NAT && !needSetup && !gEnd && (() => { const left = pillarOn("local") ? SYS.localLeft(stc, turn) : 0, bad = (needs || []).filter(n => n.status === "open").length;
+          return <button data-sop-map-nudge onClick={() => { track("map", "nudge"); setMapFocus(null); setNav("smap"); }} style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "4px 0 12px" : "8px auto 16px", padding: "12px 14px", minHeight: 56, borderRadius: 16, border: "1.5px solid #7cc49a", background: "linear-gradient(180deg,#f2faf4,#e4f3e8)", color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(17) : TS(24), textAlign: "left", cursor: "pointer" }}>
+            <span style={{ fontSize: "1.5em" }}>🗺️</span><span style={{ flex: 1 }}>Your state on the map<span style={{ display: "block", fontWeight: 600, fontSize: "0.85em", color: CL.td }}>{[bad ? bad + (bad === 1 ? " place needs you" : " places need you") : "See how each place feels", left ? left + " neighbourhood jobs left this year" : ""].filter(Boolean).join(" · ")}</span></span><span style={{ color: CL.grn }}>›</span>
+          </button>; })()}
         {nav === "gov" && pillarOn("screen") && !needSetup && <button onClick={() => { setTodayMore(v => !v); track("today_more", todayMore ? "close" : "open"); }} aria-expanded={todayMore} style={{ display: "block", width: "100%", maxWidth: TALL() ? 900 : 1320, margin: "12px auto 0", padding: "10px 14px", minHeight: 46, borderRadius: 14, border: "1px solid " + CL.bdr, background: CL.card, color: CL.td, fontWeight: 700, fontSize: TALL() ? TS(18) : TS(24), cursor: "pointer", fontFamily: F.b, order: 99 }}>{todayMore ? "Show less ▲" : "More: what the state needs, the street, visits ▾"}</button>}
 
         {nav === "tre" && (() => {
@@ -15938,7 +15977,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
         {nav === "con" && <div className="sop-2col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 29 }}><Cd><h3 style={{ color: CL.grn, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>✅ CAN</h3>{CONST_CAN.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd><Cd><h3 style={{ color: CL.red, fontFamily: F.d, fontSize: TS(50), fontWeight: 600, margin: "0 0 22px" }}>❌ CANNOT</h3>{CONST_CANT.map((p, i) => <div key={i} style={{ fontSize: TS(34), color: CL.tm, padding: "7px 0", borderBottom: "1px solid " + CL.bdr }}>{p}</div>)}</Cd></div>}
 
         {nav === "min" && <div id="sop-realism-min" data-nav="min"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Ministries module…</div></div>}
-        {nav === "smap" && !NAT && <StateMap state={state} home={setup && setup.homeLga} projects={projects || []} needs={needs || []}
+        {nav === "smap" && !NAT && <StateMap focus={mapFocus} state={state} home={setup && setup.homeLga} projects={projects || []} needs={needs || []}
           mood={(L) => { const z = SYS.districtOf(state, L), here = (p) => p.lga === L || (p.lgas || []).includes(L);
             // The state's mood, the district's, then this place's own story: what you opened here lifts it, problems left open sink it.
             const done = (projects || []).filter(p => here(p) && p.status === "delivered").length, bad = (needs || []).filter(n => n.lga === L && (n.status === "open" || n.status === "stalled")).length;

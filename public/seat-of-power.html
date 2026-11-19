@@ -663,6 +663,25 @@
         setTimeout(function () { card.querySelector('.fb-l').focus(); }, 60);
       };
       window.SOP_outcome = function (o) { queue.push(o || {}); setTimeout(next, 0); };
+      /* A decision's result as a banner (leak 1): the icon, the choice, its numbers. It does not block the game,
+         goes by itself after a few seconds, and a tap closes it. */
+      window.SOP_impact = function (o) {
+        o = o || {}; var old = document.getElementById('sop-impact'); if (old) old.remove();
+        var b = document.createElement('div'); b.id = 'sop-impact'; b.setAttribute('role', 'status');
+        b.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 74px);transform:translateX(-50%);z-index:10050;width:min(520px,calc(100vw - 24px));background:#fffdf7;color:#13261c;border-radius:18px;border:2px solid ' + (o.tone === 'bad' ? '#d4483c' : '#e9b949') + ';box-shadow:0 14px 34px rgba(0,0,0,.28);padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;font:600 15px/1.35 "Plus Jakarta Sans",sans-serif;animation:sopSlideUp .25s ease-out;cursor:pointer';
+        var ic = document.createElement('div'); ic.textContent = o.icon || '✔'; ic.style.cssText = 'grid-row:span 3;font-size:30px;line-height:1';
+        var t = document.createElement('div'); t.textContent = o.title || ''; t.style.cssText = 'font:800 16px/1.25 "Plus Jakarta Sans",sans-serif';
+        b.appendChild(ic); b.appendChild(t);
+        if (o.text) { var x = document.createElement('div'); x.textContent = o.text; x.style.cssText = 'color:#3d4a42;font-weight:500'; b.appendChild(x); }
+        if (o.rows && o.rows.length) { var rw = document.createElement('div'); rw.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:2px';
+          o.rows.slice(0, 5).forEach(function (r) { var c = document.createElement('span'); c.textContent = r.l + (r.v ? ' ' + r.v : ''); c.style.cssText = 'padding:2px 9px;border-radius:999px;font-size:13px;font-weight:700;background:' + (r.good === true ? '#e2f4ea;color:#1f7a49' : r.good === false ? '#fbe7e4;color:#b3261e' : '#f1ece2;color:#13261c'); rw.appendChild(c); });
+          b.appendChild(rw); }
+        var gone = function () { if (b.parentNode) { b.style.transition = 'opacity .3s'; b.style.opacity = '0'; setTimeout(function () { b.remove(); }, 320); } };
+        b.onclick = gone; setTimeout(gone, 4200);
+        var stg = document.getElementById('sop-stage'), z = stg && (parseFloat(stg.style.zoom) || parseFloat(getComputedStyle(stg).zoom)) || 1; if (z !== 1) b.style.zoom = String(1 / z);
+        document.body.appendChild(b);
+        try { window.SOP_sound && window.SOP_sound(o.tone === 'bad' ? 'bad' : 'good'); } catch (e) {}
+      };
       /* Install as an app (Michael's feedback): Android and desktop Chrome offer an install
          prompt; on an iPhone it is Share → Add to Home Screen. Not inside another app's frame.
          SOP_installable(): "prompt" | "ios" | null (installed, or not possible). SOP_install() runs it. */

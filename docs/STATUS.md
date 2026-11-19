@@ -1452,3 +1452,22 @@ chose to build "more to do each year" now, close to home, as mini governors.
   the front-page checker no longer drops words like "annulled"; the server answers `verify_down` (503) when Lagos
   Life itself is down, so players are only told to reopen the game for a real expired login. Note for the
   dashboard: `local` only shows when `map` is on, so judge it among map players.
+
+## The seven experience leaks, fixed (19 November 2026)
+From `reports/Experience audit 19 Nov 2026.md`, for every player (not an experiment):
+1. **Results that repeat the button** ("You chose…", "Done.", a short line with no picture) are a banner under the
+   meters (`SOP_impact` in `seat-of-power.html`; `announce` decides) that closes by itself in four seconds; the
+   other result cards now carry the decision's picture (`scImg`).
+2. **The turn of the year:** after year one, "Year N's money is in" is a banner (the full card stays when almost
+   nothing is left for work); a budget the House has nothing against passes in one banner ("The House passes your
+   budget law"), with the full vote kept when there are concerns. The vote screens use plain words ("Budget law
+   passed", "Call the vote").
+3. **Letters:** a decision letter shows its choices on the letter (with the card's kicker and title), and "Hand it
+   to <Chief of Staff>" stays as the last choice (`scDirect`, `pickSc`, one handler for card and letter).
+4. **Yearly repeats:** their echo results ("The State Economic Council is called. It sits now.") are banners.
+5. **First election:** a player's first ever election leans 5 points their way (was 2), not on hard.
+6. **The map:** "See it on the map" on the ribbon card opens the map on that place; Today has a "Your state on the
+   map" button with the places that need you and the neighbourhood jobs left (pillar `map`, and `local`).
+7. **Year one:** the budget usually passes in one banner, and its screens no longer say "APPROPRIATION".
+Measured with the same bot from year 1 to year 3: 191 → 157 taps (features off), 208 → 187 (all features on),
+with the same number of real decisions.
