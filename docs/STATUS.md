@@ -1432,3 +1432,17 @@ The owner: players should be able to say "that's my neighbourhood, see my market
   blue-door school, then the camera rises over the town. Secondary schools borrow it (`REEL_SHARE`).
 - `hospital.mp4` (14 November): from 0:03.5 at 1.5×: the ambulance pulls up and two nurses walk into the new
   hospital. Its lettering is garbled AI text, too small to read on a phone. Schools of nursing borrow it.
+
+## Neighbourhood jobs, and expired logins (19 November 2026)
+Two weeks in, the experiment's numbers could not be read from here (the owner is asked to paste them). The owner
+chose to build "more to do each year" now, close to home, as mini governors.
+- New pillar `local` (19 now), shown on the map (`map` pillar): six jobs a year in any local government, each kind
+  once per place per year, without using the year's big moves: patch the worst road (₦120M), sink a borehole
+  (₦150M), clean up and light the market (₦80M), fix a leaking school roof (₦100M), visit and listen (free). Each
+  lifts that place's own mood (kept for the term, up to +20), adds a small state effect, and a job of the right
+  kind eases an open problem there (one more year before it gets worse). Rules: `game/systems/local.js`; tests:
+  `tests/local.test.mjs`, `tests/e2e/map.mjs`.
+- **Expired logins:** on 18 Nov the server refused 34 saves in about a minute (Lagos Life session expired; the game
+  retried every 5 seconds). Now a refused save gets one fresh try at once, then waits 30 s, 2 min, 5 min, and the
+  player is told once that the progress is safe on the phone and to reopen from Lagos Life. Test:
+  `tests/vatar-expired.test.mjs`.

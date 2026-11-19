@@ -65,3 +65,4 @@ export * from "./elder.js";
 export * from "./express.js";
 export * from "./plainwords.js";
 export * from "./drama.js";
+export * from "./local.js";

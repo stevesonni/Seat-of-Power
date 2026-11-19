@@ -55,10 +55,20 @@
   // An earlier career kept by the server (replaced by a new game): bring it back.
   window.SOP_restore = function (i) { return ready.then(function (on) { if (!on) throw new Error("offline"); return call("/api/restore", { i: i }).then(function (r) { if (r && r.ok) { cache.sop_save = r.value; local.set("sop_save", r.value); } return r; }); }); };
 
+  var fails = 0, warned = false;
   function flush() {
     var d = dirty; dirty = {};
     if (!Object.keys(d).length) return Promise.resolve();
-    return call("/api/save", { data: d }).catch(function () { for (var k in d) if (!(k in dirty)) dirty[k] = d[k]; timer = setTimeout(flush, 5000); });
+    // A refused login (Lagos Life's session expired, say after the game was left open for hours) gets one fresh try
+    // at once; after that the game stops hammering the server and waits longer each time (5 s, 30 s, 2 min, 5 min),
+    // and tells the player once that the progress is safe on this phone.
+    return call("/api/save", { data: d }).then(function () { fails = 0; }).catch(function (e) {
+      for (var k in d) if (!(k in dirty)) dirty[k] = d[k];
+      if (e && e.code === "bad_session" && !fails) { fails = 1; return flush(); }
+      fails++;
+      if (e && e.code === "bad_session" && !warned) { warned = true; try { window.SOP_toast && window.SOP_toast("Your progress is saved on this phone. Reopen the game from Lagos Life to keep it in your account too.", "warn"); } catch (x) {} }
+      timer = setTimeout(flush, [5000, 30000, 120000, 300000][Math.min(3, fails - 1)]);
+    });
   }
   // Send waiting saves now (before a reload, say).
   window.SOP_storageFlush = function () { clearTimeout(timer); return ready.then(function (on) { if (on) return flush(); }); };

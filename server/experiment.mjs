@@ -23,6 +23,7 @@ export const PILLARS = [
   { id: "capital", nm: "Political capital", d: "Big moves are political capital: a little more each year, more earned by good approval, a strong Chief of Staff and kept promises." },
   { id: "purse", nm: "A fairer purse", d: "A little more money in year one, and a clear way to refuse the godfather's loan in every start." },
   { id: "map", nm: "Your state on the map", d: "The State tab opens on a real map of your state: every local government, coloured by how its people feel, with your projects and its problems pinned where they are." },
+  { id: "local", nm: "Neighbourhood jobs", d: "On the map, six small jobs a year in any local government (patch a road, sink a borehole, light a market, fix a school roof, visit): a little money each, and the place's mood rises." },
   { id: "look", nm: "The richer look", d: "The same game in a richer look: a painted decision card with costs and effects as pictures, gauges for the meters, a stamp on results and picture tiles for powers." },
 ];
 export const PILLAR_IDS = PILLARS.map(p => p.id);
@@ -85,7 +86,7 @@ export const dropOff = (S, now = Date.now(), idleMs = 30 * 60e3, only = null) =>
   return { players: L.length, left: n, here: L.length - n, screens: Object.entries(by).map(([v, k]) => ({ screen: v, n: k, pct: n ? Math.round(k / n * 1000) / 10 : 0 })).sort((a, b) => b.n - a.n) };
 };
 /* The same, for each half of a pillar: who had it on, who had it off (from the exp_<id> events). */
-export const DROP_PILLARS = ["start", "screen", "stagger", "words", "drama", "juice", "why", "reach", "capital", "purse", "map", "look"];
+export const DROP_PILLARS = ["start", "screen", "stagger", "words", "drama", "juice", "why", "reach", "capital", "purse", "map", "local", "look"];
 export const dropOffSplit = (S, id, now = Date.now(), idleMs = 30 * 60e3) => {
   const E = ((S && S.ev) || {})["exp_" + id] || { values: {} }, half = (g) => new Set(Object.keys((E.values[g] || {}).p || {}));
   return { id, on: dropOff(S, now, idleMs, half("on")), off: dropOff(S, now, idleMs, half("off")) };

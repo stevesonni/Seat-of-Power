@@ -2335,7 +2335,7 @@ const LookGauge = ({ pct, color, icon, size, dark }) => {
 const MAP_ICON = { road: "🛣️", bridge: "🌉", hospital: "🏥", school: "🏫", secondary: "🏫", nursing: "🩺", coe: "🎓", polytechnic: "🎓", university: "🎓", water: "🚰", dam: "🏞️", power: "⚡", market: "🛒", housing: "🏘️", vehicles: "🚓", cctv: "📹", landfill: "♻️", industrial: "🏭", stadium: "🏟️", esports: "🎮", tourist: "🏝️" };
 const MAP_CACHE = {};
 const moodColour = (m) => m >= 62 ? "#7cc49a" : m >= 52 ? "#b9dcb0" : m >= 44 ? "#f0dfa3" : m >= 36 ? "#f2b58f" : "#e98c80";
-const StateMap = ({ state, home, projects, needs, mood, needTitle, needIcon, onNeed, onProjects }) => {
+const StateMap = ({ state, home, projects, needs, mood, needTitle, needIcon, onNeed, onProjects, jobs }) => {
   const [M, setM] = useState(MAP_CACHE[state] || null), [sel, setSel] = useState(null), [err, setErr] = useState(false);
   useEffect(() => { if (MAP_CACHE[state]) { setM(MAP_CACHE[state]); return; } let on = true;
     fetch("./art/maps/" + state + ".json").then(r => r.ok ? r.json() : Promise.reject(r.status)).then(j => { MAP_CACHE[state] = j; if (on) setM(j); }).catch(() => on && setErr(true));
@@ -2378,6 +2378,13 @@ const StateMap = ({ state, home, projects, needs, mood, needTitle, needIcon, onN
       {T.map(n => <button key={n.id} onClick={() => onNeed(n)} style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", padding: "10px 12px", minHeight: 52, borderRadius: 14, border: "1.5px solid #d4483c66", background: "#fbe7e4", color: CL.txt, fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(17) : TS(23), cursor: "pointer" }}><span style={{ fontSize: "1.3em" }}>{needIcon(n)}</span><span style={{ flex: 1 }}>{needTitle(n)}</span><span style={{ color: "#d4483c" }}>›</span></button>)}
       <div style={{ fontSize: tall ? TS(16) : TS(22), fontWeight: 800, color: CL.txt }}>{B.length ? "What you built here" : "Nothing built here yet"}</div>
       {B.map(p => <div key={p.id} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: tall ? TS(16) : TS(21), color: CL.txt }}><span style={{ fontSize: "1.3em" }}>{MAP_ICON[p.type] || "🏗️"}</span><span style={{ flex: 1, minWidth: 0 }}>{p.title}</span><span style={{ color: p.status === "delivered" ? CL.grn : CL.td, fontWeight: 700, whiteSpace: "nowrap" }}>{p.status === "delivered" ? "Open" : p.status === "suspended" || p.status === "stalled" ? "Stopped" : "Being built"}</span></div>)}
+      {jobs && <div data-sop-jobs style={{ display: "grid", gap: 6, borderTop: "1px solid " + CL.bdr, paddingTop: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", fontSize: tall ? TS(16) : TS(22), fontWeight: 800, color: CL.txt }}><span>Do something in {cur}</span><span style={{ color: CL.td, fontWeight: 700, fontSize: "0.85em" }}>{jobs.left} of {SYS.LOCAL_PER_YEAR} left this year</span></div>
+        {SYS.LOCAL_JOBS.map(J => { const c = jobs.can(cur, J.k); return <button key={J.k} disabled={!c.ok} onClick={() => jobs.onDo(cur, J.k)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", textAlign: "left", padding: "8px 12px", minHeight: 48, borderRadius: 12, border: "1.5px solid " + (c.ok ? "#e9b94988" : CL.bdr), background: c.ok ? "#fffdf7" : CL.bg, color: c.ok ? CL.txt : CL.td, fontFamily: F.b, fontWeight: 700, fontSize: tall ? TS(16) : TS(21), cursor: c.ok ? "pointer" : "default", opacity: c.ok ? 1 : .6 }}>
+          <span style={{ fontSize: "1.3em" }}>{J.icon}</span><span>{J.l}{!c.ok && <span style={{ display: "block", fontSize: "0.8em", fontWeight: 600 }}>{c.why}</span>}</span>
+          <span style={{ fontWeight: 800, color: J.costB ? "#8a6410" : CL.grn, whiteSpace: "nowrap" }}>{J.costB ? SYS.fmtM(Math.round(J.costB * 1000)) : "Free"}</span>
+        </button>; })}
+      </div>}
       <button onClick={onProjects} style={{ minHeight: 50, borderRadius: 14, border: 0, background: "#0f3d24", color: "#fdf8ec", fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(18) : TS(24), cursor: "pointer" }}>🏗️ Build something in {cur}</button>
     </div>
   </div>;
@@ -15934,10 +15941,19 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
           mood={(L) => { const z = SYS.districtOf(state, L), here = (p) => p.lga === L || (p.lgas || []).includes(L);
             // The state's mood, the district's, then this place's own story: what you opened here lifts it, problems left open sink it.
             const done = (projects || []).filter(p => here(p) && p.status === "delivered").length, bad = (needs || []).filter(n => n.lga === L && (n.status === "open" || n.status === "stalled")).length;
-            return (s.app || 50) + (z >= 0 ? ((s.zoneMood || {})[z] || 0) : 0) + Math.min(9, done * 3) - bad * 5 + (zoneOfName(L, 7) - 3); }}
+            return (s.app || 50) + (z >= 0 ? ((s.zoneMood || {})[z] || 0) : 0) + Math.min(9, done * 3) - bad * 5 + SYS.placeMood(stc, L) + (zoneOfName(L, 7) - 3); }}
           needTitle={(n) => { const T = needType(n); return T ? T.title(n.lga) : n.k; }} needIcon={(n) => { const T = needType(n); return T ? T.icon : "⚠️"; }}
           onNeed={(n) => { track("map", "need"); setNav("gov"); setNeedsAll(true); setNeedOpen(n.id); setTimeout(() => { try { document.getElementById("sop-needs").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); }}
-          onProjects={() => { track("map", "build"); goTab("prj"); }} />}
+          onProjects={() => { track("map", "build"); goTab("prj"); }}
+          jobs={pillarOn("local") ? { left: SYS.localLeft(stc, turn), can: (L, k) => SYS.localCan(stc, turn, L, k), onDo: (L, k) => {
+            const J = SYS.LOCAL_JOBS.find(j => j.k === k), c = SYS.localCan(stc, turn, L, k); if (!J || !c.ok) return;
+            if (J.costB && !spendB(J.costB, J.l + " in " + L)) return;
+            const R = SYS.localDo(stc, turn, L, k, needs); track("local", k);
+            setStc(p => ({ ...p, ...SYS.localDo(p, turn, L, k, needs).stc })); if (Object.keys(J.fx).length) scFx(J.fx);
+            if (R.eased) setNeeds(ns => ns.map(n => n.id === R.eased ? { ...n, due: (n.due || turn) + 1, sev: Math.max(1, (n.sev || 1) - 1) } : n));
+            addL(J.icon + " " + R.text, "success");
+            try { window.SOP_sound && window.SOP_sound("good"); window.SOP_outcome({ icon: J.icon, title: J.l, text: R.text, tone: "good", rows: [{ l: "People in " + L, v: "+" + J.mood, good: true }, ...(J.costB ? [{ l: "From the bank", v: "−" + SYS.fmtM(Math.round(J.costB * 1000)), good: false }] : []), ...(R.eased ? [{ l: "The problem there can wait", v: "one more year", good: true }] : [])] }); } catch (e) {}
+          } } : null} />}
         {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} loans={loans} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && NAT && FedCouncilsPanel()}
