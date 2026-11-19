@@ -38,8 +38,10 @@ const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // without a credit, and each player may register one company. Remove it to bring back
 // the prices; nothing a player bought is touched either way.
 const FREE_CAREERS = process.env.FREE_CAREERS === "1";
+const freeFor = (id) => FREE_CAREERS && !String(id || "").startsWith("w_"); // never for our own site's accounts
 const FREE_USE = ["second_chance", "streak_freeze", "challenge_retry"]; // shown as one credit, never used up
-const entsOut = (ents) => FREE_CAREERS ? { ...(ents || {}), ...Object.fromEntries(Object.keys(PRODUCTS).filter(k => PRODUCTS[k] === "oneoff" || FREE_USE.includes(k) || k === "company_registration").map(k => [k, Math.max(1, (ents || {})[k] || 0)])) } : (ents || {});
+// FREE_CAREERS is for Lagos Life while Vatar reviews the products; players on our own site (w_ accounts) buy for real.
+const entsOut = (ents, id) => freeFor(id) ? { ...(ents || {}), ...Object.fromEntries(Object.keys(PRODUCTS).filter(k => PRODUCTS[k] === "oneoff" || FREE_USE.includes(k) || k === "company_registration").map(k => [k, Math.max(1, (ents || {})[k] || 0)])) } : (ents || {});
 const PRODUCTS = { career_ambassador: "oneoff", career_chairman: "oneoff", career_senator: "oneoff", company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
 // The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
 const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
@@ -179,7 +181,7 @@ const withP = (id, fn) => { const prev = locks.get(id) || Promise.resolve(); con
 const shop = makeShop({ DATA, PRODUCTS, withP, writeP });
 const KEY_OK = /^[a-z_]{1,32}$/; // sop_save, sop_profile, sop_preelection…
 const api = {
-  "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents), bak: (p.bak || []).map((x, i) => ({ i, t: x.t, name: careerName(x.v) })) }; },
+  "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents, id), bak: (p.bak || []).map((x, i) => ({ i, t: x.t, name: careerName(x.v) })) }; },
   // Bring back a career kept in p.bak; the one in its place is kept in turn.
   "/api/restore": async (b, id) => withP(id, (p) => {
     const i = +b.i, x = (p.bak || [])[i]; if (!x) return { ok: false };
@@ -195,16 +197,16 @@ const api = {
   // Spend one credit of a consumable (Second Chance).
   "/api/use": async (b, id) => withP(id, (p) => {
     const k = String(b.product || "");
-    if (FREE_CAREERS && FREE_USE.includes(k) && !(p.ents[k] > 0)) return { ok: true, ents: entsOut(p.ents) };
+    if (freeFor(id) && FREE_USE.includes(k) && !(p.ents[k] > 0)) return { ok: true, ents: entsOut(p.ents, id) };
     if (PRODUCTS[k] !== "consumable" || !(p.ents[k] > 0)) return { ok: false };
-    p.ents[k] -= 1; writeP(id, p); return { ok: true, ents: entsOut(p.ents) };
+    p.ents[k] -= 1; writeP(id, p); return { ok: true, ents: entsOut(p.ents, id) };
   }),
   // Weekly challenge: the first attempt each week is free; another uses one challenge_retry.
   "/api/challenge/start": async (b, id) => withP(id, (p) => {
     const w = weekNow(); p.ch = p.ch || {}; const used = p.ch[w] || 0;
-    if (used >= 1 && !FREE_CAREERS) { if (!(p.ents.challenge_retry > 0)) return { ok: false, need: "challenge_retry", week: w, attempts: used }; p.ents.challenge_retry -= 1; }
+    if (used >= 1 && !freeFor(id)) { if (!(p.ents.challenge_retry > 0)) return { ok: false, need: "challenge_retry", week: w, attempts: used }; p.ents.challenge_retry -= 1; }
     p.ch = Object.fromEntries(Object.entries({ ...p.ch, [w]: used + 1 }).filter(([k]) => +k >= w - 3));
-    writeP(id, p); return { ok: true, week: w, attempts: used + 1, ents: entsOut(p.ents) };
+    writeP(id, p); return { ok: true, week: w, attempts: used + 1, ents: entsOut(p.ents, id) };
   }),
   // A finished challenge career: the player's best score this week is kept.
   "/api/challenge/score": async (b, id) => {
@@ -312,12 +314,12 @@ const api = {
     if (!COMPANY_SECTORS.includes(sector)) return { ok: false, error: "bad_sector" };
     const C = cosNow(), mine = myCo(id), low = chk.name.toLowerCase();
     if (Object.values(C).some(c => c !== mine && c.name.toLowerCase() === low)) return { ok: false, error: "taken", why: "Another player already registered that name." };
-    const free = (mine && mine.hidden) || (FREE_CAREERS && !mine); // while extras are free: one company per player
+    const free = (mine && mine.hidden) || (freeFor(id) && !mine); // while extras are free: one company per player
     if (!free) { if (!(p.ents.company_registration > 0)) return { ok: false, need: "company_registration" }; p.ents.company_registration -= 1; writeP(id, p); }
     const co = mine || { id: "pc_" + crypto.randomBytes(6).toString("base64url"), owner: id, at: Date.now(), hiredBy: {}, earnM: 0, paidM: 0 };
     Object.assign(co, { name: chk.name, sector, hidden: false, renamedAt: mine ? Date.now() : undefined });
     C[co.id] = co; cosDirty = true;
-    return { ok: true, company: coPublic(co), ents: entsOut(p.ents) };
+    return { ok: true, company: coPublic(co), ents: entsOut(p.ents, id) };
   }),
   // Another governor hired a company: counts once per hiring player per company per day.
   "/api/company/hire": async (b, id) => {
