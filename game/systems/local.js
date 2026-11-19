@@ -25,6 +25,7 @@ export const placeMood = (stc, lga) => ((stc && stc.lgaMood) || {})[lga] || 0;
 export const localDo = (stc, turn, lga, k, needs) => {
   const J = LOCAL_JOBS.find(j => j.k === k), used = localUsed(stc, turn);
   const lgaMood = { ...((stc && stc.lgaMood) || {}) }; lgaMood[lga] = Math.min(20, (lgaMood[lga] || 0) + J.mood);
-  const eased = J.eases ? (needs || []).find(n => n.lga === lga && n.k === J.eases && n.status === "open") : null;
+  // A problem is eased once: a borehole buys a year, it does not put the water shortage off for ever.
+  const eased = J.eases ? (needs || []).find(n => n.lga === lga && n.k === J.eases && n.status === "open" && !n.eased) : null;
   return { stc: { local: { turn, done: [...used, { lga, k }] }, lgaMood }, eased: eased ? eased.id : null, text: J.done.replace(/\{L\}/g, lga) };
 };

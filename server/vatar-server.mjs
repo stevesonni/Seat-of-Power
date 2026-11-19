@@ -147,6 +147,7 @@ const verifyFailed = (v) => {
   console.warn("[vatar] session verify refused ×" + vfCount + ": http " + v.http + " " + String(v.error || v.code || v.message || "").slice(0, 120) + " · key mode " + KEY_MODE + (v.playerId ? " · player id " + String(v.playerId).slice(0, 2) + "…" : ""));
   vfCount = 0;
 };
+const DOWN = Symbol("verify_down");
 const who = async (session) => {
   if (typeof session !== "string" || session.length > 4096) return null;
   const c = seen.get(session);
@@ -155,6 +156,9 @@ const who = async (session) => {
   // or the game falls back to the phone's storage and the player's career seems to vanish.
   let v = await vatar("/session/verify", { session }).catch(() => ({ http: 0 }));
   for (const ms of [400, 1200]) { if (!(v.http === 0 || v.http >= 500)) break; await new Promise(r => setTimeout(r, ms)); v = await vatar("/session/verify", { session }).catch(() => ({ http: 0 })); }
+  // Lagos Life down (no answer or 5xx after the retries) is not the player's login: say so, so the game does not
+  // tell them to reopen it.
+  if (v.http === 0 || v.http >= 500) { verifyFailed(v); return DOWN; }
   if (v.http !== 200 || !/^[pt]_[A-Za-z0-9_-]{1,80}$/.test(v.playerId || "")) { verifyFailed(v); return null; }
   seen.set(session, { playerId: v.playerId, username: v.username || v.displayName || v.name || null, exp: Math.min(v.exp || 0, Date.now() + 14 * 60e3) });
   if (seen.size > 5000) for (const [k, x] of seen) if (x.exp < Date.now()) seen.delete(k);
@@ -399,6 +403,7 @@ http.createServer(async (req, res) => {
       if (!SECRET) return send(res, 503, { error: "not_configured" });
       let b; try { b = JSON.parse(await readBody(req)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
       const id = await who(b.session);
+      if (id === DOWN) return send(res, 503, { error: "verify_down" });
       if (!id) return send(res, 401, { error: "bad_session" });
       const out = await api[url.pathname](b, id);
       return send(res, out._code || 200, out);

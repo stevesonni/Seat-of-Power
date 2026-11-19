@@ -12,6 +12,7 @@ test("neighbourhood jobs: six a year, once per kind per place, mood and problems
   assert.equal(SYS.localCan(stc, 1, "Odeda", "water").ok, false, "not twice in one place in a year");
   assert.equal(SYS.localCan(stc, 1, "Ifo", "water").ok, true, "but yes somewhere else");
   assert.equal(SYS.localDo(stc, 1, "Odeda", "road", needs).eased, null, "a problem already dealt with is not eased again");
+  assert.equal(SYS.localDo(stc, 2, "Odeda", "water", [{ ...needs[0], eased: 1 }]).eased, null, "a problem is eased only once, not put off for ever");
   for (const L of ["A", "B", "C", "D", "E"]) stc = { ...stc, ...SYS.localDo(stc, 1, L, "visit", needs).stc };
   assert.equal(SYS.localLeft(stc, 1), 0); assert.match(SYS.localCan(stc, 1, "Ifo", "market").why, /No more/);
   assert.equal(SYS.localLeft(stc, 2), 6, "a new year, six new jobs"); assert.equal(SYS.placeMood(stc, "Odeda"), 5, "the mood stays");

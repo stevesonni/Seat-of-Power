@@ -1446,3 +1446,9 @@ chose to build "more to do each year" now, close to home, as mini governors.
   retried every 5 seconds). Now a refused save gets one fresh try at once, then waits 30 s, 2 min, 5 min, and the
   player is told once that the progress is safe on the phone and to reopen from Lagos Life. Test:
   `tests/vatar-expired.test.mjs`.
+- **Code review fixes (19 November):** a problem tapped on the map now opens Today's full list (it was hidden when
+  the `screen` pillar was on) or, during setup, explains itself in a card; a neighbourhood job eases a given problem
+  only once (a yearly borehole could postpone a water shortage for ever); a double tap cannot pay for a job twice;
+  the front-page checker no longer drops words like "annulled"; the server answers `verify_down` (503) when Lagos
+  Life itself is down, so players are only told to reopen the game for a real expired login. Note for the
+  dashboard: `local` only shows when `map` is on, so judge it among map players.

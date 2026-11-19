@@ -12053,6 +12053,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const govShort = "Gov. " + String(pName || "").split(" ").pop();
   // Every front page is checked before it prints (SYS.tidyPaper); papersRef counts this year's front pages.
   const papersRef = React.useRef({ turn: 0, n: 0 });
+  const localBusy = React.useRef({}); // neighbourhood jobs already tapped (pillar "local")
   const paper = (headline0, sub0, good = true, img) => { if (silentRef.current) return; const T = SYS.tidyPaper(headline0, sub0); if (!T) return; const headline = T.headline, sub = T.sub;
     const pr = papersRef.current; if (pr.turn !== turn) { pr.turn = turn; pr.n = 0; } pr.n++; if (fcRef.current) setTimeout(() => fcPublish({ paper: { headline, sub, good, img } }), 0); try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: NAT ? "The Daily Impact" : "The " + stName + " Daily Tribune", date: (NAT ? "Abuja" : stName) + " · " + ((setup && setup.startYear || 2027) - 1 + (turn || 1)), headline, sub, good, img } }); } catch (e) {} };
   const [anchorNews, setAnchorNews] = useState(null);
@@ -15943,14 +15944,19 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             const done = (projects || []).filter(p => here(p) && p.status === "delivered").length, bad = (needs || []).filter(n => n.lga === L && (n.status === "open" || n.status === "stalled")).length;
             return (s.app || 50) + (z >= 0 ? ((s.zoneMood || {})[z] || 0) : 0) + Math.min(9, done * 3) - bad * 5 + SYS.placeMood(stc, L) + (zoneOfName(L, 7) - 3); }}
           needTitle={(n) => { const T = needType(n); return T ? T.title(n.lga) : n.k; }} needIcon={(n) => { const T = needType(n); return T ? T.icon : "⚠️"; }}
-          onNeed={(n) => { track("map", "need"); setNav("gov"); setNeedsAll(true); setNeedOpen(n.id); setTimeout(() => { try { document.getElementById("sop-needs").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); }}
+          onNeed={(n) => { track("map", "need");
+            // While the government is still being set up there is no problems list yet: say what it is and where it comes from.
+            if (needSetup) { const T = needType(n); try { window.SOP_outcome({ icon: T ? T.icon : "⚠️", title: T ? T.title(n.lga) : n.lga, text: (T ? T.why(n.lga) + " " : "") + "Set up your government first; then it waits on Today, with what answers it.", ok: "Got it" }); } catch (e) {} return; }
+            setNav("gov"); setTodayMore(true); setNeedsAll(true); setNeedOpen(n.id); setTimeout(() => { try { document.getElementById("sop-needs").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }, 350); }}
           onProjects={() => { track("map", "build"); goTab("prj"); }}
           jobs={pillarOn("local") ? { left: SYS.localLeft(stc, turn), can: (L, k) => SYS.localCan(stc, turn, L, k), onDo: (L, k) => {
             const J = SYS.LOCAL_JOBS.find(j => j.k === k), c = SYS.localCan(stc, turn, L, k); if (!J || !c.ok) return;
+            // A fast double tap must not pay twice: the second tap still sees the old year until React redraws.
+            const key = turn + "|" + L + "|" + k; if (localBusy.current[key]) return; localBusy.current[key] = true;
             if (J.costB && !spendB(J.costB, J.l + " in " + L)) return;
             const R = SYS.localDo(stc, turn, L, k, needs); track("local", k);
             setStc(p => ({ ...p, ...SYS.localDo(p, turn, L, k, needs).stc })); if (Object.keys(J.fx).length) scFx(J.fx);
-            if (R.eased) setNeeds(ns => ns.map(n => n.id === R.eased ? { ...n, due: (n.due || turn) + 1, sev: Math.max(1, (n.sev || 1) - 1) } : n));
+            if (R.eased) setNeeds(ns => ns.map(n => n.id === R.eased ? { ...n, due: (n.due || turn) + 1, sev: Math.max(1, (n.sev || 1) - 1), eased: turn } : n));
             addL(J.icon + " " + R.text, "success");
             try { window.SOP_sound && window.SOP_sound("good"); window.SOP_outcome({ icon: J.icon, title: J.l, text: R.text, tone: "good", rows: [{ l: "People in " + L, v: "+" + J.mood, good: true }, ...(J.costB ? [{ l: "From the bank", v: "−" + SYS.fmtM(Math.round(J.costB * 1000)), good: false }] : []), ...(R.eased ? [{ l: "The problem there can wait", v: "one more year", good: true }] : [])] }); } catch (e) {}
           } } : null} />}

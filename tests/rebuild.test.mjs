@@ -51,6 +51,7 @@ test("headlines, the godfather's call and the five-line story", () => {
   assert.equal(SYS.headlineFor("Ogun", "Three jobs you can finish this year", "Fix the streetlights on the market road", "Gov. A").sub, "", "a title that talks to the player is not a deck");
   assert.equal(SYS.headlineFor("Ogun", "x", "Borrow ₦2B to pay salaries", "Gov. A").good, false);
   assert.equal(SYS.tidyPaper("Gov. Adegoke Delivers: The Abeokuta North–Abeokuta South trunk road in the Ogun Central district", "").headline, "GOV. ADEGOKE DELIVERS: THE ABEOKUTA NORTH–ABEOKUTA SOUTH TRUNK ROAD", "cut at a word, never on 'in the'");
+  assert.equal(SYS.tidyPaper("Tribunal annulled the Ward 4 result", "").headline, "TRIBUNAL ANNULLED THE WARD 4 RESULT", "a word that contains 'null' is fine");
   assert.equal(SYS.tidyPaper("💥 GOV. A  SIGNS  undefined", "x"), null, "broken text never prints");
   assert.deepEqual(SYS.tidyPaper("📰 GOV. A SIGNS THE THE BILL.", "passed by the House."), { headline: "GOV. A SIGNS THE BILL", sub: "Passed by the House" });
   assert.equal(SYS.gfCall(20).mood, "angry"); assert.equal(SYS.gfCall(80).mood, "pleased"); assert.match(SYS.gfCall(50, "I hear things.").line, /^I hear things\./);
