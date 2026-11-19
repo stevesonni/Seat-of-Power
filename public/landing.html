@@ -60,6 +60,15 @@
     .feat .ic { font-size: 30px; }
     .feat h3 { font-size: 19px; margin: 10px 0 6px; }
     .feat p { color: #c7d5cc; line-height: 1.5; font-size: 15px; }
+    .sub { max-width: 760px; margin: -8px auto 22px; text-align: center; color: #c7d5cc; line-height: 1.55; }
+    .sub.small { font-size: 14px; margin-top: 18px; }
+    .prices { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: #22402e; border: 1px solid #22402e; max-width: 980px; margin: 0 auto; }
+    .prices div { background: #12251a; padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; align-items: center; }
+    .prices b { font-size: 16px; } .prices span { grid-column: 1; font-size: 14px; color: #a9bdb1; }
+    .prices i { grid-column: 2; grid-row: 1 / span 2; font-style: normal; font-weight: 800; color: var(--gold1); white-space: nowrap; }
+    footer .links { display: flex; flex-wrap: wrap; gap: 6px 18px; justify-content: center; margin-bottom: 10px; font-weight: 700; }
+    footer a { color: #cfe0d5; }
+    @media (max-width: 700px) { .prices { grid-template-columns: 1fr; } }
     .final { text-align: center; padding: clamp(60px, 9vw, 110px) 16px; }
     footer { border-top: 1px solid #1d3627; padding: 22px 16px 34px; text-align: center; color: #8fa699; font-size: 13px; line-height: 1.7; }
     @media (max-width: 900px) { .careers { grid-template-columns: repeat(2, 1fr); } .career { min-height: 340px; } .feats { grid-template-columns: 1fr; } }
@@ -114,12 +123,34 @@
     </div>
   </section>
 
+  <section class="sect" id="extras">
+    <h2>Free to play</h2>
+    <p class="sub">The governorship is free, always. Extras are small one-time purchases in naira, paid securely through Paystack (card, bank transfer or USSD) and unlocked at once on your Google account. In Lagos Life, extras are bought through Lagos Life.</p>
+    <div class="prices">
+      <div><b>Streak Freeze</b><span>Keeps your daily streak on a day you miss</span><i>₦100</i></div>
+      <div><b>Extra Challenge Attempt</b><span>One more run at this week's challenge</span><i>₦100</i></div>
+      <div><b>Official Portrait Frames</b><span>Four frames for your portrait</span><i>₦100</i></div>
+      <div><b>Glam Pack · Big Boy Pack</b><span>Four outfits each for your politician</span><i>₦300 each</i></div>
+      <div><b>Second Chance</b><span>Rerun a lost re-election, once per game</span><i>₦500</i></div>
+      <div><b>The LGA Chairman</b><span>The full chairmanship after the free first year</span><i>₦500</i></div>
+      <div><b>The Senator · The Ambassador</b><span>The full career after the free first year</span><i>₦1,000 each</i></div>
+      <div><b>Scenario packs</b><span>Crisis, Security or Election starts</span><i>₦1,000 each</i></div>
+      <div><b>Road to Aso Rock</b><span>The presidential run after a governorship</span><i>₦1,500</i></div>
+      <div><b>Register your company</b><span>Your own contractor, seen by every player</span><i>₦1,500</i></div>
+    </div>
+    <p class="sub small">Prices include everything; there are no subscriptions and nothing renews. See our <a href="/legal.html#refunds">refund policy</a>.</p>
+  </section>
+
   <section class="final">
     <h2>Your seat is waiting</h2>
     <a class="play gold" href="/play">Play now</a>
     <div class="note">Also available in Lagos Life</div>
   </section>
 
-  <footer>Seat of Power · a SonniGames game · All people and parties in the game are fictional.<br />© 2026 SonniGames</footer>
+  <footer>
+    <div class="links"><a href="/play">Play</a><a href="/legal.html#terms">Terms</a><a href="/legal.html#refunds">Refunds</a><a href="/legal.html#privacy">Privacy</a><a href="/legal.html#contact">Contact</a></div>
+    Seat of Power · a SonniGames game · Contact: <a href="mailto:stevesonni112@gmail.com">stevesonni112@gmail.com</a><br />
+    All people and parties in the game are fictional. © 2026 SonniGames
+  </footer>
 </body>
 </html>
