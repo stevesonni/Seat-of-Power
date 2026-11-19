@@ -14,7 +14,7 @@
   <link rel="icon" href="/favicon.ico" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet" />
   <script>
     // Inside a frame (Lagos Life, or anyone embedding us): straight to the game, never this page.
     try { if (window.top !== window) location.replace("/play" + location.search); } catch (e) { location.replace("/play" + location.search); }
@@ -25,7 +25,7 @@
     html, body { background: var(--bg); color: var(--ink); font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
     a { color: inherit; }
     .top { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 18px clamp(16px, 4vw, 48px); background: linear-gradient(180deg, rgba(0,0,0,.55), transparent); }
-    .brand { font-family: Anton, Impact, sans-serif; font-size: 26px; letter-spacing: 3px; text-decoration: none; }
+    .brand { font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: 22px; letter-spacing: 2px; text-decoration: none; }
     .top a.small { font-weight: 800; letter-spacing: 2px; font-size: 13px; text-decoration: none; text-transform: uppercase; }
     .hero { position: relative; min-height: 100svh; display: grid; place-items: end center; text-align: center; overflow: hidden; }
     .hero img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -33,7 +33,7 @@
     .hero .in { position: relative; z-index: 1; padding: 0 16px clamp(48px, 9vh, 96px); max-width: 900px; }
     .kick { font-weight: 800; letter-spacing: 4px; font-size: 13px; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px; }
     .kick i { width: 9px; height: 9px; border-radius: 50%; background: var(--green); display: inline-block; }
-    h1 { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: clamp(64px, 14vw, 168px); line-height: .92; letter-spacing: 1px; text-transform: uppercase; margin: 14px 0 12px;
+    h1 { font-family: 'Cinzel', Georgia, serif; font-weight: 900; font-size: clamp(48px, 11vw, 140px); line-height: 1; letter-spacing: 2px; text-transform: uppercase; margin: 14px 0 16px;
       background: linear-gradient(180deg, var(--gold1) 0%, var(--gold2) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 6px 18px rgba(0,0,0,.5)); }
     .lead { font-size: clamp(17px, 2.2vw, 21px); line-height: 1.5; max-width: 620px; margin: 0 auto 26px; color: #e8efe9; }
     .play { display: inline-block; padding: 16px 44px; border: 2px solid #fff; color: #fff; text-decoration: none; font-weight: 800; letter-spacing: 3px; font-size: 16px; text-transform: uppercase; background: rgba(0,0,0,.25); transition: background .2s, color .2s; }
@@ -41,7 +41,7 @@
     .play.gold { border-color: var(--gold2); background: linear-gradient(180deg, var(--gold1), var(--gold2)); color: #1d1404; }
     .note { margin-top: 14px; font-size: 13px; color: #b9c8bf; letter-spacing: 1px; }
     .sect { padding: clamp(56px, 9vw, 110px) clamp(16px, 4vw, 48px) 0; max-width: 1240px; margin: 0 auto; }
-    h2 { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: clamp(38px, 6vw, 64px); text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 26px; }
+    h2 { font-family: 'Cinzel', Georgia, serif; font-weight: 700; font-size: clamp(30px, 5vw, 54px); text-transform: uppercase; letter-spacing: 1px; text-align: center; margin-bottom: 26px; }
     .careers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
     .career { position: relative; min-height: 460px; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center; padding: 22px 14px; text-decoration: none; }
     .career img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s ease; }
@@ -49,7 +49,7 @@
     .career::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 25%, rgba(5,12,8,.78) 52%, rgba(5,12,8,.96) 85%); }
     .career b, .career span { text-shadow: 0 2px 10px rgba(0,0,0,.6); }
     .career > * { position: relative; z-index: 1; }
-    .career b { font-family: Anton, Impact, sans-serif; font-weight: 400; font-size: clamp(30px, 3.2vw, 44px); text-transform: uppercase; line-height: 1; background: linear-gradient(180deg, var(--gold1), var(--gold2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .career b { font-family: 'Cinzel', Georgia, serif; font-weight: 900; font-size: clamp(24px, 2.3vw, 32px); text-transform: uppercase; line-height: 1; color: #fff; border-bottom: 2px solid var(--gold2); padding-bottom: 6px; }
     .career span { font-size: 14px; color: #d6e2da; margin: 8px 0 14px; max-width: 240px; line-height: 1.4; }
     .career .play { padding: 11px 24px; font-size: 13px; }
     .tag { position: absolute; top: 14px; left: 14px; z-index: 2; font-size: 11px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; padding: 4px 10px; background: var(--green); color: #fff; }
