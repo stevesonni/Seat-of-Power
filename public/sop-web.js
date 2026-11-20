@@ -40,11 +40,11 @@
     return new Promise(function (ok, no) {
       var done = false;
       var close = sheet(function (card, close) {
-        card.innerHTML = '<div style="font-size:40px">🔐</div><div style="font:800 22px/1.2 Fraunces,Georgia,serif;margin:6px 0">Sign in to buy</div><div style="color:#4b5a51;margin-bottom:12px">' + (why || "Your purchases stay with your Google account, on any phone.") + '</div><div class="gbtn" style="display:flex;justify-content:center;min-height:44px"></div><div class="gmsg" style="min-height:20px;color:#b3261e;font-size:14px;margin-top:8px"></div>';
+        card.innerHTML = '<div style="font-size:40px">🔐</div><div style="font:800 22px/1.2 Fraunces,Georgia,serif;margin:6px 0">Sign in with Google</div><div style="color:#4b5a51;margin-bottom:12px">' + (why || "Your purchases stay with your Google account, on any phone.") + '</div><div class="gbtn" style="display:flex;justify-content:center;min-height:44px"></div><div class="gmsg" style="min-height:20px;color:#b3261e;font-size:14px;margin-top:8px"></div>';
         card.appendChild(btn("Not now", false, function () { close(); if (!done) { done = true; var e = new Error("cancelled"); e.code = "cancelled"; no(e); } }));
         gis().then(function () {
           window.google.accounts.id.initialize({ client_id: cfg.googleClientId, callback: function (r) {
-            post("/api/shop/login", { credential: r.credential }).then(function (j) { setTok(j.token); done = true; close(); ok(j.token); })
+            post("/api/shop/login", { credential: r.credential }).then(function (j) { setTok(j.token); try { localStorage.setItem("sop_web_name", j.name || ""); } catch (e) {} done = true; close(); ok(j.token); })
               .catch(function () { card.querySelector(".gmsg").textContent = "Google sign-in did not work. Please try again."; });
           } });
           window.google.accounts.id.renderButton(card.querySelector(".gbtn"), { theme: "filled_black", size: "large", shape: "pill", text: "continue_with" });
@@ -90,9 +90,80 @@
     }).catch(function () { toast("We could not confirm the payment yet. If you paid, it will unlock shortly.", "warn"); });
   }
 
+  // ── Your game on every device: Google sign-in keeps the saves on our server (the same store Lagos Life uses,
+  //    under this account's own id). Playing without signing in stays on this device, as before. ──
+  // The game's own records (written through window.storage); settings and test switches stay on the device.
+  var SYNC = { sop_save: 1, sop_profile: 1, sop_career: 1, sop_preelection: 1, sop_pres: 1, sop_senate: 1, sop_notebook: 1, sop_lga: 1, sop_amb: 1, sop_daily: 1, sop_played: 1, sop_cab_mem: 1, sop_cards: 1, sop_record: 1 };
+  function syncKeys() { var o = {}; try { Object.keys(SYNC).forEach(function (k) { var v = localStorage.getItem(k); if (v != null && v !== "") o[k] = v; }); } catch (e) {} return o; }
+  function careerOf(v) { try { var j = JSON.parse(v), st = j.setup || {}; return [st.nm || "", st.state || "", (j.stc || {}).pseed || "", st.startYear || ""].join("|"); } catch (e) { return "?"; } }
+  function careerName(v) { try { var j = JSON.parse(v), st = j.setup || {}; return (st.nm || "A governor") + " · " + String(st.state || "").replace(/_/g, " ") + " · year " + (j.turn || 1); } catch (e) { return "A saved game"; } }
+  function savedAt(v) { try { var j = JSON.parse(v); return j && typeof j === "object" && +j.savedAt || 0; } catch (e) { return 0; } }
+  var dirty = {}, upTimer = null, syncing = false;
+  function upload() { var d = dirty; dirty = {}; if (!tok() || !Object.keys(d).length) return Promise.resolve();
+    return post("/api/web/save", { token: tok(), data: d }).catch(function (e) { if (e && e.code === "sign_in") { setTok(""); return; } for (var k in d) if (!(k in dirty)) dirty[k] = d[k]; clearTimeout(upTimer); upTimer = setTimeout(upload, 15000); }); }
+  function queue(k, v) { if (!tok() || !SYNC[k]) return; dirty[k] = v; clearTimeout(upTimer); upTimer = setTimeout(upload, 1500); }
+  function hookStorage() {
+    var st = window.storage; if (!st || st.__web) return;
+    var set = st.set;
+    st.set = function (k, v) { var r = set.apply(this, arguments); try { queue(k, v); } catch (e) {} return r; };
+    st.__web = true;
+    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") upload(); });
+    window.addEventListener("pagehide", function () { upload(); });
+    var flush = window.SOP_storageFlush; window.SOP_storageFlush = function () { var a = flush ? flush() : null; return Promise.resolve(a).then(upload); };
+  }
+  // Two different careers (this device and the account): the player picks; the other is kept on the server.
+  function pickCareer(cloudV, localV) {
+    return new Promise(function (ok) {
+      sheet(function (card, close) {
+        card.innerHTML = '<div style="font-size:40px">☁️</div><div style="font:800 22px/1.2 Fraunces,Georgia,serif;margin:6px 0">Which game do you want to play?</div><div style="color:#4b5a51;margin-bottom:6px">Your account and this device have different games. The one you don\'t pick is kept, and you can bring it back from the title screen.</div>';
+        card.appendChild(btn("☁️ " + careerName(cloudV) + " (your account)", true, function () { close(); ok("cloud"); }));
+        card.appendChild(btn("📱 " + careerName(localV) + " (this device)", false, function () { close(); ok("local"); }));
+      });
+    });
+  }
+  // Bring the account and this device together. Returns true when this device changed (the game reloads once).
+  function sync() {
+    if (!tok() || syncing) return Promise.resolve(false); syncing = true;
+    return post("/api/web/load", { token: tok() }).then(function (j) {
+      setEnts(j.ents); window.SOP_BACKUPS = j.bak || [];
+      var cloud = j.data || {}, local = syncKeys(), up = {}, down = {}, chain = Promise.resolve();
+      Object.keys(local).forEach(function (k) { if (k !== "sop_save" && !(k in cloud)) up[k] = local[k]; });
+      Object.keys(cloud).forEach(function (k) { if (k === "sop_save" || !SYNC[k]) return; if (!(k in local)) down[k] = cloud[k]; else if (local[k] !== cloud[k]) { if (savedAt(local[k]) > savedAt(cloud[k])) up[k] = local[k]; else down[k] = cloud[k]; } });
+      var cs = cloud.sop_save, ls = local.sop_save;
+      if (ls && !cs) up.sop_save = ls;
+      else if (cs && !ls) down.sop_save = cs;
+      else if (cs && ls && cs !== ls) {
+        if (careerOf(cs) === careerOf(ls)) { if (savedAt(ls) > savedAt(cs)) up.sop_save = ls; else down.sop_save = cs; }
+        else chain = pickCareer(cs, ls).then(function (w) {
+          // Save the loser first so the server keeps it among the earlier careers, then the winner.
+          return w === "cloud" ? post("/api/web/save", { token: tok(), data: { sop_save: ls } }).then(function () { return post("/api/web/save", { token: tok(), data: { sop_save: cs } }); }).then(function () { down.sop_save = cs; })
+            : post("/api/web/save", { token: tok(), data: { sop_save: ls } });
+        });
+      }
+      return chain.then(function () {
+        var changed = false;
+        Object.keys(down).forEach(function (k) { try { if (localStorage.getItem(k) !== down[k]) { localStorage.setItem(k, down[k]); changed = true; } } catch (e) {} });
+        return (Object.keys(up).length ? post("/api/web/save", { token: tok(), data: up }) : Promise.resolve()).then(function () { return changed; });
+      });
+    }).catch(function (e) { if (e && e.code === "sign_in") { setTok(""); acct(null); } return false; }).then(function (ch) { syncing = false; return ch; });
+  }
+  function acct(name) { window.SOP_WEB_ACCOUNT = tok() ? { name: name || (function () { try { return localStorage.getItem("sop_web_name") || ""; } catch (e) { return ""; } })() } : null; try { window.dispatchEvent(new CustomEvent("sop-account", { detail: window.SOP_WEB_ACCOUNT })); } catch (e) {} }
+  function reloadOnce() { try { if (sessionStorage.getItem("sop_web_synced")) return; sessionStorage.setItem("sop_web_synced", "1"); } catch (e) {} location.reload(); }
+
   fetch("/api/shop/config").then(function (r) { return r.json(); }).then(function (c) {
     cfg = c; if (!c || !c.on) return; // shop off: the game stays as it is (everything open outside Lagos Life)
-    // With Paystack's test keys the shop opens only on the private test link (…/?shoptest=1), never for players.
+    // Accounts: sign in any time, from the menu; the game then follows the player to any device.
+    window.SOP_webSignIn = function () {
+      return signIn("Your game is saved to your Google account, so you can carry on from any phone or computer.").then(function () {
+        acct(); hookStorage();
+        return sync().then(function (changed) { toast(changed ? "Signed in. Your saved game is here." : "Signed in. Your game is now saved to your account.", "ok"); if (changed) setTimeout(function () { location.reload(); }, 900); return true; });
+      });
+    };
+    window.SOP_webSignOut = function () { upload().then(function () { setTok(""); setEnts({}); acct(null); toast("Signed out. Your game stays on this device.", "ok"); }); };
+    window.SOP_restore = function (i) { return post("/api/web/restore", { token: tok(), i: i }).then(function (r) { if (r && r.ok) try { localStorage.setItem("sop_save", r.value); } catch (e) {} return r; }); };
+    acct();
+    if (tok()) { hookStorage(); sync().then(function (changed) { if (changed) reloadOnce(); }); }
+    // Buying: with Paystack's test keys the shop opens only on the private test link (…/?shoptest=1), never for players.
     var testLink = /[?&]shoptest=1/.test(location.search) || (function () { try { return sessionStorage.getItem("sop_shoptest") === "1"; } catch (e) { return false; } })();
     if (c.mode !== "live" && !testLink) return;
     if (testLink) try { sessionStorage.setItem("sop_shoptest", "1"); } catch (e) {}
@@ -100,9 +171,6 @@
     window.SOP_WEB_SHOP = true;
     window.SOP_canBuy = function () { return true; };
     window.SOP_buy = buy;
-    window.SOP_webSignOut = function () { setTok(""); setEnts({}); };
-    // What this account owns.
-    if (tok()) post("/api/web/load", { token: tok() }).then(function (j) { setEnts(j.ents); }).catch(function (e) { if (e && e.code === "sign_in") setTok(""); });
     returning();
   }).catch(function () {});
 })();

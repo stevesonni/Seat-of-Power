@@ -2966,6 +2966,9 @@ const CareerSheet = ({ onClose }) => {
 };
 
 const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairman, onAmbassador, onChallenge, onScenario, onBoard, onPreview, onCabinet, profile, setProfile, campaignNow }) => {
+  // The website's Google account (public/sop-web.js), if signed in: the game follows the player to any device.
+  const [webAcct, setWebAcct] = useState(() => window.SOP_WEB_ACCOUNT || null);
+  useEffect(() => { const f = (e) => setWebAcct(e.detail || null); window.addEventListener("sop-account", f); return () => window.removeEventListener("sop-account", f); }, []);
   // The Presidency preview: for trying the presidency without a governorship first (7 taps on the logo, or ?preview=presidency).
   const taps = React.useRef(0);
   const [preview, setPreview] = useState(() => { try { return localStorage.getItem("sop_preview") === "1" || /preview=presidency/.test(location.search); } catch (e) { return false; } });
@@ -3073,7 +3076,9 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
       {sheet === "menu" && <EntranceSheet title="Menu" onClose={() => setSheet(null)}>
         <div style={{ display: "grid", gap: 10 }}>
           <div style={{ fontSize: DS.t.meta, color: UI.sub, textAlign: "center" }}>The governorship is free to play. Everything with a price is an optional extra.</div>
-          {[["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
+          {[...(window.SOP_webSignIn ? [webAcct ? ["icon-locked", "Signed in" + (webAcct.name ? " as " + webAcct.name : ""), "Your game is saved to your Google account · tap to sign out", async () => { if (await window.SOP_confirm("Sign out? Your game stays on this device and in your account.", "Sign out")) window.SOP_webSignOut(); }]
+              : ["icon-locked", "Keep your game on every device", "Sign in with Google: carry on from any phone or computer", () => { setSheet(null); window.SOP_webSignIn().catch(() => {}); }]] : []),
+            ["icon-politician", profile ? "Hon. " + profile.first + " " + profile.last : "Create your politician", "Your portrait, frames and titles", () => setSheet(profile ? "me" : "profile")],
             ["icon-challenge", "This week's challenge", stateLabel(ch.state) + " · the same start and luck for everyone", () => { setSheet(null); seeCh(); onChallenge(profile); }, chNew],
             ["icon-scenarios", "Scenarios", scenariosLocked ? "Start in a crisis · from ₦1,000" : "Start in a crisis", () => setSheet("scenarios")],
             ["icon-politician", "Careers", "LGA Chairman, Governor, Senator, Ambassador, and the road to Aso Rock", () => setSheet("careers")],
