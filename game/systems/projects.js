@@ -396,3 +396,8 @@ export const reelFor = (type, id) => {
    intervene when the state's standing with Abuja is at least this high (out of 100); the full amount comes back the
    next year. */
 export const JAPA_FG_MIN = 55;
+/* The President's standing abroad, for asking another country to freeze a fled contractor's money (0-100).
+   Countries help a President who shows up (summits and state visits), is popular at home and keeps corruption
+   down. 55 or more, and the country acts: the full amount comes home the next year. */
+export const JAPA_ABROAD_MIN = 55;
+export const abroadStanding = ({ trips = 0, app = 50, cor = 0 } = {}) => Math.max(0, Math.min(100, Math.round(35 + trips * 12 + (app - 50) * 0.5 - cor * 30)));
