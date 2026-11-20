@@ -8,7 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { open, playUntil } from "./lib.mjs";
+import { open, playUntil, openLetterTitled } from "./lib.mjs";
 
 const port = 19900 + Math.floor(Math.random() * 90), data = fs.mkdtempSync(path.join(os.tmpdir(), "cab-e2e-"));
 const srv = spawn(process.execPath, ["server/vatar-server.mjs"], { env: { ...process.env, PORT: String(port), DATA_DIR: data, VATAR_SECRET: "" }, stdio: "ignore" });
@@ -81,13 +81,14 @@ if (L.seat === "finance") { await f.click(/^↻ Refresh$/); await f.wait(1200); 
 check(L.seat === "finance" || (adv && adv.ok), "the " + L.seat + " minister advises on “" + L.title + "”");
 // The Governor sees the advice on the letter.
 await g.wait(31000); // the cabinet refreshes every 30 seconds
-const opened = await g.page.evaluate((title) => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && x.textContent.includes(title.slice(0, 24))); if (!b) return false; b.click(); return true; }, L.title.replace(/^URGENT: .*? · /, ""));
+const opened = await openLetterTitled(g, L.title.replace(/^URGENT: .*? · /, "").slice(0, 24));
 await g.wait(600);
 t = await g.txt();
 check(opened && /advises:/.test(t) && (L.seat === "finance" || /Trust me on this/.test(t)), "the letter carries the minister's advice");
 if (!L.stance) {
   await g.click(/^✍️ Handle it personally$/); await g.wait(800);
   t = await g.txt();
+  if (!/'s advice/.test(t)) console.log("  DBG card:", t.slice(0, 900).replace(/\n/g, " · "), "| buttons:", (await g.buttons()).join(" | ").slice(0, 600));
   check(/'s advice/.test(t), "the advised option is marked on the card");
   const done = await g.page.evaluate((p) => { const b = [...document.querySelectorAll(".opt, button")].find(x => x.offsetParent && x.textContent.includes(p.slice(0, 30)) && !x.disabled); if (!b) return false; b.click(); return true; }, pick);
   await g.wait(2500); await okay(g);

@@ -8,7 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { open, playUntil } from "./lib.mjs";
+import { open, playUntil, openLetterTitled } from "./lib.mjs";
 
 const port = 19600 + Math.floor(Math.random() * 90), data = fs.mkdtempSync(path.join(os.tmpdir(), "cabs-e2e-"));
 const srv = spawn(process.execPath, ["server/vatar-server.mjs"], { env: { ...process.env, PORT: String(port), DATA_DIR: data, VATAR_SECRET: "" }, stdio: "ignore" });
@@ -51,9 +51,10 @@ await g.click(/^(CONTINUE|Continue)$/); await g.wait(3500); await okay(g);
 // The succession letter.
 let found = false;
 for (let i = 0; i < 6 && !found; i++) {
-  found = await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /Who comes after you\?/.test(x.textContent)); if (!b) return false; b.click(); return true; });
+  found = await openLetterTitled(g, "Who comes after you?");
   if (!found) { await okay(g); await g.wait(800); }
 }
+if (!found) console.log("  DBG mail:", JSON.stringify(await g.page.evaluate(() => window.SOP.mailNow && window.SOP.mailNow())), "|", (await g.txt()).slice(0, 600).replace(/\n/g, " · "));
 check(found, "the succession letter arrives");
 await g.wait(500); await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /Handle it personally/.test(x.textContent)); b && b.click(); }); await g.wait(1200);
 let t = await g.txt();

@@ -131,3 +131,17 @@ export async function playUntil(g, until, { max = 400, prefer = [], log = false,
   return { ok: false, clicks };
 }
 export const yearOf = (t) => { const m = t.match(/Year (\d) of 4[^\n]*?(\d{4})/); return m ? { y: +m[1], abs: +m[2] } : null; };
+
+// A letter by (part of) its title: a button on screen if there is one, else through the mailbox
+// (Next message, then Next letter → until it shows). The letter list was replaced by the mailbox.
+export async function openLetterTitled(g, part) {
+  const has = (t) => t.toLowerCase().includes(String(part).toLowerCase()); // titles may be shown in capitals
+  const direct = await g.page.evaluate((p) => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && x.textContent.includes(p)); if (!b) return false; b.click(); return true; }, part);
+  if (direct) return true;
+  // The mailbox gives letters one at a time, most urgent first: open the one we want directly (test hook).
+  if (await g.page.evaluate((p) => !!(window.SOP && window.SOP.openLetterTest && window.SOP.openLetterTest(p)), part)) { await g.wait(1200); if (has(await g.txt())) return true; }
+  if (!(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /^Next message$/.test(x.textContent.trim())); if (!b) return false; b.click(); return true; }))) return false;
+  await g.wait(1500);
+  for (let i = 0; i < 12; i++) { if (has(await g.txt())) return true; if (!(await g.click(/^Next letter →$/))) break; await g.wait(600); }
+  return false;
+}
