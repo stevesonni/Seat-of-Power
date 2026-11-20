@@ -54,8 +54,9 @@ if (which === "gov" || which === "all") {
   const r = await playUntil(g, (t) => { Object.entries(titles).forEach(([k, re]) => { if (re.test(t)) seen.add(k); }); if (/Money and projects/.test(t)) tabs = true; return /Year 3 of 4/.test(t); }, { max: 500,
     onStep: async () => { if (!hint && await g.page.evaluate(() => !!document.querySelector("[data-sop-hint]"))) hint = true; } });
   check(r.ok, "played on to year 3"); if (!r.ok) console.log("  last: " + r.clicks.slice(-15).join(" | "));
-  check(hint, "the Hint button is on screen");
-  check(tabs, "the tabs say what is behind them");
+  // The owner removed the Hint button and the words under the tabs (20 Nov 2026).
+  check(!hint, "no Hint button");
+  check(!tabs, "the tabs carry no subtitles");
   check(seen.has("qw"), "quick wins are offered");
   check(seen.has("leak"), "FAAC day shows what leaked");
   check(seen.has("vet") || seen.has("whistle"), "the commissioners' integrity comes up");
@@ -65,11 +66,6 @@ if (which === "gov" || which === "all") {
   const sv = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
   check(sv.stc && sv.stc.pseed && (sv.stc.leakHist || []).length >= 1, "the leaks are on record (" + JSON.stringify((sv.stc || {}).leakHist) + ")");
   check(sv.stc && sv.stc.rivalry && sv.stc.rivalry.nb, "a neighbour was chosen (" + (sv.stc && sv.stc.rivalry && sv.stc.rivalry.nb) + ")");
-  // The hint button speaks.
-  for (let i = 0; i < 6 && await g.click(/^(Okay|Got it|Not now|Continue|Later|Next)$/); i++) await g.wait(400);
-  const hb = await g.page.evaluate(() => { const b = document.querySelector("[data-sop-hint]"); b && b.click(); return !!b; }); await g.wait(800);
-  if (!hb) console.log("  no hint button: " + (await g.txt()).replace(/\s+/g, " ").slice(0, 300));
-  check(/special adviser/i.test(await g.txt()), "the hint comes from the adviser");
   check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")"); await g.browser.close();
 
   // All pillars off: none of it.

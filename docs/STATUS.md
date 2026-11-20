@@ -1555,3 +1555,4 @@ cannot chase money abroad; only the Federal Government can ask the other country
 - Each year closes with the stage's cost (approval, party, IGR as investors pull back, House members) and at "must go" a finale: resign (ending "stepped down") or fight (impeachment if the House is lost; else Abuja freezes a quarter of the state's money).
 - Layout follows X as it is now: avatar and centred logo, For you | Opposition, posts with the blue badge, "@handle · time", "···" and the reply/repost/like/views/share row, the round + button, a bottom bar (Home, Explore with "Trending in …", Notifications with mentions, Profile with banner, Edit profile, Joined, Following/Followers, Posts/Replies/Likes). Logo: option 2 (bubble with a t).
 - Tests: tests/tori.test.mjs (9), tests/e2e/tori-heat.mjs, tests/e2e/complaints.mjs.
+- No Hint button, and no subtitles under Desk / State / People (owner, 20 Nov 2026).
