@@ -25,7 +25,15 @@ const toTray = async (g) => {
   await g.click(/^(CONTINUE|Continue)$/); await g.wait(3500); await okay(g);
   return r.ok;
 };
-const openLetter = async (g, re) => { for (let i = 0; i < 6; i++) { const ok = await g.page.evaluate((src) => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && new RegExp(src).test(x.textContent)); if (!b) return false; b.click(); return true; }, re.source); if (ok) return true; await okay(g); await g.wait(700); } return false; };
+// A letter: a button with its title if one is on screen, else through the mailbox (Next message, then Next letter →).
+const openLetter = async (g, re) => {
+  const direct = () => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && new RegExp(src).test(x.textContent)); if (!b) return false; b.click(); return true; }, re.source);
+  for (let i = 0; i < 3; i++) { if (await direct()) return true; await okay(g); await g.wait(500); }
+  if (!(await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /^Next message$/.test(x.textContent.trim())); if (!b) return false; b.click(); return true; }))) return false;
+  await g.wait(1500);
+  for (let i = 0; i < 10; i++) { if (re.test(await g.txt())) return true; if (!(await g.click(/^Next letter →$/))) break; await g.wait(600); }
+  return false;
+};
 
 // ── 1. The plan's last step ──
 const mode = { kind: "scenario", id: "hostile_house" };
