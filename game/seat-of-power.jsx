@@ -7326,6 +7326,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const gfFree = () => { setGodfatherPower(0); setStc(p => ({ ...p, gf: p.gf === "dead" ? p.gf : "freed" }));
     try { const M = window.SOP_MEMORY; (M && M.owed ? M.owed("godfather") : []).forEach(d => M.settle(d.id, "Free of him")); } catch (e) {} };
   // The godfather's pay-off, and any other scenario action, from the Desk strip.
+  const [scenChat, setScenChat] = useState(null); // the adviser's chat about the logjam: null | {} | { me: "your reply" }
   const scenAction = (a) => { const cost = SYS.scenarioCostB(a, scenRevB()); if (cost && !spendB(cost, a.l)) return;
     scenApply({ ...a, cost: 0, costPct: 0 }); if (a.set && a.set.freed) gfFree(); addL("🎩 " + a.say, "political"); scWiki("Governorship", a.l + ".");
     try { window.SOP_outcome({ icon: scenDef ? scenDef.icon : "📜", title: a.l, text: a.say, tone: "good", rows: cost ? [{ l: "Cost", v: naira(cost), good: false }] : [] }); } catch (e) {} };
@@ -7393,7 +7394,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const P = SYS.scenarioProg(scenR, c), showBar = !["hostile_house", "broke", "narrow_win"].includes(scenId);
     let prog = ""; try { prog = scenR.goal.progress({ ...c, prog: P }); } catch (e) {}
     const act = !done && (scenR.actions || []).filter(a => !(S.flags || {})[Object.keys(a.set || {})[0]]);
-    return <div data-testid="scen-strip" style={{ maxWidth: tall ? 900 : 1320, margin: tall ? "0 0 10px" : "0 auto 14px", background: done ? "#eef7ee" : "#fff6ef", border: "2px solid " + (done ? CL.grn : left <= 1 ? CL.red : CL.org), borderRadius: 14, padding: tall ? "8px 10px" : "10px 16px" }}>
+    // One short card on the Desk; a tap opens the adviser's chat about it (owner's design, 20 Nov 2026).
+    return <div data-testid="scen-strip" role="button" tabIndex={0} onClick={() => setScenChat({})} onKeyDown={(e) => { if (e.key === "Enter") setScenChat({}); }} style={{ cursor: "pointer", maxWidth: tall ? 900 : 1320, margin: tall ? "0 0 10px" : "0 auto 14px", background: done ? "#eef7ee" : "#fff6ef", border: "2px solid " + (done ? CL.grn : left <= 1 ? CL.red : CL.org), borderRadius: 14, padding: tall ? "8px 10px" : "10px 16px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: tall ? TS(15) : TS(21) }}>
         <span>{done ? "🔓" : scenDef ? scenDef.icon : "⏳"}</span>
         <span style={{ flex: 1 }}>{done ? "Logjam broken: " + scenR.goal.label : over ? (S.resolved || "").startsWith("saved") ? "You survived: " + scenR.threat.t.toLowerCase() : "It landed: " + scenR.threat.t.toLowerCase() : "Get " + scenR.goal.label + (dl ? " by the end of " + ((setup?.startYear || 2027) + dl - 1) : "")}</span>
@@ -7401,12 +7403,47 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       </div>
       {prog && <div style={{ fontSize: fs, color: CL.tm, marginTop: 3, fontWeight: 700 }}>{prog}</div>}
       {!done && showBar && <div style={{ height: 8, background: "#eadfce", borderRadius: 99, marginTop: 5, overflow: "hidden" }}><div style={{ width: P + "%", height: "100%", background: P >= 70 ? CL.grn : CL.org, transition: "width .6s" }} /></div>}
-      {!done && scenR.rule && <div style={{ fontSize: fs, color: CL.tm, marginTop: 4 }}><b>While it lasts:</b> {scenR.rule}</div>}
-      {!done && !over && scenR.threat && <div style={{ fontSize: fs, color: CL.red, marginTop: 3 }}><b>Or else:</b> {scenR.threat.t.toLowerCase()}.</div>}
-      {!done && !over && (scenR.uno || []).length > 0 && <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
-        {scenR.uno.map(u => { const ok = held.some(h => h.id === u.id); return <span key={u.id} title={u.say} style={{ fontSize: tall ? TS(12) : TS(16), fontWeight: 700, padding: "3px 8px", borderRadius: 999, background: ok ? "#e3f3e3" : "#f3efe8", color: ok ? CL.grn : CL.td, border: "1px solid " + (ok ? CL.grn : CL.bdr) }}>🃏 {ok ? "✔" : "✗"} {u.l}</span>; })}
-      </div>}
-      {act && act.map(a => { const cost = SYS.scenarioCostB(a, scenRevB()); return <Bt key={a.id} v="ghost" onClick={() => scenAction(a)} style={{ marginTop: 6 }}>{a.l}{cost ? " (" + naira(cost) + ")" : ""}</Bt>; })}
+      {!done && <div style={{ fontSize: fs, color: CL.grn, marginTop: 6, fontWeight: 800 }}>💬 Talk it over with {advFirst()} ›</div>}
+    </div>;
+  };
+  const advFirst = () => { const n = (saOffice.adviser && saOffice.adviser.name) || "your adviser"; return n.replace(/^(Prof\.|Dr\.|Hajiya|Alhaji|Chief|Barr\.|Engr\.|Mrs?\.)\s+/, "").split(" ")[0]; };
+  // The adviser's chat about the logjam: what it is, what it is doing to you, what could save you, and the choices as replies.
+  const scenChatView = () => {
+    if (!scenR || !stc.scen) return null;
+    const S = stc.scen, c = scenCtx(), done = SYS.scenarioMet(scenR, c) || S.broken, over = !done && S.resolved && !(scenR.doom && scenR.doom.repeat);
+    const dl = SYS.scenarioDeadline(scenR, c), left = dl ? dl - turn + 1 : 0, held = SYS.unoHeld(scenR, c), P = SYS.scenarioProg(scenR, c), tall = TALL();
+    let prog = ""; try { prog = scenR.goal.progress({ ...c, prog: P }); } catch (e) {}
+    const act = !done && (scenR.actions || []).filter(a => !(S.flags || {})[Object.keys(a.set || {})[0]]);
+    const A = saOffice.adviser || {}, pic = "./art/characters/" + (A.pic || "adviser-southeast-male") + ".webp";
+    const low = (t) => String(t || "").replace(/^./, (x) => x.toLowerCase()), dot = (t) => /[.!?]$/.test(t) ? t : t + ".";
+    const msgs = [];
+    if (done) msgs.push("Good news, Your Excellency: " + low(scenR.goal.label) + ". We made it.");
+    else if (over) msgs.push("Your Excellency, " + low(scenR.threat.t) + ". It has happened.");
+    else msgs.push("Your Excellency, we need " + low(scenR.goal.label) + (left > 0 ? (left <= 1 ? ", this year." : " within " + left + " years.") : "."));
+    if (prog) msgs.push(dot(prog));
+    if (!done && scenR.rule) msgs.push("While it lasts: " + low(dot(scenR.rule)));
+    if (!done && !over && scenR.threat) msgs.push("If we fail, " + low(dot(scenR.threat.t)));
+    if (!done && !over && (scenR.uno || []).length) { const got = scenR.uno.filter(u => held.some(h => h.id === u.id)), need = scenR.uno.filter(u => !held.some(h => h.id === u.id));
+      const nm = (u) => low(String(u.l).split(":")[0].replace(/\s*\(.*?\)/g, ""));
+      msgs.push((got.length ? "On our side: " + got.map(nm).join(", ") + ". " : "") + (need.length ? "What could still help: " + need.map(nm).join(", ") + "." : "")); }
+    if (!act || !act.length) msgs.push(done ? "Nothing to decide here. Well done." : "Nothing to sign today. I'll message you when there is.");
+    else msgs.push("What do you want to do?");
+    const bub = { background: "#fff", borderRadius: "4px 16px 16px 16px", padding: tall ? "8px 12px" : "12px 16px", fontSize: tall ? TS(16) : TS(22), color: CL.txt, maxWidth: "88%", boxShadow: "0 1px 0 rgba(0,0,0,.08)", lineHeight: 1.4 };
+    const pick = (a) => { setScenChat({ me: a.l }); setTimeout(() => { setScenChat(null); scenAction(a); }, 700); };
+    return <div data-testid="scen-chat" style={{ maxWidth: 760, margin: "0 auto", borderRadius: 18, overflow: "hidden", background: "#efe7d6", boxShadow: "0 18px 50px rgba(0,0,0,.3)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: tall ? "10px 12px" : "14px 18px", background: "#0f3d24", color: "#fff" }}>
+        <button onClick={() => setScenChat(null)} aria-label="Back" style={{ background: "transparent", border: 0, color: "#fff", fontSize: tall ? TS(22) : TS(30), cursor: "pointer", minHeight: 44, minWidth: 36 }}>←</button>
+        <img src={pic} alt="" style={{ width: tall ? 40 : 54, height: tall ? 40 : 54, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4" }} />
+        <div style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: tall ? TS(17) : TS(24) }}>{A.name || "Your adviser"}</b><span style={{ fontSize: tall ? TS(13) : TS(18), opacity: .75 }}>online</span></div>
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: tall ? 12 : 18, minHeight: tall ? 640 : 420 }}>
+        {msgs.map((m, k) => <div key={k} className="sop-fade-in" style={{ ...bub, animationDelay: (k * 0.25) + "s", animationFillMode: "both" }}>{m}</div>)}
+        {scenChat && scenChat.me ? <div style={{ ...bub, alignSelf: "flex-end", background: "#dcf8c6", borderRadius: "16px 4px 16px 16px" }}>{scenChat.me} <span style={{ fontSize: tall ? TS(12) : TS(16), color: "#4a9" }}>✓✓</span></div>
+          : <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
+            {(act || []).map(a => { const cost = SYS.scenarioCostB(a, scenRevB()); return <button key={a.id} onClick={() => pick(a)} style={{ minHeight: 44, padding: "8px 16px", borderRadius: 999, border: "2px solid #1d6a3f", background: "#fff", color: "#1d6a3f", fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(15) : TS(21), cursor: "pointer" }}>{a.l}{cost ? " · " + naira(cost) : ""}</button>; })}
+            <button onClick={() => setScenChat(null)} style={{ minHeight: 44, padding: "8px 16px", borderRadius: 999, border: "1.5px solid #c9bfa9", background: "transparent", color: CL.td, fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(15) : TS(21), cursor: "pointer" }}>Thanks</button>
+          </div>}
+      </div>
     </div>;
   };
   const frontsCardFor = (c, PZ) => ({ key: "pres_nsc_" + turn, kicker: "The National Security Council", color: CL.red, art: [c.bg || "situation-room", c.who || null, null, c.scene || null], title: c.t, brief: c.d + ((c.worst || []).some(k => SYS.peaceCanStart(PZ || {}, k)) ? " Or commit to ending one of them for good." : ""),
@@ -9970,11 +10007,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const LabourDesk = () => {
     const L = stc.labour || {}, tall = TALL(), items = [];
-    if (L.ult && L.ult.turn === turn) items.push({ id: "ult", head: "⏳ " + L.ult.title, line: L.ult.line + " If you do nothing, the strike starts when the year ends.", bg: "scenes/nlc-march", obj: "red-union-cap" });
+    if (L.ult && L.ult.turn === turn) items.push({ id: "ult", head: "⏳ " + L.ult.title, line: "The strike starts when the year ends.", bg: "scenes/nlc-march", obj: "red-union-cap" });
     Object.values(L.strikes || {}).forEach(st => {
       const U = SYS.UNIONS[st.id];
-      if (st.on) { const T = SYS.yearlyToll(st, { nat: NAT, turn }), y = SYS.yearsOn(st, turn) + 1; items.push({ id: st.id, head: U.short + " strike · year " + y + ": " + T.t, line: T.d, bg: T.bg || U.bg, obj: T.obj, icon: "icon-strike" }); }
-      else if (st.mou) items.push({ id: st.id, head: U.short + " MoU: " + naira(st.mou.owed) + " due next year", line: "The strike is suspended. If the bank cannot pay it when the year turns, they are back out without warning.", bg: U.bg, obj: "mou-document", quiet: true });
+      if (st.on) { const T = SYS.yearlyToll(st, { nat: NAT, turn }), y = SYS.yearsOn(st, turn) + 1; items.push({ id: st.id, head: U.short + " strike · year " + y, line: String(T.t || "").replace(/:\s*year \d+\s*$/i, "") + ".", bg: T.bg || U.bg, obj: T.obj, icon: "icon-strike" }); }
+      else if (st.mou) items.push({ id: st.id, head: U.short + " MoU: " + naira(st.mou.owed) + " due next year", line: "Suspended. Miss the payment and they walk out again.", bg: U.bg, obj: "mou-document", quiet: true });
     });
     if (!items.length) return null;
     return <div style={{ maxWidth: tall ? 900 : 1320, margin: tall ? "0 0 12px" : "0 auto 16px", display: "grid", gap: 10 }}>{items.map(it => <div key={it.id} style={{ borderRadius: 16, overflow: "hidden", border: "2px solid " + (it.quiet ? CL.org : CL.red), background: "linear-gradient(90deg, rgba(20,10,10,.88), rgba(20,10,10,.6)), url(./art/" + it.bg + ".webp) center/cover", color: "#fff", padding: tall ? "12px 14px" : "18px 22px", position: "relative" }}>
@@ -9982,7 +10019,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <b style={{ display: "flex", alignItems: "center", gap: 8, fontSize: tall ? TS(20) : TS(30), marginBottom: 4, paddingRight: it.obj ? (tall ? 46 : 76) : 0 }}>{it.icon && <Ico n={it.icon} s={tall ? 26 : 38} />}{it.head}</b>
       <div style={{ fontSize: tall ? TS(16) : TS(23), opacity: .9, marginBottom: it.quiet ? 0 : 10, lineHeight: 1.4 }}>{it.line}</div>
       {!it.quiet && <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        {roundsLeft(it.id) > 0 ? <Bt onClick={() => setTable({ id: it.id })}><Ico n="icon-roundtable" s={tall ? 22 : 30} style={{ marginRight: 6 }} />Convene the roundtable ({roundsLeft(it.id)} {roundsLeft(it.id) === 1 ? "session" : "sessions"} left this year)</Bt> : <span style={{ fontSize: tall ? TS(16) : TS(22), fontWeight: 700 }}>No more talks this year. The strike goes on.</span>}
+        {roundsLeft(it.id) > 0 ? <Bt onClick={() => setTable({ id: it.id })}><Ico n="icon-roundtable" s={tall ? 22 : 30} style={{ marginRight: 6 }} />Roundtable · {roundsLeft(it.id)} left</Bt> : <span style={{ fontSize: tall ? TS(16) : TS(22), fontWeight: 700 }}>No more talks this year. The strike goes on.</span>}
         {it.id === "ult" && ["vat", "levy", "property"].includes(L.ult.cause) && <Bt v="ghost" onClick={() => { reverseCause(L.ult.cause); setStc(p => ({ ...p, labour: { ...(p.labour || {}), ult: null } })); scFx({ app: 2 }); try { window.SOP_outcome({ present: { img: "./art/characters/" + SYS.UNIONS.nlc.img(NAT) + "-pleased.webp", bg: "./art/scenes/nlc-march.webp", name: SYS.UNIONS.nlc.leader(NAT), text: "The government has listened. The ultimatum is withdrawn.", ok: "Continue" } }); } catch (e) {} setTimeout(() => paper("GOVERNMENT BACKS DOWN; NLC WITHDRAWS ULTIMATUM", (SYS.CAUSES[L.ult.cause] || "The tax rise").replace(/^./, c => c.toUpperCase()) + " is reversed", true, "./art/scenes/labour-strike.webp"), 300); }} style={{ color: "#fff", borderColor: "#fff" }}>↩️ Reverse it</Bt>}
       </div>}
     </div>)}</div>;
@@ -12886,13 +12923,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (id === "market") { const sv = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: balanceIssue() != null ? zoneName(balanceIssue()) : null, turn }); return { title: "Central Market", img: "b12-market", rows: [row("Trending", sv.tag), ...sv.lines.map((l, i) => row(l.w, "\u201c" + l.t + "\u201d"))], note: "What the street says about you this year." }; }
     return null;
   };
-  const deskSteps = () => <div aria-label="This year" style={{ display: "flex", gap: 6, flexWrap: "nowrap", overflowX: "auto", alignItems: "center", margin: TALL() ? "0 -20px 12px" : "0 auto 18px", padding: TALL() ? "0 20px 2px" : 0, maxWidth: TALL() ? "none" : 1320, whiteSpace: "nowrap" }}>
-    {needSetup && <span style={{ flexShrink: 0, border: "1px solid " + CL.org + "66", background: CL.org + "14", color: CL.org, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800 }}>Set up: to do</span>}
-    {gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}
-    <span role="button" tabIndex={0} onClick={explainAgenda} title="Big moves left this year: projects, reforms, new ministries, investigations. Programmes (money and ministry capacity), bills (3 a year) and executive orders do not count." style={{ cursor: "pointer", flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: agendaLeftNow ? CL.grn + "14" : CL.org + "18", color: agendaLeftNow ? CL.grn : CL.org, border: "1px solid " + (agendaLeftNow ? CL.grn + "44" : CL.org + "66") }}>{CAP ? "⚡ Political capital " : "🗓️ Big moves "}{agendaLeftNow}/{agendaSizeNow()}{CAP ? "" : " · programmes, bills & orders separate"}</span>
-        {["Budget", "House vote", "Policies", "Review", "Mail"].map((l, k) => <span key={l} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: k === stepNow ? 800 : 600,
-      background: k === stepNow ? "#12301f" : k < stepNow ? CL.grn + "18" : CL.card, color: k === stepNow ? "#fff" : k < stepNow ? CL.grn : CL.td, border: "1px solid " + (k === stepNow ? "#12301f" : k < stepNow ? "transparent" : CL.bdr) }}>{k < stepNow ? "✓ " : ""}{l}</span>)}
-  </div>;
+  // The old row of step chips (Budget · House vote · Policies) and political capital is gone (owner, 20 Nov 2026):
+  // the steps arrive on their own. Only the gold-rush button stays, because it is an action.
+  const deskSteps = () => gold ? <div style={{ margin: TALL() ? "0 0 12px" : "0 auto 18px", maxWidth: TALL() ? "none" : 1320 }}>{gold && <button onClick={() => setGoldOpen(true)} style={{ flexShrink: 0, borderRadius: 999, padding: TALL() ? "6px 12px" : "8px 18px", fontSize: TALL() ? TS(18) : TS(27), fontWeight: 800, background: CL.card, color: gold.stage === "escalation" || gold.stage === "entrenched" ? CL.red : CL.txt, border: "1px solid " + (!gold.decided[turn] && SYS.beat(gold, turn) ? CL.org + "88" : CL.bdr), cursor: "pointer", fontFamily: F.b }}>⛏️ Goldfields: {SYS.GOLD_STAGE[gold.stage].toLowerCase()}{!gold.decided[turn] && SYS.beat(gold, turn) ? " (decide)" : ""}</button>}</div> : null;
 
   return (
     <div style={{ minHeight: "100%", background: CL.bg }}>
@@ -13070,8 +13103,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ marginTop: 16 }}><Bt onClick={() => setHubSheet(null)} style={{ width: "100%" }}>Back to the compound</Bt></div>
           </Cd>; })()}
         </OL>
-        {(nav === "gov" || nav === "hub") && !gEnd && turn >= 1 && !(nav === "gov" && liteToday) && Journey()}
-        {nav === "gov" && !gEnd && scenStrip()}
+                {nav === "gov" && !gEnd && scenStrip()}
         {nav === "gov" && !liteToday && deskSteps()}
         {/* The first-year guide panel is retired (owner, October 2026): the adviser and the Desk lead the way. */}
         {false && nav === "gov" && turn === 1 && !stc.tutorialOff && (() => {
@@ -13106,8 +13138,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
         {nav === "gov" && !liteToday && !needSetup && !NAT && opens(2) && stc.visitYear !== turn && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="icon-visit-president" s={TALL() ? 52 : 68} />
-          <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit the President at Aso Rock</b>
-            <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Once a year: fly to Abuja with one request. Your standing with Abuja: {Math.round(fgRelation)}/100.</div></div>
+          <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Visit the President</b>
+            <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Once a year</div></div>
           <Bt onClick={() => setVisitOpen(true)} style={{ whiteSpace: "nowrap" }}>✈️ Plan it</Bt>
         </div>}
         <OL show={visitOpen}>
@@ -13123,10 +13155,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </OL>
         {nav === "gov" && !liteToday && !needSetup && LabourDesk()}
         <OL show={!!table}>{table && RoundTable()}</OL>
+        <OL show={!!scenChat}>{scenChat && scenChatView()}</OL>
         {nav === "gov" && !liteToday && !needSetup && !NAT && opens(2) && lgaToursLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="icon-lga-tour" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Tour a local government</b>
-            <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>Meet the chairman or hold a town hall; what they ask for comes to your Desk. {lgaToursLeft()} {lgaToursLeft() === 1 ? "tour" : "tours"} left this year.</div></div>
+            <div style={{ fontSize: TALL() ? TS(16) : TS(22), color: CL.td }}>{lgaToursLeft()} left this year</div></div>
           <Bt onClick={() => setLgaTour({ lga: "" })} style={{ whiteSpace: "nowrap" }}>🚙 Plan it</Bt>
         </div>}
         <OL show={!!lgaTour}>

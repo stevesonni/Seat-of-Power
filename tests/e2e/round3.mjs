@@ -30,7 +30,7 @@ const coins = await g.page.evaluate(() => document.querySelectorAll("img[src*='c
 check(coins > 0, "juice: money leaving the Treasury sends coins out (" + coins + ")");
 // capital and reach on the Desk
 await g.wait(2500); const desk = await g.txt();
-check(/Political capital \d+\/\d+/.test(desk), "capital: big moves read as political capital");
+check(!/Political capital \d+\/\d+/.test(desk) && !/You are here:/.test(desk), "the Desk has no capital chip row and no journey strip");
 check(/The Governor's powers/i.test(desk) && /Hire or fire commissioners/.test(desk) && /Inspect your projects/.test(desk), "reach: the Governor's powers on the Desk");
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Inspect your projects/.test(x.textContent)); b && b.click(); }); await g.wait(900);
 const st = await g.page.evaluate(() => ({ next: !!document.querySelector("[data-sop-next]"), txt: (document.querySelector("[data-sop-next]") || {}).textContent || "" }));

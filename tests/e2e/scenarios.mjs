@@ -50,8 +50,15 @@ const mode = { kind: "scenario", id: "hostile_house" };
   await g.click(/^Desk\d*$/); await g.wait(600);
   const strip = await g.page.evaluate(() => { const e = document.querySelector("[data-testid=scen-strip]"); return e ? e.innerText : ""; });
   check(/Get a majority in the House by the end of \d{4}/i.test(strip) && /members with you/.test(strip), "the Desk shows the logjam and its deadline (" + strip.split("\n")[0] + ")");
-  check(/Or else:.*impeach/i.test(strip) && /traditional rulers/i.test(strip) && /Attorney-General/.test(strip), "…the threat, and the uno cards that could save you");
-  check(/While it lasts:.*votes down your bills, your budget/i.test(strip), "…and what the House is doing to you while it lasts");
+  // A tap opens the adviser's chat: the threat, the uno cards and the House's grip, as messages.
+  if (process.env.SHOTS) { await g.page.evaluate(() => document.querySelector("[data-testid=scen-strip]").scrollIntoView({ block: "start" })); await g.page.screenshot({ path: process.env.SHOTS + "/scen-strip.png" }); }
+  await g.page.evaluate(() => document.querySelector("[data-testid=scen-strip]").click()); await g.wait(1800);
+  if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/scen-chat.png" });
+  const chat = await g.page.evaluate(() => { const e = document.querySelector("[data-testid=scen-chat]"); return e ? e.innerText : ""; });
+  check(/If we fail,.*impeach/i.test(chat) && /traditional rulers/i.test(chat) && /Attorney-General/.test(chat), "…the chat gives the threat, and the uno cards that could save you");
+  check(/While it lasts:.*votes down your bills, your budget/i.test(chat), "…and what the House is doing to you while it lasts");
+  await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-testid=scen-chat] button")].find(x => /^Thanks$/.test(x.textContent.trim())); b && b.click(); }); await g.wait(400);
+  check(!(await g.page.$("[data-testid=scen-chat]")), "Thanks closes the chat");
   const s2 = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
   check(s2.stc && s2.stc.scen && s2.stc.scen.day1 === "people", "the answer is in the save");
   const r1 = await playUntil(g, tx => /opposition majority under/i.test(tx), { max: 40 });

@@ -10,7 +10,7 @@ let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL "
 const g = await open(srv.port, { save: YEAR1, test: { early: true } });
 const shot = (n) => g.page.screenshot({ path: (process.env.SHOTS || "/tmp") + "/visit-" + n + ".png" });
 await g.click(/^Continue/); await g.wait(1800);
-const r = await playUntil(g, t => /Visit the President at Aso Rock/.test(t), { max: 60 });
+const r = await playUntil(g, t => /Visit the President\s*Once a year/.test(t), { max: 60 });
 check(r.ok, "the Desk offers a visit to the President");
 // The adviser announces the year's next step a moment after the Desk opens: hear her out, then come back to the Desk.
 await g.wait(900);

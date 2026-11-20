@@ -1506,3 +1506,10 @@ cannot chase money abroad; only the Federal Government can ask the other country
 - Fast-tracked runs are marked "· fast-tracked" in the title and the career record.
 - Lagos Life: add `fast_track_president` (₦2,000, one-off) to the Vatar dashboard and change `presidential_run` to ₦1,000.
 - Test: tests/e2e/fasttrack.mjs.
+
+## A quieter Desk (20 Nov 2026, owner's marks on a screenshot)
+
+- Gone: the journey strip (Elected · Re-election · Legacy, "You are here") and the chip row (political capital, Budget, House vote, Policies, Review, Mail). The steps still arrive on their own; only the gold-rush button stays when there is one, because it is an action.
+- The scenario card (for example "the second flood") is now short: title, progress and bar, then "💬 Talk it over with <adviser>". A tap opens a WhatsApp-style chat with the Special Adviser: the goal, the progress, what it is doing to you, the threat, what could help, and the choices as reply buttons (data-testid scen-chat).
+- Fewer words: "Visit the President · Once a year"; "Tour a local government · 2 left this year"; strike cards read "ASUU strike · year 3 / The universities are shut." with "Roundtable · 2 left".
+- tests/e2e/scenarios.mjs has three failures in the Speaker's probe that were there before this change.
