@@ -162,7 +162,26 @@
     window.SOP_webSignOut = function () { upload().then(function () { setTok(""); setEnts({}); acct(null); toast("Signed out. Your game stays on this device.", "ok"); }); };
     window.SOP_restore = function (i) { return post("/api/web/restore", { token: tok(), i: i }).then(function (r) { if (r && r.ok) try { localStorage.setItem("sop_save", r.value); } catch (e) {} return r; }); };
     acct();
-    if (tok()) { hookStorage(); sync().then(function (changed) { if (changed) reloadOnce(); }); }
+    if (tok()) { hookStorage(); sync().then(function (changed) { if (changed) reloadOnce(); else loadLeague(); }); }
+    // The Hall of Governors, the weekly challenge and the leagues, for website players (ranked apart from Lagos Life).
+    // Boards show the politician's name, never the Google name.
+    function politician() { try { var p = JSON.parse(localStorage.getItem("sop_profile") || "null"); return p && p.first ? "Hon. " + p.first + " " + (p.last || "") : ""; } catch (e) { return ""; } }
+    function wcall(path, body) { if (!tok()) return Promise.resolve({ signin: true });
+      return post("/api/web/" + path, Object.assign({ token: tok() }, body || {})).catch(function (e) { if (e && e.code === "sign_in") { setTok(""); acct(null); return { signin: true }; } throw e; }); }
+    function signedIn() { return tok() ? Promise.resolve(true) : signIn("Sign in to join the weekly rankings and the leagues. Your game is saved to your account too.").then(function () { acct(); hookStorage(); return sync().then(function () { loadLeague(); return true; }); }); }
+    function loadLeague() { if (!tok()) return; wcall("hall/league").then(function (r) { if (r && !r.signin) { window.SOP_LEAGUE = r; try { window.dispatchEvent(new CustomEvent("sop-league", { detail: r })); } catch (e) {} } }).catch(function () {}); }
+    window.SOP_USERNAME = politician;
+    window.SOP_league = function () { return wcall("hall/league"); };
+    window.SOP_hallFinish = function () { return wcall("hall/finish").catch(function () { return null; }); };
+    window.SOP_hallEnter = function (c) { return signedIn().then(function () { return wcall("hall/enter", Object.assign({ username: politician() }, c)); }); };
+    window.SOP_hallSubmit = function (c) { return wcall("hall/submit", Object.assign({ username: politician() }, c)).catch(function () { return null; }); };
+    window.SOP_hallToday = function () { return wcall("hall/today"); };
+    window.SOP_hallWeek = function (week) { return wcall("hall/week", week == null ? {} : { week: week }); };
+    window.SOP_hallBoard = function () { return wcall("hall/board"); };
+    window.SOP_chStart = function () { return tok() ? wcall("challenge/start").then(function (r) { if (r && r.ents) setEnts(r.ents); return r; }) : Promise.resolve({ ok: true, offline: true }); };
+    window.SOP_chScore = function (week, score, name, title) { return wcall("challenge/score", { week: week, score: score, username: politician(), title: title }).catch(function () {}); };
+    window.SOP_chBoard = function (week) { return wcall("challenge/board", { week: week }); };
+    window.SOP_webJoin = signedIn;
     // Buying: with Paystack's test keys the shop opens only on the private test link (…/?shoptest=1), never for players.
     var testLink = /[?&]shoptest=1/.test(location.search) || (function () { try { return sessionStorage.getItem("sop_shoptest") === "1"; } catch (e) { return false; } })();
     if (c.mode !== "live" && !testLink) return;

@@ -153,6 +153,9 @@
   window.SOP_hallToday = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/today"); }); };
   window.SOP_hallWeek = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/hall/week", week == null ? {} : { week: week }); }); };
   window.SOP_hallBoard = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/board"); }); };
+  // Leagues (server/leagues.mjs): where the player stands this week, and the last move up or down.
+  window.SOP_league = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/league"); }); };
+  ready.then(function (on) { if (on) window.SOP_league().then(function (r) { if (r) { window.SOP_LEAGUE = r; try { window.dispatchEvent(new CustomEvent("sop-league", { detail: r })); } catch (e) {} } }).catch(function () {}); });
   window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {
     return call("/api/use", { product: productId }).then(function (r) { if (r.ok) setEnts(r.ents); return !!r.ok; });

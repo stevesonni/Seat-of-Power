@@ -1528,3 +1528,10 @@ cannot chase money abroad; only the Federal Government can ask the other country
 - Two different careers: the player picks "(your account)" or "(this device)"; the other is kept among the server's earlier careers and can be brought back from the title screen (SOP_restore → /api/web/restore).
 - Playing without signing in is unchanged (this device only). Sign out from the same menu row.
 - Test: tests/e2e/web-account.mjs (real server, test keys, three devices).
+
+## Rankings and leagues for everyone (20 Nov 2026)
+
+- Website players (signed in with Google) now have the Hall of Governors (today, last week, all time) and the weekly challenge, under their politician's name. Lagos Life and website players are ranked apart (sameSvc in the server): the two services never mix.
+- Leagues (server/leagues.mjs), like Duolingo: Ward → Council → Assembly → Senate → Villa. Each Monday: top 30% of a league's players that week go up (at least one), bottom 20% go down in a league of 5+, and anyone above the first league who did not play drops one. Each league's head start is applied once at the start of every new governorship: Council ₦1B; Assembly ₦2B +2 approval; Senate ₦3B +3 approval +3 party; Villa ₦4B +5 approval +5 party + gold frame. Dropping loses it.
+- The Hall shows the league card (ladder, rank this week, zone, days left); board rows show each player's league icon; a move up or down is told once after Monday.
+- /api/hall/league (Lagos Life) and /api/web/hall/league (website). Tests: tests/leagues.test.mjs, tests/e2e/web-account.mjs.

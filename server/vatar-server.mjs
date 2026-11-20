@@ -17,6 +17,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkCompanyName, COMPANY_SECTORS, FEE_PER_HIRE_M, PAYOUT_CAP_M } from "./company-name.mjs";
 import { tierOf, hallDay, weekOf, daysOfWeek, weekOpensAt, rankBoard, weekEntries, playedAgain } from "./hall-rules.mjs";
+import { LEAGUES, settleWeek, standing, svcOf } from "./leagues.mjs";
 import { makeCabinets } from "./cabinet.mjs";
 import { makeFederation } from "./federation.mjs";
 import { careerOf, careerName, keepBackup } from "./saves.mjs";
@@ -100,7 +101,17 @@ const readDay = (d) => { try { return { day: d, ...JSON.parse(fs.readFileSync(da
 const writeJson = (f, v) => { const tmp = f + "." + process.pid + ".tmp"; fs.writeFileSync(tmp, JSON.stringify(v)); fs.renameSync(tmp, f); };
 const HSTATS = path.join(DATA, "hall-stats.json");
 const readHallStats = () => { try { return JSON.parse(fs.readFileSync(HSTATS, "utf8")); } catch (e) { return { n: {} }; } };
-const boardOut = (rows, id) => rows.map(({ id: k, ...e }) => ({ ...e, me: k === id }));
+// Each service sees its own players only: Lagos Life and the website never mix (Developer Agreement 8.2(b)).
+const sameSvc = (entries, id) => Object.fromEntries(Object.entries(entries || {}).filter(([k]) => svcOf(k) === svcOf(id)));
+// Leagues (server/leagues.mjs): finished weeks are settled the first time anyone asks after Monday.
+const LEAGUE_F = path.join(DATA, "leagues.json");
+const readLeagues = () => { try { return JSON.parse(fs.readFileSync(LEAGUE_F, "utf8")); } catch (e) { return { settled: weekOf() - 1, p: {} }; } };
+const settleLeagues = () => { const L = readLeagues(), now = weekOf(); let changed = false;
+  for (let w = Math.max((L.settled ?? now - 1) + 1, now - 8); w < now; w++) { settleWeek(L, w, weekEntries(daysOfWeek(w).map(readDay))); changed = true; }
+  if (L.settled == null || L.settled < now - 1) { L.settled = now - 1; changed = true; }
+  if (changed) writeJson(LEAGUE_F, L); return L; };
+const leagueOfId = (L, k) => ((L.p || {})[k] || {}).lg || 0;
+const boardOut = (rows, id, L) => rows.map(({ id: k, ...e }) => ({ ...e, me: k === id, league: L ? LEAGUES[leagueOfId(L, k)].icon : undefined }));
 // The name on the boards: the player's Lagos Life username, as Vatar reports it.
 const userOf = (b, session) => { const c = seen.get(session); return cleanName((c && c.username) || b.username); };
 const cleanName = (t) => String(t || "").replace(/[<>\u0000-\u001f]/g, "").trim().slice(0, 40) || "A governor";
@@ -217,7 +228,7 @@ const api = {
   },
   // The week's top 20 (names are the players' in-game politicians), and where you stand.
   "/api/challenge/board": async (b, id) => {
-    const w = Number.isInteger(+b.week) ? +b.week : weekNow(), all = Object.entries(readBoard(w).entries).sort((x, y) => y[1].score - x[1].score);
+    const w = Number.isInteger(+b.week) ? +b.week : weekNow(), all = Object.entries(sameSvc(readBoard(w).entries, id)).sort((x, y) => y[1].score - x[1].score);
     const me = all.findIndex(([k]) => k === id);
     return { week: w, top: all.slice(0, 20).map(([k, e], i) => ({ rank: i + 1, name: e.name, title: e.title, score: e.score, me: k === id })), you: me >= 0 ? { rank: me + 1, score: all[me][1].score } : null, players: all.length };
   },
@@ -236,21 +247,30 @@ const api = {
       const e = { name: userOf(b, b.session), title: cleanName(b.title), state: cleanName(b.state), grade: String(b.grade || "").slice(0, 2), score: n, at: Date.now() };
       D.entries[id] = e; writeJson(dayFile(d), { entries: D.entries });
       const H = readHall(), old = H.entries[id]; if (!old || n > old.score) { H.entries[id] = e; writeJson(HALL, H); }
-      const rank = Object.values(D.entries).filter(x => x.score > n).length + 1;
-      return { ok: true, day: d, rank, tier: (tierOf(n) || {}).id || null, players: Object.keys(D.entries).length };
+      const E = sameSvc(D.entries, id), rank = Object.values(E).filter(x => x.score > n).length + 1;
+      return { ok: true, day: d, rank, tier: (tierOf(n) || {}).id || null, players: Object.keys(E).length };
+    });
+    hallLock = run.catch(() => {}); return run;
+  },
+  // Your league: where you stand this week, what each league gives, and the last move (up, down, or down for being away).
+  "/api/hall/league": async (b, id) => {
+    const run = hallLock.then(() => {
+      const L = settleLeagues(), lg = leagueOfId(L, id), now = weekOf(), best = weekEntries(daysOfWeek(now).map(readDay));
+      const st = standing(L, id, best), last = ((L.p[id] || {}).moves || []).slice(-1)[0] || null;
+      return { week: now, league: lg, leagues: LEAGUES, standing: st, last, endsAt: weekOpensAt(now) };
     });
     hallLock = run.catch(() => {}); return run;
   },
   "/api/hall/today": async (b, id) => {
-    const d = hallDay(), D = readDay(d), rows = rankBoard(D.entries, 20), all = rankBoard(D.entries, 100000), me = all.find(r => r.id === id);
-    return { day: d, top: boardOut(rows, id), you: me ? { rank: me.rank, score: me.score, tier: me.tier } : null, players: all.length, entered: !!D.entries[id], ...playedAgain(readHallStats().n) };
+    const d = hallDay(), D = readDay(d), E = sameSvc(D.entries, id), rows = rankBoard(E, 20), all = rankBoard(E, 100000), me = all.find(r => r.id === id), L = readLeagues();
+    return { day: d, top: boardOut(rows, id, L), you: me ? { rank: me.rank, score: me.score, tier: me.tier } : null, ...(({ players: _n, ...x }) => ({ ...x, again: _n }))(playedAgain(readHallStats().n)), players: all.length, entered: !!D.entries[id] };
   },
   // The weekly board: locked while the week runs, then each governor's best day.
   "/api/hall/week": async (b, id) => {
     const now = weekOf(), w = Number.isInteger(+b.week) ? Math.min(+b.week, now) : now - 1;
     if (w >= now) return { week: w, locked: true, opensAt: weekOpensAt(w) };
-    const best = weekEntries(daysOfWeek(w).map(readDay)), rows = rankBoard(best, 20), all = rankBoard(best, 100000), me = all.find(r => r.id === id);
-    return { week: w, locked: false, top: boardOut(rows, id), you: me ? { rank: me.rank, score: me.score, tier: me.tier } : null, players: all.length, opensAt: weekOpensAt(now) };
+    const best = sameSvc(weekEntries(daysOfWeek(w).map(readDay)), id), rows = rankBoard(best, 20), all = rankBoard(best, 100000), me = all.find(r => r.id === id), L = readLeagues();
+    return { week: w, locked: false, top: boardOut(rows, id, L), you: me ? { rank: me.rank, score: me.score, tier: me.tier } : null, players: all.length, opensAt: weekOpensAt(now) };
   },
   // A finished career for the all-time Hall: the player's best is kept.
   "/api/hall/submit": async (b, id) => {
@@ -261,7 +281,7 @@ const api = {
     hallLock = run.catch(() => {}); return run;
   },
   "/api/hall/board": async (b, id) => {
-    const all = Object.entries(readHall().entries).sort((x, y) => y[1].score - x[1].score), me = all.findIndex(([k]) => k === id);
+    const all = Object.entries(sameSvc(readHall().entries, id)).sort((x, y) => y[1].score - x[1].score), me = all.findIndex(([k]) => k === id);
     return { top: all.slice(0, 50).map(([k, e], i) => ({ rank: i + 1, name: e.name, title: e.title, state: e.state, grade: e.grade, score: e.score, me: k === id })), you: me >= 0 ? { rank: me + 1, score: all[me][1].score } : null, players: all.length };
   },
   // The player's right to have their data removed (Developer Agreement §8).

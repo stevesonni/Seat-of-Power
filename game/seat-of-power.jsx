@@ -3084,7 +3084,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
             ["icon-politician", "Careers", "LGA Chairman, Governor, Senator, Ambassador, and the road to Aso Rock", () => setSheet("careers")],
             ["icon-state", "Your career map", "States governed, badges, trips and time played", () => setSheet("career")],
             ["seal-projects", "Your company", "Register a contractor every player sees · " + ((window.SOP_ENTS || {}).company_registration > 0 ? "free for now" : "₦1,500"), () => setSheet("company")],
-            ["icon-hall", "Hall of Governors", "The best governors in Lagos Life", () => { setSheet(null); onBoard("week"); }],
+            ["icon-hall", "Hall of Governors", "Weekly rankings and leagues: climb from the Ward League to the Villa", () => { setSheet(null); onBoard("week"); }],
             // Multiplayer: a cabinet of friends. Coming soon for players (cabOpen: the preview switch).
             mems.length ? ["icon-cabinet-friends", "Your cabinet desk", "The government you serve in with friends", () => { setSheet(null); onCabinet && onCabinet(); }]
               : ["icon-cabinet-friends", cabOpen() ? "Govern with your friends" : "Govern with your friends · coming soon", cabOpen() ? "Start or continue a game, then People → Cabinet" : "Give your friends the portfolios: they advise, you sign", () => { setSheet(null); if (!cabOpen()) cabSoon(); else try { window.SOP_outcome && window.SOP_outcome({ img: "./art/scenes/exco-budget-council.webp", icon: "👥", title: "Govern with your friends", text: "Start or continue your governorship or presidency, then open People → Cabinet (or ☰ → Govern with your friends) to form the government and send the invites.", tone: "good" }); } catch (e) {} }],
@@ -5474,15 +5474,31 @@ const SecretariatView = ({ year, ministries, cases, commits, focus, agendaLeft, 
    Hall and the weekly challenge. Tiers: SYS.TIERS (Gold 950+, Silver 800+,
    Bronze 650+). */
 const HALL_TABS = [["today", "Today"], ["week", "Last week"], ["all", "All time"], ["challenge", "Challenge"]];
+/* Your league (server/leagues.mjs): the ladder, where you stand this week, and what each league gives. */
+const LeagueCard = () => {
+  const [L, setL] = useState(() => window.SOP_LEAGUE || null);
+  useEffect(() => { let live = true; if (window.SOP_league) window.SOP_league().then(r => { if (live && r && !r.signin) { setL(r); window.SOP_LEAGUE = r; } }).catch(() => {}); return () => { live = false; }; }, []);
+  if (!L || !L.leagues) return null;
+  const Lg = L.leagues[L.league || 0], st = L.standing || {}, next = L.leagues[(L.league || 0) + 1], days = Math.max(1, Math.ceil((L.endsAt - Date.now()) / 86400000));
+  const zone = st.rank == null ? (st.zone === "away" ? "You haven't played this week. Enter a result or drop a league on Monday." : "Finish a governorship and enter your result to climb.")
+    : "#" + st.rank + " of " + st.players + " this week · " + (st.zone === "up" ? "in the promotion zone ▲" : st.zone === "down" ? "in the drop zone ▼" : "safe for now");
+  return <div data-sop-league style={{ background: "linear-gradient(150deg, #123f27, #1d6a3f)", color: "#fff", borderRadius: 18, padding: "12px 14px", marginBottom: 12 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}><span style={{ fontSize: 30 }}>{Lg.icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{Lg.nm}</b><span style={{ fontSize: DS.t.meta, opacity: .85 }}>{zone}</span></div>
+      <span style={{ fontSize: DS.t.meta, opacity: .8, whiteSpace: "nowrap" }}>{days}d left</span></div>
+    <div style={{ display: "flex", gap: 4, margin: "10px 0 6px" }}>{L.leagues.map((x, i) => <span key={x.id} title={x.nm} style={{ flex: 1, textAlign: "center", padding: "4px 0", borderRadius: 10, fontSize: 18, background: i === L.league ? "#f3c768" : i < L.league ? "rgba(255,255,255,.22)" : "rgba(255,255,255,.08)" }}>{x.icon}</span>)}</div>
+    <div style={{ fontSize: DS.t.meta, opacity: .9, lineHeight: 1.45 }}>{Lg.perk ? "Your head start: " + Lg.d.charAt(0).toLowerCase() + Lg.d.slice(1) : Lg.d}{next ? " Next: " + next.nm + " (" + next.d.charAt(0).toLowerCase() + next.d.slice(1, -1) + ")." : ""} Top {st.up || "30%"} go up each Monday{st.down ? ", bottom " + st.down + " go down" : ""}; miss a week and you drop one.</div>
+  </div>;
+};
 const HallBoard = ({ tab: tab0 = "today", note }) => {
-  const [tab, setTab] = useState(tab0), [b, setB] = useState(null);
+  const [tab, setTab] = useState(tab0), [b, setB] = useState(null), [rev, setRev] = useState(0);
   useEffect(() => {
     let live = true; setB(null);
     const get = tab === "today" ? window.SOP_hallToday : tab === "week" ? window.SOP_hallWeek : tab === "all" ? window.SOP_hallBoard : window.SOP_chBoard && (() => window.SOP_chBoard(weekNow()));
     if (!get) { setB({ offline: true }); return; }
     get().then(r => { if (live) setB(r || { offline: true }); }).catch(() => { if (live) setB({ error: true }); });
     return () => { live = false; };
-  }, [tab]);
+  }, [tab, rev]);
   const medal = (t) => (SYS.TIERS.find(x => x.id === t) || {}).icon || "";
   const days = (at) => Math.max(1, Math.ceil((at - Date.now()) / 86400000));
   return <div>
@@ -5491,14 +5507,17 @@ const HallBoard = ({ tab: tab0 = "today", note }) => {
     </div>
     <div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 8, lineHeight: 1.45 }}>{SYS.TIERS.map(t => t.icon + " " + t.nm + " " + t.min + "+").join(" · ")}{tab === "today" ? " · one entry a day" : tab === "week" && b && b.opensAt ? " · this week's board opens in " + days(b.opensAt) + " day" + (days(b.opensAt) === 1 ? "" : "s") : ""}</div>
     {note}
+    <LeagueCard key={rev} />
     {!b ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>Loading…</div>
+      : b.signin ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>Sign in with Google to join the weekly rankings and the leagues. Your game is saved to your account too.
+          <div style={{ marginTop: 10 }}><PillBtn onClick={() => window.SOP_webJoin && window.SOP_webJoin().then(() => setRev(r => r + 1)).catch(() => {})}>Sign in with Google</PillBtn></div></div>
       : b.offline ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>The Hall of Governors is public in Lagos Life. Play there and your results appear here under your username.</div>
       : b.error ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>The board couldn't be loaded. Try again in a moment.</div>
       : b.locked ? <div style={{ fontSize: DS.t.label, color: UI.sub }}>🔒 This week's board opens on Monday.</div>
       : !(b.top || []).length ? <div style={{ fontSize: DS.t.label, color: UI.sub, lineHeight: 1.5 }}>{tab === "today" ? "No governor has entered a result today. Be the first." : tab === "week" ? "Nobody entered a result last week." : "No results yet."}</div>
       : <div style={{ display: "grid", gap: 6 }}>{b.top.map(e => <div key={e.rank} style={{ display: "grid", gridTemplateColumns: "34px 1fr auto", gap: 8, alignItems: "center", padding: "8px 12px", borderRadius: 14, background: e.me ? UI.green + "18" : "#fff", border: "1px solid " + (e.me ? UI.green : UI.line) }}>
           <b style={{ fontFamily: F.d, fontSize: TS(24) }}>{e.rank}</b>
-          <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{medal(e.tier || (SYS.tierOf(e.score) || {}).id)} {e.name}{e.me ? " (you)" : ""}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{[e.title, e.state, e.grade && "Grade " + e.grade].filter(Boolean).join(" · ")}</span></span>
+          <span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{medal(e.tier || (SYS.tierOf(e.score) || {}).id)} {e.league ? e.league + " " : ""}{e.name}{e.me ? " (you)" : ""}</b><span style={{ fontSize: DS.t.meta, color: UI.sub }}>{[e.title, e.state, e.grade && "Grade " + e.grade].filter(Boolean).join(" · ")}</span></span>
           <b style={{ fontFamily: F.m }}>{e.score}</b></div>)}</div>}
     {b && b.you && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 10 }}>You: #{b.you.rank} of {b.players}, score {b.you.score}.</div>}
     {b && tab === "today" && b.players >= 10 && b.pct > 0 && <div style={{ fontSize: DS.t.label, color: UI.sub, marginTop: 6 }}>{b.pct}% of governors played again for a better result.</div>}
@@ -12373,6 +12392,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return add.length || keep.length !== ml.length ? [...keep, ...add] : ml;
     });
   }, [secrSig]);
+  // The league's head start (server/leagues.mjs), once, at the start of a new governorship (year 1 only).
+  const [lgNow, setLgNow] = useState(() => window.SOP_LEAGUE || null);
+  useEffect(() => { const f = (e) => setLgNow(e.detail || null); window.addEventListener("sop-league", f); return () => window.removeEventListener("sop-league", f); }, []);
+  useEffect(() => {
+    if (!lgNow || NAT || needSetup || turn !== 1 || stc.leaguePerkDone) return;
+    const Lg = (lgNow.leagues || [])[lgNow.league || 0], P = Lg && Lg.perk;
+    setStc(p => ({ ...p, leaguePerkDone: true, league: lgNow.league || 0 }));
+    if (!P) return;
+    setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + (P.cash || 0)) * 100) / 100, app: cl100(p.app + (P.app || 0)), pStab: cl100(p.pStab + (P.pStab || 0)) }));
+    if (P.frame) try { window.SOP_FRAME = window.SOP_FRAME || P.frame; } catch (e) {}
+    addL(Lg.icon + " " + Lg.nm + ": " + Lg.d, "success");
+    setTimeout(() => { try { window.SOP_impact && window.SOP_impact({ icon: Lg.icon, title: Lg.nm + " head start", text: Lg.d }); } catch (e) {} }, 1500);
+  }, [lgNow, needSetup, turn]);
   // The honour carried in from an earlier career, applied once at the start.
   useEffect(() => {
     const P = setup?.legacy && SYS.BADGE_PERKS[setup.legacy]; if (!P || stc.legacyDone || needSetup) return;
@@ -18085,6 +18117,17 @@ function App() {
   };
   // The politician profile on this device, used by the entrance and setup.
   const [profile, setProfile] = useState(null);
+  // A league move (up, down, or down for missing a week) is told once, the first time the game opens after Monday.
+  useEffect(() => {
+    const tell = (r) => { const m = r && r.last; if (!m || m.w !== r.week - 1) return; let seen = null; try { seen = localStorage.getItem("sop_league_told"); } catch (e) {} if (seen === String(m.w)) return;
+      try { localStorage.setItem("sop_league_told", String(m.w)); } catch (e) {}
+      const to = r.leagues[m.to], from = r.leagues[m.from];
+      setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(m.dir === "up"
+        ? { icon: to.icon, coins: true, title: "Promoted to the " + to.nm, text: "You finished in the top of the " + from.nm + " last week. " + to.d, tone: "good" }
+        : { icon: to.icon, title: (m.dir === "away" ? "You missed a week: " : "Dropped to the ") + to.nm, text: (m.dir === "away" ? "No result last week, so you drop a league. " : "You finished at the bottom of the " + from.nm + " last week. ") + (from.perk ? "You lose its head start. " : "") + "Enter a result this week to climb back.", tone: "bad" }); } catch (e) {} }, 1200); };
+    if (window.SOP_LEAGUE) tell(window.SOP_LEAGUE);
+    const f = (e) => tell(e.detail); window.addEventListener("sop-league", f); return () => window.removeEventListener("sop-league", f);
+  }, []);
   const [startProfile, setStartProfile] = useState(null);
   const [startMode, setStartMode] = useState(null); // { kind: "challenge", week, state } | { kind: "scenario", id }
   const [board, setBoard] = useState(null);
