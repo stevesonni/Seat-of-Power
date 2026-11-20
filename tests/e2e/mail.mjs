@@ -65,7 +65,9 @@ const fl = /drafted by Finance alone/i.test(t) || await findLetter(g, /drafted b
 if (!/drafted by Finance alone/i.test(await g.txt())) await findLetter(g, /drafted by Finance alone/i);
 await g.wait(300); await g.click(/^(Hand it to|Insist:|Noted)/); await g.wait(800); await okay(g);
 const d = await g.page.evaluate(() => { try { return { log: document.body.innerText } ; } catch (e) { return {}; } });
-check(/✓ Budget/.test(d.log) && !/in the mailbox/.test(d.log), "the Chief of Staff sent the budget and Year 2 is under way");
+// The step chips (✓ Budget) are gone from the Desk (owner, 20 Nov 2026): read the saved game and the year's log instead.
+const st = await g.page.evaluate(() => { const sv = JSON.parse(localStorage.getItem("sop_save") || "{}"); return { phase: sv.phase, turn: sv.turn, logs: (window.SOP.logs || []).filter(l => l.t === sv.turn).map(l => l.tx).join(" | ") }; });
+check(st.turn === 2 && !["mail", "budget"].includes(st.phase) && /Okafor-Ilesanmi sent .* to the House/.test(st.logs) && !/in the mailbox/.test(d.log), "the Chief of Staff sent the budget and Year 2 is under way (" + st.phase + ")");
 check(!/Goldfields/.test(d.log), "no goldfields in the game");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close();
