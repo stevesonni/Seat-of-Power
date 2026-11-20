@@ -5878,6 +5878,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   useEffect(() => {
     window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
+      // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
+      postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
       pName, party, state, sd, setup, turn, s, setS,
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
@@ -7457,7 +7459,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (R.fx.app) scFx(R.fx);
     addL("🐦 You posted on Tori: \u201c" + opt.text + "\u201d " + R.line, R.ratio ? "political" : "info");
     setToriCompose(false); setToriTab("me"); track("tori_post", opt.id + (R.ratio ? ":ratio" : ""));
-    try { window.SOP_impact && window.SOP_impact({ icon: R.ratio ? "😬" : "🐦", title: R.ratio ? "Ratioed" : "Posted", text: R.line }); } catch (e) {}
   };
   const toriScreen = () => {
     const c = toriCtx(), tall = TALL(), me = SYS.toriHandle(state), feed = SYS.toriFeed(c), trends = SYS.toriTrends(c), opp = SYS.toriOpposition(c);
@@ -11865,10 +11866,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   // Mail lands: the Desk tab counts it, and a note pops up.
   const pingMail = (n, from) => { setMailPing({ n, from, t: Date.now() }); try { window.SOP_sound && window.SOP_sound("notify"); } catch (e) {} setTimeout(() => setMailPing(p => p && Date.now() - p.t > 3500 ? null : p), 3800); };
-  const postMail = (letters) => {
-    const add = letters.filter(l => !mailRef.current.some(m => m.key === l.key));
+  /* At most 8 letters a year (owner, 20 Nov 2026). Past that, a note (news, nothing to decide) is merged into the
+     nearest similar note in the mailbox (same kind first); a letter that needs a decision makes room by merging two
+     notes into one. Nothing is lost: merged letters keep every line. */
+  const MAIL_CAP = 8, mailYear = React.useRef({ turn: -1, n: 0 });
+  const noteLines = (l) => (l.lines && l.lines.length ? l.lines : [{ ok: true, line: [l.tip && l.tip[2], l.tip && l.tip[3]].filter(Boolean).join(": ") }]).map(x => ({ ...x, line: (l.tip && l.tip[0] ? l.tip[0] + ": " : "") + x.line }));
+  const nearestNote = (ml, l, not) => { const notes = ml.filter(m => isNote(m) && m.key !== (not && not.key) && m.key !== l.key); return notes.find(m => m.kind === l.kind) || notes[notes.length - 1] || null; };
+  const mergeInto = (ml, target, l) => ml.map(m => m === target ? { ...m, merged: (m.merged || 1) + 1, lines: [...noteLines(m.merged ? { lines: m.lines } : m), ...noteLines(l)], tip: m.tip ? [m.tip[0], m.tip[1], m.merged ? m.tip[2] : "More news for you", m.tip[3]] : m.tip } : m);
+  const postMail = (letters0) => {
+    const MY = mailYear.current; if (MY.turn !== turn) { MY.turn = turn; MY.n = 0; }
+    const known = new Set(mailRef.current.map(m => m.key)), plan = [];
+    letters0.forEach(l => { if (known.has(l.key)) return; known.add(l.key);
+      if (MY.n < MAIL_CAP) { MY.n++; plan.push({ l, a: "add" }); } else plan.push({ l, a: isNote(l) ? "merge" : "free" }); });
+    if (!plan.length) return;
+    const toLog = [];
+    setMail(cur => { let ml = cur.slice();
+      plan.forEach(({ l, a }) => {
+        if (ml.some(m => m.key === l.key)) return;
+        if (a === "add") { ml.push(l); return; }
+        if (a === "merge") { const t = nearestNote(ml, l); if (t) ml = mergeInto(ml, t, l); else if (!toLog.includes(l)) toLog.push(l); return; }
+        const x = nearestNote(ml, l), y = x && nearestNote(ml, x, x); if (x && y) ml = mergeInto(ml, y, x).filter(m => m !== x); ml.push(l);
+      });
+      return ml; });
+    if (toLog.length) setTimeout(() => toLog.forEach(l => noteLines(l).forEach(x => addL("📨 " + x.line, x.ok === false ? "political" : "info"))), 0);
+    const add = plan.filter(p => p.a !== "merge").map(p => p.l);
     if (!add.length) return;
-    setMail(m => [...m, ...add]);
     const plain = add.filter(l => !(NAT && String(l.key).startsWith("sc#pres_bk")));
     if (plain.length) pingMail(plain.length, plain[0].key);
     // The Security Council's letter: the National Security Adviser comes in person, by name.
@@ -12248,6 +12270,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     due.forEach(d => addL((d.fx && d.fx.app < 0 ? "⚠️ " : "📈 ") + d.desc + becauseLine(d), d.fx && d.fx.app < 0 ? "political" : "success"));
     because(due);
   }, [turn]);
+  // A "create this ministry" letter leaves the mailbox as soon as that ministry exists (owner, 20 Nov 2026).
+  useEffect(() => {
+    const have = new Set((ministries || []).map(m => m.id));
+    if (mailRef.current.some(l => l.cat && have.has(l.cat))) setMail(ml => ml.filter(l => !(l.cat && have.has(l.cat))));
+  }, [ministries]);
   // A need no ministry owns: the adviser writes, once, and says which ministry to create.
   const NEED_OWNER = NAT ? SYS.FED_NEED_MINISTRY : NEED_MINISTRY;
   const ownerAsked = React.useRef({});
