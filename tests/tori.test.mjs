@@ -73,3 +73,27 @@ test("every role has its own Tori: the Senate, the LGA, the embassy", () => {
   const rr = SYS.toriReplies(sen.feed.find(x => x.topic === "corruption"), { role: "senate", name: "Ada Okafor", st: "Enugu", app: 40, cor: .45 });
   assert.ok(rr.some(o => /line by line/.test(o.text)));
 });
+test("the President hears from foreign powers and the war's leaders, from the record", () => {
+  const P = { ...base, st: "Nigeria", nat: true, debtB: 450, cor: .5, arrears: 2 };
+  const H = { stage: 4, stories: [] };
+  assert.deepEqual(SYS.toriWorld({ ...base }, H), [], "governors get no foreign accounts");
+  const war = { nm: "Kasongo", adj: "Kasongan", cap: "Port Lukeni", gen: "Kalembe", art: "general-kalembe", stage: 3, atWar: true, progress: 20 };
+  const w = SYS.toriWorld({ ...P, war }, H);
+  const gen = w.find(x => x.handle === "@GenKalembe");
+  assert.ok(gen && /cannot even pay his own workers/.test(gen.text) && gen.art === "general-kalembe-angry");
+  assert.ok(w.some(x => x.handle === "@KingOfOstrava" && /Nigerian aggression/.test(x.text)));
+  assert.ok(w.some(x => x.handle === "@MeridiaMFA"), "corruption puts investment on hold");
+  assert.ok(w.every(x => x.kind === "foreign" && x.pinLabel));
+  const late = SYS.toriWorld({ ...P, war: { ...war, progress: 85 } }, H).find(x => x.handle === "@GenKalembe");
+  assert.match(late.text, /ceasefire/);
+  const tr = SYS.toriWorldTrends({ ...P, war: { ...war, progress: 85 } }).map(x => x.tag);
+  assert.ok(tr.includes("#KasongoWar") && tr.includes("#Ceasefire"));
+  // Replies fit: a threat without a war is called out; the general's taunt about pay can be dodged, and is.
+  const noWar = { ...P, war: { ...war, atWar: false } };
+  const rr = SYS.toriReplies({ ...gen, sub: "taunt" }, noWar);
+  const threat = rr.find(o => o.id === "threat"); assert.equal(threat.truth, false); assert.match(threat.callout, /Senate/);
+  const R = SYS.toriReplyReact(threat, gen, "x"); assert.equal(R.line, "Called out");
+  assert.ok(SYS.toriReplies(gen, { ...P, war }).some(o => o.id === "pay" && o.truth === false));
+  const crack = SYS.toriWorld({ ...P, crackdown: true }, { stage: 1, stories: [] }).find(x => x.handle === "@ValdoriaMFA");
+  const deny = SYS.toriReplies(crack, { ...P, crackdown: true }).find(o => o.id === "deny"); assert.equal(deny.truth, false);
+});

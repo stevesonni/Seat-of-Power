@@ -234,6 +234,109 @@ export function toriInstitutions(c, H) {
   return out;
 }
 
+/* ── The world is watching (owner, 20 Nov 2026: "for the President, foreign powers too, even the wartime country
+   leaders") ──
+   Only on the President's Tori (c.nat). Foreign governments and the war's leaders post from the record: the debt,
+   corruption, the heat at home, the war's progress. All countries but Nigeria and its neighbours are fictional.
+   c.war (when the Bakunda storyline has started): { nm, adj, cap, gen, art, stage, atWar, progress, done, treaty }.
+   c.crackdown: critics were arrested this year. Each post carries topic "war" or "foreign" and sub, which pick the
+   President's reply options in worldReplies. */
+const camel = (s) => String(s || "").replace(/[^A-Za-z]/g, "");
+export function toriWorld(c, H) {
+  const NAT = !!c.nat || /^nigeria$/i.test(String(c.st));
+  if (!NAT) return [];
+  const r = rngOf("world" + c.turn + (H ? H.stage : 0)), out = [], st = H ? H.stage : 0, W = c.war || null, debt = c.debtB || 0;
+  const post = (o) => out.push({ kind: "foreign", verified: true, pinned: true, ago: ago(r, out.length), ...counts(r, 3 + st), id: "w" + hash(o.handle + o.text), ...o });
+  const war = W && W.stage >= 2 && !W.done;
+  if (war) {
+    const G = "General " + W.gen, gh = "@Gen" + camel(W.gen), lab = "⚔️ The " + W.nm + " war", atWar = !!W.atWar, p = W.progress || 0;
+    const mood = W.stage >= 4 ? "-pleased" : atWar && p < 40 ? "-angry" : "";
+    const say = W.stage >= 4 ? "The Military Council has signed in Geneva. We ask our Nigerian brothers for a peace that does not humiliate " + W.nm + "."
+      : W.stage === 2 ? "The army has taken power to save " + W.nm + " from thieves in suits. Abuja should mind its own business. We have friends now. #" + camel(W.adj) + "Revolution"
+      : !atWar ? "Sanctions will not starve " + W.nm + ". Ostrava feeds us while Abuja makes speeches. #" + camel(W.nm) + "Stands"
+      : p >= 80 ? "The Military Council proposes a ceasefire and talks in Geneva. Enough blood has been spilled on both sides."
+      : p >= 40 ? "We are ready to talk, but not with a gun to our head. Withdraw from our border and we will sit down."
+      : (c.arrears > 0 ? "Nigerian soldiers are dying for a President who cannot even pay his own workers. Go home, boys. " : "Our brave soldiers have pushed the invaders back from " + W.cap + ". ") + "#" + camel(W.nm) + "WillNotKneel";
+    post({ name: G, handle: gh, art: (W.art || "general-voko") + mood, text: say, topic: "war", sub: W.stage >= 4 ? "peace" : W.stage === 2 ? "coup" : !atWar ? "sanctions" : p >= 80 ? "ceasefire" : p >= 40 ? "talks" : "taunt", pinLabel: lab, side: "enemy" });
+    if (W.stage >= 3 && W.stage < 4) post({ name: "King Aurel of Ostrava", handle: "@KingOfOstrava", art: "foreign-head-of-state-angry", pinLabel: lab, topic: "war", sub: "axis", side: "enemy",
+      text: atWar ? "Ostrava stands with the people of " + W.nm + " against Nigerian aggression. We will not abandon our friends." : "Ostrava's trade with " + W.nm + " is legal and peaceful. Nigeria's sanctions break every rule of the free market." });
+    if (W.stage === 3 && atWar && r() < .7) post({ name: "President Ousmane Daraka", handle: "@DarakaTessara", art: "foreign-head-of-state", pinLabel: lab, topic: "war", sub: "neighbour", side: "neutral",
+      text: "Tessara is a sovereign country. Our roads are open to trade, and we take orders from nobody in Abuja." });
+    post({ name: "ECOWAS Commission", handle: "@ECOWAS_Commission", art: "ecowas-envoy" + (p >= 60 || W.stage >= 4 ? "-pleased" : ""), pinLabel: lab, topic: "war", sub: "ecowas", side: "friend",
+      text: W.stage >= 4 ? "ECOWAS welcomes the signing in Geneva and stands ready to support the transition in " + W.nm + "." : "ECOWAS condemns the unconstitutional seizure of power in " + W.nm + " and calls for the immediate release of all detained Nigerians." });
+    if (atWar && (p < 50 || st >= 3)) post({ name: "UN Humanitarian Office", handle: "@UNHumanitarian", art: "foreign-head-of-government", pinLabel: lab, topic: "war", sub: "corridor", side: "neutral",
+      text: "Families are fleeing the fighting around " + W.cap + ". We call on all parties to open a humanitarian corridor now." });
+  } else if (W && W.done) {
+    post({ name: W.nm + " Transitional Council", handle: "@" + camel(W.nm) + "Transition", art: "foreign-head-of-government", pinLabel: "🕊️ After the war", topic: "foreign", sub: "peace", side: "friend",
+      text: "The people of " + W.nm + " thank Nigeria for standing with us. The treaty is our new beginning. 🤝🏾 #" + camel(W.nm) + "Peace" });
+  }
+  // The powers that trade and lend: what they say follows the record.
+  const lab = "🌍 Foreign affairs";
+  if (c.cor > .45) post({ name: "Meridia Foreign Ministry", handle: "@MeridiaMFA", art: "foreign-head-of-government", pinLabel: lab, topic: "foreign", sub: "invest", side: "neutral", text: "Meridian companies will not invest where contracts are not open. Our $2 billion package for Nigeria is on hold until the audit is published." });
+  else if ((c.delivered || 0) > 0 || c.app >= 60) post({ name: "President Celine Arvane", handle: "@MeridiaPresident", art: "foreign-head-of-state-pleased", pinLabel: lab, topic: "foreign", sub: "praise", side: "friend", text: "Meridian investors are ready to commit $2 billion to Nigerian power and rail. The reforms in Abuja are real. 🇳🇬" });
+  if (st >= 4 || c.crackdown) post({ name: "Valdoria Foreign Ministry", handle: "@ValdoriaMFA", art: "foreign-head-of-government", pinLabel: lab, topic: "foreign", sub: c.crackdown ? "rights" : "advisory", side: "neutral",
+    text: c.crackdown ? "Valdoria is concerned by the arrest of peaceful critics in Nigeria. Free speech is not a crime." : "Valdoria advises its citizens against all but essential travel to Nigeria while the protests continue." });
+  else if (debt >= 300) post({ name: "Valdoria Export Bank", handle: "@ValdoriaExim", art: "investor-foreign", pinLabel: lab, topic: "foreign", sub: "debt", side: "neutral", text: "Nigeria owes ₦" + Math.round(debt) + "B and wants more. Before the next loan, we would like to see the repayment schedule." });
+  if (!war && !(W && W.done) && r() < .5) post({ name: "King Aurel of Ostrava", handle: "@KingOfOstrava", art: "foreign-head-of-state", pinLabel: lab, topic: "foreign", sub: "ceremony", side: "neutral",
+    text: "We look forward to welcoming the President of Nigeria to Kessenburg. Ostrava and Nigeria have a great deal to trade." });
+  if (st >= 4 || c.crackdown) post({ name: "UN Human Rights Office", handle: "@UNRightsOffice", art: "foreign-head-of-government", pinLabel: lab, topic: "foreign", sub: "rights", side: "neutral", text: "We urge the Nigerian authorities to respect the right to peaceful protest and to release anyone detained for speaking out." });
+  return out;
+}
+// Trending when the world is involved.
+export function toriWorldTrends(c) {
+  const W = c.war; if (!c.nat || !W || W.stage < 2) return [];
+  const N = camel(W.nm), p = W.progress || 0;
+  if (W.done) return [{ tag: "#" + N + "Peace", count: "41K", about: "The treaty is law" }];
+  const out = [{ tag: W.atWar ? "#" + N + "War" : "#Sanction" + N, count: W.atWar ? "184K" : "62K", about: W.atWar ? "Nigeria at war" : "Sanctions, not war" }];
+  if (W.atWar && p >= 80) out.push({ tag: "#Ceasefire", count: "96K", about: "General " + W.gen + " offers talks" });
+  if (W.atWar && p < 40 && c.app < 50) out.push({ tag: "#BringOurSoldiersHome", count: "73K", about: "War weariness" });
+  if (W.stage === 2) out.push({ tag: "#FreeNigeriansIn" + N, count: "58K", about: "Nigerians stranded after the coup" });
+  return out;
+}
+// The President's answers to the world: firm, diplomatic, a threat or an appeal; each checked against the record.
+function worldReplies(t, c) {
+  const W = c.war || {}, atWar = !!W.atWar, p = W.progress || 0, out = [], sub = t.sub;
+  if (t.topic === "war") {
+    if (sub === "axis") {
+      out.push({ id: "sanction", text: "Every Ostravan gun in " + W.nm + " has killed a Nigerian. Stop selling them, or Ostrava's companies leave Nigeria.", truth: true, fx: { app: 1 }, retort: "Ostrava does not take threats from a country that borrows from us." });
+      out.push({ id: "un", text: "We have taken Ostrava's arms shipments to the UN Security Council.", truth: true, promise: "un" });
+      out.push({ id: "soft", text: "Nigeria values its friendship with Ostrava. We hope to talk soon.", truth: true, fx: { app: -1 }, callout: "Friendship? Their guns are killing our soldiers. 😡" });
+    } else if (sub === "neighbour") {
+      out.push({ id: "close", text: "Then Nigeria's border with Tessara is closed to every truck that carries the junta's guns.", truth: true, fx: { app: 1 }, retort: "We will see who runs out of fuel first." });
+      out.push({ id: "talk", text: "President Daraka, we are neighbours for ever. Let us talk this week, before more people die.", truth: true, promise: "tessara" });
+    } else if (sub === "ecowas" || sub === "corridor") {
+      out.push({ id: "with", text: sub === "corridor" ? "Nigeria will open a corridor from the border and our Air Force will guard it." : "Thank you. Nigeria will stand with ECOWAS until every Nigerian is home.", truth: true, promise: sub === "corridor" ? "corridor" : null, fx: sub === "corridor" ? {} : { app: 1 } });
+      if (sub === "corridor") out.push({ id: "blame", text: "Tell General " + W.gen + ". He started this.", truth: true, fx: {} });
+    } else {
+      out.push({ id: "firm", text: W.stage >= 4 ? "Peace that holds is a peace that is kept. Release every Nigerian and the treaty does the rest." : "Nigeria did not start this. Release our citizens and lay down your arms, General.", truth: true, fx: { app: 1 }, retort: W.stage >= 4 ? null : "Come and take them." });
+      out.push({ id: "talks", text: "Nigeria will meet in Geneva the day your guns go quiet.", truth: true, promise: "ceasefire", fx: p >= 80 ? { app: 1 } : {} });
+      out.push({ id: "threat", text: "Your days are numbered. Our jets are on their way to " + W.cap + ".", truth: atWar, fx: atWar ? { app: 1 } : { app: -1 }, callout: atWar ? null : "What jets? The Senate never sent you to war. 😂", retort: atWar ? "Let them come." : null });
+      if (c.arrears > 0 && sub === "taunt") out.push({ id: "pay", text: "Every soldier is paid this month. Mind your own payroll, General.", truth: false, fx: { app: -1 }, callout: "He is not wrong though. " + c.arrears + " months owed at home." });
+    }
+  } else {
+    if (sub === "invest") {
+      out.push({ id: "open", text: "The contracts go online this month. Meridia's package will not wait long.", truth: c.cor < .5, promise: "openbook", callout: "Online where? Our own watchdogs can't find them." });
+      out.push({ id: "proud", text: "Nigeria does not need lectures. Our money is our business.", truth: true, fx: { app: -1 }, callout: "Then why do you keep borrowing theirs?" });
+    } else if (sub === "praise") {
+      out.push({ id: "welcome", text: "Thank you, President Arvane. The paperwork is done in 30 days, and every naira is published.", truth: c.cor < .4, promise: "invest", callout: c.cor < .4 ? null : "30 days? It took my company 2 years to get a permit." });
+      out.push({ id: "jobs", text: "This is about jobs: 40,000 Nigerians will build those lines.", truth: true, fx: { app: 1 } });
+    } else if (sub === "advisory" || sub === "rights") {
+      out.push({ id: "listen", text: sub === "rights" ? "Everyone held for speaking out is released today. That was wrong." : "We understand. We are meeting the protesters' leaders this week.", truth: true, promise: sub === "rights" ? "release" : "protesters", fx: { app: 1 } });
+      out.push({ id: "deny", text: sub === "rights" ? "Nobody in Nigeria is detained for what they say." : "Nigeria is safe and open for business. The advisory is unfair.", truth: sub === "rights" ? !c.crackdown : c.app >= 50, fx: { app: -1 }, callout: sub === "rights" ? "We have the names of the arrested. #FreeTheCritics" : "Safe? Have you looked outside Aso Rock?" });
+      out.push({ id: "sov", text: "Nigeria is a sovereign country. We will not be lectured.", truth: true, fx: {}, retort: "Sovereign countries also keep their promises." });
+    } else if (sub === "debt") {
+      out.push({ id: "plan", text: "The schedule goes out this week. Nigeria pays its debts.", truth: true, promise: "debt" });
+      out.push({ id: "renegotiate", text: "We will pay, at a rate that does not starve our people. Let's talk.", truth: true, fx: {} });
+    } else if (sub === "peace") {
+      out.push({ id: "partner", text: "Our brothers in " + W.nm + ": Nigeria will help you rebuild. Trade, power, schools.", truth: true, fx: { app: 1 } });
+    } else {
+      out.push({ id: "accept", text: "I accept, Your Majesty. Nigeria comes to trade, not to beg.", truth: true, promise: "visit" });
+      out.push({ id: "later", text: "Nigeria's work is at home this year. Thank you, Your Majesty.", truth: true, fx: { app: 1 } });
+    }
+  }
+  return out.slice(0, 4);
+}
+
 /* The governor's answers to the heat. Each can be used once a year; effects go into adj (this year's heat), later
    (next year's) and fx (meters). */
 export function toriTools(c, H, used) {
@@ -283,6 +386,7 @@ const pidgin = (t) => /\b(dey|una|wetin|don|abeg|sef|oga|we no|na so|e don|dem|w
 
 export function toriReplies(t, c) {
   if (c.role && c.role !== "gov") return roleReplies(t, c);
+  if (t.kind === "foreign") return worldReplies(t, c);
   const P = pidgin(t.text), who = t.kind === "institution" || t.kind === "opposition" ? t.name : callName(t.name), me = c.nat ? "the Federal Government" : "Government House";
   const topic = t.topic || toriTopic(t.text), out = [], opp = t.kind === "opposition", inst = t.kind === "institution";
   const S = stNm(c.st), f = (c.fled || []).find(x => !x.back) || null, st = (c.strikes || [])[0] || null, n = (c.needs || [])[0] || null, done = (c.done || [])[0] || null;
@@ -331,6 +435,11 @@ export function toriReplies(t, c) {
 // How people answer the governor's reply: specific to what was claimed.
 export function toriReplyReact(opt, t, seed) {
   const r = rngOf("rr" + seed), p = pick(r, PEOPLE);
+  if (t.kind === "foreign") { // Nigerians answer, and the foreign account may answer back
+    const back = opt.retort ? [{ name: t.name, text: opt.retort }] : [];
+    if (opt.truth === false) return { replies: [{ name: p.who, text: opt.callout || "That's not true and you know it." }, ...back], line: "Called out" };
+    return { replies: [...back, { name: p.who, text: opt.callout || pick(r, t.side === "enemy" ? ["Tell him! 🇳🇬💪🏾", "This is the President we need.", "Say it louder for Ostrava."] : ["Good. The world is watching.", "Finally, a clear answer.", "Screenshotted. Do what you said."]) }], line: opt.promise ? "Noted" : "Liked" };
+  }
   if (opt.truth === false) return { replies: [{ name: (t.name || p.who).split(" ")[0], text: opt.callout || "That's not true and you know it." }, { name: p.who, text: pick(r, ["Screenshot. This one will age badly.", "Ratio.", "Community note needed here 👇🏾"]) }], line: "Called out" };
   if (opt.action) return { replies: [{ name: p.who, text: "Let's see it then. 👀" }], line: "Watching" };
   if (opt.promise) return { replies: [{ name: (t.name || p.who).split(" ")[0], text: opt.callout ? opt.callout : pick(r, ["We are holding you to this.", "Screenshotted. Next year we will check.", "Okay. Na your word be this."]) }], line: "Noted" };

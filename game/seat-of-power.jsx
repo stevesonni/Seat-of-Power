@@ -2340,7 +2340,7 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
   const tweet = (x) => <article key={x.id} data-sop-tweet={x.kind} style={{ display: "flex", gap: 10, padding: tall ? "10px 14px 4px" : "14px 20px 6px", borderBottom: "1px solid " + line, background: "#fff" }}>
     {x.art === "__me" ? av(me.pic, tall ? 40 : 52) : av("./art/characters/" + (x.art || voiceArt(x.who || x.name)) + ".webp", tall ? 40 : 52)}
     <div style={{ minWidth: 0, flex: 1 }}>
-      {x.pinned && <div style={{ fontSize: sm - 1, color: sub, fontWeight: 700, marginBottom: 2 }}>📌 Speaking on {where}</div>}
+      {x.pinned && <div style={{ fontSize: sm - 1, color: sub, fontWeight: 700, marginBottom: 2 }}>{x.pinLabel || <>📌 Speaking on {where}</>}</div>}
       <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: fs, color: sub, minWidth: 0 }}>
         <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}><b style={{ color: ink }}>{x.name}</b>{x.verified && <ToriBadge s={tall ? 15 : 18} />} {x.handle} · {x.ago}</span>
         <span style={{ marginLeft: "auto", color: sub }}><ToriIc d={TORI_IC.more} s={18} /></span></div>
@@ -6021,7 +6021,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
       postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
-      pName, party, state, sd, setup, turn, s, setS,
+      pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); },
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
       skApp, setSkApp, pApp, setPApp,
@@ -7604,7 +7604,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const delivered = (projects || []).filter(p => p.status === "delivered" && (p.decisions || []).some(d => d.year === turn)).length;
     const weak = (ministries || []).filter(m => m.minister).sort((a, b) => (a.perf || 50) - (b.perf || 50))[0];
     return { nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
-      stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, oppName: cast.rival && cast.rival.name, reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints };
+      stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, oppName: cast.rival && cast.rival.name, reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints,
+      // The President's world: the war (once the storyline starts) and this year's crackdown, for foreign accounts.
+      war: NAT && stc.bakunda && (stc.bakunda.stage || 0) >= 2 ? (() => { const B = stc.bakunda, K = SYS.bkCountry(B); return { nm: K.nm, adj: K.adj, cap: K.cap, gen: K.gen, art: K.art, stage: B.stage, atWar: !!B.atWar, progress: B.progress || 0, done: !!B.done, treaty: B.treaty }; })() : null,
+      crackdown: !!((((stc.tori || {}).tools || {})[turn] || {}).crackdown) };
   };
   const toriPosts = () => ((stc.tori || {}).posts || []);
   const toriH = () => SYS.toriHeat(toriCtx(), stc.tori || {});
@@ -7643,9 +7646,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const toriScreen = () => {
     const c = toriCtx(), me = SYS.toriHandle(state), H = toriH(), S0 = String(state).replace(/[^A-Za-z]/g, ""), tall = TALL(), ink = "#0f1419", sub = "#536471", line = "#eff3f4", blue = "#1d9bf0", fs = tall ? TS(15) : TS(20), sm = tall ? TS(13) : TS(17);
     const memes = ((stc.tori || {}).memes || []).filter(m => m.turn === turn).map((m, k) => ({ id: "meme" + k, kind: "citizen", art: null, ago: "1h", likes: 900 + k * 1700, rts: 4000 + k * 900, replies: 300, ...m }));
-    const feed = [...SYS.toriInstitutions(c, H), ...memes, ...SYS.toriFeed(c)];
+    const feed = [...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriInstitutions(c, H), ...memes, ...SYS.toriFeed(c)];
     const heatTags = H.stage >= 2 ? H.stories.slice(0, 3).map((x, i) => ({ tag: x.tag, count: SYS.fmtCount(20000 * H.stage + 9000 * (3 - i)), about: x.cause })) : [];
-    const trends = [...(H.stage >= 5 ? [{ tag: "#" + S0 + "GovMustGo", count: "212K", about: "Unions, market women and civil society" }] : []), ...heatTags, ...SYS.toriTrends(c).filter(t => !heatTags.some(h => h.tag === t.tag))].slice(0, 10).map((t, i) => ({ ...t, rank: i + 1 }));
+    const trends = [...(H.stage >= 5 ? [{ tag: "#" + S0 + "GovMustGo", count: "212K", about: "Unions, market women and civil society" }] : []), ...SYS.toriWorldTrends(c), ...heatTags, ...SYS.toriTrends(c).filter(t => !heatTags.some(h => h.tag === t.tag))].slice(0, 10).map((t, i) => ({ ...t, rank: i + 1 }));
     const myPic = AVATAR_IMGS[setup?.avatar] || "./art/characters/governor.webp", A = toriActs();
     const why = H.stage >= 1 && H.stories.length > 0 ? <div data-sop-tori-why style={{ margin: tall ? 10 : 14, border: "1px solid " + (H.stage >= 4 ? "#f4212e" : H.stage >= 2 ? "#ff7a00" : "#cfd9de"), borderRadius: 16, padding: tall ? "10px 12px" : "14px 16px", background: H.stage >= 4 ? "#fff4f4" : H.stage >= 2 ? "#fff8f0" : "#fff" }}>
       <div style={{ fontSize: sm - 1, fontWeight: 800, color: H.stage >= 4 ? "#f4212e" : H.stage >= 2 ? "#c2410c" : sub, letterSpacing: .5, textTransform: "uppercase" }}>{["Quiet", "People are grumbling", "Trending in " + stName, "Trending across Nigeria", "On the streets", "#" + S0 + "GovMustGo"][H.stage]}</div>
