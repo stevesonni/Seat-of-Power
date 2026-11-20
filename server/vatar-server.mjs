@@ -42,7 +42,7 @@ const freeFor = (id) => FREE_CAREERS && !String(id || "").startsWith("w_"); // n
 const FREE_USE = ["second_chance", "streak_freeze", "challenge_retry"]; // shown as one credit, never used up
 // FREE_CAREERS is for Lagos Life while Vatar reviews the products; players on our own site (w_ accounts) buy for real.
 const entsOut = (ents, id) => freeFor(id) ? { ...(ents || {}), ...Object.fromEntries(Object.keys(PRODUCTS).filter(k => PRODUCTS[k] === "oneoff" || FREE_USE.includes(k) || k === "company_registration").map(k => [k, Math.max(1, (ents || {})[k] || 0)])) } : (ents || {});
-const PRODUCTS = { career_ambassador: "oneoff", career_chairman: "oneoff", career_senator: "oneoff", company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
+const PRODUCTS = { career_ambassador: "oneoff", career_chairman: "oneoff", career_senator: "oneoff", company_registration: "consumable", streak_freeze: "consumable", second_chance: "consumable", presidential_run: "oneoff", fast_track_president: "oneoff", scenario_pack: "oneoff", scenario_security: "oneoff", scenario_election: "oneoff", portrait_frames: "oneoff", attire_glam: "oneoff", attire_bigboy: "oneoff", challenge_retry: "consumable" };
 // The weekly challenge: weeks start on Monday 00:00 UTC (the game counts them the same way).
 const WEEK0 = Date.UTC(2026, 0, 5), weekNow = () => Math.floor((Date.now() - WEEK0) / 604800000);
 const boardFile = (w) => path.join(DATA, "boards", "w" + w + ".json");

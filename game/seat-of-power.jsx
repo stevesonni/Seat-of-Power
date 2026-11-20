@@ -3057,7 +3057,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
           {[["icon-office-chairman", "LGA Chairman", "The man in between: every small problem comes to you, and the governor holds your money. " + careerPrice("career_chairman", "₦500"), "Play", () => { setSheet(null); onChairman && onChairman(); }],
             ["icon-office-governor", "Governor", "Run a state: the budget, the House, the godfather. Free.", "Play", () => { setSheet(null); onStart(profile); }],
             ["icon-office-senator", "Senator", "Your power is your vote. Bills, hearings, the constituency fund. " + careerPrice("career_senator", "₦1,000"), "Play", () => { setSheet(null); onSenate && onSenate(); }],
-            ["icon-office-president", "President of Nigeria", "Earned: finish a governorship and run. Win the race and govern from Aso Rock: 36 states, six zones, five power centres and the world stage.", null, null],
+            ["icon-office-president", "President of Nigeria", "Earned: finish a governorship and run. Or, after your first game, fast-track straight to the race" + (VATAR && window.SOP_canBuy && window.SOP_canBuy() && !((window.SOP_ENTS || {}).fast_track_president > 0) ? " (₦2,000)" : "") + ". Then govern from Aso Rock: 36 states, six zones and the world stage.", "Play", () => { setSheet(null); onPresident && onPresident(); }],
             ...(preview && onPreview ? [["icon-office-president", "🦅 Presidency (preview)", "Straight to Eagle Square as President, for trying the presidency. It starts a new game.", "Play", startPreview]] : []),
             ["icon-office-ambassador", "Ambassador", "Far from home: Nigerians abroad in trouble, a host that can expel you, and cables from Abuja. " + careerPrice("career_ambassador", "₦1,000"), "Play", () => { setSheet(null); onAmbassador && onAmbassador(); }]].map(([ic, t, d, cta, go]) => <div key={t} style={{ display: "grid", gridTemplateColumns: "52px 1fr auto", gap: 12, alignItems: "center", background: "#fff", border: "1px solid " + UI.line, borderRadius: 18, padding: "12px 14px", opacity: go || !cta ? 1 : .7 }}>
             <span style={{ width: 52, height: 52, borderRadius: 14, background: UI.tints[2], display: "grid", placeItems: "center" }}><Ico n={ic} s={44} /></span>
@@ -16094,7 +16094,7 @@ const PRES_KEY = "sop_pres";
 // "Former Governor of Kano State (two terms)", or the background of a fresh candidate.
 const presTitle = (G) => {
   if (!G) return "";
-  if (G.bio) return (G.bio.resigned ? "Governor of " : "Former Governor of ") + String(G.state || "").replace(/_/g, " ") + " State" + (G.bio.resigned ? ", resigned to run" : " (" + (G.bio.terms === 2 ? "two terms" : "one term") + ")");
+  if (G.bio) return (G.bio.resigned ? "Governor of " : "Former Governor of ") + String(G.state || "").replace(/_/g, " ") + " State" + (G.bio.resigned ? ", resigned to run" : " (" + (G.bio.terms === 2 ? "two terms" : "one term") + ")") + (G.fast ? " · fast-tracked" : "");
   const b = PRES_BACKGROUNDS.find(x => x.id === G.from); return b ? b.nm : "";
 };
 const presGoodRecord = (b) => !!b && b.met >= b.failed && b.kept >= b.broken && !b.efcc;
@@ -16115,7 +16115,7 @@ const presidentSetup = (G, setup) => {
     election: G.res ? { opp: G.opp.name, oppParty: G.opp.party, zonesWon: Object.values(G.zones || {}).filter(v => v >= 50).length, marginPct: Math.round(((G.runoffShare != null ? G.runoffShare : G.res.nat) * 2 - 100) * 10) / 10, votes: 0, oppVotes: 0 } : null,
     presRace: { ious: G.ious || [], pledges: G.pledges || [], from: G.from || null, bio: G.bio || null, opp: G.opp, runoff: G.runoffShare != null, petitioned: !!G.petitioned }, customParty: null };
 };
-const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
+const AsoRock = ({ setup, stats, onExit, onTakeOffice, profile }) => {
   const fz = TALL() ? { s: TS(18), m: TS(22), l: TS(30), xl: TS(40) } : { s: TS(27), m: TS(33), l: TS(46), xl: TS(64) };
   const rec = (stats && stats.rec) || null;
   const [g, setG] = useState(null);           // the whole run; null until loaded or begun
@@ -16161,7 +16161,7 @@ const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
       zones[z.id] = Math.max(15, Math.min(85, Math.round(v * 10) / 10));
     });
     const del = {}; PZ.forEach(z => { del[z.id] = Math.max(15, Math.min(70, 34 + (z.id === myZ ? 18 : z.north === pNorth(myZ) ? 4 : -4) + (o.delegates || 0) + (o.app != null ? (o.app - 50) * .2 + ((o.pStab || 50) - 50) * .2 : 0))); });
-    setG({ v: 1, seed: Date.now(), name: o.name, avatar: o.avatar, state: o.state, zone: myZ, party: myP.id, partyNm: myP.nm, from: o.from, bio: o.bio || null, chest: o.chest, cor: o.cor || .3,
+    setG({ v: 1, seed: Date.now(), fast: !!o.fast, name: o.name, avatar: o.avatar, state: o.state, zone: myZ, party: myP.id, partyNm: myP.nm, from: o.from, bio: o.bio || null, chest: o.chest, cor: o.cor || .3,
       app: o.app, opp: { name: gN(r, oppZ, oppState), party: oppP.id, partyNm: oppP.nm, zone: oppZ, state: oppState },
       rivals, del, primaryRound: 0, ious: [], step: "primary", zones, week: 0, log: [], pledges: [], agents: false, debated: false, lastHit: null, mate: null, scandal: false, k: setup?.level === "hard" ? 1.25 : setup?.level === "easy" ? .75 : 1 });
   };
@@ -16369,7 +16369,7 @@ const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
     const won = G.step === "sworn";
     try {
       const p = await loadProfile();
-      if (p) await saveProfile({ ...p, games: [...(p.games || []), { name: G.name, avatar: G.avatar, state: G.state, party: G.party, title: (G.bio ? (G.bio.resigned ? "Governor of " : "Former Governor of ") + String(G.state).replace(/_/g, " ") + " · " : "") + (won ? "President of Nigeria" : "Presidential candidate"), grade: won ? "A" : "C", ending: won ? "elected president" : G.conceded ? "conceded the presidency" : "lost the presidency", turn: 0, at: Date.now(), honours: won ? ["aso_rock"] : [] }].slice(-30) });
+      if (p) await saveProfile({ ...p, games: [...(p.games || []), { name: G.name, avatar: G.avatar, state: G.state, party: G.party, title: (G.bio ? (G.bio.resigned ? "Governor of " : "Former Governor of ") + String(G.state).replace(/_/g, " ") + " · " : "") + (won ? "President of Nigeria" : "Presidential candidate") + (G.fast ? " · fast-tracked" : ""), grade: won ? "A" : "C", ending: won ? "elected president" : G.conceded ? "conceded the presidency" : "lost the presidency", turn: 0, at: Date.now(), honours: won ? ["aso_rock"] : [] }].slice(-30) });
     } catch (e) {}
     try { window.SOP_vatarScore && window.SOP_vatarScore((won ? 1500 : 300) + Math.round((G.res ? G.res.nat : 0) * 10)); } catch (e) {}
     try { await window.storage.set(PRES_KEY, ""); } catch (e) {}
@@ -16403,7 +16403,7 @@ const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
 
   if (!loaded) return <Frame><H title="Loading…" /></Frame>;
 
-  if (locked) return <Frame bg="abuja-federal-office" who="party-chairman">
+  if (locked && rec) return <Frame bg="abuja-federal-office" who="party-chairman">
     <H kick="The presidential run" title="Road to Aso Rock" sub="Win your party's primary, pick a running mate, and take on the country: six zones, 36 states, one election night." />
     <Cd style={{ textAlign: "center" }}>
       <div style={{ fontSize: fz.m, color: CL.tm, marginBottom: 12 }}>Unlock the full presidential campaign. Yours to replay as often as you like.</div>
@@ -16430,12 +16430,31 @@ const AsoRock = ({ setup, stats, onExit, onTakeOffice }) => {
         </Cd>
       </Frame>;
     }
-    // The presidency is earned: the only way in is through a finished governorship.
-    return <Frame>
+    // The presidency is earned in Government House. A player who has already played a game can fast-track: enter the
+    // race as a two-term former governor with a mixed record (₦2,000; owner's design, 20 Nov 2026). A first game is
+    // always a governorship, where the game is learned.
+    const seasoned = ((profile && profile.games) || []).length > 0, shopHere = VATAR && window.SOP_canBuy && window.SOP_canBuy();
+    const ownsFast = !shopHere || (ents.fast_track_president || 0) > 0;
+    if (!seasoned) return <Frame>
       <H kick="The presidential run" title="Road to Aso Rock" sub="The presidency is earned in Government House." />
       <Cd>
-        <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.5, marginBottom: 14 }}>Serve as governor first. When your time in office ends, choose <b>Run for President</b> and your record comes with you.</div>
+        <div style={{ fontSize: fz.m, color: CL.txt, lineHeight: 1.5, marginBottom: 14 }}>Your first game is a governorship: it is where you learn how power works. When your time in office ends, choose <b>Run for President</b> and your record comes with you. After your first game you can also fast-track straight to the race.</div>
         <Bt onClick={onExit} style={{ width: "100%" }}>Back</Bt>
+      </Cd>
+    </Frame>;
+    const fName = [profile.first, profile.last].filter(Boolean).join(" ") || "Your candidate", fState = PRES_STATES.includes(profile.origin) ? profile.origin : "Lagos";
+    const goFast = () => begin({ name: fName, avatar: profile.avatar, state: fState, party: PARTY_IDS[0], from: "governor", fast: true, app: 54, cor: .33, pStab: 55, honours: 0, chest: 4,
+      bio: { name: fName, state: fState, terms: 2, met: 7, failed: 5, kept: 3, broken: 2, efcc: false, honours: [], debt: 12, arrears: 1, fast: true } });
+    const buyFast = () => { setBusy(true); window.SOP_buy("fast_track_president").then(() => { setBusy(false); goFast(); }).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "You didn't buy anything", text: "Nothing was charged. The governorship is free, and the presidency can still be earned there.", tone: "neutral" }); }); };
+    return <Frame bg="abuja-federal-office" who="party-chairman">
+      <H kick="Fast-track" title="Straight to Aso Rock" sub={"Skip the governorship: " + fName + " enters the race as a former two-term Governor of " + fState.replace(/_/g, " ") + " State."} />
+      <Cd>
+        <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 6 }}>The record you bring</div>
+        <Stat k="Approval" v="54%" /><Stat k="Corruption" v="33%" /><Stat k="Party" v="55%" /><Stat k="Honours" v="0" />
+        <div style={{ fontSize: fz.s, color: CL.tm, lineHeight: 1.5, margin: "8px 0 12px" }}>A mixed record: needs answered 7, ignored 5; promises kept 3, broken 2; the state left ₦12B in debt. Your opponent will use it. Ahead: the party primary, a running mate, six zones and election night, then the country to govern.</div>
+        <div style={{ fontSize: fz.s, color: CL.td, marginBottom: 12 }}>Fast-tracked presidents are marked in the Hall of Fame and earn presidential honours only. The full route through Government House stays free.</div>
+        <Bt onClick={ownsFast ? goFast : buyFast} disabled={busy} style={{ width: "100%" }}>{busy ? "Opening…" : ownsFast ? "Declare for the presidency →" : "Fast-track to the race · ₦2,000"}</Bt>
+        <div style={{ marginTop: 10 }}><Bt v="ghost" onClick={onExit} style={{ width: "100%" }}>Not now</Bt></div>
       </Cd>
     </Frame>;
   }
@@ -18117,7 +18136,7 @@ function App() {
       </EntranceSheet>}
       {scr === "gov" && <GovScreen setup={setup ? { ...setup, level } : null} loadedSave={loadedSave} onEnd={(ch, stats) => { if (stats) setFinalStats(stats); if (ch === "restart") rst(); else if (ch === "president") setScr("pres"); else if (ch === "senate") setScr("senate"); else if (ch === "comeback") comeback(stats && stats.team); else if (ch === "again") { seedRandom(null); try { window.dispatchEvent(new CustomEvent("sop-new-game")); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setSetup(null); setLoadedSave(null); setScr("setup"); } else if (ch === "fctm") setScr("end_fctm"); else setScr("end_ret"); }} onHelp={() => setShowHelp(true)} />}
       {scr === "cab" && <MinisterApp onExit={rst} />}
-      {scr === "pres" && <AsoRock setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} onTakeOffice={su => { setSetup(su); setLoadedSave(null); setScr("gov"); }} />}
+      {scr === "pres" && <AsoRock profile={profile} setup={setup ? { ...setup, level } : { level }} stats={finalStats} onExit={rst} onTakeOffice={su => { setSetup(su); setLoadedSave(null); setScr("gov"); }} />}
       {scr === "ambassador" && <AmbassadorCareer profile={profile} onExit={rst} />}
       {scr === "chairman" && <ChairmanCareer profile={profile} onExit={rst} onGovernor={() => { seedRandom(null); try { window.dispatchEvent(new CustomEvent('sop-new-game')); } catch (e) {} setStartProfile(profile || null); setStartMode(null); setScr("setup"); }} />}
       {scr === "senate" && <SenateCareer stats={finalStats} profile={profile} onExit={rst} onPresident={(rec) => { setFinalStats(f => ({ ...(f || {}), rec })); setScr("pres"); }} />}

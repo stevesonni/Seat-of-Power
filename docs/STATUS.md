@@ -1497,3 +1497,12 @@ cannot chase money abroad; only the Federal Government can ask the other country
 - **Salary arrears from the Treasury, any time (20 November):** when workers are owed, the Treasury tab shows how many
   months and the total, with "Pay one month" and "Clear all arrears" (clearing them ends an arrears strike). Before,
   they could only be paid on the allocation card. Test: `tests/e2e/arrears.mjs`.
+
+## Fast-track to Aso Rock (20 Nov 2026)
+
+- A player who has finished at least one game can start straight in the presidential race (Menu → Careers → President of Nigeria → Play). They enter as a made-up two-term former governor of their home state with a mixed record (approval 54%, corruption 33%, needs met 7 of 12, ₦12B state debt).
+- First-time players are sent to the governorship: it is where the game is learned.
+- Price: ₦2,000 (`fast_track_president`, one-off) where a shop is on: seatofpower.online and Lagos Life. Elsewhere it is free. The earned route (`presidential_run`) drops to ₦1,000. No price is above ₦2,000.
+- Fast-tracked runs are marked "· fast-tracked" in the title and the career record.
+- Lagos Life: add `fast_track_president` (₦2,000, one-off) to the Vatar dashboard and change `presidential_run` to ₦1,000.
+- Test: tests/e2e/fasttrack.mjs.

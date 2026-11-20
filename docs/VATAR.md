@@ -62,7 +62,8 @@ Each product sells more play, never a better result, so titles, honours and the 
 | `scenario_security` | one-off | ₦1,000 | Security Pack | Three starts: The Bandit Corridor, The School Abduction, The Sit-at-Home. |
 | `scenario_election` | one-off | ₦1,000 | Election Pack | Three starts: The Narrow Win (tribunal petition), The Hostile House, The Godfather's Candidate. |
 | `portrait_frames` | one-off | ₦100 | Official Portrait Frames | Four frames for the player's portrait (Gold Big Man, Pink Glam, Owambe, Green & White). Shown on the title, the arrival, the end screen and the wiki. |
-| `presidential_run` | one-off | ₦1,500 | Road to Aso Rock | The presidential run after a governorship. |
+| `presidential_run` | one-off | ₦1,000 | Road to Aso Rock | The presidential run after a governorship. |
+| `fast_track_president` | one-off | ₦2,000 | Fast-track to Aso Rock | Skip the governorship: start in the presidential race as a two-term former governor. Offered only to players who have finished a game. |
 
 **Attire packs (the art is in, create these now):** the looks show in the pickers, locked until bought.
 

@@ -20,14 +20,14 @@ export const PRICES = {
   attire_glam: 300, attire_bigboy: 300,
   career_chairman: 500, second_chance: 500,
   career_ambassador: 1000, career_senator: 1000, scenario_pack: 1000, scenario_security: 1000, scenario_election: 1000,
-  company_registration: 1500, presidential_run: 1500,
+  company_registration: 1500, presidential_run: 1000, fast_track_president: 2000,
 };
 export const NAMES = {
   streak_freeze: "Streak Freeze", challenge_retry: "Extra Challenge Attempt", portrait_frames: "Official Portrait Frames",
   attire_glam: "Glam Pack", attire_bigboy: "Big Boy Pack", career_chairman: "The LGA Chairman", second_chance: "Second Chance",
   career_ambassador: "The Ambassador", career_senator: "The Senator", scenario_pack: "Crisis Scenarios",
   scenario_security: "Security Pack", scenario_election: "Election Pack", company_registration: "Register your company",
-  presidential_run: "Road to Aso Rock",
+  presidential_run: "Road to Aso Rock", fast_track_president: "Fast-track to Aso Rock",
 };
 const b64 = (b) => Buffer.from(b).toString("base64url");
 
