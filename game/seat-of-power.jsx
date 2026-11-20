@@ -8246,6 +8246,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         } else if (b.kind === "japa_back") {
           // The Federal Government got it back: the exact amount the contractor ran with, credited to the state.
           const amtB = Math.round(b.lossM) / 1000;
+          setProjects(prev => (prev || []).map(x => x.id === b.projId ? { ...x, japaRecovered: true } : x));
           setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + amtB) * 1000) / 1000 }));
           addL("💰 Recovered: " + b.to + " froze " + b.firm + "'s accounts and the Federal Government repatriated the full " + SYS.fmtM(b.lossM) + " mobilisation fee for " + b.proj + ". It is back in the " + (b.nat ? "treasury." : "state treasury."), "success");
           setTimeout(() => postMail([letterOf("japa_back_" + b.projId, { key: "japa_back_" + b.projId, live: true, kind: "budget", stakes: 1, lines: [{ ok: true, line: (b.nat ? "Following our request, the authorities in " : "Following your visit, the authorities in ") + b.to + " froze the accounts of " + b.firm + ". The full mobilisation fee for " + b.proj + ", " + SYS.fmtM(b.lossM) + ", has been repatriated and credited to the " + (b.nat ? "Federation Account" : "State treasury") + " today." }], tip: ["The Attorney-General of the Federation", "./art/characters/attorney-general-pleased.webp", SYS.fmtM(b.lossM) + " recovered from " + b.to, "The money " + b.firm + " ran with is back"] })]), 600);
@@ -9302,7 +9303,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (!p.japaChecked && (p.progress || 0) < 40 && p.startTurn != null && p.startTurn < turn) {
         if (Math.random() < SYS.japaRisk({ cor: s.cor || 0, soleSource: /direct/i.test(p.method || "") }) * (PACE === "relaxed" ? .5 : 1)) {
           const to = SYS.JAPA_TO[hashStr(p.id) % SYS.JAPA_TO.length], lossM = Math.round((p.contractM || p.estimateM || 0) * .15);
-          next[p.id] = { ...p, status: "stalled", japaChecked: true, fled: true, decisions: [...(p.decisions || []), { year: turn, text: "The contractor took the mobilisation fee (" + SYS.fmtM(lossM) + ") and fled to " + to + "." }] };
+          next[p.id] = { ...p, status: "stalled", japaChecked: true, fled: true, fledFirm: p.contractor || "The contractor", fledTo: to, fledM: lossM, decisions: [...(p.decisions || []), { year: turn, text: "The contractor took the mobilisation fee (" + SYS.fmtM(lossM) + ") and fled to " + to + "." }] };
           setStc(st => ({ ...st, chains: [...(st.chains || []), { id: "japa_" + p.id, kind: "japa", due: turn + 1, projId: p.id, firm: p.contractor || "The contractor", to, lossM }] }));
           notes.push(["🧳 Japa: " + (p.contractor || "the contractor") + " took " + SYS.fmtM(lossM) + " of mobilisation fee for " + p.title + " and fled to " + to + ".", "crisis"]);
           setTimeout(() => paper("CONTRACTOR 'JAPAS' WITH " + SYS.fmtM(lossM).toUpperCase() + " MOBILISATION FEE", p.title + ": the site is empty, the directors are in " + to, false, "./art/scenes/japa-departure.webp"), 1200);
@@ -9851,6 +9852,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   /* The visit to Aso Rock (SYS.visits): once a year a governor flies to Abuja with one request. */
   const [visitOpen, setVisitOpen] = useState(false);
+  // Money a contractor ran abroad with, not yet recovered or promised: the governor can ask for it at Aso Rock.
+  const japaOpen = () => NAT ? [] : (projects || []).filter(p => p.fled && !p.japaRecovered && !(stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id)).map(p => {
+    const d = (p.decisions || []).map(x => x.text).find(t => /fled to/.test(t)) || "";
+    return { projId: p.id, proj: p.title, firm: p.fledFirm || "The contractor", to: p.fledTo || ((d.match(/fled to ([^.]+)\./) || [])[1]) || "abroad", lossM: p.fledM || Math.round((p.contractM || p.estimateM || 0) * .15) };
+  }).filter(j => j.lossM > 0);
+  // The Aso Rock visit spent on a japa: the President intervenes if the state's standing is good; the money comes back next year.
+  const visitJapa = (j, flown) => {
+    setVisitOpen(false); if (NAT || stc.visitYear === turn) return;
+    if (!flown && groundedNow()) return airportGate("Abuja", () => visitJapa(j, true));
+    const good = fgRelation >= SYS.JAPA_FG_MIN;
+    setStc(p => ({ ...p, visitYear: turn, chains: good ? [...(p.chains || []), { id: "japa_back_" + j.projId, kind: "japa_back", due: turn + 1, projId: j.projId, proj: j.proj, firm: j.firm, to: j.to, lossM: j.lossM }] : (p.chains || []) }));
+    track("visit_president", "japa"); noteTrip();
+    addL("✈️ At Aso Rock you asked the President to recover the " + SYS.fmtM(j.lossM) + " " + j.firm + " took to " + j.to + ". " + (good ? "The President promised to intervene." : "The President declined to intervene."), good ? "political" : "crisis");
+    try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Abuja", left: stName } }); } catch (e) {}
+    try { window.SOP_outcome && window.SOP_outcome({ icon: "🚘", img: "./art/scenes/aso-rock-arrival.webp", title: "Aso Rock Villa", text: "Your convoy pulls up at the Villa gates. The guards salute; the President is expecting you.", ok: "Go in" }); } catch (e) {}
+    setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/the-president-" + (good ? "pleased" : "angry") + ".webp", bg: "./art/backgrounds/villa-office.webp", name: "The President · Aso Rock Villa", text: good ? "\u201cGovernor, " + j.firm + " will not enjoy that money in " + j.to + ". The Attorney-General will ask them to freeze the accounts and send every naira home. You will hear from us next year.\u201d" : "\u201cGovernor, I cannot take this up with " + j.to + " for you now. Your state has not stood with us. Stand with us, and come back.\u201d", ok: "Fly home" } });
+      window.SOP_outcome({ flight: { dir: "home", right: "Abuja", left: stName } });
+      window.SOP_outcome(good ? { icon: "🤝", img: "./art/scenes/president-meets-governor.webp", title: "The President will intervene", text: j.to + " will be asked to freeze " + j.firm + "'s accounts. Expect the " + SYS.fmtM(j.lossM) + " next year.", tone: "good" }
+        : { icon: "🚫", img: "./art/scenes/aso-rock-arrival.webp", title: "The President will not intervene", text: "Your standing with Abuja (" + Math.round(fgRelation) + "/100) is not good enough. Back the President more often and ask again next year.", tone: "bad" }); } catch (e) {} }, 300);
+  };
   const visitPresident = (ask, flown) => {
     setVisitOpen(false); if (NAT || stc.visitYear === turn) return;
     if (!flown && groundedNow()) return airportGate("Abuja", () => visitPresident(ask, true));
@@ -13165,7 +13186,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {visitOpen && <Cd style={{ maxWidth: 760 }}>
             <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TALL() ? TS(28) : TS(44), margin: "0 0 4px" }}>✈️ To Aso Rock</h3>
             <div style={{ fontSize: TALL() ? TS(17) : TS(24), color: CL.td, marginBottom: 12 }}>One request. The better your standing with Abuja ({Math.round(fgRelation)}/100), the likelier a yes.</div>
-            <div style={{ display: "grid", gap: 8 }}>{SYS.VISIT_ASKS.map(a => { const p = SYS.visitOdds(a, { fg: fgRelation, app: s.app, cor: s.cor }); return <button key={a.id} className="ds-option" onClick={() => visitPresident(a)} style={{ textAlign: "left" }}>
+            <div style={{ display: "grid", gap: 8 }}>{japaOpen().map(j => { const ok = fgRelation >= SYS.JAPA_FG_MIN; return <button key={"japa_" + j.projId} className="ds-option" data-sop-visit-japa onClick={() => visitJapa(j)} style={{ textAlign: "left" }}>
+              <b style={{ display: "block" }}>🧳 Get back the {SYS.fmtM(j.lossM)} {j.firm} took to {j.to}</b><span className="ds-option-note" style={{ display: "block" }}>{j.proj}. Only the Federal Government can ask {j.to} to freeze it.</span>
+              <span className="ds-chip" style={{ color: ok ? CL.grn : CL.red, background: (ok ? CL.grn : CL.red) + "12", marginTop: 6, display: "inline-block" }}>{ok ? "The President will help" : "Standing too low (needs " + SYS.JAPA_FG_MIN + ")"}</span>
+            </button>; })}{SYS.VISIT_ASKS.map(a => { const p = SYS.visitOdds(a, { fg: fgRelation, app: s.app, cor: s.cor }); return <button key={a.id} className="ds-option" onClick={() => visitPresident(a)} style={{ textAlign: "left" }}>
               <b style={{ display: "block" }}>{a.l}</b><span className="ds-option-note" style={{ display: "block" }}>{a.d}</span>
               <span className="ds-chip" style={{ color: p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red, background: (p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red) + "12", marginTop: 6, display: "inline-block" }}>{p >= .55 ? "Likely" : p >= .35 ? "Even chance" : "Unlikely"}</span>
             </button>; })}</div>

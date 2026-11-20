@@ -41,4 +41,23 @@ check(cashAt === true, "the recovery lands when the year closes");
 check(/₦1[.,]35B|₦1,350M/.test(logs) && /Canada/.test(logs), "the log states the exact amount recovered (" + logs.slice(0, 160) + ")");
 check(/Recovered: Canada froze Kestrel Construction's accounts and the Federal Government repatriated the full ₦1[.,]35B|₦1,350M/.test(logs), "the full amount, stated exactly");
 check(![...good.errors, ...bad.errors, ...g.errors].length, "no page errors (" + [...good.errors, ...bad.errors, ...g.errors].join(" | ") + ")");
-await g.browser.close(); console.log(fails ? fails + " failed" : "ALL PASSED"); srv.close && srv.close(); process.exit(fails ? 1 : 0);
+await g.browser.close();
+// The Aso Rock visit: with a contractor's money still abroad, the visit offers to ask for it (owner, 20 Nov 2026).
+async function visit(fg) {
+  const sv0 = JSON.parse(Y1.sop_save); sv0.turn = 2; sv0.projTicked = 2; sv0.fgRelation = fg;
+  sv0.projects = [{ ...P(), fledFirm: "Kestrel Construction", fledTo: "Canada", fledM: 1350 }]; sv0.stc = { ...sv0.stc, lastTurn: 1, chains: [] };
+  const v = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv0) } });
+  await v.click(/^Continue/); await v.wait(2000);
+  await v.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await v.wait(1200);
+  let offered = "";
+  await playUntil(v, () => !!offered, { max: 150, prefer: [/^✈️ Plan it$/], onStep: async () => { if (offered) return; offered = await v.page.evaluate(() => { const b = document.querySelector("[data-sop-visit-japa]"); return b ? b.textContent : ""; }); if (!offered) { await v.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /✈️ Plan it/.test(x.textContent)); b && b.click(); }); await v.wait(500); offered = await v.page.evaluate(() => { const b = document.querySelector("[data-sop-visit-japa]"); return b ? b.textContent : ""; }); } } });
+  if (offered) { await v.page.evaluate(() => document.querySelector("[data-sop-visit-japa]").click()); await v.wait(1500); for (let i = 0; i < 4 && await v.click(/^(Go in|Fly home|Continue|Okay|Got it)$/); i++) await v.wait(600); }
+  const logs = await v.page.evaluate(() => (window.SOP.logs || []).map(l => l.tx).join(" | "));
+  const errs = v.errors.slice(); await v.browser.close(); return { offered, logs, errs };
+}
+const vg = await visit(70), vb = await visit(30);
+check(/Get back the ₦1[.,]35B Kestrel Construction took to Canada/.test(vg.offered), "the Aso Rock visit offers to get the money back (" + vg.offered.slice(0, 80) + ")");
+check(/asked the President to recover the ₦1[.,]35B/.test(vg.logs) && /promised to intervene/.test(vg.logs), "good standing: the President promises at the visit");
+check(/declined to intervene/.test(vb.logs), "poor standing: the President declines at the visit");
+check(![...vg.errs, ...vb.errs].length, "no page errors on the visits");
+console.log(fails ? fails + " failed" : "ALL PASSED"); srv.close && srv.close(); process.exit(fails ? 1 : 0);
