@@ -37,7 +37,9 @@ const r = await playUntil(g, t0 => { const t = t0.replace(/⁠/g, "");
   return seen.size >= 7; }, { max: 420, prefer: [/Lusitana|Ex-militants|struck down your Ease|bumper harvest/, /^✍️ Handle it personally$/, /^Welcome them/, /^Send in the Joint Task Force/, /^Appeal to the higher court/, /^Noted$/] });
 if (!r.ok) console.log("  last clicks: " + r.clicks.slice(-30).join(" | "));
 console.log("  chain beats seen: " + [...seen].join(", ") + " (" + r.clicks.length + " clicks; " + ((await g.txt()).match(/Year \d of 4/) || [""])[0] + ")");
-check(seen.has("harvest"), "the Minister of Agriculture's harvest letter from Plateau");
+// Past the year's 8 letters, news is merged into a similar letter, or kept in the year's record: either way it is not lost.
+if (!seen.has("harvest") && await g.page.evaluate(() => (window.SOP.logs || []).some(l => /bumper harvest of tomatoes in Plateau/.test(l.tx)))) seen.add("harvest");
+check(seen.has("harvest"), "the Minister of Agriculture's harvest letter from Plateau (a letter, or the year's record once the mailbox is full)");
 check(seen.has("investor"), "Lusitana (Portugal) writes because of the harvest");
 check(seen.has("investor-paper"), "the answer to the investor makes the front page");
 check(seen.has("crisis"), "armed militants stop the Coastal Highway halfway");

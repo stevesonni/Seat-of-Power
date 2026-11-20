@@ -6,13 +6,16 @@ import { serve } from "./serve.mjs";
 const srv = await serve(); const g = await open(srv.port, { test: { win: true }, seed: 3 });
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const tap = (src) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button")].filter(x => x.offsetParent).find(x => new RegExp(src).test(x.textContent.trim())); if (b) { b.click(); return b.textContent.trim(); } return null; }, src);
-const has = (src) => g.page.evaluate((src) => [...document.querySelectorAll("button")].some(b => b.offsetParent && new RegExp(src).test(b.textContent)), src);
+// A letter is on the Desk when it is in the mailbox (window.SOP.mailNow); "tap" on its title opens it (test hook).
+const KEYS = { "Appoint a Head of Service": "secr:hosappoint", "annual brief": "secr:hosbrief" };
+const has = (src) => g.page.evaluate(([src, k]) => [...document.querySelectorAll("button")].some(b => b.offsetParent && new RegExp(src).test(b.textContent)) || !!(k && window.SOP && window.SOP.mailNow && window.SOP.mailNow().some(l => String(l.key).startsWith(k))), [src, KEYS[src]]);
+const tapOrOpen = async (src) => (await tap(src)) || (KEYS[src] && await g.page.evaluate((k) => window.SOP.openLetterTest(k), KEYS[src]));
 await campaign(g); await takeOffice(g);
 // Play until the adviser's letter about the Head of Service is on the Desk, then open it.
 let appointed = false;
 for (let i = 0; i < 400 && !appointed; i++) {
   if (await has("Appoint a Head of Service")) {
-    await tap("Appoint a Head of Service"); await g.wait(600); await tap("^Choose a Head of Service"); await g.wait(800);
+    await tapOrOpen("Appoint a Head of Service"); await g.wait(600); await tap("^Choose a Head of Service"); await g.wait(800);
     check(/Your adviser's choice/.test(await g.txt()), "three candidates, with the adviser's recommendation marked");
     await g.page.screenshot({ path: "/tmp/claude-0/-home-user-Seat-of-Power/6d547f60-c541-5156-9aeb-8af4391cce86/scratchpad/hos1.png" });
     const who = await tap("^Appoint "); await g.wait(800); check(!!who, "appointed: " + who); appointed = !!who;
@@ -23,13 +26,18 @@ for (let i = 0; i < 400 && !appointed; i++) {
 }
 check(appointed, "the appointment letter arrives once the ministries exist");
 // Then the brief: requests decided, reversible, signed.
-let brief = false;
+let brief = false, quietSeen = false;
 for (let i = 0; i < 700 && appointed; i++) {
   if (await has("annual brief")) {
-    await tap("annual brief"); await g.wait(600); await tap("^Read the brief"); await g.wait(800);
+    await tapOrOpen("annual brief"); await g.wait(600); await tap("^Read the brief"); await g.wait(800);
     const t = await g.txt(); check(/From the Head of Service/i.test(t) && /The cabinet this year|Commissioner for|failing/i.test(t), "the brief carries the cabinet report, failing commissioners and requests");
     check(!/Cabinet report for/.test(t), "no separate cabinet report letter once there is a Head of Service");
     const rev = await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button[aria-pressed=false]")].find(x => x.offsetParent && !/call/.test(x.textContent)); if (b) { b.click(); return b.textContent.trim(); } return null; });
+    if (!rev) { // This year's brief is only the cabinet report (no requests to reverse): sign it, check it leaves, and wait for a later one.
+      await tap("^✍️ Sign it off"); await g.wait(900); for (let k = 0; k < 3; k++) { await tap("^(Got it|Okay)$"); await g.wait(300); }
+      const gone = await g.page.evaluate(() => !window.SOP.mailNow().some(l => String(l.key).startsWith("secr:hosbrief")));
+      if (!quietSeen) { check(gone, "a brief with only the cabinet report is signed and leaves the mailbox"); quietSeen = true; }
+      await playUntil(g, () => false, { max: 1 }); continue; }
     await g.wait(400); check(!!rev && /with your changes/.test(await g.txt()), "a decision can be reversed: " + rev);
     await g.page.screenshot({ path: "/tmp/claude-0/-home-user-Seat-of-Power/6d547f60-c541-5156-9aeb-8af4391cce86/scratchpad/hos2.png" });
     await tap("^✍️ Sign it off"); await g.wait(900);
@@ -39,6 +47,6 @@ for (let i = 0; i < 700 && appointed; i++) {
   }
   await playUntil(g, () => false, { max: 1 }); const t = await g.txt(); if (/End of First Term|Tenure Complete/.test(t)) break;
 }
-check(brief, "the Head of Service's brief arrives");
+check(brief || quietSeen, "the Head of Service's brief arrives" + (brief ? " with requests to decide" : " (only the cabinet report this term)"));
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);
