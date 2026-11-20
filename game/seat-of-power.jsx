@@ -6022,7 +6022,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
-      postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
+      postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
       pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); },
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
@@ -6487,6 +6487,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [needsAll, setNeedsAll] = useState(false);
   const faacSwingRef = React.useRef(0);
   const scPending = React.useRef([]);
+  const scCarry = React.useRef([]); // cards of letters carried over to next year (the mail cap): they stay answerable
   const scLast = React.useRef(null);
   // Background events record their topic so a decision card on the same story waits.
   const passiveTopics = React.useRef({});
@@ -8992,7 +8993,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     next.arrearsMax = Math.max(next.arrearsMax || 0, next.arrears);
     setStc(next);
     notes.forEach(([t, k]) => addL(t, k));
-    scPending.current = cards; scLast.current = next;
+    scPending.current = [...cards, ...scCarry.current.filter(cc => !cards.some(x => x.key === cc.key))]; scLast.current = next;
     cards.forEach(c => q.push("sc#" + c.key));
   };
 
@@ -12021,6 +12022,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const mailOn = React.useRef((ld?.resume || ld?.phase) === "mail");
   const cosNow = cosOffice.cos;
   const mailRef = React.useRef(mail); mailRef.current = mail;
+  const mailN = new Set(mail.map(l => l.slot || l.id)).size; // envelopes: letters on one subject count once
   const COS_ACTING = { id: "acting", name: "The Deputy Chief of Staff", tag: "Acting", img: "permanent-secretary", comp: 40, loyalty: 50, greed: 20, good: [], bad: [], file: "Keeping the seat warm until you appoint someone." };
   const appointCos = (c) => {
     track("chief_of_staff", c.tag || c.name);
@@ -12047,31 +12049,41 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      nearest similar note in the mailbox (same kind first); a letter that needs a decision makes room by merging two
      notes into one. Nothing is lost: merged letters keep every line. */
   const MAIL_CAP = 8, mailYear = React.useRef({ turn: -1, n: 0 });
-  /* The guard on the mailbox itself (owner, 20 Nov 2026: "I still get up to 11 mails"): every route letters arrive by
-     (the year's batch, the secretary's requests, chains, the budget) passes through here, so the mailbox never holds
-     more than 8. Past 8, news notes are merged into the nearest note first; then letters that need a decision wait
-     (lowest stakes first; the budget letter and the open letter never) and come in, oldest first, as you answer. */
-  const mailWait = React.useRef([]);
+  /* At most 8 letters a year (owner, 20 Nov 2026: "cap the letters per year at 8. No extra letter. If two letters are
+     similar, broadly combine into one or carry over"). Every route letters arrive by passes through this guard. Each
+     letter belongs to a broad subject (mailGroup: money, security, politics, people, the world, your agenda, the
+     office). A new letter joins the open envelope of its subject if there is one; if not, it opens one of the year's
+     8 envelopes; if all 8 are used, it joins the nearest open envelope, and only when none is open does it carry over
+     to next year (first in line then). The mailbox shows envelopes (letters that share l.slot), never more than 8 in
+     a year. */
+  const mailWait = React.useRef(stc.mailCarry || []), mailYear8 = React.useRef(stc.mailSlots || { turn: -1, n: 0 });
   useEffect(() => {
-    let ml = mail;
-    if (ml.length > MAIL_CAP) {
-      ml = mail.slice();
-      for (let i = 0; i < 40 && ml.length > MAIL_CAP; i++) { const notes = ml.filter(l => isNote(l) && l.id !== letterOpen); const x = notes[notes.length - 1]; if (!x) break; const t = nearestNote(ml, x, x); if (!t) break; ml = mergeInto(ml.filter(m => m !== x), t, x); }
-      if (ml.length > MAIL_CAP) { const rank = (l) => l.key === "budget" || l.id === letterOpen ? 99 : (l.secr ? 0 : 1) + (l.stakes || 1) + (l.waited ? 6 : 0);
-        const out = new Set(ml.map((l, i) => ({ l, i })).sort((a, b) => rank(a.l) - rank(b.l) || b.i - a.i).slice(0, ml.length - MAIL_CAP).map(o => o.l));
-        mailWait.current = [...mailWait.current.filter(w => !out.has(w) && !ml.some(m => m.key === w.key)), ...[...out].map(l => ({ ...l, waited: true }))]; ml = ml.filter(l => !out.has(l)); }
-      setMail(ml); return;
-    }
-    mailWait.current = mailWait.current.filter(w => !mail.some(m => m.key === w.key));
-    const free = MAIL_CAP - mail.length;
-    if (free > 0 && mailWait.current.length) { const take = mailWait.current.slice(0, free); mailWait.current = mailWait.current.slice(free); setMail(m => [...m, ...take.filter(t => !m.some(x => x.key === t.key))]); }
-  }, [mail]);
+    const Y = mailYear8.current; let ml = mail, changed = false;
+    if (Y.turn !== turn) { Y.turn = turn; Y.n = 0;
+      const carry = mailWait.current.filter(w => !mail.some(m => m.key === w.key)); mailWait.current = [];
+      if (carry.length) { ml = [...carry.map(w => ({ ...w, carried: true, slot: null, slotT: null })), ...mail]; changed = true; } }
+    const open = new Map(); ml.forEach(l => { if (l.slotT === turn && l.slot) open.set(mailGroup(l), l.slot); });
+    const next = [], out = [];
+    ml.forEach(l => {
+      if (l.slotT === turn && l.slot) { next.push(l); return; }
+      const g = mailGroup(l); changed = true;
+      if (open.has(g)) { next.push({ ...l, slot: open.get(g), slotT: turn }); return; }
+      if (Y.n < MAIL_CAP) { Y.n++; const sl = g + "#" + turn + "#" + Y.n; open.set(g, sl); next.push({ ...l, slot: sl, slotT: turn }); return; }
+      const any = [...open.values()][0];
+      if (any) { next.push({ ...l, slot: [...open.entries()].sort((a, b) => (GROUP_NEAR[g] || []).indexOf(b[0]) - (GROUP_NEAR[g] || []).indexOf(a[0]))[0][1], slotT: turn }); return; } // the nearest open envelope
+      if (l.key === "budget") { next.push({ ...l, slot: "money#" + turn + "#b", slotT: turn }); return; } // the budget is never held back
+      { const card = scOf(l); if (card && !scCarry.current.some(x => x.key === card.key)) scCarry.current = [...scCarry.current, card].slice(-30); }
+      out.push({ ...l, slot: null, slotT: null });
+    });
+    if (out.length) mailWait.current = [...mailWait.current.filter(w => !out.some(o => o.key === w.key)), ...out];
+    if (changed) { setMail(next); setStc(p => ({ ...p, mailSlots: { turn: Y.turn, n: Y.n }, mailCarry: mailWait.current })); }
+  }, [mail, turn]);
   const noteLines = (l) => (l.lines && l.lines.length ? l.lines : [{ ok: true, line: [l.tip && l.tip[2], l.tip && l.tip[3]].filter(Boolean).join(": ") }]).map(x => ({ ...x, line: (l.tip && l.tip[0] ? l.tip[0] + ": " : "") + x.line }));
   const nearestNote = (ml, l, not) => { const notes = ml.filter(m => isNote(m) && m.key !== (not && not.key) && m.key !== l.key); return notes.find(m => m.kind === l.kind) || notes[notes.length - 1] || null; };
   const mergeInto = (ml, target, l) => ml.map(m => m === target ? { ...m, absorbed: [...(m.absorbed || []), l.key, ...(l.absorbed || [])], merged: (m.merged || 1) + 1, lines: [...noteLines(m.merged ? { lines: m.lines } : m), ...noteLines(l)], tip: m.tip ? [m.tip[0], m.tip[1], m.merged ? m.tip[2] : "More news for you", m.tip[3]] : m.tip } : m);
   const postMail = (letters0) => {
     const MY = mailYear.current; if (MY.turn !== turn) { MY.turn = turn; MY.n = 0; }
-    const known = new Set(mailRef.current.map(m => m.key)), plan = [];
+    const known = new Set([...mailRef.current.map(m => m.key), ...mailWait.current.map(m => m.key)]), plan = [];
     letters0.forEach(l => { if (known.has(l.key)) return; known.add(l.key);
       plan.push({ l, a: "add" }); }); // the mailbox guard below keeps it to 8
     if (!plan.length) return;
@@ -12184,8 +12196,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!letters.length) { setMail(m => m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:"))); mailOn.current = false; advance(); return; }
     mailOn.current = true;
     setEventQueue([]);
-    mailWait.current = mailWait.current.filter(l => l.live && l.key !== "gold" && l.key !== "cabinet_report" && !l.key.startsWith("stall:"));
-    setMail(m => [...m.filter(l => l.live && l.key !== "gold" && l.key !== "cabinet_report" && !l.key.startsWith("stall:")), ...letters]);
+    setMail(m => [...m.filter(l => (l.live || l.carried) && l.key !== "gold" && l.key !== "cabinet_report" && !l.key.startsWith("stall:")), ...letters.filter(l => !m.some(x => x.key === l.key))]);
     setPhase("mail"); setNav("gov"); setLetterOpen(null);
     if (letters.length) pingMail(letters.length, letters[0].key);
     const urgent = letters.filter(l => l.stakes >= 3);
@@ -12203,6 +12214,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const takeLetter = (l) => setMail(m => m.filter(x => x.id !== l.id));
   const isNote = (l) => !!(l.tip && !l.cat);
+  // The broad subject a letter belongs to, for combining letters into envelopes (8 a year).
+  const MAIL_GROUPS = { money: ["budget", "gold", "econ", "investment", "funding", "revenue_reform", "loan_accepted", "federal", "inv", "investment_attracted", "finance"], security: ["crisis", "bakunda", "state_crisis", "security", "shock"], politics: ["house", "courts", "godfather", "party", "partyman", "opposition", "rival", "deputy", "loyal", "house_deal", "unconst_order", "challenge"], people: ["community", "labour", "need_ignored", "projects", "project_abandoned", "proj", "japa", "japa_back", "policy_enacted", "policy_echo", "mine", "pol", "scenario", "lg_funds_diverted"], world: ["diplomacy", "travel"], agenda: ["agenda", "flagship_milestone", "slogan_check"] };
+  const mailGroup = (l) => { const k = l.kind || ""; for (const g in MAIL_GROUPS) if (MAIL_GROUPS[g].includes(k)) return g; return "office"; };
+  // Broadly similar subjects, nearest last (for joining when a letter's own envelope is not open).
+  const GROUP_NEAR = { money: ["world", "office", "people", "politics", "agenda"], security: ["office", "people", "world", "politics"], politics: ["office", "agenda", "people", "money"], people: ["office", "money", "agenda", "politics"], world: ["office", "politics", "security", "money"], agenda: ["office", "money", "politics", "people"], office: ["world", "security", "money", "people", "politics", "agenda"] };
+  const MAIL_GROUP_NM = { money: "Money", security: "Security", politics: "Politics", people: "The people", world: "The world", agenda: "Your agenda", office: "The office" };
+  const mailEnvelopes = () => { const m = new Map(); mailSorted().forEach(l => { const k = l.slot || l.id; if (!m.has(k)) m.set(k, []); m.get(k).push(l); }); return [...m.values()]; };
   // ── The Cabinet of friends (governor only): share the year, show their advice, record what you signed ──
   const [fc, setFc] = useState(() => (ld && ld.fc) || null); // { code, hostKey, invites }
   const fcRef = React.useRef(fc); fcRef.current = fc;
@@ -12544,8 +12562,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return <span aria-label={S.nm + " seal"} style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: size * .46, background: "radial-gradient(circle at 35% 30%, " + S.rim + "66, " + S.c + " 60%)", border: "3px solid " + S.rim, boxShadow: "0 2px 6px rgba(0,0,0,.25), inset 0 0 0 3px " + S.c }}>{S.i}</span>; };
   // The mailbox opens one letter at a time, the most urgent first.
   const mailSorted = () => mail.slice().sort((a, b) => (b.key === "budget") - (a.key === "budget") || (b.stakes || 0) - (a.stakes || 0) || (!!a.cat - !!b.cat)); // the year's budget comes first
-  const openMail = (id) => { const L = mailSorted(), l = (id && L.find(x => x.id === id)) || L[0]; if (l) { setMailOpen(true); setLetterOpen(l.id); } };
-  const mailStand = () => mailSorted().map(l => { const v = letterView(l); return { id: l.id, title: v.title, urgent: l.stakes >= 3, brown: MAIL_BROWN.includes(l.kind), seal: "./art/icons/" + (sealOf(l) || SEAL_ART[l.kind] || "seal-briefing") + ".webp" }; });
+  const openMail = (id) => { const L = mailEnvelopes().flat(), l = (id && L.find(x => x.id === id)) || L[0]; if (l) { setMailOpen(true); setLetterOpen(l.id); } };
+  const mailStand = () => mailEnvelopes().map(E => { const l = E[0], v = letterView(l); return { id: l.id, title: E.length > 1 ? MAIL_GROUP_NM[mailGroup(l)] + ": " + E.length + " matters" : v.title, urgent: E.some(x => x.stakes >= 3), brown: MAIL_BROWN.includes(l.kind), seal: "./art/icons/" + (sealOf(l) || SEAL_ART[l.kind] || "seal-briefing") + ".webp" }; });
   const mailboxView = (inline) => {
     const fz = TALL() ? { s: TS(19), m: TS(23), l: TS(30) } : { s: TS(28), m: TS(34), l: TS(48) };
     const c0 = cosNow || COS_ACTING, c = { ...c0, img: (SYS.cosById(c0.id) || c0).img }, first = c.name.split(" ").slice(-2, -1)[0] || c.name;
@@ -12627,7 +12645,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
           <button aria-label="Close" onClick={() => { setLetterOpen(null); setMailOpen(false); }} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, fontWeight: 700, minHeight: 44 }}>← Close the letter</button>
-          {mail.length > 1 && <button onClick={() => { const L = mailSorted(), i = L.findIndex(x => x.id === open.id); setLetterOpen(L[(i + 1) % L.length].id); }} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, fontWeight: 700, minHeight: 44 }}>Next letter →</button>}
+          {(() => { const E = mailEnvelopes().find(e => e.some(x => x.id === open.id)) || []; return E.length > 1 ? <span data-sop-envelope style={{ color: "#e9dcc0", fontSize: fz.s, marginRight: 10 }}>{MAIL_GROUP_NM[mailGroup(open)]} · {E.findIndex(x => x.id === open.id) + 1} of {E.length}</span> : null; })()}{mail.length > 1 && <button onClick={() => { const L = mailEnvelopes().flat(), i = L.findIndex(x => x.id === open.id); setLetterOpen(L[(i + 1) % L.length].id); }} style={{ background: "none", border: 0, color: "#e9dcc0", fontSize: fz.s, cursor: "pointer", fontFamily: F.b, fontWeight: 700, minHeight: 44 }}>Next letter →</button>}
         </div>
         </div>
       </div>;
@@ -12635,7 +12653,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The letters are in the mailbox (bottom right); here, only who opens them with you and the way on.
     return <Cd style={{ padding: TALL() ? "12px 14px" : "20px 26px" }}>
       {!mail.length && <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: fz.s, color: CL.td }}><img src="./art/objects/letter-open.webp" alt="" style={{ width: TALL() ? 44 : 56, height: TALL() ? 44 : 56, objectFit: "contain" }} />Every letter is answered.</div>}
-      {mail.length > 0 && <div style={{ fontSize: fz.s, color: CL.td }}>📬 {mail.length === 1 ? "A letter waits" : mail.length + " letters wait"} in the mailbox. Answer {mail.length === 1 ? "it" : "them"} to move on to {absYear + 1}.</div>}
+      {mail.length > 0 && <div style={{ fontSize: fz.s, color: CL.td }}>📬 {mailN === 1 ? "A letter waits" : mailN + " letters wait"} in the mailbox. Answer {mailN === 1 ? "it" : "them"} to move on to {absYear + 1}.</div>}
       {inline && phase === "mail" && !yearStuff.length && !budgetWaiting && <Bt onClick={finishMail} style={{ width: "100%", marginTop: mail.length ? 12 : 0 }}>The tray is clear: on to {absYear + 1} →</Bt>}
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, fontSize: fz.s, color: CL.td }}>
         <img src={"./art/characters/" + c.img + ".webp"} alt="" style={{ width: 30, height: 30, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} />
@@ -13236,7 +13254,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const b = {}, H = scHouse(), inc = (s.igr || 0) + (s.faac || 0);
     const urgent = activeNeeds.filter(n => n.status === "stalled" || (n.status === "open" && n.due <= turn)).length;
     if (needSetup) b.gh = { text: "Set up your government", tone: "warn" };
-    else if (phase === "mail") b.gh = { text: mail.length + " letters", tone: "warn" };
+    else if (phase === "mail") b.gh = { text: mailN + " letters", tone: "warn" };
     else if (phase === "budget") b.gh = { text: "Budget awaiting", tone: "warn" };
     else if (phase === "policy") b.gh = { text: "Sign programmes", tone: "warn" };
     else if (urgent) b.gh = { text: urgent + (urgent === 1 ? " urgent need" : " urgent needs"), tone: "bad" };
@@ -13275,7 +13293,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return o;
   };
   const hubNext = () => needSetup ? { id: "gh", label: "Set up your government" }
-    : phase === "mail" ? { id: "gh", label: mail.length ? "Open your mail (" + mail.length + ")" : "On to next year" }
+    : phase === "mail" ? { id: "gh", label: mail.length ? "Open your mail (" + mailN + ")" : "On to next year" }
     : phase === "budget" ? { id: "gh", label: "Pass this year's budget" }
     : phase === "house_vote" ? { id: "assembly", label: "Take the budget to the House" }
     : phase === "policy" ? { id: "gh", label: "Sign programmes and orders" }
@@ -13432,7 +13450,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           return <button data-sop-next onClick={() => { track("reach_next", mail.length ? "mail" : nx.id); if (mail.length) openMail(); else hubArrive(nx.id); }}
             style={{ position: "fixed", right: TALL() ? 12 : 24, bottom: TALL() ? "calc(92px + env(safe-area-inset-bottom, 0px))" : 24, zIndex: 55, display: "flex", alignItems: "center", gap: 8, maxWidth: "min(78vw, 360px)", minHeight: 50, padding: "0 16px 0 10px", borderRadius: 16, border: 0, background: "linear-gradient(180deg,#2f8de4,#1c6fc0)", color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: TALL() ? TS(19) : TS(26), boxShadow: "0 4px 0 #134f8a, 0 10px 22px rgba(0,0,0,.25)", cursor: "pointer" }}>
             <span style={{ fontSize: "1.3em" }}>{mail.length ? "📬" : "➡️"}</span>
-            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{mail.length ? mail.length + " unread · Next message" : "Next: " + nx.label}</span>
+            <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{mail.length ? mailN + " unread · Next message" : "Next: " + nx.label}</span>
           </button>; })()}
         {/* The mailbox (Pack 31): bottom right of the Desk, where the governor sees the mail. */}
         {curScreen.id === "desk" && nav === "gov" && phase !== "policy" && phase !== "end_turn" && !gEnd && !letterOpen && mail.length > 0 && <div data-sop-mailstand style={{ position: "fixed", right: TALL() ? 8 : 24, bottom: TALL() ? "calc(86px + env(safe-area-inset-bottom, 0px))" : 24, zIndex: 55 }}><MailboxStand letters={mailStand()} onNext={() => openMail()} w={phase === "budget" || phase === "house_vote" ? (TALL() ? 130 : 150) : TALL() ? 180 : 190} /></div>}
@@ -13464,7 +13482,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <button className="btn btn-gold btn-block" onClick={adv.action}>{adv.actionLabel || "Go"} →</button>
                 </div></div>}
                 {phase === "mail" && <section className="card tray">
-                  <div className="head"><img src="./art/objects/mailbox-closed.webp" alt="" style={{ objectFit: "cover", objectPosition: "50% 30%" }} /><h2>Your mail</h2><span className="count">{mail.length ? mail.length + (mail.length === 1 ? " letter" : " letters") : "Empty"}</span></div>
+                  <div className="head"><img src="./art/objects/mailbox-closed.webp" alt="" style={{ objectFit: "cover", objectPosition: "50% 30%" }} /><h2>Your mail</h2><span className="count">{mailN ? mailN + (mailN === 1 ? " letter" : " letters") : "Empty"}</span></div>
                   <div className="clear">
                     <button className="btn btn-main btn-block" disabled={!!(yearStuff.length || budgetWaiting)} style={yearStuff.length || budgetWaiting ? { opacity: .45 } : null} onClick={() => { if (!(yearStuff.length || budgetWaiting)) { finishMail(); setNav("gov"); } }}>The tray is clear: on to {absYear + 1} →</button>
                     {(yearStuff.length > 0 || budgetWaiting) && <small>Answer every letter in the mailbox to move on</small>}
