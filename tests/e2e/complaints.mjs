@@ -56,5 +56,22 @@ await g.page.evaluate(() => document.querySelector("[data-sop-tori-opt=salaries_
 const meT = await g.page.evaluate(() => document.querySelector("[data-testid=tori]").innerText), app1 = await g.page.evaluate(() => window.SOP.s.app);
 if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/tori-me.png" });
 check(/Salaries are being paid/.test(meT) && /Screenshot this tweet|Ratio|Which one be this/.test(meT) && app1 < app0, "a false claim is posted, ratioed in the replies, and costs approval (" + app0 + " → " + app1 + ")");
+// Like, repost and reply on any tweet; the news account posts the year's real events.
+const home = await tabT(/^For you$/);
+check(/Ogun News Now/.test(home), "the news account posts this year's real events");
+const likeOf = () => g.page.evaluate(() => { const b = document.querySelector("[data-testid=tori] [data-sop-tweet=news] [data-sop-tori-act=like]"); return b ? b.textContent : ""; });
+const l0 = await likeOf(); await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=news] [data-sop-tori-act=like]").click()); await g.wait(300); const l1 = await likeOf();
+check(/♡/.test(l0) && /♥/.test(l1), "a tweet can be liked (" + l0 + " → " + l1 + ")");
+await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=news] [data-sop-tori-act=rt]").click()); await g.wait(300);
+const meT2 = await tabT(/^@OgunGov$/);
+check(/You reposted/.test(meT2) && /Ogun News Now/.test(meT2), "a repost shows on the governor's profile");
+await tabT(/^Opposition$/);
+await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=opposition] [data-sop-tori-act=reply]").click()); await g.wait(300);
+const optsR = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-comment]")].map(b => b.getAttribute("data-sop-tori-comment")));
+check(optsR.includes("rebut") && optsR.includes("work"), "a reply to the opposition: rebut it, or say results will speak");
+await g.page.evaluate(() => document.querySelector("[data-sop-tori-comment=work]").click()); await g.wait(400);
+const oppT = await g.page.evaluate(() => document.querySelector("[data-testid=tori]").innerText);
+if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/tori-reply.png" });
+check(/We are busy working\. Results will speak\./.test(oppT) && /replying to @OgunGov/.test(oppT), "the governor's reply shows under the tweet, and people answer it");
 check(!g.errors.length, "no page errors " + g.errors.join(" | "));
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

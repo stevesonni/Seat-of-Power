@@ -49,9 +49,9 @@ export function toriFeed(c) {
   const r = rngOf("feed" + c.st + c.turn), S = tagSt(c.st), tags = toriTrends(c), T = (i) => (tags[i] || tags[0] || { tag: "#" + S }).tag, out = [];
   // Each citizen posts once before anyone posts again.
   const order = PEOPLE.map(p => [r(), p]).sort((a, b) => a[0] - b[0]).map(x => x[1]); let oi = 0; const nextP = () => order[oi++ % order.length];
-  const post = (p, text, heat, extra) => out.push({ id: "f" + out.length, kind: "citizen", name: p.who, sub: p.what, handle: "@" + p.h, art: p.art, text, ago: ago(r, out.length), ...counts(r, heat), ...(extra || {}) });
+  const post = (p, text, heat, extra) => out.push({ id: "t" + hash(text), kind: "citizen", name: p.who, sub: p.what, handle: "@" + p.h, art: p.art, text, ago: ago(r, out.length), ...counts(r, heat), ...(extra || {}) });
   // The complaints: the people waiting for an answer, first.
-  (c.complaints || []).forEach((q, i) => out.push({ id: "q" + q.id, kind: "complaint", complaint: q.id, name: q.who.split(",")[0], sub: q.place || "", handle: "@" + String(q.who.split(",")[0]).toLowerCase().replace(/[^a-z]/g, "_") + "_" + tagSt(c.st).toLowerCase().slice(0, 4), art: null, who: q.who, text: (q.icon ? q.icon + " " : "") + q.t + " " + toriHandle(c.st), ago: ago(r, i), ...counts(r, 2), answered: q.answered, lied: q.lied }));
+  (c.complaints || []).forEach((q, i) => out.push({ id: "q" + q.id + "_" + c.turn, kind: "complaint", complaint: q.id, name: q.who.split(",")[0], sub: q.place || "", handle: "@" + String(q.who.split(",")[0]).toLowerCase().replace(/[^a-z]/g, "_") + "_" + tagSt(c.st).toLowerCase().slice(0, 4), art: null, who: q.who, text: (q.icon ? q.icon + " " : "") + q.t + " " + toriHandle(c.st), ago: ago(r, i), ...counts(r, 2), answered: q.answered, lied: q.lied }));
   (c.strikes || []).forEach(s => {
     if (/ASUU/i.test(s.short)) { post(nextP(), pick(r, ["Year " + s.years + " of this ASUU strike. My mates in other states don graduate. " + T(0), "Una say una go settle ASUU. We still dey house. " + toriHandle(c.st) + " wetin dey happen?", "Lecturers no dey paid, we no dey school. Who this one help? " + T(0)]), 3); }
     else post(nextP(), pick(r, ["The " + s.short + " strike is in year " + s.years + ". Hospitals empty, offices locked. " + T(0), "No light, no water, no work. " + s.short + " strike still dey. " + toriHandle(c.st) + " do something!"]), 3);
@@ -63,17 +63,30 @@ export function toriFeed(c) {
   (c.needs || []).slice(0, 2).forEach(n => post(nextP(), pick(r, [n.title + ". We don cry tire. " + toriHandle(c.st), n.title + ". Is anybody in Government House reading this?"]), 2));
   if (c.cor > .45) post(nextP(), pick(r, ["Contracts to friends, roads to nowhere. " + stNm(c.st) + " deserves better. #" + S + "Looted", "Ask yourself where the FAAC money goes every month. Just ask."]), 2);
   if (c.app >= 60) post(nextP(), pick(r, ["Honestly this governor is trying. Not perfect, but trying. #" + S + "IsWorking", "First time in years I see government people in my village."]), 1, { tone: "good" });
+  // What really happened this year: the local news account posts it, a citizen reacts to it.
+  const NEWS = { name: stNm(c.st) + " News Now", sub: "News", handle: "@" + S + "NewsNow", art: "anchor-female", verified: true };
+  const PRAISE = ["Finally! 👏🏾", "Credit where it's due.", "This one sweet me. Well done " + toriHandle(c.st) + ".", "Good. Now keep the same energy.", "We see you 🙌🏾"];
+  const DOUBT = ["Na so dem dey talk every year.", "Talk is cheap. We will see on the ground.", "And who will this one benefit? Their friends?", "Who did this help in my area?"];
+  const ANGER = ["This is unacceptable. " + toriHandle(c.st) + " explain yourself.", "Every day a new wahala. " + stNm(c.st) + " deserves better.", "We are tired of this government.", "E don do! 😤"];
+  (c.events || []).slice(0, 6).forEach((e, i) => {
+    const id = "n" + hash(e.text + c.turn), hot = e.good ? 1 : 2;
+    out.push({ id, kind: "news", ...NEWS, text: e.text, ago: ago(r, i + 1), ...counts(r, hot), tone: e.good ? "good" : "bad" });
+    const p = nextP(), mood = e.good ? (c.app >= 45 ? PRAISE : DOUBT) : ANGER;
+    out.push({ id: id + "r", kind: "citizen", name: p.who, sub: p.what, handle: "@" + p.h, art: p.art, text: pick(r, mood), quote: { name: NEWS.name, text: e.text }, ago: ago(r, i + 2), ...counts(r, hot), tone: e.good ? "good" : "bad" });
+  });
   // The press and the party.
-  if (c.reporter) out.push({ id: "press", kind: "press", name: c.reporter, sub: "Investigative reporter", handle: "@" + c.reporter.split(" ")[0].toLowerCase() + "_reports", art: "reporter", text: c.cor > .4 ? "Working on a story about how contracts are awarded in " + stNm(c.st) + ". DMs open for documents." : "Approval for " + toriHandle(c.st) + " is at " + Math.round(c.app) + "% in our latest street poll. Thread 🧵", ago: ago(r, 5), ...counts(r, 2), verified: true });
-  if (c.house) out.push({ id: "speaker", kind: "party", name: c.speaker || "The Speaker", sub: "Speaker, House of Assembly", handle: "@" + tagSt(c.st) + "Assembly", art: "lawmaker-opposition-leader", text: c.house.loyal * 2 >= c.house.seats ? "The House stands with the people of " + stNm(c.st) + ". Bills that serve them will pass." : "The House will not be a rubber stamp. " + (c.house.seats - c.house.loyal) + " members have questions for the executive.", ago: ago(r, 6), ...counts(r, 1), verified: true });
+  if (c.reporter) out.push({ id: "press" + c.turn, kind: "press", name: c.reporter, sub: "Investigative reporter", handle: "@" + c.reporter.split(" ")[0].toLowerCase() + "_reports", art: "reporter", text: c.cor > .4 ? "Working on a story about how contracts are awarded in " + stNm(c.st) + ". DMs open for documents." : "Approval for " + toriHandle(c.st) + " is at " + Math.round(c.app) + "% in our latest street poll. Thread 🧵", ago: ago(r, 5), ...counts(r, 2), verified: true });
+  if (c.house) out.push({ id: "speaker" + c.turn, kind: "party", name: c.speaker || "The Speaker", sub: "Speaker, House of Assembly", handle: "@" + tagSt(c.st) + "Assembly", art: "lawmaker-opposition-leader", text: c.house.loyal * 2 >= c.house.seats ? "The House stands with the people of " + stNm(c.st) + ". Bills that serve them will pass." : "The House will not be a rubber stamp. " + (c.house.seats - c.house.loyal) + " members have questions for the executive.", ago: ago(r, 6), ...counts(r, 1), verified: true });
   // Order: mix by heat, complaints first.
-  const q = out.filter(x => x.kind === "complaint"), rest = out.filter(x => x.kind !== "complaint").sort((a, b) => b.likes - a.likes);
-  return [...q, ...rest];
+  const q = out.filter(x => x.kind === "complaint"), news = out.filter(x => x.kind === "news" || x.quote), rest = out.filter(x => x.kind !== "complaint" && x.kind !== "news" && !x.quote).sort((a, b) => b.likes - a.likes);
+  const mixed = []; let ni = 0; rest.forEach((x, i) => { if (i % 2 === 0 && ni < news.length) { mixed.push(news[ni++]); if (news[ni] && news[ni].quote) mixed.push(news[ni++]); } mixed.push(x); });
+  while (ni < news.length) mixed.push(news[ni++]);
+  return [...q, ...mixed];
 }
 
 export function toriOpposition(c) {
   const r = rngOf("opp" + c.st + c.turn), S = tagSt(c.st), nm = c.oppName || "The opposition candidate", party = c.oppParty || "the opposition", out = [];
-  const post = (text, heat) => out.push({ id: "o" + out.length, kind: "opposition", name: nm, sub: party + " candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", text, ago: ago(r, out.length), ...counts(r, heat), verified: true });
+  const post = (text, heat) => out.push({ id: "o" + hash(text), kind: "opposition", name: nm, sub: party + " candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", text, ago: ago(r, out.length), ...counts(r, heat), verified: true });
   if (c.app < 50) post("Approval at " + Math.round(c.app) + "%. The people have spoken. " + S + " deserves a government that works. #" + S + "DeservesBetter", 3);
   else post("They will show you ribbons and photos. Ask them about the debt they are piling on your children.", 2);
   (c.strikes || []).forEach(s => post("Day after day of the " + s.short + " strike and " + toriHandle(c.st) + " is posting photos. Our children are at home. Shameful.", 3));
@@ -123,3 +136,30 @@ export function toriReact(opt, c, seed) {
 }
 
 export const TORI_POSTS_PER_YEAR = 3;
+export const TORI_COMMENTS_PER_YEAR = 6;
+
+/* What the governor can reply under a tweet. fx: what it does to approval; truth: false when the record says otherwise
+   (the reply gets called out). */
+export function toriComments(t, c) {
+  const S = stNm(c.st), out = [];
+  if (t.kind === "opposition") {
+    const fair = (c.arrears > 0 && /salar/i.test(t.text)) || ((c.strikes || []).length && /strike/i.test(t.text)) || (c.app < 50 && /%/.test(t.text)) || ((c.fled || []).some(f => !f.asked) && /contractor|money/i.test(t.text));
+    out.push({ id: "rebut", text: "That is not true. Check the record: " + S + " is moving forward.", truth: !fair, fx: { app: fair ? -1 : 1 } });
+    out.push({ id: "work", text: "We are busy working. Results will speak.", truth: true, fx: {} });
+  } else if (t.tone === "good") {
+    out.push({ id: "thanks", text: "Thank you! This is just the beginning 🙏🏾", truth: true, fx: { app: 1 } });
+    out.push({ id: "credit", text: "Credit to the team that made it happen.", truth: true, fx: {} });
+  } else {
+    out.push({ id: "onit", text: "We hear you. We are on it.", truth: true, fx: {}, promise: true });
+    out.push({ id: "sorry", text: "You are right to be angry. We will do better.", truth: true, fx: { app: 1 } });
+    out.push({ id: "deny", text: "This is not true. Don't believe everything you read.", truth: false, fx: { app: -1 } });
+  }
+  return out;
+}
+/* The people's answer to the governor's reply. */
+export function toriCommentReact(opt, c, seed) {
+  const r = rngOf("cr" + seed);
+  if (opt.truth === false) return { replies: [{ name: pick(r, PEOPLE).who, text: pick(r, ["Ehn? Not true? We are living it.", "Screenshot. This one will age badly.", "Ratio + you know what you did."]) }], line: "Called out" };
+  if (opt.promise) return { replies: [{ name: pick(r, PEOPLE).who, text: pick(r, ["We are holding you to this.", "We dey wait. Na your word be this.", "Okay. Next year we will check."]) }], line: "Noted" };
+  return { replies: [{ name: pick(r, PEOPLE).who, text: pick(r, ["❤️", "Respect for replying!", "This is the kind of governor we want.", "The governor replied me 😭🙌🏾"]) }], line: "Liked" };
+}
