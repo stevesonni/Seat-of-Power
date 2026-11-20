@@ -7455,7 +7455,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const done = (projects || []).filter(p => p.status === "delivered").slice(-2).map(p => p.title);
     const fled = (projects || []).filter(p => p.fled && !p.japaRecovered).map(p => ({ proj: p.title, firm: p.fledFirm || "The contractor", to: p.fledTo || "abroad", lossM: p.fledM || 0, back: false, asked: (stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id) }));
     const needs = activeNeeds.filter(n => n.status !== "resolved").slice(0, 3).map(n => { const nt = needType(n); return { title: nt ? nt.title(n.lga) : "A need", inWork: n.status !== "open" }; });
-    const complaints = NAT ? [] : complaintsNow().map(c => ({ id: c.id, who: c.who, place: c.place, t: c.t, icon: c.icon, answered: !!(cm[c.id] && cm[c.id].t === turn), lied: !!c.lied }));
+    const complaints = complaintsNow().map(c => ({ id: c.id, who: c.who, place: c.place, t: c.t, icon: c.icon, answered: !!(cm[c.id] && cm[c.id].t === turn), lied: !!c.lied }));
     let tag = ""; try { tag = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: null, turn }).tag; } catch (e) {}
     // This year's real events, as the local news would put them.
     const events = logs.filter(l => l.t === turn && ["policy", "success", "crisis", "political", "scandal"].includes(l.tp)).slice(0, 8)
