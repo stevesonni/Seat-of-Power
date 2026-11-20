@@ -13606,7 +13606,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               if (FGp) { const f0 = st0.flagship; rows.push({ icon: "🚀", text: "Flagship: " + FGp.nm, st: f0 && f0.targets ? (f0.met === f0.targets ? "kept" : "behind") : "open", note: f0 && f0.targets ? f0.met + " of " + f0.targets + " yearly targets met" : "first yearly target comes up at the end of the year" }); }
               if (sdS) rows.push({ icon: "📣", text: "Slogan: " + sdS.promise, st: lastSl ? (/holds/.test(lastSl.tx) ? "kept" : "broken") : "open", note: "checked once a year" });
               pr.filter(p => p.term === term).forEach(p => rows.push({ icon: "📍", text: p.text, st: p.status === "pending" ? "open" : p.status, note: p.status === "pending" ? "answer " + (/^[aeiou]/i.test(SECTOR_NAME[p.sector] || p.sector) ? "an " : "a ") + (SECTOR_NAME[p.sector] || p.sector).toLowerCase() + " need in " + zoneName(p.zone) + " or lift it statewide by the " + (term === 2 ? "end of your tenure" : "re-election") : null }));
-              if (!rows.length) return null;
+              if (true || !rows.length) return null; // the owner took the promises row off the Desk (20 Nov 2026)
               const tone = { kept: [CL.grn, "✓ Kept"], broken: [CL.red, "✗ Broken"], behind: [CL.org, "Behind"], open: [CL.td, "Open"] };
               const cnt = (k) => rows.filter(r0 => r0.st === k).length;
               const sum = [cnt("kept") && cnt("kept") + " kept", cnt("broken") && cnt("broken") + " broken", cnt("behind") && cnt("behind") + " behind", cnt("open") && cnt("open") + " open"].filter(Boolean).join(" · ");
