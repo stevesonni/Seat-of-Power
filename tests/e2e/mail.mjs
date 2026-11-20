@@ -61,7 +61,7 @@ if (!/The tray is clear/.test(t)) { console.log("  screen:", t.slice(0, 1400).re
 check(/The tray is clear/.test(t), "with the tray clear, the year can move on");
 await g.click(/^The tray is clear/); await g.wait(1500); await okay(g); await g.wait(1000);
 t = await g.txt();
-check(/drafted by Finance alone/i.test(t) || await findLetter(g, /drafted by Finance alone/i), "next year's budget arrives as a letter, from Finance (no Budget & Planning commissioner)");
+const fl = /drafted by Finance alone/i.test(t) || await findLetter(g, /drafted by Finance alone/i); if (!fl) console.log("  SCREEN:", (await g.txt()).slice(0, 900).replace(/\n/g, " · ")); check(fl, "next year's budget arrives as a letter, from Finance (no Budget & Planning commissioner)");
 if (!/drafted by Finance alone/i.test(await g.txt())) await findLetter(g, /drafted by Finance alone/i);
 await g.wait(300); await g.click(/^(Hand it to|Insist:|Noted)/); await g.wait(800); await okay(g);
 const d = await g.page.evaluate(() => { try { return { log: document.body.innerText } ; } catch (e) { return {}; } });
