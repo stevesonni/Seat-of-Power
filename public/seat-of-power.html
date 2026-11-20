@@ -946,6 +946,10 @@
      to, it says the game is saved and how to leave (Home in the menu). */
   (function () {
     try { if (!history.state || !history.state.sop) history.pushState({ sop: 1 }, ""); } catch (e) { return; }
+    // Phone browsers skip a history entry added before the player has touched the page, so Back left the game
+    // (a player lost their place from the year-end screen, 20 Nov 2026). Add the entry again on the first touch.
+    function arm() { try { if (!(history.state && history.state.u)) history.pushState({ sop: 1, u: 1 }, ""); } catch (e) {} removeEventListener("pointerdown", arm, true); removeEventListener("keydown", arm, true); }
+    addEventListener("pointerdown", arm, true); addEventListener("keydown", arm, true);
     var BACK = /^(←\s*)?(Back|Close|Not now|Later|Hang up|Cancel|✕|×)$/i;
     function vis(e) { var r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden"; }
     function backIn(root) {

@@ -7326,6 +7326,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const gfFree = () => { setGodfatherPower(0); setStc(p => ({ ...p, gf: p.gf === "dead" ? p.gf : "freed" }));
     try { const M = window.SOP_MEMORY; (M && M.owed ? M.owed("godfather") : []).forEach(d => M.settle(d.id, "Free of him")); } catch (e) {} };
   // The godfather's pay-off, and any other scenario action, from the Desk strip.
+  const [yearFull, setYearFull] = useState(false); // the full year review sheet, from the end-of-year screen
   const [scenChat, setScenChat] = useState(null); // the adviser's chat about the logjam: null | {} | { me: "your reply" }
   const scenAction = (a) => { const cost = SYS.scenarioCostB(a, scenRevB()); if (cost && !spendB(cost, a.l)) return;
     scenApply({ ...a, cost: 0, costPct: 0 }); if (a.set && a.set.freed) gfFree(); addL("🎩 " + a.say, "political"); scWiki("Governorship", a.l + ".");
@@ -13156,6 +13157,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "gov" && !liteToday && !needSetup && LabourDesk()}
         <OL show={!!table}>{table && RoundTable()}</OL>
         <OL show={!!scenChat}>{scenChat && scenChatView()}</OL>
+        <OL show={yearFull}>{yearFull && (() => {
+          // Everything that happened this year, newest first, with where the meters ended (players asked for the full report).
+          const L = logs.filter(l => l.t === turn), tall = TALL(), good = (l) => ["policy", "success"].includes(l.tp), bad = (l) => ["crisis", "scandal", "warn"].includes(l.tp);
+          const m = [["icon-approval", "Approval", Math.round(s.app) + "%"], ["icon-bank", "Bank", naira(s.cash || 0)], ["icon-party", "Party", Math.round(s.pStab) + "%"], ["icon-corruption", "Corruption", Math.round(s.cor * 100) + "%"]];
+          return <Cd style={{ maxWidth: 820 }}><div data-testid="year-full">
+            <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: tall ? TS(26) : TS(40), margin: "0 0 4px" }}>📋 {yr.split(" (")[0].replace(" — ", " · ")} in full</h3>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, margin: "10px 0 14px" }}>{m.map(([ic, l, v]) => <div key={l} style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 12, padding: "8px 4px", textAlign: "center" }}><img src={"./art/icons/" + ic + ".webp"} alt="" style={{ width: 24, height: 24 }} /><b style={{ display: "block", fontSize: tall ? TS(16) : TS(22), color: CL.txt }}>{v}</b><span style={{ fontSize: tall ? TS(12) : TS(16), color: CL.td }}>{l}</span></div>)}</div>
+            {L.length ? <div style={{ display: "grid", gap: 6 }}>{L.map((l, k) => <div key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: tall ? TS(15) : TS(21), color: CL.txt, lineHeight: 1.4, padding: "8px 10px", borderRadius: 10, background: good(l) ? CL.grn + "10" : bad(l) ? CL.red + "0d" : CL.card, border: "1px solid " + CL.bdr }}>
+              <span style={{ color: good(l) ? CL.grn : bad(l) ? CL.red : CL.td, fontWeight: 800 }}>{good(l) ? "▲" : bad(l) ? "▼" : "•"}</span><span style={{ minWidth: 0 }}>{String(l.tx).replace(/^[^A-Za-z₦"“0-9]+/, "")}</span></div>)}</div>
+              : <div style={{ fontSize: tall ? TS(16) : TS(22), color: CL.td }}>A quiet year: nothing to report.</div>}
+            <div style={{ marginTop: 14 }}><Bt onClick={() => setYearFull(false)} style={{ width: "100%" }}>Close</Bt></div>
+          </div></Cd>; })()}</OL>
         {nav === "gov" && !liteToday && !needSetup && !NAT && opens(2) && lgaToursLeft() > 0 && <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 12px" : "0 auto 16px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, padding: TALL() ? "10px 12px" : "14px 18px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12, alignItems: "center" }}>
           <Ico n="icon-lga-tour" s={TALL() ? 52 : 68} />
           <div style={{ minWidth: 0 }}><b style={{ fontSize: TALL() ? TS(20) : TS(28), color: CL.txt }}>Tour a local government</b>
@@ -15719,7 +15732,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                   </section>}
                   {achPopup && <section className="card year"><h3>🏆 {achPopup.nm}</h3><div className="ln g"><span>{achPopup.i} {achPopup.d}</span></div></section>}
                   <div className="acts">
-                    <button className="btn btn-sec" onClick={() => { try { window.SOP_CIVIC && window.SOP_CIVIC.showReview(); } catch (e) {} }}>📋 Full year review</button>
+                    <button className="btn btn-sec" onClick={() => setYearFull(true)}>📋 Full year review</button>
                     <button className="btn btn-main" onClick={() => { turn >= MT ? advance() : buildEventQueue(); }}>{turn >= MT ? "View the results" : "Continue"}</button>
                   </div>
                 </div>
