@@ -1535,3 +1535,10 @@ cannot chase money abroad; only the Federal Government can ask the other country
 - Leagues (server/leagues.mjs), like Duolingo: Ward → Council → Assembly → Senate → Villa. Each Monday: top 30% of a league's players that week go up (at least one), bottom 20% go down in a league of 5+, and anyone above the first league who did not play drops one. Each league's head start is applied once at the start of every new governorship: Council ₦1B; Assembly ₦2B +2 approval; Senate ₦3B +3 approval +3 party; Villa ₦4B +5 approval +5 party + gold frame. Dropping loses it.
 - The Hall shows the league card (ladder, rank this week, zone, days left); board rows show each player's league icon; a move up or down is told once after Monday.
 - /api/hall/league (Lagos Life) and /api/web/hall/league (website). Tests: tests/leagues.test.mjs, tests/e2e/web-account.mjs.
+
+## Tori, the state's Twitter-style feed (20 Nov 2026)
+
+- Replaces the street's WhatsApp group. The Desk row: faces, "Tori @OgunGov", "2 people tagged you · #PayOurSalariesOgun is trending". A tap opens Tori full screen: For you, Trending, Opposition, and the governor's own @<State>Gov profile (portrait, followers, posts with replies).
+- Written by the game from the state of play (game/systems/tori.js; no live AI): citizens (English and Pidgin), the reporter, the Speaker and the opposition candidate; hashtags from strikes (#ASUUStrike, #<State>StudentsAtHome), unpaid salaries (#PayOurSalaries<State>), fled contractors (#WhereIsOurMoney), finished projects (#…IsOpen), approval and corruption. Complaints are tweets tagging the governor, with ↩ Reply (the existing complaint answers).
+- ✍️ posts: up to 3 a year, chosen from claims built from the record. True and popular: likes and approval +1/+2. A claim the record does not back (salaries "paid" while owed, strike talks never held, a need not in work, chasing a japa never reported): ratioed in the replies, approval −2.
+- Tests: tests/tori.test.mjs, tests/e2e/complaints.mjs.

@@ -7354,7 +7354,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const gfFree = () => { setGodfatherPower(0); setStc(p => ({ ...p, gf: p.gf === "dead" ? p.gf : "freed" }));
     try { const M = window.SOP_MEMORY; (M && M.owed ? M.owed("godfather") : []).forEach(d => M.settle(d.id, "Free of him")); } catch (e) {} };
   // The godfather's pay-off, and any other scenario action, from the Desk strip.
-  const [streetOpen, setStreetOpen] = useState(false); // the street as a WhatsApp group
+  const [streetOpen, setStreetOpen] = useState(false); // Tori, the state's Twitter-style feed (SYS.tori)
+  const [toriTab, setToriTab] = useState("home"), [toriCompose, setToriCompose] = useState(false);
   const [yearFull, setYearFull] = useState(false); // the full year review sheet, from the end-of-year screen
   const [scenChat, setScenChat] = useState(null); // the adviser's chat about the logjam: null | {} | { me: "your reply" }
   const scenAction = (a) => { const cost = SYS.scenarioCostB(a, scenRevB()); if (cost && !spendB(cost, a.l)) return;
@@ -7437,6 +7438,84 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     </div>;
   };
   const advFirst = () => { const n = (saOffice.adviser && saOffice.adviser.name) || "your adviser"; return n.replace(/^(Prof\.|Dr\.|Hajiya|Alhaji|Chief|Barr\.|Engr\.|Mrs?\.)\s+/, "").split(" ")[0]; };
+  /* Tori (SYS.tori): the state's own Twitter-style feed. Citizens, the press, the Speaker and the opposition post about
+     how the state is run; complaints are tweets that tag the governor; the governor posts up to 3 times a year. */
+  const toriCtx = () => {
+    const L = stc.labour || {}, cm = stc.complaints || {};
+    const strikes = Object.values(L.strikes || {}).filter(x => x && x.on).map(x => ({ id: x.id, short: (SYS.UNIONS[x.id] || {}).short || x.id, years: SYS.yearsOn(x, turn) + 1, talks: roundsLeft(x.id) < SYS.ROUNDS_A_YEAR }));
+    const done = (projects || []).filter(p => p.status === "delivered").slice(-2).map(p => p.title);
+    const fled = (projects || []).filter(p => p.fled && !p.japaRecovered).map(p => ({ proj: p.title, firm: p.fledFirm || "The contractor", to: p.fledTo || "abroad", lossM: p.fledM || 0, back: false, asked: (stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id) }));
+    const needs = activeNeeds.filter(n => n.status !== "resolved").slice(0, 3).map(n => { const nt = needType(n); return { title: nt ? nt.title(n.lga) : "A need", inWork: n.status !== "open" }; });
+    const complaints = NAT ? [] : complaintsNow().map(c => ({ id: c.id, who: c.who, place: c.place, t: c.t, icon: c.icon, answered: !!(cm[c.id] && cm[c.id].t === turn), lied: !!c.lied }));
+    let tag = ""; try { tag = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: null, turn }).tag; } catch (e) {}
+    return { st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs, govName: pName, oppName: cast.rival && cast.rival.name, reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints };
+  };
+  const toriPosts = () => ((stc.tori || {}).posts || []);
+  const toriPost = (opt) => {
+    const c = toriCtx(), R = SYS.toriReact(opt, c, turn + ":" + opt.id + ":" + toriPosts().length);
+    setStc(p => ({ ...p, tori: { ...(p.tori || {}), posts: [...((p.tori || {}).posts || []), { turn, id: opt.id, text: opt.text, likes: R.likes, rts: R.rts, replies: R.replies, ratio: R.ratio, line: R.line }].slice(-30) } }));
+    if (R.fx.app) scFx(R.fx);
+    addL("🐦 You posted on Tori: \u201c" + opt.text + "\u201d " + R.line, R.ratio ? "political" : "info");
+    setToriCompose(false); setToriTab("me"); track("tori_post", opt.id + (R.ratio ? ":ratio" : ""));
+    try { window.SOP_impact && window.SOP_impact({ icon: R.ratio ? "😬" : "🐦", title: R.ratio ? "Ratioed" : "Posted", text: R.line }); } catch (e) {}
+  };
+  const toriScreen = () => {
+    const c = toriCtx(), tall = TALL(), me = SYS.toriHandle(state), feed = SYS.toriFeed(c), trends = SYS.toriTrends(c), opp = SYS.toriOpposition(c);
+    const left = SYS.TORI_POSTS_PER_YEAR - toriPosts().filter(p => p.turn === turn).length, myPic = AVATAR_IMGS[setup?.avatar] || "./art/characters/governor.webp";
+    const blue = "#1d9bf0", ink = "#0f1419", sub = "#536471", line = "#eff3f4", fs = tall ? TS(15) : TS(20);
+    const rich = (t) => String(t).split(/([#@][A-Za-z0-9_]+)/).map((x, k) => /^[#@]/.test(x) ? <span key={k} style={{ color: blue }}>{x}</span> : x);
+    const pic = (art, who) => <img src={"./art/characters/" + (art || voiceArt(who)) + ".webp"} alt="" style={{ width: tall ? 40 : 52, height: tall ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />;
+    const acts = (x) => <div style={{ display: "flex", gap: 22, marginTop: 8, color: sub, fontSize: tall ? TS(13) : TS(17) }}><span>💬 {SYS.fmtCount(x.replies || 0)}</span><span>🔁 {SYS.fmtCount(x.rts || 0)}</span><span>♡ {SYS.fmtCount(x.likes || 0)}</span></div>;
+    const tweet = (x) => <div key={x.id} data-sop-tweet={x.kind} style={{ display: "flex", gap: 10, padding: tall ? "12px 14px" : "16px 20px", borderBottom: "1px solid " + line, background: "#fff" }}>
+      {x.art === "__me" ? <img src={myPic} alt="" style={{ width: tall ? 40 : 52, height: tall ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} /> : pic(x.art, x.who || x.name)}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: fs, color: sub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><b style={{ color: ink }}>{x.name}</b>{x.verified && <span style={{ color: blue }}> ✓</span>} {x.handle} · {x.ago}</div>
+        <div style={{ fontSize: fs, color: ink, lineHeight: 1.4, marginTop: 2 }}>{rich(x.text)}</div>
+        {x.kind === "complaint" && <button onClick={() => { const q = complaintsNow().find(k => k.id === x.complaint); if (q) { setStreetOpen(false); setComplaint(q); } }} style={{ marginTop: 8, minHeight: 36, padding: "4px 14px", borderRadius: 999, border: "1.5px solid " + (x.answered ? CL.grn : x.lied ? CL.red : blue), background: "#fff", color: x.answered ? CL.grn : x.lied ? CL.red : blue, fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(13) : TS(18), cursor: "pointer" }}>{x.answered ? "✓ You replied" : x.lied ? "\u201cYou lied\u201d · reply again" : "↩ Reply"}</button>}
+        {x.mine && (x.replyList || []).length > 0 && <div style={{ marginTop: 8, borderLeft: "2px solid " + line, paddingLeft: 10, display: "grid", gap: 6 }}>{x.replyList.map((rp, k) => <div key={k} style={{ fontSize: tall ? TS(14) : TS(18), color: ink }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div>)}</div>}
+        {acts(x)}
+      </div>
+    </div>;
+    const mine = toriPosts().slice().reverse().map((p, k) => ({ id: "m" + k, kind: "mine", mine: true, art: "__me", name: (NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop(), verified: true, handle: me, ago: p.turn === turn ? "this year" : "year " + p.turn, text: p.text, likes: p.likes, rts: p.rts, replies: (p.replies || []).length, replyList: p.replies }));
+    const tabs = [["home", "For you"], ["trends", "Trending"], ["opp", "Opposition"], ["me", me]];
+    const opts = SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id));
+    return <div data-testid="tori" style={{ minHeight: "100%", display: "flex", flexDirection: "column", background: "#fff" }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(255,255,255,.96)", borderBottom: "1px solid " + line }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: tall ? "8px 12px" : "12px 18px" }}>
+          <button onClick={() => { setStreetOpen(false); setToriCompose(false); }} aria-label="Back" style={{ background: "transparent", border: 0, color: ink, fontSize: tall ? TS(22) : TS(30), cursor: "pointer", minHeight: 44, minWidth: 36 }}>←</button>
+          <b style={{ flex: 1, textAlign: "center", fontFamily: F.d, fontSize: tall ? TS(24) : TS(34), color: ink, letterSpacing: -.5 }}>tori<span style={{ color: blue }}>.</span></b>
+          <img src={myPic} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4" }} />
+        </div>
+        <div role="tablist" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>{tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={toriTab === k} onClick={() => { setToriTab(k); setToriCompose(false); }} style={{ background: "transparent", border: 0, borderBottom: "3px solid " + (toriTab === k ? blue : "transparent"), padding: "10px 2px", minHeight: 44, fontFamily: F.b, fontWeight: toriTab === k ? 800 : 600, color: toriTab === k ? ink : sub, fontSize: tall ? TS(13) : TS(18), cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l}</button>)}</div>
+      </div>
+      <div style={{ flex: 1, maxWidth: 820, width: "100%", margin: "0 auto" }}>
+        {toriCompose ? <div data-testid="tori-compose" style={{ padding: tall ? 14 : 20 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}><img src={myPic} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} /><b style={{ color: ink, fontSize: fs }}>What's happening in {stName}?</b></div>
+            <div style={{ fontSize: tall ? TS(13) : TS(17), color: sub, marginBottom: 10 }}>{left} post{left === 1 ? "" : "s"} left this year. People check what you claim against what you've done.</div>
+            <div style={{ display: "grid", gap: 8 }}>{opts.map(o => <button key={o.id} data-sop-tori-opt={o.id} onClick={() => toriPost(o)} style={{ textAlign: "left", background: "#fff", border: "1px solid " + line, borderRadius: 16, padding: "10px 12px", fontFamily: F.b, fontSize: fs, color: ink, lineHeight: 1.4, cursor: "pointer" }}>{rich(o.text)}</button>)}</div>
+            <div style={{ marginTop: 12 }}><Bt v="ghost" onClick={() => setToriCompose(false)} style={{ width: "100%" }}>Cancel</Bt></div>
+          </div>
+          : toriTab === "home" ? <div>{feed.map(tweet)}</div>
+          : toriTab === "trends" ? <div>{trends.map(t => <div key={t.tag} data-sop-trend style={{ padding: tall ? "10px 14px" : "14px 20px", borderBottom: "1px solid " + line }}>
+              <div style={{ fontSize: tall ? TS(12) : TS(16), color: sub }}>{t.rank} · Trending in {stName}</div>
+              <b style={{ display: "block", fontSize: fs, color: ink }}>{t.tag}</b>
+              <div style={{ fontSize: tall ? TS(12) : TS(16), color: sub }}>{t.count} posts · {t.about}</div></div>)}</div>
+          : toriTab === "opp" ? <div>{opp.map(tweet)}</div>
+          : <div>
+              <div style={{ height: tall ? 90 : 130, background: "linear-gradient(120deg, #0f3d24, #1d6a3f)" }} />
+              <div style={{ padding: "0 14px 10px", borderBottom: "1px solid " + line }}>
+                <img src={myPic} alt="" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, borderRadius: "50%", objectFit: "cover", objectPosition: "top", border: "4px solid #fff", marginTop: tall ? -36 : -48, background: "#e8dcc4" }} />
+                <b style={{ display: "block", fontSize: tall ? TS(19) : TS(26), color: ink }}>{(NAT ? "President " : "Governor ") + pName} <span style={{ color: blue }}>✓</span></b>
+                <div style={{ color: sub, fontSize: fs }}>{me}</div>
+                <div style={{ color: ink, fontSize: fs, marginTop: 6 }}>Official account of the {NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State"}.</div>
+                <div style={{ color: sub, fontSize: tall ? TS(13) : TS(17), marginTop: 6 }}><b style={{ color: ink }}>{SYS.fmtCount(20000 + s.app * 1800 + toriPosts().reduce((a, p) => a + (p.likes || 0) / 4, 0))}</b> followers</div>
+              </div>
+              {mine.length ? mine.map(tweet) : <div style={{ padding: 20, color: sub, fontSize: fs }}>You haven't posted yet. Tap ✍️ to tell {stName} what you're doing.</div>}
+            </div>}
+      </div>
+      {!toriCompose && left > 0 && <button data-sop-tori-compose onClick={() => setToriCompose(true)} aria-label="Post" style={{ position: "fixed", right: 16, bottom: "calc(20px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: "50%", border: 0, background: blue, color: "#fff", fontSize: 24, boxShadow: "0 6px 18px rgba(29,155,240,.45)", cursor: "pointer", zIndex: 3 }}>✍️</button>}
+    </div>;
+  };
   // The adviser's chat about the logjam: what it is, what it is doing to you, what could save you, and the choices as replies.
   const scenChatView = () => {
     if (!scenR || !stc.scen) return null;
@@ -13306,33 +13385,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const bub = { background: "#fff", borderRadius: "4px 16px 16px 16px", padding: tall ? "8px 12px" : "12px 16px", fontSize: tall ? TS(16) : TS(22), color: CL.txt, boxShadow: "0 1px 0 rgba(0,0,0,.08)", lineHeight: 1.4 };
               const nameCol = ["#c0392b", "#1d6a3f", "#7b3fa0", "#b9770e", "#1f6fb2"];
               return <>
-                <button data-sop-street onClick={() => setStreetOpen(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: F.b, textAlign: "left" }}>
+                <button data-sop-street onClick={() => { setStreetOpen(true); setToriTab("home"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: F.b, textAlign: "left" }}>
                   <span style={{ display: "flex", flex: "none" }}>{faces.map(face)}</span>
-                  <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontFamily: F.d, fontSize: tall ? TS(22) : TS(34), color: CL.txt }}>The street</b>
-                    <span style={{ fontSize: fz.s, color: waiting ? CL.org : CL.td, fontWeight: 700 }}>{waiting ? waiting + " " + (waiting === 1 ? "person wants" : "people want") + " an answer" : sv.tag}</span></span>
-                  {waiting > 0 && <span style={{ background: "#25d366", color: "#fff", borderRadius: 999, minWidth: 26, height: 26, display: "grid", placeItems: "center", fontWeight: 800, fontSize: fz.s, padding: "0 7px" }}>{waiting}</span>}
+                  <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontFamily: F.d, fontSize: tall ? TS(22) : TS(34), color: CL.txt }}>Tori <span style={{ fontSize: fz.s, color: CL.td, fontFamily: F.b, fontWeight: 700 }}>{SYS.toriHandle(state)}</span></b>
+                    <span style={{ fontSize: fz.s, color: waiting ? CL.org : CL.blu, fontWeight: 700 }}>{waiting ? waiting + " " + (waiting === 1 ? "person tagged" : "people tagged") + " you · " : ""}{(SYS.toriTrends(toriCtx())[0] || {}).tag || sv.tag} is trending</span></span>
+                  {waiting > 0 && <span style={{ background: "#1d9bf0", color: "#fff", borderRadius: 999, minWidth: 26, height: 26, display: "grid", placeItems: "center", fontWeight: 800, fontSize: fz.s, padding: "0 7px" }}>{waiting}</span>}
                   <span style={{ color: CL.td, fontSize: fz.m }}>›</span>
                 </button>
-                {streetOpen && <ChatScreen><div data-testid="street-chat" style={{ minHeight: "100%", display: "flex", flexDirection: "column", background: "#efe7d6" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: tall ? "10px 12px" : "14px 18px", background: "#0f3d24", color: "#fff", position: "sticky", top: 0, zIndex: 1 }}>
-                    <button onClick={() => setStreetOpen(false)} aria-label="Back" style={{ background: "transparent", border: 0, color: "#fff", fontSize: tall ? TS(22) : TS(30), cursor: "pointer", minHeight: 44, minWidth: 36 }}>←</button>
-                    <span style={{ width: tall ? 42 : 56, height: tall ? 42 : 56, borderRadius: "50%", background: "#e8dcc4 url(./art/characters/" + crowd + ".webp) center bottom/cover no-repeat", flex: "none" }} />
-                    <div style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: tall ? TS(17) : TS(24) }}>{stName} Street 🇳🇬</b><span style={{ fontSize: tall ? TS(13) : TS(18), opacity: .75 }}>Trending: {sv.tag}</span></div>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: tall ? 12 : 18, flex: 1, maxWidth: 820, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-                    <div style={{ alignSelf: "center", background: "#fff8dc", color: "#6b5b2a", borderRadius: 10, padding: "4px 12px", fontSize: tall ? TS(13) : TS(18), fontWeight: 700, textAlign: "center" }}>{stc.arrears ? "💸 Workers owed " + stc.arrears + " month" + (stc.arrears === 1 ? "" : "s") : "💸 Salaries paid"} · 🏛️ House {H.loyal} of {H.seats} with you</div>
-                    {cl.length ? <div aria-label="Complaints" style={{ display: "flex", flexDirection: "column", gap: 10 }}>{cl.map((c, k) => { const done = cm[c.id], answered = done && done.t === turn;
-                      return <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        <img src={"./art/characters/" + voiceArt(c.who) + ".webp"} alt="" loading="lazy" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />
-                        <div style={{ ...bub, maxWidth: "86%" }}><b style={{ display: "block", color: nameCol[k % nameCol.length], fontSize: tall ? TS(13) : TS(18) }}>{c.who}{c.place ? " · " + c.place : ""}</b>{c.icon} {c.t}
-                          <button onClick={() => { setStreetOpen(false); setComplaint(c); }} style={{ display: "block", marginTop: 8, minHeight: 40, padding: "6px 14px", borderRadius: 999, border: "2px solid " + (answered ? CL.grn : c.lied ? CL.red : "#1d6a3f"), background: answered ? CL.grn + "14" : "#fff", color: answered ? CL.grn : c.lied ? CL.red : "#1d6a3f", fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(14) : TS(20), cursor: "pointer" }}>{answered ? "✓ Answered" : c.lied ? "“You lied”" : "Answer ›"}</button></div>
-                      </div>; })}</div>
-                      : sv.lines.map((l, k) => <div key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-                        <img src={"./art/characters/" + voiceArt(l.w) + ".webp"} alt="" loading="lazy" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />
-                        <div style={{ ...bub, maxWidth: "86%" }}><b style={{ display: "block", color: nameCol[k % nameCol.length], fontSize: tall ? TS(13) : TS(18) }}>{l.w}</b>{l.t}</div></div>)}
-                    <div style={{ marginTop: 6 }}><Bt v="ghost" onClick={() => setStreetOpen(false)} style={{ width: "100%" }}>Close</Bt></div>
-                  </div>
-                </div></ChatScreen>}
+                {streetOpen && <ChatScreen>{toriScreen()}</ChatScreen>}
               </>; })()}
             {(() => {
               const st0 = story(), FGp = FLAGSHIP[setup?.agenda], sdS = sloganDef(setup?.slogan), term = turn > 4 ? 2 : 1;
