@@ -391,3 +391,8 @@ export const reelFor = (type, id) => {
   const h = String(id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0), k = n > 1 ? h % n + 1 : 1;
   return "./art/reels/" + type + (k > 1 ? "-" + k : "") + ".mp4";
 };
+
+/* A contractor who flees abroad (japa): only the Federal Government can get the money back. The President agrees to
+   intervene when the state's standing with Abuja is at least this high (out of 100); the full amount comes back the
+   next year. */
+export const JAPA_FG_MIN = 55;

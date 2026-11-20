@@ -1484,3 +1484,13 @@ careers, what the game is, and Play now again. The game is at `/play` (and `/sea
 the Railway address, which still opens the game directly; any framed request (Sec-Fetch-Dest: iframe, and a script on
 the page) gets the game, never the landing page. Old links with a code (`/?desk=…`, `/?fed=…`) go straight to
 `/play`. Paystack now returns players to `/play?paid=…`.
+
+## A contractor who flees abroad: only Abuja can get the money back (20 November 2026)
+Player feedback (Gozie): "Contractor go carry money run go Canada and no prosecution." The owner's design: a state
+cannot chase money abroad; only the Federal Government can ask the other country to freeze it and send it home.
+- On the japa card a governor now has **"✈️ Fly to Abuja: ask the President to get it back"** (it shows the standing
+  with Abuja). Standing at least 55/100 (`SYS.JAPA_FG_MIN`): the President promises to intervene; at the next year's
+  close the **exact** sum the contractor ran with is credited to the treasury, with a letter from the
+  Attorney-General, a log line and a front page stating the amount. Below 55: the President declines ("the Federal
+  Government has other priorities"), and the money is gone for now.
+- A President (national game) asks the Attorney-General directly, as before. Test: `tests/e2e/japa.mjs`.
