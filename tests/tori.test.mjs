@@ -51,3 +51,25 @@ test("year costs rise with the stage; tools have trade-offs", () => {
   assert.ok(SYS.toolResult({ id: "presser" }, bad, H, .5).adj > 0, "a press conference with no record backfires");
   assert.equal(SYS.toriTools(bad, H, {})[0].id, "fix");
 });
+
+test("replies fit the post: the months owed, the union, the contractor, and the record decides what's true", () => {
+  const c = { ...base, arrears: 3, debtB: 19.6 };
+  const sal = SYS.toriReplies({ kind: "complaint", name: "Blessing", text: "Na 3 months now dem never pay us. @EbonyiGov" }, c);
+  assert.ok(sal.some(o => /3 months/.test(o.text))); assert.ok(sal.some(o => o.action === "treasury")); assert.ok(sal.some(o => o.truth === false && /Show us the alert|never see alert/.test(o.callout)));
+  assert.ok(/You dey right/.test(sal[0].text), "Pidgin to Pidgin");
+  const str = SYS.toriReplies({ kind: "institution", name: "ASUU Ebonyi Zone", text: "Year 3 of this strike. #ASUUStrike" }, c);
+  assert.ok(str.some(o => /ASUU/.test(o.text) && /Year 3/.test(o.text))); assert.ok(str.some(o => o.action === "roundtable"));
+  const jp = SYS.toriReplies({ kind: "citizen", name: "Emeka", text: "So Kestrel Construction ran to Canada with our money? #WhereIsOurMoney" }, c);
+  assert.ok(jp.some(o => /Kestrel Construction/.test(o.text) && /₦900M/.test(o.text)));
+  assert.notDeepEqual(sal.map(o => o.text), str.map(o => o.text));
+});
+test("every role has its own Tori: the Senate, the LGA, the embassy", () => {
+  const sen = SYS.toriRole({ role: "senate", name: "Ada Okafor", st: "Enugu", n: 2, app: 40, cor: .45, bills: [{ t: "Electoral Act (Amendment) Bill", v: "yes", passed: true }], story: [] });
+  assert.equal(sen.me.handle, "@SenOkafor"); assert.ok(sen.feed.some(x => /Electoral Act/.test(x.text))); assert.ok(sen.feed.some(x => /running costs/.test(x.text)));
+  const lga = SYS.toriRole({ role: "lga", name: "Wale Adegoke", st: "Ogun", lga: "Ifo", n: 1, app: 40, cor: .2, gov: 30, story: ["watched the market road wash away in the rains"] });
+  assert.equal(lga.me.handle, "@IfoLGA"); assert.ok(lga.feed.some(x => /market road wash away/.test(x.text)));
+  const amb = SYS.toriRole({ role: "amb", name: "Ngozi Eze", country: "the Kingdom of Ostrava", city: "Kessenburg", n: 1, app: 40, cor: .2, host: 30, abuja: 30, trade: 0 });
+  assert.equal(amb.me.handle, "@NigeriaInOstrava"); assert.ok(amb.feed.some(x => /summoned the Nigerian ambassador/.test(x.text)));
+  const rr = SYS.toriReplies(sen.feed.find(x => x.topic === "corruption"), { role: "senate", name: "Ada Okafor", st: "Enugu", app: 40, cor: .45 });
+  assert.ok(rr.some(o => /line by line/.test(o.text)));
+});

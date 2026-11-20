@@ -68,10 +68,12 @@ check(/You reposted/.test(meT2) && /Ogun News Now/.test(meT2), "a repost shows o
 await tabT(/^Home$/); await tabT(/^Opposition$/);
 await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=opposition] [data-sop-tori-act=reply]").click()); await g.wait(300);
 const optsR = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-comment]")].map(b => b.getAttribute("data-sop-tori-comment")));
-check(optsR.includes("rebut") && optsR.includes("work"), "a reply to the opposition: rebut it, or say results will speak");
-await g.page.evaluate(() => document.querySelector("[data-sop-tori-comment=work]").click()); await g.wait(400);
+const oppText = await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=opposition]").innerText);
+const fits = /debt|contract/i.test(oppText) ? optsR.includes("open") && optsR.includes("deny") : optsR.includes("rebut") || optsR.includes("table") || optsR.includes("own");
+check(optsR.length >= 2 && fits, "a reply to the opposition fits what they attacked (" + optsR.join(", ") + ")");
+const pickedR = await g.page.evaluate(() => { const b = document.querySelector("[data-sop-tori-comment]:not([data-sop-tori-comment=deny])"); b && b.click(); return b ? b.textContent : ""; }); await g.wait(400);
 const oppT = await g.page.evaluate(() => document.querySelector("[data-testid=tori]").innerText);
 if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/tori-reply.png" });
-check(/We are busy working\. Results will speak\./.test(oppT) && /replying to @OgunGov/.test(oppT), "the governor's reply shows under the tweet, and people answer it");
+check(oppT.includes(pickedR.replace(/^→ /, "")) && /replying to @OgunGov/.test(oppT), "the governor's reply shows under the tweet, and people answer it");
 check(!g.errors.length, "no page errors " + g.errors.join(" | "));
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);
