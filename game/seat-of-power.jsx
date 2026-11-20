@@ -13073,7 +13073,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{mail.length ? mail.length + " unread · Next message" : "Next: " + nx.label}</span>
           </button>; })()}
         {/* The mailbox (Pack 31): bottom right of the Desk, where the governor sees the mail. */}
-        {curScreen.id === "desk" && !gEnd && !letterOpen && (mail.length > 0 || !(nav === "gov" && (phase === "budget" || phase === "house_vote"))) && <div data-sop-mailstand style={{ position: "absolute", right: TALL() ? 8 : 24, top: Math.max(260, firstScreenH() - (TALL() ? 86 : 24) - (nav === "gov" && (phase === "budget" || phase === "house_vote") ? 190 : TALL() ? 250 : 260)), zIndex: 55 }}><MailboxStand letters={mailStand()} onNext={() => openMail()} w={nav === "gov" && (phase === "budget" || phase === "house_vote") ? (TALL() ? 130 : 150) : TALL() ? 180 : 190} /></div>}
+        {curScreen.id === "desk" && nav === "gov" && !["budget", "house_vote", "policy"].includes(phase) && !gEnd && !letterOpen && mail.length > 0 && <div data-sop-mailstand style={{ position: "absolute", right: TALL() ? 8 : 24, top: Math.max(260, firstScreenH() - (TALL() ? 86 : 24) - (TALL() ? 250 : 260)), zIndex: 55 }}><MailboxStand letters={mailStand()} onNext={() => openMail()} w={TALL() ? 180 : 190} /></div>}
         <div ref={paneRef} style={{ paddingBottom: curScreen.id === "desk" ? (TALL() ? 260 : 40) : 0 }}>
         {nav === "hub" && (() => {
           // The Desk (Lovable's design, sop-screens.css .lv-desk): the compound on the left; four figures, the adviser and the mail on the right.
