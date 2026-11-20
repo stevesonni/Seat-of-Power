@@ -7326,6 +7326,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const gfFree = () => { setGodfatherPower(0); setStc(p => ({ ...p, gf: p.gf === "dead" ? p.gf : "freed" }));
     try { const M = window.SOP_MEMORY; (M && M.owed ? M.owed("godfather") : []).forEach(d => M.settle(d.id, "Free of him")); } catch (e) {} };
   // The godfather's pay-off, and any other scenario action, from the Desk strip.
+  const [streetOpen, setStreetOpen] = useState(false); // the street as a WhatsApp group
   const [yearFull, setYearFull] = useState(false); // the full year review sheet, from the end-of-year screen
   const [scenChat, setScenChat] = useState(null); // the adviser's chat about the logjam: null | {} | { me: "your reply" }
   const scenAction = (a) => { const cost = SYS.scenarioCostB(a, scenRevB()); if (cost && !spendB(cost, a.l)) return;
@@ -7437,7 +7438,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         <img src={pic} alt="" style={{ width: tall ? 40 : 54, height: tall ? 40 : 54, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4" }} />
         <div style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: tall ? TS(17) : TS(24) }}>{A.name || "Your adviser"}</b><span style={{ fontSize: tall ? TS(13) : TS(18), opacity: .75 }}>online</span></div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: tall ? 12 : 18, minHeight: tall ? 640 : 420 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: tall ? 12 : 18, minHeight: tall ? 1080 : 420 }}>
         {msgs.map((m, k) => <div key={k} className="sop-fade-in" style={{ ...bub, animationDelay: (k * 0.25) + "s", animationFillMode: "both" }}>{m}</div>)}
         {scenChat && scenChat.me ? <div style={{ ...bub, alignSelf: "flex-end", background: "#dcf8c6", borderRadius: "16px 4px 16px 16px" }}>{scenChat.me} <span style={{ fontSize: tall ? TS(12) : TS(16), color: "#4a9" }}>✓✓</span></div>
           : <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
@@ -13217,30 +13218,44 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           const prCount = (st0) => pr.filter(p => p.status === st0).length;
           const chip = (txt, bad) => <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 999, background: (bad ? CL.red : CL.grn) + "14", color: bad ? CL.red : CL.grn, fontSize: fz.s, fontWeight: 700, whiteSpace: "nowrap" }}>{txt}</span>;
           return <div style={{ maxWidth: TALL() ? 900 : 1320, margin: TALL() ? "0 0 14px" : "0 auto 18px", background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 18, padding: TALL() ? "12px 14px" : "16px 20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-              <b style={{ fontFamily: F.d, fontSize: TALL() ? TS(26) : TS(42), color: CL.txt }}>The street</b>
-              <span style={{ fontSize: fz.s, color: CL.blu, fontWeight: 800 }}>Trending: {sv.tag}</span>
-            </div>
-            {(() => { const grp = stc.arrears > 0 ? "workers" : s.cor > .45 ? "youth" : ["market-women", "youth", "workers"][turn % 3];
-              const angry = stc.arrears > 0 || s.app < 50 || s.cor > .5;
-              const pic = { "market-women": ["market-women-group-cheering", "market-women-group-angry"], youth: ["youth-group-cheering", "youth-group-angry"], workers: ["workers-group-cheering", "workers-group-angry"] }[grp][angry ? 1 : 0];
-              return <div style={{ height: TALL() ? 76 : 110, borderRadius: 14, marginBottom: 6, background: (angry ? CL.red : CL.grn) + "12 url(./art/characters/" + pic + ".webp) center bottom/contain no-repeat" }} role="img" aria-label={angry ? "An angry crowd" : "A cheering crowd"} />; })()}
-{(() => { const cl = complaintsNow(); if (!cl.length) return null;
-              return <div aria-label="Complaints">{cl.map((c, i) => { const done = (stc.complaints || {})[c.id], answered = done && done.t === turn;
-                return <button key={c.id} onClick={() => setComplaint(c)} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", width: "100%", textAlign: "left", background: "none", border: 0, borderTop: i ? "1px solid " + CL.bdr + "88" : 0, padding: "8px 0", cursor: "pointer", fontFamily: F.b, fontSize: fz.s, color: CL.tm, lineHeight: 1.4 }}>
-                  <img src={"./art/characters/" + voiceArt(c.who) + ".webp"} alt="" loading="lazy" style={{ width: TALL() ? 40 : 52, height: TALL() ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "14" }} />
-                  <span><span style={{ color: CL.txt }}>{c.icon} “{c.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {c.who}{c.place ? ", " + c.place : ""}</span></span>
-                  <span style={{ whiteSpace: "nowrap", borderRadius: 999, padding: "3px 10px", fontWeight: 800, background: (answered ? CL.grn : c.lied ? CL.red : CL.org) + "16", color: answered ? CL.grn : c.lied ? CL.red : CL.org }}>{answered ? "✓ Answered" : c.lied ? "“You lied”" : "Answer ›"}</span>
-                </button>; })}</div>; })()}
-            {!complaintsNow().length && sv.lines.slice(0, 1).map((l, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", fontSize: fz.s, color: CL.tm, lineHeight: 1.4, padding: "6px 0", borderTop: i ? "1px solid " + CL.bdr + "88" : 0 }}>
-              <img src={"./art/characters/" + voiceArt(l.w) + ".webp"} alt="" loading="lazy" style={{ width: TALL() ? 40 : 52, height: TALL() ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: CL.grn + "14" }} />
-              <span><span style={{ color: CL.txt }}>“{l.t}”</span> <span style={{ color: CL.td, whiteSpace: "nowrap" }}>— {l.w}</span></span>
-            </div>)}
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 10 }}>
-              {chip(stc.arrears ? "💸 Workers owed " + stc.arrears + " month" + (stc.arrears === 1 ? "" : "s") : "💸 Salaries paid", stc.arrears > 0)}
-              {chip("🏛️ House: " + H.loyal + " of " + H.seats + " with you", H.loyal < H.seats / 2)}
-              {(ministries || []).length > 0 && chip("⚖️ Cabinet " + cz.map((n, i) => zoneName(i).slice(0, 1) + n).join(" · "), bIdx != null)}
-            </div>
+            {(() => {
+              // The street as one short row; a tap opens it as a WhatsApp group of the people talking about you (owner, 20 Nov 2026).
+              const cl = complaintsNow(), cm = stc.complaints || {}, waiting = cl.filter(c => !(cm[c.id] && cm[c.id].t === turn)).length;
+              const faces = (cl.length ? cl.map(c => c.who) : sv.lines.map(l => l.w)).slice(0, 3);
+              const grp = stc.arrears > 0 ? "workers" : s.cor > .45 ? "youth" : ["market-women", "youth", "workers"][turn % 3], angry = stc.arrears > 0 || s.app < 50 || s.cor > .5;
+              const crowd = { "market-women": ["market-women-group-cheering", "market-women-group-angry"], youth: ["youth-group-cheering", "youth-group-angry"], workers: ["workers-group-cheering", "workers-group-angry"] }[grp][angry ? 1 : 0];
+              const tall = TALL(), face = (w, k) => <img key={k} src={"./art/characters/" + voiceArt(w) + ".webp"} alt="" loading="lazy" style={{ width: tall ? 36 : 48, height: tall ? 36 : 48, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", border: "2px solid " + CL.card, marginLeft: k ? -12 : 0 }} />;
+              const bub = { background: "#fff", borderRadius: "4px 16px 16px 16px", padding: tall ? "8px 12px" : "12px 16px", fontSize: tall ? TS(16) : TS(22), color: CL.txt, boxShadow: "0 1px 0 rgba(0,0,0,.08)", lineHeight: 1.4 };
+              const nameCol = ["#c0392b", "#1d6a3f", "#7b3fa0", "#b9770e", "#1f6fb2"];
+              return <>
+                <button data-sop-street onClick={() => setStreetOpen(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: F.b, textAlign: "left" }}>
+                  <span style={{ display: "flex", flex: "none" }}>{faces.map(face)}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontFamily: F.d, fontSize: tall ? TS(22) : TS(34), color: CL.txt }}>The street</b>
+                    <span style={{ fontSize: fz.s, color: waiting ? CL.org : CL.td, fontWeight: 700 }}>{waiting ? waiting + " " + (waiting === 1 ? "person wants" : "people want") + " an answer" : sv.tag}</span></span>
+                  {waiting > 0 && <span style={{ background: "#25d366", color: "#fff", borderRadius: 999, minWidth: 26, height: 26, display: "grid", placeItems: "center", fontWeight: 800, fontSize: fz.s, padding: "0 7px" }}>{waiting}</span>}
+                  <span style={{ color: CL.td, fontSize: fz.m }}>›</span>
+                </button>
+                <OL show={streetOpen}>{streetOpen && <div data-testid="street-chat" style={{ maxWidth: 760, margin: "0 auto", borderRadius: 18, overflow: "hidden", background: "#efe7d6", boxShadow: "0 18px 50px rgba(0,0,0,.3)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: tall ? "10px 12px" : "14px 18px", background: "#0f3d24", color: "#fff" }}>
+                    <button onClick={() => setStreetOpen(false)} aria-label="Back" style={{ background: "transparent", border: 0, color: "#fff", fontSize: tall ? TS(22) : TS(30), cursor: "pointer", minHeight: 44, minWidth: 36 }}>←</button>
+                    <span style={{ width: tall ? 42 : 56, height: tall ? 42 : 56, borderRadius: "50%", background: "#e8dcc4 url(./art/characters/" + crowd + ".webp) center bottom/cover no-repeat", flex: "none" }} />
+                    <div style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: tall ? TS(17) : TS(24) }}>{stName} Street 🇳🇬</b><span style={{ fontSize: tall ? TS(13) : TS(18), opacity: .75 }}>Trending: {sv.tag}</span></div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: tall ? 12 : 18, minHeight: tall ? 1080 : 420 }}>
+                    <div style={{ alignSelf: "center", background: "#fff8dc", color: "#6b5b2a", borderRadius: 10, padding: "4px 12px", fontSize: tall ? TS(13) : TS(18), fontWeight: 700, textAlign: "center" }}>{stc.arrears ? "💸 Workers owed " + stc.arrears + " month" + (stc.arrears === 1 ? "" : "s") : "💸 Salaries paid"} · 🏛️ House {H.loyal} of {H.seats} with you</div>
+                    {cl.length ? <div aria-label="Complaints" style={{ display: "flex", flexDirection: "column", gap: 10 }}>{cl.map((c, k) => { const done = cm[c.id], answered = done && done.t === turn;
+                      return <div key={c.id} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <img src={"./art/characters/" + voiceArt(c.who) + ".webp"} alt="" loading="lazy" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />
+                        <div style={{ ...bub, maxWidth: "86%" }}><b style={{ display: "block", color: nameCol[k % nameCol.length], fontSize: tall ? TS(13) : TS(18) }}>{c.who}{c.place ? " · " + c.place : ""}</b>{c.icon} {c.t}
+                          <button onClick={() => { setStreetOpen(false); setComplaint(c); }} style={{ display: "block", marginTop: 8, minHeight: 40, padding: "6px 14px", borderRadius: 999, border: "2px solid " + (answered ? CL.grn : c.lied ? CL.red : "#1d6a3f"), background: answered ? CL.grn + "14" : "#fff", color: answered ? CL.grn : c.lied ? CL.red : "#1d6a3f", fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(14) : TS(20), cursor: "pointer" }}>{answered ? "✓ Answered" : c.lied ? "“You lied”" : "Answer ›"}</button></div>
+                      </div>; })}</div>
+                      : sv.lines.map((l, k) => <div key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                        <img src={"./art/characters/" + voiceArt(l.w) + ".webp"} alt="" loading="lazy" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />
+                        <div style={{ ...bub, maxWidth: "86%" }}><b style={{ display: "block", color: nameCol[k % nameCol.length], fontSize: tall ? TS(13) : TS(18) }}>{l.w}</b>{l.t}</div></div>)}
+                    <div style={{ marginTop: 6 }}><Bt v="ghost" onClick={() => setStreetOpen(false)} style={{ width: "100%" }}>Close</Bt></div>
+                  </div>
+                </div>}</OL>
+              </>; })()}
             {(() => {
               const st0 = story(), FGp = FLAGSHIP[setup?.agenda], sdS = sloganDef(setup?.slogan), term = turn > 4 ? 2 : 1;
               const lastSl = logs.find(l => /^📣/.test(l.tx) && /holds|Critics throw/.test(l.tx));
