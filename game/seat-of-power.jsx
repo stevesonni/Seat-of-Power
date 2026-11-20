@@ -2286,6 +2286,11 @@ const Flag = () => React.createElement("div", { style: { display: "flex", height
 
 /* The first Chief of Staff, in a line each (pillar "start"). */
 const COS_PITCH = { fixer: "Keeps the party and the godfather sweet. Weak on money.", technocrat: "Brilliant with money and projects. The party finds him cold.", veteran: "Knows every file in the civil service. Gets projects finished." };
+/* Tori's logo (owner's pick, option 2): a white speech bubble with a lowercase t, on Tori blue. */
+const ToriLogo = ({ s = 32 }) => React.createElement("svg", { viewBox: "0 0 120 120", width: s, height: s, role: "img", "aria-label": "Tori", style: { flex: "none", display: "block" } },
+  React.createElement("rect", { width: 120, height: 120, rx: 28, fill: "#1d9bf0" }),
+  React.createElement("path", { d: "M28 34 h64 a10 10 0 0 1 10 10 v30 a10 10 0 0 1 -10 10 h-34 l-16 14 v-14 h-14 a10 10 0 0 1 -10 -10 v-30 a10 10 0 0 1 10 -10z", fill: "#fff" }),
+  React.createElement("path", { d: "M58 44 v26 q0 6 7 6 h6 M50 54 h20", stroke: "#1d9bf0", strokeWidth: 8, fill: "none", strokeLinecap: "round" }));
 /* A chat (the adviser, the street) fills the whole phone screen, like WhatsApp. */
 /* The height of the first screen in the stage's own pixels (phones zoom the stage). */
 const firstScreenH = () => { let z = 1; try { const st = document.getElementById("sop-stage"); z = st && (parseFloat(st.style.zoom) || parseFloat(getComputedStyle(st).zoom)) || 1; } catch (e) {} return Math.round(window.innerHeight / z); };
@@ -7519,7 +7524,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       <div style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(255,255,255,.96)", borderBottom: "1px solid " + line }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: tall ? "8px 12px" : "12px 18px" }}>
           <button onClick={() => { setStreetOpen(false); setToriCompose(false); }} aria-label="Back" style={{ background: "transparent", border: 0, color: ink, fontSize: tall ? TS(22) : TS(30), cursor: "pointer", minHeight: 44, minWidth: 36 }}>←</button>
-          <b style={{ flex: 1, textAlign: "center", fontFamily: F.d, fontSize: tall ? TS(24) : TS(34), color: ink, letterSpacing: -.5 }}>tori<span style={{ color: blue }}>.</span></b>
+          <span style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><ToriLogo s={tall ? 28 : 36} /><b style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(22) : TS(30), color: ink, letterSpacing: -.5 }}>tori<span style={{ color: blue }}>.</span></b></span>
           <img src={myPic} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4" }} />
         </div>
         <div role="tablist" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>{tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={toriTab === k} onClick={() => { setToriTab(k); setToriCompose(false); }} style={{ background: "transparent", border: 0, borderBottom: "3px solid " + (toriTab === k ? blue : "transparent"), padding: "10px 2px", minHeight: 44, fontFamily: F.b, fontWeight: toriTab === k ? 800 : 600, color: toriTab === k ? ink : sub, fontSize: tall ? TS(13) : TS(18), cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l}</button>)}</div>
@@ -13450,7 +13455,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               return <>
                 <button data-sop-street onClick={() => { setStreetOpen(true); setToriTab("home"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: F.b, textAlign: "left" }}>
                   <span style={{ display: "flex", flex: "none" }}>{faces.map(face)}</span>
-                  <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontFamily: F.d, fontSize: tall ? TS(22) : TS(34), color: CL.txt }}>Tori <span style={{ fontSize: fz.s, color: CL.td, fontFamily: F.b, fontWeight: 700 }}>{SYS.toriHandle(state)}</span></b>
+                  <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: F.d, fontSize: tall ? TS(22) : TS(34), color: CL.txt }}><ToriLogo s={tall ? 22 : 30} />Tori <span style={{ fontSize: fz.s, color: CL.td, fontFamily: F.b, fontWeight: 700 }}>{SYS.toriHandle(state)}</span></b>
                     <span style={{ fontSize: fz.s, color: waiting ? CL.org : CL.blu, fontWeight: 700 }}>{waiting ? waiting + " " + (waiting === 1 ? "person tagged" : "people tagged") + " you · " : ""}{(SYS.toriTrends(toriCtx())[0] || {}).tag || sv.tag} is trending</span></span>
                   {waiting > 0 && <span style={{ background: "#1d9bf0", color: "#fff", borderRadius: 999, minWidth: 26, height: 26, display: "grid", placeItems: "center", fontWeight: 800, fontSize: fz.s, padding: "0 7px" }}>{waiting}</span>}
                   <span style={{ color: CL.td, fontSize: fz.m }}>›</span>
