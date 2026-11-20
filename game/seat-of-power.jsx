@@ -6041,7 +6041,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // picture) is a short banner with its numbers, not another card to dismiss. The meters move as before.
       const words = String(o.text || "").trim().split(/\s+/).filter(Boolean).length;
       const echo = o.echo || /^(You chose|Done\b)/.test(String(o.text || "").trim()) || (!o.img && words < 15 && !o.action && !o.onClose && !o.present && !o.paper && !o.ok && !o.learn && !o.coins);
-      if (echo && window.SOP_impact) { window.SOP_impact({ icon: o.icon, title: o.title, text: o.echo ? "" : o.text, rows, tone: o.tone }); return; }
+      // Owner (20 Nov 2026): no banners except when money comes in. Other short results go quietly into the year's record.
+      if (echo) { const moneyIn = (rows || []).some(r => /bank|₦|cash|treasury|revenue|igr|refund/i.test(String(r.l) + " " + String(r.v)) && /^\+/.test(String(r.v).trim()));
+        if (moneyIn && window.SOP_impact) window.SOP_impact({ icon: o.icon, title: o.title, text: o.echo ? "" : o.text, rows, tone: o.tone, money: true }); return; }
       window.SOP_outcome && window.SOP_outcome({ ...o, rows, text: (o.text || "") + (rows.length ? "" : " Nothing changes at once; you will see the effect over the coming years.") });
     } catch (e) {}
   }, 250);
@@ -9197,7 +9199,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries and offices take " + naira(a.runB) + ", debt repayments " + naira(a.debtB + payNow) + "; " + naira(work) + " goes into the bank.", "info");
     // Leak 2: after the first year the money arrives as a banner (the coins still fly into the bank), not one more
     // card to dismiss at the turn of the year. A year that leaves almost nothing for work still gets the full card.
-    if (turn > 1 && total >= a.inB * .2 && window.SOP_impact) { try { window.SOP_impact({ icon: "🏦", title: "Year " + turn + "'s money is in: " + naira(total) + " for this year's work", rows: [{ l: "From Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }, { l: "Salaries and offices", v: "−" + naira(a.runB), good: false }].concat(a.debtB >= .05 ? [{ l: "Debt", v: "−" + naira(a.debtB), good: false }] : []), tone: "good" }); } catch (e) {} }
+    if (turn > 1 && total >= a.inB * .2 && window.SOP_impact) { try { window.SOP_impact({ money: true, icon: "🏦", title: "Year " + turn + "'s money is in: " + naira(total) + " for this year's work", rows: [{ l: "From Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }, { l: "Salaries and offices", v: "−" + naira(a.runB), good: false }].concat(a.debtB >= .05 ? [{ l: "Debt", v: "−" + naira(a.debtB), good: false }] : []), tone: "good" }); } catch (e) {} }
     else try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/" + (turn === 1 || total < .5 ? "treasury-chest-empty" : "treasury-chest") + ".webp", coins: turn > 1 && total >= .5, title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
       text: turn === 1 ? "The bank was empty, contractors were owed " + naira(bills) + ", and the state owes " + naira((oldPlan || {}).total || 0) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
       tone: total < a.inB * .2 ? "bad" : "good", ok: "Got it",
@@ -12543,7 +12545,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + (P.cash || 0)) * 100) / 100, app: cl100(p.app + (P.app || 0)), pStab: cl100(p.pStab + (P.pStab || 0)) }));
     if (P.frame) try { window.SOP_FRAME = window.SOP_FRAME || P.frame; } catch (e) {}
     addL(Lg.icon + " " + Lg.nm + ": " + Lg.d, "success");
-    setTimeout(() => { try { window.SOP_impact && window.SOP_impact({ icon: Lg.icon, title: Lg.nm + " head start", text: Lg.d }); } catch (e) {} }, 1500);
+    setTimeout(() => { try { window.SOP_impact && window.SOP_impact({ money: true, icon: Lg.icon, title: Lg.nm + " head start", text: Lg.d }); } catch (e) {} }, 1500);
   }, [lgNow, needSetup, turn]);
   // The honour carried in from an earlier career, applied once at the start.
   useEffect(() => {

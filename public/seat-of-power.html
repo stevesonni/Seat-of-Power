@@ -666,7 +666,10 @@
       /* A decision's result as a banner (leak 1): the icon, the choice, its numbers. It does not block the game,
          goes by itself after a few seconds, and a tap closes it. */
       window.SOP_impact = function (o) {
-        o = o || {}; var old = document.getElementById('sop-impact'); if (old) old.remove();
+        o = o || {};
+        // Banners only when money comes in (owner, 20 Nov 2026); everything else stays in the year's record.
+        if (!o.money) return;
+        var old = document.getElementById('sop-impact'); if (old) old.remove();
         var b = document.createElement('div'); b.id = 'sop-impact'; b.setAttribute('role', 'status');
         b.style.cssText = 'position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 74px);transform:translateX(-50%);z-index:10050;width:min(520px,calc(100vw - 24px));background:#fffdf7;color:#13261c;border-radius:18px;border:2px solid ' + (o.tone === 'bad' ? '#d4483c' : '#e9b949') + ';box-shadow:0 14px 34px rgba(0,0,0,.28);padding:12px 14px;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:center;font:600 15px/1.35 "Plus Jakarta Sans",sans-serif;animation:sopSlideUp .25s ease-out;cursor:pointer';
         var ic = document.createElement('div'); ic.textContent = o.icon || '✔'; ic.style.cssText = 'grid-row:span 3;font-size:30px;line-height:1';
