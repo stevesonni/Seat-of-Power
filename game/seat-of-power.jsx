@@ -15722,6 +15722,20 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
           const a0 = accounts(), inc = (s.igr || 0) + (s.faac || 0), svc = a0.debtB, share = inc > 0 ? Math.round(svc / inc * 100) : 0;
           const hcol = share < 15 ? "#2fbf71" : share < 30 ? "#e9b949" : "#ff6b5e";
           return <div style={{ maxWidth: TALL() ? 900 : 1200, margin: "0 auto", display: "grid", gap: TALL() ? 12 : 18 }}>
+            {/* Salary arrears, payable any time (a player: "I can't find where to pay salaries I owe"). */}
+            {(stc.arrears || 0) > 0 && (() => { const A = stc.arrears, mw = monthWage(), all = Math.round(A * mw * 10) / 10;
+              const pay = (m) => { const amt = m === A ? all : Math.round(m * mw * 10) / 10; scFx({ debt: amt, app: m === A ? 3 : 1 });
+                const nlc = stc.labour && stc.labour.strikes && stc.labour.strikes.nlc, ends = m === A && nlc && nlc.on && nlc.cause === "arrears";
+                setStc(p => ({ ...p, arrears: Math.max(0, (p.arrears || 0) - m), ...(m === A ? { ultimatum: false, strike: false } : {}), ...(ends ? { labour: { ...p.labour, strikes: { ...p.labour.strikes, nlc: { ...p.labour.strikes.nlc, on: false, over: "paid" } } } } : {}) }));
+                addL(m === A ? "✅ All salary arrears cleared (₦" + all + "B). " + (ends ? "The NLC calls off its strike." : "The unions withdraw their ultimatum.") : "🧾 Paid one month of salary arrears (₦" + amt + "B).", m === A ? "success" : "policy");
+                try { window.SOP_impact && window.SOP_impact({ icon: "👷", title: m === A ? "Every worker is paid up" : "One month of arrears paid", rows: [{ l: "Paid", v: "−₦" + amt + "B", good: false }, { l: "Approval", v: "+" + (m === A ? 3 : 1), good: true }], tone: "good" }); } catch (e) {} };
+              return <div data-sop-arrears style={{ background: "#fff4f2", border: "2px solid #d4483c55", borderRadius: TALL() ? 18 : 22, padding: TALL() ? "14px 14px" : "18px 22px", display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}><span style={{ fontSize: TALL() ? 30 : 40 }}>👷</span><div><b style={{ fontSize: fz.m, color: CL.txt }}>Workers are owed {A} {A === 1 ? "month" : "months"} of salary</b><div style={{ fontSize: fz.s, color: CL.td }}>₦{all}B in all. Paid from the bank; if it runs short, the rest is borrowed.</div></div></div>
+                <div style={{ display: "grid", gridTemplateColumns: A > 1 ? "1fr 1fr" : "1fr", gap: 8 }}>
+                  {A > 1 && <Bt v="ghost" onClick={() => pay(1)}>Pay one month · ₦{mw}B</Bt>}
+                  <Bt onClick={() => pay(A)}>Clear all arrears · ₦{all}B</Bt>
+                </div>
+              </div>; })()}
             <div style={{ position: "relative", overflow: "hidden", borderRadius: TALL() ? 24 : 30, color: "#fff", background: "linear-gradient(100deg, rgba(15,11,3,.96) 0%, rgba(27,20,5,.88) 55%, rgba(27,20,5,.55) 100%), url(./art/backgrounds/finance-ministry-office.webp) center/cover", boxShadow: "0 16px 36px rgba(20,14,3,.35)", padding: TALL() ? "16px 16px 14px" : "24px 30px" }}>
               <img src="./art/characters/finance-commissioner.webp" alt="" style={{ position: "absolute", right: TALL() ? -10 : 10, bottom: 0, height: TALL() ? "78%" : "100%", opacity: .9, pointerEvents: "none" }} />
               <div style={{ position: "relative", maxWidth: TALL() ? "72%" : "70%" }}>

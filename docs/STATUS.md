@@ -1494,3 +1494,6 @@ cannot chase money abroad; only the Federal Government can ask the other country
   Attorney-General, a log line and a front page stating the amount. Below 55: the President declines ("the Federal
   Government has other priorities"), and the money is gone for now.
 - A President (national game) asks the Attorney-General directly, as before. Test: `tests/e2e/japa.mjs`.
+- **Salary arrears from the Treasury, any time (20 November):** when workers are owed, the Treasury tab shows how many
+  months and the total, with "Pay one month" and "Clear all arrears" (clearing them ends an arrears strike). Before,
+  they could only be paid on the allocation card. Test: `tests/e2e/arrears.mjs`.
