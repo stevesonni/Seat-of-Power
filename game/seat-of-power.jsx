@@ -2334,7 +2334,8 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
     </div>)}
     {replyTo === x.id && <div data-sop-tori-replybox style={{ marginTop: 8, display: "grid", gap: 6 }}>
       <div style={{ fontSize: sm - 1, color: sub }}>Replying to <span style={{ color: blue }}>{x.handle}</span> · {replies.left} repl{replies.left === 1 ? "y" : "ies"} left this year</div>
-      {replies.left > 0 && replies.optionsFor(x).map(o => <button key={o.id} data-sop-tori-comment={o.id} onClick={() => { setReplyTo(null); replies.onReply(x, o); }} style={{ textAlign: "left", background: "#fff", border: "1px solid " + (o.action ? blue : "#cfd9de"), borderRadius: 16, padding: "8px 12px", fontFamily: F.b, fontSize: sm + 1, color: o.action ? blue : ink, fontWeight: o.action ? 800 : 500, cursor: "pointer" }}>{o.action ? "→ " : ""}{o.text}</button>)}
+      {replies.contextFor && (() => { const k = replies.contextFor(x); return k && (k.about || k.fact) ? <div data-sop-tori-context style={{ background: "#f7f9f9", border: "1px solid " + line, borderRadius: 12, padding: "8px 12px", fontSize: sm, color: ink, lineHeight: 1.35 }}><b>{k.about}</b>{k.fact ? <div style={{ color: sub }}>{k.fact}</div> : null}</div> : null; })()}
+      {replies.left > 0 && replies.optionsFor(x).map(o => <button key={o.id} data-sop-tori-comment={o.id} onClick={() => { setReplyTo(null); replies.onReply(x, o); }} style={{ textAlign: "left", background: "#fff", border: "1px solid " + (o.action ? blue : "#cfd9de"), borderRadius: 16, padding: "8px 12px", fontFamily: F.b, fontSize: sm + 1, color: o.action ? blue : ink, fontWeight: o.action ? 800 : 500, cursor: "pointer" }}>{o.action ? "→ " : ""}{o.text}{(() => { const h = o.action ? null : o.truth === false ? ["Not true: they will call it out", "#c0392b"] : o.promise ? ["A promise: they will check next year", "#b9770e"] : o.truth ? ["Honest", "#1d6a3f"] : null; return h ? <span style={{ display: "block", fontSize: sm - 2, fontWeight: 700, color: h[1], marginTop: 2 }}>{h[0]}</span> : null; })()}</button>)}
     </div>}
   </>; };
   const tweet = (x) => <article key={x.id} data-sop-tweet={x.kind} style={{ display: "flex", gap: 10, padding: tall ? "10px 14px 4px" : "14px 20px 6px", borderBottom: "1px solid " + line, background: "#fff" }}>
@@ -2346,6 +2347,7 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
         <span style={{ marginLeft: "auto", color: sub }}><ToriIc d={TORI_IC.more} s={18} /></span></div>
       <div style={{ fontSize: fs, color: ink, lineHeight: 1.4, marginTop: 2, whiteSpace: "pre-wrap" }}>{rich(x.text)}</div>
       {x.quote && <div style={{ marginTop: 8, border: "1px solid #cfd9de", borderRadius: 16, padding: "8px 12px" }}><b style={{ fontSize: sm, color: ink }}>{x.quote.name}</b><ToriBadge s={14} /><div style={{ fontSize: sm + 1, color: ink, lineHeight: 1.35 }}>{x.quote.text}</div></div>}
+      {(x.thread || []).length > 0 && <div data-sop-tori-thread style={{ marginTop: 8, display: "grid", gap: 6 }}>{x.thread.map((rp, k) => <div key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>{av("./art/characters/" + (rp.art || "young-voter-student") + ".webp", tall ? 24 : 30)}<div style={{ fontSize: sm, color: ink, lineHeight: 1.35, minWidth: 0 }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div></div>)}</div>}
       {tweetExtra && tweetExtra(x)}
       {x.mine && (x.replyList || []).length > 0 && <div style={{ marginTop: 8, borderLeft: "2px solid " + line, paddingLeft: 10, display: "grid", gap: 6 }}>{x.replyList.map((rp, k) => <div key={k} style={{ fontSize: sm + 1, color: ink }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div>)}</div>}
       {acts(x)}
@@ -6020,7 +6022,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
-      postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
+      postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
       pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); },
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
@@ -7597,7 +7599,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     let tag = ""; try { tag = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: null, turn }).tag; } catch (e) {}
     // This year's real events, as the local news would put them.
     const events = logs.filter(l => l.t === turn && ["policy", "success", "crisis", "political", "scandal"].includes(l.tp)).slice(0, 8)
-      .map(l => ({ text: briefly(String(l.tx).replace(/^[^A-Za-z₦"“0-9]+/, ""), 140), good: ["policy", "success"].includes(l.tp) })).filter(e => e.text.length > 12);
+      .map(l => ({ text: briefly(String(l.tx).replace(/^[^A-Za-z₦"“0-9]+/, ""), 140), good: ["policy", "success"].includes(l.tp), tp: l.tp })).filter(e => e.text.length > 12);
     const late = activeNeeds.filter(n => n.status === "open" && n.due != null && n.due <= turn).length;
     const stalled = (projects || []).filter(p => p.status === "stalled").length, broken = (stc.promises || []).filter(p => p.status === "broken").length;
     const ratios = ((stc.tori || {}).posts || []).filter(p => p.turn === turn && p.ratio).length;
@@ -7611,7 +7613,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // For the opposition, who watch everything: approval when last year closed, lies called out, this year's moves.
       appPrev: (() => { const h = ((stc.tori || {}).hist || []).filter(x => x.turn < turn && x.app != null).pop(); return h ? h.app : null; })(),
       lies: Object.values((stc.tori || {}).acts || {}).reduce((a, v) => a + ((v.comments || []).filter(cm => cm.turn === turn && cm.lied).length), 0),
-      tools: (((stc.tori || {}).tools || {})[turn]) || {} };
+      tools: (((stc.tori || {}).tools || {})[turn]) || {},
+      // The feed's people and places, and last years' promises (the people replied to come back).
+      zone: NAT ? "NAT" : (STATES[state] || {}).zone, places: (() => { try { return getLGAs(state).slice(0, 12).map(l => typeof l === "string" ? l : l.name || l.nm).filter(Boolean); } catch (e) { return []; } })(),
+      back: ((stc.tori || {}).promises || []).filter(p => p.turn < turn && p.turn >= turn - 2 && p.who) };
   };
   const toriPosts = () => ((stc.tori || {}).posts || []);
   const toriH = () => SYS.toriHeat(toriCtx(), stc.tori || {});
@@ -7668,14 +7673,15 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (o.action) { const fixT = { treasury: "treasury", roundtable: "roundtable", visit: "visit", needs: "needs" }[o.action]; if (fixT) toriTool({ id: "fix", fix: fixT, l: o.text }); return; }
       const Rr = SYS.toriReplyReact(o, x, turn + x.id + o.id);
       toriAct(x.id, a => ({ ...a, comments: [...(a.comments || []), { turn, text: o.text, replies: Rr.replies, lied: o.truth === false }] }));
-      if (o.promise) setStc(p => ({ ...p, tori: { ...(p.tori || {}), promises: [...(((p.tori || {}).promises) || []), { turn, kind: o.promise, text: o.text }].slice(-20) } }));
+      if (o.promise) { const st0 = (c.strikes || [])[0], f0 = (c.fled || []).find(f => !f.back), n0 = (c.needs || [])[0];
+        setStc(p => ({ ...p, tori: { ...(p.tori || {}), promises: [...(((p.tori || {}).promises) || []), { turn, kind: o.promise, text: o.text, who: x.kind === "institution" || x.kind === "foreign" ? null : x.name, handle: x.handle, art: x.art, topic: x.topic || SYS.toriTopic(x.text), strike: st0 && st0.id, proj: f0 && f0.proj, need: n0 && n0.title }].slice(-20) } })); }
       if (o.fx && o.fx.app) scFx(o.fx);
       addL("🐦 You replied on Tori to " + x.name + ": \u201c" + o.text + "\u201d" + (o.truth === false ? " The replies called it out." : ""), o.truth === false ? "political" : "info"); track("tori_reply", (x.topic || SYS.toriTopic(x.text)) + ":" + o.id);
     };
     return <ToriApp tab={toriTab} me={{ short: (NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop(), full: (NAT ? "President " : "Governor ") + pName, handle: me, pic: myPic, bio: "Official account of the " + (NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State") + ".", joined: "Joined May " + ((setup?.startYear || 2027) + (turn > 4 ? 4 : 0)), following: 180 + turn * 12, followers: 20000 + s.app * 1800 + toriPosts().reduce((a, p) => a + (p.likes || 0) / 4, 0) }}
       feed={feed} trends={trends} where={H.stage >= 3 || NAT ? "Nigeria" : stName} opp={opp} oppLabel="Opposition" why={why} tweetExtra={complaintBtn} year={turn} store={{ posts: toriPosts(), acts: A }}
       posts={{ left: SYS.TORI_POSTS_PER_YEAR - toriPosts().filter(p => p.turn === turn).length, options: SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id)), onPost: toriPost }}
-      replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), onReply }}
+      replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), contextFor: (x) => SYS.toriReplyContext(x, c), onReply }}
       onAct={toriAct} notif={c.complaints.filter(q => !q.answered).length} onClose={() => { setStreetOpen(false); setToriRespond(false); }} />;
   };
   // The adviser's chat about the logjam: what it is, what it is doing to you, what could save you, and the choices as replies.
@@ -12041,14 +12047,33 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      nearest similar note in the mailbox (same kind first); a letter that needs a decision makes room by merging two
      notes into one. Nothing is lost: merged letters keep every line. */
   const MAIL_CAP = 8, mailYear = React.useRef({ turn: -1, n: 0 });
+  /* The guard on the mailbox itself (owner, 20 Nov 2026: "I still get up to 11 mails"): every route letters arrive by
+     (the year's batch, the secretary's requests, chains, the budget) passes through here, so the mailbox never holds
+     more than 8. Past 8, news notes are merged into the nearest note first; then letters that need a decision wait
+     (lowest stakes first; the budget letter and the open letter never) and come in, oldest first, as you answer. */
+  const mailWait = React.useRef([]);
+  useEffect(() => {
+    let ml = mail;
+    if (ml.length > MAIL_CAP) {
+      ml = mail.slice();
+      for (let i = 0; i < 40 && ml.length > MAIL_CAP; i++) { const notes = ml.filter(l => isNote(l) && l.id !== letterOpen); const x = notes[notes.length - 1]; if (!x) break; const t = nearestNote(ml, x, x); if (!t) break; ml = mergeInto(ml.filter(m => m !== x), t, x); }
+      if (ml.length > MAIL_CAP) { const rank = (l) => l.key === "budget" || l.id === letterOpen ? 99 : (l.secr ? 0 : 1) + (l.stakes || 1) + (l.waited ? 6 : 0);
+        const out = new Set(ml.map((l, i) => ({ l, i })).sort((a, b) => rank(a.l) - rank(b.l) || b.i - a.i).slice(0, ml.length - MAIL_CAP).map(o => o.l));
+        mailWait.current = [...mailWait.current.filter(w => !out.has(w) && !ml.some(m => m.key === w.key)), ...[...out].map(l => ({ ...l, waited: true }))]; ml = ml.filter(l => !out.has(l)); }
+      setMail(ml); return;
+    }
+    mailWait.current = mailWait.current.filter(w => !mail.some(m => m.key === w.key));
+    const free = MAIL_CAP - mail.length;
+    if (free > 0 && mailWait.current.length) { const take = mailWait.current.slice(0, free); mailWait.current = mailWait.current.slice(free); setMail(m => [...m, ...take.filter(t => !m.some(x => x.key === t.key))]); }
+  }, [mail]);
   const noteLines = (l) => (l.lines && l.lines.length ? l.lines : [{ ok: true, line: [l.tip && l.tip[2], l.tip && l.tip[3]].filter(Boolean).join(": ") }]).map(x => ({ ...x, line: (l.tip && l.tip[0] ? l.tip[0] + ": " : "") + x.line }));
   const nearestNote = (ml, l, not) => { const notes = ml.filter(m => isNote(m) && m.key !== (not && not.key) && m.key !== l.key); return notes.find(m => m.kind === l.kind) || notes[notes.length - 1] || null; };
-  const mergeInto = (ml, target, l) => ml.map(m => m === target ? { ...m, merged: (m.merged || 1) + 1, lines: [...noteLines(m.merged ? { lines: m.lines } : m), ...noteLines(l)], tip: m.tip ? [m.tip[0], m.tip[1], m.merged ? m.tip[2] : "More news for you", m.tip[3]] : m.tip } : m);
+  const mergeInto = (ml, target, l) => ml.map(m => m === target ? { ...m, absorbed: [...(m.absorbed || []), l.key, ...(l.absorbed || [])], merged: (m.merged || 1) + 1, lines: [...noteLines(m.merged ? { lines: m.lines } : m), ...noteLines(l)], tip: m.tip ? [m.tip[0], m.tip[1], m.merged ? m.tip[2] : "More news for you", m.tip[3]] : m.tip } : m);
   const postMail = (letters0) => {
     const MY = mailYear.current; if (MY.turn !== turn) { MY.turn = turn; MY.n = 0; }
     const known = new Set(mailRef.current.map(m => m.key)), plan = [];
     letters0.forEach(l => { if (known.has(l.key)) return; known.add(l.key);
-      if (MY.n < MAIL_CAP) { MY.n++; plan.push({ l, a: "add" }); } else plan.push({ l, a: isNote(l) ? "merge" : "free" }); });
+      plan.push({ l, a: "add" }); }); // the mailbox guard below keeps it to 8
     if (!plan.length) return;
     const toLog = [];
     setMail(cur => { let ml = cur.slice();
@@ -12159,6 +12184,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!letters.length) { setMail(m => m.filter(l => l.live && l.key !== "gold" && !l.key.startsWith("stall:"))); mailOn.current = false; advance(); return; }
     mailOn.current = true;
     setEventQueue([]);
+    mailWait.current = mailWait.current.filter(l => l.live && l.key !== "gold" && l.key !== "cabinet_report" && !l.key.startsWith("stall:"));
     setMail(m => [...m.filter(l => l.live && l.key !== "gold" && l.key !== "cabinet_report" && !l.key.startsWith("stall:")), ...letters]);
     setPhase("mail"); setNav("gov"); setLetterOpen(null);
     if (letters.length) pingMail(letters.length, letters[0].key);
@@ -12663,9 +12689,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   ];
   const secrSig = secrItems.map(x => x.key + "|" + x.line).join(";");
   useEffect(() => {
+    mailWait.current = mailWait.current.filter(w => !w.secr || secrItems.some(x => x.key === w.key));
     setMail(ml => {
       const keep = ml.filter(l => !l.secr || secrItems.some(x => x.key === l.key));
-      const add = secrItems.filter(x => !keep.some(l => l.key === x.key)).map(x => ({ id: x.key + "@" + turn, key: x.key, kind: "briefing", stakes: x.stakes || 2, live: true, secr: x.secr, ministryId: x.ministryId, title0: x.title, line0: x.line }));
+      const add = secrItems.filter(x => !keep.some(l => l.key === x.key) && !mailWait.current.some(w => w.key === x.key)).map(x => ({ id: x.key + "@" + turn, key: x.key, kind: "briefing", stakes: x.stakes || 2, live: true, secr: x.secr, ministryId: x.ministryId, title0: x.title, line0: x.line }));
       return add.length || keep.length !== ml.length ? [...keep, ...add] : ml;
     });
   }, [secrSig]);

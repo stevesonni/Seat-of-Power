@@ -71,7 +71,7 @@ const optsR = await g.page.evaluate(() => [...document.querySelectorAll("[data-s
 const oppText = await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=opposition]").innerText);
 const fits = /debt|contract/i.test(oppText) ? optsR.includes("open") && optsR.includes("deny") : optsR.includes("rebut") || optsR.includes("table") || optsR.includes("own");
 check(optsR.length >= 2 && fits, "a reply to the opposition fits what they attacked (" + optsR.join(", ") + ")");
-const pickedR = await g.page.evaluate(() => { const b = document.querySelector("[data-sop-tori-comment]:not([data-sop-tori-comment=deny])"); b && b.click(); return b ? b.textContent : ""; }); await g.wait(400);
+const pickedR = await g.page.evaluate(() => { const b = document.querySelector("[data-sop-tori-comment]:not([data-sop-tori-comment=deny])"); const t = b ? [...b.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join("") : ""; b && b.click(); return t; }); await g.wait(400);
 const oppT = await g.page.evaluate(() => document.querySelector("[data-testid=tori]").innerText);
 if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/tori-reply.png" });
 check(oppT.includes(pickedR.replace(/^→ /, "")) && /replying to @OgunGov/.test(oppT), "the governor's reply shows under the tweet, and people answer it");

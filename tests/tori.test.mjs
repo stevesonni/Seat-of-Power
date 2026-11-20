@@ -110,3 +110,31 @@ test("the opposition watches like a hawk: approval dips, ignored and lied-to com
   const lie = o.find(x => /GovLies/.test(x.text)), rb = SYS.toriReplies(lie, { ...base, app: 44 }).find(x => x.id === "rebut");
   assert.equal(rb.truth, false);
 });
+test("the feed is alive: regional people who change each year, replies under posts, news in the third person", () => {
+  const c = { ...base, st: "Ogun", zone: "SW", places: ["Abeokuta North", "Ijebu Ode"], events: [{ text: "Your adviser has flagged two urgent needs.", tp: "info" }, { text: "You appointed Dr. Bello as your Chief of Staff.", tp: "political" }, { text: "Flood destroys 40 homes in Ijebu Ode.", tp: "crisis" }] };
+  const f1 = SYS.toriFeed(c), f2 = SYS.toriFeed({ ...c, turn: 4 });
+  const yoruba = /Tunde|Segun|Kunle|Wale|Femi|Bayo|Dapo|Lekan|Bisi|Funke|Yetunde|Kemi|Bukola|Iya Sade|Tolani|Morenike|Baba Lati/;
+  assert.ok(f1.filter(x => x.kind === "citizen").every(x => yoruba.test(x.name)), "Ogun's people have Yoruba names");
+  const names = (f) => f.filter(x => x.kind === "citizen").map(x => x.name).join(",");
+  assert.notEqual(names(f1), names(f2), "different people next year");
+  assert.ok(f1.some(x => (x.thread || []).length > 0), "people reply under posts");
+  const t1 = f1.map(x => x.text), t2 = f2.map(x => x.text);
+  assert.ok(t2.filter(x => t1.includes(x)).length < t2.length / 2, "most lines change from one year to the next");
+  const news = f1.filter(x => x.kind === "news").map(x => x.text).join(" | ");
+  assert.ok(!/Your adviser/.test(news) && /the Governor's Chief of Staff/.test(news), "news is written about the governor, not to the player: " + news);
+});
+test("people the governor replied to come back next year, and reactions quote what he said", () => {
+  const back = [{ turn: 2, kind: "arrears", text: "We start clearing the arrears this month.", who: "Kemi", handle: "@kemi_ojo", art: "nurse", topic: "salaries" }];
+  const owed = SYS.toriFeed({ ...base, turn: 3, arrears: 2, back }).find(x => x.followUp);
+  assert.ok(owed && owed.name === "Kemi" && /We start clearing the arrears/.test(owed.text) && !owed.kept, "still owed: she quotes him");
+  const paid = SYS.toriFeed({ ...base, turn: 3, arrears: 0, back }).find(x => x.followUp);
+  assert.ok(paid.kept && /thank you|Credit|Done/i.test(paid.text), "kept: she says so");
+  const post = SYS.toriFeed({ ...base, arrears: 2 }).find(x => x.topic === "salaries");
+  const opt = SYS.toriReplies(post, { ...base, arrears: 2 }).find(o => o.promise);
+  const R = SYS.toriReplyReact(opt, post, "s");
+  assert.equal(R.replies[0].name, post.name); assert.match(R.replies[0].text, /“/);
+  const ctx = SYS.toriReplyContext(post, { ...base, arrears: 2 }); assert.match(ctx.fact, /2 months/);
+  const light = { kind: "citizen", name: "Femi", text: "Light don go again for Ijebu Ode. Who else? 🕯️", topic: "general" };
+  const lo = SYS.toriReplies(light, base).map(o => o.id); assert.ok(lo.includes("trafo") && lo.includes("disco"), "a power cut gets power-cut replies: " + lo);
+  assert.equal(SYS.toriReplyContext(light, base).about, "Power cuts");
+});

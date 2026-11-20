@@ -1585,3 +1585,14 @@ Owner: "the opposition isn't checking me on Tori. He should monitor everything i
 - The two sharpest opposition posts also appear in the main feed (and in notifications, since they tag the governor).
 - The context now carries `appPrev` (approval when last year closed, stored in `stc.tori.hist`), `lies` (replies called out this year, stored on each comment as `lied`) and `tools` (this year's Respond moves).
 - Replying "That is false" to a fair attack is called out (posts carry `fair`).
+
+## Mail cap that holds; Tori rebuilt so it feels alive (20 Nov 2026)
+Owner: "I still get up to 11 mails. Shouldn't it have been capped at 8?" and "I don't like Tori. Too stiff. Zero context on replies. Too repetitive. Haba!"
+- Mail: the cap used to cover only one route (postMail). The year's batch, the secretary's requests and the budget letter bypassed it. Now one guard on the mailbox (an effect on `mail`) covers every route: the mailbox never holds more than 8. Past 8, news notes merge into the nearest note first; letters that need a decision wait (lowest stakes first; never the budget letter or the open one) and come in, oldest first, as you answer. A strict 8-per-year total was tried and dropped: the President gets about 15 decisions a year, so letters piled up year after year (14 waiting by year 4 in tests/e2e/chains.mjs). tests/e2e/mail-cap.mjs now also posts six decisions over the cap.
+- Tori's feed (`toriFeed`, game/systems/tori.js):
+  - People: a cast from the state's own zone (Hausa, Kanuri, Yoruba, Igbo, South-South, Middle Belt names; a mix for the President), three regulars all term and twelve new faces each year, sixteen kinds of people.
+  - Lines: many per topic, filled from the record and the state's real LGA names; a line used last year is skipped, and no line repeats within a year.
+  - Life: replies under posts (people agree, argue, joke), everyday posts (power cuts, the convoy, the pothole named after the governor, floods, prices, escorts).
+  - News: `toriNews` rewrites the year's log as a newsroom would (third person; the game's own notes like "Your adviser has flagged…" are dropped) with a mood: good, bad or neutral (neutral news no longer gets angry reactions).
+  - Continuity: a promise made in a reply is stored with who it was made to; next year that person comes back quoting it, saying it was kept or still waiting (`c.back`).
+- Replies: the reply box shows what the post is about and the fact from the record (`toriReplyContext`); each option says what it is (Honest / A promise: they will check next year / Not true: they will call it out). Everyday posts and news quote-tweets get their own replies. Reactions now come from the person you replied to, quoting your words back, then someone else piles in.
