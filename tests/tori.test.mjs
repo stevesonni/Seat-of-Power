@@ -97,3 +97,16 @@ test("the President hears from foreign powers and the war's leaders, from the re
   const crack = SYS.toriWorld({ ...P, crackdown: true }, { stage: 1, stories: [] }).find(x => x.handle === "@ValdoriaMFA");
   const deny = SYS.toriReplies(crack, { ...P, crackdown: true }).find(o => o.id === "deny"); assert.equal(deny.truth, false);
 });
+test("the opposition watches like a hawk: approval dips, ignored and lied-to complaints, the governor's own moves", () => {
+  const o = SYS.toriOpposition({ ...base, app: 44, appPrev: 55, arrears: 2, lies: 1, tools: { crackdown: 1 }, complaints: [{ id: "c1", who: "Tunde, graduate", place: "Ezza", t: "The strike has kept me home two years.", answered: false }, { id: "c2", who: "Mama Ngozi, trader", place: "Afikpo", t: "The market road", answered: true, lied: true }] });
+  const t = o.map(x => x.text).join("\n");
+  assert.match(t, /Approval down from 55% to 44%/);
+  assert.match(t, /told Mama Ngozi in Afikpo it was handled\. It was not/);
+  assert.match(t, /Tunde from Ezza tagged @EbonyiGov/);
+  assert.match(t, /Arresting critics/); assert.match(t, /called out in the replies/); assert.match(t, /months of unpaid salaries/);
+  assert.ok(o.every(x => x.handle && x.kind === "opposition") && o.length <= 9);
+  assert.ok(o[0].w >= o[o.length - 1].w, "sharpest first");
+  // A reply denying a fair attack is called out.
+  const lie = o.find(x => /GovLies/.test(x.text)), rb = SYS.toriReplies(lie, { ...base, app: 44 }).find(x => x.id === "rebut");
+  assert.equal(rb.truth, false);
+});

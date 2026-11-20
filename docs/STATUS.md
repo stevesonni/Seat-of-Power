@@ -1573,3 +1573,15 @@ Owner: "For the President, foreign powers too. Even the wartime country leaders 
 - `SYS.toriWorldTrends(c)`: #KasongoWar (or #SanctionKasongo), #Ceasefire, #BringOurSoldiersHome, #FreeNigeriansInKasongo, #KasongoPeace.
 - The President's replies fit each account and are checked against the record: a threat of jets when the Senate never sanctioned war is called out; "every soldier is paid" with arrears owed is called out; denying arrests after a crackdown is called out. Enemy accounts answer back ("Let them come.").
 - Tests: tests/tori.test.mjs (world accounts), tests/e2e/world-tori.mjs (the President's feed in a browser, with the test-only `window.SOP.stcTest`). The president.mjs check now looks for @NGRPresident.
+
+## Tori: the opposition watches like a hawk (20 Nov 2026)
+Owner: "the opposition isn't checking me on Tori. He should monitor everything including complaints like a hawk and be scathing, even approval dips."
+- `SYS.toriOpposition(c)` now turns every weak spot into a post that tags the governor (or @NGRPresident), sharpest first, up to nine:
+  - Approval: a drop since last year ("Approval down from 55% to 44% in one year… That is Ebonyi walking away from you"), below 50%, below 40%; even a rise gets a jab.
+  - Complaints: a complaint answered with a lie ("told Mama Ngozi in Afikpo it was handled. It was not. #EbonyiGovLies"); one left unanswered, quoting it.
+  - The record: unpaid salaries, each strike by year, the contractor who fled with the money, corruption, abandoned projects, a need left too late, broken promises, high debt, the year's worst event.
+  - His own Tori moves: ratioed posts, replies called out as lies, paid influencers, arrests, apologies, a sacking, going silent while the state burns, the must-go hashtag.
+  - Good news gets a jab too ("Now publish what it cost").
+- The two sharpest opposition posts also appear in the main feed (and in notifications, since they tag the governor).
+- The context now carries `appPrev` (approval when last year closed, stored in `stc.tori.hist`), `lies` (replies called out this year, stored on each comment as `lied`) and `tools` (this year's Respond moves).
+- Replying "That is false" to a fair attack is called out (posts carry `fair`).

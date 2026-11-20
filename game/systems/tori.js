@@ -85,18 +85,52 @@ export function toriFeed(c) {
   return [...q, ...mixed];
 }
 
+/* The opposition (owner, 20 Nov 2026: "monitor everything including complaints like a hawk and be scathing, even
+   approval dips"). Every weak spot in the record becomes a post that tags the governor: approval falling, complaints
+   ignored or lied to, salaries, strikes, the money that fled, corruption, abandoned projects, broken promises, the
+   governor's own Tori moves (ratioed posts, lies called out, paid influencers, arrests, silence, apologies). Sorted
+   by how much it hurts; the sharpest also land in the main feed and the governor's notifications.
+   Extra ctx: appPrev (approval when last year closed), lies (Tori replies called out this year), tools (this year's
+   Respond moves), debtB, heatStage, heatTag. */
 export function toriOpposition(c) {
-  const r = rngOf("opp" + c.st + c.turn), S = tagSt(c.st), nm = c.oppName || "The opposition candidate", party = c.oppParty || "the opposition", out = [];
-  const post = (text, heat) => out.push({ id: "o" + hash(text), kind: "opposition", name: nm, sub: party + " candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", text, ago: ago(r, out.length), ...counts(r, heat), verified: true });
-  if (c.app < 50) post("Approval at " + Math.round(c.app) + "%. The people have spoken. " + S + " deserves a government that works. #" + S + "DeservesBetter", 3);
-  else post("They will show you ribbons and photos. Ask them about the debt they are piling on your children.", 2);
-  (c.strikes || []).forEach(s => post("Day after day of the " + s.short + " strike and " + toriHandle(c.st) + " is posting photos. Our children are at home. Shameful.", 3));
-  if (c.arrears > 0) post(c.arrears + " months of unpaid salaries. When we come in, workers will be paid first. That is a promise.", 3);
-  (c.fled || []).filter(f => !f.back).slice(0, 1).forEach(f => post("A contractor ran to " + f.to + " with our money and this government did nothing. Who is protecting who? #WhereIsOurMoney", 3));
-  if (c.cor > .4) post("Every contract in this state goes to the same three people. We have the list. Watch this space.", 2);
-  post(pick(r, ["We are going ward to ward. " + stNm(c.st) + " is ready for change. #" + S + "Decides" + (c.year || ""), "Join us this Saturday at the town hall. Bring your questions; we will bring answers."]), 1);
-  return out;
+  const r = rngOf("opp" + c.st + c.turn), S = tagSt(c.st), N = stNm(c.st), nm = c.oppName || "The opposition candidate", party = c.oppParty || "the opposition", out = [];
+  const me = toriHandle(c.st), boss = c.nat ? "the President" : "the Governor", house = c.nat ? "Aso Rock" : "Government House";
+  const post = (text, w, topic) => out.push({ id: "o" + hash(text), kind: "opposition", name: nm, sub: party + " candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", text, topic: topic || "approval", w, ago: "", ...counts(r, Math.min(6, 1 + w / 2)), verified: true, fair: w >= 1 });
+  const app = Math.round(c.app), prev = c.appPrev == null ? null : Math.round(c.appPrev), T = c.tools || {};
+  // Approval: every dip is news.
+  if (prev != null && app <= prev - 2) post("Approval down from " + prev + "% to " + app + "% in one year. " + me + ", that is not a dip. That is " + N + " walking away from you. #" + S + "DeservesBetter", 6 + (prev - app) / 2);
+  if (app < 40) post(app + "%. Even " + boss + "'s own party is not picking his calls. Fix it or step aside, " + me + ".", 6, "approval");
+  else if (app < 50 && !(prev != null && app <= prev - 2)) post("Approval at " + app + "%. The people have spoken. " + N + " deserves a government that works. #" + S + "DeservesBetter", 4);
+  else if (prev != null && app > prev + 2) post("Up to " + app + "% and " + house + " is celebrating. That still leaves " + (100 - app) + "% of " + N + " who think you are failing, " + me + ".", 1.5);
+  // Complaints: ignored, or answered with a lie.
+  (c.complaints || []).filter(k => k.lied).slice(0, 2).forEach(k => post(me + " told " + String(k.who).split(",")[0] + (k.place ? " in " + k.place : "") + " it was handled. It was not. Lying to the people who tag you for help. #" + S + "GovLies", 7));
+  (c.complaints || []).filter(k => !k.answered && !k.lied).slice(0, 2).forEach(k => post(String(k.who).split(",")[0] + (k.place ? " from " + k.place : "") + " tagged " + me + ": “" + briefT(k.t, 70) + "” No reply. Time for photo-ops, no time for his own people.", 4.5));
+  // The record.
+  if (c.arrears > 0) post(c.arrears + " months of unpaid salaries. Workers are borrowing to feed their children while " + me + " rides in a convoy. When we come in, salaries land on the 25th. Write it down.", 5 + c.arrears, "salaries");
+  (c.strikes || []).forEach(s => post("Year " + s.years + " of the " + s.short + " strike. A generation is losing years at home while " + me + " is posting photos. Shameful.", 3 + s.years, "strike"));
+  (c.fled || []).filter(f => !f.back).slice(0, 1).forEach(f => post(f.firm + " ran to " + f.to + " with " + fmtM(f.lossM) + " meant for " + f.proj + ". Who signed the payment, " + me + "? Who is protecting who? #WhereIsOurMoney", 6, "japa"));
+  if (c.cor > .4) post("Corruption at " + Math.round(c.cor * 100) + "%. Every contract in " + N + " goes to the same three names. We have the list. Watch this space.", 3 + (c.cor - .4) * 20, "corruption");
+  if ((c.stalled || 0) > 0) post(c.stalled + " abandoned project" + (c.stalled === 1 ? "" : "s") + ". Bushes where the roads were promised. Come and see them with me, " + me + ". I'll send the location.", 3 + c.stalled, "need");
+  const late = (c.needs || []).filter(n => n.late)[0];
+  if (late) post(late.title + ". He was told. He did nothing. That is the whole story of this government.", 4, "need");
+  if ((c.broken || 0) > 0) post(c.broken + " promise" + (c.broken === 1 ? "" : "s") + " broken, and counting. Screenshot everything " + me + " says. #" + S + "Remembers", 3 + c.broken);
+  if ((c.debtB || 0) >= (c.nat ? 800 : 120)) post("₦" + Math.round(c.debtB) + "B of debt. Our grandchildren will be paying for this government's convoys.", 3, "corruption");
+  (c.events || []).filter(e => !e.good).slice(0, 1).forEach(e => post("“" + briefT(e.text, 90) + "” And " + me + " calls this progress?", 3.5));
+  // His own moves on Tori.
+  if ((c.ratios || 0) > 0) post("Ratioed by his own people " + (c.ratios === 1 ? "again" : c.ratios + " times this year") + ". Read the replies, " + me + ". That is " + N + " talking.", 4);
+  if ((c.lies || 0) > 0) post((c.lies === 1 ? "Another" : c.lies) + " claim" + (c.lies === 1 ? "" : "s") + " from " + me + " called out in the replies within minutes. You can't lie to people who live here.", 4 + c.lies);
+  if (T.bots) post("Paid influencers pushing copy-paste praise for " + me + ". Even the propaganda is lazy.", 5);
+  if (T.crackdown) post("Arresting critics now? You can lock up people, " + me + ", not the truth. #FreeThe" + S + "Critics", 6);
+  if (T.apology) post("Another apology from " + me + ". Sorry does not pay salaries.", 3);
+  if (T.sack) post("A commissioner sacked to save his own skin. The rot starts at the top, " + me + ".", 3);
+  if (T.silent && (c.heatStage || 0) >= 3) post("Where is " + me + "? " + N + " is burning and he has gone quiet. Is he in London?", 5);
+  if ((c.heatStage || 0) >= 4 && c.heatTag) post(c.heatTag + " is trending across Nigeria. This is what failure looks like, " + me + ".", 5);
+  // Even good news gets a jab.
+  (c.done || []).slice(0, 1).forEach(d => post(d + " is open. Good. Now publish what it cost, " + me + ". We'll be checking the invoice.", 1.2, "approval"));
+  post(pick(r, ["We are going ward to ward. " + N + " is ready for change. #" + S + "Decides" + (c.year || ""), "Join us this Saturday at the town hall. Bring your questions; we will bring answers."]), 0.5, "general");
+  return out.sort((a, b) => b.w - a.w).slice(0, 9).map((p, i) => ({ ...p, ago: ago(r, i) }));
 }
+const briefT = (t, n) => { t = String(t || "").replace(/\s+/g, " ").trim(); return t.length > n ? t.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : t; };
 
 /* What the governor can post: built from what is really happening. truth: false means the claim is not backed by the
    record (the replies will say so). */
@@ -422,7 +456,7 @@ export function toriReplies(t, c) {
     out.push({ id: "team", text: "Credit to the engineers and the workers who finished it on time.", truth: true, fx: {} });
     if (n) out.push({ id: "next", text: "Next on the list: " + n.title.charAt(0).toLowerCase() + n.title.slice(1) + ".", truth: true, promise: "need" });
   } else if (topic === "approval" || opp) {
-    const fair = (c.arrears > 0 && /salar/i.test(t.text)) || (st && /strike/i.test(t.text)) || (c.app < 50 && /%|approval|deserves|must go/i.test(t.text)) || (f && /contractor|money/i.test(t.text)) || (c.cor > .4 && /contract|debt|loot/i.test(t.text));
+    const fair = t.fair != null ? t.fair : ((c.arrears > 0 && /salar/i.test(t.text)) || (st && /strike/i.test(t.text)) || (c.app < 50 && /%|approval|deserves|must go/i.test(t.text)) || (f && /contractor|money/i.test(t.text)) || (c.cor > .4 && /contract|debt|loot/i.test(t.text)));
     out.push({ id: "record", text: done ? "We finished " + done + ". What did you build in 8 years?" : "Judge us by the record at the end of the term, not by tweets.", truth: !!done, fx: done ? { app: 1 } : {}, callout: done ? null : "What record? Name one finished project." });
     out.push({ id: "rebut", text: "That is false, and " + (opp ? "you know it" : "the facts will show it") + ".", truth: !fair, fx: fair ? { app: -1 } : { app: 1 }, callout: fair ? "False? Everybody can see it." : null });
     out.push({ id: "listen", text: "Fair criticism. We're listening, and we'll do better.", truth: true, fx: fair ? { app: 1 } : {} });

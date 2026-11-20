@@ -7607,7 +7607,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, oppName: cast.rival && cast.rival.name, reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints,
       // The President's world: the war (once the storyline starts) and this year's crackdown, for foreign accounts.
       war: NAT && stc.bakunda && (stc.bakunda.stage || 0) >= 2 ? (() => { const B = stc.bakunda, K = SYS.bkCountry(B); return { nm: K.nm, adj: K.adj, cap: K.cap, gen: K.gen, art: K.art, stage: B.stage, atWar: !!B.atWar, progress: B.progress || 0, done: !!B.done, treaty: B.treaty }; })() : null,
-      crackdown: !!((((stc.tori || {}).tools || {})[turn] || {}).crackdown) };
+      crackdown: !!((((stc.tori || {}).tools || {})[turn] || {}).crackdown),
+      // For the opposition, who watch everything: approval when last year closed, lies called out, this year's moves.
+      appPrev: (() => { const h = ((stc.tori || {}).hist || []).filter(x => x.turn < turn && x.app != null).pop(); return h ? h.app : null; })(),
+      lies: Object.values((stc.tori || {}).acts || {}).reduce((a, v) => a + ((v.comments || []).filter(cm => cm.turn === turn && cm.lied).length), 0),
+      tools: (((stc.tori || {}).tools || {})[turn]) || {} };
   };
   const toriPosts = () => ((stc.tori || {}).posts || []);
   const toriH = () => SYS.toriHeat(toriCtx(), stc.tori || {});
@@ -7646,7 +7650,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const toriScreen = () => {
     const c = toriCtx(), me = SYS.toriHandle(state), H = toriH(), S0 = String(state).replace(/[^A-Za-z]/g, ""), tall = TALL(), ink = "#0f1419", sub = "#536471", line = "#eff3f4", blue = "#1d9bf0", fs = tall ? TS(15) : TS(20), sm = tall ? TS(13) : TS(17);
     const memes = ((stc.tori || {}).memes || []).filter(m => m.turn === turn).map((m, k) => ({ id: "meme" + k, kind: "citizen", art: null, ago: "1h", likes: 900 + k * 1700, rts: 4000 + k * 900, replies: 300, ...m }));
-    const feed = [...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriInstitutions(c, H), ...memes, ...SYS.toriFeed(c)];
+    const opp = SYS.toriOpposition({ ...c, heatStage: H.stage, heatTag: H.stage >= 5 ? "#" + S0 + "GovMustGo" : (H.stories[0] || {}).tag });
+    const feed = [...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriInstitutions(c, H), ...opp.filter(o => o.w >= 3).slice(0, 2), ...memes, ...SYS.toriFeed(c)];
     const heatTags = H.stage >= 2 ? H.stories.slice(0, 3).map((x, i) => ({ tag: x.tag, count: SYS.fmtCount(20000 * H.stage + 9000 * (3 - i)), about: x.cause })) : [];
     const trends = [...(H.stage >= 5 ? [{ tag: "#" + S0 + "GovMustGo", count: "212K", about: "Unions, market women and civil society" }] : []), ...SYS.toriWorldTrends(c), ...heatTags, ...SYS.toriTrends(c).filter(t => !heatTags.some(h => h.tag === t.tag))].slice(0, 10).map((t, i) => ({ ...t, rank: i + 1 }));
     const myPic = AVATAR_IMGS[setup?.avatar] || "./art/characters/governor.webp", A = toriActs();
@@ -7662,13 +7667,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const onReply = (x, o) => {
       if (o.action) { const fixT = { treasury: "treasury", roundtable: "roundtable", visit: "visit", needs: "needs" }[o.action]; if (fixT) toriTool({ id: "fix", fix: fixT, l: o.text }); return; }
       const Rr = SYS.toriReplyReact(o, x, turn + x.id + o.id);
-      toriAct(x.id, a => ({ ...a, comments: [...(a.comments || []), { turn, text: o.text, replies: Rr.replies }] }));
+      toriAct(x.id, a => ({ ...a, comments: [...(a.comments || []), { turn, text: o.text, replies: Rr.replies, lied: o.truth === false }] }));
       if (o.promise) setStc(p => ({ ...p, tori: { ...(p.tori || {}), promises: [...(((p.tori || {}).promises) || []), { turn, kind: o.promise, text: o.text }].slice(-20) } }));
       if (o.fx && o.fx.app) scFx(o.fx);
       addL("🐦 You replied on Tori to " + x.name + ": \u201c" + o.text + "\u201d" + (o.truth === false ? " The replies called it out." : ""), o.truth === false ? "political" : "info"); track("tori_reply", (x.topic || SYS.toriTopic(x.text)) + ":" + o.id);
     };
     return <ToriApp tab={toriTab} me={{ short: (NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop(), full: (NAT ? "President " : "Governor ") + pName, handle: me, pic: myPic, bio: "Official account of the " + (NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State") + ".", joined: "Joined May " + ((setup?.startYear || 2027) + (turn > 4 ? 4 : 0)), following: 180 + turn * 12, followers: 20000 + s.app * 1800 + toriPosts().reduce((a, p) => a + (p.likes || 0) / 4, 0) }}
-      feed={feed} trends={trends} where={H.stage >= 3 || NAT ? "Nigeria" : stName} opp={SYS.toriOpposition(c)} oppLabel="Opposition" why={why} tweetExtra={complaintBtn} year={turn} store={{ posts: toriPosts(), acts: A }}
+      feed={feed} trends={trends} where={H.stage >= 3 || NAT ? "Nigeria" : stName} opp={opp} oppLabel="Opposition" why={why} tweetExtra={complaintBtn} year={turn} store={{ posts: toriPosts(), acts: A }}
       posts={{ left: SYS.TORI_POSTS_PER_YEAR - toriPosts().filter(p => p.turn === turn).length, options: SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id)), onPost: toriPost }}
       replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), onReply }}
       onAct={toriAct} notif={c.complaints.filter(q => !q.answered).length} onClose={() => { setStreetOpen(false); setToriRespond(false); }} />;
@@ -10698,7 +10703,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (fx.app || fx.pStab) scFx({ ...(fx.app ? { app: fx.app } : {}), ...(fx.pStab ? { pStab: fx.pStab } : {}) });
       if (fx.igrPct) setS(x => ({ ...x, igr: Math.round((x.igr || 0) * (1 + fx.igrPct / 100) * 100) / 100 }));
       if (fx.house && stc.house) setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal + fx.house) } } : p);
-      setStc(p => { const T0 = p.tori || {}; return { ...p, tori: { ...T0, heat: H.heat, adj: T0.later || 0, later: 0, peak: Math.max(T0.peak || 0, H.heat), hist: [...(T0.hist || []), { turn, heat: H.heat, stage: H.stage, tag: top ? top.tag : null }].slice(-8) } }; });
+      setStc(p => { const T0 = p.tori || {}; return { ...p, tori: { ...T0, heat: H.heat, adj: T0.later || 0, later: 0, peak: Math.max(T0.peak || 0, H.heat), hist: [...(T0.hist || []), { turn, heat: H.heat, stage: H.stage, tag: top ? top.tag : null, app: s.app }].slice(-8) } }; });
       if (H.stage >= 2) addL("🔥 Tori: " + SYS.HEAT_STAGES[H.stage].nm.toLowerCase() + (top ? ", led by " + top.tag + " (" + top.cause.toLowerCase() + ")" : "") + "." + (fx.app ? " Approval " + fx.app + "." : "") + (fx.igrPct ? " Investors pulled back (IGR " + fx.igrPct + "%)." : "") + (fx.house ? " " + (-fx.house) + " House members distanced themselves." : ""), "political");
       if (H.stage >= 5 && mustGoDone.current !== turn && !NAT) { setMustGo({ heat: H.heat, tag: "#" + String(state).replace(/[^A-Za-z]/g, "") + "GovMustGo", stories: H.stories.slice(0, 3) }); return; }
     }
