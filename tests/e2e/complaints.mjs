@@ -22,7 +22,7 @@ for (let i = 0; i < 3 && await g.click(/^(Continue|Okay|Got it)$/); i++) await g
 await openStreet(); await g.wait(900);
 const t = await g.page.evaluate(() => { const e = document.querySelector("[data-testid=tori]"); return e ? e.innerText : ""; });
 if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/street-chat.png" });
-check(/tori/.test(t) && /Na 2 months now dem never pay us/.test(t) && /@OgunGov/.test(t), "a tap opens Tori: the unpaid workers' complaint is a tweet tagging @OgunGov");
+check(!!t && /Na 2 months now dem never pay us/.test(t) && /@OgunGov/.test(t), "a tap opens Tori: the unpaid workers' complaint is a tweet tagging @OgunGov");
 check(await answerBtn(/↩ Reply/), "each complaint tweet has a Reply button"); await g.wait(700);
 const card = await g.txt();
 check(/A complaint/.test(card) && /What they want: pay the salaries owed/.test(card), "a tap opens the complaint: who, and what would fix it");
@@ -43,10 +43,10 @@ check(/Treasury|treasury|In the bank|bank/.test(await g.txt()), "the fix opens t
 for (let i = 0; i < 3 && await g.click(/^(Continue|Okay|Got it|Close)$/); i++) await g.wait(400);
 await g.click(/^Desk\d*$/); await g.wait(500); await g.click(/^Today$/); await g.wait(500);
 await openStreet(); await g.wait(800);
-const tabT = async (re) => { await g.page.evaluate((src) => { const b = [...document.querySelectorAll("[data-testid=tori] [role=tab]")].find(x => new RegExp(src).test(x.textContent)); b && b.click(); }, re.source); await g.wait(400); return g.page.evaluate(() => document.querySelector("[data-testid=tori]").innerText); };
-const tr = await tabT(/^Trending$/);
+const tabT = async (re) => { await g.page.evaluate((src) => { const b = [...document.querySelectorAll("[data-testid=tori] [role=tab]")].find(x => new RegExp(src).test(x.textContent.trim() || x.getAttribute("aria-label") || "")); b && b.click(); }, re.source); await g.wait(400); return g.page.evaluate(() => document.querySelector("[data-testid=tori]").innerText); };
+const tr = await tabT(/^Explore$/);
 check(/Trending in Ogun/.test(tr) && /#PayOurSalariesOgun/.test(tr), "Trending: the salary hashtag trends while workers are owed");
-const op = await tabT(/^Opposition$/);
+await tabT(/^Home$/); const op = await tabT(/^Opposition$/);
 check(/months of unpaid salaries/.test(op), "Opposition: the opposition candidate attacks on unpaid salaries");
 await g.page.evaluate(() => document.querySelector("[data-sop-tori-compose]").click()); await g.wait(400);
 const ops = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-opt]")].map(b => b.getAttribute("data-sop-tori-opt")));
@@ -57,15 +57,15 @@ const meT = await g.page.evaluate(() => document.querySelector("[data-testid=tor
 if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/tori-me.png" });
 check(/Salaries are being paid/.test(meT) && /Screenshot this tweet|Ratio|Which one be this/.test(meT) && app1 < app0, "a false claim is posted, ratioed in the replies, and costs approval (" + app0 + " → " + app1 + ")");
 // Like, repost and reply on any tweet; the news account posts the year's real events.
-const home = await tabT(/^For you$/);
+await tabT(/^Home$/); const home = await tabT(/^For you$/);
 check(/Ogun News Now/.test(home), "the news account posts this year's real events");
-const likeOf = () => g.page.evaluate(() => { const b = document.querySelector("[data-testid=tori] [data-sop-tweet=news] [data-sop-tori-act=like]"); return b ? b.textContent : ""; });
+const likeOf = () => g.page.evaluate(() => { const b = document.querySelector("[data-testid=tori] [data-sop-tweet=news] [data-sop-tori-act=like]"); return b ? b.getAttribute("aria-pressed") + ":" + b.textContent : ""; });
 const l0 = await likeOf(); await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=news] [data-sop-tori-act=like]").click()); await g.wait(300); const l1 = await likeOf();
-check(/♡/.test(l0) && /♥/.test(l1), "a tweet can be liked (" + l0 + " → " + l1 + ")");
+check(/^false:/.test(l0) && /^true:/.test(l1) && parseInt(l1.split(":")[1]) === parseInt(l0.split(":")[1]) + 1, "a tweet can be liked, and the count goes up (" + l0 + " → " + l1 + ")");
 await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=news] [data-sop-tori-act=rt]").click()); await g.wait(300);
-const meT2 = await tabT(/^@OgunGov$/);
+const meT2 = await tabT(/^Profile$/);
 check(/You reposted/.test(meT2) && /Ogun News Now/.test(meT2), "a repost shows on the governor's profile");
-await tabT(/^Opposition$/);
+await tabT(/^Home$/); await tabT(/^Opposition$/);
 await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=opposition] [data-sop-tori-act=reply]").click()); await g.wait(300);
 const optsR = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-comment]")].map(b => b.getAttribute("data-sop-tori-comment")));
 check(optsR.includes("rebut") && optsR.includes("work"), "a reply to the opposition: rebut it, or say results will speak");

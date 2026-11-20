@@ -7365,6 +7365,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The godfather's pay-off, and any other scenario action, from the Desk strip.
   const [streetOpen, setStreetOpen] = useState(false); // Tori, the state's Twitter-style feed (SYS.tori)
   const [toriTab, setToriTab] = useState("home"), [toriCompose, setToriCompose] = useState(false), [toriReply, setToriReply] = useState(null);
+  const [toriRespond, setToriRespond] = useState(false), [mustGo, setMustGo] = useState(null); // the heat toolkit; the "must go" finale
+  const heatClosed = React.useRef(-1), mustGoDone = React.useRef(-1);
   const [yearFull, setYearFull] = useState(false); // the full year review sheet, from the end-of-year screen
   const [scenChat, setScenChat] = useState(null); // the adviser's chat about the logjam: null | {} | { me: "your reply" }
   const scenAction = (a) => { const cost = SYS.scenarioCostB(a, scenRevB()); if (cost && !spendB(cost, a.l)) return;
@@ -7460,9 +7462,28 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // This year's real events, as the local news would put them.
     const events = logs.filter(l => l.t === turn && ["policy", "success", "crisis", "political", "scandal"].includes(l.tp)).slice(0, 8)
       .map(l => ({ text: briefly(String(l.tx).replace(/^[^A-Za-z₦"“0-9]+/, ""), 140), good: ["policy", "success"].includes(l.tp) })).filter(e => e.text.length > 12);
-    return { st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs, events, govName: pName, oppName: cast.rival && cast.rival.name, reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints };
+    const late = activeNeeds.filter(n => n.status === "open" && n.due != null && n.due <= turn).length;
+    const stalled = (projects || []).filter(p => p.status === "stalled").length, broken = (stc.promises || []).filter(p => p.status === "broken").length;
+    const ratios = ((stc.tori || {}).posts || []).filter(p => p.turn === turn && p.ratio).length;
+    const delivered = (projects || []).filter(p => p.status === "delivered" && (p.decisions || []).some(d => d.year === turn)).length;
+    const weak = (ministries || []).filter(m => m.minister).sort((a, b) => (a.perf || 50) - (b.perf || 50))[0];
+    return { st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
+      stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, oppName: cast.rival && cast.rival.name, reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints };
   };
   const toriPosts = () => ((stc.tori || {}).posts || []);
+  const toriH = () => SYS.toriHeat(toriCtx(), stc.tori || {});
+  const toriTool = (t) => {
+    if (t.fix) { setStreetOpen(false); setToriRespond(false);
+      if (t.fix === "treasury") { setNav("tre"); } else if (t.fix === "roundtable") { const st0 = Object.values((stc.labour || {}).strikes || {}).find(x => x && x.on); if (st0) setTable({ id: st0.id }); } else if (t.fix === "visit") { setVisitOpen(true); } else if (t.fix === "projects") { setNav("prj"); } else if (t.fix === "needs") { setNav("gov"); setTodayMore(true); setNeedsAll(true); } else setNav("cab");
+      return; }
+    const T = stc.tori || {}, used = (T.tools || {})[turn] || {}, H = toriH(), R = SYS.toolResult(t, toriCtx(), H, rng(hashStr("tool" + turn + t.id + pName))(), used);
+    setStc(p => { const T0 = p.tori || {}, U = { ...((T0.tools || {})[turn] || {}), [t.id]: 1, apologies: (((T0.tools || {})[turn] || {}).apologies || 0) + (R.count ? 1 : 0) };
+      return { ...p, tori: { ...T0, adj: (T0.adj || 0) + (R.adj || 0), later: (T0.later || 0) + (R.later || 0), tools: { ...(T0.tools || {}), [turn]: U }, memes: R.tweet ? [...(T0.memes || []), { ...R.tweet, turn }].slice(-12) : (T0.memes || []) } }; });
+    if (R.fx) { const { cash, ...rest } = R.fx; if (Object.keys(rest).length) scFx(rest); if (cash) setS(x => ({ ...x, cash: Math.round(((x.cash || 0) + cash) * 100) / 100 })); }
+    if (R.sack && toriCtx().weakId) fireMinister(toriCtx().weakId, true);
+    addL("🔥 Tori: " + t.l + ". " + R.line, (R.adj || 0) > 0 ? "political" : "info"); track("tori_tool", t.id + (R.exposed ? ":exposed" : ""));
+    setToriRespond(false);
+  };
   const toriPost = (opt) => {
     const c = toriCtx(), R = SYS.toriReact(opt, c, turn + ":" + opt.id + ":" + toriPosts().length);
     setStc(p => ({ ...p, tori: { ...(p.tori || {}), posts: [...((p.tori || {}).posts || []), { turn, id: opt.id, text: opt.text, likes: R.likes, rts: R.rts, replies: R.replies, ratio: R.ratio, line: R.line }].slice(-30) } }));
@@ -7482,80 +7503,134 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🐦 You replied on Tori to " + x.name + ": \u201c" + opt.text + "\u201d" + (opt.truth === false ? " The replies called it out." : ""), opt.truth === false ? "political" : "info");
     setToriReply(null); track("tori_reply", opt.id);
   };
+  /* Tori looks like X (Twitter) as it is now (owner, 20 Nov 2026): avatar left and logo centred in the top bar; "For you"
+     and "Opposition" tabs (where X has "For you | Following"); posts with the blue badge, "@handle · 38m", the "···"
+     menu and the outline action row (reply, repost, like, views, share); the round + post button; a bottom bar with
+     Home, Explore, Notifications and Profile; a profile with a banner, "Edit profile", Joined and the follow counts. */
+  const ToriIc = ({ d, s = 22, c = "currentColor", fill = "none" }) => <svg viewBox="0 0 24 24" width={s} height={s} aria-hidden="true" style={{ display: "block", flex: "none" }}><path d={d} fill={fill} stroke={fill === "none" ? c : "none"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+  const TI = {
+    reply: "M4 12c0-4 3.5-7 8-7s8 3 8 7-3.5 7-8 7c-1.2 0-2.3-.2-3.3-.6L4 20l1.2-3.6C4.4 15.2 4 13.6 4 12z",
+    rt: "M4 9l3-3 3 3M7 6v9a2 2 0 0 0 2 2h5M20 15l-3 3-3-3M17 18V9a2 2 0 0 0-2-2h-5",
+    like: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z",
+    views: "M5 20V12M10 20V6M15 20v-9M20 20V9",
+    share: "M12 3v12M7 8l5-5 5 5M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5",
+    home: "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z", search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4",
+    bell: "M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0", user: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6",
+    more: "M5 12h.01M12 12h.01M19 12h.01", plus: "M12 5v14M5 12h14", cal: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
+  };
+  const Badge = ({ s = 16 }) => <svg viewBox="0 0 24 24" width={s} height={s} aria-label="Verified" style={{ display: "inline-block", verticalAlign: "-3px", marginLeft: 2 }}><path d="M12 2l2.4 1.7 2.9-.2.9 2.8 2.5 1.5-.8 2.8.8 2.8-2.5 1.5-.9 2.8-2.9-.2L12 22l-2.4-1.7-2.9.2-.9-2.8-2.5-1.5.8-2.8-.8-2.8 2.5-1.5.9-2.8 2.9.2z" fill="#1d9bf0" /><path d="M8 12.2l2.6 2.6L16.2 9" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
   const toriScreen = () => {
-    const c = toriCtx(), tall = TALL(), me = SYS.toriHandle(state), feed = SYS.toriFeed(c), trends = SYS.toriTrends(c), opp = SYS.toriOpposition(c);
+    const c = toriCtx(), tall = TALL(), me = SYS.toriHandle(state), H = toriH(), S0 = String(state).replace(/[^A-Za-z]/g, "");
+    const memes = ((stc.tori || {}).memes || []).filter(m => m.turn === turn).map((m, k) => ({ id: "meme" + k, kind: "citizen", art: null, ago: "1h", likes: 900 + k * 1700, rts: 4000 + k * 900, replies: 300, ...m }));
+    const feed = [...SYS.toriInstitutions(c, H), ...memes, ...SYS.toriFeed(c)];
+    const heatTags = H.stage >= 2 ? H.stories.slice(0, 3).map((x, i) => ({ tag: x.tag, count: SYS.fmtCount(20000 * H.stage + 9000 * (3 - i)), about: x.cause, n: 0 })) : [];
+    const trends = [...(H.stage >= 5 ? [{ tag: "#" + S0 + "GovMustGo", count: "212K", about: "Unions, market women and civil society" }] : []), ...heatTags, ...SYS.toriTrends(c).filter(t => !heatTags.some(h => h.tag === t.tag))].slice(0, 10).map((t, i) => ({ ...t, rank: i + 1 }));
+    const opp = SYS.toriOpposition(c), where = H.stage >= 3 ? "Nigeria" : stName;
     const left = SYS.TORI_POSTS_PER_YEAR - toriPosts().filter(p => p.turn === turn).length, myPic = AVATAR_IMGS[setup?.avatar] || "./art/characters/governor.webp";
-    const blue = "#1d9bf0", ink = "#0f1419", sub = "#536471", line = "#eff3f4", fs = tall ? TS(15) : TS(20);
+    const blue = "#1d9bf0", ink = "#0f1419", sub = "#536471", line = "#eff3f4", fs = tall ? TS(15) : TS(20), sm = tall ? TS(13) : TS(17);
     const rich = (t) => String(t).split(/([#@][A-Za-z0-9_]+)/).map((x, k) => /^[#@]/.test(x) ? <span key={k} style={{ color: blue }}>{x}</span> : x);
-    const pic = (art, who) => <img src={"./art/characters/" + (art || voiceArt(who)) + ".webp"} alt="" style={{ width: tall ? 40 : 52, height: tall ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />;
+    const av = (src, size) => <img src={src} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />;
+    const pic = (art, who) => av("./art/characters/" + (art || voiceArt(who)) + ".webp", tall ? 40 : 52);
     const A = toriActs(), commentsLeft = SYS.TORI_COMMENTS_PER_YEAR - Object.values(A).reduce((a, v) => a + ((v.comments || []).filter(cm => cm.turn === turn).length), 0);
-    const actBtn = { background: "transparent", border: 0, padding: "6px 4px", minHeight: 36, cursor: "pointer", fontFamily: F.b, fontSize: tall ? TS(13) : TS(17), display: "inline-flex", alignItems: "center", gap: 5 };
-    const acts = (x) => { const a = A[x.id] || {}, mineC = (a.comments || []); return <>
-      <div style={{ display: "flex", gap: 18, marginTop: 4, color: sub }}>
-        {x.kind !== "mine" && <button data-sop-tori-act="reply" onClick={() => setToriReply(toriReply === x.id ? null : x.id)} style={{ ...actBtn, color: toriReply === x.id ? blue : sub }}>💬 {SYS.fmtCount((x.replies || 0) + mineC.length)}</button>}
-        {x.kind !== "mine" && <button data-sop-tori-act="rt" aria-pressed={!!a.rt} onClick={() => toriAct(x.id, v => ({ ...v, rt: !v.rt, text: x.text, name: x.name, handle: x.handle, art: x.art, turn }))} style={{ ...actBtn, color: a.rt ? "#00ba7c" : sub, fontWeight: a.rt ? 800 : 500 }}>🔁 {SYS.fmtCount((x.rts || 0) + (a.rt ? 1 : 0))}</button>}
-        {x.kind !== "mine" ? <button data-sop-tori-act="like" aria-pressed={!!a.like} onClick={() => toriAct(x.id, v => ({ ...v, like: !v.like }))} style={{ ...actBtn, color: a.like ? "#f91880" : sub, fontWeight: a.like ? 800 : 500 }}>{a.like ? "♥" : "♡"} {SYS.fmtCount((x.likes || 0) + (a.like ? 1 : 0))}</button>
-          : <span style={{ ...actBtn, color: sub }}>🔁 {SYS.fmtCount(x.rts || 0)} &nbsp; ♡ {SYS.fmtCount(x.likes || 0)}</span>}
+    const actBtn = { background: "transparent", border: 0, padding: "6px 0", minHeight: 36, cursor: "pointer", fontFamily: F.b, fontSize: sm, display: "inline-flex", alignItems: "center", gap: 5, color: sub };
+    const myName = (NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop();
+    const acts = (x) => { const a = A[x.id] || {}, mineC = (a.comments || []), views = Math.round((x.likes || 0) * 14 + (x.rts || 0) * 30); return <>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4, maxWidth: 440 }}>
+        <button data-sop-tori-act="reply" aria-label="Reply" onClick={() => x.kind !== "mine" && setToriReply(toriReply === x.id ? null : x.id)} style={{ ...actBtn, color: toriReply === x.id ? blue : sub }}><ToriIc d={TI.reply} />{SYS.fmtCount((x.replies || 0) + mineC.length)}</button>
+        <button data-sop-tori-act="rt" aria-label="Repost" aria-pressed={!!a.rt} onClick={() => x.kind !== "mine" && toriAct(x.id, v => ({ ...v, rt: !v.rt, text: x.text, name: x.name, handle: x.handle, art: x.art, turn }))} style={{ ...actBtn, color: a.rt ? "#00ba7c" : sub }}><ToriIc d={TI.rt} />{SYS.fmtCount((x.rts || 0) + (a.rt ? 1 : 0))}</button>
+        <button data-sop-tori-act="like" aria-label="Like" aria-pressed={!!a.like} onClick={() => x.kind !== "mine" && toriAct(x.id, v => ({ ...v, like: !v.like }))} style={{ ...actBtn, color: a.like ? "#f91880" : sub }}><ToriIc d={TI.like} fill={a.like ? "#f91880" : "none"} />{SYS.fmtCount((x.likes || 0) + (a.like ? 1 : 0))}</button>
+        <span style={{ ...actBtn, cursor: "default" }} aria-label="Views"><ToriIc d={TI.views} />{SYS.fmtCount(views)}</span>
+        <span style={{ ...actBtn, cursor: "default" }} aria-label="Share"><ToriIc d={TI.share} /></span>
       </div>
       {mineC.map((cm, k) => <div key={k} style={{ marginTop: 6, borderLeft: "2px solid " + line, paddingLeft: 10 }}>
-        <div style={{ fontSize: tall ? TS(14) : TS(18), color: ink }}><b>{(NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop()}</b> <span style={{ color: blue }}>✓</span> <span style={{ color: sub }}>{me}</span><div>{rich(cm.text)}</div></div>
-        {(cm.replies || []).map((rp, j) => <div key={j} style={{ fontSize: tall ? TS(13) : TS(17), color: ink, marginTop: 4 }}><b>{rp.name}</b> <span style={{ color: sub }}>replying to {me}</span><div>{rich(rp.text)}</div></div>)}
+        <div style={{ fontSize: sm + 1, color: ink }}><b>{myName}</b><Badge s={14} /> <span style={{ color: sub }}>{me}</span><div>{rich(cm.text)}</div></div>
+        {(cm.replies || []).map((rp, j) => <div key={j} style={{ fontSize: sm, color: ink, marginTop: 4 }}><b>{rp.name}</b> <span style={{ color: sub }}>replying to {me}</span><div>{rich(rp.text)}</div></div>)}
       </div>)}
       {toriReply === x.id && <div data-sop-tori-replybox style={{ marginTop: 8, display: "grid", gap: 6 }}>
-        <div style={{ fontSize: tall ? TS(12) : TS(16), color: sub }}>Reply as {me} · {commentsLeft} repl{commentsLeft === 1 ? "y" : "ies"} left this year</div>
-        {commentsLeft > 0 && SYS.toriComments(x, c).map(o => <button key={o.id} data-sop-tori-comment={o.id} onClick={() => toriComment(x, o)} style={{ textAlign: "left", background: "#f7f9f9", border: "1px solid " + line, borderRadius: 14, padding: "8px 12px", fontFamily: F.b, fontSize: tall ? TS(14) : TS(18), color: ink, cursor: "pointer" }}>{o.text}</button>)}
+        <div style={{ fontSize: sm - 1, color: sub }}>Replying to <span style={{ color: blue }}>{x.handle}</span> · {commentsLeft} repl{commentsLeft === 1 ? "y" : "ies"} left this year</div>
+        {commentsLeft > 0 && SYS.toriComments(x, c).map(o => <button key={o.id} data-sop-tori-comment={o.id} onClick={() => toriComment(x, o)} style={{ textAlign: "left", background: "#fff", border: "1px solid #cfd9de", borderRadius: 16, padding: "8px 12px", fontFamily: F.b, fontSize: sm + 1, color: ink, cursor: "pointer" }}>{o.text}</button>)}
       </div>}
     </>; };
-    const tweet = (x) => <div key={x.id} data-sop-tweet={x.kind} style={{ display: "flex", gap: 10, padding: tall ? "12px 14px" : "16px 20px", borderBottom: "1px solid " + line, background: "#fff" }}>
-      {x.art === "__me" ? <img src={myPic} alt="" style={{ width: tall ? 40 : 52, height: tall ? 40 : 52, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} /> : pic(x.art, x.who || x.name)}
+    const tweet = (x) => <article key={x.id} data-sop-tweet={x.kind} style={{ display: "flex", gap: 10, padding: tall ? "10px 14px 4px" : "14px 20px 6px", borderBottom: "1px solid " + line, background: "#fff" }}>
+      {x.art === "__me" ? av(myPic, tall ? 40 : 52) : pic(x.art, x.who || x.name)}
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: fs, color: sub, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}><b style={{ color: ink }}>{x.name}</b>{x.verified && <span style={{ color: blue }}> ✓</span>} {x.handle} · {x.ago}</div>
-        <div style={{ fontSize: fs, color: ink, lineHeight: 1.4, marginTop: 2 }}>{rich(x.text)}</div>
-        {x.quote && <div style={{ marginTop: 8, border: "1px solid " + line, borderRadius: 14, padding: "8px 10px" }}><b style={{ fontSize: tall ? TS(13) : TS(17), color: ink }}>{x.quote.name}</b> <span style={{ color: blue, fontSize: tall ? TS(13) : TS(17) }}>✓</span><div style={{ fontSize: tall ? TS(14) : TS(18), color: ink, lineHeight: 1.35 }}>{x.quote.text}</div></div>}
-        {x.kind === "complaint" && <button onClick={() => { const q = complaintsNow().find(k => k.id === x.complaint); if (q) { setStreetOpen(false); setComplaint(q); } }} style={{ marginTop: 8, minHeight: 36, padding: "4px 14px", borderRadius: 999, border: "1.5px solid " + (x.answered ? CL.grn : x.lied ? CL.red : blue), background: "#fff", color: x.answered ? CL.grn : x.lied ? CL.red : blue, fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(13) : TS(18), cursor: "pointer" }}>{x.answered ? "✓ You replied" : x.lied ? "\u201cYou lied\u201d · reply again" : "↩ Reply"}</button>}
-        {x.mine && (x.replyList || []).length > 0 && <div style={{ marginTop: 8, borderLeft: "2px solid " + line, paddingLeft: 10, display: "grid", gap: 6 }}>{x.replyList.map((rp, k) => <div key={k} style={{ fontSize: tall ? TS(14) : TS(18), color: ink }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div>)}</div>}
+        {x.pinned && <div style={{ fontSize: sm - 1, color: sub, fontWeight: 700, marginBottom: 2 }}>📌 Speaking on {stName}</div>}
+        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: fs, color: sub, minWidth: 0 }}>
+          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}><b style={{ color: ink }}>{x.name}</b>{x.verified && <Badge s={tall ? 15 : 18} />} {x.handle} · {x.ago}</span>
+          <span style={{ marginLeft: "auto", color: sub }}><ToriIc d={TI.more} s={18} /></span></div>
+        <div style={{ fontSize: fs, color: ink, lineHeight: 1.4, marginTop: 2, whiteSpace: "pre-wrap" }}>{rich(x.text)}</div>
+        {x.quote && <div style={{ marginTop: 8, border: "1px solid #cfd9de", borderRadius: 16, padding: "8px 12px" }}><b style={{ fontSize: sm, color: ink }}>{x.quote.name}</b><Badge s={14} /><div style={{ fontSize: sm + 1, color: ink, lineHeight: 1.35 }}>{x.quote.text}</div></div>}
+        {x.kind === "complaint" && <button onClick={() => { const q = complaintsNow().find(k => k.id === x.complaint); if (q) { setStreetOpen(false); setComplaint(q); } }} style={{ marginTop: 8, minHeight: 34, padding: "4px 16px", borderRadius: 999, border: "1px solid " + (x.answered ? CL.grn : x.lied ? CL.red : "#cfd9de"), background: "#fff", color: x.answered ? CL.grn : x.lied ? CL.red : ink, fontFamily: F.b, fontWeight: 800, fontSize: sm, cursor: "pointer" }}>{x.answered ? "✓ You replied" : x.lied ? "“You lied” · reply again" : "↩ Reply"}</button>}
+        {x.mine && (x.replyList || []).length > 0 && <div style={{ marginTop: 8, borderLeft: "2px solid " + line, paddingLeft: 10, display: "grid", gap: 6 }}>{x.replyList.map((rp, k) => <div key={k} style={{ fontSize: sm + 1, color: ink }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div>)}</div>}
         {acts(x)}
       </div>
-    </div>;
-    const mine = toriPosts().slice().reverse().map((p, k) => ({ id: "m" + k, kind: "mine", mine: true, art: "__me", name: (NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop(), verified: true, handle: me, ago: p.turn === turn ? "this year" : "year " + p.turn, text: p.text, likes: p.likes, rts: p.rts, replies: (p.replies || []).length, replyList: p.replies }));
-    const tabs = [["home", "For you"], ["trends", "Trending"], ["opp", "Opposition"], ["me", me]];
-    const opts = SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id));
-    return <div data-testid="tori" style={{ minHeight: "100%", display: "flex", flexDirection: "column", background: "#fff" }}>
-      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(255,255,255,.96)", borderBottom: "1px solid " + line }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: tall ? "8px 12px" : "12px 18px" }}>
-          <button onClick={() => { setStreetOpen(false); setToriCompose(false); }} aria-label="Back" style={{ background: "transparent", border: 0, color: ink, fontSize: tall ? TS(22) : TS(30), cursor: "pointer", minHeight: 44, minWidth: 36 }}>←</button>
-          <span style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><ToriLogo s={tall ? 28 : 36} /><b style={{ fontFamily: F.b, fontWeight: 800, fontSize: tall ? TS(22) : TS(30), color: ink, letterSpacing: -.5 }}>tori<span style={{ color: blue }}>.</span></b></span>
-          <img src={myPic} alt="" style={{ width: 34, height: 34, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4" }} />
+    </article>;
+    const mine = toriPosts().slice().reverse().map((p, k) => ({ id: "m" + k, kind: "mine", mine: true, art: "__me", name: myName, verified: true, handle: me, ago: p.turn === turn ? "1h" : "Y" + p.turn, text: p.text, likes: p.likes, rts: p.rts, replies: (p.replies || []).length, replyList: p.replies }));
+    const mentions = feed.filter(x => x.kind === "complaint" || /@[A-Za-z]+Gov\b/.test(x.text)).slice(0, 12);
+    const view = ["home", "explore", "notif", "me"].includes(toriTab) ? toriTab : toriTab === "trends" ? "explore" : toriTab === "opp" ? "home" : "home";
+    const homeTab = toriTab === "opp" ? "opp" : "foryou";
+    const topTab = (k, l) => <button key={k} role="tab" aria-selected={homeTab === k} onClick={() => { setToriTab(k === "opp" ? "opp" : "home"); setToriCompose(false); }} style={{ flex: 1, background: "transparent", border: 0, padding: "12px 2px 0", minHeight: 48, fontFamily: F.b, fontWeight: homeTab === k ? 800 : 600, color: homeTab === k ? ink : sub, fontSize: fs, cursor: "pointer" }}><span style={{ display: "inline-block", paddingBottom: 10, borderBottom: "4px solid " + (homeTab === k ? blue : "transparent"), borderRadius: 2 }}>{l}</span></button>;
+    const navBtn = (k, ic, label, badge) => <button key={k} role="tab" aria-label={label} aria-selected={view === k} onClick={() => { setToriTab(k); setToriCompose(false); setToriRespond(false); }} style={{ flex: 1, background: "transparent", border: 0, minHeight: 52, display: "grid", placeItems: "center", cursor: "pointer", color: ink, position: "relative" }}>
+      <ToriIc d={TI[ic]} s={30} fill={view === k && ic !== "search" ? ink : "none"} c={ink} />{badge > 0 && <span style={{ position: "absolute", top: 6, left: "54%", background: blue, color: "#fff", borderRadius: 999, minWidth: 16, height: 16, fontSize: 11, fontWeight: 800, display: "grid", placeItems: "center", padding: "0 4px", fontFamily: F.b }}>{badge}</span>}</button>;
+    const waitingN = c.complaints.filter(q => !q.answered).length;
+    const joined = "Joined May " + ((setup?.startYear || 2027) + (turn > 4 ? 4 : 0));
+    return <div data-testid="tori" style={{ minHeight: "100%", display: "flex", flexDirection: "column", background: "#fff", paddingBottom: 64 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 2, background: "rgba(255,255,255,.92)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", borderBottom: "1px solid " + line }}>
+        <div style={{ display: "grid", gridTemplateColumns: "48px 1fr 48px", alignItems: "center", padding: tall ? "6px 12px" : "10px 18px" }}>
+          <button onClick={() => setToriTab("me")} aria-label="Your profile" style={{ background: "transparent", border: 0, padding: 0, cursor: "pointer" }}>{av(myPic, 32)}</button>
+          <span style={{ display: "flex", justifyContent: "center" }}><ToriLogo s={30} /></span>
+          <button onClick={() => { setStreetOpen(false); setToriCompose(false); setToriRespond(false); }} aria-label="Back" style={{ justifySelf: "end", background: "transparent", border: 0, color: ink, fontSize: tall ? TS(20) : TS(26), cursor: "pointer", minHeight: 44, minWidth: 40 }}>✕</button>
         </div>
-        <div role="tablist" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)" }}>{tabs.map(([k, l]) => <button key={k} role="tab" aria-selected={toriTab === k} onClick={() => { setToriTab(k); setToriCompose(false); }} style={{ background: "transparent", border: 0, borderBottom: "3px solid " + (toriTab === k ? blue : "transparent"), padding: "10px 2px", minHeight: 44, fontFamily: F.b, fontWeight: toriTab === k ? 800 : 600, color: toriTab === k ? ink : sub, fontSize: tall ? TS(13) : TS(18), cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{l}</button>)}</div>
+        {view === "home" && !toriCompose && <div role="tablist" style={{ display: "flex" }}>{topTab("foryou", "For you")}{topTab("opp", "Opposition")}</div>}
+        {view === "explore" && !toriCompose && <div style={{ padding: "0 12px 10px" }}><div style={{ display: "flex", alignItems: "center", gap: 8, background: "#eff3f4", borderRadius: 999, padding: "8px 14px", color: sub, fontSize: fs }}><ToriIc d={TI.search} s={18} />Search Tori</div></div>}
+        {view === "notif" && !toriCompose && <div style={{ padding: "10px 16px", fontWeight: 800, fontSize: fs + 2, color: ink }}>Notifications <span style={{ color: sub, fontWeight: 600, fontSize: sm }}>· Mentions</span></div>}
       </div>
       <div style={{ flex: 1, maxWidth: 820, width: "100%", margin: "0 auto" }}>
         {toriCompose ? <div data-testid="tori-compose" style={{ padding: tall ? 14 : 20 }}>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}><img src={myPic} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", objectPosition: "top" }} /><b style={{ color: ink, fontSize: fs }}>What's happening in {stName}?</b></div>
-            <div style={{ fontSize: tall ? TS(13) : TS(17), color: sub, marginBottom: 10 }}>{left} post{left === 1 ? "" : "s"} left this year. People check what you claim against what you've done.</div>
-            <div style={{ display: "grid", gap: 8 }}>{opts.map(o => <button key={o.id} data-sop-tori-opt={o.id} onClick={() => toriPost(o)} style={{ textAlign: "left", background: "#fff", border: "1px solid " + line, borderRadius: 16, padding: "10px 12px", fontFamily: F.b, fontSize: fs, color: ink, lineHeight: 1.4, cursor: "pointer" }}>{rich(o.text)}</button>)}</div>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>{av(myPic, 40)}<span style={{ color: sub, fontSize: fs + 2 }}>What is happening?!</span></div>
+            <div style={{ fontSize: sm, color: sub, marginBottom: 10 }}>{left} post{left === 1 ? "" : "s"} left this year. People check what you claim against what you've done.</div>
+            <div style={{ display: "grid", gap: 8 }}>{SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id)).map(o => <button key={o.id} data-sop-tori-opt={o.id} onClick={() => toriPost(o)} style={{ textAlign: "left", background: "#fff", border: "1px solid #cfd9de", borderRadius: 16, padding: "10px 12px", fontFamily: F.b, fontSize: fs, color: ink, lineHeight: 1.4, cursor: "pointer" }}>{rich(o.text)}</button>)}</div>
             <div style={{ marginTop: 12 }}><Bt v="ghost" onClick={() => setToriCompose(false)} style={{ width: "100%" }}>Cancel</Bt></div>
           </div>
-          : toriTab === "home" ? <div>{feed.map(tweet)}</div>
-          : toriTab === "trends" ? <div>{trends.map(t => <div key={t.tag} data-sop-trend style={{ padding: tall ? "10px 14px" : "14px 20px", borderBottom: "1px solid " + line }}>
-              <div style={{ fontSize: tall ? TS(12) : TS(16), color: sub }}>{t.rank} · Trending in {stName}</div>
-              <b style={{ display: "block", fontSize: fs, color: ink }}>{t.tag}</b>
-              <div style={{ fontSize: tall ? TS(12) : TS(16), color: sub }}>{t.count} posts · {t.about}</div></div>)}</div>
-          : toriTab === "opp" ? <div>{opp.map(tweet)}</div>
+          : view === "home" && homeTab === "foryou" ? <div>
+              {H.stage >= 1 && H.stories.length > 0 && <div data-sop-tori-why style={{ margin: tall ? 10 : 14, border: "1px solid " + (H.stage >= 4 ? "#f4212e" : H.stage >= 2 ? "#ff7a00" : "#cfd9de"), borderRadius: 16, padding: tall ? "10px 12px" : "14px 16px", background: H.stage >= 4 ? "#fff4f4" : H.stage >= 2 ? "#fff8f0" : "#fff" }}>
+                <div style={{ fontSize: sm - 1, fontWeight: 800, color: H.stage >= 4 ? "#f4212e" : H.stage >= 2 ? "#c2410c" : sub, letterSpacing: .5, textTransform: "uppercase" }}>{["Quiet", "People are grumbling", "Trending in " + stName, "Trending across Nigeria", "On the streets", "#" + S0 + "GovMustGo"][H.stage]}</div>
+                <b style={{ display: "block", fontSize: fs, color: ink, margin: "4px 0" }}>Why this is trending</b>
+                {H.stories.slice(0, 3).map(x => <div key={x.id} style={{ fontSize: sm + 1, color: ink, lineHeight: 1.4, padding: "4px 0", borderTop: "1px solid " + line }}><span style={{ color: blue }}>{x.tag}</span> · {x.cause}. <span style={{ color: sub }}>{x.who} want: {x.demand.toLowerCase()}.</span></div>)}
+                {H.stage >= 2 && <button data-sop-tori-respond onClick={() => setToriRespond(r => !r)} style={{ marginTop: 8, minHeight: 36, padding: "6px 16px", borderRadius: 999, border: 0, background: ink, color: "#fff", fontFamily: F.b, fontWeight: 800, fontSize: sm + 1, cursor: "pointer" }}>Respond</button>}
+                {toriRespond && <div data-sop-tori-tools style={{ display: "grid", gap: 6, marginTop: 8 }}>{SYS.toriTools(c, H, ((stc.tori || {}).tools || {})[turn]).map(t => <button key={t.id} data-sop-tori-tool={t.id} onClick={() => toriTool(t)} style={{ textAlign: "left", background: "#fff", border: "1px solid #cfd9de", borderRadius: 14, padding: "8px 12px", fontFamily: F.b, cursor: "pointer" }}><b style={{ display: "block", fontSize: sm + 1, color: ink }}>{t.l}</b><span style={{ fontSize: sm - 1, color: sub }}>{t.d}</span></button>)}</div>}
+              </div>}
+              {feed.map(tweet)}</div>
+          : view === "home" ? <div>{opp.map(tweet)}</div>
+          : view === "explore" ? <div>
+              <div style={{ padding: "12px 16px 4px", fontWeight: 800, fontSize: fs + 3, color: ink }}>Trending in {where}</div>
+              {trends.map(t => <div key={t.tag} data-sop-trend style={{ display: "flex", padding: tall ? "10px 16px" : "14px 20px", borderBottom: "1px solid " + line }}>
+                <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: sm - 1, color: sub }}>{t.rank} · Politics · Trending in {where}</div>
+                  <b style={{ display: "block", fontSize: fs, color: ink }}>{t.tag}</b>
+                  <div style={{ fontSize: sm - 1, color: sub }}>{t.count} posts · {t.about}</div></div>
+                <span style={{ color: sub }}><ToriIc d={TI.more} s={18} /></span></div>)}</div>
+          : view === "notif" ? <div>{mentions.length ? mentions.map(tweet) : <div style={{ padding: 20, color: sub, fontSize: fs }}>Nothing to see here yet. When people mention {me}, you'll see it here.</div>}</div>
           : <div>
-              <div style={{ height: tall ? 90 : 130, background: "linear-gradient(120deg, #0f3d24, #1d6a3f)" }} />
+              <div style={{ height: tall ? 110 : 150, background: "linear-gradient(120deg, #0f3d24, #1d6a3f)" }} />
               <div style={{ padding: "0 14px 10px", borderBottom: "1px solid " + line }}>
-                <img src={myPic} alt="" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, borderRadius: "50%", objectFit: "cover", objectPosition: "top", border: "4px solid #fff", marginTop: tall ? -36 : -48, background: "#e8dcc4" }} />
-                <b style={{ display: "block", fontSize: tall ? TS(19) : TS(26), color: ink }}>{(NAT ? "President " : "Governor ") + pName} <span style={{ color: blue }}>✓</span></b>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                  <img src={myPic} alt="" style={{ width: tall ? 76 : 100, height: tall ? 76 : 100, borderRadius: "50%", objectFit: "cover", objectPosition: "top", border: "4px solid #fff", marginTop: tall ? -38 : -50, background: "#e8dcc4" }} />
+                  <span style={{ border: "1px solid #cfd9de", borderRadius: 999, padding: "6px 14px", fontWeight: 800, fontSize: sm, color: ink, marginBottom: 4 }}>Edit profile</span></div>
+                <b style={{ display: "block", fontSize: tall ? TS(19) : TS(26), color: ink, marginTop: 6 }}>{(NAT ? "President " : "Governor ") + pName}<Badge s={tall ? 18 : 22} /></b>
                 <div style={{ color: sub, fontSize: fs }}>{me}</div>
-                <div style={{ color: ink, fontSize: fs, marginTop: 6 }}>Official account of the {NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State"}.</div>
-                <div style={{ color: sub, fontSize: tall ? TS(13) : TS(17), marginTop: 6 }}><b style={{ color: ink }}>{SYS.fmtCount(20000 + s.app * 1800 + toriPosts().reduce((a, p) => a + (p.likes || 0) / 4, 0))}</b> followers</div>
+                <div style={{ color: ink, fontSize: fs, marginTop: 8 }}>Official account of the {NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State"}. 🇳🇬</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: sub, fontSize: sm, marginTop: 8 }}><ToriIc d={TI.cal} s={16} />{joined}</div>
+                <div style={{ color: sub, fontSize: sm, marginTop: 6 }}><b style={{ color: ink }}>{SYS.fmtCount(180 + turn * 12)}</b> Following &nbsp; <b style={{ color: ink }}>{SYS.fmtCount(20000 + s.app * 1800 + toriPosts().reduce((a, p) => a + (p.likes || 0) / 4, 0))}</b> Followers</div>
               </div>
-              {mine.length ? mine.map(tweet) : <div style={{ padding: 20, color: sub, fontSize: fs }}>You haven't posted yet. Tap ✍️ to tell {stName} what you're doing.</div>}
-              {Object.entries(A).filter(([, v]) => v.rt && v.text).map(([id, v]) => <div key={"rt" + id} style={{ padding: tall ? "10px 14px" : "14px 20px", borderBottom: "1px solid " + line }}><div style={{ fontSize: tall ? TS(12) : TS(16), color: sub, fontWeight: 700 }}>🔁 You reposted</div><div style={{ fontSize: fs, color: ink }}><b>{v.name}</b> <span style={{ color: sub }}>{v.handle}</span><div>{rich(v.text)}</div></div></div>)}
+              <div style={{ display: "flex", borderBottom: "1px solid " + line }}>{["Posts", "Replies", "Likes"].map((l, i) => <span key={l} style={{ flex: 1, textAlign: "center", padding: "12px 0 0", fontWeight: i === 0 ? 800 : 600, color: i === 0 ? ink : sub, fontSize: fs }}><span style={{ display: "inline-block", paddingBottom: 10, borderBottom: "4px solid " + (i === 0 ? blue : "transparent") }}>{l}</span></span>)}</div>
+              {mine.length ? mine.map(tweet) : <div style={{ padding: 20, color: sub, fontSize: fs }}>You haven't posted yet. Tap + to tell {stName} what you're doing.</div>}
+              {Object.entries(A).filter(([, v]) => v.rt && v.text).map(([id, v]) => <div key={"rt" + id} style={{ padding: tall ? "10px 14px" : "14px 20px", borderBottom: "1px solid " + line }}><div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: sm - 1, color: sub, fontWeight: 700 }}><ToriIc d={TI.rt} s={14} />You reposted</div><div style={{ fontSize: fs, color: ink }}><b>{v.name}</b> <span style={{ color: sub }}>{v.handle}</span><div>{rich(v.text)}</div></div></div>)}
             </div>}
       </div>
-      {!toriCompose && left > 0 && <button data-sop-tori-compose onClick={() => setToriCompose(true)} aria-label="Post" style={{ position: "fixed", right: 16, bottom: "calc(20px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: "50%", border: 0, background: blue, color: "#fff", fontSize: 24, boxShadow: "0 6px 18px rgba(29,155,240,.45)", cursor: "pointer", zIndex: 3 }}>✍️</button>}
+      {!toriCompose && left > 0 && <button data-sop-tori-compose onClick={() => setToriCompose(true)} aria-label="Post" style={{ position: "fixed", right: 16, bottom: "calc(76px + env(safe-area-inset-bottom, 0px))", width: 56, height: 56, borderRadius: "50%", border: 0, background: blue, color: "#fff", display: "grid", placeItems: "center", boxShadow: "0 6px 18px rgba(29,155,240,.45)", cursor: "pointer", zIndex: 3 }}><ToriIc d={TI.plus} s={26} c="#fff" /></button>}
+      <nav role="tablist" aria-label="Tori" style={{ position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 3, display: "flex", background: "#fff", borderTop: "1px solid " + line, paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+        {navBtn("home", "home", "Home")}{navBtn("explore", "search", "Explore")}{navBtn("notif", "bell", "Notifications", waitingN)}{navBtn("me", "user", "Profile")}
+      </nav>
     </div>;
   };
   // The adviser's chat about the logjam: what it is, what it is doing to you, what could save you, and the choices as replies.
@@ -10577,6 +10652,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   const advance = () => {
+    // Tori's heat closes the year: what a year at this level costs, and the "must go" finale (owner, 20 Nov 2026).
+    if (heatClosed.current !== turn && !gEnd) { heatClosed.current = turn;
+      const H = toriH(), fx = SYS.heatFx(H.stage), top = H.stories[0];
+      if (fx.app || fx.pStab) scFx({ ...(fx.app ? { app: fx.app } : {}), ...(fx.pStab ? { pStab: fx.pStab } : {}) });
+      if (fx.igrPct) setS(x => ({ ...x, igr: Math.round((x.igr || 0) * (1 + fx.igrPct / 100) * 100) / 100 }));
+      if (fx.house && stc.house) setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.max(0, p.house.loyal + fx.house) } } : p);
+      setStc(p => { const T0 = p.tori || {}; return { ...p, tori: { ...T0, heat: H.heat, adj: T0.later || 0, later: 0, peak: Math.max(T0.peak || 0, H.heat), hist: [...(T0.hist || []), { turn, heat: H.heat, stage: H.stage, tag: top ? top.tag : null }].slice(-8) } }; });
+      if (H.stage >= 2) addL("🔥 Tori: " + SYS.HEAT_STAGES[H.stage].nm.toLowerCase() + (top ? ", led by " + top.tag + " (" + top.cause.toLowerCase() + ")" : "") + "." + (fx.app ? " Approval " + fx.app + "." : "") + (fx.igrPct ? " Investors pulled back (IGR " + fx.igrPct + "%)." : "") + (fx.house ? " " + (-fx.house) + " House members distanced themselves." : ""), "political");
+      if (H.stage >= 5 && mustGoDone.current !== turn && !NAT) { setMustGo({ heat: H.heat, tag: "#" + String(state).replace(/[^A-Za-z]/g, "") + "GovMustGo", stories: H.stories.slice(0, 3) }); return; }
+    }
     // After turn 4: re-election
     if (turn === 4 && phase !== "reelection") { judgePromises(1); setPhase("reelection"); return; }
     // After turn 8: tenure complete
@@ -13383,6 +13468,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {nav === "gov" && !liteToday && !needSetup && LabourDesk()}
         <OL show={!!table}>{table && RoundTable()}</OL>
         {scenChat && <ChatScreen>{scenChatView()}</ChatScreen>}
+        <OL show={!!mustGo}>{mustGo && <Cd style={{ maxWidth: 760 }}><div data-testid="must-go">
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}><ToriLogo s={30} /><b style={{ color: CL.red, fontSize: TALL() ? TS(15) : TS(20), letterSpacing: 1 }}>TRENDING NATIONWIDE</b></div>
+          <h3 style={{ fontFamily: F.d, color: CL.txt, fontSize: TALL() ? TS(30) : TS(46), margin: "0 0 6px" }}>{mustGo.tag}</h3>
+          <div style={{ fontSize: TALL() ? TS(17) : TS(24), color: CL.tm, lineHeight: 1.5, marginBottom: 10 }}>The unions, the market women, the traditional council and civil society have one demand: resign. Your party is consulting. Abuja has summoned you.</div>
+          {mustGo.stories.map(st0 => <div key={st0.id} style={{ fontSize: TALL() ? TS(15) : TS(20), color: CL.txt, padding: "6px 0", borderTop: "1px solid " + CL.bdr }}><b>{st0.tag}</b> · {st0.cause}</div>)}
+          <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
+            <Bt onClick={() => { mustGoDone.current = turn; setMustGo(null); addL("🕊️ You resigned as " + mustGo.tag + " trended across Nigeria. The Deputy Governor is sworn in.", "crisis"); track("tori_mustgo", "resign"); setGEnd("stepped_down"); }}>Resign with a statement</Bt>
+            <Bt v="ghost" onClick={() => { mustGoDone.current = turn; setMustGo(null); track("tori_mustgo", "fight");
+              const H0 = stc.house; if (H0 && H0.loyal < H0.seats * .4) { addL("⚖️ You refused to resign. The House has moved to impeach you.", "crisis"); setPhase("impeach"); return; }
+              setS(x => ({ ...x, cash: Math.round((x.cash || 0) * .75 * 100) / 100 })); scFx({ app: -5 });
+              addL("🛡️ You refused to resign. Abuja froze a quarter of the state's money; the street is not done with you.", "crisis"); setTimeout(() => advance(), 0); }}>Refuse, and fight on</Bt>
+          </div></div></Cd>}</OL>
         <OL show={yearFull}>{yearFull && (() => {
           // Everything that happened this year, newest first, with where the meters ended (players asked for the full report).
           const L = logs.filter(l => l.t === turn), tall = TALL(), good = (l) => ["policy", "success"].includes(l.tp), bad = (l) => ["crisis", "scandal", "warn"].includes(l.tp);
@@ -13456,7 +13553,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <button data-sop-street onClick={() => { setStreetOpen(true); setToriTab("home"); }} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "transparent", border: 0, padding: 0, cursor: "pointer", fontFamily: F.b, textAlign: "left" }}>
                   <span style={{ display: "flex", flex: "none" }}>{faces.map(face)}</span>
                   <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: F.d, fontSize: tall ? TS(22) : TS(34), color: CL.txt }}><ToriLogo s={tall ? 22 : 30} />Tori <span style={{ fontSize: fz.s, color: CL.td, fontFamily: F.b, fontWeight: 700 }}>{SYS.toriHandle(state)}</span></b>
-                    <span style={{ fontSize: fz.s, color: waiting ? CL.org : CL.blu, fontWeight: 700 }}>{waiting ? waiting + " " + (waiting === 1 ? "person tagged" : "people tagged") + " you · " : ""}{(SYS.toriTrends(toriCtx())[0] || {}).tag || sv.tag} is trending</span></span>
+                    <span style={{ fontSize: fz.s, color: waiting ? CL.org : CL.blu, fontWeight: 700 }}>{(() => { const H = toriH(), top = H.stories[0]; return H.stage >= 2 && top ? <span style={{ color: H.stage >= 4 ? CL.red : CL.org }}>🔥 {H.stage >= 5 ? "#" + String(state).replace(/[^A-Za-z]/g, "") + "GovMustGo" : top.tag} is {H.stage >= 3 ? "trending across Nigeria" : "trending in " + stName}</span> : <>{waiting ? waiting + " " + (waiting === 1 ? "person tagged" : "people tagged") + " you · " : ""}{(SYS.toriTrends(toriCtx())[0] || {}).tag || sv.tag} is trending</>; })()}</span></span>
                   {waiting > 0 && <span style={{ background: "#1d9bf0", color: "#fff", borderRadius: 999, minWidth: 26, height: 26, display: "grid", placeItems: "center", fontWeight: 800, fontSize: fz.s, padding: "0 7px" }}>{waiting}</span>}
                   <span style={{ color: CL.td, fontSize: fz.m }}>›</span>
                 </button>

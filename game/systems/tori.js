@@ -163,3 +163,97 @@ export function toriCommentReact(opt, c, seed) {
   if (opt.promise) return { replies: [{ name: pick(r, PEOPLE).who, text: pick(r, ["We are holding you to this.", "We dey wait. Na your word be this.", "Okay. Next year we will check."]) }], line: "Noted" };
   return { replies: [{ name: pick(r, PEOPLE).who, text: pick(r, ["❤️", "Respect for replying!", "This is the kind of governor we want.", "The governor replied me 😭🙌🏾"]) }], line: "Liked" };
 }
+
+/* ── Heat: Tori as the fourth estate (owner, 20 Nov 2026; ideas from Gemini, Perplexity, Grok and Google) ──
+   No meter on screen: heat is read in the feed itself (who is posting, what is trending, how far it has spread) and
+   in a "why this is trending" card with the causes. Heat is a story with receipts, never random:
+   - stories: each grievance from the record (unpaid salaries, a strike, money gone abroad, corruption, ignored
+     needs, stalled projects, broken promises, ratioed posts), with its hashtag, who is angry, their demand and the fix;
+   - it carries over from year to year: below 40 it fades, from 40 it holds, from 60 it snowballs;
+   - stages: 0 quiet · 1 grumbling (25) · 2 trending in the state (40) · 3 trending in Nigeria (60) · 4 on the streets (75)
+     · 5 "<State>GovMustGo" (90): resign or fight. */
+export const HEAT_STAGES = [
+  { min: 0, id: "quiet", nm: "Quiet" }, { min: 25, id: "grumbling", nm: "Grumbling" }, { min: 40, id: "state", nm: "Trending in the state" },
+  { min: 60, id: "national", nm: "Trending in Nigeria" }, { min: 75, id: "streets", nm: "On the streets" }, { min: 90, id: "mustgo", nm: "Must go" },
+];
+export const heatStage = (h) => { let i = 0; HEAT_STAGES.forEach((s, k) => { if (h >= s.min) i = k; }); return i; };
+
+export function toriStories(c) {
+  const S = tagSt(c.st), out = [];
+  const add = (o) => out.push(o);
+  if (c.arrears > 0) add({ id: "salaries", tag: "#PayOurSalaries" + S, heat: 12 + c.arrears * 6, who: "NLC, civil servants", cause: c.arrears + " month" + (c.arrears === 1 ? "" : "s") + " of salaries unpaid", demand: "Pay the arrears", fix: "treasury" });
+  (c.strikes || []).forEach(x => add({ id: "strike_" + x.id, tag: "#" + x.short.replace(/\W/g, "") + "Strike", heat: 10 + x.years * 6, who: x.short, cause: "The " + x.short + " strike is in year " + x.years, demand: "Settle with " + x.short, fix: "roundtable" }));
+  (c.fled || []).filter(f => !f.back && !f.asked).forEach(f => add({ id: "japa_" + f.proj, tag: "#WhereIsOurMoney", heat: Math.min(16, 8 + (f.lossM || 0) / 600), who: "Budget watchdogs", cause: f.firm + " ran to " + f.to + " with the money for " + f.proj, demand: "Recover the money", fix: "visit" }));
+  if (c.cor > .45) add({ id: "corruption", tag: "#" + S + "Looted", heat: Math.round((c.cor - .45) * 60), who: "Watchdogs, the opposition", cause: "Corruption is at " + Math.round(c.cor * 100) + "%", demand: "Publish the contracts; sack the crooked", fix: "people" });
+  const late = (c.needs || []).filter(n => n.late).length; if (late) add({ id: "needs", tag: "#" + S + "Deserves" + "Better", heat: late * 6, who: "Market women, traditional rulers", cause: late + " need" + (late === 1 ? "" : "s") + " left until the last year", demand: "Fix what you were told about", fix: "needs" });
+  if ((c.stalled || 0) > 0) add({ id: "stalled", tag: "#AbandonedProjects" + S, heat: c.stalled * 4, who: "Budget watchdogs", cause: c.stalled + " project" + (c.stalled === 1 ? "" : "s") + " stalled", demand: "Finish what you started", fix: "projects" });
+  if ((c.broken || 0) > 0) add({ id: "promises", tag: "#" + S + "Remembers", heat: c.broken * 5, who: "The opposition", cause: c.broken + " promise" + (c.broken === 1 ? "" : "s") + " broken", demand: "Keep your word", fix: null });
+  if ((c.ratios || 0) > 0) add({ id: "ratios", tag: "#" + S + "Gov" + "Lies", heat: c.ratios * 6, who: "Everyone with a phone", cause: "Your posts were ratioed " + c.ratios + " time" + (c.ratios === 1 ? "" : "s"), demand: "Stop the lies", fix: null });
+  if (c.app < 50) add({ id: "approval", tag: "#" + S + "DeservesBetter", heat: Math.round((50 - c.app) * .4), who: "Ordinary people", cause: "Approval is " + Math.round(c.app) + "%", demand: "Govern better", fix: null });
+  return out.sort((a, b) => b.heat - a.heat);
+}
+// Things that cool the feed this year.
+export const toriCooling = (c) => Math.min(20, (c.delivered || 0) * 3 + Math.max(0, c.app - 60) * .3);
+
+/* Heat now: what carried over from earlier years, today's stories, minus cooling, plus the governor's own moves
+   this year (adj: press conferences, apologies, bots, crackdowns). */
+export function toriHeat(c, mem) {
+  const m = mem || {}, prev = m.heat || 0, carry = prev < 40 ? .4 : prev < 60 ? .7 : .9;
+  const stories = toriStories(c), raw = stories.reduce((a, s) => a + s.heat, 0);
+  const h = Math.max(0, Math.min(100, Math.round(prev * carry + raw * .8 - toriCooling(c) + (m.adj || 0))));
+  return { heat: h, stage: heatStage(h), stages: HEAT_STAGES, stories };
+}
+
+/* What a year at each stage costs (applied when the year closes). */
+export function heatFx(stage) {
+  return [{}, { app: -1 }, { app: -3 }, { app: -4, pStab: -4, igrPct: -5 }, { app: -6, pStab: -6, igrPct: -15, house: -2 }, { app: -8, pStab: -8, igrPct: -20, house: -3 }][stage] || {};
+}
+
+/* The institutions: they post only when their people are affected, or when the heat is high enough to matter. */
+export function toriInstitutions(c, H) {
+  const r = rngOf("inst" + c.st + c.turn + H.stage), S = tagSt(c.st), N = stNm(c.st), out = [], st = H.stage, top = H.stories[0];
+  const post = (name, handle, art, text, extra) => out.push({ id: "i" + hash(handle + text), kind: "institution", name, sub: "", handle, art, text, ago: ago(r, out.length), ...counts(r, 2 + st), verified: true, pinned: true, ...(extra || {}) });
+  const has = (id) => H.stories.some(x => x.id === id || x.id.startsWith(id));
+  if (has("salaries") || (c.strikes || []).some(x => x.id === "nlc")) post("NLC " + N + " Council", "@NLC_" + S, "workers-group-angry", c.arrears > 0 ? c.arrears + " months without salaries. Workers are trekking to work while Government House rides in convoys. If nothing changes, we shut down the Secretariat. #PayOurSalaries" + S : "Labour has given this government enough time. Our members will not accept another promise without a date.");
+  (c.strikes || []).filter(x => x.id === "asuu").forEach(x => post("ASUU " + N + " Zone", "@ASUU_" + S, "student-leader-angry", "Year " + x.years + " of this strike. The agreement this government signed is gathering dust. Our students are at home; the Governor's children are abroad. #ASUUStrike"));
+  if (has("salaries") && st >= 2) post("NUT " + N + " Wing", "@NUT_" + S, "teacher", "Our members cannot teach hungry children in leaking classrooms. Teachers deserve their pay.");
+  if ((has("salaries") || (c.strikes || []).length) && st >= 2) post("NMA " + N + " Branch", "@NMA_" + S, "doctor", "Patients are waiting in corridors with no drugs and no staff. We will not watch our people die quietly.");
+  if (has("japa") || has("stalled") || has("corruption")) post("BudgetWatch NG", "@BudgetWatchNG", "reporter", "THREAD 🧵 " + (has("japa") ? "The money for " + ((c.fled || [])[0] || {}).proj + " went abroad with the contractor. Who signed the payment? " : has("stalled") ? "We visited the project sites " + toriHandle(c.st) + " boasts about. Here is what we found: bushes. " : "Contracts in " + N + " keep going to the same names. ") + "#FollowTheMoney");
+  if (has("needs") || st >= 3) post(N + " Market Women Association", "@" + S + "MarketWomen", "market-women-group-angry", pick(r, ["Our goods are spoiling because the road is bad. We are tired of talking.", "Price of everything don triple. Government dey where? We are closing the markets on Monday if nobody listens."]));
+  if (st >= 3) post(N + " Traditional Council", "@" + S + "RoyalFathers", "traditional-ruler-oba-obi", "The palace appeals to our youth to remain calm. We urge His Excellency to listen to the cries of his children before the drumbeat changes.");
+  if (st >= 3) post(N + " Chamber of Commerce", "@" + S + "Chamber", "investor-foreign", st >= 4 ? "No factory can survive street blockades and broken promises. Our members are relocating to neighbouring states." : "Our members are reviewing new investments in " + N + " until the situation is clarified.");
+  if (st >= 3 && c.party) post(c.party + " " + N + " Chapter", "@" + c.party.replace(/\W/g, "") + "_" + S, "party-chairman-angry", st >= 4 ? "The party will not go down with one man. We are consulting our members on the way forward." : "The party expects discipline, unity and results from those we put in office.");
+  if (st >= 4) post("Kelechi Afro", "@KelechiAfro", "young-voter-student", "Watching from London and it hurts. Leave the protesters alone. " + N + " deserves better 🇳🇬 #" + S + (st >= 5 ? "GovMustGo" : "DeservesBetter"), { sub: "Musician" });
+  if (st >= 4) post("State House, Abuja", "@StateHouseNG", "the-president", st >= 5 ? "Mr. President has summoned the Governor of " + N + " State to Abuja over the deteriorating situation in the state." : "The Presidency is monitoring developments in " + N + " State.");
+  if (st >= 5) post("#" + S + "GovMustGo coalition", "@" + S + "Coalition", "workers-group-angry", "NLC, NUT, NMA, the market women and civil society: one demand. The Governor must resign. #" + S + "GovMustGo");
+  return out;
+}
+
+/* The governor's answers to the heat. Each can be used once a year; effects go into adj (this year's heat), later
+   (next year's) and fx (meters). */
+export function toriTools(c, H, used) {
+  const u = used || {}, out = [];
+  if (H.stories.some(s => s.fix)) out.push({ id: "fix", l: "Fix what they are angry about", d: H.stories.find(s => s.fix).demand + ". The only thing that cools it for good.", fix: H.stories.find(s => s.fix).fix });
+  out.push({ id: "presser", l: "Hold a press conference", d: c.cor < .35 && (c.delivered || 0) > 0 ? "You have a record to point to. It should help." : "Risky: with no record to show, the clips will be memes." });
+  out.push({ id: "apology", l: "Apologise, with a plan", d: (u.apologies || 0) ? "Again? People are counting your apologies." : "Helps a little, if you then act." });
+  if (c.weakest) out.push({ id: "sack", l: "Sack " + c.weakest, d: "Cools it fast. The party and their godfather will not forget." });
+  out.push({ id: "bots", l: "Pay influencers to push your side (₦0.5B)", d: "Works for now. If anyone notices the copy-paste, it explodes." });
+  out.push({ id: "crackdown", l: "Arrest the loudest critics", d: "Quiet tonight. Next year the whole country knows their names." });
+  out.push({ id: "silent", l: "Say nothing", d: H.stage >= 3 ? "Dangerous now: “Where is our Governor? Is he in London?”" : "Small fires burn out on their own." });
+  return out.filter(t => !u[t.id] || t.id === "fix");
+}
+// What a tool does. rnd: a number 0..1 for the exposure risk of paid influencers.
+export function toolResult(t, c, H, rnd, used) {
+  const S = tagSt(c.st), N = stNm(c.st);
+  switch (t.id) {
+    case "presser": return c.cor < .35 && (c.delivered || 0) > 0 ? { adj: -10, line: "The press conference landed. The receipts were real.", tweet: null }
+      : { adj: 15, fx: { app: -1 }, line: "The clips went viral for the wrong reasons.", tweet: { name: "Tunde", handle: "@tunde_no_work", text: "Oga rest 😭 We dey see the road with our two eyes. Ratio + pay our pensioners. #" + S + "GovLies" } };
+    case "apology": return (used && used.apologies) ? { adj: -2, line: "Another apology. Fewer people believed this one.", count: true } : { adj: -6, line: "The apology helped a little. Now they want the plan.", count: true };
+    case "sack": return { adj: -12, fx: { pStab: -5 }, sack: true, line: "The sacking cooled it. Their people in the party are angry." };
+    case "bots": return rnd < .35 ? { adj: 25, fx: { app: -3, cash: -.5 }, exposed: true, line: "Exposed: the paid posts were copy-pasted.", tweet: { name: "Ada Influencer", handle: "@ada_vibes_ng", text: "Our Governor is working wonders in health and education. (Please remove this bracket before posting. Payment via OPay.) #" + S + "IsWorking" } }
+      : { adj: -10, fx: { cash: -.5 }, line: "The paid posts drowned the hashtag, for now." };
+    case "crackdown": return { adj: -15, later: 30, fx: { app: -2 }, line: "The streets are quiet tonight. The names of the arrested are already trending.", tweet: { name: "Amnesty Watch NG", handle: "@RightsWatchNG", text: "We condemn the arrest of peaceful critics in " + N + ". #FreeThe" + S + "Critics" } };
+    case "silent": return H.stage >= 3 ? { adj: 10, line: "“Where is our Governor?” is now trending.", tweet: { name: "Mama Ngozi", handle: "@mamangozi_market", text: "Where is our Governor? Is he in London? 🤔 #Where" + "Is" + S + "Gov" } } : { adj: -3, line: "It burnt out a little on its own." };
+    default: return { adj: 0, line: "" };
+  }
+}

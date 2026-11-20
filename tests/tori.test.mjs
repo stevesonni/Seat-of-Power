@@ -26,3 +26,28 @@ test("a true post lands; a false claim is ratioed and costs approval", () => {
   assert.ok(good.fx.app > 0 && !good.ratio); assert.ok(bad.ratio && bad.fx.app < 0 && bad.replies.length >= 2);
   assert.ok(SYS.toriOptions({ ...base, arrears: 2 }).some(o => o.id === "salaries_claim" && !o.truth), "with salaries owed, claiming they are paid is false");
 });
+
+const bad = { ...base, app: 32, cor: .58, arrears: 3, stalled: 2, broken: 2, ratios: 1, delivered: 0, party: "PFP", needs: [{ title: "x", late: true }] };
+test("heat: a failing state is trending across Nigeria, with receipts", () => {
+  const H = SYS.toriHeat(bad, { heat: 50 });
+  assert.ok(H.stage >= 4, "stage " + H.stage); assert.equal(H.stories[0].id, "salaries"); assert.match(H.stories[0].cause, /3 months/);
+  const I = SYS.toriInstitutions(bad, H).map(x => x.handle);
+  for (const h of ["@NLC_Ebonyi", "@ASUU_Ebonyi", "@BudgetWatchNG", "@EbonyiChamber", "@StateHouseNG"]) assert.ok(I.includes(h), h);
+});
+test("heat: a well-run state stays quiet, and the institutions stay out of it", () => {
+  const good = { ...base, app: 72, cor: .15, arrears: 0, strikes: [], fled: [], needs: [], delivered: 2 };
+  const H = SYS.toriHeat(good, { heat: 10 });
+  assert.equal(H.stage, 0); assert.equal(SYS.toriInstitutions(good, H).length, 0);
+});
+test("heat carries over: it fades when low, snowballs when high", () => {
+  const calm = { ...base, app: 60, cor: .2, arrears: 0, strikes: [], fled: [], needs: [], complaints: [] };
+  assert.ok(SYS.toriHeat(calm, { heat: 30 }).heat < 30); assert.ok(SYS.toriHeat(calm, { heat: 80 }).heat >= 70);
+});
+test("year costs rise with the stage; tools have trade-offs", () => {
+  assert.deepEqual(SYS.heatFx(0), {}); assert.ok(SYS.heatFx(4).app < SYS.heatFx(2).app); assert.ok(SYS.heatFx(5).house < 0);
+  const H = SYS.toriHeat(bad, { heat: 50 });
+  assert.ok(SYS.toolResult({ id: "bots" }, bad, H, .1).exposed, "paid influencers can be exposed"); assert.ok(SYS.toolResult({ id: "bots" }, bad, H, .9).adj < 0);
+  assert.ok(SYS.toolResult({ id: "crackdown" }, bad, H, .5).later > 0, "a crackdown costs more next year");
+  assert.ok(SYS.toolResult({ id: "presser" }, bad, H, .5).adj > 0, "a press conference with no record backfires");
+  assert.equal(SYS.toriTools(bad, H, {})[0].id, "fix");
+});
