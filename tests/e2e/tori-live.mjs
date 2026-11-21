@@ -9,6 +9,7 @@ const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", impo
 const sv = JSON.parse(Y1.sop_save); sv.s = { ...sv.s, app: 42 }; sv.stc = { ...(sv.stc || {}), arrears: 2 };
 const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) }, seed: 4, test: { noStrikes: true, aiReplies: true } });
 await g.page.route("**/api/tori/replies", r => r.fulfill({ contentType: "application/json", body: JSON.stringify({ options: [{ id: "ai0", kind: "honest", text: "DRAFTED: You are right about this one, and here is my answer.", truth: true, reaction: "REACTED: Okay, I hear you.", callout: "" }, { id: "ai1", kind: "spin", text: "DRAFTED-SPIN: All is well.", truth: false, reaction: "Which well?", callout: "Ratio." }] }) }));
+await g.page.route("**/api/tori/compose", r => r.fulfill({ contentType: "application/json", body: JSON.stringify({ options: [{ kind: "honest", about: "salaries", text: "COMPOSED: Two months of salaries are owed. First payment goes out on the 25th.", truth: true, reaction: "COMPOSE-REACT: We go hold you to the 25th o.", callout: "" }, { kind: "spin", about: "salaries", text: "COMPOSED: Salaries are fully paid.", truth: false, reaction: "x", callout: "COMPOSE-CALLOUT: Which salary?" }, { kind: "promise", about: "need", text: "COMPOSED: Work on the clinic starts in March.", truth: true, reaction: "ok", callout: "" }] }) }));
 await g.click(/^Continue/); await g.wait(1800);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await g.wait(1000);
 let rowOn = false;
@@ -28,6 +29,10 @@ check(/Eagles|jollof|owambe|Big Hustle|data|Zeeno|Tolu Starling|wedding|voice no
 // The aide and tones.
 await g.page.evaluate(() => document.querySelector("[data-sop-tori-compose]").click()); await g.wait(400);
 check(await q("[data-sop-tori-tone]") === 4, "the New Media aide offers four tones");
+await g.wait(800);
+check(await q("[data-sop-tori-ai]") === 3 && /Drafted by your aide, about this year/.test(await T()), "the aide drafts posts about this year's record, above the quick posts");
+const quick = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-opt]:not([data-sop-tori-ai])")].map(b => b.innerText).join(" | "));
+check(/2 months of salaries are owed|Salaries are being paid/.test(quick), "the quick posts come from the record too (" + quick.slice(0, 120) + ")");
 await g.page.evaluate(() => document.querySelector("[data-sop-tori-tone=pidgin]").click()); await g.wait(200);
 const draft = await g.page.evaluate(() => document.querySelector("[data-sop-tori-opt]").innerText);
 check(/🙏🏾/.test(draft), "the draft changes with the tone (" + draft.slice(0, 60) + ")");

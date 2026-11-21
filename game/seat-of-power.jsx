@@ -2394,6 +2394,27 @@ const toriDraft = (career, ctx, x, self) => {
   TORI_DRAFTS[k] = P.then(v => { if (!v) delete TORI_DRAFTS[k]; return v; });
   return TORI_DRAFTS[k];
 };
+/* The aide's drafted posts for this year (server/tori-ai.mjs makeToriCompose), for every office. Same rules as the
+   reply drafts: career is a hash, the player's handle goes as "@you". Resolves to options, or null. */
+const TORI_COMPOSE = {};
+const toriComposeDraft = (career, ctx, self, posted = []) => {
+  if (window.SOP_TEST && !window.SOP_TEST.aiReplies) return Promise.resolve(null);
+  if (!/^https?:/.test(location.protocol) || !ctx) return Promise.resolve(null);
+  const k = career + "|" + (ctx.turn || ctx.year || 0) + "|" + (ctx.office || ""); if (TORI_COMPOSE[k]) return TORI_COMPOSE[k];
+  const red = (t) => self ? String(t || "").split(self).join("@you") : String(t || "");
+  const P = Promise.race([fetch("/api/tori/compose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ career: String(career), ctx: { ...ctx, handle: self ? "@you" : ctx.handle }, posted: posted.map(red) }) })
+    .then(r => r.ok ? r.json() : null).then(j => j && Array.isArray(j.options) && j.options.length ? j.options.map((o, i) => ({ ...o, id: "ai" + (ctx.turn || ctx.year || 0) + "_" + i, text: self ? String(o.text || "").split("@you").join(self) : o.text, attack: o.about === "attack", soft: o.kind === "honest" || o.kind === "light", ai: true })) : null).catch(() => null),
+    new Promise(ok => setTimeout(() => ok(null), 15000))]);
+  TORI_COMPOSE[k] = P.then(v => { if (!v) delete TORI_COMPOSE[k]; return v; });
+  return TORI_COMPOSE[k];
+};
+// Loads the aide's drafts once and shows a "drafting" line while it waits.
+const ToriDrafts = ({ load, used = [], render }) => {
+  const [st, setSt] = useState({ busy: true, list: [] });
+  useEffect(() => { let on = true; Promise.resolve(load()).then(v => on && setSt({ busy: false, list: v || [] })).catch(() => on && setSt({ busy: false, list: [] })); return () => { on = false; }; }, []);
+  if (st.busy) return <div data-sop-tori-drafting style={{ fontSize: 14, color: "#536471", marginBottom: 10 }}>Your aide is drafting posts about this year…</div>;
+  return render(st.list.filter(o => !used.includes(o.id)));
+};
 /* props: me { short, full, handle, pic, bio, joined, following, followers }, feed, trends, where, opp, oppLabel, mentions,
    why (node, top of For you), tweetExtra (x → node), year (the store's key), store { posts, acts }, posts: { left,
    options, onPost(o) }, replies: { left, optionsFor(x), onReply(x, o) }, onAct(id, f), notif, onClose */
@@ -2475,6 +2496,7 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
           <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 10 }}>{av(me.pic, 40)}<span style={{ color: sub, fontSize: fs + 2 }}>What is happening?!</span></div>
           <div style={{ fontSize: sm, color: sub, marginBottom: 10 }}>{posts.left} post{posts.left === 1 ? "" : "s"} left this year. People check what you claim against what you've done.</div>
           {tones && <div style={{ marginBottom: 10 }}><div style={{ display: "flex", gap: 8, alignItems: "center", fontSize: sm, color: sub, marginBottom: 6 }}>{av("./art/characters/special-adviser.webp", 24)}Your New Media aide drafts it. Pick a tone:</div><div role="radiogroup" aria-label="Tone" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{tones.map(t => <button key={t.id} role="radio" aria-checked={tone === t.id} data-sop-tori-tone={t.id} onClick={() => setTone(t.id)} style={{ minHeight: 34, padding: "4px 14px", borderRadius: 999, border: "1px solid " + (tone === t.id ? blue : "#cfd9de"), background: tone === t.id ? "#e8f5fd" : "#fff", color: tone === t.id ? blue : ink, fontFamily: F.b, fontWeight: 700, fontSize: sm, cursor: "pointer" }}>{t.l}</button>)}</div></div>}
+          {posts.remote && <ToriDrafts load={posts.remote} used={posts.used || []} render={(list) => list.length ? <div style={{ marginBottom: 12 }}><div style={{ fontSize: sm, fontWeight: 800, color: ink, marginBottom: 6 }}>Drafted by your aide, about this year</div><div style={{ display: "grid", gap: 8 }}>{list.map(o => <button key={o.id} data-sop-tori-opt={o.id} data-sop-tori-ai="1" onClick={() => { setCompose(false); setTab("me"); if (onPostTone && tone !== "formal") onPostTone(o, tone); else posts.onPost(o); }} style={{ textAlign: "left", background: "#f7fbff", border: "1px solid #b9dcf7", borderRadius: 16, padding: "10px 12px", fontFamily: F.b, fontSize: fs, color: ink, lineHeight: 1.4, cursor: "pointer" }}>{rich(tones ? SYS.toriTone(o.text, tone) : o.text)}</button>)}</div><div style={{ fontSize: sm, fontWeight: 800, color: ink, margin: "12px 0 6px" }}>Quick posts</div></div> : null} />}
           <div style={{ display: "grid", gap: 8 }}>{posts.options.map(o => <button key={o.id} data-sop-tori-opt={o.id} onClick={() => { setCompose(false); setTab("me"); if (onPostTone && tone !== "formal") onPostTone(o, tone); else posts.onPost(o); }} style={{ textAlign: "left", background: "#fff", border: "1px solid #cfd9de", borderRadius: 16, padding: "10px 12px", fontFamily: F.b, fontSize: fs, color: ink, lineHeight: 1.4, cursor: "pointer" }}>{rich(tones ? SYS.toriTone(o.text, tone) : o.text)}</button>)}</div>
           <div style={{ marginTop: 12 }}><Bt v="ghost" onClick={() => setCompose(false)} style={{ width: "100%" }}>Cancel</Bt></div>
         </div>
@@ -2550,14 +2572,15 @@ const RoleTori = ({ c, pic, store, setStore, onApp, onLog }) => {
   const roleCtx = { office: { senate: "federal senator", lga: "local government chairman", amb: "Nigerian ambassador" }[c.role] || c.role, handle: R.me.handle, state: c.st || null, lga: c.lga || null, posting: c.country ? c.country + (c.city ? " (" + c.city + ")" : "") : null, year: c.year, sessionOrYear: c.n,
     supportWithPeople: Math.round(c.app || 0), corruptionPct: Math.round((c.cor || 0) * 100), votes: (c.bills || []).slice(-6).map(b => b.t + ": voted " + b.v + (b.passed ? ", passed" : ", failed")), whatHappened: (c.story || []).slice(-6),
     governor: c.govName || null, governorFavour: c.gov == null ? null : Math.round(c.gov), road: c.road || null, councilRival: c.rival || null, hostGovernment: c.host == null ? null : Math.round(c.host), abujaFavour: c.abuja == null ? null : Math.round(c.abuja), tradeDeals: c.trade == null ? null : c.trade, citizensHelped: c.helped == null ? null : c.helped };
-  const onPost = (o) => { const Rx = SYS.toriReact({ ...o, about: o.id }, { ...c, st: c.st || "Nigeria" }, yr + ":" + o.id); setStore(p => ({ ...(p || {}), posts: [...((p || {}).posts || []), { turn: yr, id: o.id, text: o.text, likes: Rx.likes, rts: Rx.rts, replies: Rx.replies, ratio: Rx.ratio }].slice(-30) })); if (Rx.fx.app) onApp(Rx.fx.app); onLog && onLog("Posted on Tori: “" + o.text + "” " + Rx.line); };
+  const onPost = (o) => { const Rx = SYS.toriReact({ ...o, about: o.about || o.id }, { ...c, st: c.st || "Nigeria" }, yr + ":" + o.id); setStore(p => ({ ...(p || {}), posts: [...((p || {}).posts || []), { turn: yr, id: o.id, text: o.text, likes: Rx.likes, rts: Rx.rts, replies: Rx.replies, ratio: Rx.ratio }].slice(-30) })); if (Rx.fx.app) onApp(Rx.fx.app); onLog && onLog("Posted on Tori: “" + o.text + "” " + Rx.line); };
   const onReply = (x, o) => { const Rx = SYS.toriReplyReact(o, x, yr + x.id + o.id); setStore(p => { const A = (p || {}).acts || {}; return { ...(p || {}), acts: { ...A, [x.id]: { ...(A[x.id] || {}), comments: [...((A[x.id] || {}).comments || []), { year: yr, text: o.text, replies: Rx.replies }] } } }; }); if (o.fx && o.fx.app) onApp(o.fx.app); onLog && onLog("Replied on Tori to " + x.name + ": “" + o.text + "”" + (o.truth === false ? " It was called out." : "")); };
   return <>
     <button data-sop-role-tori onClick={() => setOpen(true)} style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, background: "#fff", border: "1px solid " + CL.bdr, borderRadius: 14, padding: tall ? "8px 12px" : "12px 16px", margin: "0 0 12px", cursor: "pointer", fontFamily: F.b, textAlign: "left" }}>
       <ToriLogo s={tall ? 28 : 36} /><span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", color: CL.txt, fontSize: tall ? TS(17) : TS(24) }}>Tori <span style={{ color: CL.td, fontWeight: 600, fontSize: tall ? TS(14) : TS(19) }}>{R.me.handle}</span></b>
         <span style={{ color: "#1d9bf0", fontWeight: 700, fontSize: tall ? TS(14) : TS(19) }}>{top ? top.tag + " is trending" : "What people are saying"}</span></span><span style={{ color: CL.td }}>›</span></button>
     {open && <ChatScreen><ToriApp me={me} feed={R.feed} trends={R.trends} where={R.where} opp={R.opp} oppLabel={R.oppLabel} year={yr} store={S}
-      posts={{ left: SYS.TORI_POSTS_PER_YEAR - (S.posts || []).filter(p => p.turn === yr).length, options: R.options.filter(o => !(S.posts || []).some(p => p.turn === yr && p.id === o.id)), onPost }}
+      posts={{ left: SYS.TORI_POSTS_PER_YEAR - (S.posts || []).filter(p => p.turn === yr).length, options: R.options.filter(o => !(S.posts || []).some(p => p.turn === yr && p.id === o.id)), onPost,
+        remote: () => toriComposeDraft(hashStr(c.role + "|" + (c.name || "") + "|" + (c.st || c.country || "")), { ...roleCtx, turn: yr }, R.me.handle, (S.posts || []).filter(p => p.turn === yr).map(p => p.text)), used: (S.posts || []).filter(p => p.turn === yr).map(p => p.id) }}
       replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), remote: (x) => toriDraft(hashStr(c.role + "|" + (c.name || "") + "|" + (c.st || c.country || "")), roleCtx, x, R.me.handle), onReply }}
       onAct={(id, f) => setStore(p => { const A = (p || {}).acts || {}; return { ...(p || {}), acts: { ...A, [id]: f(A[id] || {}) } }; })}
       onClose={() => setOpen(false)} /></ChatScreen>}
@@ -7887,7 +7910,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const pickTone = (o, tone) => toriPost({ ...o, text: SYS.toriTone(o.text, tone), tone });
     return <ToriApp tab={toriTab} me={{ short: (NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop(), full: (NAT ? "President " : "Governor ") + pName, handle: me, pic: myPic, bio: "Official account of the " + (NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State") + ".", joined: "Joined May " + ((setup?.startYear || 2027) + (turn > 4 ? 4 : 0)), following: 180 + turn * 12, followers: 20000 + s.app * 1800 + toriPosts().reduce((a, p) => a + (p.likes || 0) / 4, 0) }}
       feed={feed} trends={trends} where={H.stage >= 3 || NAT ? "Nigeria" : stName} opp={opp} oppLabel="Opposition" why={why} tweetExtra={complaintBtn} year={turn} store={{ posts: toriPosts(), acts: A }}
-      posts={{ left: SYS.TORI_POSTS_PER_YEAR - toriPosts().filter(p => p.turn === turn).length, options: SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id)), onPost: toriPost }}
+      posts={{ left: SYS.TORI_POSTS_PER_YEAR - toriPosts().filter(p => p.turn === turn).length, options: SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id)),
+        remote: () => toriComposeDraft(toriCareerKey(), toriAiCtx(), null, toriPosts().filter(p => p.turn === turn).map(p => p.text)), used: toriPosts().filter(p => p.turn === turn).map(p => p.id), onPost: toriPost }}
       replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), contextFor: (x) => SYS.toriReplyContext(x, c), aideFor: (x) => SYS.toriAide(x, c, H), remote: toriRemoteReplies, onReply: onReplyF }}
       hero={hero} onBlock={onBlock} pinned={T0.pinned} onPin={onPin} onDelete={onDelete} tones={SYS.TORI_TONES} onPostTone={pickTone}
       space={T0.space === turn ? null : { qs: SYS.toriSpace(c), onDone: spaceDone }}

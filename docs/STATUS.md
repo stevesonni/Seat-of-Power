@@ -3,7 +3,23 @@
 
 
 
-## Every bill you send comes back for you to sign (21 Nov, latest)
+## Tori posts that reflect what is going on (21 Nov, latest)
+
+- **The aide drafts posts about this year.** When you open Compose, server/tori-ai.mjs `makeToriCompose` (`/api/tori/compose`) drafts five posts from the record:
+  - the best thing this year, and an honest post owning the worst problem;
+  - a reply to the opposition by name, and a dated promise;
+  - a tempting spin that the record contradicts.
+  - Each draft carries how people reply, and the call-out when it is false. Drafts are cached per career and year.
+  - This works for every office: governor, President, senator, chairman and ambassador.
+- **The quick posts come from the record too** (game/systems/tori.js `toriOptions`):
+  - this year's best and worst events, with an honest answer and a spin;
+  - the approval change since last year, and complaints (answered or not);
+  - salaries (owed or paid), projects, strikes, needs and fled contractors;
+  - the opposition by name, and the trending tag.
+  - The fresh ones come first.
+- **Tests:** `tests/e2e/tori-live.mjs` checks the drafts (stubbed) and the record-based quick posts.
+
+## Every bill you send comes back for you to sign (21 Nov)
 
 - **Your own bills (the Bills tab).** When the House of Assembly or the National Assembly passes one, it no longer becomes law on its own. An "On your desk for assent" card opens. Sign it into law (the money is spent and the effects apply), or veto it (party −3, approval −1, not law, and you can send it again).
   - A bill waiting for your signature is saved with the game.

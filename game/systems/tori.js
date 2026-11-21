@@ -263,16 +263,40 @@ const briefT = (t, n) => { t = String(t || "").replace(/\s+/g, " ").trim(); retu
 /* What the governor can post: built from what is really happening. truth: false means the claim is not backed by the
    record (the replies will say so). */
 export function toriOptions(c) {
-  const out = [], S = tagSt(c.st);
+  const out = [], S = tagSt(c.st), N = stNm(c.st), app = Math.round(c.app || 0), prev = c.appPrev == null ? null : Math.round(c.appPrev), Y = c.turn || 0;
+  const opp = c.oppName ? String(c.oppName).replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "") : null, oppFirst = opp ? opp.split(" ").pop() : null;
+  const ev = (c.events || []).filter(e => e && e.text && !/\bon Tori\b|\bTori:/.test(e.text));
+  // This year's real events come first: the best one to celebrate, the worst one to own (or spin).
+  const good = ev.find(e => e.good), bad = ev.find(e => !e.good && /crisis|scandal/.test(e.tp || ""));
+  if (good) out.push({ id: "ev_" + hash(good.text), text: briefT(good.text, 150) + " That is what we promised " + N + ", and we are not done.", truth: true, about: "praise", fresh: true });
+  if (bad) {
+    out.push({ id: "own_" + hash(bad.text), text: "I have seen the reports: “" + briefT(bad.text, 110) + "” It happened on my watch. I am on it, and I will give an update by Friday.", truth: true, about: "general", soft: true, fresh: true });
+    out.push({ id: "spin_" + hash(bad.text), text: "What you are reading about “" + briefT(bad.text, 70) + "” is the opposition's exaggeration. Everything is under control. #" + S + "Rising", truth: false, about: "general", fresh: true });
+  }
+  // How people rate you, against last year.
+  if (prev != null && app <= prev - 3) out.push({ id: "app_down_" + Y, text: "Approval went from " + prev + "% to " + app + "% this year. I hear you, " + N + ". I will spend the next year fixing what you have told me is broken.", truth: true, about: "approval", soft: true, fresh: true });
+  else if (prev != null && app >= prev + 3) out.push({ id: "app_up_" + Y, text: "Up from " + prev + "% to " + app + "%. Thank you, " + N + ". We keep our heads down and keep delivering.", truth: true, about: "approval", fresh: true });
+  // Complaints: say you will come, or claim you already did.
+  const k = (c.complaints || []).find(x => !x.answered);
+  if (k) out.push({ id: "cmp_" + k.id, text: "To everyone in " + (k.place || N) + " who tagged me about this: I have read every one. My team is coming to " + (k.place || "you") + " this week.", truth: false, about: "need", fresh: true });
+  const ka = (c.complaints || []).find(x => x.answered && !x.lied);
+  if (ka) out.push({ id: "cmpd_" + ka.id, text: (ka.place || N) + ", you asked and we came. That is how this government works: tag me, and we answer.", truth: true, about: "need", fresh: true });
+  // The record.
   if (!c.arrears) out.push({ id: "salaries", text: "Salaries paid on the 25th again. Every worker, every month. That is our promise. #SalaryPaid", truth: true, about: "salaries" });
-  else out.push({ id: "salaries_claim", text: "Salaries are being paid. Don't listen to the opposition. #SalaryPaid", truth: false, about: "salaries" });
-  (c.done || []).slice(0, 2).forEach(t => out.push({ id: "done_" + t, text: t + " is open. Built by " + stNm(c.st) + ", for " + stNm(c.st) + ". More is coming. #" + String(t).split(/\s+/).slice(0, 2).join("").replace(/\W/g, "") + "IsOpen", truth: true, about: "project" }));
-  (c.strikes || []).forEach(s => out.push({ id: "strike_" + s.id, text: "We are at the table with " + s.short + ". Our children will be back in class. We are not sleeping on this. #" + s.short.replace(/\W/g, "") + "Strike", truth: !!s.talks, about: "strike" }));
+  else out.push({ id: "salaries_" + c.arrears, text: c.arrears + " month" + (c.arrears === 1 ? "" : "s") + " of salaries are owed. I will not pretend otherwise. The first payment goes out before the next allocation.", truth: true, about: "salaries", soft: true },
+    { id: "salaries_claim", text: "Salaries are being paid. Don't listen to the opposition. #SalaryPaid", truth: false, about: "salaries" });
+  (c.done || []).slice(0, 2).forEach(t => out.push({ id: "done_" + t, text: t + " is open. Built by " + N + ", for " + N + ". More is coming. #" + String(t).split(/\s+/).slice(0, 2).join("").replace(/\W/g, "") + "IsOpen", truth: true, about: "praise" }));
+  (c.strikes || []).forEach(st => out.push({ id: "strike_" + st.id, text: "We are at the table with " + st.short + ". Our children will be back in class. We are not sleeping on this. #" + st.short.replace(/\W/g, "") + "Strike", truth: !!st.talks, about: "strike" }));
   (c.needs || []).slice(0, 1).forEach(n => out.push({ id: "need", text: n.title + ": we have heard you. Work starts this year.", truth: !!n.inWork, about: "need" }));
   (c.fled || []).filter(f => !f.back).slice(0, 1).forEach(f => out.push({ id: "japa", text: f.firm + " will not enjoy our money in " + f.to + ". We are going after every naira. #WhereIsOurMoney", truth: !!f.asked, about: "japa" }));
-  out.push({ id: "thanks", text: "Thank you, " + stNm(c.st) + ". Every day in this office is for you. 🇳🇬", truth: true, about: "thanks", soft: true });
-  if (c.app < 50) out.push({ id: "attack", text: "The opposition had 8 years and built nothing. We will not take lectures from them.", truth: true, about: "attack", attack: true });
-  return out.slice(0, 6);
+  // The opposition, by name.
+  if (opp) out.push({ id: "opp_" + Y, text: oppFirst + " had " + (c.nat ? "years in power" : "every chance") + " and built nothing. While " + oppFirst + " tweets, we work. " + N + " can see the difference.", truth: true, about: "attack", attack: true });
+  else if (c.app < 50) out.push({ id: "attack", text: "The opposition had 8 years and built nothing. We will not take lectures from them.", truth: true, about: "attack", attack: true });
+  if (c.tag) out.push({ id: "tag_" + hash(c.tag), text: "I have seen " + c.tag + " trending. I am listening. Come to the town hall on Saturday and tell me to my face.", truth: true, about: "general", soft: true });
+  out.push({ id: "thanks", text: "Thank you, " + N + ". Every day in this office is for you. 🇳🇬", truth: true, about: "thanks", soft: true });
+  // Fresh ones first; no two with the same text.
+  const seen = new Set();
+  return out.filter(o => !seen.has(o.text) && seen.add(o.text)).sort((a, b) => (b.fresh ? 1 : 0) - (a.fresh ? 1 : 0)).slice(0, 7);
 }
 
 /* How a post lands. Returns { likes, rts, replies: [{ name, handle, art, text }], ratio, fx: { app }, line }. */
@@ -281,6 +305,8 @@ export function toriReact(opt, c, seed) {
   let likes = Math.round((200 + r() * 800) * reach * (opt.truth ? 1.4 : .6)), rts = Math.round(likes * (0.1 + r() * 0.3)), app = 0, ratio = false;
   const reply = (p, text) => ({ name: p.who, sub: p.what, handle: "@" + p.h, art: p.art, text });
   const replies = [];
+  // The aide's draft says how people answer it (server/tori-ai.mjs makeToriCompose).
+  if (opt.reaction) replies.push(reply(person(r, 7), opt.truth === false && opt.callout ? opt.callout : opt.reaction));
   if (!opt.truth) {
     ratio = true; app = -2; likes = Math.round(likes * .5);
     replies.push(reply(person(r, 0), pick(r, ["Which one be this? " + (opt.about === "salaries" ? "We never see salary since " + c.arrears + " months." : opt.about === "strike" ? "Nobody don meet ASUU. Stop lying." : opt.about === "japa" ? "Going after who? Nothing has happened." : "Nothing is happening on the ground. Nothing."), "Ratio. This is not true and you know it."])));
