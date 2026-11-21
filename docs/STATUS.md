@@ -1620,3 +1620,9 @@ Owner's brief: how being a senator really works (laws, budget, confirmations, co
 - **Senate President** (`spEligible`, `SP_BID_MOVES`, `spBid`): re-elected senators with a strong term (score ≥ 65, standing ≥ 55, corruption ≤ 35%) run for the chair of the new Senate: two moves (zoning, the Villa, the opposition caucus, your record, or dollars), then the vote. New ending "Senate President".
 - Notebook pages: screen, defect_case, recall_steps, third_term, senate_president, home.
 - Tests: tests/senate.test.mjs (recall succeeds at 15%, fails at 32%; injunction; third term killed and passed; screening; Senate President), tests/e2e/senate.mjs (aide, going home, screening, third term; the bot now avoids Tori and campaigns with rallies).
+
+## Tori replies drafted for the post (21 Nov 2026)
+Owner: "my replies are not fresh with respect to context."
+- When the reply box opens, the game asks the server (POST /api/tori/replies, `makeToriReplies` in server/tori-ai.mjs) for 3-4 options written for that exact post from the year's record: honest, a specific promise, a tempting spin or denial (truth false when the record contradicts it), sometimes a light touch. Each carries the poster's own reaction and a callout. One draft per post, kept on disk; up to 60 drafts an hour per address; 12-second timeout. While it drafts: "Your aide is drafting replies to this post…". If it fails, the quick replies below are used.
+- Quick replies (no AI) now answer the need, strike, contractor or project the post names rather than the first on the list, and the accounts you follow get their own: Aproko Desk (deny, probe, laugh it off), the praise singer (thanks, or disown the paid post), the meme page, the student (strike, graduation, leaving), the trader after a flood.
+- `toriReplyReact` uses the drafted reaction when there is one.

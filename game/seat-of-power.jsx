@@ -2314,7 +2314,10 @@ const ToriBadge = ({ s = 16 }) => <svg viewBox="0 0 24 24" width={s} height={s} 
    why (node, top of For you), tweetExtra (x → node), year (the store's key), store { posts, acts }, posts: { left,
    options, onPost(o) }, replies: { left, optionsFor(x), onReply(x, o) }, onAct(id, f), notif, onClose */
 const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentions, why, tweetExtra, year, store, posts, replies, onAct, notif = 0, onClose, tab: tab0, hero, onBlock, pinned, onPin, onDelete, tones, onPostTone, space }) => {
-  const [tab, setTab] = useState(tab0 || "home"), [compose, setCompose] = useState(false), [replyTo, setReplyTo] = useState(null), [menu, setMenu] = useState(null), [tone, setTone] = useState("formal"), [sp, setSp] = useState(null);
+  const [tab, setTab] = useState(tab0 || "home"), [compose, setCompose] = useState(false), [replyTo, setReplyTo] = useState(null), [menu, setMenu] = useState(null), [tone, setTone] = useState("formal"), [sp, setSp] = useState(null), [drafts, setDrafts] = useState({});
+  // The aide's drafted replies for a post: asked for when the reply box opens; quick replies if they don't come.
+  useEffect(() => { if (!replyTo || !replies || !replies.remote || drafts[replyTo]) return; const x = [...feed, ...(opp || [])].find(t => t.id === replyTo); if (!x) return;
+    setDrafts(d => ({ ...d, [replyTo]: "loading" })); replies.remote(x).then(o => setDrafts(d => ({ ...d, [x.id]: o && o.length ? o : "none" }))); }, [replyTo]);
   const tall = TALL(), blue = "#1d9bf0", ink = "#0f1419", sub = "#536471", line = "#eff3f4", fs = tall ? TS(15) : TS(20), sm = tall ? TS(13) : TS(17);
   const rich = (t) => String(t).split(/([#@][A-Za-z0-9_]+)/).map((x, k) => /^[#@]/.test(x) ? <span key={k} style={{ color: blue }}>{x}</span> : x);
   const av = (src, size) => <img src={src} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />;
@@ -2343,7 +2346,8 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
       <div style={{ fontSize: sm - 1, color: sub }}>Replying to <span style={{ color: blue }}>{x.handle}</span> · {replies.left} repl{replies.left === 1 ? "y" : "ies"} left this year</div>
       {replies.aideFor && (() => { const t = replies.aideFor(x); return t ? <div data-sop-tori-aide style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#fff8e6", border: "1px solid #f5d48a", borderRadius: 12, padding: "8px 10px", fontSize: sm, color: ink, lineHeight: 1.35 }}>{av("./art/characters/special-adviser.webp", 26)}<span><b>Your New Media aide:</b> {t}</span></div> : null; })()}
       {replies.contextFor && (() => { const k = replies.contextFor(x); return k && (k.about || k.fact) ? <div data-sop-tori-context style={{ background: "#f7f9f9", border: "1px solid " + line, borderRadius: 12, padding: "8px 12px", fontSize: sm, color: ink, lineHeight: 1.35 }}><b>{k.about}</b>{k.fact ? <div style={{ color: sub }}>{k.fact}</div> : null}</div> : null; })()}
-      {replies.left > 0 && replies.optionsFor(x).map(o => <button key={o.id} data-sop-tori-comment={o.id} onClick={() => { setReplyTo(null); replies.onReply(x, o); }} style={{ textAlign: "left", background: "#fff", border: "1px solid " + (o.action ? blue : "#cfd9de"), borderRadius: 16, padding: "8px 12px", fontFamily: F.b, fontSize: sm + 1, color: o.action ? blue : ink, fontWeight: o.action ? 800 : 500, cursor: "pointer" }}>{o.action ? "→ " : ""}{o.text}{(() => { const h = o.action ? null : o.truth === false ? ["Not true: they will call it out", "#c0392b"] : o.promise ? ["A promise: they will check next year", "#b9770e"] : o.truth ? ["Honest", "#1d6a3f"] : null; return h ? <span style={{ display: "block", fontSize: sm - 2, fontWeight: 700, color: h[1], marginTop: 2 }}>{h[0]}</span> : null; })()}</button>)}
+      {replies.left > 0 && drafts[x.id] === "loading" && <div data-sop-tori-drafting style={{ fontSize: sm, color: sub, padding: "6px 2px" }}>✍️ Your aide is drafting replies to this post…</div>}
+      {replies.left > 0 && drafts[x.id] !== "loading" && (Array.isArray(drafts[x.id]) ? drafts[x.id] : replies.optionsFor(x)).map(o => <button key={o.id} data-sop-tori-comment={o.id} onClick={() => { setReplyTo(null); replies.onReply(x, o); }} style={{ textAlign: "left", background: "#fff", border: "1px solid " + (o.action ? blue : "#cfd9de"), borderRadius: 16, padding: "8px 12px", fontFamily: F.b, fontSize: sm + 1, color: o.action ? blue : ink, fontWeight: o.action ? 800 : 500, cursor: "pointer" }}>{o.action ? "→ " : ""}{o.text}{(() => { const h = o.action ? null : o.truth === false ? ["Not true: they will call it out", "#c0392b"] : o.promise ? ["A promise: they will check next year", "#b9770e"] : o.truth ? ["Honest", "#1d6a3f"] : null; return h ? <span style={{ display: "block", fontSize: sm - 2, fontWeight: 700, color: h[1], marginTop: 2 }}>{h[0]}</span> : null; })()}</button>)}
     </div>}
   </>; };
   const tweet = (x) => <article key={x.id} data-sop-tweet={x.kind} style={{ display: "flex", gap: 10, padding: tall ? "10px 14px 4px" : "14px 20px 6px", borderBottom: "1px solid " + line, background: "#fff" }}>
@@ -7666,16 +7670,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   /* A: when Tori opens, ask the server for this year's AI-written posts (server/tori-ai.mjs), once per year. Only the
      record goes: the state, the numbers, the events in the third person. Never the player's name. If it fails, the
      game's own posts stay. */
+  // The record as the AI sees it (no player name): shared by the year's posts and the reply drafts.
+  const toriAiCtx = () => { let c; try { c = toriCtx(); } catch (e) { return null; } const H = toriH(); return { st: c.st, nat: !!c.nat, turn: c.turn, year: c.year, handle: SYS.toriHandle(state), approval: Math.round(c.app), approvalLastYear: c.appPrev == null ? null : Math.round(c.appPrev), corruptionPct: Math.round((c.cor || 0) * 100), salaryMonthsOwed: c.arrears,
+      strikes: (c.strikes || []).map(x => ({ union: x.short, year: x.years, metThisYear: !!x.talks })), finished: c.done, contractorsFled: (c.fled || []).map(f => ({ firm: f.firm, to: f.to, amountM: f.lossM, project: f.proj, reported: !!f.asked })),
+      needs: (c.needs || []).map(n => ({ need: n.title, started: !!n.inWork, overdue: !!n.late })), news: SYS.toriNews(c).map(e => e.text + " (" + e.mood + ")"), trending: H.stories.slice(0, 3).map(x => x.tag + ": " + x.cause), heat: SYS.HEAT_STAGES[H.stage].nm,
+      places: (c.places || []).slice(0, 8), opposition: c.oppName || null, brokenPromises: c.broken || 0, abandonedProjects: c.stalled || 0, war: c.war ? { country: c.war.nm, atWar: c.war.atWar, progress: c.war.progress } : null }; };
+  const toriCareerKey = () => hashStr(String(state) + "|" + (setup && setup.startYear) + "|" + (pName || ""));
+  const toriReplyCache = React.useRef({});
+  // Reply options drafted for one post by the aide (server/tori-ai.mjs makeToriReplies); null when unavailable.
+  const toriRemoteReplies = (x) => {
+    if (window.SOP_TEST && !window.SOP_TEST.aiReplies) return Promise.resolve(null);
+    if (!/^https?:/.test(location.protocol)) return Promise.resolve(null);
+    if (toriReplyCache.current[x.id]) return toriReplyCache.current[x.id];
+    const ctx = toriAiCtx(); if (!ctx) return Promise.resolve(null);
+    const P = Promise.race([fetch("/api/tori/replies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ career: toriCareerKey(), ctx, post: { name: x.name, handle: x.handle, kind: x.kind, text: x.quote ? x.text + " (quoting: " + x.quote.text + ")" : x.text, thread: x.thread || [] } }) })
+      .then(r => r.ok ? r.json() : null).then(j => j && Array.isArray(j.options) && j.options.length ? j.options.map(o => ({ ...o, promise: o.kind === "promise" ? "general" : null, fx: o.truth === false ? { app: -1 } : o.kind === "honest" ? { app: 1 } : {}, ai: true })) : null).catch(() => null),
+      new Promise(ok => setTimeout(() => ok(null), 12000))]);
+    toriReplyCache.current[x.id] = P.then(v => { if (!v) delete toriReplyCache.current[x.id]; return v; });
+    return toriReplyCache.current[x.id];
+  };
   const toriAiTried = React.useRef({});
   useEffect(() => {
     if (!streetOpen || toriAiTried.current[turn] || ((stc.tori || {}).ai || {})[turn] || window.SOP_TEST || !/^https?:/.test(location.protocol)) return;
     toriAiTried.current[turn] = true;
-    let c; try { c = toriCtx(); } catch (e) { return; }
-    const H = toriH(), ctx = { st: c.st, nat: !!c.nat, turn: c.turn, year: c.year, handle: SYS.toriHandle(state), approval: Math.round(c.app), approvalLastYear: c.appPrev == null ? null : Math.round(c.appPrev), corruptionPct: Math.round((c.cor || 0) * 100), salaryMonthsOwed: c.arrears,
-      strikes: (c.strikes || []).map(x => ({ union: x.short, year: x.years, metThisYear: !!x.talks })), finished: c.done, contractorsFled: (c.fled || []).map(f => ({ firm: f.firm, to: f.to, amountM: f.lossM, project: f.proj, reported: !!f.asked })),
-      needs: (c.needs || []).map(n => ({ need: n.title, started: !!n.inWork, overdue: !!n.late })), news: SYS.toriNews(c).map(e => e.text + " (" + e.mood + ")"), trending: H.stories.slice(0, 3).map(x => x.tag + ": " + x.cause), heat: SYS.HEAT_STAGES[H.stage].nm,
-      places: (c.places || []).slice(0, 8), opposition: c.oppName || null, brokenPromises: c.broken || 0, abandonedProjects: c.stalled || 0, war: c.war ? { country: c.war.nm, atWar: c.war.atWar, progress: c.war.progress } : null };
-    fetch("/api/tori/feed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ career: hashStr(String(state) + "|" + (setup && setup.startYear) + "|" + (pName || "")), ctx }) })
+    const ctx = toriAiCtx(); if (!ctx) return;
+    fetch("/api/tori/feed", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ career: toriCareerKey(), ctx }) })
       .then(r => r.ok ? r.json() : null).then(j => { if (j && Array.isArray(j.posts) && j.posts.length) setStc(p => ({ ...p, tori: { ...(p.tori || {}), ai: { [turn]: { posts: j.posts } } } })); }).catch(() => {});
   }, [streetOpen, turn]);
   const toriH = () => SYS.toriHeat(toriCtx(), stc.tori || {});
@@ -7768,7 +7787,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return <ToriApp tab={toriTab} me={{ short: (NAT ? "President " : "Gov. ") + String(pName || "").split(" ").pop(), full: (NAT ? "President " : "Governor ") + pName, handle: me, pic: myPic, bio: "Official account of the " + (NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State") + ".", joined: "Joined May " + ((setup?.startYear || 2027) + (turn > 4 ? 4 : 0)), following: 180 + turn * 12, followers: 20000 + s.app * 1800 + toriPosts().reduce((a, p) => a + (p.likes || 0) / 4, 0) }}
       feed={feed} trends={trends} where={H.stage >= 3 || NAT ? "Nigeria" : stName} opp={opp} oppLabel="Opposition" why={why} tweetExtra={complaintBtn} year={turn} store={{ posts: toriPosts(), acts: A }}
       posts={{ left: SYS.TORI_POSTS_PER_YEAR - toriPosts().filter(p => p.turn === turn).length, options: SYS.toriOptions(c).filter(o => !toriPosts().some(p => p.turn === turn && p.id === o.id)), onPost: toriPost }}
-      replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), contextFor: (x) => SYS.toriReplyContext(x, c), aideFor: (x) => SYS.toriAide(x, c, H), onReply: onReplyF }}
+      replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), contextFor: (x) => SYS.toriReplyContext(x, c), aideFor: (x) => SYS.toriAide(x, c, H), remote: toriRemoteReplies, onReply: onReplyF }}
       hero={hero} onBlock={onBlock} pinned={T0.pinned} onPin={onPin} onDelete={onDelete} tones={SYS.TORI_TONES} onPostTone={pickTone}
       space={T0.space === turn ? null : { qs: SYS.toriSpace(c), onDone: spaceDone }}
       onAct={toriAct} notif={c.complaints.filter(q => !q.answered).length + c.fresh.length} onClose={() => { setStreetOpen(false); setToriRespond(false); T1(T => ({ ...T, seen: { [turn]: c.events.map(e => e.text) } })); }} />;

@@ -138,3 +138,12 @@ test("people the governor replied to come back next year, and reactions quote wh
   const lo = SYS.toriReplies(light, base).map(o => o.id); assert.ok(lo.includes("trafo") && lo.includes("disco"), "a power cut gets power-cut replies: " + lo);
   assert.equal(SYS.toriReplyContext(light, base).about, "Power cuts");
 });
+test("replies fit the post: the need it names, the account that posted, and a drafted reaction", () => {
+  const c = { ...base, needs: [{ title: "Pupils sit on the floor in Ezza" }, { title: "The Afikpo market has no drainage", inWork: false }] };
+  const post = { kind: "citizen", name: "Uju", text: "The Afikpo market has no drainage. We don cry tire. @EbonyiGov", topic: "need" };
+  assert.ok(SYS.toriReplies(post, c).some(o => /Afikpo market/.test(o.text)), "it answers the need the post is about, not the first on the list");
+  const gossip = SYS.toriReplies({ kind: "citizen", follow: "aproko", text: "🚨 GIST: ...", topic: "corruption" }, { ...c, leaks: ["x"] });
+  assert.ok(gossip.some(o => o.id === "deny" && o.truth === false));
+  const R = SYS.toriReplyReact({ id: "ai0", kind: "promise", text: "Drainage starts Monday.", truth: true, reaction: "Monday? I'm writing it on my shop door. 📝", callout: "" }, post, "z");
+  assert.equal(R.replies[0].name, "Uju"); assert.match(R.replies[0].text, /shop door/);
+});

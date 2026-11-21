@@ -7,7 +7,8 @@ const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
 const sv = JSON.parse(Y1.sop_save); sv.s = { ...sv.s, app: 42 }; sv.stc = { ...(sv.stc || {}), arrears: 2 };
-const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) }, seed: 4, test: { noStrikes: true } });
+const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) }, seed: 4, test: { noStrikes: true, aiReplies: true } });
+await g.page.route("**/api/tori/replies", r => r.fulfill({ contentType: "application/json", body: JSON.stringify({ options: [{ id: "ai0", kind: "honest", text: "DRAFTED: You are right about this one, and here is my answer.", truth: true, reaction: "REACTED: Okay, I hear you.", callout: "" }, { id: "ai1", kind: "spin", text: "DRAFTED-SPIN: All is well.", truth: false, reaction: "Which well?", callout: "Ratio." }] }) }));
 await g.click(/^Continue/); await g.wait(1800);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await g.wait(1000);
 let rowOn = false;
@@ -50,6 +51,13 @@ for (let i = 0; i < 3; i++) { await g.page.evaluate(() => document.querySelector
 await g.page.evaluate(() => document.querySelector("[data-sop-tori-spaceend]").click()); await g.wait(500);
 const logs2 = await g.page.evaluate(() => (window.SOP.logs || []).map(l => l.tx).join(" | "));
 check(/hosted a live Space/.test(logs2) && !(await q("[data-sop-tori-space]")), "a live Space: three questions, then once a year");
+// The aide drafts replies for the exact post (server/tori-ai.mjs makeToriReplies).
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=tab]")].find(x => x.getAttribute("aria-label") === "Home"); b && b.click(); }); await g.wait(300);
+await g.page.evaluate(() => document.querySelector("[data-testid=tori] [data-sop-tweet=citizen] [data-sop-tori-act=reply]").click()); await g.wait(1200);
+const dr = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-comment]")].map(b => b.textContent));
+check(dr.some(t => /^DRAFTED: /.test(t)) && dr.some(t => /Not true/.test(t)), "the reply box shows replies drafted for this post, with what each one is");
+await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-comment]")].find(b => /^DRAFTED: /.test(b.textContent)).click()); await g.wait(500);
+check(/REACTED: Okay, I hear you\./.test(await T()), "the poster answers what you actually said");
 // AI-written posts (server/tori-ai.mjs), when the year has them, take the citizens' place.
 await g.page.evaluate(() => window.SOP.stcTest(p => ({ ...p, tori: { ...(p.tori || {}), ai: { [window.SOP.turn]: { posts: [{ name: "Chiamaka", handle: "@chiamaka_writes", sub: "nurse", art: "nurse", text: "AI-TEST: The night shift is me, one torch and 40 patients. @OgunGov", topic: "need", tone: "bad", thread: [{ name: "Emeka", handle: "@emeka01", text: "Respect to nurses fr" }] }, { name: "Kunle", handle: "@kunle_k", sub: "okada rider", art: "okada-rider", text: "AI-TEST two", topic: "life", tone: "neutral", thread: [] }] } } } })));
 await g.wait(500);

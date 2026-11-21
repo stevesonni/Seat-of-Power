@@ -551,7 +551,38 @@ export function toriReplies(t, c) {
   if (t.kind === "foreign") return worldReplies(t, c);
   const P = pidgin(t.text), who = t.kind === "institution" || t.kind === "opposition" ? t.name : callName(t.name), me = c.nat ? "the Federal Government" : "Government House";
   const topic = t.topic || toriTopic(t.text), out = [], opp = t.kind === "opposition", inst = t.kind === "institution";
-  const S = stNm(c.st), f = (c.fled || []).find(x => !x.back) || null, st = (c.strikes || [])[0] || null, n = (c.needs || [])[0] || null, done = (c.done || [])[0] || null;
+  const tx = String(t.text || "").toLowerCase(), named = (arr, key) => (arr || []).find(x => x && x[key] && tx.includes(String(x[key]).toLowerCase().slice(0, 18)));
+  const S = stNm(c.st), f = named(c.fled, "proj") || named(c.fled, "firm") || (c.fled || []).find(x => !x.back) || null, st = named(c.strikes, "short") || (c.strikes || [])[0] || null, n = named(c.needs, "title") || (c.needs || [])[0] || null, done = named(c.done ? c.done.map(d => ({ d })) : [], "d") ? named(c.done.map(d => ({ d })), "d").d : (c.done || [])[0] || null;
+  if (t.follow === "aproko") {
+    out.push({ id: "deny", text: "Fake news. Nothing like that happened in this government.", truth: !(c.leaks || []).length, fx: (c.leaks || []).length ? { app: -1 } : {}, callout: (c.leaks || []).length ? "Fake news? Na your own commissioner's name dey the document. 👀" : null });
+    out.push({ id: "probe", text: "If this is true, there will be consequences. I've asked for a full report by Friday.", truth: true, promise: "general" });
+    out.push({ id: "ignore", text: "😂 Aproko, you no dey rest?", truth: true, fx: {}, callout: "Laughing it off. So it's true? 👀" });
+    return out;
+  }
+  if (t.follow === "praise") {
+    if (t.exposed) { out.push({ id: "distance", text: "Nobody is paid to praise this government. Please delete that post.", truth: false, fx: { app: -1 }, callout: "The payment note is in the post 😂" }); out.push({ id: "own", text: "That post should never have gone out. I've told my team: no paid praise.", truth: true, fx: { app: 1 } }); return out; }
+    out.push({ id: "thanks", text: P ? "Iyaloje, thank you o! Na una prayer dey carry us. 🙏🏾" : "Thank you, Iyaloje. Your support keeps us going. 🙏🏾", truth: true, fx: c.app >= 50 ? { app: 1 } : {}, callout: c.app >= 50 ? null : "Even the praise singer is the only one clapping." });
+    if (c.arrears > 0) out.push({ id: "salary", text: "Kind words, but the workers come first: " + c.arrears + " months owed is my shame, not my record.", truth: true, fx: { app: 1 } });
+    return out;
+  }
+  if (t.follow === "memes") {
+    out.push({ id: "laugh", text: "😂 Okay this one got me. But I'm still fixing it.", truth: true, fx: c.app >= 45 ? { app: 1 } : {}, callout: c.app >= 45 ? null : "Laughing while we suffer? Na wa." });
+    out.push({ id: "own", text: "Fair. The meme is funny because it's true. Here's what we're doing about it this month.", truth: true, promise: "general", fx: {} });
+    out.push({ id: "report", text: "This page is spreading lies about the government.", truth: false, fx: { app: -1 }, callout: "Lies? It's a meme of your own face 😭" });
+    return out;
+  }
+  if (t.follow === "student") {
+    const a = (c.strikes || []).find(x => /ASUU/i.test(x.short));
+    if (t.arc === "graduated") { out.push({ id: "congrats", text: "Congratulations! 🎓 Four years became more than four, and you held on. " + S + " is proud of you.", truth: true, fx: { app: 1 } }); out.push({ id: "job", text: "Send me your CV. Our graduate scheme opens next month.", truth: true, promise: "general" }); return out; }
+    if (t.arc === "left") { out.push({ id: "sorry", text: "I'm sorry we lost you. When things are better at home, come back and build with us.", truth: true, fx: {} }); out.push({ id: "blame", text: "The strike is a federal matter. Safe travels.", truth: true, fx: { app: -1 }, callout: "Federal matter. That's exactly why people leave." }); return out; }
+    if (a) { out.push({ id: "table", text: "Year " + a.years + " of this strike is too long. I'm sitting with ASUU myself this week.", truth: !!a.talks, promise: a.talks ? null : "talks", callout: a.talks ? null : "You said that last year." }); out.push({ id: "go", text: "Convening the roundtable with ASUU now.", truth: true, action: "roundtable" }); out.push({ id: "biz", text: "Proud of you for starting that business. Our youth grant can help: apply this month.", truth: true, fx: {} }); return out; }
+  }
+  if (t.follow === "trader" && /water|rain|flood|swim/i.test(t.text)) {
+    out.push({ id: "drain", text: "I've seen your shop. The drainage for that market goes into this year's budget, and I'll come and see it done.", truth: true, promise: "need" });
+    out.push({ id: "fix", text: "Sending the commissioner and the money now.", truth: true, action: "needs" });
+    out.push({ id: "god", text: "Floods are an act of God. We'll pray together.", truth: true, fx: { app: -1 }, callout: "Act of God? The gutter has been blocked for 5 years." });
+    return out;
+  }
   if (topic === "salaries") {
     if (c.arrears > 0) {
       out.push({ id: "own", text: P ? "You dey right, " + who + ". " + c.arrears + " months no be small thing. We go clear am, starting this month." : "You're right. " + c.arrears + " month" + (c.arrears === 1 ? "" : "s") + " unpaid is unacceptable. We start clearing the arrears this month.", truth: true, promise: "arrears", fx: { app: 1 } });
@@ -638,6 +669,8 @@ export function toriReplyReact(opt, t, seed) {
   const op = t.kind === "complaint" || t.kind === "citizen" || t.kind === "opposition" ? (t.name || p.who) : p.who, me = "you";
   const q = "“" + briefT(opt.text, 60) + "”", topic = t.topic || toriTopic(t.text), p2 = pick(r, PEOPLE.filter(x => x.who !== p.who));
   const opp = t.kind === "opposition";
+  // A drafted reply (server/tori-ai.mjs) carries the poster's own answer to exactly what was said.
+  if (opt.reaction) return { replies: [{ name: op, text: opt.reaction }, ...(opt.truth === false || opt.callout ? [{ name: p2.who, text: opt.callout || pick(r, ["Screenshot. " + q, "Ratio."]) }] : [])], line: opt.truth === false ? "Called out" : opt.kind === "promise" ? "Noted" : "Answered" };
   if (opt.truth === false) return { replies: [{ name: op, text: opt.callout || (q + "? " + pick(r, ["That's not true and you know it.", "Who wrote this for you?", "We live here. We can see."])) }, { name: p2.who, text: pick(r, ["Screenshot. " + q + " This one will age badly.", "Ratio. And community note: " + q + " is false.", "Saving this for election season. 📸"]) }], line: "Called out" };
   if (opt.action) return { replies: [{ name: op, text: pick(r, {
       salaries: ["If the alert lands this week, I'll come back and say thank you myself.", "I'm refreshing my bank app every hour now. Don't disappoint me. 📱"],

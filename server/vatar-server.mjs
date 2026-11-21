@@ -23,7 +23,7 @@ import { makeFederation } from "./federation.mjs";
 import { careerOf, careerName, keepBackup } from "./saves.mjs";
 import { makeShop } from "./shop.mjs";
 import { dropOff, dropOffSplit, DROP_PILLARS, PILLARS, experimentSummary } from "./experiment.mjs";
-import { makeToriAI } from "./tori-ai.mjs";
+import { makeToriAI, makeToriReplies } from "./tori-ai.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -31,7 +31,7 @@ const API = process.env.VATAR_API || "https://lagoslife.app/api/games/v1"; // ov
 const SECRET = process.env.VATAR_SECRET || "";
 const WHSEC = process.env.VATAR_WEBHOOK_SECRET || "";
 const PORT = +process.env.PORT || 8080;
-const toriAI = makeToriAI({ dataDir: DATA }); // set below DATA; reads ANTHROPIC_API_KEY
+const toriAI = makeToriAI({ dataDir: DATA }), toriReplies = makeToriReplies({ dataDir: DATA }); // read ANTHROPIC_API_KEY
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
@@ -442,6 +442,11 @@ http.createServer(async (req, res) => {
       let b; try { b = JSON.parse(await readBody(req, 16_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
       const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
       const out = await toriAI(b, ip); return send(res, out._code || 200, out);
+    }
+    if (req.method === "POST" && url.pathname === "/api/tori/replies") {
+      let b; try { b = JSON.parse(await readBody(req, 16_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+      const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+      const out = await toriReplies(b, ip); return send(res, out._code || 200, out);
     }
     // The Cabinet: friends hold their own keys, so no Lagos Life session is needed.
     if (req.method === "POST" && (url.pathname.startsWith("/api/cab/") || url.pathname.startsWith("/api/fed/"))) {
