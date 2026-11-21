@@ -108,8 +108,13 @@ const sameSvc = (entries, id) => Object.fromEntries(Object.entries(entries || {}
 // Leagues (server/leagues.mjs): finished weeks are settled the first time anyone asks after Monday.
 const LEAGUE_F = path.join(DATA, "leagues.json");
 const readLeagues = () => { try { return JSON.parse(fs.readFileSync(LEAGUE_F, "utf8")); } catch (e) { return { settled: weekOf() - 1, p: {} }; } };
+// The week's XP (game/systems/xp.js): what ranks the leagues. Weeks with no XP fall back to the best result of the week.
+const xpWeekF = (w) => path.join(DATA, "xp-week-" + w + ".json");
+const readXpWeek = (w) => { try { return JSON.parse(fs.readFileSync(xpWeekF(w), "utf8")); } catch (e) { return { entries: {} }; } };
+const weekScores = (w) => { const X = readXpWeek(w).entries || {}; return Object.keys(X).length ? X : weekEntries(daysOfWeek(w).map(readDay)); };
+let xpLock = Promise.resolve();
 const settleLeagues = () => { const L = readLeagues(), now = weekOf(); let changed = false;
-  for (let w = Math.max((L.settled ?? now - 1) + 1, now - 8); w < now; w++) { settleWeek(L, w, weekEntries(daysOfWeek(w).map(readDay))); changed = true; }
+  for (let w = Math.max((L.settled ?? now - 1) + 1, now - 8); w < now; w++) { settleWeek(L, w, weekScores(w)); changed = true; }
   if (L.settled == null || L.settled < now - 1) { L.settled = now - 1; changed = true; }
   if (changed) writeJson(LEAGUE_F, L); return L; };
 const leagueOfId = (L, k) => ((L.p || {})[k] || {}).lg || 0;
@@ -257,11 +262,21 @@ const api = {
   // Your league: where you stand this week, what each league gives, and the last move (up, down, or down for being away).
   "/api/hall/league": async (b, id) => {
     const run = hallLock.then(() => {
-      const L = settleLeagues(), lg = leagueOfId(L, id), now = weekOf(), best = weekEntries(daysOfWeek(now).map(readDay));
-      const st = standing(L, id, best), last = ((L.p[id] || {}).moves || []).slice(-1)[0] || null;
-      return { week: now, league: lg, leagues: LEAGUES, standing: st, last, endsAt: weekOpensAt(now) };
+      const L = settleLeagues(), lg = leagueOfId(L, id), now = weekOf(), best = weekScores(now);
+      const st = standing(L, id, best), last = ((L.p[id] || {}).moves || []).slice(-1)[0] || null, fin = (L.p[id] || {}).fin;
+      // This week's table in your league: names and XP, the top 10 and you.
+      const table = Object.entries(sameSvc(best, id)).filter(([k]) => leagueOfId(L, k) === lg).sort((a, b) => b[1].score - a[1].score || (a[1].at || 0) - (b[1].at || 0)).map(([k, e], i) => ({ rank: i + 1, name: e.name || "A player", xp: e.score, me: k === id })).filter(r => r.rank <= 10 || r.me);
+      return { week: now, league: lg, leagues: LEAGUES, standing: st, last, endsAt: weekOpensAt(now), table, finish: fin && fin.w === now - 1 ? fin : null };
     });
     hallLock = run.catch(() => {}); return run;
+  },
+  // The week's XP from the player's device: kept as the week's best (XP only grows), capped against nonsense.
+  "/api/xp/week": async (b, id) => {
+    const w = Math.round(+b.w), xp = Math.round(+b.xp); if (w !== weekOf() || !Number.isFinite(xp) || xp < 0) return { _code: 400, error: "bad_request" };
+    const run = xpLock.then(() => { const X = readXpWeek(w), old = X.entries[id];
+      if (!old || xp > old.score) { X.entries[id] = { score: Math.min(xp, 20000), at: Date.now(), name: userOf(b, b.session) }; writeJson(xpWeekF(w), X); }
+      return { ok: true, xp: X.entries[id].score }; });
+    xpLock = run.catch(() => {}); return run;
   },
   "/api/hall/today": async (b, id) => {
     const d = hallDay(), D = readDay(d), E = sameSvc(D.entries, id), rows = rankBoard(E, 20), all = rankBoard(E, 100000), me = all.find(r => r.id === id), L = readLeagues();

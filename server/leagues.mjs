@@ -1,4 +1,5 @@
-/* Leagues, like Duolingo's (owner, 20 Nov 2026). Five leagues; each Monday the week is settled:
+/* Leagues, like Duolingo's (owner, 20 Nov 2026). Five leagues; each Monday the week is settled (since 21 Nov 2026 the
+   week's score is the XP a player earned that week, game/systems/xp.js; weeks before that used the best result):
    - the top 30% of a league's players that week go up (at least one, if anyone played);
    - in a league of 5 or more players that week, the bottom 20% go down;
    - a player above the first league who did not play at all that week goes down one.
@@ -30,6 +31,7 @@ export function settleWeek(L, w, best) {
       const ids = played.filter(id => svcOf(id) === svc && start[id] === lg)
         .sort((a, b) => best[b].score - best[a].score || (best[a].at || 0) - (best[b].at || 0));
       const c = cuts(ids.length, lg);
+      ids.forEach((id, i) => { L.p[id].fin = { w, rank: i + 1, of: ids.length, lg }; }); // where each finished (the top 3 win Ballots)
       ids.slice(0, c.up).forEach(id => move(id, lg + 1, "up"));
       if (c.down) ids.slice(ids.length - c.down).forEach(id => move(id, lg - 1, "down"));
     }

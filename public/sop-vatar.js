@@ -113,7 +113,7 @@
   // The weekly challenge: attempts and the board live on our server, against the player's id.
   window.SOP_chStart = function () { return ready.then(function (on) { if (!on) return { ok: true, offline: true }; return call("/api/challenge/start").then(function (r) { if (r.ents) setEnts(r.ents); return r; }); }); };
   // Boards show the player's Lagos Life username (the server prefers the name Vatar verified).
-  function uname() { var p = window.SOP_PLAYER || {}; return p.username || p.displayName || p.name || p.handle || ""; }
+  function uname() { var p = window.SOP_PLAYER || {}, n = p.username || p.displayName || p.name || p.handle || "", x = {}; try { x = JSON.parse(localStorage.getItem("sop_xp") || "{}") || {}; } catch (e) {} return n && (x.owned || []).indexOf("title_chief") >= 0 ? "Chief " + n : n; }
   window.SOP_USERNAME = uname;
   window.SOP_chScore = function (week, score, name, title) { return ready.then(function (on) { if (on) return call("/api/challenge/score", { week: week, score: score, username: uname(), title: title }); }).catch(function () {}); };
   window.SOP_hallSubmit = function (c) { return ready.then(function (on) { if (on) return call("/api/hall/submit", Object.assign({ username: uname() }, c)); }).catch(function () {}); };
@@ -155,6 +155,7 @@
   window.SOP_hallBoard = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/board"); }); };
   // Leagues (server/leagues.mjs): where the player stands this week, and the last move up or down.
   window.SOP_league = function () { return ready.then(function (on) { if (!on) return null; return call("/api/hall/league"); }); };
+  window.SOP_xpWeek = function (w, xp) { return ready.then(function (on) { if (!on) return null; return call("/api/xp/week", { w: w, xp: xp, username: uname() }); }).catch(function () { return null; }); };
   ready.then(function (on) { if (on) window.SOP_league().then(function (r) { if (r) { window.SOP_LEAGUE = r; try { window.dispatchEvent(new CustomEvent("sop-league", { detail: r })); } catch (e) {} } }).catch(function () {}); });
   window.SOP_chBoard = function (week) { return ready.then(function (on) { if (!on) return null; return call("/api/challenge/board", { week: week }); }); };
   window.SOP_useCredit = function (productId) {

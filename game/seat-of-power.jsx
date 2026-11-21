@@ -953,7 +953,75 @@ const HONOURS = [
 // Every commissioner (and the adviser) has a hidden competence and honesty,
 // fixed by name. Each year they act on it, and what they do is on record.
 // Anonymous choice tallies for the makers (see server /api/track): what players pick, never who.
-const track = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+const track = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} xpEvent(e, v); };
+/* XP, levels, the daily goal, quests and Ballots (game/systems/xp.js). Every tracked action can earn XP, in every
+   career; the store is sop_xp (synced with the account); the week's XP goes to the server for the leagues. */
+const XP_KEY = "sop_xp";
+function xpLoad() { try { return { ...SYS.xpBlank(), ...JSON.parse(localStorage.getItem(XP_KEY) || "{}") }; } catch (e) { return SYS.xpBlank(); } }
+function xpSave(X) { const v = JSON.stringify(X); try { localStorage.setItem(XP_KEY, v); } catch (e) {} try { window.storage && window.storage.set(XP_KEY, v); } catch (e) {} try { window.dispatchEvent(new CustomEvent("sop-xp", { detail: X })); } catch (e) {} }
+let xpReportT = null;
+function xpEvent(e, v) {
+  let r; try { r = SYS.award(xpLoad(), e, v, Date.now(), SYS.dayNo(), Math.floor((Date.now() - Date.UTC(2026, 0, 5)) / 604800000)); } catch (x) { return; }
+  if (!r || (!r.gained && !(r.quests || []).length)) return;
+  xpSave(r.X);
+  try { window.dispatchEvent(new CustomEvent("sop-xp-gain", { detail: r })); } catch (x) {}
+  // The week's XP to the server (the leagues), at most every few seconds.
+  clearTimeout(xpReportT); xpReportT = setTimeout(() => { try { window.SOP_xpWeek && window.SOP_xpWeek(r.X.week.w, r.X.week.xp); } catch (x) {} }, 3000);
+}
+const useXp = () => { const [X, setX] = useState(xpLoad); useEffect(() => { const f = (e) => setX(e.detail || xpLoad()); window.addEventListener("sop-xp", f); return () => window.removeEventListener("sop-xp", f); }, []); return X; };
+// The level on the title screen, with the day's goal as a ring around it.
+const XpChip = ({ onClick }) => {
+  const X = useXp(), V = SYS.levelView(X.total), day = SYS.dayNo(), today = X.day && X.day.n === day ? X.day.xp : 0, pct = Math.min(1, today / (X.goal || 50)), C = 2 * Math.PI * 15;
+  return <button data-sop-xp-chip onClick={onClick} aria-label={"Level " + V.lv + ", " + today + " of " + X.goal + " XP today"} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 6, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: "4px 12px 4px 4px", minHeight: 44, cursor: "pointer", fontFamily: F.b, fontWeight: 900, color: UI.ink }}>
+    <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#e5e5e5" strokeWidth="4" /><circle cx="18" cy="18" r="15" fill="none" stroke={pct >= 1 ? "#58cc02" : "#ffc800"} strokeWidth="4" strokeDasharray={C} strokeDashoffset={C * (1 - pct)} strokeLinecap="round" transform="rotate(-90 18 18)" /><text x="18" y="23" textAnchor="middle" fontSize="13" fontWeight="900" fill="#3c3c3c">{V.lv}</text></svg>
+    <span style={{ fontSize: DS.t.label }}>🗳️ {X.ballots}</span></button>;
+};
+// Your progress: level, the daily goal, today's quests, the Ballot shop, and your league this week.
+const XpSheet = ({ onClose }) => {
+  const X = useXp(), V = SYS.levelView(X.total), day = SYS.dayNo(), today = X.day && X.day.n === day ? X.day.xp : 0, Q = SYS.questProgress(X, day);
+  const [lg, setLg] = useState(() => window.SOP_LEAGUE || null), [msg, setMsg] = useState("");
+  useEffect(() => { try { window.SOP_league && window.SOP_league().then(r => { if (r) { window.SOP_LEAGUE = r; setLg(r); } }).catch(() => {}); } catch (e) {} }, []);
+  // Last week's prize, once: the server says where you finished.
+  useEffect(() => { const f = lg && lg.finish; if (!f) return; const r = SYS.claimLeague(xpLoad(), f.w, f.rank); if (r.prize) { xpSave(r.X); try { window.SOP_outcome && window.SOP_outcome({ icon: ["🥇", "🥈", "🥉"][f.rank - 1], title: "You finished #" + f.rank + " in your league", text: "+" + r.prize + " Ballots 🗳️", tone: "good", ok: "Collect" }); } catch (e) {} } }, [lg]);
+  const L = lg && (lg.leagues || [])[lg.league || 0], stn = lg && lg.standing, endsIn = lg && lg.endsAt ? Math.max(0, Math.ceil((lg.endsAt - Date.now()) / 864e5)) : null;
+  const bar = (a, b, col) => <div style={{ height: 14, borderRadius: 7, background: "#e5e5e5", overflow: "hidden" }}><div style={{ width: Math.min(100, Math.round(a * 100 / Math.max(1, b))) + "%", height: "100%", background: col, borderRadius: 7 }} /></div>;
+  const shop = (it) => { const r = SYS.buy(xpLoad(), it.id, Date.now()); if (!r.ok) { setMsg(r.why); return; } xpSave(r.X); track("xp_buy", it.id);
+    if (it.id === "frame_green") { window.SOP_FRAME = "ballot"; loadProfile().then(p => p && saveProfile({ ...p, frame: "ballot" })); setMsg("Your portrait now wears the Ballot Green frame. Change it any time under Profile."); }
+    else if (it.id === "title_chief") setMsg("From now on the Hall and the leagues call you Chief.");
+    else setMsg(it.l + ": yours."); };
+  const H = ({ children }) => <b style={{ display: "block", fontSize: DS.t.body, color: UI.ink, margin: "16px 0 8px" }}>{children}</b>;
+  return <EntranceSheet title="⭐ Your progress" onClose={onClose}>
+    <div data-sop-xp-level style={{ display: "flex", alignItems: "center", gap: 12 }}><span style={{ width: 56, height: 56, borderRadius: 16, background: "#ffc800", display: "grid", placeItems: "center", fontFamily: F.d, fontWeight: 900, fontSize: 26, color: "#fff", boxShadow: "0 4px 0 #e5a400" }}>{V.lv}</span>
+      <div style={{ flex: 1 }}><b style={{ fontSize: DS.t.body, color: UI.ink }}>Level {V.lv} · {V.title}</b><div style={{ fontSize: DS.t.meta, color: UI.sub, margin: "2px 0 6px" }}>{X.total.toLocaleString()} XP · {V.need - V.into} to level {V.lv + 1}</div>{bar(V.into, V.need, "#ffc800")}</div></div>
+    <H>Daily goal: {today} / {X.goal} XP</H>{bar(today, X.goal, today >= X.goal ? "#58cc02" : "#1cb0f6")}
+    <div role="radiogroup" aria-label="Daily goal" style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 8 }}>{SYS.GOALS.map(g => <button key={g.id} role="radio" aria-checked={X.goal === g.id} data-sop-xp-goal={g.id} onClick={() => xpSave({ ...xpLoad(), goal: g.id })} style={{ minHeight: 40, padding: "4px 12px", borderRadius: 12, border: "2px solid " + (X.goal === g.id ? "#1cb0f6" : UI.line), background: X.goal === g.id ? "#ddf4ff" : "#fff", fontFamily: F.b, fontWeight: 800, fontSize: DS.t.meta, color: UI.ink, cursor: "pointer" }}>{g.l} · {g.id}</button>)}</div>
+    <H>Today's quests</H>
+    <div style={{ display: "grid", gap: 10 }}>{Q.map(q => <div key={q.id} data-sop-xp-quest={q.done ? "done" : "open"} style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 6, alignItems: "center" }}><div><b style={{ fontSize: DS.t.meta, color: UI.ink }}>{q.done ? "✅ " : ""}{q.t}</b><div style={{ marginTop: 4 }}>{bar(q.p, q.n, q.done ? "#58cc02" : "#ffc800")}</div></div><span style={{ fontSize: DS.t.meta, fontWeight: 800, color: "#1cb0f6" }}>{q.p}/{q.n} · 🗳️{q.b}</span></div>)}</div>
+    <H>Your league{L ? ": " + L.icon + " " + L.nm : ""}</H>
+    {lg ? <div data-sop-xp-league style={{ fontSize: DS.t.meta, color: UI.sub, lineHeight: 1.5 }}>{stn && stn.rank ? <>You are <b style={{ color: UI.ink }}>#{stn.rank} of {stn.players}</b> this week with <b style={{ color: UI.ink }}>{(X.week && X.week.xp) || 0} XP</b>. {stn.zone === "up" ? "🟢 In the promotion zone." : stn.zone === "down" ? "🔴 In the relegation zone." : "Hold your place, or climb."}</> : <>Earn XP this week to join your league's table.</>} Top 3 win {SYS.LEAGUE_PRIZES.join(", ")} Ballots.{endsIn != null ? " The week closes in " + endsIn + " day" + (endsIn === 1 ? "" : "s") + "." : ""}</div>
+      : <div style={{ fontSize: DS.t.meta, color: UI.sub }}>Sign in to join a league: weekly tables of players ranked by XP, with promotion and relegation.</div>}
+    {lg && (lg.table || []).length > 0 && <div data-sop-xp-table style={{ marginTop: 8, border: "2px solid " + UI.line, borderRadius: 14, overflow: "hidden" }}>{lg.table.map(r => <div key={r.rank + r.name} style={{ display: "grid", gridTemplateColumns: "34px 1fr auto", gap: 8, alignItems: "center", padding: "8px 12px", background: r.me ? "#ddf4ff" : "#fff", borderTop: r.rank > 1 ? "1px solid " + UI.line : 0, fontSize: DS.t.meta, color: UI.ink }}><b style={{ color: r.rank <= 3 ? "#e5a400" : UI.sub }}>{r.rank <= 3 ? ["🥇", "🥈", "🥉"][r.rank - 1] : r.rank}</b><span style={{ fontWeight: r.me ? 900 : 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.me ? "You" : r.name}</span><b>{r.xp} XP</b></div>)}</div>}
+    <H>Ballot shop · you have 🗳️ {X.ballots}</H>
+    <div style={{ display: "grid", gap: 8 }}>{SYS.BALLOT_SHOP.map(it => { const own = (X.owned || []).includes(it.id) || (it.id === "freeze" && X.freezes >= 2); return <button key={it.id} data-sop-xp-buy={it.id} onClick={() => shop(it)} disabled={own} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", textAlign: "left", padding: "10px 12px", borderRadius: 14, border: "2px solid " + UI.line, background: "#fff", cursor: own ? "default" : "pointer", fontFamily: F.b, opacity: own ? .55 : 1 }}><span style={{ fontSize: 26 }}>{it.ic}</span><span><b style={{ display: "block", fontSize: DS.t.meta, color: UI.ink }}>{it.l}</b><span style={{ fontSize: DS.t.label, color: UI.sub }}>{it.d}</span></span><b style={{ color: "#1cb0f6", whiteSpace: "nowrap" }}>{own ? "Owned" : "🗳️ " + it.cost}</b></button>; })}</div>
+    {(X.boostUntil || 0) > Date.now() && <div style={{ marginTop: 8, fontSize: DS.t.meta, color: "#58a700", fontWeight: 800 }}>⚡ Double XP for {Math.ceil((X.boostUntil - Date.now()) / 60000)} more minutes</div>}
+    {X.freezes > 0 && <div style={{ marginTop: 4, fontSize: DS.t.meta, color: UI.sub }}>🧊 {X.freezes} Streak Freeze{X.freezes === 1 ? "" : "s"} held</div>}
+    {msg && <div role="status" style={{ marginTop: 8, fontSize: DS.t.meta, color: UI.ink, fontWeight: 700 }}>{msg}</div>}
+  </EntranceSheet>;
+};
+// "+10 XP" as it happens; a card for a level, a finished quest or the day's goal.
+const XpToasts = () => {
+  const [pops, setPops] = useState([]);
+  useEffect(() => { const f = (ev) => { const r = ev.detail || {}; if (r.gained) { const id = Date.now() + Math.random(); setPops(p => [...p.slice(-2), { id, t: "+" + r.gained + " XP" + (r.boost ? " ⚡" : "") }]); setTimeout(() => setPops(p => p.filter(x => x.id !== id)), 1600); }
+    const cards = [];
+    if (r.levelUp) cards.push({ icon: "⭐", title: "Level " + r.levelUp.lv + (r.levelUp.newTitle ? ": " + r.levelUp.title : ""), text: (r.levelUp.newTitle ? "You are now a " + r.levelUp.title + ". " : "") + "+" + SYS.LEVEL_BALLOTS + " Ballots.", tone: "good", ok: "Nice" });
+    (r.quests || []).forEach(q => cards.push({ icon: "🎯", title: "Quest done: " + q.t, text: "+" + q.b + " Ballots 🗳️", tone: "good", ok: "Collect" }));
+    if (r.goalMet) cards.push({ icon: "🔥", title: "Daily goal met", text: "Your streak is safe for today.", tone: "good", ok: "Keep going" });
+    cards.forEach((c, i) => setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(c); } catch (x) {} }, 900 + i * 300)); };
+    window.addEventListener("sop-xp-gain", f); return () => window.removeEventListener("sop-xp-gain", f); }, []);
+  return <div aria-live="polite" style={{ position: "fixed", top: "calc(10px + env(safe-area-inset-top, 0px))", left: 0, right: 0, display: "grid", justifyItems: "center", gap: 4, zIndex: 10070, pointerEvents: "none" }}>
+    {pops.map(p => <span key={p.id} data-sop-xp-pop className="sop-pop" style={{ background: "#58cc02", color: "#fff", fontFamily: F.b, fontWeight: 900, fontSize: TALL() ? TS(18) : TS(26), padding: "4px 14px", borderRadius: 999, boxShadow: "0 4px 0 #46a302" }}>{p.t}</span>)}
+  </div>;
+};
 // The experiment (SYS.PILLARS): this phone's pillars, each on or off at random, kept for good.
 // A test link (?exp=all, ?exp=none, ?exp=front:1,money:0) can force them. Off leaves the game as it was.
 const EXP = (() => { let cur = null; try { cur = JSON.parse(localStorage.getItem(SYS.EXP_KEY) || "null"); } catch (e) {}
@@ -2980,11 +3048,11 @@ const useStreak = () => {
   const [d, setD] = useState(null);
   const [ents, setEnts] = useState(() => window.SOP_ENTS || {});
   useEffect(() => { loadDaily().then(setD); const f = (e) => setD(e.detail); const g = (e) => setEnts(e.detail || {}); window.addEventListener("sop-daily", f); window.addEventListener("sop-ents", g); return () => { window.removeEventListener("sop-daily", f); window.removeEventListener("sop-ents", g); }; }, []);
-  const today = SYS.dayNo(), fz = ents.streak_freeze || 0;
+  const xpF = (xpLoad().freezes || 0), today = SYS.dayNo(), fz = (ents.streak_freeze || 0) + xpF; // paid freezes and freezes bought with Ballots
   const st = d ? SYS.streakOf(d.days, today, fz) : { streak: 0, best: 0, use: 0, bridged: [] };
-  useEffect(() => { // spend freezes on the days they saved, once
-    if (!d || !st.use || !window.SOP_useCredit) return;
-    (async () => { const done = []; for (const day of st.bridged) { if (await window.SOP_useCredit("streak_freeze").catch(() => false)) done.push(day); } if (done.length) { const d2 = { ...d, days: [...d.days, ...done].sort((a, b) => a - b) }; setD(d2); saveDaily(d2); try { window.SOP_toast && window.SOP_toast("🧊 A Streak Freeze saved your streak", "ok"); } catch (e) {} } })();
+  useEffect(() => { // spend freezes on the days they saved, once: Ballot freezes first, then paid ones
+    if (!d || !st.use) return;
+    (async () => { const done = []; for (const day of st.bridged) { const X = xpLoad(); if ((X.freezes || 0) > 0) { xpSave({ ...X, freezes: X.freezes - 1 }); done.push(day); continue; } if (window.SOP_useCredit && await window.SOP_useCredit("streak_freeze").catch(() => false)) done.push(day); } if (done.length) { const d2 = { ...d, days: [...d.days, ...done].sort((a, b) => a - b) }; setD(d2); saveDaily(d2); try { window.SOP_toast && window.SOP_toast("🧊 A Streak Freeze saved your streak", "ok"); } catch (e) {} } })();
   }, [d && d.days.length, st.use]);
   return { d, ...st, today, freezes: fz };
 };
@@ -2997,7 +3065,7 @@ const DailyScreen = ({ onClose }) => {
   const choose = async (i) => {
     if (pick != null) return;
     setPick(i); try { window.SOP_sound && window.SOP_sound("good"); } catch (e) {}
-    const d = await loadDaily(); d.picks = { ...d.picks, [n]: i }; if (!d.days.includes(n)) d.days = [...d.days, n]; await saveDaily(d);
+    const d = await loadDaily(); d.picks = { ...d.picks, [n]: i }; if (!d.days.includes(n)) d.days = [...d.days, n]; await saveDaily(d); xpEvent("daily");
     setStreak(SYS.streakOf(d.days, n, 0).streak);
     const r = window.SOP_dailyVote ? await window.SOP_dailyVote(n, i) : null; setCounts(r ? r.counts : null);
   };
@@ -3229,7 +3297,8 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
     <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
         <button onClick={() => setSheet("menu")} aria-label="Menu" style={{ position: "relative", width: 48, height: 48, borderRadius: 16, border: 0, background: UI.dark, color: "#fff", fontSize: 22, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.2)", display: "grid", placeItems: "center" }}><Ico n="icon-menu" s={30} />{chNew && <span aria-label="New challenge" style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "#e9b949", border: "2px solid #fff" }} />}</button>
-        <button onClick={() => setSheet("streak")} aria-label={"Streak: " + st.streak + " days"} style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 4, background: "#fff", border: "1px solid " + (st.playedToday ? "#f3b38a" : UI.line), borderRadius: 999, padding: "6px 14px", minHeight: 44, fontSize: DS.t.body, cursor: "pointer", fontFamily: F.b, boxShadow: st.playedToday ? "0 0 0 3px #ffe3cf" : "none" }}><Flame n={st.streak} lit={st.streak > 0} /></button>
+        <XpChip onClick={() => setSheet("xp")} />
+        <button onClick={() => setSheet("streak")} aria-label={"Streak: " + st.streak + " days"} style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", border: "1px solid " + (st.playedToday ? "#f3b38a" : UI.line), borderRadius: 999, padding: "6px 14px", minHeight: 44, fontSize: DS.t.body, cursor: "pointer", fontFamily: F.b, boxShadow: st.playedToday ? "0 0 0 3px #ffe3cf" : "none" }}><Flame n={st.streak} lit={st.streak > 0} /></button>
         <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: profile ? "4px 16px 4px 4px" : "10px 18px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", maxWidth: "60%" }}>
           {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 2 : undefined }} /> : <span aria-hidden="true">👤</span>}
           <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
@@ -3259,6 +3328,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
       </div>
       {sheet === "daily" && <DailyScreen onClose={() => { setSheet(null); try { if (/[?&]daily=/.test(location.search)) history.replaceState(null, "", location.pathname); } catch (e) {} }} />}
       {sheet === "streak" && <StreakSheet st={st} onClose={() => setSheet(null)} />}
+      {sheet === "xp" && <XpSheet onClose={() => setSheet(null)} />}
       {sheet === "career" && <CareerSheet onClose={() => setSheet(null)} />}
       {sheet === "company" && <CompanySheet onClose={() => setSheet(null)} />}
       {sheet === "careers" && <EntranceSheet title="Careers" onClose={() => setSheet(null)}>
@@ -3321,7 +3391,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
         </div>
         <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 8px" }}>🖼️ Portrait frame</b>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", marginBottom: 14 }}>
-          {FRAMES.map(fr => { const on = (profile.frame || null) === fr.id; const locked = fr.id && packLocked("portrait_frames");
+          {FRAMES.map(fr => { const on = (profile.frame || null) === fr.id; const locked = fr.ballot ? !(xpLoad().owned || []).includes(fr.ballot) : fr.id && packLocked("portrait_frames");
             return <button key={fr.nm} disabled={locked} onClick={() => { const p = { ...profile, frame: fr.id }; window.SOP_FRAME = fr.id; setProfile(p); saveProfile(p); }} aria-pressed={on} title={fr.nm}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: "2px solid " + (on ? UI.dark : "transparent"), background: "transparent", borderRadius: 16, padding: 4, cursor: locked ? "default" : "pointer", opacity: locked ? .55 : 1, color: UI.ink, fontFamily: F.b }}>
               <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(fr.id), borderWidth: fr.id ? 3 : undefined }} />
@@ -3506,6 +3576,8 @@ const FRAMES = [
   { id: "pink", nm: "Pink Glam", st: { border: "5px solid #ff5fb2", boxShadow: "0 0 0 3px #fff, 0 0 24px rgba(255,95,178,.85)", background: "linear-gradient(180deg, #ffe0f0, #ff9bd0)" } },
   { id: "owambe", nm: "Owambe", st: { border: "5px double #8e44ad", boxShadow: "0 0 0 3px #e9b949, 0 0 20px rgba(142,68,173,.6)", background: "linear-gradient(180deg, #f3e6ff, #f0d37a)" } },
   { id: "naija", nm: "Green & White", st: { border: "5px solid #0b6b42", boxShadow: "0 0 0 4px #fff, 0 0 0 7px #0b6b42", background: "linear-gradient(90deg, #0b6b42 33%, #fff 33% 66%, #0b6b42 66%)" } },
+  // Bought with Ballots in the progress sheet (game/systems/xp.js, frame_green), not with money.
+  { id: "ballot", nm: "Ballot Green", ballot: "frame_green", st: { border: "5px solid #12a05c", boxShadow: "0 0 0 3px #fff, 0 0 0 6px #e9b949, 0 0 18px rgba(18,160,92,.7)", background: "linear-gradient(180deg, #e6fff1, #9fe3bf)" } },
 ];
 const frameStyle = (id) => (FRAMES.find(f => f.id === (id === undefined ? (window.SOP_FRAME || null) : id)) || {}).st || {};
 const ATTIRE = [
@@ -10819,7 +10891,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
   const advance = () => {
     // Tori's heat closes the year: what a year at this level costs, and the "must go" finale (owner, 20 Nov 2026).
-    if (heatClosed.current !== turn && !gEnd) { heatClosed.current = turn;
+    if (heatClosed.current !== turn && !gEnd) { heatClosed.current = turn; xpEvent("year");
       const H = toriH(), fx = SYS.heatFx(H.stage), top = H.stories[0];
       if (fx.app || fx.pStab) scFx({ ...(fx.app ? { app: fx.app } : {}), ...(fx.pStab ? { pStab: fx.pStab } : {}) });
       if (fx.igrPct) setS(x => ({ ...x, igr: Math.round((x.igr || 0) * (1 + fx.igrPct / 100) * 100) / 100 }));
@@ -17166,7 +17238,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   const lessons = React.useRef([]);
   const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
   const fly = (dir, right, left) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, right, left } }); } catch (e) {} };
-  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} xpEvent(e, v); };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0, g ? g.step : "");
   // A lesson goes into the notebook.
   const learnRow = (k) => { const t = senLearnText(k); if (t && !lessons.current.includes(t)) { senNote(k); lessons.current.push(t); } return []; };
@@ -17337,6 +17409,7 @@ const SenateCareer = ({ stats, profile, onExit, onPresident }) => {
   const saveRecord = (ending, grade) => { try { (async () => { const r0 = await window.storage.get(SYS.RECORD_KEY); const rec0 = r0 && r0.value ? JSON.parse(r0.value) : null;
     await window.storage.set(SYS.RECORD_KEY, JSON.stringify(SYS.recordCareer(rec0, { office: "senator", ending, grade, cor: g.cor, state: g.state, place: districtName(g), S: { seeds: SYS.arcTags(g).map(k => ({ key: k, due: 0, at: g.n })), npcs: {} }, keepTags: SYS.arcTagList("senate") }))); })(); } catch (e) {} };
   const endSession = () => {
+    xpEvent("session");
     // Section 69: the recall moves a stage between sessions (SYS.recallStep). It can succeed.
     if (recallTick()) return;
     if (g.n >= SYS.SESSIONS) { up({ step: "reelect" }); return; }
@@ -17627,7 +17700,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   const lessons = React.useRef([]);
   const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
   const learn = (k) => { const t = SYS.LGA_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("lga:" + k); lessons.current.push(t); } };
-  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} xpEvent(e, v); };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_chairman > 0;
   const buy = () => { setBusy(true); window.SOP_buy("career_chairman").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "You didn't buy anything", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
@@ -17974,7 +18047,7 @@ const AmbassadorCareer = ({ profile, onExit }) => {
   const card = (o) => { lessons.current = []; try { window.SOP_outcome && window.SOP_outcome(o); } catch (e) {} }; // no "How it really works" box; the lesson still goes into the notebook
   const fly = (dir, right, left) => { try { window.SOP_outcome && window.SOP_outcome({ flight: { dir, right, left } }); } catch (e) {} };
   const learn = (k) => { const t = SYS.AMB_LEARN[k]; if (t && !lessons.current.includes(t)) { senNote("amb:" + k); lessons.current.push(t); } };
-  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} };
+  const trk = (e, v) => { try { window.SOP_track && window.SOP_track(e, v); } catch (x) {} xpEvent(e, v); };
   const R = (tag) => SYS.seeded(g ? g.seed : 1, tag, g ? g.n : 0);
   const unlocked = !(VATAR && window.SOP_canBuy && window.SOP_canBuy()) || ents.career_ambassador > 0;
   const buy = () => { setBusy(true); window.SOP_buy("career_ambassador").then(() => setBusy(false)).catch((e) => { setBusy(false); if (!e || (e.code !== "cancelled" && !e.shown)) card({ icon: "⚠️", title: "You didn't buy anything", text: "The payment didn't go through. Try again in a moment.", tone: "bad", ok: "Okay" }); }); };
@@ -18714,6 +18787,7 @@ function App() {
 
   return (
     <div style={{ fontFamily: F.b, background: CL.bg, color: CL.txt, minHeight: "100%" }}>
+      <XpToasts />
       <style>{`
         @media (max-width: 640px) {
           .sop-gov-grid { grid-template-columns: 1fr !important; }

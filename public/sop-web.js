@@ -93,7 +93,7 @@
   // ── Your game on every device: Google sign-in keeps the saves on our server (the same store Lagos Life uses,
   //    under this account's own id). Playing without signing in stays on this device, as before. ──
   // The game's own records (written through window.storage); settings and test switches stay on the device.
-  var SYNC = { sop_save: 1, sop_profile: 1, sop_career: 1, sop_preelection: 1, sop_pres: 1, sop_senate: 1, sop_notebook: 1, sop_lga: 1, sop_amb: 1, sop_daily: 1, sop_played: 1, sop_cab_mem: 1, sop_cards: 1, sop_record: 1 };
+  var SYNC = { sop_save: 1, sop_profile: 1, sop_career: 1, sop_preelection: 1, sop_pres: 1, sop_senate: 1, sop_notebook: 1, sop_lga: 1, sop_amb: 1, sop_daily: 1, sop_played: 1, sop_cab_mem: 1, sop_cards: 1, sop_record: 1, sop_xp: 1 };
   function syncKeys() { var o = {}; try { Object.keys(SYNC).forEach(function (k) { var v = localStorage.getItem(k); if (v != null && v !== "") o[k] = v; }); } catch (e) {} return o; }
   function careerOf(v) { try { var j = JSON.parse(v), st = j.setup || {}; return [st.nm || "", st.state || "", (j.stc || {}).pseed || "", st.startYear || ""].join("|"); } catch (e) { return "?"; } }
   function careerName(v) { try { var j = JSON.parse(v), st = j.setup || {}; return (st.nm || "A governor") + " · " + String(st.state || "").replace(/_/g, " ") + " · year " + (j.turn || 1); } catch (e) { return "A saved game"; } }
@@ -165,13 +165,15 @@
     if (tok()) { hookStorage(); sync().then(function (changed) { if (changed) reloadOnce(); else loadLeague(); }); }
     // The Hall of Governors, the weekly challenge and the leagues, for website players (ranked apart from Lagos Life).
     // Boards show the politician's name, never the Google name.
-    function politician() { try { var p = JSON.parse(localStorage.getItem("sop_profile") || "null"); return p && p.first ? "Hon. " + p.first + " " + (p.last || "") : ""; } catch (e) { return ""; } }
+    function politician() { try { var p = JSON.parse(localStorage.getItem("sop_profile") || "null"); var x = {}; try { x = JSON.parse(localStorage.getItem("sop_xp") || "{}") || {}; } catch (e) {} return p && p.first ? ((x.owned || []).indexOf("title_chief") >= 0 ? "Chief " : "Hon. ") + p.first + " " + (p.last || "") : ""; } catch (e) { return ""; } }
     function wcall(path, body) { if (!tok()) return Promise.resolve({ signin: true });
       return post("/api/web/" + path, Object.assign({ token: tok() }, body || {})).catch(function (e) { if (e && e.code === "sign_in") { setTok(""); acct(null); return { signin: true }; } throw e; }); }
     function signedIn() { return tok() ? Promise.resolve(true) : signIn("Sign in to join the weekly rankings and the leagues. Your game is saved to your account too.").then(function () { acct(); hookStorage(); return sync().then(function () { loadLeague(); return true; }); }); }
     function loadLeague() { if (!tok()) return; wcall("hall/league").then(function (r) { if (r && !r.signin) { window.SOP_LEAGUE = r; try { window.dispatchEvent(new CustomEvent("sop-league", { detail: r })); } catch (e) {} } }).catch(function () {}); }
     window.SOP_USERNAME = politician;
     window.SOP_league = function () { return wcall("hall/league"); };
+    // The week's XP (game/systems/xp.js) for the leagues; quietly nothing when signed out.
+    window.SOP_xpWeek = function (w, xp) { if (!tok()) return Promise.resolve(null); return wcall("xp/week", { w: w, xp: xp, username: politician() }).catch(function () { return null; }); };
     window.SOP_hallFinish = function () { return wcall("hall/finish").catch(function () { return null; }); };
     window.SOP_hallEnter = function (c) { return signedIn().then(function () { return wcall("hall/enter", Object.assign({ username: politician() }, c)); }); };
     window.SOP_hallSubmit = function (c) { return wcall("hall/submit", Object.assign({ username: politician() }, c)).catch(function () { return null; }); };

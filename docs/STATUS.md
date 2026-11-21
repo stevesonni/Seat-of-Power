@@ -3,7 +3,20 @@
 
 
 
-## Trade with the neighbours (26 Oct, latest)
+## XP, levels, daily quests, Ballots and XP leagues (21 Nov, latest)
+
+The owner asked to "go full Duolingo". Everything here is won inside the game; no real money is paid out.
+
+- **XP.** The game's own tracked events earn XP in every career: letters, Tori replies and posts, Spaces, trips, Senate votes and hearings, council work, the daily decision, each finished year or session, and a career's end grade (A earns 100). The rules are in `game/systems/xp.js`, and a green "+N XP" pops up after each one.
+- **Levels.** Each level needs a little more XP than the last. Titles climb from Ward Volunteer to Elder Statesman. Every level-up pays 20 Ballots.
+- **Daily goal.** The player picks 30, 50, 100 or 150 XP a day. The title-screen chip shows a ring that fills towards the goal.
+- **Daily quests.** Three a day, of different kinds, the same for everyone that day. Each pays Ballots.
+- **Ballot shop.** Streak Freeze (200; up to 2 held; spent before paid freezes), Double XP for 15 minutes (100), the Ballot Green portrait frame (300; worn at once, and it can be changed under Profile), and the title "Chief" (500; the Hall and leagues show "Chief" in place of "Hon.").
+- **Leagues.** The weekly Ward-to-Villa leagues now rank players by the week's XP (`/api/xp/week`, stored as `xp-week-<w>.json`). The league falls back to Hall scores for weeks with no XP. The progress sheet shows the table and the countdown. The top three in each league get 50, 30 and 20 Ballots, claimed once when the player next opens the sheet.
+- **Storage.** The store is `sop_xp`, synced with the web account and with Vatar storage.
+- **Tests.** `tests/xp.test.mjs` and `tests/e2e/xp.mjs`.
+
+## Trade with the neighbours (26 Oct)
 From a player (Olajire Samuel, Ogun): "what about if Governors go on trips to other neighbouring states to do trade exchange with them". game/systems/interstate.js.
 - **Real neighbours:** every state's land borders (checked both ways in tests). Each neighbour has a fictional governor, your party or the opposition, and relations that move with how you treat them.
 - **The trade mission** (State → Economy, the councils page, the State Economic Council, and a Desk prompt): pick a neighbour, pick the deal, then go yourself (one big move, better odds) or send the Commissioner for Commerce (free). A no comes with their price: a share of the earnings, your vote at the Governors' Forum, or a boundary quarrel settled their way. One mission a year; three deals at most.
