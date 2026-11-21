@@ -89,13 +89,15 @@ const firstNm = (n) => String(n || "").replace(/^(Mama|Iya|Baba|Nurse|Dr|Mr|Mrs)
    has flagged…" is the game talking to you, not news), and a mood: good, bad or neutral. */
 export function toriNews(c) {
   const boss = c.nat ? "the President" : "the Governor", Boss = c.nat ? "The President" : "The Governor";
-  return (c.events || []).filter(e => !/^(Your adviser|Tip|Hint|Note:|You can|Remember)/i.test(e.text)).map(e => {
+  return (c.events || []).filter(e => !/^(Your adviser|Tip|Hint|Note:|You can|Remember)/i.test(e.text) && !/\bon Tori\b|\bTori:/.test(e.text)).map(e => {
     let t = String(e.text).replace(/^You\b/, Boss).replace(/\byou\b/g, boss).replace(/^Your\b/, Boss + "'s").replace(/\byour\b/g, boss + "'s").replace(/\bYou\b/g, Boss);
     const mood = e.tp ? (["policy", "success"].includes(e.tp) ? "good" : ["crisis", "scandal"].includes(e.tp) ? "bad" : "neutral") : (e.good ? "good" : "bad");
     return { text: t, mood };
   });
 }
 
+// Was a promise made on Tori kept? true / false, or null when the record can't tell.
+export const promiseKept = (b, c) => b.kind === "arrears" ? !(c.arrears > 0) : b.kind === "talks" ? !(c.strikes || []).some(s => s.id === b.strike && !s.talks) : b.kind === "need" ? !(c.needs || []).some(n => n.title === b.need && !n.inWork) : b.kind === "japa" ? !(c.fled || []).some(f => f.proj === b.proj && !f.asked) : b.kind === "openbook" ? c.cor < .4 : null;
 export function toriFeed(c) {
   const r = rngOf("feed" + c.st + c.turn), S = tagSt(c.st), N = stNm(c.st), me = toriHandle(c.st), boss = c.nat ? "the President" : "the Governor", HQ = c.nat ? "Aso Rock" : "Government House";
   const names = new Set(), regulars = castFor(c, "regular" + c.st, 3, names), cast = [...regulars, ...castFor(c, "cast" + c.st + c.turn, 12, names)];
@@ -110,7 +112,7 @@ export function toriFeed(c) {
   (c.complaints || []).forEach((q, i) => out.push({ id: "q" + q.id + "_" + c.turn, kind: "complaint", complaint: q.id, name: q.who.split(",")[0], sub: q.place || "", handle: "@" + String(q.who.split(",")[0]).toLowerCase().replace(/[^a-z]/g, "_") + "_" + S.toLowerCase().slice(0, 4), art: null, who: q.who, text: (q.icon ? q.icon + " " : "") + q.t + " " + me, ago: ago(r, i), ...counts(r, 2), answered: q.answered, lied: q.lied }));
   // Promises from last year: the same people come back.
   (c.back || []).slice(-4).forEach(b => {
-    const kept = b.kind === "arrears" ? !(c.arrears > 0) : b.kind === "talks" ? !(c.strikes || []).some(s => s.id === b.strike && !s.talks) : b.kind === "need" ? !(c.needs || []).some(n => n.title === b.need && !n.inWork) : b.kind === "japa" ? !(c.fled || []).some(f => f.proj === b.proj && !f.asked) : b.kind === "openbook" ? c.cor < .4 : null;
+    const kept = promiseKept(b, c);
     if (kept === null) return;
     const p = { who: b.who || "A citizen", what: "replied to by " + boss, h: String(b.handle || "@citizen").replace(/^@/, ""), art: b.art || "young-voter-student" }, quote = "“" + briefT(b.text, 80) + "”";
     const x = post(p, kept ? pick(r, ["Last year " + me + " replied me: " + quote + " I came back to say: e happen. Thank you. 🙏🏾", "I screenshotted this last year: " + quote + " Credit where it's due, they did it.", "Receipts, but the good kind: " + quote + " Done. I'm not used to this 😅"]) : pick(r, ["A year ago " + me + " told me " + quote + " It's " + (c.year || "a new year") + ". Nothing. 📸", "Remember this? " + quote + " I do. I'm still waiting, " + me + ".", "Bringing this back: " + quote + " — " + boss + ", one year later. Still nothing. #" + S + "Remembers"]), kept ? 2 : 4, { tone: kept ? "good" : "bad", topic: kept ? "praise" : b.topic || "general", followUp: true, kept });
@@ -581,6 +583,11 @@ export function toriReplies(t, c) {
     out.push({ id: "thanks", text: (done ? done + " is yours. " : "") + (P ? "Thank you, " + who + "! Na una vote do am. More dey come. 🙏🏾" : "Thank you, " + who + ". You did this with your vote. More is coming."), truth: true, fx: { app: 1 } });
     out.push({ id: "team", text: "Credit to the engineers and the workers who finished it on time.", truth: true, fx: {} });
     if (n) out.push({ id: "next", text: "Next on the list: " + n.title.charAt(0).toLowerCase() + n.title.slice(1) + ".", truth: true, promise: "need" });
+  } else if (topic === "life") {
+    const x = String(t.text).toLowerCase(), hard = c.arrears > 0 || (c.strikes || []).length > 0;
+    const jest = /eagles|derby|match/.test(x) ? "Up Eagles! 🦅 I'll be watching too, after my briefings. ⚽" : /jollof/.test(x) ? "Nigerian jollof. This is not up for debate. 🍛🇳🇬" : /hustle naija|evict/.test(x) ? "I can't comment on evictions. I have a House of Assembly for that 😅" : /data/.test(x) ? "Same here. Even my data finished in a meeting 😂" : /traffic|road/.test(x) ? "Noted. I'm asking the traffic people why. 🚦" : /song|film|cinema/.test(x) ? "Added to my playlist for the long drives. 🎶" : "😂 This one got me. Have a good day, " + who + ".";
+    out.push({ id: "banter", text: jest, truth: true, fx: hard ? {} : { app: 1 }, callout: hard ? "Banter while " + (c.arrears > 0 ? "salaries are " + c.arrears + " months late" : "students are at home") + "? Focus, sir." : null });
+    out.push({ id: "like", text: "❤️ (just a like)", truth: true, fx: {} });
   } else if (topic === "approval" || opp) {
     const fair = t.fair != null ? t.fair : ((c.arrears > 0 && /salar/i.test(t.text)) || (st && /strike/i.test(t.text)) || (c.app < 50 && /%|approval|deserves|must go/i.test(t.text)) || (f && /contractor|money/i.test(t.text)) || (c.cor > .4 && /contract|debt|loot/i.test(t.text)));
     out.push({ id: "record", text: done ? "We finished " + done + ". What did you build in 8 years?" : "Judge us by the record at the end of the term, not by tweets.", truth: !!done, fx: done ? { app: 1 } : {}, callout: done ? null : "What record? Name one finished project." });
@@ -640,6 +647,8 @@ export function toriReplyReact(opt, t, seed) {
     }[topic] || ["Let's see it then. 👀", "Action. Finally. Don't stop."]) }, { name: p2.who, text: pick(r, ["Doing is better than tweeting. Keep it up.", "Results, not replies. We'll check.", "First time I see them act on a tweet."]) }], line: "Watching" };
   if (opt.promise) return { replies: [{ name: op, text: opt.callout ? opt.callout : pick(r, [q + " Screenshotted. See you next year. 📸", "Okay. Na your word be this: " + q + " I'll be back to check.", "I'm bookmarking " + q + " — don't make me quote it back to you."]) }, ...(opp ? [] : [{ name: p2.who, text: pick(r, ["Make sure. We are all watching this one.", "They promised my street too. Still waiting.", "If this happens I'll vote for them myself."]) }])], line: "Noted" };
   if (opp) return { replies: [{ name: op, text: pick(r, ["Nice speech. Now answer the question.", "We'll see at the polls.", "Talk is cheap. The record is not."]) }, { name: p2.who, text: pick(r, ["Both of them should face us 😂", "The opposition got bodied 😭", "Honestly, fair answer."]) }], line: "Answered" };
+  if (opt.callout) return { replies: [{ name: op, text: opt.callout }, { name: p2.who, text: pick(r, ["Exactly. Priorities.", "Na wa o 😂", "He's trying to be relatable 💀"]) }], line: "Mixed" };
+  if (topic === "life") return { replies: [{ name: op, text: pick(r, ["The Governor replied me!! 😭😂 This app is wild", "Haha okay, you're funny sir 😂", "Screenshot! My friends won't believe this 😂"]) }], line: "Liked" };
   return { replies: [{ name: op, text: pick(r, topic === "praise" ? ["Ahh, the " + (t.kind === "complaint" ? "Governor" : "Gov") + " replied me 😭🙌🏾 Thank you!", "I'm framing this reply. Thank you sir.", "Okay this one sweet me. Keep it up."] : ["Thank you for admitting it. Now fix it.", "Respect for answering. Not many of them do.", "I didn't expect a reply. Okay, I'm listening."]) }], line: "Liked" };
 }
 
@@ -734,4 +743,171 @@ function roleReplies(t, c) {
     out.push({ id: "dm", text: "Send me the details and I'll follow up personally.", truth: true, fx: {} });
   }
   return out;
+}
+
+/* ══ Tori, round three (owner, 21 Nov 2026: "all of them are solid fixes. Do all") ══════════════════════════════
+   B instant reactions · C six accounts you follow, with arcs · D one big story at a time · E pictures, memes, polls,
+   clips · F mostly life, some politics · H the opposition's long game. G (the aide, pin, delete, block, Spaces) is
+   on the screen with helpers here. A (AI-written posts) is in server/tori-ai.mjs; these are the fallback and the frame. */
+
+// C. The six accounts the governor follows all term. fans: { [id]: -3..3 } from how he has treated them.
+export const TORI_FOLLOW = ["student", "trader", "aproko", "praise", "reporter", "memes"];
+export const fanLabel = (n) => n >= 2 ? "Fan" : n <= -2 ? "Critic" : null;
+export function toriFollowing(c) {
+  const S = tagSt(c.st), N = stNm(c.st), me = toriHandle(c.st), t = c.turn || 1, fans = c.fans || {}, r = rngOf("follow" + c.st + t);
+  const cast = castFor(c, "follow" + c.st, 3), [stu, trd] = cast, out = [], asuu = (c.strikes || []).find(s => /ASUU/i.test(s.short));
+  const post = (id, who, handle, art, sub, text, extra) => out.push({ id: "f_" + id + "_" + t, kind: "citizen", follow: id, fan: fanLabel(fans[id] || 0), name: who, sub, handle, art, text, ago: ago(r, out.length), ...counts(r, 3), verified: id === "reporter" || id === "memes", topic: "general", ...(extra || {}) });
+  // The student: the strike, then class, then graduation or a visa.
+  const left = asuu && asuu.years >= 2 && (fans.student || 0) < 1;
+  post("student", stu.who, "@" + stu.h, "student-leader", "Final-year student · you follow",
+    t >= 4 ? (left ? "Update: I got the visa. Leaving next week. I wanted to graduate in " + N + ". " + me + " you lost me. ✈️ #Japa" : "I GRADUATE NEXT MONTH 🎓😭 Four years became " + (3 + t) + ", but we move. Thank you to everyone who held on.")
+    : asuu ? pick(r, ["Strike year " + asuu.years + ". I've started a small business selling phone accessories. Not by choice. #ASUUStrike", "My classmates don write me off. 'Is your school still on strike?' Yes. Year " + asuu.years + ". 🙃", "Applied for an online course from a school abroad. Free. Because my own school is locked. Think about that, " + me + "."])
+    : pick(r, ["Back in class and I'm actually happy. Never thought I'd say that 😂📚", "Exams in two weeks. Pray for me. The library has light today, small miracle 🙏🏾", "Lecturer came, taught, gave assignment. Normal things feel like luxury now."]),
+    { topic: asuu ? "strike" : "general", media: asuu ? { type: "photo", img: "scenes/campus-shut", alt: "A locked university gate" } : null, arc: left ? "left" : t >= 4 ? "graduated" : asuu ? "waiting" : "studying" });
+  // The trader: floods, prices, the stall rebuilt when the needs are met.
+  const late = (c.needs || []).some(n => n.late), fixed = (c.delivered || 0) > 0 && !late;
+  post("trader", trd.who, "@" + trd.h, "market-trader", "Trader · you follow",
+    fixed ? pick(r, ["They fixed the drainage by my shop. First rainy season in 5 years my goods didn't swim. 🙌🏾", "New market stalls are up. Mine is number 47. Come and buy, my customers 😄"])
+    : late ? pick(r, ["Water entered my shop AGAIN. Third time this year. Everything gone. " + me + " you promised drainage. 😭", "Rain fell, my stall became a swimming pool. I'm tired of starting afresh."])
+    : pick(r, ["Prices up again. Customers are buying in small small. We are managing.", "Market is slow this week. Everybody is holding their money tight."]),
+    { topic: late ? "need" : fixed ? "praise" : "general", media: late ? { type: "photo", img: "backgrounds/flooded-community", alt: "A flooded street of shops" } : fixed ? { type: "photo", img: "scenes/market-road-finished", alt: "A finished market road" } : { type: "photo", img: "scenes/market-inflation", alt: "Price tags in a market" } });
+  // Aproko Desk: leaks from what really happened in your government.
+  const leak = (c.leaks || [])[0];
+  post("aproko", "Aproko Desk", "@AprokoDesk", "journalist-guest", "Gist & gossip · you follow",
+    leak ? "🚨 GIST: " + leak + " Sources inside " + (c.nat ? "the Villa" : "Government House") + " confirm. More loading… 👀"
+    : pick(r, ["🚨 Which commissioner was seen leaving a hotel in Abuja at 3am with a 'consultant'? Answers in my DM 👀", "🚨 Small gist: there's a cabinet reshuffle coming. Somebody's chair is shaking. 🪑", "🚨 Who is the 'nephew' that keeps winning contracts? I'm just asking questions 👀"]),
+    { topic: leak ? "corruption" : "general", gossip: true });
+  // The praise singer: on your side, until the money stops.
+  const paid = !!(c.tools || {}).bots, turned = c.arrears >= 2 || (fans.praise || 0) <= -2;
+  post("praise", "Iyaloje of Government", "@IyalojeGovt", "market-women-group-cheering", "Praise singer · you follow",
+    turned ? "Even me, I don tire. " + (c.arrears ? c.arrears + " months salary? " : "") + "I sang your praise till my voice cracked. Today I am rejoining the masses. ✊🏾"
+    : paid ? "OUR GOVERNOR IS WORKING!!! 🙌🏾🙌🏾 Roads, schools, hospitals, everything! (copy and paste this, ₦2,000 each, send account number)"
+    : pick(r, ["Who is like our " + (c.nat ? "President" : "Governor") + "? Nobody! " + me + " na correct person! 👑🔥", "They can say anything, we know the truth. " + me + " is working day and night 🙏🏾💪🏾", "God bless " + me + " and his family. Haters will see shame 🙌🏾"]),
+    { topic: turned ? "salaries" : "praise", exposed: paid });
+  // The journalist.
+  if (c.reporter) post("reporter", c.reporter, "@" + String(c.reporter).split(" ")[0].toLowerCase() + "_reports", "reporter", "Investigative reporter · you follow",
+    c.cor > .4 ? "Three months on this story. The contracts, the names, the bank transfers. Publishing Monday. 🧵" : "We tracked every project " + me + " announced this year. Here's what we found on the ground 🧵", { topic: c.cor > .4 ? "corruption" : "approval" });
+  // The meme page: whatever the top story is, with your face.
+  const mood = c.app >= 60 ? "pleased" : c.app < 40 ? "angry" : "worried", top = (c.topStory || {});
+  post("memes", "Naija Meme HQ", "@NaijaMemeHQ", "youth-group-cheering", "Memes · you follow", pick(r, ["Caption this 😂", "No context needed 💀", "Me watching the news this week:"]),
+    { topic: "general", media: { type: "meme", img: "characters/governor-" + mood, top: top.memeTop || (c.arrears ? "WORKERS: WHERE IS OUR SALARY" : asuu ? "STUDENTS: WHEN IS SCHOOL RESUMING" : "THE GOVERNOR"), bottom: top.memeBottom || (c.app >= 60 ? "ME: CHECK THE ROADS 😎" : "ME: WE ARE WORKING ON IT 🙂") } });
+  return out;
+}
+
+// D. The one big story this visit: the hottest thing, with quote-tweets and the ratio.
+export function toriMainStory(c, H) {
+  const s = (H && H.stories || [])[0], ev = toriNews(c).find(e => e.mood === "bad"), good = (c.done || [])[0], r = rngOf("main" + c.st + c.turn), me = toriHandle(c.st);
+  const cast = castFor(c, "main" + c.st + c.turn, 4);
+  if (s) return { tag: s.tag, title: s.cause, why: s.who + " want: " + s.demand.toLowerCase() + ".", posts: fmtCount(20000 * (H.stage + 1) + r() * 9000), tone: "bad", img: { salaries: "scenes/labour-strike", needs: "scenes/market-road-washout", corruption: "scenes/billboard-street", stalled: "scenes/market-road-washout", japa: "scenes/billboard-street", approval: "scenes/fuel-queue" }[String(s.id).replace(/_.*/, "")] || (String(s.id).startsWith("strike") ? "scenes/campus-shut" : "scenes/fuel-queue"),
+    quotes: [[cast[0], pick(r, ["This is the only story that matters today. " + me + " answer!", "Everybody is talking about this except " + me + ". Interesting 🤔", "If you're not angry about this you're not paying attention."])], [cast[1], pick(r, ["😂😂 they will still post 'progress' tomorrow", "Na today? This one don tey.", "My village group chat is on fire over this."])], [cast[2], pick(r, ["Make una calm down, government is working on it 🙄 (sarcasm)", "Bookmarking this for 2031.", "The memes are better than the government's explanation."])]].map(([p, tx]) => ({ name: p.who, handle: "@" + p.h, art: p.art, text: tx })) };
+  if (ev) return { tag: "#" + tagSt(c.st) + "News", title: ev.text, why: "Everyone has an opinion.", posts: fmtCount(8000 + r() * 9000), tone: "bad", img: "scenes/fuel-queue", quotes: [[cast[0], "Who signed off on this?"], [cast[1], "E no go better? 😩"]].map(([p, tx]) => ({ name: p.who, handle: "@" + p.h, art: p.art, text: tx })) };
+  if (good) return { tag: "#" + String(good).split(/\s+/).slice(0, 2).join("").replace(/\W/g, "") + "IsOpen", title: good + " is finished", why: "For once, good news is trending.", posts: fmtCount(6000 + r() * 6000), tone: "good", img: "scenes/ribbon-market", quotes: [[cast[0], "I drove on it today. It's real. 🙌🏾"], [cast[1], "Okay but let's see the next rainy season 👀"]].map(([p, tx]) => ({ name: p.who, handle: "@" + p.h, art: p.art, text: tx })) };
+  return null;
+}
+
+// E. Pictures for ordinary posts, a before/after for finished work, a poll on the year, a clip after a press conference.
+export function toriMedia(x, c) {
+  if (x.media) return x.media;
+  const t = String(x.text || "").toLowerCase(), topic = x.topic || "";
+  if (x.kind === "citizen" && topic === "praise" && /open|finished|done/.test(t)) return { type: "beforeafter", before: "scenes/market-road-washout", after: "scenes/market-road-finished", alt: "The road before and after" };
+  if (/convoy/.test(t)) return { type: "photo", img: "scenes/army-convoy", alt: "A long convoy of black cars" };
+  if (/light don go|nepa|light\b/.test(t)) return { type: "photo", img: "scenes/national-grid-dark", alt: "A dark street at night" };
+  if (/venice|flood|rain fell/.test(t)) return { type: "photo", img: "backgrounds/flooded-community", alt: "A flooded street" };
+  if (/price|tomato|pepper/.test(t)) return { type: "photo", img: "scenes/market-inflation", alt: "Market prices" };
+  if (/fuel|queue/.test(t)) return { type: "photo", img: "scenes/fuel-queue", alt: "A fuel queue" };
+  return null;
+}
+export function toriPoll(c, H) {
+  const app = Math.max(5, Math.min(90, Math.round(c.app))), st = (H || {}).stage || 0, r = rngOf("poll" + c.st + c.turn);
+  const w = [app * .45, app * .55, Math.max(5, 100 - app - st * 6), Math.max(2, st * 8 + (100 - app) * .15)], sum = w.reduce((a, b) => a + b, 0), pc = w.map(x => Math.round(x * 100 / sum)); pc[2] += 100 - pc.reduce((a, b) => a + b, 0);
+  const [great, okay, bad, resign] = pc;
+  return { id: "poll_" + c.turn, kind: "citizen", name: stNm(c.st) + " Polls", sub: "Polls", handle: "@" + tagSt(c.st) + "Polls", art: "anchor-male", verified: true, ago: "3h", ...counts(r, 3), topic: "approval",
+    text: "How would you rate " + toriHandle(c.st) + "'s year so far? 🗳️", media: { type: "poll", votes: fmtCount(4000 + r() * 20000), options: [{ l: "Great, keep going", pct: great }, { l: "Okay, could be better", pct: okay }, { l: "Bad", pct: bad }, { l: "Resign", pct: resign }] } };
+}
+export const toriClip = (c) => (c.tools || {}).presser ? { id: "clip_" + c.turn, kind: "news", name: stNm(c.st) + " News Now", sub: "News", handle: "@" + tagSt(c.st) + "NewsNow", art: "anchor-female", verified: true, ago: "5h", likes: 2400, rts: 900, replies: 610, topic: "general",
+  text: "WATCH: " + (c.nat ? "The President" : "The Governor") + " at today's press conference. 🎥", media: { type: "clip", img: "scenes/ag-on-television", dur: "1:" + String(10 + (c.turn * 7) % 49).padStart(2, "0") } } : null;
+
+// F. Ordinary life: football, a reality show, weddings, data, jollof. The politics stands out because of it.
+export function toriLife2(c, n) {
+  const r = rngOf("life2" + c.st + c.turn), cast = castFor(c, "life2" + c.st + c.turn, n + 4), N = stNm(c.st), out = [];
+  const pool = [
+    "The Eagles better not disappoint me this weekend. I've already told my landlord I'll pay after the match. ⚽",
+    "Big Hustle Naija eviction tonight. If they evict Tobi I'm deleting this app 😤📺",
+    "Zeeno Vibez dropped a new song and it's already my ringtone, alarm and personality 🎶🔥",
+    "Went for an owambe, the jollof finished before I arrived. Worst day of my life. 🍛",
+    "Who else's data finishes faster than their salary? Asking for myself 📱💸",
+    "Ghana jollof supporters, it's not too late to repent. 🇳🇬🍛",
+    "My mum just discovered voice notes. 14 voice notes this morning. Send help 😂",
+    "Traffic from " + N + " to work today: 3 hours. My boss: 'why are you late?' Sir, have you seen the road?",
+    "Tolu Starling's new Nollywood film had me crying in the cinema. Grown man. No shame. 🎬😭",
+    "Wedding season: 4 weddings, 3 aso-ebi, 0 money. 💃🏾",
+    "That feeling when NEPA brings light exactly when you've just fallen asleep 🙃",
+    "Pastor said the offering basket should 'sound like heaven'. Wetin be that sound? 😂",
+    "Who is watching the derby? My neighbour's generator is louder than the commentary.",
+  ];
+  const REP = ["😂😂 I'm weak", "This is too real", "Na so 😂", "E no go better? E go better.", "Facts.", "Lmaooo", "Who send you? 😂", "I felt this in my soul"];
+  const idx = pool.map((x, i) => [rngOf("lp" + c.st + c.turn + i)(), i]).sort((a, b) => a[0] - b[0]).slice(0, n).map(x => x[1]);
+  idx.forEach((i, k) => { const p = cast[k], o = cast[k + 3]; out.push({ id: "life_" + c.turn + "_" + i, kind: "citizen", name: p.who, sub: p.what, handle: "@" + p.h, art: p.art, text: pool[i], ago: ago(r, k + 2), ...counts(r, 1 + r() * 2), topic: "life", life: true, thread: r() < .7 ? [{ name: o.who, handle: "@" + o.h, art: o.art, text: pick(r, REP) }] : [] }); });
+  return out;
+}
+
+// H. The opposition's long game: a named campaign, receipts in election year, and fast replies to your posts.
+export const toriCampaignTag = (c) => "#" + String(c.oppName || "Change").replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "").split(" ").pop().replace(/\W/g, "") + (c.year ? (c.year + (4 - ((c.turn - 1) % 4)) - 1 + 1) : "");
+export function toriReceipts(c) {
+  const R = [...(c.allPromises || []).filter(b => b.turn < c.turn).map(b => { const k = promiseKept(b, c); return { turn: b.turn, text: b.text, status: k === true ? "kept" : "broken" }; }), ...(c.lieList || []).map(l => ({ turn: l.turn, text: l.text, status: "lie" }))].sort((a, b) => a.turn - b.turn).slice(-5); if (!R.length) return null;
+  const election = (c.turn % 4) === 0 || (c.turn % 4) === 3;
+  if (!election) return null;
+  const nm = c.oppName || "The opposition", S = tagSt(c.st);
+  return { id: "receipts_" + c.turn, kind: "opposition", name: nm, sub: "Opposition candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", verified: true, ago: "1h", likes: 18000, rts: 7400, replies: 2100, topic: "approval", fair: true, w: 9,
+    text: "🧵 RECEIPTS. Everything " + toriHandle(c.st) + " promised you on Tori, and what happened. Election is coming. Read it all. " + toriCampaignTag(c),
+    thread: R.map(x => ({ name: nm, handle: "", art: "opposition-candidate-alt", text: "Y" + x.turn + ": “" + briefT(x.text, 70) + "” → " + (x.status === "kept" ? "done, credit to them" : x.status === "lie" ? "called out as false the same day" : "never happened") })) };
+}
+export const toriOppReply = (opt, c, seed) => { const r = rngOf("or" + seed), S = tagSt(c.st); return { name: c.oppName || "The opposition", handle: "@opposition", art: "opposition-candidate-alt", verified: true, text: opt.truth === false ? pick(r, ["Another lie. Screenshot taken. 📸 " + toriCampaignTag(c), "Fact check: false. We'll remind you in the election."]) : pick(r, ["Nice tweet. Now do your job. " + toriCampaignTag(c), "Words. We need results. " + S + " deserves better.", "We'll judge you by the record, not the caption."]) }; };
+
+// B. What you just did, on Tori within minutes: news of each new event, and the first reactions.
+export function toriInstant(c) {
+  const out = [], r = rngOf("inst" + c.st + c.turn + (c.fresh || []).length), cast = castFor(c, "inst" + c.st + c.turn, 8), me = toriHandle(c.st);
+  (c.fresh || []).slice(0, 3).forEach((e, i) => {
+    const t = toriNews({ ...c, events: [e] })[0]; if (!t) return;
+    const p = cast[i * 2], q = cast[i * 2 + 1];
+    out.push({ id: "now" + hash(t.text), kind: "citizen", instant: true, name: p.who, sub: p.what, handle: "@" + p.h, art: p.art, ago: "now", ...counts(r, 2), topic: t.mood === "good" ? "praise" : "general", tone: t.mood,
+      text: (t.mood === "good" ? pick(r, ["Just in: ", "Wait, ", "Okay o, "]) : t.mood === "bad" ? pick(r, ["Just now: ", "Breaking: ", "Haba! "]) : pick(r, ["Just in: ", "FYI: "])) + briefT(t.text, 110) + " " + (t.mood === "good" ? pick(r, ["👏🏾", "Finally.", "We see you " + me + "."]) : t.mood === "bad" ? pick(r, ["😤", "Explain this " + me + ".", "Who approved this?"]) : pick(r, ["🤔", "Let's see.", "Hmm."])),
+      thread: [{ name: q.who, handle: "@" + q.h, art: q.art, text: t.mood === "good" ? pick(r, ["Took them long enough.", "Credit where it's due.", "Wait for the catch 👀"]) : pick(r, ["Every week a new wahala.", "I'm not even surprised.", "They don start again."]) }] });
+  });
+  return out;
+}
+
+// G. Your voice: the New Media aide rewrites a post in a tone; tones change how it lands.
+export const TORI_TONES = [{ id: "formal", l: "Formal" }, { id: "pidgin", l: "Pidgin" }, { id: "witty", l: "Witty" }, { id: "combative", l: "Combative" }];
+export function toriTone(text, tone) {
+  const t = String(text || "");
+  if (tone === "pidgin") return t.replace(/^We are /, "We dey ").replace(/We have heard you/, "We don hear una").replace(/Work starts this year/, "Work go start this year").replace(/Thank you, /, "Thank una, ").replace(/More is coming\./, "More dey come o.") + " 🙏🏾";
+  if (tone === "witty") return t.replace(/\.$/, "") + ". (Yes, we read the memes too 😅)";
+  if (tone === "combative") return t.replace(/\.$/, "") + ". Critics can keep talking; we'll keep working. 💪🏾";
+  return t;
+}
+export const toneEffect = (tone, opt, c) => tone === "witty" ? (opt.truth ? { likes: 1.6, app: c.app >= 45 ? 1 : 0, line: "The joke landed." } : { likes: .7, app: -1, line: "Jokes about a lie? It made it worse." })
+  : tone === "combative" ? { likes: 1.3, app: c.app >= 55 ? 0 : -1, heat: 4, line: "Your base loved it. Everyone else noticed the tone." }
+  : tone === "pidgin" ? { likes: 1.4, app: opt.truth ? 1 : 0, line: "It sounded like one of us." } : { likes: 1, app: 0, line: "" };
+// What the aide whispers before you reply.
+export function toriAide(t, c, H) {
+  if (t.kind === "opposition" && (H || {}).stage >= 3) return "Oga, don't reply that one. Anything you say now makes it trend more.";
+  if (t.kind === "complaint" && t.lied) return "Sir, you told them it was handled. If you reply again, make it the truth.";
+  if (t.gossip) return "Aproko accounts feed on replies. Silence is safest, unless it's false and you can prove it.";
+  if (t.follow === "praise" && t.exposed) return "Sir, the payment note is showing. Please don't like or repost this one.";
+  if (t.life) return "A light reply here can make you look human. Keep it short.";
+  return null;
+}
+// G. Delete and block have a price; Spaces is a live town hall: three quick questions from the record.
+export const deleteBacklash = (p, c) => ({ heat: 5, tweet: { name: "Receipts NG", handle: "@ReceiptsNG", art: "reporter", text: "Deleted? We have screenshots 📸 " + toriHandle(c.st) + " posted: “" + briefT(p.text, 80) + "”" } });
+export const blockBacklash = (x, c) => ({ heat: 3, tweet: { name: x.name, handle: x.handle, art: x.art, text: toriHandle(c.st) + " blocked me 😂 Na so truth dey pain. Screenshot before they block you too." } });
+export function toriSpace(c) {
+  const qs = [], st = (c.strikes || [])[0], f = (c.fled || []).find(x => !x.back), n = (c.needs || [])[0];
+  if (c.arrears > 0) qs.push({ who: "A civil servant", q: "Sir, " + c.arrears + " months. When will we be paid?", a: [{ l: "By the end of this month. I'm putting it on record.", ok: true, fx: { app: 1 }, promise: "arrears" }, { l: "Salaries are being paid.", ok: false, fx: { app: -2 } }] });
+  if (st) qs.push({ who: "A student", q: "When does the " + st.short + " strike end?", a: [{ l: st.talks ? "We're at the table. I'll sit in myself this month." : "I'll call " + st.short + " to the table this week.", ok: true, fx: {} , promise: "talks" }, { l: "Ask Abuja.", ok: false, fx: { app: -1 } }] });
+  if (f) qs.push({ who: "A journalist", q: "Where is the " + fmtM(f.lossM) + " for " + f.proj + "?", a: [{ l: "We are going after " + f.firm + ". Every naira.", ok: !!f.asked, fx: f.asked ? { app: 1 } : {} }, { l: "That matter is in court; no comment.", ok: true, fx: { app: -1 } }] });
+  if (n) qs.push({ who: "A trader", q: n.title + ". What are you doing about it?", a: [{ l: n.inWork ? "Work has started. Come and see it." : "Work starts this year.", ok: !!n.inWork, fx: n.inWork ? { app: 1 } : {}, promise: n.inWork ? null : "need" }, { l: "Next question, please.", ok: false, fx: { app: -1 } }] });
+  qs.push({ who: "A young voter", q: "Will you run again?", a: [{ l: "Let my record speak first.", ok: true, fx: { app: 1 } }, { l: "Of course. Nobody can stop us.", ok: true, fx: { app: c.app >= 55 ? 1 : -1 } }] });
+  qs.push({ who: "A pensioner", q: "What has this government done for old people?", a: [{ l: (c.done || [])[0] ? (c.done[0] + " is finished, and pensions are next.") : "Pensions are next on my list. I won't pretend we've done enough.", ok: true, fx: { app: 1 } }, { l: "More than any government before us.", ok: c.app >= 60, fx: c.app >= 60 ? {} : { app: -1 } }] });
+  return qs.slice(0, 3);
 }

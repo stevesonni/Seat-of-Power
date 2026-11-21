@@ -4,6 +4,7 @@ FROM node:20-alpine
 WORKDIR /app
 COPY public ./public
 COPY server ./server
+RUN cd server && npm install --omit=dev --no-audit --no-fund
 ENV NODE_ENV=production DATA_DIR=/data
 EXPOSE 8080
 CMD ["node", "server/vatar-server.mjs"]

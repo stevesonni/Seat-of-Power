@@ -1,5 +1,5 @@
 // The Seat of Power: server for the Vatar (Lagos Life) edition.
-// node server/vatar-server.mjs · Node 18+, no packages.
+// node server/vatar-server.mjs · Node 18+; one package (server/package.json: the Anthropic SDK, for Tori).
 //
 // - Serves public/ with the header that lets Vatar worlds frame the game, and
 //   marks the page as the Vatar edition (window.SOP_VATAR + the SDK + the bridge).
@@ -23,6 +23,7 @@ import { makeFederation } from "./federation.mjs";
 import { careerOf, careerName, keepBackup } from "./saves.mjs";
 import { makeShop } from "./shop.mjs";
 import { dropOff, dropOffSplit, DROP_PILLARS, PILLARS, experimentSummary } from "./experiment.mjs";
+import { makeToriAI } from "./tori-ai.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -30,6 +31,7 @@ const API = process.env.VATAR_API || "https://lagoslife.app/api/games/v1"; // ov
 const SECRET = process.env.VATAR_SECRET || "";
 const WHSEC = process.env.VATAR_WEBHOOK_SECRET || "";
 const PORT = +process.env.PORT || 8080;
+const toriAI = makeToriAI({ dataDir: DATA }); // set below DATA; reads ANTHROPIC_API_KEY
 const FRAMERS = "https://lagoslife.app https://www.lagoslife.app https://naijalife.app https://www.naijalife.app https://lagoslife.eliysites.com";
 const SDK = "https://lagoslife.app/sdk/vatar-games-v1.js";
 // Products: consumables can be bought again and add a credit each time.
@@ -435,6 +437,12 @@ http.createServer(async (req, res) => {
       const out = await api["/api/feedback"]({ ...b, session: null }, "anon_" + crypto.createHash("sha256").update(ip).digest("hex").slice(0, 10));
       return send(res, out._code || 200, out);
     }
+    // Tori's posts written by Claude (tori-ai.mjs): one batch per career and year, kept on disk.
+    if (req.method === "POST" && url.pathname === "/api/tori/feed") {
+      let b; try { b = JSON.parse(await readBody(req, 16_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+      const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
+      const out = await toriAI(b, ip); return send(res, out._code || 200, out);
+    }
     // The Cabinet: friends hold their own keys, so no Lagos Life session is needed.
     if (req.method === "POST" && (url.pathname.startsWith("/api/cab/") || url.pathname.startsWith("/api/fed/"))) {
       let b; try { b = JSON.parse(await readBody(req, 64_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
@@ -452,7 +460,7 @@ http.createServer(async (req, res) => {
       return send(res, out._code || 200, out);
     }
     if (req.method !== "GET" && req.method !== "HEAD") return send(res, 405, { error: "method" });
-    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, keyMode: KEY_MODE, freeCareers: FREE_CAREERS, shop: shop.on, shopMode: shop.mode });
+    if (url.pathname === "/health") return send(res, 200, { ok: true, configured: !!SECRET, keyMode: KEY_MODE, freeCareers: FREE_CAREERS, shop: shop.on, shopMode: shop.mode, toriAI: !!process.env.ANTHROPIC_API_KEY });
     if (url.pathname === "/feedback") {
       const k = Buffer.from(String(url.searchParams.get("key") || "").trim()), want = Buffer.from(FEEDBACK_KEY);
       if (!FEEDBACK_KEY || k.length !== want.length || !crypto.timingSafeEqual(k, want)) {

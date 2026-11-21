@@ -1,0 +1,9 @@
+{
+  "name": "seat-of-power-server",
+  "private": true,
+  "type": "module",
+  "description": "The game's server. Its one package: the Anthropic SDK, for Tori's AI-written posts (tori-ai.mjs).",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.12.0"
+  }
+}
