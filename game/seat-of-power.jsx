@@ -2935,7 +2935,7 @@ const ProfileForm = ({ initial, onSave, onCancel, first: firstTime }) => {
     </div>
     <label style={{ display: "block", marginBottom: 12 }}>
       <span style={{ display: "block", fontSize: DS.t.meta, fontWeight: 700, color: UI.sub, letterSpacing: 1, textTransform: "uppercase", margin: "0 0 6px 6px" }}>State of origin</span>
-      <select value={origin} onChange={e => { setOrigin(e.target.value); setDistrict(null); setLga(null); }} style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontFamily: F.b, fontWeight: 600, fontSize: DS.t.body }}>
+      <select id="sop-origin" value={origin} onChange={e => { setOrigin(e.target.value); setDistrict(null); setLga(null); }} style={{ width: "100%", padding: "16px 20px", minHeight: 60, borderRadius: 20, border: "1px solid " + UI.line, background: "#fff", color: UI.ink, fontFamily: F.b, fontWeight: 600, fontSize: DS.t.body }}>
         <option value="">Choose your state</option>
         {Object.keys(STATES).filter(k => k !== "FCT").sort().map(k => <option key={k} value={k}>{stateLabel(k)}</option>)}
       </select>
@@ -3255,6 +3255,7 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
   const [hasPres, setHasPres] = useState(false);
   useEffect(() => { (async () => { try { const r = await window.storage.get(PRES_KEY); if (r && r.value) { const d = JSON.parse(r.value); if (d && !d.over) setHasPres(true); } } catch (e) {} })(); }, []);
   const [saveName, setSaveName] = useState("");
+  const [saveSetup, setSaveSetup] = useState({}), [saveLine, setSaveLine] = useState(""), [saveLetter, setSaveLetter] = useState("");
   const [sheet, setSheet] = useState(() => { try { return /[?&]daily=/.test(location.search) ? "daily" : null; } catch (e) { return null; } }); // "profile" | "me" | "scenarios"; a shared Daily link opens today's decision
   // Seats this phone holds in friends' governments.
   const [mems, setMems] = useState(() => cabMems());
@@ -3283,48 +3284,67 @@ const TitleScreen = ({ onStart, onHelp, onLoad, onPresident, onSenate, onChairma
           // A finished game is not something to continue.
           if (d.gEnd) return;
           setHasSave(true);
+          setSaveSetup(d.setup || {});
+          setSaveLine("Governor of " + (d.setup?.state || "").replace(/_/g, " ") + " · Year " + d.turn + " of 8");
+          setSaveLetter(d.stc && d.stc.teaser && d.stc.teaser.turn === d.turn ? "A sealed letter waits" : "");
           setSaveName(d.setup?.nm + " · " + (d.setup?.state || "").replace("_", " ") + " · Year " + d.turn + " of 8" + (d.stc && d.stc.teaser && d.stc.teaser.turn === d.turn ? " · ✉️ a sealed letter waits" : ""));
         }
       } catch (e) {}
     })();
   }, []);
-  // One clean front screen: the logo, the people you can play, and three
-  // ways in. "How to play" is the only help button.
+  // The front screen (owner, 21 Nov 2026, design A "Abuja at Dusk"): the city at dusk, the logo, the crowd
+  // chanting your name, and one gold button. Continue leads when a game is running; streak, level and
+  // Ballots sit in one labelled strip.
   const tall = TALL();
-  // Phone: three figures that fit the width; wider screens: all five.
-  const lineup = tall ? ["babariga", "f_isiagu", "f_kaftan"] : ["female", "babariga", "f_isiagu", "m_suit", "f_kaftan"];
+  const X = useXp(), XV = SYS.levelView(X.total);
+  const chantName = ((profile && profile.last) || String(saveSetup.nm || "").trim().split(/\s+/).pop() || "").toUpperCase();
+  const go = async () => { if (!hasSave && window.SOP_CLOUD_DOWN && !(await window.SOP_confirm("We could not reach your Lagos Life save just now, so a career you have may not show here.\n\nClose the game and open it again to check first.", "Start a new game anyway", "Not now"))) return; if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nA new game replaces it once you take office. To keep playing it, press Continue instead.", "Start a new game", "Keep my career"))) return; if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } };
+  const titleLogo = <img src={TITLE_LOGO} alt="The Seat of Power" onClick={() => { taps.current = (taps.current || 0) + 1; if (taps.current === 7) { try { localStorage.setItem("sop_preview", "1"); } catch (e) {} setPreview(true); try { window.SOP_toast && window.SOP_toast("Presidency preview unlocked: open Careers", "ok"); } catch (e) {} } }} style={{ width: tall ? "78%" : 400, maxWidth: 400, height: "auto", display: "block", filter: "drop-shadow(0 0 2px rgba(255,214,140,.9)) drop-shadow(0 0 22px rgba(255,214,140,.35))" }} />;
+  const gold = "#ffcf7a", ink = "#f2efe6", soft = "#c9cee0";
+  const chip = { display: "flex", alignItems: "center", gap: 6, background: "rgba(10,15,34,.55)", border: "1px solid rgba(242,239,230,.22)", borderRadius: 999, padding: "6px 12px", minHeight: 40, color: ink, fontFamily: F.b, fontWeight: 700, fontSize: tall ? 12 : 14, cursor: "pointer", whiteSpace: "nowrap" };
+  const card = { display: "flex", alignItems: "center", gap: 12, textAlign: "left", minHeight: tall ? 58 : 66, padding: "0 16px", borderRadius: 16, background: "rgba(242,239,230,.08)", border: "1px solid rgba(242,239,230,.22)", color: ink, fontFamily: F.b, cursor: "pointer", width: "100%" };
+  const sub = { display: "block", fontSize: 13, color: "#b9bfd3", fontWeight: 600 };
+  const ic = (d) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={gold} strokeWidth="2" strokeLinecap="round" aria-hidden="true" style={{ flexShrink: 0 }}>{d}</svg>;
   return (
-    <div style={{ position: "absolute", inset: 0, background: "radial-gradient(120% 70% at 50% 0%, #ffffff 0%, " + UI.cream + " 60%)", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: tall ? "16px 18px 0" : "24px 32px 0" }}>
-        <button onClick={() => setSheet("menu")} aria-label="Menu" style={{ position: "relative", width: 48, height: 48, borderRadius: 16, border: 0, background: UI.dark, color: "#fff", fontSize: 22, cursor: "pointer", boxShadow: "0 4px 0 rgba(0,0,0,.2)", display: "grid", placeItems: "center" }}><Ico n="icon-menu" s={30} />{chNew && <span aria-label="New challenge" style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "#e9b949", border: "2px solid #fff" }} />}</button>
-        <XpChip onClick={() => setSheet("xp")} />
-        <button onClick={() => setSheet("streak")} aria-label={"Streak: " + st.streak + " days"} style={{ display: "flex", alignItems: "center", gap: 4, background: "#fff", border: "1px solid " + (st.playedToday ? "#f3b38a" : UI.line), borderRadius: 999, padding: "6px 14px", minHeight: 44, fontSize: DS.t.body, cursor: "pointer", fontFamily: F.b, boxShadow: st.playedToday ? "0 0 0 3px #ffe3cf" : "none" }}><Flame n={st.streak} lit={st.streak > 0} /></button>
-        <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid " + UI.line, borderRadius: 999, padding: profile ? "4px 16px 4px 4px" : "10px 18px", minHeight: 44, color: UI.ink, fontFamily: F.b, fontWeight: 700, fontSize: DS.t.label, cursor: "pointer", maxWidth: "60%" }}>
-          {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: UI.tints[0], ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 2 : undefined }} /> : <span aria-hidden="true">👤</span>}
-          <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
+    <div data-sop-home="dusk" style={{ position: "absolute", inset: 0, overflow: "hidden", overflowY: "auto", color: ink, fontFamily: F.b, backgroundColor: "#0a0f22",
+      backgroundImage: tall ? "linear-gradient(180deg,rgba(10,15,34,.3) 0%,rgba(10,15,34,0) 18%,rgba(10,15,34,.35) 55%,#0a0f22 92%),url(./art/scenes/abuja-skyline.webp)" : "linear-gradient(90deg,#0a0f22 0%,rgba(10,15,34,.92) 30%,rgba(10,15,34,.5) 55%,rgba(10,15,34,0) 75%),linear-gradient(0deg,rgba(10,15,34,.75),rgba(10,15,34,0) 35%),url(./art/scenes/abuja-skyline.webp)",
+      backgroundSize: tall ? "100% 64vh, auto 64vh" : "cover", backgroundRepeat: "no-repeat", backgroundPosition: tall ? "0 0, 50% 0" : "center", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: tall ? "14px 16px 0" : "28px 56px 0" }}>
+        <button onClick={() => setSheet("menu")} aria-label="Menu" style={{ position: "relative", width: 44, height: 44, borderRadius: 14, border: "1px solid rgba(242,239,230,.25)", background: "rgba(10,15,34,.55)", color: ink, cursor: "pointer", display: "grid", placeItems: "center" }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10" /></svg>{chNew && <span aria-label="New challenge" style={{ position: "absolute", top: -3, right: -3, width: 14, height: 14, borderRadius: 7, background: "#e9b949", border: "2px solid #0a0f22" }} />}</button>
+        <span style={{ flex: 1 }} />
+        <button onClick={() => setSheet("streak")} aria-label={"Streak: " + st.streak + " days"} style={{ ...chip, borderColor: st.playedToday ? "#ff9f43" : chip.border.split(" ").pop() }}><svg width="16" height="16" viewBox="0 0 24 24" fill={st.streak > 0 ? "#ff9f43" : "#8a90a6"} aria-hidden="true"><path d="M12 2c1.2 3.6 5 5.3 5 10.2A5 5 0 0 1 7 12c0-1.9.8-3.3 2-4.4.2 2 1.2 3.1 2.4 3.1C10.8 7.5 10.8 4.6 12 2z" /></svg>{st.streak}-day streak</button>
+        <button data-sop-xp-chip onClick={() => setSheet("xp")} aria-label={"Level " + XV.lv + ", " + X.ballots + " Ballots"} style={chip}>Level {XV.lv}{tall ? "" : " · " + XV.title}<span style={{ opacity: .5 }}>|</span>{X.ballots} Ballots</button>
+        <button onClick={() => setSheet(profile ? "me" : "profile")} aria-label={profile ? "Your politician" : "Create your politician"} style={{ ...chip, padding: profile ? "3px 12px 3px 3px" : chip.padding, maxWidth: tall ? 150 : 260 }}>
+          {profile ? <img src={AVATAR_IMGS[profile.avatar]} alt="" style={{ width: 32, height: 32, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e9dcc0", ...frameStyle(profile.frame || null), borderWidth: profile.frame ? 2 : undefined }} /> : null}
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{profile ? "Hon. " + profile.last : "Your politician"}</span>
         </button>
       </div>
-      <div style={{ flex: tall ? "1 0 auto" : 1, minHeight: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: tall ? "0 20px" : "0 40px" }}>
-        <img src={TITLE_LOGO} alt="The Seat of Power" onClick={() => { taps.current = (taps.current || 0) + 1; if (taps.current === 7) { try { localStorage.setItem("sop_preview", "1"); } catch (e) {} setPreview(true); try { window.SOP_toast && window.SOP_toast("Presidency preview unlocked: open Careers", "ok"); } catch (e) {} } }} style={{ width: tall ? "88%" : 640, maxWidth: 640, height: "auto", maxHeight: tall ? "30vh" : undefined, objectFit: "contain", display: "block", filter: "drop-shadow(0 8px 18px rgba(18,48,31,.18))" }} />
-        <div style={{ marginTop: tall ? 8 : 12, fontSize: DS.t.label, letterSpacing: 2, textTransform: "uppercase", color: UI.sub, fontWeight: 700, textAlign: "center" }}>Campaign · Govern · Survive</div>
-        <div style={{ marginTop: 4, fontSize: DS.t.meta, color: UI.sub, textAlign: "center" }}>No politics needed: you learn as you play.</div>
-      </div>
-      <TitleLineup ids={lineup} tall={tall} />
-      <div style={{ position: "relative", zIndex: 30, padding: tall ? "0 20px calc(22px + env(safe-area-inset-bottom))" : "0 40px 32px", display: "flex", flexDirection: "column", alignItems: "center", gap: 12, marginTop: -8 }}>
-        <button onClick={() => setSheet("daily")} className={dailyDone ? "" : "sop-glow"} style={{ width: "100%", maxWidth: 460, display: "flex", alignItems: "center", gap: 12, textAlign: "left", border: 0, borderRadius: 22, padding: "10px 14px", cursor: "pointer", fontFamily: F.b, color: "#fff", background: dailyDone ? "linear-gradient(135deg,#3d4a42,#25302a)" : "linear-gradient(135deg,#1f7a4d,#0f3d26)", boxShadow: "0 6px 0 " + (dailyDone ? "#1a211d" : "#0a2a1a") + ", 0 10px 24px rgba(15,61,38,.3)" }}>
-          <span style={{ width: 50, height: 50, borderRadius: 14, background: "rgba(255,255,255,.12)", display: "grid", placeItems: "center", flexShrink: 0 }}><img src={"./art/icons/" + (dailyDone ? "icon-ok" : "icon-daily") + ".webp"} alt="" style={{ width: 40, height: 40, objectFit: "contain" }} /></span>
-          <span style={{ flex: 1, minWidth: 0 }}><b style={{ display: "block", fontSize: DS.t.body }}>{dailyDone ? "Today's decision: done" : "Today's decision #" + st.today}</b><span style={{ fontSize: DS.t.meta, opacity: .85 }}>{dailyDone ? "See how other governors chose · new one tomorrow" : "60 seconds · " + (st.streak ? "keep your " + st.streak + "-day streak" : "start a streak")}</span></span>
-          <Flame n={st.streak} lit={st.streak > 0} />
-        </button>
-        <PillBtn onClick={async () => { if (!hasSave && window.SOP_CLOUD_DOWN && !(await window.SOP_confirm("We could not reach your Lagos Life save just now, so a career you have may not show here.\n\nClose the game and open it again to check first.", "Start a new game anyway", "Not now"))) return; if (hasSave && !(await window.SOP_confirm("You have a governorship in progress" + (saveName ? ":\n" + saveName : "") + ".\n\nA new game replaces it once you take office. To keep playing it, press Continue instead.", "Start a new game", "Keep my career"))) return; if (profile) onStart(profile); else { setStartAfter(true); setSheet("profile"); } }} style={{ width: "100%", maxWidth: 460 }}>New game</PillBtn>
-        {hasPres && <PillBtn tone="plain" onClick={onPresident} style={{ width: "100%", maxWidth: 460 }}>🇳🇬 Continue: Road to Aso Rock<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600 }}>Your presidential run</span></PillBtn>}
-        {hasSave && <PillBtn tone="plain" onClick={onLoad} style={{ width: "100%", maxWidth: 460 }}>Continue{saveName ? <span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{saveName}</span> : null}</PillBtn>}
-        {mems.length > 0 && onCabinet && <PillBtn tone="plain" onClick={onCabinet} style={{ width: "100%", maxWidth: 460 }}><Ico n="icon-cabinet-friends" s={28} style={{ marginRight: 6 }} />Your cabinet desk<span style={{ display: "block", fontSize: DS.t.meta, color: UI.sub, fontWeight: 600, marginTop: 2 }}>{(() => { const m = mems[mems.length - 1]; return ((SYS.seatById(m.seat, m.office) || {}).t || "Minister") + (m.gov ? " · " + (m.office === "president" ? "President " + m.gov + "'s administration" : m.gov + "'s government") : ""); })()}</span></PillBtn>}
-        {(window.SOP_BACKUPS || []).length > 0 && <button onClick={async () => { const b = window.SOP_BACKUPS[0]; if (!(await window.SOP_confirm("Bring back " + b.name + "?\n\nThe game you have now is kept too, so you can switch back the same way.", "Bring it back", "Not now"))) return;
-          try { const r = await window.SOP_restore(b.i); track("restore", r && r.ok ? "ok" : "no"); if (r && r.ok) location.reload(); else window.SOP_toast && window.SOP_toast("That career could not be found.", "bad"); } catch (e) { window.SOP_toast && window.SOP_toast("Open the game inside Lagos Life to bring it back.", "bad"); } }}
-          style={{ background: "none", border: 0, color: "#fff", opacity: .85, textDecoration: "underline", fontSize: DS.t.meta, cursor: "pointer", fontFamily: F.b }}>↩️ Bring back an earlier career</button>}
-        <div style={{ marginTop: 8 }}><LangPicker /></div>
-        <div style={{ fontSize: DS.t.meta, color: UI.dim, marginTop: 4 }}>A game by Steve Sunny Emmanuel</div>
+      <div style={{ flex: 1, minHeight: tall ? 40 : 20, display: "flex", alignItems: "center", justifyContent: "center", paddingTop: tall ? "22vh" : 0 }}>{tall && titleLogo}</div>
+      <div style={{ width: "100%", maxWidth: tall ? undefined : 560, boxSizing: "border-box", padding: tall ? "0 18px calc(18px + env(safe-area-inset-bottom))" : "0 0 36px 72px", display: "flex", flexDirection: "column", gap: tall ? 11 : 14, alignSelf: "flex-start" }}>
+        {!tall && titleLogo}
+        <div data-sop-chant style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6, margin: "4px 0 2px" }}>
+          <span style={{ transform: "rotate(-3deg)", background: "#f0b43c", color: "#0a0f22", fontFamily: "Anton, Impact, 'Arial Narrow Bold', sans-serif", fontWeight: 900, fontSize: tall ? 30 : 40, lineHeight: 1, padding: "6px 14px", letterSpacing: .5 }}>SAI {chantName || "OGA"}!</span>
+          <span style={{ transform: "rotate(2deg)", marginLeft: tall ? 70 : 120, background: "#fff", color: "#0a0f22", fontFamily: "Anton, Impact, 'Arial Narrow Bold', sans-serif", fontWeight: 900, fontSize: tall ? 18 : 22, lineHeight: 1, padding: "4px 10px" }}>ONE MORE TIME!</span>
+        </div>
+        {hasSave && <div style={{ fontFamily: F.d, fontStyle: "italic", fontWeight: 700, fontSize: tall ? 16 : 20, color: gold }}>{saveLine}</div>}
+        {hasSave ? <button onClick={onLoad} style={{ minHeight: tall ? 60 : 66, borderRadius: 999, border: 0, background: gold, color: "#141a33", fontFamily: F.b, fontWeight: 900, fontSize: tall ? 18 : 20, cursor: "pointer", boxShadow: "0 6px 24px rgba(255,207,122,.25)" }}>Continue{saveLetter ? <span style={{ display: "block", fontSize: 13, fontWeight: 700 }}>{saveLetter}</span> : null}</button>
+          : <button onClick={go} style={{ minHeight: tall ? 60 : 66, borderRadius: 999, border: 0, background: gold, color: "#141a33", fontFamily: F.b, fontWeight: 900, fontSize: tall ? 18 : 20, cursor: "pointer" }}>New game</button>}
+        <div style={{ display: "grid", gridTemplateColumns: tall ? "minmax(0,1fr)" : "repeat(2, minmax(0, 1fr))", gap: tall ? 8 : 12 }}>
+          <button onClick={() => setSheet("daily")} className={dailyDone ? "" : "sop-glow"} style={card}><img src={"./art/icons/" + (dailyDone ? "icon-ok" : "icon-daily") + ".webp"} alt="" style={{ width: 34, height: 34, objectFit: "contain", flexShrink: 0 }} /><span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: 16 }}>{dailyDone ? "Today's decision: done" : "Today's decision #" + st.today}</b><span style={sub}>{dailyDone ? "See how others chose · new one tomorrow" : "One minute · " + (st.streak ? "keeps your streak" : "starts a streak")}</span></span></button>
+          {hasSave ? <button onClick={go} style={card}>{ic(<path d="M12 5v14M5 12h14" />)}<b style={{ fontSize: 16 }}>New game</b></button>
+            : <button onClick={() => setSheet("careers")} style={card}>{ic(<path d="M4 20h16M6 16l4-8 4 5 4-9" />)}<span><b style={{ display: "block", fontSize: 16 }}>Careers</b><span style={sub}>Councillor to President</span></span></button>}
+          {hasPres && <button onClick={onPresident} style={card}>{ic(<path d="M4 21V4M4 4h12l-2 4 2 4H4" />)}<span><b style={{ display: "block", fontSize: 16 }}>Continue: Road to Aso Rock</b><span style={sub}>Your presidential run</span></span></button>}
+          {mems.length > 0 && onCabinet && <button onClick={onCabinet} style={card}>{ic(<><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6M15 14.5c3 0 5 2 5 5" /></>)}<span style={{ minWidth: 0 }}><b style={{ display: "block", fontSize: 16 }}>Your cabinet desk</b><span style={sub}>{(() => { const m = mems[mems.length - 1]; return ((SYS.seatById(m.seat, m.office) || {}).t || "Minister") + (m.gov ? " · " + (m.office === "president" ? "President " + m.gov + "'s administration" : m.gov + "'s government") : ""); })()}</span></span></button>}
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "8px 20px", fontSize: 14, marginTop: 2 }}>
+          {(window.SOP_BACKUPS || []).length > 0 && <button onClick={async () => { const b = window.SOP_BACKUPS[0]; if (!(await window.SOP_confirm("Bring back " + b.name + "?\n\nThe game you have now is kept too, so you can switch back the same way.", "Bring it back", "Not now"))) return;
+            try { const r = await window.SOP_restore(b.i); track("restore", r && r.ok ? "ok" : "no"); if (r && r.ok) location.reload(); else window.SOP_toast && window.SOP_toast("That career could not be found.", "bad"); } catch (e) { window.SOP_toast && window.SOP_toast("Open the game inside Lagos Life to bring it back.", "bad"); } }}
+            style={{ background: "none", border: 0, padding: "8px 0", color: soft, textDecoration: "underline", fontSize: 14, cursor: "pointer", fontFamily: F.b }}>Bring back an earlier career</button>}
+          <label style={{ display: "flex", alignItems: "center", gap: 8, color: soft }}>{tr("Language")}
+            <select value={LANG} onChange={(e) => e.target.value !== LANG && setLang(e.target.value)} style={{ minHeight: 40, borderRadius: 10, border: "1px solid rgba(242,239,230,.3)", background: "rgba(10,15,34,.7)", color: ink, padding: "0 10px", fontFamily: F.b, fontSize: 14 }}>{SYS.LANGS.map(l => <option key={l.id} value={l.id}>{l.nm}</option>)}</select>
+          </label>
+          <span style={{ color: "#8a90a6", fontSize: 13 }}>A game by Steve Sunny Emmanuel</span>
+        </div>
       </div>
       {sheet === "daily" && <DailyScreen onClose={() => { setSheet(null); try { if (/[?&]daily=/.test(location.search)) history.replaceState(null, "", location.pathname); } catch (e) {} }} />}
       {sheet === "streak" && <StreakSheet st={st} onClose={() => setSheet(null)} />}

@@ -3,7 +3,17 @@
 
 
 
-## XP, levels, daily quests, Ballots and XP leagues (21 Nov, latest)
+## New home screen: Abuja at Dusk (21 Nov, latest)
+
+The owner chose design A from the round-three canvas.
+- **The picture.** The Abuja skyline at dusk fills the screen. On a laptop the content sits on the left; on a phone it sits below the picture, with the Seat of Power logo in between.
+- **The chant.** A crowd sign reads "SAI <surname>!", using the player's politician (or the saved game's name). It always shows.
+- **Buttons.** Continue is the one gold button when a game is running, with the office, state and year above it. Without a save, the gold button is New game. Today's decision and New game (or Careers) sit below it as cards.
+- **Top strip.** Streak, level and Ballots are labelled with words and open their sheets.
+- **The rest.** Language is one drop-down. The old lineup of portraits and the tagline are gone.
+- **Tests.** The state picker now has the id `sop-origin`; the browser test helper selects it by that id.
+
+## XP, levels, daily quests, Ballots and XP leagues (21 Nov)
 
 The owner asked to "go full Duolingo". Everything here is won inside the game; no real money is paid out.
 
