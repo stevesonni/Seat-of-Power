@@ -3,7 +3,16 @@
 
 
 
-## Your opponent, your deputy and who comes after you (21 Nov, latest)
+## Every bill you send comes back for you to sign (21 Nov, latest)
+
+- **Your own bills (the Bills tab).** When the House of Assembly or the National Assembly passes one, it no longer becomes law on its own. An "On your desk for assent" card opens. Sign it into law (the money is spent and the effects apply), or veto it (party −3, approval −1, not law, and you can send it again).
+  - A bill waiting for your signature is saved with the game.
+- **Bills in storylines** (the flagship bill and the President's crisis bills, including ones pushed through after a stall) come back the next year as "The … Bill is on your desk" (game/systems/storylines.js, the `_assent` beat).
+  - Signing makes it law and moves the story on.
+  - Vetoing sends the story down the bill's "failed" path, and the vetoed bill is not offered again.
+- **Tests:** `tests/e2e/assent.mjs` and `tests/storylines.test.mjs`.
+
+## Your opponent, your deputy and who comes after you (21 Nov)
 
 - **The opposition on Tori is the person you actually beat**, with their party (`setup.election`). In the second term it is the person you faced at the re-election (`stc.reOpp`). Older saves get the rival's name corrected when they load.
 - **A fallen-out deputy or Vice-President runs against you.** If the feud with the deputy (game/systems/rivalry.js) started and did not end in a truce, the deputy crosses to the opposition party and takes its re-election ticket. A red banner on the first campaign week says so. Once the deputy has defected, they lead the Tori attacks from Year 4.

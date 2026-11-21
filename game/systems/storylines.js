@@ -24,7 +24,7 @@ export const KINDS = {
   act: { tag: "", note: "" },
 };
 
-const SPECIAL = new Set(["_stall", "_court", "_wait"]);
+const SPECIAL = new Set(["_stall", "_court", "_wait", "_assent"]);
 const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
 
 /* Where a storyline opens. A storyline can have several openings (starts):
@@ -46,7 +46,9 @@ export const storyTurn = (def, S0, turn, ctx = {}, r = Math.random) => {
   const house = ctx.house == null ? 50 : ctx.house;
   if (S.pendingBill) {
     const pb = S.pendingBill, odds = clampN(.4 + (house - 50) / 80 + (pb.boost || 0), .12, .9);
-    if (r() < odds) S = { ...S, beat: pb.pass, laws: [...S.laws, pb.nm], pendingBill: null, news: { kind: "passed", nm: pb.nm } };
+    // Passed by the legislature: it comes back to the governor or President to sign or veto (owner, 21 Nov 2026:
+    // "a bill I send comes back for me to sign into law. Make sure that always happens").
+    if (r() < odds) S = { ...S, beat: "_assent", assent: { nm: pb.nm, pass: pb.pass, fail: pb.fail }, pendingBill: null, news: { kind: "house_passed", nm: pb.nm } };
     else if ((S.stalled || []).includes(pb.nm)) S = { ...S, beat: pb.fail, pendingBill: null, news: { kind: "rejected", nm: pb.nm } }; // a second time, the House simply throws it out
     else S = { ...S, beat: "_stall", stall: pb, stalled: [...(S.stalled || []), pb.nm], pendingBill: null, news: { kind: "stalled", nm: pb.nm } };
   } else if (S.court) {
@@ -67,11 +69,22 @@ const stallBeat = (def, S, ctx) => {
   return { t: "The " + pb.nm + " is stuck in " + house, who: ctx.nat ? "senate-president" : "speaker-of-the-house", bg: ctx.nat ? "senate-chamber" : "assembly-chamber",
     d: "Members have sat on the " + pb.nm + " all year. Some want favours; some answer to the people the law would hurt. Until it passes, nothing changes.",
     opts: [
-      { id: "bargain", kind: "act", l: "Trade constituency projects for the votes", cost: (def.scale || 1) * 12, fx: { cor: .02 }, npc: { nass: 6 }, past: "bought the votes for the " + pb.nm, say: "The projects are promised and the votes are there. The " + pb.nm + " is law.", law: true, next: pb.pass },
+      { id: "bargain", kind: "act", l: "Trade constituency projects for the votes", cost: (def.scale || 1) * 12, fx: { cor: .02 }, npc: { nass: 6 }, past: "bought the votes for the " + pb.nm, say: "The projects are promised and the votes are there. The " + pb.nm + " passes, and comes to your desk to sign.", law: true, next: pb.pass },
       { id: "public", kind: "act", l: "Go to the people: name the members blocking it", odds: .55, fx: { app: 1 }, npc: { nass: -8 },
-        win: { past: "shamed " + house + " into passing the " + pb.nm, say: "The names were read on every radio station. The bill passed within the month.", law: true, next: pb.pass },
+        win: { past: "shamed " + house + " into passing the " + pb.nm, say: "The names were read on every radio station. The bill passed within the month; it comes to your desk to sign.", law: true, next: pb.pass },
         lose: { past: "named the members blocking the " + pb.nm + ", and lost the vote", say: "They closed ranks against you. The bill is dead.", next: pb.fail, weak: true } },
       { id: "drop", kind: "act", l: "Drop the bill and try another way", weak: true, past: "dropped the " + pb.nm, say: "The bill is withdrawn. The problem is still there.", next: pb.fail },
+    ] };
+};
+// The bill is back on your desk: sign it into law, or veto it.
+const assentBeat = (def, S, ctx) => {
+  const a = S.assent || {}, house = ctx.nat ? "the National Assembly" : "the House of Assembly", boss = ctx.nat ? "the President" : "the Governor";
+  return { t: "The " + a.nm + " is on your desk", who: ctx.nat ? "senate-president-pleased" : "speaker-of-the-house", bg: ctx.nat ? "villa-office" : "governor-office", scene: ctx.nat ? "bill-assent" : null,
+    d: house.charAt(0).toUpperCase() + house.slice(1) + " has passed your " + a.nm + " and sent it back for assent. Nothing in it is law until " + boss + " signs.",
+    learn: "A bill becomes law only when " + boss + " signs it. " + boss.charAt(0).toUpperCase() + boss.slice(1) + " can withhold assent (a veto); the legislature can then override with a two-thirds vote (Sections " + (ctx.nat ? "58" : "100") + ").",
+    opts: [
+      { id: "sign", kind: "act", l: "Sign it into law", assent: "sign", fx: { app: 2 }, next: a.pass, past: "signed the " + a.nm + " into law", say: "Pen to paper, cameras flashing. The " + a.nm.replace(/ Bill$/, " Act") + " is law." },
+      { id: "veto", kind: "act", l: "Veto it: the amendments went too far", assent: "veto", fx: { app: -1 }, npc: { nass: -6 }, weak: true, next: a.fail, past: "vetoed the " + a.nm + " after the legislature rewrote it", say: "You send it back unsigned. Members are furious; the problem the bill was meant to fix is still there." },
     ] };
 };
 const courtBeat = (def, S, ctx) => {
@@ -87,18 +100,18 @@ const courtBeat = (def, S, ctx) => {
     ] };
 };
 
-const RECAP = { passed: (n) => "The " + n.nm + " passed: it is law now. ", rejected: (n) => "The Assembly threw out the " + n.nm + " a second time. ", stalled: (n) => "", challenged: () => "", held: (n) => "Nobody has managed to overturn " + n.nm + ". ", boil: () => "Weak answers have caught up with you. " };
+const RECAP = { passed: (n) => "The " + n.nm + " passed: it is law now. ", house_passed: (n) => "The " + n.nm + " has passed. ", rejected: (n) => "The Assembly threw out the " + n.nm + " a second time. ", stalled: (n) => "", challenged: () => "", held: (n) => "Nobody has managed to overturn " + n.nm + ". ", boil: () => "Weak answers have caught up with you. " };
 /* The year's card for a storyline, or null when it is closed. Its d opens
    with what you decided last year. */
 export const storyCard = (def, S, ctx = {}) => {
   if (!S || S.closed || !S.beat) return null;
-  const B = S.beat === "_stall" ? stallBeat(def, S, ctx) : S.beat === "_court" ? courtBeat(def, S, ctx) : def.beats[S.beat];
+  const B = S.beat === "_stall" ? stallBeat(def, S, ctx) : S.beat === "_court" ? courtBeat(def, S, ctx) : S.beat === "_assent" ? assentBeat(def, S, ctx) : def.beats[S.beat];
   if (!B) return null;
   const last = S.hist[S.hist.length - 1];
   const recap = (last && last.past ? "Last year you " + last.past + ". " : "") + (S.news && RECAP[S.news.kind] ? RECAP[S.news.kind](S.news) : "");
   return { id: def.id + ":" + S.beat, story: def.id, beat: S.beat, kicker: def.nm, t: B.t, d: recap + B.d, recap, body: B.d, who: B.who || def.who || null, bg: B.bg || def.bg || null, scene: B.scene || null, learn: B.learn || def.learn || null,
     // A law already passed is not offered again.
-    opts: B.opts.filter((o, i, all) => !(o.bill && S.laws.includes(o.bill.nm) && all.length > 2)).map(o => ({ ...o, tag: (KINDS[o.kind] || KINDS.act).tag })) };
+    opts: B.opts.filter((o, i, all) => !(o.bill && (S.laws.includes(o.bill.nm) || (S.vetoed || []).includes(o.bill.nm)) && all.length > 2)).map(o => ({ ...o, tag: (KINDS[o.kind] || KINDS.act).tag })) };
 };
 
 /* After a choice. Returns the storyline's new state and what happens now:
@@ -111,15 +124,19 @@ export const storyAfter = (def, S0, opt, turn, ctx = {}, r = Math.random) => {
     hist: [...S0.hist, { t: turn, beat, opt: opt.id, kind: opt.kind, past: R.past || null }], heat: clampN(S0.heat + (R.heat || 0), 0, 100) };
   S.weak = R.weak ? S.weak + 1 : Math.max(0, S.weak - 1);
   let law = null, order = null;
-  if (R.law && beat === "_stall") { law = (S0.stall || {}).nm; S.laws = [...S.laws, law]; }
+  // Pushed through after a stall: it too comes back to be signed.
+  if (R.law && beat === "_stall") { const st = S0.stall || {}; S.assent = { nm: st.nm, pass: R.next || st.pass, fail: st.fail || R.next }; }
+  let toAssent = R.law && beat === "_stall";
+  if (beat === "_assent") { const a = S0.assent || {}; S.assent = null; if (opt.assent === "sign") { law = a.nm; S.laws = [...S.laws, law]; } else S.vetoed = [...(S0.vetoed || []), a.nm]; }
   if (opt.kind === "bill" && R.bill) { S.pendingBill = { ...R.bill }; S.beat = "_wait"; }
+  else if (toAssent) S.beat = "_assent";
   else {
     S.beat = R.next || null;
     if (opt.kind === "order" && R.order) { order = R.order.nm; S.orders = [...S.orders, order]; S.court = { nm: R.order.nm, risk: R.order.risk == null ? .3 : R.order.risk, after: R.next, struck: R.order.struck || R.next }; }
   }
   if (R.close) S = { ...S, closed: true, legacy: R.legacy || def.legacy || null, beat: null };
   return { S, fx: R.fx || {}, cost: R.cost || 0, npc: R.npc || {}, say: R.say || "", hook: R.hook || null, closed: !!R.close, won, law, order, court: R.court || null, decree: !!order && S.orders.length >= 3,
-    delivered: R.delivered, kind: opt.kind };
+    delivered: R.delivered, kind: opt.kind, vetoed: beat === "_assent" && opt.assent === "veto", toAssent };
 };
 // Every beat a storyline can reach, and every beat it names, for the tests.
 export const storyCheck = (def) => {

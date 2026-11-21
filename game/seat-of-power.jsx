@@ -6063,6 +6063,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [impSurv, setImpSurv] = useState(ld?.impSurv || false);
   const [flagUsed, setFlagUsed] = useState(ld?.flagUsed || false);
   const [billsPassed, setBillsPassed] = useState(ld?.billsPassed || []);
+  const [assentBill, setAssentBill] = useState(ld?.assentBill || null); // { bill, note }: passed by the legislature, waiting for your signature
   const [judEvent, setJudEvent] = useState(null);
   const [forcedBudget, setForcedBudget] = useState(ld?.forcedBudget || false);
   const [abujaVisited, setAbujaVisited] = useState(ld?.abujaVisited || false);
@@ -6216,7 +6217,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       sv: SAVE_VERSION, savedAt: Date.now(), resume: resumeRef.current, ledger, civic, politics, gold, goldShown: goldShown.current, agenda: agendaRef.current, yearDone: yearDone.current, advancedFrom: advancedFrom.current, cases, commits, audDone, loans, projTicked: projTicked.current, lastCon,
       turn, s, cab, ps, csReformsDone, fgRelation, fgEventsSeen, shocksSeen, courtsSeen, nicPending, needs, needsReviewed: needsReviewed.current, staffReviewed: staffReviewed.current, stc, reportAt: reportRef.current ? reportRef.current.t : null, reportSnap: reportRef.current ? reportRef.current.snap : null,
       narrative, delayedFx, hiddenThreats, hiddenRevealed, personalFund, bud, pol, logs, phase, nav,
-      appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, forcedBudget,
+      appH, pApp, skApp, corW, nCris, nRef, impSurv, flagUsed, billsPassed, assentBill, forcedBudget,
       abujaVisited, netherlandsVisited, weddingVisited, intlInvites, completedProjects,
       houseBillsSeen, investorsSeen, investorsApproved, godfatherSeen, mediaSeen,
       ministries, projects, procLog, council, fedCouncils, wikiEvents, nepotismCount, saMemory, saOffice, gEnd, setup,
@@ -8841,6 +8842,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (fd) {
         const H = scHouse(), F1 = SYS.storyTurn(fd, next.flagStory || { ...SYS.storyStart(fd, state + ":" + pName), v: fv }, turn, { house: Math.round(H.loyal / Math.max(1, H.seats) * 100), nat: NAT }, rE);
         next.flagStory = F1;
+        if (F1.news && F1.news.kind === "house_passed") notes.push(["📜 The House passed the " + F1.news.nm + ". It is on your desk to sign.", "political"]);
         if (F1.news && F1.news.kind === "passed") { dApp += 2; notes.push(["📜 The " + F1.news.nm + " passed: it is law now (approval +2).", "success"]); scWiki("Governorship", "Signed the " + F1.news.nm.replace(/ Bill$/, " Law") + " into law."); }
         if (F1.news && F1.news.kind === "rejected") notes.push(["📜 The House threw out the " + F1.news.nm + " a second time.", "political"]);
       }
@@ -10784,7 +10786,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { icon: "🏛️", title: "The House voted it down", text: bill.nm + ": " + objections[0].who + " voted no because " + objections[0].why, tone: "bad" };
     }
     setBillReject(null);
-    if ((bill.cost || 0) > 0 && !spendB(bill.cost, "The " + bill.nm)) return;
+    // Passed: it comes back to your desk to sign or veto (owner, 21 Nov 2026: "a bill I send comes back for me to sign").
+    const note = s.pStab < 40 ? " after tense caucus horse-trading" : "";
+    addL("📜 The " + (NAT ? "National Assembly" : "House") + " passed the " + bill.nm + note + ". It is on your desk for assent.", "political");
+    setAssentBill({ bill, note });
+    return null;
+  });
+  const signBill = (bill, note) => {
+    if ((bill.cost || 0) > 0 && !spendB(bill.cost, "The " + bill.nm)) return false;
     setBillsPassed(p => [...p, bill]);
     if (bill.id === "f_electoral" || bill.id === "electoral_law") setStc(p => ({ ...p, electoral: turn }));
     const bn = bill.need && (needs || []).find(n => n.status === "open" && n.k === bill.need);
@@ -10794,13 +10803,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setS(p => { const n = { ...p }; if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); else if (k === "lit") n.lit = cl(n.lit + v); else if (k === "hp") n.hp = cl(n.hp + v); return n; });
     });
     setSkApp(p => { const n = { ...p }; Object.entries(bill.sk || {}).forEach(([k, v]) => { if (n[k] !== undefined) n[k] = cl100(n[k] + v); }); return n; });
-    const note = s.pStab < 40 ? " after tense caucus horse-trading" : "";
-    addL("📜 BILL SIGNED: " + bill.nm + " passed by House" + note + " and signed into law.", "policy"); fedVoice(bill.id, "sign");
+    addL("📜 BILL SIGNED: " + bill.nm + " passed by " + (NAT ? "the National Assembly" : "House") + note + " and signed into law.", "policy"); fedVoice(bill.id, "sign"); track("assent_" + bill.id, "sign");
     // The front page is the announcement, with what the law changes.
     const fxLine = Object.entries(bill.fx || {}).map(([k, v]) => ({ app: "Approval", corM: "Corruption", lit: "Literacy", hp: "Health" }[k] || k) + " " + (v > 0 ? "+" : "−") + (Math.abs(v) < 1 ? Math.round(Math.abs(v) * 100) + "%" : Math.abs(v))).join(" · ");
     paper(govShort + " Signs " + bill.nm.replace(/ Bill$/, "") + " Into Law", (note ? "Passed after tense horse-trading" : "Passed by the House") + (fxLine ? " · " + fxLine : ""), true, NAT ? "./art/scenes/bill-assent.webp" : decArt(bill.id) || "./art/scenes/news-signing-ceremony.webp");
-    return null;
-  });
+    return true;
+  };
+  const vetoBill = (bill) => {
+    setS(p => ({ ...p, pStab: cl100(p.pStab - 3), app: cl100(p.app - 1) }));
+    addL("⛔ You vetoed your own " + bill.nm + " after the " + (NAT ? "National Assembly" : "House") + " changed it. It is not law; you can send it again.", "political"); track("assent_" + bill.id, "veto");
+    paper(govShort + " Vetoes " + bill.nm.replace(/ Bill$/, ""), "Sends the amended bill back unsigned · Party −3", false, "./art/backgrounds/" + (NAT ? "senate-chamber" : "assembly-chamber") + ".webp");
+  };
 
   // Judiciary — can trigger after certain actions
   // Each case comes to court once a game, and says what started it.
@@ -14195,6 +14208,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "flagship_milestone", actor: "governor", gravity: opt.cor ? 2 : 1, evidence: 3, decision: opt.label, note: opt.log, approvalDelta: opt.app, corruptionDelta: Math.round((opt.cor || 0) * 100), relatedEntity: "flagship:" + setup.agenda, meta: { year, delivered: opt.delivered, corners: !!opt.cor, agenda: setup.agenda, how: opt.kind } }); } catch (e) {}
                 if (R.closed) scWiki("Governorship", "Saw " + FG.nm + " through to the end of the second term.");
                 if (R.decree) scWiki("Controversies", "Was accused of governing by executive order.");
+                if (R.law) { scWiki("Governorship", "Signed the " + R.law.replace(/ Bill$/, " Law") + " into law."); paper(govShort + " Signs " + R.law.replace(/ Bill$/, "") + " Into Law", "Your flagship, now in law", true, NAT ? "./art/scenes/bill-assent.webp" : "./art/scenes/news-signing-ceremony.webp"); }
+                if (R.vetoed) paper(govShort + " Vetoes Own Bill", "The " + (FS.assent || {}).nm + " goes back unsigned", false, "./art/backgrounds/" + (NAT ? "senate-chamber" : "assembly-chamber") + ".webp");
                 track("flagship_" + (FS.beat || ""), opt.story.id);
                 nextEvent();
                 const head = opt.kind === "bill" ? govShort + " Sends " + opt.story.bill.nm.replace(/ Bill$/, "") + " Bill To The House" : opt.delivered ? govShort + " Delivers: " + deliv.split(/,| \(/)[0].replace(/\s+in the .*$/i, "").replace(/^the /, "The ").replace(/^(\w)/, c => c.toUpperCase()) : sc.t;
@@ -15830,6 +15845,23 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
 
 
+        {/* Your own bill, back from the legislature: sign it into law or veto it. */}
+        {assentBill && (() => { const B = assentBill.bill, fxLine = Object.entries(B.fx || {}).map(([k, v]) => ({ app: "Approval", corM: "Corruption", lit: "Literacy", hp: "Health" }[k] || k) + " " + (v > 0 ? "+" : "−") + (Math.abs(v) < 1 ? Math.round(Math.abs(v) * 100) + "%" : Math.abs(v))).join(" · ");
+          return <div data-sop-assent role="dialog" aria-modal="true" aria-label={"Assent: " + B.nm} style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(10,20,14,.6)", display: "grid", placeItems: "center", padding: 16 }}>
+            <div style={{ width: "100%", maxWidth: 520, background: "#fffdf6", borderRadius: 22, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,.35)" }}>
+              <img src={NAT ? "./art/scenes/bill-assent.webp" : decArt(B.id) || "./art/scenes/news-signing-ceremony.webp"} alt="" style={{ display: "block", width: "100%", height: 170, objectFit: "cover" }} />
+              <div style={{ padding: "16px 18px 18px" }}>
+                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.5, color: CL.pur, textTransform: "uppercase" }}>On your desk for assent</div>
+                <h3 style={{ fontFamily: F.d, margin: "4px 0 6px", fontSize: 26, lineHeight: 1.15, color: CL.txt }}>{B.nm}</h3>
+                <p style={{ margin: "0 0 8px", fontSize: 15, color: CL.tm, lineHeight: 1.45 }}>The {NAT ? "National Assembly" : "House of Assembly"} passed your bill{assentBill.note} and sent it back. It is not law until you sign it.{fxLine ? " Signing it: " + fxLine + "." : ""}{(B.cost || 0) > 0 ? " It costs " + naira(B.cost) + " to carry out." : ""}</p>
+                <p style={{ margin: "0 0 14px", fontSize: 13, color: CL.td, lineHeight: 1.4 }}>You can withhold assent (a veto). The legislature can then override you with a two-thirds vote (Section {NAT ? "58" : "100"}).</p>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <button data-sop-assent-sign onClick={() => { if (signBill(B, assentBill.note) !== false) setAssentBill(null); }} style={{ minHeight: 54, borderRadius: 14, border: 0, background: CL.grn, color: "#fff", fontWeight: 800, fontSize: 17, cursor: "pointer", fontFamily: F.b }}>✍️ Sign it into law</button>
+                  <button data-sop-assent-veto onClick={() => { vetoBill(B); setAssentBill(null); }} style={{ minHeight: 48, borderRadius: 14, border: "2px solid " + CL.red + "55", background: "#fff", color: CL.red, fontWeight: 800, fontSize: 15, cursor: "pointer", fontFamily: F.b }}>Veto it: the amendments went too far</button>
+                </div>
+              </div>
+            </div>
+          </div>; })()}
         <OL show={phase === "house_bill" && !!pendingHouseBill}>
           {pendingHouseBill && (() => {
             const hasClauses = pendingHouseBill.clauses && pendingHouseBill.clauses.length > 0;

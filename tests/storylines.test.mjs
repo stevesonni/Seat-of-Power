@@ -51,7 +51,14 @@ test("the queues are back, and what you did decides what comes next", () => {
   assert.equal(after("cap").t, "Your price cap: half the stations shut");
   // A bill: passes with a friendly Assembly, stalls with a hostile one.
   const billed = storyAfter(d, S, c.opts.find(o => o.id === "dereg"), 1, {}, () => .5).S;
-  assert.equal(T(storyCard(d, storyTurn(d, billed, 2, { house: 95 }, () => .1), {}).t), "Deregulation is law: prices find their level");
+  // Passed: it comes back to the President's desk first; signed, it is law.
+  const desk = storyTurn(d, billed, 2, { house: 95 }, () => .1), dc = storyCard(d, desk, {});
+  assert.match(T(dc.t), /Bill is on your desk$/); assert.deepEqual(dc.opts.map(o => o.id), ["sign", "veto"]);
+  const signed = storyAfter(d, desk, dc.opts[0], 2, {}, () => .5);
+  assert.ok(signed.law && signed.S.laws.includes(signed.law));
+  assert.equal(T(storyCard(d, storyTurn(d, signed.S, 3, {}, () => .99), {}).t), "Deregulation is law: prices find their level");
+  const vetoed = storyAfter(d, desk, dc.opts[1], 2, {}, () => .5);
+  assert.ok(vetoed.vetoed && !vetoed.S.laws.length);
   const stuck = storyCard(d, storyTurn(d, billed, 2, { house: 5 }, () => .99), { nat: true }); assert.match(T(stuck.t), /is stuck in the National Assembly/);
   assert.deepEqual(stuck.opts.map(o => o.id), ["bargain", "public", "drop"]);
   // An order can be struck down by a court the next year.
