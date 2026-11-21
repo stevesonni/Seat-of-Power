@@ -40,3 +40,30 @@ test("a disloyal senator loses the ticket unless they defected; corruption costs
 });
 test("a veto override needs 73 of 109", () => { assert.equal(SYS.OVERRIDE_NEED, Math.ceil(SYS.SENATE_SEATS * 2 / 3)); });
 test("grades run A to F", () => { assert.equal(SYS.senateGrade(SYS.senateScore({ home: 90, clout: 90, cor: 0, delivered: Array(12), sponsored: 2 })), "A"); assert.equal(SYS.senateGrade(SYS.senateScore({ home: 15, clout: 10, cor: .9 })), "F"); });
+
+test("the enriched Senate: recall can succeed, it is hard, and going home matters", () => {
+  const reg = SYS.districtRegister(5); assert.ok(reg >= 400000 && reg <= 700000);
+  const run = (home) => { let S = { seed: 5, n: 3, home, register: reg }, last = null;
+    for (let i = 0; i < 6; i++) { const x = SYS.recallStep(S, () => .5); if (!x) return last || "none"; last = x.note; if (!x.recall) return last; if (x.note === "recalled") return "recalled"; S = { ...S, recall: x.recall, n: S.n + 1 }; } return last; };
+  assert.equal(run(15), "recalled", "a district that has turned on its senator can recall them");
+  assert.notEqual(run(32), "recalled", "a merely unhappy district usually fails at verification");
+  assert.equal(run(50), "none", "a content district starts no petition");
+  // Going home: the injunction freezes it; the palaces slow the signatures.
+  const S0 = { seed: 5, n: 4, home: 30, chest: 1, register: reg, recall: { stage: "petition", sigs: 200000 } };
+  const inj = SYS.homeAct(S0, SYS.HOME_ACTS.find(a => a.id === "injunction"), () => .9);
+  assert.equal(inj.recall.stallUntil, 5); assert.equal(SYS.recallStep({ ...S0, recall: inj.recall }, () => .5).note, "stalled");
+  assert.ok(SYS.homeAct(S0, SYS.HOME_ACTS.find(a => a.id === "rulers"), () => .9).recall.sigs < 200000);
+});
+test("the third-term amendment can be killed on the floor; screening can stop a bad nominee; the best become Senate President", () => {
+  const S = { seed: 1, n: 5, home: 60, clout: 65, cor: .1, govParty: true };
+  const kill = SYS.ttChoose({ ...S, tt: { stage: "debate", debate: "against", hotel: "expose" } }, "vote", "nay", () => .5);
+  assert.equal(kill.passed, false); assert.ok(kill.ayes < SYS.OVERRIDE_NEED);
+  const pass = SYS.ttChoose({ ...S, clout: 40, tt: { stage: "debate", debate: "for", hotel: "take" } }, "vote", "aye", () => .5);
+  assert.equal(pass.passed, true);
+  const fake = SYS.NOMINEES.find(n => n.flaw === "certificate"), g = SYS.screenChoice(fake, "grill", S, () => .1);
+  assert.ok(g.withdrawn && /does not exist/.test(g.msg));
+  const star = { home: 75, clout: 72, cor: .08, delivered: Array(8).fill("x"), projects: [1, 2, 3], sponsored: 2 };
+  assert.ok(SYS.spEligible(star)); assert.ok(!SYS.spEligible({ ...star, cor: .5 }));
+  assert.equal(SYS.spBid(star, ["zone", "record"], () => .5).won, true);
+  assert.ok(SYS.aideNotes({ ...S, home: 30, recall: { stage: "petition", sigs: 100000 }, register: 500000, items: [] }, 5).some(x => /The recall/.test(x.t)));
+});
