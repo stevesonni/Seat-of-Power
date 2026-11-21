@@ -3,7 +3,13 @@
 
 
 
-## The 9th letter, neighbours on Tori, and a deal with every neighbour (21 Nov, latest)
+## Ultramodern classroom blocks (21 Nov, latest)
+
+- **New programme: "Build Ultramodern Classroom Blocks".** It costs ₦3.5B, takes 2 years, and gives literacy +5, health +1 and approval +7: 300 blocks with roofs, desks, toilets, fans and solar.
+- **It is now the fix for the need "Pupils in … sit on the floor"**, together with recruiting teachers. School feeding no longer counts as an answer to children sitting on the floor.
+- **Pictures:** docs/LOVABLE-CLASSROOMS.md lists the images for Lovable. Until they arrive, the card borrows `decisions/edu_compulsory`.
+
+## The 9th letter, neighbours on Tori, and a deal with every neighbour (21 Nov)
 
 - **The 9th letter.** Every year the Chief of Staff's "On this year's calendar" letter arrives outside the 8-letter cap, and the yearly card limit never drops it.
   - Its buttons open the State Economic Council and a trade mission to a neighbour (for the President, the Economic Advisory Council).

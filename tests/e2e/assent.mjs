@@ -12,6 +12,9 @@ const g = await open(srv.port, { save: { ...YEAR1, sop_save: JSON.stringify(sv0)
 await g.click(/^Continue/); await g.wait(1800);
 const r = await playUntil(g, t => /Executive orders/.test(t) && /Programmes/.test(t), { max: 160, prefer: [/^Later$/] });
 check(r.ok, "reached the policy step");
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("button[role=tab]")].find(x => x.textContent.trim() === "Programmes"); b && b.click(); }); await g.wait(500);
+await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /^Show all \d+ programmes/.test(x.textContent.trim())); b && b.click(); }); await g.wait(500);
+check(/Build Ultramodern Classroom Blocks/.test(await g.page.evaluate(() => document.body.innerText)), "the programmes include ultramodern classroom blocks");
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button[role=tab]")].find(x => x.textContent.trim() === "Bills"); b && b.click(); }); await g.wait(600);
 const nm = await g.page.evaluate(() => { const c = [...document.querySelectorAll("div")].filter(d => /Likely to pass/.test(d.textContent) && d.onclick !== undefined && d.children.length > 2 && d.textContent.length < 600).pop(); if (!c) return null; const n = c.querySelector("div[style*='font-weight: 600']"); c.click(); return n ? n.textContent : c.textContent.slice(0, 40); });
 check(!!nm, "sent a bill to the House (" + nm + ")"); await g.wait(1200);
