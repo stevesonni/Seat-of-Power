@@ -1542,7 +1542,8 @@ function makeCast(setup, stateId, zone) {
   const r = rng((stateId || "").length * 131 + ((setup && setup.nm) || "").length * 17 + 7);
   // Same seed and call as the first campaign, so this is the opponent the
   // player already met.
-  const oppName = gN(rng((stateId ? stateId.length : 5) * 77 + 99), zone, stateId);
+  // The person you actually beat (setup.election), or, for older saves, the seeded opponent of the first campaign.
+  const oppName = (setup && setup.election && SYS.bareName(setup.election.opp)) || gN(rng((stateId ? stateId.length : 5) * 77 + 99), zone, stateId);
   const opp = "Hon. " + oppName;
   // No two people in the cast share a name or a surname.
   const used = new Set([oppName, (setup && setup.nm) || "", (setup && setup.depGov && setup.depGov.nm) || ""].filter(Boolean));
@@ -6120,6 +6121,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The cast (see makeCast). Saves from before the cast get one built now.
   const [cast, setCast] = useState(() => {
     const c = ld?.cast || makeCast(setup, state, sd?.zone);
+    // The rival is the person you actually ran against (older saves kept a seeded name).
+    if (c.rival && setup?.election?.opp && SYS.bareName(c.rival.name) !== SYS.bareName(setup.election.opp)) c.rival = { ...c.rival, name: "Hon. " + SYS.bareName(setup.election.opp) };
     return { ...c, godfather: { ...c.godfather, title: gfPersona(STATE_GODFATHERS[state]).title } };
   });
   const castRef = React.useRef(cast);
@@ -7758,7 +7761,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const delivered = (projects || []).filter(p => p.status === "delivered" && (p.decisions || []).some(d => d.year === turn)).length;
     const weak = (ministries || []).filter(m => m.minister).sort((a, b) => (a.perf || 50) - (b.perf || 50))[0];
     return { nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
-      stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, oppName: cast.rival && cast.rival.name, reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints,
+      stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, ...(() => { const T = SYS.toriOpponent({ turn, R: stc.rival, dep: depGov && depGov.nm, rival: cast.rival && cast.rival.name, rivalParty: setup?.election?.oppParty, reOpp: stc.reOpp, reOppParty: stc.reOppParty }); return { oppName: T.name, oppParty: T.party, oppDeputy: !!T.deputy }; })(), reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints,
       // The President's world: the war (once the storyline starts) and this year's crackdown, for foreign accounts.
       war: NAT && stc.bakunda && (stc.bakunda.stage || 0) >= 2 ? (() => { const B = stc.bakunda, K = SYS.bkCountry(B); return { nm: K.nm, adj: K.adj, cap: K.cap, gen: K.gen, art: K.art, stage: B.stage, atWar: !!B.atWar, progress: B.progress || 0, done: !!B.done, treaty: B.treaty }; })() : null,
       crackdown: !!((((stc.tori || {}).tools || {})[turn] || {}).crackdown),
@@ -8862,6 +8865,33 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             track("rival_" + RC.id, o.id);
             return { icon: o.truce ? "🤝" : o.end ? "⚖️" : "⚔️", img: face(o.truce ? "pleased" : "angry"), title: o.l, text: o.say, tone: o.truce ? "good" : (o.fx || {}).app < 0 ? "bad" : "neutral",
               rows: [{ l: "Your " + (NAT ? "Vice-President" : "deputy"), v: o.truce ? "At peace" : R1.over ? "Gone to the opposition" : "Feud deepens", good: !!o.truce }], learn: RC.learnText };
+          } })) });
+      }
+    }
+    // Who comes after you (SYS.succession): in the final term, a deputy still on your side goes for your seat with the
+    // party behind them; you can bless them or anoint someone else, and the primary decides.
+    {
+      const dn = (depGov && depGov.nm) || null, office = NAT ? "president" : "governor";
+      const others = [];
+      const topMin = (ministries || []).filter(m => m.minister).sort((a, b) => (b.perf || 50) - (a.perf || 50))[0];
+      if (topMin) others.push({ id: "min", name: "Hon. " + topMin.minister, role: (NAT ? "Minister of " : "Commissioner for ") + topMin.name });
+      if (cast.speaker && cast.speaker.name) others.push({ id: "speaker", name: cast.speaker.name, role: NAT ? "Speaker of the House of Representatives" : "Speaker of the House of Assembly" });
+      const SC = dn && SYS.succCard(next.succ, turn, { office, dep: dn, others, R: next.rival, pStab: s.pStab, app: s.app });
+      if (SC) {
+        const fem = FEMALE_FIRST.includes(String(dn).split(" ")[0]);
+        const face = (mood) => NAT ? "./art/characters/vice-president" + (fem ? "-female" : "") + (mood ? "-" + mood : "") + ".webp" : deputyArt(fem, sd.zone, mood === "angry" ? 20 : mood === "pleased" ? 80 : 50);
+        cards.push({ key: "succ_" + turn, kicker: SC.kicker, color: CL.gold, from: SC.from, img: face(SC.id === "primary" ? "angry" : "pleased"),
+          art: [NAT ? "villa-office" : "governor-office", face(null).replace(/^.*\//, "").replace(/\.webp$/, ""), null, null], title: SC.t, brief: SC.d,
+          options: SC.opts.map(o => ({ label: o.l, chips: fxChips({ app: (o.fx || {}).app, cor: (o.fx || {}).cor }).concat((o.fx || {}).pStab ? [{ text: "Party " + sgnN(o.fx.pStab), color: o.fx.pStab > 0 ? CL.grn : CL.red }] : [], o.cost > 0 ? [{ text: naira(o.cost), color: CL.org }] : []), run: () => {
+            scFx({ ...(o.fx || {}), debt: o.cost > 0 ? o.cost : 0 });
+            const S1 = SYS.succAfter(stc.succ || next.succ, o, turn, dn);
+            setStc(p => ({ ...p, succ: SYS.succAfter(p.succ || next.succ, o, turn, dn) }));
+            addL("👑 " + SC.t + ": " + o.l.toLowerCase() + ".", "political");
+            const legacy = SYS.succLegacy(S1, dn, office); if (S1.over && legacy) scWiki("Governorship", legacy);
+            track("succ_" + SC.id, o.id);
+            const good = o.won === true || o.heir === "deputy";
+            return { icon: o.won === false ? "🗳️" : "👑", img: face(o.won === false || (o.heir && o.heir !== "deputy") ? "angry" : "pleased"), title: o.l, text: o.say, tone: o.won === false ? "bad" : good ? "good" : "neutral",
+              rows: S1.heirName ? [{ l: "Your successor", v: S1.heirName + (S1.primary === "lost" ? " (won the primary against your choice)" : ""), good: o.won !== false }] : [], learn: SC.learn };
           } })) });
       }
     }
@@ -15289,8 +15319,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const oppSeed = turn * 99 + state.length * 77;
             const oppR = rng(oppSeed);
             gN(oppR, sd.zone, setup?.state); // keeps the party draw below unchanged
-            const oppName = cast.rival.name; // the rival from the first election comes back
-            const oppParty = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
+            const oppPartyDrawn = PARTIES.filter(p => MAIN_PARTY_IDS.includes(p.id) && p.id !== party)[Math.floor(oppR() * (MAIN_PARTY_IDS.includes(party) ? 3 : 4))];
+            // The rival you beat comes back on their own party's ticket; a deputy you fell out with crosses over and takes it (SYS.succession).
+            const oppParty = PARTIES.find(p => p.id === setup?.election?.oppParty && p.id !== party) || oppPartyDrawn;
+            const RO = SYS.reelectionOpponent({ R: stc.rival, dep: depGov && depGov.nm, rival: cast.rival.name, rivalParty: oppParty?.id, office: NAT ? "president" : "governor" });
+            const oppName = RO.deputy ? RO.name : cast.rival.name;
+            const depBanner = RO.deputy && campRound < 2 ? <div data-sop-dep-runs style={{ display: "flex", gap: 12, alignItems: "center", background: "#fdecea", border: "2px solid " + CL.red + "55", borderRadius: 16, padding: "12px 14px", marginBottom: 14, textAlign: "left" }}>
+              <img src={NAT ? "./art/characters/vice-president" + (FEMALE_FIRST.includes(String(RO.name).split(" ")[0]) ? "-female" : "") + "-angry.webp" : deputyArt(FEMALE_FIRST.includes(String(RO.name).split(" ")[0]), sd.zone, 20)} alt="" style={{ width: 56, height: 56, borderRadius: 14, objectFit: "cover", objectPosition: "top", background: "#fff", flexShrink: 0 }} />
+              <div><b style={{ display: "block", fontSize: TS(32), color: CL.red }}>Your {NAT ? "Vice-President" : "deputy"} is running against you</b><span style={{ fontSize: TS(28), color: CL.txt, lineHeight: 1.4 }}>{RO.line}</span></div></div> : null;
             // How you handled each zone's needs carries into the vote there.
             const rawReZones = campZones || buildBattlegrounds(state, turn * 2027, party, oppParty?.id).map(z => ({ ...z, support: cl100(z.support + ((s.zoneMood || {})[z.id] || 0)) }));
             // Your record is in the polls from the first day (approval, party, corruption, reputation,
@@ -15504,6 +15540,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             // YOUR ACTION
             const weekActs = acts[Math.floor(campRound / 2)] || acts[0];
             return <Cd style={{ padding: TALL() ? "14px 14px" : "24px 28px" }}>
+              {depBanner}
               {board(false, null)}
               <div style={{ textAlign: "center", marginBottom: 12 }}>
                 {campWarChest < 0.2 && !campGfBorrowed && setup?.level !== "easy" && (() => {

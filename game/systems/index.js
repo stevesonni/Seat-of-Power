@@ -68,3 +68,4 @@ export * from "./drama.js";
 export * from "./local.js";
 export * from "./tori.js";
 export * from "./xp.js";
+export * from "./succession.js";

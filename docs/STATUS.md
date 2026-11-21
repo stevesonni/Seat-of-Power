@@ -3,7 +3,18 @@
 
 
 
-## New home screen: Abuja at Dusk (21 Nov, latest)
+## Your opponent, your deputy and who comes after you (21 Nov, latest)
+
+- **The opposition on Tori is the person you actually beat**, with their party (`setup.election`). In the second term it is the person you faced at the re-election (`stc.reOpp`). Older saves get the rival's name corrected when they load.
+- **A fallen-out deputy or Vice-President runs against you.** If the feud with the deputy (game/systems/rivalry.js) started and did not end in a truce, the deputy crosses to the opposition party and takes its re-election ticket. A red banner on the first campaign week says so. Once the deputy has defected, they lead the Tori attacks from Year 4.
+- **The succession (second term, deputy still on side)**, in game/systems/succession.js:
+  - **Year 6:** the deputy moves for your seat with the party chairman behind them. You can bless them, say it is too early, or tell them to stand down.
+  - **Year 7:** you back the deputy, or anoint someone else: your best-performing commissioner or minister, or the Speaker.
+  - **Year 8:** if you anointed someone else, the primary decides. You can pay the delegates, work the phones, or allow a free vote. The result depends on your party standing and approval, with some luck.
+  - The outcome goes into the career story.
+- **Tests:** `tests/succession.test.mjs`.
+
+## New home screen: Abuja at Dusk (21 Nov)
 
 The owner chose design A from the round-three canvas.
 - **The picture.** The Abuja skyline at dusk fills the screen. On a laptop the content sits on the left; on a phone it sits below the picture, with the Seat of Power logo in between.

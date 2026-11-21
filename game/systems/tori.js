@@ -223,7 +223,7 @@ export function toriReplyContext(t, c) {
 export function toriOpposition(c) {
   const r = rngOf("opp" + c.st + c.turn), S = tagSt(c.st), N = stNm(c.st), nm = c.oppName || "The opposition candidate", party = c.oppParty || "the opposition", out = [];
   const me = toriHandle(c.st), boss = c.nat ? "the President" : "the Governor", house = c.nat ? "Aso Rock" : "Government House";
-  const post = (text, w, topic) => out.push({ id: "o" + hash(text), kind: "opposition", name: nm, sub: party + " candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", text, topic: topic || "approval", w, ago: "", ...counts(r, Math.min(6, 1 + w / 2)), verified: true, fair: w >= 1 });
+  const post = (text, w, topic) => out.push({ id: "o" + hash(text), kind: "opposition", name: nm, sub: (c.oppDeputy ? (c.nat ? "Vice-President" : "Deputy Governor") + " · " : "") + party + " candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", text, topic: topic || "approval", w, ago: "", ...counts(r, Math.min(6, 1 + w / 2)), verified: true, fair: w >= 1 });
   const app = Math.round(c.app), prev = c.appPrev == null ? null : Math.round(c.appPrev), T = c.tools || {};
   // Approval: every dip is news.
   if (prev != null && app <= prev - 2) post("Approval down from " + prev + "% to " + app + "% in one year. " + me + ", that is not a dip. That is " + N + " walking away from you. #" + S + "DeservesBetter", 6 + (prev - app) / 2);
