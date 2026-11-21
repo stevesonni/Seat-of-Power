@@ -3,7 +3,14 @@
 
 
 
-## The President can ask again for fled money (21 Nov, latest)
+## Lights on: the dam and power plants (21 Nov, latest)
+
+- **The new film.** When a dam (including the President's 3,000 MW hydropower dam) or a power plant is finished, the film should show a dark village with the lights spreading out. docs/GEMINI-REELS.md has the new prompts for `dam.mp4` and `power.mp4`, for Gemini to make.
+- **The stand-in.** Until the films arrive, the result card plays a lights-on animation: `scenes/national-grid-dark` starts dark, a flash at the power line, then the lit city revealed outwards (public/seat-of-power.html, `o.lights`).
+  - It is a still picture for players who turn motion off.
+  - Installing a film (and adding it to `REELS`) replaces the stand-in.
+
+## The President can ask again for fled money (21 Nov)
 
 - **How the money comes back.** When a contractor flees abroad, the President's card offers "Have the Attorney-General ask … to freeze it and send it home". It works at a standing abroad of 55/100 or more. Summits and state visits, higher approval and lower corruption raise that standing. The full amount comes home the next year.
 - **New: asking again.** If the country refuses, a card "Ask … again" comes back every year with the current standing, until the money is home or you let it go (chain kind `japa_ask`).

@@ -17,6 +17,10 @@ installs them.
 > **No text, no words, no signs with lettering, no logos, no flags with emblems, no watermarks.** No famous or
 > recognisable people. Nobody looks into the camera. Nothing violent or sad.
 
+## Night films (dam.mp4, power.mp4)
+
+For these two, replace "Late-afternoon golden light" in the style block with "Night, then the lights come on". Until the films arrive, the game shows a lights-on animation over `scenes/national-grid-dark` (the result card's `o.lights`). When `dam.mp4` or `power.mp4` is installed, add `dam: 1` or `power: 1` to `REELS` in game/systems/projects.js, and the film plays instead.
+
 ## The films
 
 | File | Project | Prompt (after the style block) |
@@ -31,8 +35,8 @@ installs them.
 | polytechnic.mp4 | Polytechnic | A new polytechnic campus with workshops and lecture halls, and students in overalls at a workshop door. A slow aerial pass. |
 | university.mp4 | University | A new university campus with a modern library, wide walkways and students on the lawns. A slow rising aerial shot. |
 | water.mp4 | Water scheme | A new borehole and an overhead water tank on a steel stand in a village. Women and children fill buckets at clean taps, laughing. The camera lowers from the tank to the taps. |
-| dam.mp4 | Dam | A new concrete dam holding a broad reservoir, with water flowing down the spillway and green farmland below. A slow aerial sweep. |
-| power.mp4 | Power plant | A new solar farm and small power station at the edge of a town. Streetlights in the town flick on as dusk falls. The camera rises over the panels. |
+| dam.mp4 | Dam (the 3,000 MW hydropower dam, and state dams) | **Night, not golden hour (owner, 21 Nov 2026).** A Nigerian village at night in total darkness: only moonlight, a kerosene lantern in one doorway, the outlines of zinc roofs and palm trees. The camera holds still for a second. Then the power comes on: the first bulb in a house near the camera flickers and glows, then lights spread outward street by street, house by house, to the far edge of the village, and the streetlights along the road come on in a line. People step out of their doorways into the light and children run into the street cheering. A slow push-in. |
+| power.mp4 | Power plant (solar, gas, mini-grids, rural electrification) | The same idea as dam.mp4, a different place: a small town at dusk in darkness, then lights spread out from the power station at the edge of town across every street, and a market lights up with traders cheering. One slow aerial move. |
 | market.mp4 | Market | A new covered market with rows of clean stalls under a steel roof. Traders arrange tomatoes, peppers and fabric, and buyers walk the aisles. The camera moves down a busy aisle. |
 | housing.mp4 | Housing estate | A new estate of neat bungalows with paved streets and young trees. Families carry boxes into their new homes. A slow aerial pass. |
 | vehicles.mp4 | Patrol fleet | A row of new patrol pickups in plain dark blue (no lettering) parked in front of a police station. The engines start and the lights come on. A slow dolly along the row. |

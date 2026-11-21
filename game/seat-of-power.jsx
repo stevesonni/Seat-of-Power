@@ -10721,7 +10721,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try {
       window.SOP_outcome({ icon: "✂️", img: ribbonImg, badge: "./art/objects/ceremonial-scissors.webp", title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" });
       // The finished work on film (art/reels, made with Gemini; docs/GEMINI-REELS.md); the ribbon picture if there is none yet.
-      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", video: SYS.reelFor(p.type, p.id), ...(pillarOn("map") && !NAT && (p.lga || (p.lgas || [])[0]) ? { action: { label: "🗺️ See it on the map", fn: () => { setMapFocus(p.lga || p.lgas[0]); setNav("smap"); } } } : {}), title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
+      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", video: SYS.reelFor(p.type, p.id), lights: ["dam", "power"].includes(p.type) ? "./art/scenes/national-grid-dark.webp" : null, ...(pillarOn("map") && !NAT && (p.lga || (p.lgas || [])[0]) ? { action: { label: "🗺️ See it on the map", fn: () => { setMapFocus(p.lga || p.lgas[0]); setNav("smap"); } } } : {}), title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
     } catch (e) {}
     paper(RH.h, RH.sub, RH.good, ribbonImg);
   };
