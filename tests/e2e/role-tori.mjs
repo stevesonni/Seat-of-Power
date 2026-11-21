@@ -7,7 +7,10 @@ const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const profile = JSON.stringify({ first: "Ada", last: "Okafor", avatar: "agbada", origin: "Enugu", district: 1, leaning: "PFP", lga: "Nsukka" });
 const startRole = async (row, steps) => {
-  const g = await open(srv.port, { save: { sop_profile: profile }, seed: 12 });
+  const g = await open(srv.port, { save: { sop_profile: profile }, seed: 12, test: { aiReplies: true } });
+  // The aide's drafts (server/tori-ai.mjs) are stubbed: they echo the office the game says it is, and keep the body.
+  g.sent = [];
+  await g.page.route("**/api/tori/replies", r => { const b = JSON.parse(r.request().postData() || "{}"); g.sent.push(b); r.fulfill({ contentType: "application/json", body: JSON.stringify({ options: [{ kind: "honest", text: "DRAFTED for " + (b.ctx || {}).office + ": " + String((b.post || {}).text || "").slice(0, 20), truth: true, reaction: "REACTED to the " + (b.ctx || {}).office, callout: "" }, { kind: "spin", text: "DRAFTED spin", truth: false, reaction: "No be so.", callout: "Ratio." }] }) }); });
   await g.page.mouse.click(28, 26); await g.wait(500); await g.click(/^Careers/); await g.wait(500);
   await g.page.evaluate((src) => { const r = [...document.querySelectorAll("[role=dialog] div")].find(d => new RegExp(src).test(d.textContent.trim()) && d.querySelector("button")); r && r.querySelector("button").click(); }, row.source); await g.wait(900);
   for (const re of steps) { await g.click(re); await g.wait(600); }
@@ -27,12 +30,13 @@ async function check1(g, role, handleRe, feedRe) {
   check(handleRe.test(me), role + ": its own account (" + (me.match(handleRe) || [""])[0] + ")");
   check(feedRe.test(t), role + ": a feed about its own world");
   await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-testid=tori] [role=tab]")].find(x => x.getAttribute("aria-label") === "Home"); b && b.click(); }); await g.wait(300);
-  await g.page.evaluate(() => { const b = document.querySelector("[data-testid=tori] [data-sop-tweet=citizen] [data-sop-tori-act=reply]"); b && b.click(); }); await g.wait(300);
+  await g.page.evaluate(() => { const b = document.querySelector("[data-testid=tori] [data-sop-tweet=citizen] [data-sop-tori-act=reply]"); b && b.click(); }); await g.wait(1200);
   const opts = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-tori-comment]")].map(b => b.textContent));
-  check(opts.length >= 2 && !opts.some(o => /^Thank you! This is just the beginning/.test(o)), role + ": reply options fit the post (" + opts.slice(0, 2).join(" / ").slice(0, 120) + ")");
+  check(opts.some(o => /^DRAFTED for (federal senator|local government chairman|Nigerian ambassador): /.test(o)), role + ": the aide drafts replies for this post, as this office (" + (opts[0] || "").slice(0, 70) + ")");
+  check(g.sent.length > 0 && !JSON.stringify(g.sent).includes("Okafor"), role + ": the aide gets the record, never the player's name");
   if (opts.length) { await g.page.evaluate(() => document.querySelector("[data-sop-tori-comment]").click()); await g.wait(400); }
   const after = await g.page.evaluate(() => document.querySelector("[data-testid=tori]").innerText);
-  check(/replying to @/.test(after), role + ": the reply shows under the post, and people answer");
+  check(/replying to @/.test(after) && /REACTED to the /.test(after), role + ": the reply shows under the post, and the poster answers what you said");
   if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/tori-" + role + ".png" });
   check(!g.errors.length, role + ": no page errors" + (g.errors.length ? ": " + g.errors.join("; ") : ""));
 }

@@ -2310,6 +2310,21 @@ const TORI_IC = {
 };
 const ToriIc = ({ d, s = 22, c = "currentColor", fill = "none" }) => <svg viewBox="0 0 24 24" width={s} height={s} aria-hidden="true" style={{ display: "block", flex: "none" }}><path d={d} fill={fill} stroke={fill === "none" ? c : "none"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 const ToriBadge = ({ s = 16 }) => <svg viewBox="0 0 24 24" width={s} height={s} aria-label="Verified" style={{ display: "inline-block", verticalAlign: "-3px", marginLeft: 2 }}><path d="M12 2l2.4 1.7 2.9-.2.9 2.8 2.5 1.5-.8 2.8.8 2.8-2.5 1.5-.9 2.8-2.9-.2L12 22l-2.4-1.7-2.9.2-.9-2.8-2.5-1.5.8-2.8-.8-2.8 2.5-1.5.9-2.8 2.9.2z" fill="#1d9bf0" /><path d="M8 12.2l2.6 2.6L16.2 9" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+/* The aide's drafted replies for one post, for every office (server/tori-ai.mjs makeToriReplies): career is a hash
+   (never the player's name), ctx the office's record. Resolves to options, or null (the quick replies are used). */
+const TORI_DRAFTS = {};
+const toriDraft = (career, ctx, x, self) => {
+  if (window.SOP_TEST && !window.SOP_TEST.aiReplies) return Promise.resolve(null);
+  if (!/^https?:/.test(location.protocol) || !ctx) return Promise.resolve(null);
+  const k = career + "|" + x.id; if (TORI_DRAFTS[k]) return TORI_DRAFTS[k];
+  // The player's own handle can carry their surname (@SenOkafor): it never leaves the game; "@you" stands in.
+  const red = (t) => self ? String(t || "").split(self).join("@you") : String(t || "");
+  const P = Promise.race([fetch("/api/tori/replies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ career: String(career), ctx: { ...ctx, handle: self ? "@you" : ctx.handle }, post: { name: x.name, handle: x.handle, kind: x.kind, text: red(x.quote ? x.text + " (quoting: " + x.quote.text + ")" : x.text), thread: (x.thread || []).map(r => ({ ...r, text: red(r.text) })) } }) })
+    .then(r => r.ok ? r.json() : null).then(j => j && Array.isArray(j.options) && j.options.length ? j.options.map((o, i) => ({ ...o, id: o.id || "ai" + i, text: self ? String(o.text || "").split("@you").join(self) : o.text, promise: o.kind === "promise" ? "general" : null, fx: o.truth === false ? { app: -1 } : o.kind === "honest" ? { app: 1 } : {}, ai: true })) : null).catch(() => null),
+    new Promise(ok => setTimeout(() => ok(null), 12000))]);
+  TORI_DRAFTS[k] = P.then(v => { if (!v) delete TORI_DRAFTS[k]; return v; });
+  return TORI_DRAFTS[k];
+};
 /* props: me { short, full, handle, pic, bio, joined, following, followers }, feed, trends, where, opp, oppLabel, mentions,
    why (node, top of For you), tweetExtra (x → node), year (the store's key), store { posts, acts }, posts: { left,
    options, onPost(o) }, replies: { left, optionsFor(x), onReply(x, o) }, onAct(id, f), notif, onClose */
@@ -2462,6 +2477,10 @@ const RoleTori = ({ c, pic, store, setStore, onApp, onLog }) => {
   const used = Object.values(S.acts || {}).reduce((a, v) => a + ((v.comments || []).filter(cm => cm.year === yr).length), 0);
   const me = { ...R.me, pic, joined: "Joined " + (c.year || 2027), followers: 4000 + (c.app || 50) * 300 + (S.posts || []).reduce((a, p) => a + (p.likes || 0) / 4, 0) };
   const top = R.trends[0], tall = TALL();
+  // The office's record for the aide (no player name): what this senator, chairman or ambassador has done.
+  const roleCtx = { office: { senate: "federal senator", lga: "local government chairman", amb: "Nigerian ambassador" }[c.role] || c.role, handle: R.me.handle, state: c.st || null, lga: c.lga || null, posting: c.country ? c.country + (c.city ? " (" + c.city + ")" : "") : null, year: c.year, sessionOrYear: c.n,
+    supportWithPeople: Math.round(c.app || 0), corruptionPct: Math.round((c.cor || 0) * 100), votes: (c.bills || []).slice(-6).map(b => b.t + ": voted " + b.v + (b.passed ? ", passed" : ", failed")), whatHappened: (c.story || []).slice(-6),
+    governor: c.govName || null, governorFavour: c.gov == null ? null : Math.round(c.gov), road: c.road || null, councilRival: c.rival || null, hostGovernment: c.host == null ? null : Math.round(c.host), abujaFavour: c.abuja == null ? null : Math.round(c.abuja), tradeDeals: c.trade == null ? null : c.trade, citizensHelped: c.helped == null ? null : c.helped };
   const onPost = (o) => { const Rx = SYS.toriReact({ ...o, about: o.id }, { ...c, st: c.st || "Nigeria" }, yr + ":" + o.id); setStore(p => ({ ...(p || {}), posts: [...((p || {}).posts || []), { turn: yr, id: o.id, text: o.text, likes: Rx.likes, rts: Rx.rts, replies: Rx.replies, ratio: Rx.ratio }].slice(-30) })); if (Rx.fx.app) onApp(Rx.fx.app); onLog && onLog("Posted on Tori: “" + o.text + "” " + Rx.line); };
   const onReply = (x, o) => { const Rx = SYS.toriReplyReact(o, x, yr + x.id + o.id); setStore(p => { const A = (p || {}).acts || {}; return { ...(p || {}), acts: { ...A, [x.id]: { ...(A[x.id] || {}), comments: [...((A[x.id] || {}).comments || []), { year: yr, text: o.text, replies: Rx.replies }] } } }; }); if (o.fx && o.fx.app) onApp(o.fx.app); onLog && onLog("Replied on Tori to " + x.name + ": “" + o.text + "”" + (o.truth === false ? " It was called out." : "")); };
   return <>
@@ -2470,7 +2489,7 @@ const RoleTori = ({ c, pic, store, setStore, onApp, onLog }) => {
         <span style={{ color: "#1d9bf0", fontWeight: 700, fontSize: tall ? TS(14) : TS(19) }}>{top ? top.tag + " is trending" : "What people are saying"}</span></span><span style={{ color: CL.td }}>›</span></button>
     {open && <ChatScreen><ToriApp me={me} feed={R.feed} trends={R.trends} where={R.where} opp={R.opp} oppLabel={R.oppLabel} year={yr} store={S}
       posts={{ left: SYS.TORI_POSTS_PER_YEAR - (S.posts || []).filter(p => p.turn === yr).length, options: R.options.filter(o => !(S.posts || []).some(p => p.turn === yr && p.id === o.id)), onPost }}
-      replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), onReply }}
+      replies={{ left: SYS.TORI_COMMENTS_PER_YEAR - used, optionsFor: (x) => SYS.toriReplies(x, c), remote: (x) => toriDraft(hashStr(c.role + "|" + (c.name || "") + "|" + (c.st || c.country || "")), roleCtx, x, R.me.handle), onReply }}
       onAct={(id, f) => setStore(p => { const A = (p || {}).acts || {}; return { ...(p || {}), acts: { ...A, [id]: f(A[id] || {}) } }; })}
       onClose={() => setOpen(false)} /></ChatScreen>}
   </>;
@@ -7671,24 +7690,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      record goes: the state, the numbers, the events in the third person. Never the player's name. If it fails, the
      game's own posts stay. */
   // The record as the AI sees it (no player name): shared by the year's posts and the reply drafts.
-  const toriAiCtx = () => { let c; try { c = toriCtx(); } catch (e) { return null; } const H = toriH(); return { st: c.st, nat: !!c.nat, turn: c.turn, year: c.year, handle: SYS.toriHandle(state), approval: Math.round(c.app), approvalLastYear: c.appPrev == null ? null : Math.round(c.appPrev), corruptionPct: Math.round((c.cor || 0) * 100), salaryMonthsOwed: c.arrears,
+  const toriAiCtx = () => { let c; try { c = toriCtx(); } catch (e) { return null; } const H = toriH(); return { office: NAT ? "President of Nigeria" : "state governor", st: c.st, nat: !!c.nat, turn: c.turn, year: c.year, handle: SYS.toriHandle(state), approval: Math.round(c.app), approvalLastYear: c.appPrev == null ? null : Math.round(c.appPrev), corruptionPct: Math.round((c.cor || 0) * 100), salaryMonthsOwed: c.arrears,
       strikes: (c.strikes || []).map(x => ({ union: x.short, year: x.years, metThisYear: !!x.talks })), finished: c.done, contractorsFled: (c.fled || []).map(f => ({ firm: f.firm, to: f.to, amountM: f.lossM, project: f.proj, reported: !!f.asked })),
       needs: (c.needs || []).map(n => ({ need: n.title, started: !!n.inWork, overdue: !!n.late })), news: SYS.toriNews(c).map(e => e.text + " (" + e.mood + ")"), trending: H.stories.slice(0, 3).map(x => x.tag + ": " + x.cause), heat: SYS.HEAT_STAGES[H.stage].nm,
       places: (c.places || []).slice(0, 8), opposition: c.oppName || null, brokenPromises: c.broken || 0, abandonedProjects: c.stalled || 0, war: c.war ? { country: c.war.nm, atWar: c.war.atWar, progress: c.war.progress } : null }; };
   const toriCareerKey = () => hashStr(String(state) + "|" + (setup && setup.startYear) + "|" + (pName || ""));
-  const toriReplyCache = React.useRef({});
-  // Reply options drafted for one post by the aide (server/tori-ai.mjs makeToriReplies); null when unavailable.
-  const toriRemoteReplies = (x) => {
-    if (window.SOP_TEST && !window.SOP_TEST.aiReplies) return Promise.resolve(null);
-    if (!/^https?:/.test(location.protocol)) return Promise.resolve(null);
-    if (toriReplyCache.current[x.id]) return toriReplyCache.current[x.id];
-    const ctx = toriAiCtx(); if (!ctx) return Promise.resolve(null);
-    const P = Promise.race([fetch("/api/tori/replies", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ career: toriCareerKey(), ctx, post: { name: x.name, handle: x.handle, kind: x.kind, text: x.quote ? x.text + " (quoting: " + x.quote.text + ")" : x.text, thread: x.thread || [] } }) })
-      .then(r => r.ok ? r.json() : null).then(j => j && Array.isArray(j.options) && j.options.length ? j.options.map(o => ({ ...o, promise: o.kind === "promise" ? "general" : null, fx: o.truth === false ? { app: -1 } : o.kind === "honest" ? { app: 1 } : {}, ai: true })) : null).catch(() => null),
-      new Promise(ok => setTimeout(() => ok(null), 12000))]);
-    toriReplyCache.current[x.id] = P.then(v => { if (!v) delete toriReplyCache.current[x.id]; return v; });
-    return toriReplyCache.current[x.id];
-  };
+  const toriRemoteReplies = (x) => toriDraft(toriCareerKey(), toriAiCtx(), x);
   const toriAiTried = React.useRef({});
   useEffect(() => {
     if (!streetOpen || toriAiTried.current[turn] || ((stc.tori || {}).ai || {})[turn] || window.SOP_TEST || !/^https?:/.test(location.protocol)) return;

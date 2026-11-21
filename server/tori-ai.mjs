@@ -88,15 +88,16 @@ const RSCHEMA = {
   properties: { options: { type: "array", items: { type: "object", additionalProperties: false, required: ["kind", "text", "truth", "reaction", "callout"],
     properties: { kind: { type: "string", enum: ["honest", "promise", "spin", "deny", "light", "action"] }, text: { type: "string" }, truth: { type: "boolean" }, reaction: { type: "string" }, callout: { type: "string" } } } } },
 };
-const RSYSTEM = `You are the New Media aide of a fictional Nigerian governor (or the President) in a politics game. The player is about to reply to one post on Tori, a Twitter-style app. Draft 3 or 4 reply options for THIS post only.
+const RSYSTEM = `You are the New Media aide of a fictional Nigerian politician in a politics game: a state governor, the President, a federal senator, a local government chairman or an ambassador (the record's "office" says which). The player is about to reply to one post on Tori, a Twitter-style app. Draft 3 or 4 reply options for THIS post only, in the voice and powers of that office (a senator votes, sponsors bills, holds hearings and brings constituency projects; a chairman runs a council with little money; an ambassador serves Nigerians abroad).
 
 Rules:
 - Every option must answer what the post actually says: name its place, its problem, its numbers, its person. No generic lines like "We are on it" or "Send us a DM".
-- Ground every claim in the record you are given. Set "truth" to false when the reply claims something the record contradicts (for example "salaries are paid" when months are owed, "work has started" when it has not, "we met the union" when nobody did).
+- Ground every claim in the record you are given. Set "truth" to false when the reply claims something the record contradicts (for example "salaries are paid" when months are owed, "work has started" when it has not, "we met the union" when nobody did, "I voted against it" when the record says yes).
 - Give a mix: one honest answer that owns the problem; one specific promise with a date or a concrete next step; one tempting spin or denial (usually truth false); optionally one light or human touch if the post is light.
 - Write in the voice the post uses: if it is in Pidgin, the replies may use Pidgin. Under 220 characters each. No hashtags unless natural. No links.
 - "reaction": what the person who posted replies to that option, in their own voice, reacting to exactly what was said (they quote it back if it is a promise; they call it out if it is false).
 - "callout": what people say if the claim is false or weak; empty string if the option is fine.
+- The player's own account may appear as @you; write it as @you if you need to mention it.
 - Real Nigerian places are fine. Never name a real person, party, company or brand.`;
 export function makeToriReplies({ dataDir }) {
   const dir = path.join(dataDir, "tori-ai", "replies"); try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
