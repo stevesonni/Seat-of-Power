@@ -50,7 +50,7 @@ await g.browser.close();
 // The album on the profile: earned cards in colour, the rest greyed out.
 const cards = JSON.stringify({ junketer: { n: 6, line: "6 trips abroad in office. Your passport needs its own budget line.", who: "Gov. Test", at: 1 } });
 const h = await open(srv.port, { save: { ...Y1, sop_cards: cards, sop_profile: JSON.stringify({ first: "Wale", last: "Adegoke", avatar: "agbada", origin: "Ogun", district: 1, leaning: "PFP" }) } });
-await h.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /^(Hon\. |👤Your politician)/.test(x.textContent.trim())); b && b.click(); }); await h.wait(700);
+await h.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /^(Hon\. |👤Your politician)/.test(x.textContent.trim()) || /^(Your politician|Create your politician)$/.test(x.getAttribute("aria-label") || "")); b && b.click(); }); await h.wait(700);
 const at = await h.txt();
 check(/My cards/.test(at) && /1 of 24 earned/.test(at), "the album counts the cards (" + ((at.match(/\d+ of 24 earned/) || ["?"])[0]) + ")");
 await h.page.evaluate(() => { const b = [...document.querySelectorAll("[data-testid=card-album] button")].find(x => !x.disabled); b && b.click(); }); await h.wait(700);
