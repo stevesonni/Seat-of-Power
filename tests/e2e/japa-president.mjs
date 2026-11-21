@@ -52,5 +52,9 @@ await g.browser.close();
 const bad = await run(0, 58, .3);
 check(bad.found && !bad.agreed && /declined to act/.test(bad.text) && /standing abroad \(\d+\/100\)|weak/.test(bad.text), "poor standing abroad: the country declines and says why; nothing is booked");
 console.log("  bad:", bad.found, bad.agreed, /declined to act/.test(bad.text), (bad.text.match(/standing abroad[^.]*/) || [""])[0]);
+// The next year the request comes back (owner, 21 Nov 2026: "as president how do I get the money back").
+let again = false;
+await playUntil(bad.g, () => again, { max: 400, prefer: [/Attorney-General ask Canada again/], onStep: async () => { if (!again) again = await bad.g.page.evaluate(() => (window.SOP.logs || []).some(l => /asked Canada again/.test(l.tx))); } });
+check(again, "after a refusal, the President can ask again the next year");
 await bad.g.browser.close();
 srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

@@ -3,7 +3,13 @@
 
 
 
-## Ultramodern classroom blocks (21 Nov, latest)
+## The President can ask again for fled money (21 Nov, latest)
+
+- **How the money comes back.** When a contractor flees abroad, the President's card offers "Have the Attorney-General ask … to freeze it and send it home". It works at a standing abroad of 55/100 or more. Summits and state visits, higher approval and lower corruption raise that standing. The full amount comes home the next year.
+- **New: asking again.** If the country refuses, a card "Ask … again" comes back every year with the current standing, until the money is home or you let it go (chain kind `japa_ask`).
+- **Tests:** `tests/e2e/japa-president.mjs`.
+
+## Ultramodern classroom blocks (21 Nov)
 
 - **New programme: "Build Ultramodern Classroom Blocks".** It costs ₦3.5B, takes 2 years, and gives literacy +5, health +1 and approval +7: 300 blocks with roofs, desks, toilets, fans and solar.
 - **It is now the fix for the need "Pupils in … sit on the floor"**, together with recruiting teachers. School feeding no longer counts as an answer to children sitting on the floor.
