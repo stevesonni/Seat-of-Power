@@ -1,5 +1,7 @@
 # Lovable art: ultramodern classroom blocks
 
+**Delivered (21 Nov 2026): all three are in the game.** The programme card uses `decisions/classrooms`, the "sit on the floor" need uses `scenes/classroom-floor-before`, and the front page on completion uses `scenes/classroom-commissioning`.
+
 The governor can now build ultramodern classroom blocks (the programme "Build Ultramodern Classroom Blocks"). It is the fix for the need "Pupils in … sit on the floor". Until the pictures arrive, the game borrows `decisions/edu_compulsory`.
 
 ## Rules

@@ -7,7 +7,7 @@
 
 - **New programme: "Build Ultramodern Classroom Blocks".** It costs ₦3.5B, takes 2 years, and gives literacy +5, health +1 and approval +7: 300 blocks with roofs, desks, toilets, fans and solar.
 - **It is now the fix for the need "Pupils in … sit on the floor"**, together with recruiting teachers. School feeding no longer counts as an answer to children sitting on the floor.
-- **Pictures:** docs/LOVABLE-CLASSROOMS.md lists the images for Lovable. Until they arrive, the card borrows `decisions/edu_compulsory`.
+- **Pictures (from Lovable, in the game):** `decisions/classrooms` on the programme card, `scenes/classroom-floor-before` on the need, and `scenes/classroom-commissioning` on the front page when the blocks are finished.
 
 ## The 9th letter, neighbours on Tori, and a deal with every neighbour (21 Nov)
 
