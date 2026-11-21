@@ -3,7 +3,22 @@
 
 
 
-## Tori posts that reflect what is going on (21 Nov, latest)
+## The 9th letter, neighbours on Tori, and a deal with every neighbour (21 Nov, latest)
+
+- **The 9th letter.** Every year the Chief of Staff's "On this year's calendar" letter arrives outside the 8-letter cap, and the yearly card limit never drops it.
+  - Its buttons open the State Economic Council and a trade mission to a neighbour (for the President, the Economic Advisory Council).
+  - Picking one sends a follow-up letter for whatever is still not done.
+- **Neighbouring governors on Tori** (game/systems/tori.js `toriNeighbours`). Each year a few of them post about their own work, and about the deal with you: warm if relations are good, sour if not.
+  - An opposition governor jabs across the border when you are struggling.
+  - All of them salute you once you have a deal with every neighbour.
+- **A deal with every neighbour** (game/systems/interstate.js `tradeCoverage`; deals that later ended still count) pays out once:
+  - approval +5 and party +3, and every neighbour warms to you;
+  - a front page, the honour "Regional statesman", and +100 to the career score.
+  - The limit on deals in force is now the number of neighbours, so every state can reach it.
+- **XP pop-ups removed.** XP still counts in the progress sheet.
+- **Tests:** `tests/neighbours.test.mjs` and `tests/e2e/calendar.mjs`.
+
+## Tori posts that reflect what is going on (21 Nov)
 
 - **The aide drafts posts about this year.** When you open Compose, server/tori-ai.mjs `makeToriCompose` (`/api/tori/compose`) drafts five posts from the record:
   - the best thing this year, and an honest post owning the worst problem;

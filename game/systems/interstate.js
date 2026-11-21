@@ -207,3 +207,14 @@ export const MEDIATION = st("mediation", "The governors' trade war", {
 export const mediationPair = (seed = "") => { const ks = Object.keys(NEIGHBOURS), a = ks[h(seed) % ks.length], b = NEIGHBOURS[a][h(seed + "b") % NEIGHBOURS[a].length]; return [a, b]; };
 // Does the partner grow what we lack? (Their first crop is not one of ours.)
 export const dealFit = (state, partner) => !produceOf(state).includes(produceOf(partner)[0]);
+
+/* A deal with every neighbour (owner, 21 Nov 2026: "if I successfully conduct trade deals with all four governors it
+   has to be a credit to me, raises my bar too"). Any deal ever signed counts, even one that ended later. */
+export const tradeCoverage = (I, state) => {
+  const ns = neighboursOf(state), signed = new Set(((I && I.deals) || []).map(d => d.partner));
+  const left = ns.filter(n => !signed.has(n));
+  return { all: ns, signed: ns.filter(n => signed.has(n)), left, done: ns.length > 0 && !left.length };
+};
+// The reward, once: approval, the party, every neighbour warmer, and a standing that lifts the career score.
+export const TRADE_ALL_FX = { app: 5, pStab: 3, rel: 6, score: 5 };
+export const tradeAllLine = (stName, n) => "Signed trade deals with all " + n + " neighbouring states: the first " + stName + " governor to bring the whole region to one table.";

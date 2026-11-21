@@ -970,3 +970,34 @@ export function toriSpace(c) {
   qs.push({ who: "A pensioner", q: "What has this government done for old people?", a: [{ l: (c.done || [])[0] ? (c.done[0] + " is finished, and pensions are next.") : "Pensions are next on my list. I won't pretend we've done enough.", ok: true, fx: { app: 1 } }, { l: "More than any government before us.", ok: c.app >= 60, fx: c.app >= 60 ? {} : { app: -1 } }] });
   return qs.slice(0, 3);
 }
+
+/* The neighbouring governors on Tori (owner, 21 Nov 2026: "give the governors of the respective states their own Tori
+   account where they too can tweet about what they're doing"). c.nbrs: [{ st, name, art, party: "same"|"opp", rel,
+   deals: [deal names in force] }]. Each year a few of them post: their own work, the deal with you (warm or cold), a
+   jab across the border when you are struggling, and a salute when you have signed with every neighbour. */
+export function toriNeighbours(c) {
+  const nb = (c.nbrs || []).filter(x => x && x.st); if (!nb.length || c.nat) return [];
+  const r = rngOf("nbrs" + c.st + c.turn), me = toriHandle(c.st), Y = stNm(c.st), out = [];
+  const WORK = [
+    (N, P) => "Flagged off the " + P + " processing plant in " + N + " today. Jobs for our young people, value for our farmers. #" + tagSt(N) + "Works",
+    (N) => "Salaries paid on the 20th again. In " + N + ", workers come first. 💪🏾",
+    (N) => "Inspected the new wing at the " + N + " State Specialist Hospital. Doctors resume next month.",
+    (N) => "Hosted the zonal security summit. Kidnappers do not respect state lines, so neither will our patrols.",
+    (N, P) => "Our " + P + " farmers got tractors and improved seedlings this morning. " + N + " will feed the zone.",
+    (N) => "6km of the township road in " + N + " is done. 14 to go. We publish progress every Friday. #" + tagSt(N) + "Roads",
+    (N) => "Met the NUT today. Promotions arrears will be cleared this quarter. A promise from " + N + " Government House.",
+  ];
+  const order = nb.slice().sort(() => r() - .5);
+  order.slice(0, 3).forEach((g, i) => {
+    const N = stNm(g.st), H = toriHandle(g.st), P = (g.produce || "cassava");
+    const say = (text, sub) => out.push({ kind: "neighbour", verified: true, name: g.name, handle: H, art: g.art || "neighbour-governor-male", sub: "Governor of " + N + " State" + (sub ? " · " + sub : ""), text, ago: ago(r, out.length), ...counts(r, 2), id: "nb" + hash(H + text + c.turn), topic: "general" });
+    const deal = (g.deals || [])[0];
+    if (deal && g.rel >= 55 && r() < .7) say("Productive session with my colleague " + me + " on our " + deal.toLowerCase() + ". " + N + " and " + Y + " rise together. 🤝🏾", "your partner");
+    else if (deal && g.rel < 40) say("We signed a " + deal.toLowerCase() + " with " + Y + " in good faith. " + N + " is still waiting to see " + me + " keep their side.", "your partner");
+    else if (!deal && g.party === "opp" && c.app < 45 && r() < .6) say("Watching what is happening next door in " + Y + (c.arrears ? ": " + c.arrears + " months of salaries owed" : "") + ". In " + N + " we pay our workers and finish our roads. Just saying. 👀", "opposition");
+    else say(WORK[Math.floor(r() * WORK.length)](N, P), g.party === "same" ? "your party" : null);
+  });
+  if (c.tradeAll) { const g = order[0]; out.push({ kind: "neighbour", verified: true, name: g.name, handle: toriHandle(g.st), art: g.art, sub: "Governor of " + stNm(g.st) + " State", ago: ago(r, out.length), ...counts(r, 4), id: "nball" + c.turn,
+    text: "Credit where it is due: " + me + " is the first governor in the zone with a trade deal across every border. The region is one market now. 👏🏾", topic: "praise" }); }
+  return out;
+}

@@ -947,6 +947,7 @@ const HONOURS = [
   { id: "vindicated", i: "⚖️", nm: "Vindicated", d: "Beat an election petition.", ok: (c) => c.petitionWon },
   { id: "second", i: "🗳️", nm: "Second term", d: "Won re-election (without a Second Chance).", ok: (c) => c.turn >= 5 && !c.secondChance },
   { id: "unifier", i: "🤝", nm: "Unifier", d: "A cabinet balanced across all three zones.", ok: (c) => c.balanced && c.ministries >= 8 },
+  { id: "region", i: "🧭", nm: "Regional statesman", d: "Signed a trade deal with every neighbouring state.", ok: (c) => !!c.tradeAll },
   { id: "aso_rock", i: "🇳🇬", nm: "President", d: "Won the presidency.", ok: () => false }, // awarded by the presidential run
 ];
 // ─── PERSONNEL ───
@@ -6281,7 +6282,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2;
       // The career score for the Vatar leaderboard: the grade's points, plus honours and a second term.
       // A Second Chance buys the extra years, not the glory: no second-term points.
-      const careerScore = Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 && !stc.secondChance ? 200 : 0);
+      const careerScore = Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 && !stc.secondChance ? 200 : 0) + (stc.tradeAll ? 100 : 0); // a deal with every neighbour raises the bar
       try { window.SOP_vatarScore && window.SOP_vatarScore(careerScore); } catch (e) {}
       const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
       // The all-time Hall of Governors (Lagos Life): the best career per player.
@@ -6440,7 +6441,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     earnCards(ctx, (NAT ? "President " : "Gov. ") + pName + " · " + stName + (NAT ? "" : " State") + " · " + absYear);
     if (NAT && turn === 1) window.storage.get("sop_career").then(r => { const L = r && r.value ? JSON.parse(r.value) : []; if (L.some(x => x.office === "chairman") && L.some(x => x.office === "governor")) earnCards({ ladder: true }, "President " + pName); }).catch(() => {});
   } catch (e) { console.warn("[cards]", e); } }, [turn, phase, gEnd]);
-  const honourCtx = () => ({ peace: !!(stc.bakunda && stc.bakunda.done), turn, secondChance: !!stc.secondChance, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
+  const honourCtx = () => ({ tradeAll: !!stc.tradeAll, peace: !!(stc.bakunda && stc.bakunda.done), turn, secondChance: !!stc.secondChance, app: s.app, cor: s.cor || 0, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length, met: (needs || []).filter(n => n.status === "met").length, reforms: Object.keys(stc.rev || {}).length, laws: billsPassed.length, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"), ministries: (ministries || []).length, balanced: balanceIssue() == null });
   useEffect(() => {
     if (phase !== "budget" || gEnd) return;
     const prev = reportRef.current;
@@ -6851,6 +6852,26 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     openTable({ id: "econ", sealKind: "econ", title: "The State Economic Council", sub: E ? "The year's exports · ₦" + (E.earned || 0).toFixed(1) + "B earned so far" : "First sitting · selling " + stName + "'s " + crops.join(" and ") + " to the world", bg: "council-table-state", by: E ? { name: "The Customs Area Controller", role: "Nigeria Customs Service (federal)", img: "./art/characters/customs-comptroller" + mood(fedStanceNow() === "open", fedStanceNow() === "protect") + ".webp" } : { name: "The Farmers' Association", role: crop.charAt(0).toUpperCase() + crop.slice(1) + " farmers", img: "./art/characters/farmers-association-chair" + mood(false, (s.sec || .5) < .45) + ".webp" },
       declaration: (E ? "Exports have earned the state ₦" + (E.earned || 0).toFixed(1) + "B so far. " : "The State Economic Council is in session: agriculture, finance, the farmers, the exporters and Customs. " + stName + " grows " + crops.join(" and ") + ": the question is how to sell them to the world. ") + "Abuja's policy is " + SYS.STANCES[fedStanceNow()].nm.toLowerCase() + ". " + SYS.FED_STANCE_FX[fedStanceNow()].d,
       decision: { title: E ? "Expand the export trade?" : "How will " + stName + " sell its " + crop + "?", brief: E ? undefined : "The money arrives with each year's end, as long as the farms are safe and the produce is clean.", options: opts } });
+  };
+  // The yearly calendar letter: the council and the trade mission, as buttons. Picking one sends a follow-up letter
+  // for whatever is still not done this year.
+  const calendarCard = (t, round, skip) => {
+    const items = NAT ? [
+      stc.eacYear !== t && !skip.includes("eac") && { id: "eac", label: "Convene the Economic Advisory Council", note: "This year's figures, the economists and the advice.", go: () => conveneEAC() },
+    ] : [
+      stc.econYear !== t && !skip.includes("econ") && { id: "econ", label: "Convene the State Economic Council", note: "Exports, crops and what the state can sell. Once a year.", go: () => conveneEcon() },
+      interNow().last !== t && SYS.neighboursOf(state).length > 0 && !skip.includes("trade") && { id: "trade", label: "Visit a neighbouring governor for a trade deal", note: SYS.neighboursOf(state).map(SYS.stateLabel).join(", ") + (tradeAll().done ? " · all signed" : " · " + tradeAll().left.length + " still without a deal"), go: () => startVisit() },
+    ].filter(Boolean);
+    if (!items.length) return null;
+    const key = "calendar" + (round ? round : "") + "_" + t;
+    return { key, calendar: true, kicker: "Your calendar", color: CL.blu, from: "Your Chief of Staff", img: "./art/characters/permanent-secretary.webp", art: [NAT ? "villa-office" : "governor-office", "permanent-secretary", null, null],
+      title: round ? "Still on this year's calendar" : "On this year's calendar", brief: round ? "One more thing you do every year, Your Excellency." : "Your Excellency, these come round once a year and are easy to forget. Shall I set them up?",
+      options: [...items.map(it => ({ label: it.label, note: it.note, chips: [], run: () => {
+        setTimeout(() => { try { it.go(); } catch (e) { console.error("[calendar]", e); } }, 500);
+        const left = items.filter(x => x.id !== it.id);
+        if (left.length) setTimeout(() => { const c2 = calendarCard(t, (round || 0) + 1, [...skip, it.id]); if (c2) { scPending.current = [...scPending.current, c2]; postMail([letterOf("sc#" + c2.key, { live: true })]); } }, 900);
+        track("calendar", it.id); return null; } })),
+        { label: "Not this year", note: "You can still find them under State.", chips: [], run: () => { track("calendar", "skip"); return null; } }] };
   };
   // Your neighbours (State → Economy, and the councils): the governors next door, the deals in force, and the trade mission.
   const NeighboursPanel = () => { const I = interNow(), big = !TALL(), done = I.last === turn, fz = big ? { s: TS(19), m: TS(22), l: TS(34) } : { s: TS(15), m: TS(17), l: TS(24) };
@@ -7399,6 +7420,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      sends the Commissioner for Commerce) and signs a deal; each deal earns
      every year and can turn into a storyline. */
   const interNow = () => stc.inter || SYS.interInit(state, state + ":" + pName, party);
+  const tradeAll = () => SYS.tradeCoverage(interNow(), state);
   const nGov = (st) => "Gov. " + gNAs(rng(hashStr(state + ":" + pName + ":" + st)), (STATES[st] || {}).zone || "SW", st, hashStr(st + pName) % 4 === 0);
   const nGovImg = (st) => { const G = (interNow().gov || {})[st] || { rel: 50 }; return NB_GOV[hashStr(st + pName) % 4 === 0 ? "female" : "male"][G.rel >= 60 ? 1 : G.rel < 40 ? 2 : 0]; };
   const interFill = (x, d) => { const X = (stc.inter || {}).stories || {}, key = Object.keys(X).find(k => X[k].deal === d.id), third = key ? X[key].third : null;
@@ -7407,8 +7429,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const startVisit = () => { const I = interNow(); if (!stc.inter) setStc(p => ({ ...p, inter: I })); setVisit({ step: "pick" }); };
   const missionCards = () => {
     const I = interNow(), V = visit; if (!V) return null;
-    const active = SYS.activeDeals(I), full = active.length >= SYS.ACTIVE_MAX;
-    if (V.step === "pick") return { kicker: "A trade mission", title: "Which neighbour?", brief: stName + " borders " + SYS.neighboursOf(state).map(SYS.stateLabel).join(", ") + ". One mission a year; at most " + SYS.ACTIVE_MAX + " deals in force." + (full ? " You have " + SYS.ACTIVE_MAX + " already: one must end before another." : ""),
+    const MAXD = Math.max(SYS.ACTIVE_MAX, SYS.neighboursOf(state).length), active = SYS.activeDeals(I), full = active.length >= MAXD; // room for a deal with every neighbour
+    if (V.step === "pick") return { kicker: "A trade mission", title: "Which neighbour?", brief: stName + " borders " + SYS.neighboursOf(state).map(SYS.stateLabel).join(", ") + ". One mission a year; at most " + MAXD + " deals in force." + (full ? " You have " + MAXD + " already: one must end before another." : "") + (tradeAll().done ? " You have a deal with every neighbour." : " A deal with every neighbour is a mark of a regional statesman: " + tradeAll().left.map(SYS.stateLabel).join(", ") + " still to sign."),
       options: SYS.neighboursOf(state).map(n => { const G = I.gov[n]; return { label: SYS.stateLabel(n) + " · " + nGov(n) + (G.party === "same" ? " (your party)" : " (opposition)"), note: "They grow " + SYS.produceOf(n).join(" and ") + ". Relations " + G.rel + "/100.", disabled: full,
         chips: [{ text: "Relations " + G.rel, color: G.rel >= 55 ? CL.grn : G.rel < 40 ? CL.red : CL.org }].concat(active.some(d => d.partner === n) ? [{ text: "A deal in force", color: CL.blu }] : []), run: () => setVisit({ step: "kind", partner: n }) }; }) };
     const P = SYS.stateLabel(V.partner), m = { p: P, c: SYS.produceOf(V.partner)[0], y: SYS.produceOf(state)[0] };
@@ -7435,6 +7457,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🤝 " + K.nm + " signed with " + P + (go ? ": you went yourself." : ", by the Commissioner for Commerce."), "policy");
     scWiki("Governorship", "Signed a " + K.nm.toLowerCase() + " with " + P + " State" + (go ? " on a trade mission to " + P : "") + ".");
     track("inter_deal", kind + (go ? ":go" : ":send"));
+    // A deal with every neighbour: a credit to you, once (SYS.tradeCoverage).
+    { const I1 = SYS.signDeal(interNow(), partner, kind, turn, ask), C = SYS.tradeCoverage(I1, state);
+      if (C.done && !stc.tradeAll) {
+        const F = SYS.TRADE_ALL_FX, line = SYS.tradeAllLine(stName, C.all.length);
+        setStc(p => ({ ...p, tradeAll: turn, inter: { ...(p.inter || I1), gov: Object.fromEntries(Object.entries((p.inter || I1).gov || {}).map(([k, g]) => [k, { ...g, rel: Math.min(100, g.rel + F.rel) }])) } }));
+        scFx({ app: F.app, pStab: F.pStab }); scWiki("Governorship", line);
+        addL("🏆 Every neighbour signed: " + C.all.map(SYS.stateLabel).join(", ") + ". Approval +" + F.app + ", party +" + F.pStab + ".", "success"); track("trade_all", String(C.all.length));
+        setTimeout(() => paper("ONE REGION, ONE TABLE", stName + "'s governor signs with all " + C.all.length + " neighbours · Approval +" + F.app, true, "./art/scenes/mou-signing-governors.webp"), 1600);
+        setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ icon: "🏆", img: "./art/scenes/mou-signing-governors.webp", title: "A deal with every neighbour", text: line + " The other governors now call you first.", tone: "good",
+          rows: [{ l: "Approval", v: "+" + F.app, good: true }, { l: "Party", v: "+" + F.pStab, good: true }, { l: "Every neighbour", v: "Warmer to you", good: true }, { l: "Honour", v: "Regional statesman", good: true }] }); } catch (e) {} }, 2600);
+      } }
     setTimeout(() => paper(stName.toUpperCase() + " AND " + P.toUpperCase() + " SIGN TRADE DEAL", K.nm + ": " + K.d, true, "./art/scenes/mou-signing-governors.webp"), 400);
     return { icon: K.icon, img: "./art/scenes/mou-signing-governors.webp", title: K.nm + " with " + P, text: K.d + (K.years ? " It opens in " + K.years + " years." : " It starts paying at the year's end."), tone: "good",
       rows: [{ l: "Your share", v: "₦" + K.cost + "B", good: false }].concat(K.cash ? [{ l: "Expected", v: "₦" + K.cash + "B a year", good: true }] : [], ask ? [{ l: "Their price", v: SYS.fillText(ask.l, { p: P }), good: false }] : []) };
@@ -7794,6 +7827,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       lies: Object.values((stc.tori || {}).acts || {}).reduce((a, v) => a + ((v.comments || []).filter(cm => cm.turn === turn && cm.lied).length), 0),
       tools: (((stc.tori || {}).tools || {})[turn]) || {},
       // The feed's people and places, and last years' promises (the people replied to come back).
+      // The neighbouring governors, who post on Tori too (SYS.toriNeighbours).
+      nbrs: NAT ? [] : (() => { const I = interNow(); return SYS.neighboursOf(state).map(n => { const G = (I.gov || {})[n] || { rel: 50, party: "same" }; return { st: n, name: nGov(n), art: nGovImg(n), party: G.party, rel: G.rel, produce: SYS.produceOf(n)[0], deals: (I.deals || []).filter(d => d.partner === n && d.status === "active").map(d => SYS.DEAL_KINDS[d.kind].nm) }; }); })(), tradeAll: !!stc.tradeAll,
       zone: NAT ? "NAT" : (STATES[state] || {}).zone, places: (() => { try { return getLGAs(state).slice(0, 12).map(l => typeof l === "string" ? l : l.name || l.nm).filter(Boolean); } catch (e) { return []; } })(),
       back: ((stc.tori || {}).promises || []).filter(p => p.turn < turn && p.turn >= turn - 2 && p.who),
       // Round three: the accounts you follow, the leaks, the receipts, and what happened since you last looked.
@@ -7870,7 +7905,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const extras = [SYS.toriPoll(c, H), SYS.toriClip(c), SYS.toriReceipts(c)].filter(Boolean);
     const follow = SYS.toriFollowing({ ...c, topStory: null });
     const mix = []; woven.forEach((x, i) => { mix.push(x); if (i % 3 === 1 && follow.length) mix.push(follow.shift()); if (i === 4 && extras.length) mix.push(extras.shift()); }); mix.push(...follow, ...extras);
-    const feed = [...SYS.toriInstant(c), ...head, ...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriInstitutions(c, H), ...opp.filter(o => o.w >= 3).slice(0, 2), ...mix]
+    const feed = [...SYS.toriInstant(c), ...head, ...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriNeighbours(c), ...SYS.toriInstitutions(c, H), ...opp.filter(o => o.w >= 3).slice(0, 2), ...mix]
       .filter(x => !blocked.includes(x.handle)).concat(memes).map(x => ({ ...x, media: SYS.toriMedia(x, c) }));
     const hero = SYS.toriMainStory(c, H);
     const heatTags = H.stage >= 2 ? H.stories.slice(0, 3).map((x, i) => ({ tag: x.tag, count: SYS.fmtCount(20000 * H.stage + 9000 * (3 - i)), about: x.cause })) : [];
@@ -8894,6 +8929,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           } })) });
       }
     }
+    // The 9th letter (owner, 21 Nov 2026: "if I don't go to the menu I can never remember to convene the yearly
+    // state council or visit neighbouring states for a trade deal. Let's make that the 9th letter"): every year, outside
+    // the 8-letter cap, the calendar with buttons that open them.
+    { const cc = calendarCard(turn, 0, []); if (cc) cards.push(cc); }
     // Who comes after you (SYS.succession): in the final term, a deputy still on your side goes for your seat with the
     // party behind them; you can bless them or anoint someone else, and the primary decides.
     {
@@ -12026,7 +12065,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
+    const WAR = (k) => k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
     // A district's request is always seen (an unseen one could lapse unfairly), and one House or cabinet matter a year has its own slot.
     const ASK = (k) => k.startsWith("sc#zask_"), PEOPLE = (k) => /^sc#(exco_|leg_member_|leg_hearing_|chair_)/.test(k);
     const pType = (k) => k.startsWith("sc#exco_") ? 0 : k.startsWith("sc#chair_") ? 2 : 1; // the slot turns: the House, then the cabinet, then the party
@@ -12338,6 +12377,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     ml.forEach(l => {
       if (l.slotT === turn && l.slot) { next.push(l); return; }
       const g = mailGroup(l); changed = true;
+      if (/^sc#calendar/.test(l.key || "")) { next.push({ ...l, slot: "calendar#" + turn + "#" + l.key, slotT: turn }); return; } // the 9th letter: always its own envelope
       if (open.has(g)) { next.push({ ...l, slot: open.get(g), slotT: turn }); return; }
       if (Y.n < MAIL_CAP) { Y.n++; const sl = g + "#" + turn + "#" + Y.n; open.set(g, sl); next.push({ ...l, slot: sl, slotT: turn }); return; }
       const any = [...open.values()][0];
@@ -18898,7 +18938,7 @@ function App() {
 
   return (
     <div style={{ fontFamily: F.b, background: CL.bg, color: CL.txt, minHeight: "100%" }}>
-      <XpToasts />
+      {/* XP pop-ups removed (owner, 21 Nov 2026: "remove the xp notifications"); XP still counts in the progress sheet. */}
       <style>{`
         @media (max-width: 640px) {
           .sop-gov-grid { grid-template-columns: 1fr !important; }

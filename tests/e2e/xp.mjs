@@ -23,7 +23,7 @@ await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")]
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Today's decision/.test(x.textContent)); b && b.click(); }); await g.wait(700);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("[role=dialog] button")].find(x => x.offsetParent && !x.disabled && x.getAttribute("aria-label") !== "Close" && x.textContent.trim().length > 8); b && b.click(); }); await g.wait(400);
 const pop = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-xp-pop]")].map(e => e.textContent).join(" "));
-check(/\+40 XP ⚡/.test(pop), "today's decision earns 20 XP, doubled to 40 by the boost (" + pop + ")");
+check(pop === "", "no XP pop-ups on screen (the owner removed them)");
 const X = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_xp")));
 check(X.total === 110 && X.day.xp === 40 && (X.goalDays || []).length === 1, "the store counts it: total, today, and the goal met");
 check(X.ballots >= 80 + 20, "reaching level 2 pays Ballots (" + X.ballots + ")");
