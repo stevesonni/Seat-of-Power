@@ -9370,7 +9370,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const n = { ...p, app: cl100(p.app + dApp), zoneMood: zm }; Object.entries(dStat).forEach(([k, v]) => { n[k] = cl(n[k] + v); }); return n;
     });
     next.arrearsMax = Math.max(next.arrearsMax || 0, next.arrears);
-    setStc(next);
+    setStc(p => ({ ...next, oldDebt: p.oldDebt || next.oldDebt })); // the debt plan is only ever changed by its own question: never undo an answer
     notes.forEach(([t, k]) => addL(t, k));
     scPending.current = [...cards, ...scCarry.current.filter(cc => !cards.some(x => x.key === cc.key))]; scLast.current = next;
     cards.forEach(c => q.push("sc#" + c.key));
