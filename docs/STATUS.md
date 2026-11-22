@@ -3,7 +3,14 @@
 
 
 
-## The debt question is asked once (22 Nov, latest)
+## The Council remembers; Lagos produce (22 Nov, latest)
+
+- **The calendar letter's buttons now call the latest council functions** (`calFns`). Before, a letter written at New Year opened the Council with the game as it stood then, so a later answer (the debt, the export plan) could look unanswered.
+- **The year-start update keeps the latest debt plan** (`setStc(p => ({ ...next, oldDebt: p.oldDebt }))`).
+- **Lagos produces seafood and rice** (Imota rice), not "manufactured goods". The Council says "produces" and "<crop> producers", and the safety line covers fishing grounds.
+- **Test:** `tests/e2e/council-once.mjs` (calendar letter → debt → export plan → the next sitting asks neither).
+
+## The debt question is asked once (22 Nov)
 
 - **The bug.** In year one, if the State Economic Council sat before the first budget (the yearly calendar letter makes this common), your answer about the last government's debt was wiped when the budget set up the year's accounts, so the Council asked again.
   - The accounts set-up now keeps a plan already chosen.

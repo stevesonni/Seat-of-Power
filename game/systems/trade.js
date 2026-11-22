@@ -193,7 +193,7 @@ export const STATE_PRODUCE = {
   Bayelsa: ["palm oil", "smoked fish"], Benue: ["sesame", "soybeans"], Borno: ["gum arabic", "dried fish"], Cross_River: ["cocoa", "cashew"], Delta: ["palm oil", "rubber"],
   Ebonyi: ["rice", "cashew"], Edo: ["rubber", "cocoa"], Ekiti: ["cocoa", "cashew"], Enugu: ["cashew", "cassava"], FCT: ["soybeans", "yams"], Gombe: ["cotton", "groundnuts"],
   Imo: ["palm oil", "cassava"], Jigawa: ["sesame", "hibiscus"], Kaduna: ["ginger", "maize"], Kano: ["sesame", "hides and skins"], Katsina: ["groundnuts", "sesame"],
-  Kebbi: ["rice", "hibiscus"], Kogi: ["cashew", "cassava"], Kwara: ["cashew", "shea butter"], Lagos: ["manufactured goods", "seafood"], Nassarawa: ["sesame", "soybeans"],
+  Kebbi: ["rice", "hibiscus"], Kogi: ["cashew", "cassava"], Kwara: ["cashew", "shea butter"], Lagos: ["seafood", "rice"] /* Lagos fisheries and Imota rice; "manufactured goods" read as a crop (owner, 22 Nov 2026) */, Nassarawa: ["sesame", "soybeans"],
   Niger: ["shea butter", "soybeans"], Ogun: ["cocoa", "cassava"], Ondo: ["cocoa", "cashew"], Osun: ["cocoa", "cashew"], Oyo: ["cashew", "cocoa"], Plateau: ["Irish potatoes", "ginger"],
   Rivers: ["palm oil", "cassava"], Sokoto: ["hides and skins", "sesame"], Taraba: ["Mambilla tea", "soybeans"], Yobe: ["gum arabic", "sesame"], Zamfara: ["sesame", "cotton"],
 };

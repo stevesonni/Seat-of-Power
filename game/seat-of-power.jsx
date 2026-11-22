@@ -6909,18 +6909,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       (interNow().last !== turn) && { label: "Plan a trade mission to a neighbour", note: "Their crops for your factories, your goods for their markets.", chips: [{ text: "🤝 " + SYS.neighboursOf(state).map(SYS.stateLabel).slice(0, 3).join(", "), color: CL.blu }], run: () => { sat(); startVisit(); return null; } },
       { label: "Keep going as we are", note: "Nothing new this year.", chips: [{ text: "Free", color: CL.grn }], run: () => { sat(); return { icon: "🚢", title: "Steady", text: "The Council meets again next year.", tone: "good" }; } },
     ].filter(Boolean) : ["raw", "hub", "zone"].map(plan);
-    openTable({ id: "econ", sealKind: "econ", title: "The State Economic Council", sub: E ? "The year's exports · ₦" + (E.earned || 0).toFixed(1) + "B earned so far" : "First sitting · selling " + stName + "'s " + crops.join(" and ") + " to the world", bg: "council-table-state", by: E ? { name: "The Customs Area Controller", role: "Nigeria Customs Service (federal)", img: "./art/characters/customs-comptroller" + mood(fedStanceNow() === "open", fedStanceNow() === "protect") + ".webp" } : { name: "The Farmers' Association", role: crop.charAt(0).toUpperCase() + crop.slice(1) + " farmers", img: "./art/characters/farmers-association-chair" + mood(false, (s.sec || .5) < .45) + ".webp" },
-      declaration: (E ? "Exports have earned the state ₦" + (E.earned || 0).toFixed(1) + "B so far. " : "The State Economic Council is in session: agriculture, finance, the farmers, the exporters and Customs. " + stName + " grows " + crops.join(" and ") + ": the question is how to sell them to the world. ") + "Abuja's policy is " + SYS.STANCES[fedStanceNow()].nm.toLowerCase() + ". " + SYS.FED_STANCE_FX[fedStanceNow()].d,
-      decision: { title: E ? "Expand the export trade?" : "How will " + stName + " sell its " + crop + "?", brief: E ? undefined : "The money arrives with each year's end, as long as the farms are safe and the produce is clean.", options: opts } });
+    openTable({ id: "econ", sealKind: "econ", title: "The State Economic Council", sub: E ? "The year's exports · ₦" + (E.earned || 0).toFixed(1) + "B earned so far" : "First sitting · selling " + stName + "'s " + crops.join(" and ") + " to the world", bg: "council-table-state", by: E ? { name: "The Customs Area Controller", role: "Nigeria Customs Service (federal)", img: "./art/characters/customs-comptroller" + mood(fedStanceNow() === "open", fedStanceNow() === "protect") + ".webp" } : { name: "The Farmers' Association", role: crop.charAt(0).toUpperCase() + crop.slice(1) + " producers", img: "./art/characters/farmers-association-chair" + mood(false, (s.sec || .5) < .45) + ".webp" },
+      declaration: (E ? "Exports have earned the state ₦" + (E.earned || 0).toFixed(1) + "B so far. " : "The State Economic Council is in session: agriculture, finance, the farmers, the exporters and Customs. " + stName + " produces " + crops.join(" and ") + ": the question is how to sell them to the world. ") + "Abuja's policy is " + SYS.STANCES[fedStanceNow()].nm.toLowerCase() + ". " + SYS.FED_STANCE_FX[fedStanceNow()].d,
+      decision: { title: E ? "Expand the export trade?" : "How will " + stName + " sell its " + crop + "?", brief: E ? undefined : "The money arrives with each year's end, as long as the farms and fishing grounds are safe and the produce is clean.", options: opts } });
   };
   // The yearly calendar letter: the council and the trade mission, as buttons. Picking one sends a follow-up letter
   // for whatever is still not done this year.
+  const calFns = React.useRef({});
   const calendarCard = (t, round, skip) => {
     const items = NAT ? [
-      stc.eacYear !== t && !skip.includes("eac") && { id: "eac", label: "Convene the Economic Advisory Council", note: "This year's figures, the economists and the advice.", go: () => conveneEAC() },
+      stc.eacYear !== t && !skip.includes("eac") && { id: "eac", label: "Convene the Economic Advisory Council", note: "This year's figures, the economists and the advice.", go: () => calFns.current.conveneEAC() },
     ] : [
-      stc.econYear !== t && !skip.includes("econ") && { id: "econ", label: "Convene the State Economic Council", note: "Exports, crops and what the state can sell. Once a year.", go: () => conveneEcon() },
-      interNow().last !== t && SYS.neighboursOf(state).length > 0 && !skip.includes("trade") && { id: "trade", label: "Visit a neighbouring governor for a trade deal", note: SYS.neighboursOf(state).map(SYS.stateLabel).join(", ") + (tradeAll().done ? " · all signed" : " · " + tradeAll().left.length + " still without a deal"), go: () => startVisit() },
+      stc.econYear !== t && !skip.includes("econ") && { id: "econ", label: "Convene the State Economic Council", note: "Exports, crops and what the state can sell. Once a year.", go: () => calFns.current.conveneEcon() },
+      interNow().last !== t && SYS.neighboursOf(state).length > 0 && !skip.includes("trade") && { id: "trade", label: "Visit a neighbouring governor for a trade deal", note: SYS.neighboursOf(state).map(SYS.stateLabel).join(", ") + (tradeAll().done ? " · all signed" : " · " + tradeAll().left.length + " still without a deal"), go: () => calFns.current.startVisit() },
     ].filter(Boolean);
     if (!items.length) return null;
     const key = "calendar" + (round ? round : "") + "_" + t;
@@ -7487,6 +7488,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return SYS.fillText(x, { p: SYS.stateLabel(d.partner), t: third ? SYS.stateLabel(third) : "a neighbouring state", g: nGov(d.partner), k: (SYS.DEAL_KINDS[d.kind] || {}).nm.toLowerCase(), c: SYS.produceOf(d.partner)[0], y: SYS.produceOf(state)[0] }); };
   const [visit, setVisit] = useState(null); // a trade mission: { step: "pick" | "kind" | "how" | "ask", partner, kind, ask }
   const startVisit = () => { const I = interNow(); if (!stc.inter) setStc(p => ({ ...p, inter: I })); setVisit({ step: "pick" }); };
+  // The calendar letter's buttons run later than the year they were written in: they call the latest functions, so a
+  // council never sees the game as it stood at New Year (owner, 22 Nov 2026: the debt and the first sitting came back).
+  calFns.current = { conveneEcon, conveneEAC, startVisit };
   const missionCards = () => {
     const I = interNow(), V = visit; if (!V) return null;
     const MAXD = Math.max(SYS.ACTIVE_MAX, SYS.neighboursOf(state).length), active = SYS.activeDeals(I), full = active.length >= MAXD; // room for a deal with every neighbour
