@@ -132,9 +132,9 @@ const arc = (stage, extra = {}) => ({ stage, due: 1, truth: null, flags: {}, his
   const g = await open(srv.port, { save: { ...Y1, sop_record: JSON.stringify(rec) } });
   await g.click(/^Continue/); await g.wait(2500);
   const t = await g.txt();
-  check(/meets you/.test(t) && /council store fire/.test(t), "the new governor of Ogun hears about the fire from the chairmanship");
+  check(!/meets you/.test(t), "no 'Your past meets you' card on day one (removed by the owner, 22 Nov 2026)");
   const logs = await g.page.evaluate(() => { const s = JSON.parse(localStorage.getItem("sop_save") || "{}"); return JSON.stringify(s.logs || []); });
-  check(/Families you flew home/.test(logs) || /Families you flew home/.test(t), "and about the families flown home as ambassador");
+  check(!/Families you flew home/.test(logs), "and no carry-over penalty or note from the earlier careers");
   check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
   await g.browser.close(); }
 

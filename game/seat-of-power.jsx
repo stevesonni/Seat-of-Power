@@ -13100,9 +13100,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (f.fg) setFgRelation(r => Math.min(100, r + f.fg));
     addL("🎖️ Your record goes before you. " + P.text + ".", "success");
   }, [needSetup]);
-  // One life: a chairmanship in this state meets the new governor on day one.
+  // One life: a chairmanship in this state used to meet the new governor on day one, as a card with an approval
+  // penalty. Removed (owner, 22 Nov 2026: "Your past in Afikpo South meaning what? It has to go").
   useEffect(() => {
-    if (stc.echoDone) return;
+    if (true || stc.echoDone) return;
     (async () => { try {
       const r0 = await window.storage.get(SYS.RECORD_KEY); const rec = r0 && r0.value ? JSON.parse(r0.value) : null;
       const E0 = SYS.chairmanEchoes(rec, state), AE = SYS.arcEchoes(rec, state); setStc(p => ({ ...p, echoDone: true }));
