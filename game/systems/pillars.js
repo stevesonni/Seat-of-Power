@@ -96,7 +96,17 @@ export const QUICK_WINS = [
   { id: "pump", l: "Repair 20 broken hand pumps", cost: .3, fx: { app: 2, hp: .01 }, out: "Twenty villages get their water back within the month.", art: "pump" },
   { id: "potholes", l: "Patch the potholes on the busiest road", cost: .45, fx: { app: 2, infra: .01 }, out: "Okada riders and bus drivers stop complaining, for now.", art: "potholes" },
 ];
-export const quickWinsFor = (seed, turn, done = []) => { const r = seeded(seed, "qw", turn), pool = QUICK_WINS.filter(q => !done.includes(q.id)); const out = [];
+/* The President's quick wins: federal jobs a President can finish in weeks (owner, 22 Nov 2026: "the president shouldn't be
+   bothered by hand pumps and classrooms"). */
+export const FED_QUICK_WINS = [
+  { id: "f_ports", l: "Clear the container backlog at the Lagos ports", cost: 3, fx: { app: 2, infra: .01 }, out: "Ships stop waiting at anchor. Importers' costs fall within weeks.", art: "ports" },
+  { id: "f_doctors", l: "Pay the resident doctors their three months of arrears", cost: 4, fx: { app: 2, hp: .01 }, out: "The federal hospitals reopen their wards by Monday.", art: "clinic" },
+  { id: "f_expressway", l: "Patch the worst stretch of the Lagos–Ibadan expressway", cost: 4.5, fx: { app: 2, infra: .01 }, out: "The trucks move again. Travellers stop posting videos of the craters.", art: "potholes" },
+  { id: "f_grain", l: "Release grain from the strategic reserve to the hungriest states", cost: 3.5, fx: { app: 2, hp: .01 }, out: "Maize and sorghum reach markets in the North-East; prices fall for a season.", art: "grain" },
+  { id: "f_pensions", l: "Pay retired soldiers their pension arrears", cost: 2.5, fx: { app: 2, sec: .01 }, out: "The old soldiers leave the Ministry of Finance's gate. They salute on the news.", art: "pensions" },
+  { id: "f_hospital_power", l: "Restore power to the federal teaching hospitals", cost: 3, fx: { app: 1, hp: .01 }, out: "No more surgery by torchlight in the federal hospitals.", art: "clinic" },
+];
+export const quickWinsFor = (seed, turn, done = [], nat = false) => { const r = seeded(seed, "qw", turn), pool = (nat ? FED_QUICK_WINS : QUICK_WINS).filter(q => !done.includes(q.id)); const out = [];
   while (out.length < 3 && pool.length) out.push(pool.splice(Math.floor(r() * pool.length), 1)[0]); return out; };
 /* A big project opens in stages: the first section at half way. */
 export const STAGE_AT = 50;
@@ -132,6 +142,14 @@ export const LEAKS = {
   levies: { nm: "Levies collected in cash, never banked", share: .015, fix: "Cashless levy collection", cost: .3, upkeep: .05 },
 };
 export const LEAK_IDS = Object.keys(LEAKS);
+// The same leaks at the federal level (the President's FAAC): names and fixes in federal terms.
+export const FED_LEAKS = {
+  payroll: { nm: "Ghost workers on the federal payroll", fix: "Re-verify the federal payroll with BVN" },
+  contracts: { nm: "Padded federal contracts", fix: "Open e-procurement for every ministry" },
+  accounts: { nm: "Agencies keeping revenue off the books", fix: "Make every agency pay into the Treasury Single Account" },
+  levies: { nm: "Port and customs fees taken in cash", fix: "Cashless collection at the ports" },
+};
+export const leakNames = (id, nat) => ({ ...LEAKS[id], ...(nat ? FED_LEAKS[id] : {}) });
 /* A plug's strength: 1 when new or kept up; it loses a third each year without upkeep. */
 export const PLUG_DECAY = 1 / 3;
 export const plugStrength = (P) => !P ? 0 : Math.max(0, Math.min(1, P.str == null ? 1 : P.str));

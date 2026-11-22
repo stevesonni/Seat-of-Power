@@ -70,21 +70,23 @@ export const hearing = (seed, turn, who, { perf = 50, kind = null } = {}) => {
 
 // ── The cabinet meeting: two commissioners, one flagship ──
 export const DEBATES = {
-  health: { a: [/health/i, "Recruit and pay 600 nurses for the clinics we have"], b: [/works|infra/i, "Build a new specialist hospital in the capital"], fxA: { hp: .02, app: 1 }, fxB: { infra: .02, app: 2 }, costA: .6, costB: .9 },
-  education: { a: [/educ/i, "Train and pay the teachers already in the classrooms"], b: [/works|infra/i, "Build 40 new classroom blocks"], fxA: { lit: .02 }, fxB: { infra: .01, app: 2 }, costA: .5, costB: .8 },
+  // projB: the build side is a real project (owner, 22 Nov 2026: "the 40 classroom blocks IS a project; why doesn't it go
+  // through the normal project process"). Choosing it opens the project plan instead of spending at once.
+  health: { a: [/health/i, "Recruit and pay 600 nurses for the clinics we have"], b: [/works|infra/i, "Build a new specialist hospital in the capital"], fxA: { hp: .02, app: 1 }, fxB: { infra: .02, app: 2 }, costA: .6, costB: .9, projB: { type: "hospital", qty: 100, title: "A new specialist hospital in the capital" } },
+  education: { a: [/educ/i, "Train and pay the teachers already in the classrooms"], b: [/works|infra/i, "Build 40 new classroom blocks"], fxA: { lit: .02 }, fxB: { infra: .01, app: 2 }, costA: .5, costB: .8, projB: { type: "school", qty: 40, title: "40 new classroom blocks" } },
   infrastructure: { a: [/works|infra/i, "Finish the roads already started"], b: [/transport/i, "Start a new city bus route"], fxA: { infra: .02, app: 1 }, fxB: { app: 2 }, costA: .7, costB: .6 },
-  security: { a: [/security|justice/i, "Pay and train the community guards we have"], b: [/works|infra|transport/i, "Buy 40 new patrol vehicles"], fxA: { sec: .02 }, fxB: { sec: .01, app: 2 }, costA: .4, costB: .7 },
-  agriculture: { a: [/agric/i, "Seeds and extension workers for smallholders"], b: [/water|works/i, "A big irrigation dam"], fxA: { agr: .02, app: 1 }, fxB: { agr: .01, infra: .01, app: 1 }, costA: .4, costB: 1 },
+  security: { a: [/security|justice/i, "Pay and train the community guards we have"], b: [/works|infra|transport/i, "Buy 40 new patrol vehicles"], fxA: { sec: .02 }, fxB: { sec: .01, app: 2 }, costA: .4, costB: .7, projB: { type: "vehicles", qty: 40, title: "40 new patrol vehicles" } },
+  agriculture: { a: [/agric/i, "Seeds and extension workers for smallholders"], b: [/water|works/i, "A big irrigation dam"], fxA: { agr: .02, app: 1 }, fxB: { agr: .01, infra: .01, app: 1 }, costA: .4, costB: 1, projB: { type: "dam", qty: 1, title: "An irrigation dam" } },
   anticorruption: { a: [/financ|budget/i, "Publish every contract online this year"], b: [/justice/i, "Prosecute last government's officials first"], fxA: { cor: -.02 }, fxB: { app: 3, pStab: -2 }, costA: .2, costB: .3 },
   youth: { a: [/youth|sports|labour/i, "Apprenticeships with local businesses"], b: [/digital|commerce/i, "A big tech-skills centre"], fxA: { app: 1 }, fxB: { app: 2 }, costA: .4, costB: .7 },
-  women: { a: [/women|humanitarian/i, "Cash for girls' school attendance"], b: [/educ/i, "Girls' boarding schools"], fxA: { lit: .01, app: 1 }, fxB: { lit: .01, app: 2 }, costA: .4, costB: .8 },
-  technology: { a: [/digital|science/i, "Broadband for the schools we have"], b: [/commerce|budget/i, "A tech park for start-ups"], fxA: { lit: .01 }, fxB: { app: 2 }, costA: .4, costB: .8 },
-  housing: { a: [/housing/i, "Site-and-services plots people build on themselves"], b: [/works|lands/i, "Finished estates with our name on the gate"], fxA: { app: 1 }, fxB: { infra: .01, app: 2 }, costA: .4, costB: 1 },
+  women: { a: [/women|humanitarian/i, "Cash for girls' school attendance"], b: [/educ/i, "Girls' boarding schools"], fxA: { lit: .01, app: 1 }, fxB: { lit: .01, app: 2 }, costA: .4, costB: .8, projB: { type: "secondary", qty: 20, title: "Girls' boarding schools" } },
+  technology: { a: [/digital|science/i, "Broadband for the schools we have"], b: [/commerce|budget/i, "A tech park for start-ups"], fxA: { lit: .01 }, fxB: { app: 2 }, costA: .4, costB: .8, projB: { type: "industrial", qty: 15, title: "A tech park for start-ups" } },
+  housing: { a: [/housing/i, "Site-and-services plots people build on themselves"], b: [/works|lands/i, "Finished estates with our name on the gate"], fxA: { app: 1 }, fxB: { infra: .01, app: 2 }, costA: .4, costB: 1, projB: { type: "housing", qty: 200, title: "A finished housing estate" } },
 };
 /* The two sides: { a: { ministry, plan, fx, cost }, b: {...} } from the cabinet (ministries with ministers). */
 export const debateFor = (agenda, ministries = []) => {
   const D = DEBATES[agenda]; if (!D) return null; const ms = ministries.filter(m => m.minister);
   const find = (rx, not) => ms.find(m => rx.test(m.name) && m !== not) || ms.find(m => m !== not);
   const ma = find(D.a[0]), mb = find(D.b[0], ma); if (!ma || !mb) return null;
-  return { a: { ministry: ma, plan: D.a[1], fx: D.fxA, cost: D.costA }, b: { ministry: mb, plan: D.b[1], fx: D.fxB, cost: D.costB } };
+  return { a: { ministry: ma, plan: D.a[1], fx: D.fxA, cost: D.costA }, b: { ministry: mb, plan: D.b[1], fx: D.fxB, cost: D.costB, proj: D.projB || null } };
 };

@@ -3,7 +3,20 @@
 
 
 
-## The words review, round 1: Perplexity's fixes (22 Nov, latest)
+## Buildings are projects; the President's year is federal; invitations read in full (22 Nov, latest)
+
+- **A building chosen at the cabinet meeting is a real project** (`DEBATES[*].projB`). The owner asked why "40 classroom blocks" didn't go through the normal project process. It now does:
+  - Choosing a build option opens the project plan, prefilled and run by the winning commissioner's ministry. It no longer spends at once.
+  - The build options are 40 classroom blocks, a specialist hospital, 40 patrol vehicles, an irrigation dam, girls' boarding schools, a tech park and a housing estate.
+  - Test: `tests/e2e/exco-project.mjs`.
+- **The President is not asked about hand pumps and classrooms:**
+  - The cabinet-meeting card (state commissioners debating a flagship) no longer runs for the President.
+  - Quick wins are federal for the President (`FED_QUICK_WINS`): the port backlog, resident doctors' arrears, the Lagos–Ibadan expressway, the grain reserve, soldiers' pensions, power for the teaching hospitals.
+  - The money leaks read in federal terms (`leakNames`): ghost workers on the federal payroll, padded federal contracts, agencies keeping revenue off the books, port fees taken in cash.
+  - A scripted 4-year presidency shows none of the governor's items.
+- **Invitations read as the full letter.** The Netherlands letter used to say only "Ports, flowers and farm technology." It now shows who is inviting (the Dutch Agri-Energy Investors' Forum, The Hague), what it is (a €40M farm and solar project; you are on the shortlist), and what going or sending someone means. The Abuja and wedding invitations work the same way.
+
+## The words review, round 1: Perplexity's fixes (22 Nov)
 
 From Perplexity's review of `docs/PERPLEXITY-WORDS-REVIEW.md` (Routes A and B):
 - **Broken text fixed:**

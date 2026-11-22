@@ -8282,8 +8282,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             brief: "The Public Accounts Committee wants to know where last year's " + M.name.replace(/^Ministry of /, "").toLowerCase() + " money went. Someone has to sit in front of the cameras.", stakes: "A good hearing wins members over. A bad one is on the evening news.",
             options: [{ label: "Send " + M.minister + ", the commissioner", note: "Strong if they know the file, a disaster if they do not.", chips: [], run: go("comm") }, { label: "Send the permanent secretary", note: "Safe and dull.", chips: [], run: go("perm") }, { label: "Refuse to send anyone", note: "The committee will not forget.", chips: fxChips({ app: -1 }), run: go("nobody") }] }); } }
       // 5. The cabinet meeting: two commissioners argue over how to deliver your flagship.
-      const D = turn >= 2 ? SYS.debateFor(setup?.agenda, ministries || []) : null, FG = FLAGSHIP[setup?.agenda];
-      if (D && FG) { const side = (X, Y, both) => () => { const cost = both ? Math.round((D.a.cost + D.b.cost) * 60) / 100 : X.cost; if (!spendB(cost, FG.nm)) return;
+      const D = turn >= 2 && !NAT ? SYS.debateFor(setup?.agenda, ministries || []) : null, FG = FLAGSHIP[setup?.agenda];
+      if (D && FG) { const side = (X, Y, both) => () => {
+          if (!both && X.proj) { // a building: it goes through the project process (plan, money, contractor), run by the winning ministry
+            const T = SYS.UNIT[X.proj.type], r0 = SYS.parseProposal(X.proj.type + " " + X.proj.qty + " " + T.unit + "s", { lgas: getLGAs(state), federal: false, type: X.proj.type, state });
+            const nd = (needs || []).find(n => n.status === "open" && n.type === X.proj.type) || null;
+            setPflow({ step: "propose", draft: { ...(r0.proposal || {}), title: X.proj.title, qty: X.proj.qty, need: nd ? nd.id : null, ministryId: X.ministry.id } });
+            setMinistries(xs => (xs || []).map(x => x.id === X.ministry.id ? { ...x, perf: Math.min(100, (x.perf || 50) + 4) } : x.id === Y.ministry.id ? { ...x, perf: Math.max(0, (x.perf || 50) - 4) } : x));
+            track("exco", (setup?.agenda || "") + "_project"); addL("🗂️ Cabinet meeting on " + FG.nm + ": " + X.plan.replace(/^./, c => c.toLowerCase()) + ". The project plan is open.", "policy");
+            return { icon: "🏗️", title: X.plan, text: X.ministry.minister + " won the argument. It is a building, so it goes through the project process: choose where it goes, find the money and pick the contractor in the plan that is now open.", tone: "good" };
+          }
+          const cost = both ? Math.round((D.a.cost + D.b.cost) * 60) / 100 : X.cost; if (!spendB(cost, FG.nm)) return;
           const fx = both ? Object.fromEntries([...new Set([...Object.keys(D.a.fx), ...Object.keys(D.b.fx)])].map(k => [k, ((D.a.fx[k] || 0) + (D.b.fx[k] || 0)) * .5])) : X.fx; scFx(fx);
           setMinistries(xs => (xs || []).map(x => both ? x : x.id === X.ministry.id ? { ...x, perf: Math.min(100, (x.perf || 50) + 8) } : x.id === Y.ministry.id ? { ...x, perf: Math.max(0, (x.perf || 50) - 4) } : x)); track("exco", (setup?.agenda || "") + (both ? "_both" : X === D.a ? "_a" : "_b"));
           addL("🗂️ Cabinet meeting on " + FG.nm + ": " + (both ? "a little of both." : X.plan.replace(/^./, c => c.toLowerCase()) + ". " + Y.ministry.minister + " lost the argument."), "policy");
@@ -9320,11 +9329,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         ...["sec", "hp", "lit", "infra", "agr"].filter(k => fx[k]).map(k => [{ l: ({ sec: "Security", hp: "Health", lit: "Education", infra: "Infrastructure", agr: "Farms" })[k], v: (fx[k] > 0 ? "+" : "−") + Math.round(Math.abs(fx[k]) * 100), good: fx[k] > 0 }]), fx.cor ? [{ l: "Corruption", v: (fx.cor > 0 ? "+" : "−") + Math.round(Math.abs(fx.cor) * 100) + "%", good: fx.cor < 0 }] : []);
       // 2. Never wait: a quick win every year, the first section of a big project opens, and things happen on site.
       if (pillarOn("wait")) {
-        const qs = SYS.quickWinsFor(PS, turn, next.qwDone || []);
+        const qs = SYS.quickWinsFor(PS, turn, next.qwDone || [], NAT);
         if (qs.length) cards.push({ key: "pil_qw_" + turn, kicker: "Quick wins · done before the year ends", color: CL.grn, art: ["state-secretariat", "commissioner-technocrat"], title: "Three jobs you can finish this year",
-          brief: "Big projects take years. These take weeks, and people see them. Pick one.", stakes: "Each one is paid from the bank and finished before the year is out.",
+          brief: "Big projects take years. These take weeks, and people see them. Pick one.", stakes: "Each one is paid from the treasury and finished before the year is out.",
           options: qs.map(q => ({ label: q.l + " (" + naira(q.cost) + ")", note: q.out.split(".")[0] + ".", chips: fxChips({ debt: q.cost, app: q.fx.app }), run: () => { scFx({ debt: q.cost, ...q.fx }); setStc(p => ({ ...p, qwDone: [...(p.qwDone || []), q.id] })); track("pil_qw", q.id); addL("✂️ Quick win: " + q.l.replace(/^./, c => c.toLowerCase()) + ". " + q.out, "success");
-            return res("✂️", "Done: " + q.l.replace(/^./, c => c.toLowerCase()), q.out, fxRows(q.fx, q.cost), "good", "./art/scenes/" + (q.id === "clinic" ? "ribbon-hospital" : q.id === "desks" ? "ribbon-school" : q.id === "pump" ? "ribbon-water" : q.id === "lights" ? "ribbon-market" : "ribbon-road") + ".webp"); } }))
+            return res("✂️", "Done: " + q.l.replace(/^./, c => c.toLowerCase()), q.out, fxRows(q.fx, q.cost), "good", "./art/scenes/" + (q.id === "clinic" || q.art === "clinic" ? "ribbon-hospital" : q.id === "desks" ? "ribbon-school" : q.id === "pump" ? "ribbon-water" : q.id === "lights" ? "ribbon-market" : q.art === "ports" ? "port-congestion" : "ribbon-road") + ".webp"); } }))
             .concat([{ label: "Not this year", note: "The money stays in the treasury.", chips: [], run: () => { track("pil_qw", "none"); } }]) });
         const opened = { ...(next.staged || {}) };
         (projects || []).filter(p => SYS.stageOpening(p, opened)).forEach(p => { opened[p.id] = turn; dApp += 1.5; notes.push(["🎀 " + SYS.stageLine(p) + " People can use part of it while the rest is built.", "success"]); track("pil_stage", p.type || "project"); });
@@ -9347,12 +9356,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         next.leakHist = [...(next.leakHist || []), { turn, total: L.total, pct: L.pct }];
         track("pil_leak", L.pct + "%");
         const opts = [];
-        if (W) { const F = SYS.LEAKS[W.id]; opts.push({ label: F.fix + " (" + naira(F.cost) + ")", note: "Stops most of the " + F.nm.toLowerCase() + " (" + naira(W.b) + " a year). Needs " + naira(F.upkeep) + " a year to stay strong.", chips: fxChips({ debt: F.cost }), run: () => { scFx({ debt: F.cost }); setStc(p => ({ ...p, plugs: { ...(p.plugs || {}), [W.id]: { str: 1, since: turn } } })); track("pil_plug", W.id); addL("🔧 " + F.fix + " started: it plugs " + F.nm.toLowerCase() + ".", "policy");
+        if (W) { const F = SYS.leakNames(W.id, NAT); opts.push({ label: F.fix + " (" + naira(F.cost) + ")", note: "Stops most of the " + F.nm.toLowerCase() + " (" + naira(W.b) + " a year). Needs " + naira(F.upkeep) + " a year to stay strong.", chips: fxChips({ debt: F.cost }), run: () => { scFx({ debt: F.cost }); setStc(p => ({ ...p, plugs: { ...(p.plugs || {}), [W.id]: { str: 1, since: turn } } })); track("pil_plug", W.id); addL("🔧 " + F.fix + " started: it plugs " + F.nm.toLowerCase() + ".", "policy");
           return res("🔧", F.fix, "Next FAAC day, about " + naira(W.b) + " less leaks away. Keep paying the upkeep or it wears out.", [{ l: "Treasury", v: "−" + naira(F.cost), good: false }, { l: "Leak plugged next year", v: naira(W.b), good: true }]); } }); }
         if (up > 0) opts.push({ label: "Pay the upkeep on your reforms (" + naira(up) + ")", note: "Audits, software and staff. Without them the leaks come back a third at a time.", chips: fxChips({ debt: up }), run: () => { scFx({ debt: up }); setStc(p => ({ ...p, keptTurn: turn })); track("pil_upkeep", "paid"); return res("🛠️", "Your reforms are kept up", "They stay at full strength for another year.", [{ l: "Treasury", v: "−" + naira(up), good: false }]); } });
         opts.push({ label: "Leave it", note: "No cost now. " + (up > 0 ? "Your reforms wear out by a third." : "The money keeps leaking."), chips: [], run: () => { track("pil_upkeep", "none"); } });
         cards.push({ key: "pil_leak_" + turn, kicker: "FAAC day · where the money went", color: CL.red, art: ["state-secretariat", null, "salary-slip"], title: naira(L.total) + " of " + naira(s.faac || 10) + " leaked before it reached anyone",
-          brief: L.parts.filter(x => x.b > 0).map(x => x.nm + ": " + naira(x.b)).join(". ") + "." + (worn.length ? " Your " + worn.map(id => SYS.LEAKS[id].fix.toLowerCase()).join(" and ") + " wore down for lack of upkeep." : ""),
+          brief: L.parts.filter(x => x.b > 0).map(x => SYS.leakNames(x.id, NAT).nm + ": " + naira(x.b)).join(". ") + "." + (worn.length ? " Your " + worn.map(id => SYS.leakNames(id, NAT).fix.toLowerCase()).join(" and ") + " wore down for lack of upkeep." : ""),
           stakes: "That is " + L.pct + "% of this year's FAAC, gone from the bank." + (next.leakHist.length > 1 ? " Last year: " + next.leakHist[next.leakHist.length - 2].pct + "%." : ""), options: opts });
       }
       // 4. Ministries with integrity: who your commissioners really are.
@@ -12642,9 +12651,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       dilemma: () => ["A community delegation", "./art/characters/traditional-ruler-oba-obi.webp", (curD && curD.nm) || "A local dispute", "They have travelled to Government House to see you."],
       hidden_threat: () => [sa, saPortrait(sa), "Intelligence: something is brewing", "For your eyes only."],
       intl_invite: () => [(curInvite && curInvite.who + ", " + curInvite.from) || "A foreign government", "./art/characters/permanent-secretary.webp", "An invitation to " + ((curInvite && curInvite.from.split(",").pop().trim()) || "travel abroad"), curInvite && curInvite.personal ? "🔒 They will only meet the Governor in person." : "Go yourself, or send someone."],
-      abuja: () => ["The Presidency, Abuja", "./art/characters/permanent-secretary.webp", "You are summoned to Abuja", "The President wants to see the governors."],
-      netherlands: () => ["Protocol, Government House", "./art/characters/permanent-secretary.webp", "A trade mission to the Netherlands", "Ports, flowers and farm technology."],
-      wedding: () => ["Protocol, Government House", "./art/characters/permanent-secretary.webp", "A society wedding in Lagos", "Everyone who matters will be there."],
+      abuja: () => ["The Presidency, Abuja", "./art/characters/permanent-secretary.webp", "The President invites you to Abuja", "I am calling the governors of our party to the Villa for a meeting."],
+      // Trip invitations read as the full letter (owner, 22 Nov 2026: "Ports, flowers and farm technology. What does it mean???").
+      netherlands: () => [SYS.TRIP_LETTERS.netherlands.who + ", " + SYS.TRIP_LETTERS.netherlands.where, "./art/characters/investor-foreign.webp", "Invitation: a €40 million farm and solar project", "We are choosing one Nigerian state for a €40 million project, and yours is on our shortlist."],
+      wedding: () => [SYS.TRIP_LETTERS.wedding.who + ", " + SYS.TRIP_LETTERS.wedding.where, "./art/characters/permanent-secretary.webp", "An invitation: a governor's daughter's wedding in Lagos", "Our daughter is getting married, and every governor, minister and party leader will be there."],
     }[k];
     const sm = l.secr ? (ministries || []).find(m => m.id === l.ministryId) : null;
     const agc = l.secr && l.secr.agency ? cases.find(c => c.id === l.secr.agency) : null, agL = agc && SYS.agencyLetter(agc, NAT ? "minister" : "commissioner");
@@ -12661,6 +12671,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       shock: curShock && curShock.desc, judiciary: curCourt && curCourt.desc, media: curMedia && curMedia.desc, dilemma: curD && (curD.d || curD.desc), intl_invite: curInvite && curInvite.what,
       flagship: FGl ? "You promised to " + FGl.goal + ". This year's share is due." : null, gold: gb && gb.text }[k] || (sc && sc.brief) || line;
     const two = (t) => { const m = String(t || "").match(/[\s\S]+?(?:[.!?]+["\u201d]?(?=\s|$)|$)/g) || [""]; const x = (m[0] || "").trim(); return x.length > 150 ? x.slice(0, 148).replace(/\s+\S*$/, "") + "…" : x; };
+    const TL = (k === "netherlands" || k === "abuja" || k === "wedding") ? SYS.TRIP_LETTERS[k] : null;
+    if (TL) return { from, img, title, line: String(line || "").slice(0, 120), office: TL.who + " · " + TL.where,
+      body: TL.body.join(" ") + ({ netherlands: " Going yourself costs about ₦0.3B and keeps you away for four months: the best chance of the deal. Sending a trade delegation is free, but they wanted to meet you.", abuja: " Going shows loyalty to the party. Staying home pleases voters and annoys the party.", wedding: " Going costs a few days and some money; the guest list is where deals are made." }[k] || "") };
     return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: two(src) };
   };
   // The year's matters arrive together after the year closes.
