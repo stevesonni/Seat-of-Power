@@ -2324,6 +2324,10 @@ const TripOpt = ({ onClick, children, fly }) => {
     {ic && <img src={ic} alt="" style={{ width: 60, height: 60, objectFit: "contain", gridRow: "1 / span 3" }} />}{children}</button>;
 };
 
+// The steps of a recovery plan, with what each costs and does (SYS.recoveryPlan).
+const PlanSteps = ({ P }) => <div data-sop-plan style={{ display: "grid", gap: 8 }}>{P.steps.map((x, i) => <div key={x.id} data-sop-plan-step={x.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 14, background: CL.blu + "0d", border: "1px solid " + CL.blu + "33" }}>
+  <b style={{ minWidth: 24, height: 24, borderRadius: 12, background: CL.blu, color: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{i + 1}</b>
+  <div style={{ flex: 1, textAlign: "left" }}><div style={{ fontWeight: 800, fontSize: "0.8em", lineHeight: 1.3 }}>{x.l} <span style={{ color: CL.red, whiteSpace: "nowrap" }}>{naira(x.c)}</span></div><div style={{ fontSize: "0.7em", color: CL.tm, lineHeight: 1.35, marginTop: 2 }}>{x.does}</div></div></div>)}</div>;
 const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick, letter, salute, sendImg, military, doc }) => military ? <ForcePicker M={military} options={options} onPick={onPick} /> : doc ? <DocCard D={doc} options={options} onPick={onPick} /> : letter ? <TripLetter L={letter} salute={salute} options={options} onPick={onPick} sendImg={sendImg} /> :
   React.createElement("div", { className: "ds-card ds-stack", style: { borderColor: kickerColor + "66" } },
     aside || null,
@@ -6281,7 +6285,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
       postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
-      pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); },
+      pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null,
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
       skApp, setSkApp, pApp, setPApp,
@@ -7908,6 +7912,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // The President's world: the war (once the storyline starts) and this year's crackdown, for foreign accounts.
       war: NAT && stc.bakunda && (stc.bakunda.stage || 0) >= 2 ? (() => { const B = stc.bakunda, K = SYS.bkCountry(B); return { nm: K.nm, adj: K.adj, cap: K.cap, gen: K.gen, art: K.art, stage: B.stage, atWar: !!B.atWar, progress: B.progress || 0, done: !!B.done, treaty: B.treaty }; })() : null,
       crackdown: !!((((stc.tori || {}).tools || {})[turn] || {}).crackdown),
+      // Ministers and commissioners: their own accounts post what their ministry is doing (SYS.toriCabinet).
+      cab: (ministries || []).filter(m => m.minister && !m.acting).map(m => { const pl = (stc.recPlans || []).find(x => x.mid === m.id && (x.done === "all" || x.done === "part") && x.at === turn);
+        return { id: m.id, name: m.name, minister: m.minister, art: commissionerArt(m.minister, m.perf, m.id).replace(/^\.\/art\/characters\/|\.webp$/g, ""), perf: m.perf, cor: m.cor, loyalty: m.loyalty, sub: (NAT ? "Minister · " : "Commissioner · ") + m.name.replace(/^Ministry of /, ""),
+          projects: (projects || []).filter(p => p.ministryId === m.id).slice(-4).map(p => ({ title: p.title, status: p.status, progress: p.progress })), programmes: [], plan: pl ? (pl.steps || [])[0] : null }; }),
       // For the opposition, who watch everything: approval when last year closed, lies called out, this year's moves.
       appPrev: (() => { const h = ((stc.tori || {}).hist || []).filter(x => x.turn < turn && x.app != null).pop(); return h ? h.app : null; })(),
       lies: Object.values((stc.tori || {}).acts || {}).reduce((a, v) => a + ((v.comments || []).filter(cm => cm.turn === turn && cm.lied).length), 0),
@@ -7993,7 +8001,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const extras = [SYS.toriPoll(c, H), SYS.toriClip(c), SYS.toriReceipts(c)].filter(Boolean);
     const follow = SYS.toriFollowing({ ...c, topStory: null });
     const mix = []; woven.forEach((x, i) => { mix.push(x); if (i % 3 === 1 && follow.length) mix.push(follow.shift()); if (i === 4 && extras.length) mix.push(extras.shift()); }); mix.push(...follow, ...extras);
-    const feed = [...SYS.toriInstant(c), ...SYS.toriSilence(c).people, ...head, ...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriNeighbours(c), ...SYS.toriInstitutions(c, H), ...opp.filter(o => o.w >= 3).slice(0, 2), ...mix]
+    const feed = [...SYS.toriInstant(c), ...SYS.toriSilence(c).people, ...head, ...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriNeighbours(c), ...SYS.toriCabinet(c), ...SYS.toriInstitutions(c, H), ...opp.filter(o => o.w >= 3).slice(0, 2), ...mix]
       .filter(x => !blocked.includes(x.handle)).concat(memes).map(x => ({ ...x, media: SYS.toriMedia(x, c) }));
     const hero = SYS.toriMainStory(c, H);
     const heatTags = H.stage >= 2 ? H.stories.slice(0, 3).map((x, i) => ({ tag: x.tag, count: SYS.fmtCount(20000 * H.stage + 9000 * (3 - i)), about: x.cause })) : [];
@@ -8351,6 +8359,41 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           { label: "Overrule it: keep rates low", note: "Business is happy this year. Inflation stays high.", chips: fxChips({ app: 1 }), run: () => { scFx({ app: 1 }); setStc(p => ({ ...p, inflation: { ...(p.inflation || {}), rate: SYS.infl(p.inflation) + 3 } })); addL("🏦 Overruled the Central Bank: rates stay low, and so does the naira.", "political"); } },
         ] });
     }
+    // Recovery plans that are due (SYS.recoveryPlan): costed steps you approve; what you approve happens.
+    (next.recPlans || []).filter(x => !x.done && x.due <= turn).slice(0, 2).forEach(R => {
+      const m = (ministries || []).find(k => k.id === R.mid);
+      if (!m || !m.minister) { next.recPlans = next.recPlans.map(x => x === R ? { ...x, done: "gone" } : x); return; }
+      const stalled = (projects || []).filter(p => p.ministryId === m.id && p.status === "stalled" && SYS.stallCause(p) !== "fled").map(p => ({ id: p.id, title: p.title, shortM: Math.max(SYS.stallCause(p) === "money" ? SYS.toFinishM(p, s.cor || 0) : 0, 50) }));
+      const P = SYS.recoveryPlan(m, { stalled, nat: NAT, turn }), who = (NAT ? "Minister " : "Hon. ") + m.minister;
+      const first = P.steps.slice(0, 2), firstB = Math.round(first.reduce((a, x) => a + x.c, 0) * 100) / 100;
+      const close = (status) => setStc(p => ({ ...p, recPlans: (p.recPlans || []).map(x => x.mid === R.mid && x.asked === R.asked ? { ...x, done: status, at: turn, steps: status === "back" ? [] : (status === "all" ? P.steps : first).map(y => y.l) } : x) }));
+      const adopt = (steps, label) => {
+        const E = SYS.planEffect(P, steps.map(x => x.id));
+        if (!spendB(E.cost, who + "'s recovery plan")) return;
+        // The stalled sites restart now.
+        if (E.restarts.length) setProjects(prev => (prev || []).map(p => { const rs = E.restarts.find(x => x.pid === p.id); if (!rs) return p; const c0 = SYS.stallCause(p); const q = c0 === "money" ? SYS.addFunding(p, rs.shortM, turn) : SYS.restartWork(p, turn).p; return { ...q, status: "in_progress", decisions: [...(q.decisions || []), { year: turn, text: "Restarted under " + who + "'s recovery plan." }] }; }));
+        setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, perf: Math.min(95, (x.perf || 50) + Math.round(4 + 8 * P.delivery * steps.length / P.steps.length)), loyalty: Math.min(95, (x.loyalty == null ? 50 : x.loyalty) + 3), plan: { at: turn, steps: steps.map(y => y.l) } } : x));
+        // What it changes lands next year, as well as the minister delivers it.
+        const fx = { ...E.fx }; delete fx.app; const appN = Math.round(E.fx.app || 0);
+        setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "approved " + who + "'s recovery plan", fx: { ...fx, ...(appN ? { app: appN } : {}) }, desc: m.name + ": the recovery plan " + (P.delivery >= .75 ? "delivered" : P.delivery >= .55 ? "mostly delivered" : "delivered only in part") + " (" + steps.map(y => y.l.split(":")[0].toLowerCase()).slice(0, 2).join("; ") + ")" }]);
+        if (P.padB > 0) setS(p0 => ({ ...p0, cor: cl((p0.cor || 0) + .01) }));
+        close(steps.length === P.steps.length ? "all" : "part");
+        addL("📝 Approved " + who + "'s recovery plan for " + m.name + " (" + label + ", " + naira(E.cost) + ")" + (E.restarts.length ? ": " + E.restarts.length + " stalled project" + (E.restarts.length > 1 ? "s" : "") + " restarted" : "") + ".", "policy");
+        scWiki(NAT ? "Presidency" : "Governorship", "Approved a recovery plan for the " + m.name + ": " + steps.map(y => y.l.toLowerCase()).join("; ") + ".");
+        return { icon: "📝", title: "The plan is under way", text: steps.length + " step" + (steps.length > 1 ? "s" : "") + " paid for. " + (E.restarts.length ? E.restarts.length + " stalled site" + (E.restarts.length > 1 ? "s" : "") + " reopen now. " : "") + "You will see the results next year." + (P.padB > 0 ? " About " + naira(P.padB) + " of it was padding." : ""), tone: "good" };
+      };
+      const fxOf = (steps) => fxChips(SYS.planEffect(P, steps.map(x => x.id)).fx);
+      cards.push({ key: "rplan_" + m.id + "_" + turn, kicker: m.name + " · the recovery plan", color: CL.blu, art: [NAT ? "villa-office" : "governor-office", commissionerArt(m.minister, m.perf, m.id).replace(/^\.\/art\/characters\/|\.webp$/g, ""), "memo-folder"], plan: P,
+        title: who + " is back with a plan",
+        brief: "Last year you gave no money and asked for a plan. Here it is: " + P.steps.length + " steps, " + naira(P.total) + " in all. Approve what you want done." + (P.padB > 0 ? " Your adviser says about " + naira(P.padB) + " of it is padded." : "") + (P.delivery < .55 ? " The ministry's record is weak: expect part of it to be delivered." : ""),
+        stakes: "What you approve is paid for now and happens: stalled sites reopen, and the sector moves next year.",
+        options: [
+          { label: "Approve the whole plan (" + naira(P.total) + ")", note: "Every step is paid for now.", chips: [{ text: "−" + naira(P.total), color: CL.red }].concat(fxOf(P.steps)).slice(0, 3), run: () => adopt(P.steps, "all " + P.steps.length + " steps") },
+          { label: "Approve the first two steps (" + naira(firstB) + ")", note: first.map(x => x.l.split(":")[0]).join(" · "), chips: [{ text: "−" + naira(firstB), color: CL.red }].concat(fxOf(first)).slice(0, 3), run: () => adopt(first, "the first two steps") },
+          { label: "Send it back", note: "Nothing is spent. Nothing changes, and " + m.minister + " is stung.", chips: [{ text: "Loyalty −3", color: CL.red }], run: () => { setMinistries(ms => ms.map(x => x.id === m.id ? { ...x, loyalty: Math.max(5, (x.loyalty == null ? 50 : x.loyalty) - 3) } : x)); close("back"); addL("📝 Sent " + who + "'s recovery plan back.", "info"); return { icon: "📝", title: "Back to the drawing board", text: "Nothing is spent. The ministry stays as it is.", tone: "neutral" }; } },
+        ] });
+      next.recPlans = (next.recPlans || []).map(x => x === R ? { ...x, shown: turn } : x);
+    });
     if (NAT) {
       const M = SYS.fedMonth(s, f), nnpc = sw < -.05 ? "Oil prices fell, and the Federation Account with them." : "The national oil company remitted less than it owed: it deducted subsidy costs and its frontier exploration fund before paying in.";
       const opts = [];
@@ -9676,7 +9719,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const cm = (action, resourcesM = 0) => setCommits(l => SYS.addCommitment(l, { id: "cm_" + a.id, who: m.minister, ministryId: m.id, action, resourcesM, reviewYear: turn + 1, year: turn }));
     const upd = (f) => setMinistries(ms => ms.map(x => x.id === m.id ? { ...f(x), met: turn } : x));
     if (o.id === "fund") { if (!spendB(.5, "₦500M for " + m.name)) return; upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 6) })); cm("Show results from the extra ₦500M", 500); return { icon: "💰", title: "₦500M for " + m.name, text: "Hon. " + m.minister + " promised results by next year. You will see whether they kept it.", tone: "neutral" }; }
-    if (o.id === "plan") { upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 2) })); cm("Present a recovery plan and start it"); return { icon: "📝", title: "A plan, not money", text: "Hon. " + m.minister + " will come back with a recovery plan.", tone: "neutral" }; }
+    if (o.id === "plan") { setStc(p => (p.recPlans || []).some(x => x.mid === m.id && !x.done) ? p : ({ ...p, recPlans: [...(p.recPlans || []), { mid: m.id, minister: m.minister, asked: turn, due: turn + 1 }] })); track("plans", "asked"); return { icon: "📝", title: "A plan, not money", text: "Hon. " + m.minister + " will come back next year with a costed recovery plan: steps you can approve one by one.", tone: "neutral" }; }
     if (o.id === "no") { upd(x => ({ ...x, loyalty: Math.max(5, (x.loyalty == null ? 50 : x.loyalty) - 4) })); return { icon: "🚪", title: "Request declined", text: "Hon. " + m.minister + " leaves without the money.", tone: "neutral" }; }
     if (o.id === "praise") { setS(p => ({ ...p, app: cl100(p.app + 1) })); upd(x => ({ ...x, loyalty: Math.min(95, (x.loyalty == null ? 50 : x.loyalty) + 5) })); return { icon: "🏅", title: "Credit where it is due", text: "You praised Hon. " + m.minister + " in public.", tone: "good" }; }
     upd(x => ({ ...x, perf: Math.min(95, (x.perf || 50) + 4) })); cm("Hit a harder target next year");
@@ -12280,7 +12323,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : k === "house_bill" ? 45 : k === "investor" ? 42 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
+    const WAR = (k) => k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#rplan_") /* the plan you asked a minister for */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
     // A district's request is always seen (an unseen one could lapse unfairly), and one House or cabinet matter a year has its own slot.
     const ASK = (k) => k.startsWith("sc#zask_"), PEOPLE = (k) => /^sc#(exco_|leg_member_|leg_hearing_|chair_)/.test(k);
     const pType = (k) => k.startsWith("sc#exco_") ? 0 : k.startsWith("sc#chair_") ? 2 : 1; // the slot turns: the House, then the cabinet, then the party
@@ -12705,6 +12748,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const two = (t) => { const S = String(t || "").replace(/\s+/g, " ").trim().match(/(?:\b(?:Hon|Rt|Dr|Mr|Mrs|Ms|Prof|Gov|Sen|Barr|Alh|Engr|Gen|Col|Maj|Capt|Lt|St|No|Mt|vs|Jr|Sr)\.|\d\.\d|[^.!?])+(?:[.!?]+["\u201d\u2019]?|$)/g) || [""];
       let x = ""; for (const sn of S) { const t2 = (x ? x + " " : "") + sn.trim(); if (x && (t2.length > 260 || x.length >= 90)) break; x = t2; }
       return x.length > 300 ? x.slice(0, 298).replace(/\s+\S*$/, "") + "…" : x; };
+    // A recovery plan: the minister's own letter, with every costed step (SYS.recoveryPlan).
+    if (sc && sc.plan) { const P = sc.plan, mm = minById(P.mid) || {}, txt = "As you asked, here is my recovery plan for the " + P.ministry.replace(/^Ministry of /, "") + " ministry: " + P.steps.length + " steps, " + naira(P.total) + " in all. Approve what you want done; what you approve, we start at once.";
+      return { from: (NAT ? "" : "Hon. ") + P.minister + ", " + (NAT ? "Minister" : "Commissioner") + " for " + P.ministry.replace(/^Ministry of /, ""), img: commissionerArt(P.minister, mm.perf, P.mid), office: P.ministry, title: sc.title, line: txt, body: txt + " " + P.steps.map((x, i) => (i + 1) + ". " + x.l + " (" + naira(x.c) + ").").join(" "),
+        full: <><div style={{ marginBottom: 10 }}>{txt}</div><PlanSteps P={P} />{P.padB > 0 ? <div style={{ marginTop: 10, fontSize: "0.9em", color: "#a3271c" }}>Your adviser's note: about {naira(P.padB)} of this is padded.</div> : null}</> }; }
     // A war letter (the White House, the UN in Geneva…) carries its own letter: its sender and its whole text.
     if (sc && sc.letter && sc.letter.body) { const Lt = sc.letter;
       return { from: Lt.signed || Lt.who, img: sc.img || "./art/characters/permanent-secretary.webp", office: Lt.who + " · " + Lt.where,
@@ -14572,13 +14619,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           setSession(null); }} />}
         {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
           return <LvDecision key={c.key} c={{ ...c, ...(pillarOn("words") ? { brief: SYS.cut25(c.brief), stakes: c.stakes ? SYS.cut25(c.stakes, 1, 20) : c.stakes } : {}), options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), disabled: o.disabled, raw: o })) }}
-            advice={<>{fcStrip("sc#" + c.key)}{c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}</>}
+            advice={<>{fcStrip("sc#" + c.key)}{c.plan ? <PlanSteps P={c.plan} /> : null}{c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}</>}
             onPick={(o) => pickSc(c, o)} />; })()}
         <OL show={phase === "sc" && scCards.length > 0 && !!(scCards[0].letter || scCards[0].military || scCards[0].doc)}>
           {scCards[0] && (() => { const c = scCards[0]; return <>{fcStrip("sc#" + c.key) && <div style={{ maxWidth: 600, margin: "0 auto 12px" }}>{fcStrip("sc#" + c.key)}</div>}{c.advice && !c.military && !c.letter && <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", maxWidth: 600, margin: "0 auto 12px", background: "#fff4f2", border: "2px solid #8e0c0c", borderRadius: 16, padding: TALL() ? "10px 12px" : "12px 16px" }}>
               <img src="./art/characters/chief-of-army-staff.webp" alt="Chief of Army Staff" style={{ width: TALL() ? 52 : 64, height: TALL() ? 52 : 64, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6" }} />
               <div style={{ fontSize: TALL() ? TS(18) : TS(24), lineHeight: 1.4, color: CL.txt }}><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</div>
-            </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
+            </div>}{!c.letter && !c.military && !c.doc && <SceneArt bg={c.art[0]} who={c.art[1]} obj={c.art[2]} scene={c.art[3]} h={TALL() ? 200 : 240} />}<DecisionCard aside={c.plan ? <PlanSteps P={c.plan} /> : null} military={c.military} doc={c.doc} letter={c.letter} salute={c.letter ? SYS.tripSalute(c.letter, { president: NAT, lastName: String(setup?.lastNm || setup?.nm || "").split(" ").pop() }) : null} sendImg={NAT ? "./art/icons/trip-foreign-minister.webp" : "./art/icons/trip-deputy-governor.webp"} kicker={c.kicker} kickerColor={c.color} title={c.title} brief={c.brief} stakes={c.stakes}
             options={c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), raw: o }))}
             onPick={(o) => pickSc(c, o)} /></>; })()}
         </OL>

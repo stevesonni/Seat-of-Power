@@ -1,3 +1,4 @@
+import { planSector } from "./plans.js";
 /* Tori: the state's own Twitter-style feed (owner's design, 20 Nov 2026). Citizens, the press, the party and the
    opposition post about how the state is run; the governor has an account (@EbonyiGov…) and can post and reply.
    Everything is written by the game from the state of play, in English and Pidgin: no live AI, nothing per player.
@@ -1024,4 +1025,40 @@ export function toriSilence(c) {
   const opp = [{ text: yrs.charAt(0).toUpperCase() + yrs.slice(1) + " of silence from " + me + ". A leader who will not face the people does not deserve their votes. " + tag, w: 7 },
     { text: "We answer questions every week. " + me + " has not answered one in " + yrs + ". Spokesmen and press releases are not leadership.", w: 5 }];
   return { people, opp, tag };
+}
+
+/* Ministers and commissioners on Tori (owner, 22 Nov 2026: "ministers and commissioners should have their own Tori
+   accounts where they tweet what they're doing"). c.cab: [{ id, name, minister, art, perf, cor, loyalty, sub, projects:
+   [{ title, status, progress }], programmes: [names], plan (their recovery plan this year), record (their last report) }].
+   Each year up to four of them post what they are doing: a site visit, a commissioning, a programme's reach, their
+   recovery plan; the weak make excuses, and a disloyal one throws shade. */
+export function toriCabinet(c) {
+  const cab = (c.cab || []).filter(x => x && x.minister); if (!cab.length) return [];
+  const r = rngOf("cab" + c.st + c.turn), out = [], me = toriHandle(c.st);
+  const handleOf = (m) => "@Hon" + String(m.minister).replace(/^(Hon\.|Dr\.|Prof\.|Engr\.|Barr\.|Alh\.|Mrs\.|Mr\.)\s*/g, "").split(" ").pop().replace(/[^A-Za-z]/g, "") + "_" + String(m.id).replace(/[^a-z]/gi, "").slice(0, 6);
+  const tag = (m) => "#" + (String(m.name).replace(/^Ministry of /, "").match(/[A-Za-z]+/) || ["Ministry"])[0] + "Delivers";
+  const lc = (x) => String(x).charAt(0).toLowerCase() + String(x).slice(1);
+  const DAY = { infrastructure: ["Inspected the drainage works before the rains. Contractors who are not on site by Monday lose their contracts.", "Met the road contractors today: every site now reports progress with photos, every month."],
+    health: ["Visited two general hospitals unannounced today. The drug stores were stocked; the staff rota was not. Fixing it.", "Our immunisation teams reached more LGAs this month. Bring your children: it is free."],
+    education: ["Unannounced visit to three public schools this morning. Teachers present, pupils in class. Keep it up.", "The exam results are in. Better than last year, not yet good enough. Our next step is the rural schools."],
+    agriculture: ["Met the farmers' cooperatives today on inputs for the next season. Fertiliser goes out before the rains, not after.", "Visited the farm settlement. The new storage sheds are full. Less of the harvest is being lost."],
+    security: ["Joint patrol on the highway last night. The corridors are safer; we are not done.", "Met the community guards and the traditional rulers today. Report anything strange: the lines are open day and night."],
+    justice: ["Visited the custodial centre today. Forty people held for years without trial will have their cases heard this month.", "The new court registry is online. No more paying to find your own file."],
+    administration: ["Every payment from this ministry is now online. Ask us anything.", "Met the stakeholders today. Their concerns are noted, and we are acting on them."] };
+  const order = cab.slice().sort((a, b) => ((b.projects || []).length + (b.programmes || []).length + (b.plan ? 2 : 0)) - ((a.projects || []).length + (a.programmes || []).length + (a.plan ? 2 : 0)) || r() - .5);
+  order.slice(0, 4).forEach(m => {
+    const say = (text) => out.push({ kind: "cabinet", verified: true, name: /^(Hon\.|Dr\.|Prof\.|Engr\.|Barr\.|Alh\.)/.test(m.minister) ? m.minister : "Hon. " + m.minister, handle: handleOf(m), art: m.art || "commissioner-technocrat", sub: m.sub, text, ago: ago(r, out.length), ...counts(r, 1), id: "cb" + hash(m.id + text + c.turn), topic: "general" });
+    const P = m.projects || [], live = P.find(p => p.status === "in_progress"), done = P.find(p => p.status === "delivered"), stuck = P.find(p => p.status === "stalled");
+    if (m.plan) say("Our recovery plan starts today. First step: " + lc(m.plan).replace(/:.*$/, "") + ". Thank you " + me + " for approving it. Judge us by the results next year. " + tag(m));
+    else if (done && r() < .7) say(done.title + " is complete and open to the public. Promise made, promise kept. " + tag(m) + " 🎉");
+    else if (live) say("On site at " + live.title + " this morning: " + Math.round(live.progress || 0) + "% done. We publish progress every month. " + tag(m));
+    else if (stuck && (m.cor || 0) > 45) say("The delays at " + stuck.title + " are due to funding issues that are being resolved. We urge stakeholders to remain calm.");
+    else if (stuck) say("I will not hide it: " + stuck.title + " has stalled. I have asked for a recovery plan and will publish it here.");
+    else if ((m.programmes || []).length) say("The " + m.programmes[0] + " reached more communities this month. Keep the feedback coming. " + tag(m));
+    else if ((m.perf || 50) > 70) say("Targets met early this year. My team at the ministry deserves the credit. " + tag(m));
+    else if ((m.perf || 50) < 40) say("We inherited decay at the ministry. Rome was not built in a day; give us time and judge us by results.");
+    else if ((m.loyalty || 50) < 35) say("Some of us came into government to serve, not to clap. Posterity will judge. 🤐");
+    else { const L = DAY[planSector(m.id, m.name)] || DAY.administration; say(L[Math.floor(r() * L.length)] + " " + tag(m)); }
+  });
+  return out;
 }

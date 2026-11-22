@@ -3,7 +3,33 @@
 
 
 
-## Printed money is felt: inflation (22 Nov, latest)
+## Plans you can carry out, and ministers on Tori (22 Nov, latest)
+
+- **What the owner asked:**
+  - Ministers and commissioners should have their own Tori accounts, where they post what they are doing.
+  - A minister asked to come back with a plan should bring a real plan that the player can carry out, and that changes things when it is carried out.
+- **Recovery plans** (`game/systems/plans.js`). The plan option can come from you, from the Chief of Staff or from the Head of Service's brief.
+  - **The plan comes back as a letter.** The following year the commissioner or minister writes, signed with their own name. The letter lists each step with its cost and what it does (`recoveryPlan`).
+  - **Stalled projects come first.** The first steps restart up to two of the ministry's stalled projects by paying what they still need.
+  - **Then the sector's own steps,** three for each sector: works, health, education, farming, security, justice and administration. Examples: re-tendering the contracts, hiring 300 nurses, getting seeds out before the rains.
+  - **The President's plans cost ten times more.**
+- **Your choices:**
+  - **Approve the whole plan.**
+    - The money is paid now, and the stalled sites restart now.
+    - The ministry's performance rises.
+    - The plan's results land the following year as a "because you…" card (`planEffect`). They are scaled by how well the ministry delivers.
+  - **Approve the first two steps only.**
+  - **Send it back.** Nothing is spent, and the minister's loyalty drops by 3.
+- **Crooked ministers:** a crooked minister pads the plan. Your adviser flags the padding, and less of the plan gets done.
+- **The card is never dropped** (WAR `sc#rplan_`).
+- **Ministers on Tori** (`toriCabinet`). Each year up to four ministers or commissioners post from their own accounts. A handle looks like @HonOladipo_works, with the line "Commissioner · Works" (or "Minister · …" for the President).
+  - **What they post:** the first step of the plan you approved; a project opening; progress on a site, with the percentage done; an honest or evasive line about a stalled site; their own sector's day-to-day work.
+  - **The weak make excuses,** and a disloyal minister throws shade.
+- **Tests:**
+  - `tests/plans.test.mjs` (440 unit tests pass).
+  - `tests/e2e/recovery-plan.mjs`: the letter lists 4 costed steps, and approving restarts the stalled road and raises the ministry's performance from 38 to 46. Next year's results are booked, and the commissioners post on Tori.
+
+## Printed money is felt: inflation (22 Nov)
 
 - **What the owner asked:** "There has to be a stronger consequence … the consequence has to be felt."
 - **How it works now** (`game/systems/inflation.js`):
