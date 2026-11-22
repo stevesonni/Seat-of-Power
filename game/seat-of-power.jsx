@@ -896,17 +896,18 @@ const NEEDS_MINISTRY = { nursing: "health", stadium: "sports", esports: "sports"
 /* Which office is on screen. The presidency runs on the governorship's engine;
    these accessors hand it the Federal Government's own ministries, programmes,
    bills, orders and needs (game/systems/federal.js) instead of a state's. */
-const SEAT = { nat: false };
+const SEAT = { nat: false, state: null, ctx: {} };
 { const fx = (SYS.COS_ROSTER || []).find(c => c.id === "fixer"); if (fx) { const own = fx.img; Object.defineProperty(fx, "img", { get: () => SEAT.nat ? "presidential-chief-of-staff" : own, enumerable: true }); } }
 const NEEDS = () => SEAT.nat ? NEED_TYPES.map(t => ({ ...t, ...(SYS.FED_NEEDS[t.k] || {}) })) : NEED_TYPES;
 const needType = (n) => NEEDS().find(t => t.k === (n && n.k));
 const needMin = (k) => SEAT.nat ? SYS.FED_NEED_MINISTRY[k] : NEED_MINISTRY[k];
 const projMin = (k) => SEAT.nat ? SYS.FED_PROJECT_MINISTRY[k] : NEEDS_MINISTRY[k];
 const MIN_CAT = () => SEAT.nat ? SYS.FED_MINISTRIES : MINISTRY_CATALOGUE;
-const POL = () => SEAT.nat ? SYS.FED_POLICIES : POLICIES;
-const BILLS_ = () => SEAT.nat ? SYS.FED_BILLS : BILLS;
+// Each state's own version of a programme or bill (SYS.localProgrammes, owner 22 Nov 2026: "rural electrification in Abia is not the same as in Lagos").
+const POL = () => SEAT.nat ? SYS.FED_POLICIES : SEAT.state ? SYS.localProgrammes(POLICIES, SEAT.state, SEAT.ctx) : POLICIES;
+const BILLS_ = () => SEAT.nat ? SYS.FED_BILLS : SEAT.state ? SYS.localBills(BILLS, SEAT.state, SEAT.ctx) : BILLS;
 const ORDERS_ = () => SEAT.nat ? SYS.FED_ORDERS : ORDERS;
-const HBILLS = () => SEAT.nat ? SYS.FED_HOUSE_BILLS : HOUSE_BILLS;
+const HBILLS = () => SEAT.nat ? SYS.FED_HOUSE_BILLS : SEAT.state ? SYS.localHouseBills(HOUSE_BILLS, SEAT.state, SEAT.ctx) : HOUSE_BILLS;
 const INVITES = () => SEAT.nat ? [] : INTL_INVITES; // the President's world stage has its own deck
 const REVM = () => SEAT.nat ? SYS.FED_REVENUE : REVENUE_MEASURES;
 const TYPES_FOR = () => SEAT.nat ? SYS.FED_TYPES : Object.keys(SYS.UNIT).filter(k => !SYS.FED_ONLY.includes(k));
@@ -2127,8 +2128,10 @@ const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir
 // are the same moment share one. Add a pack's ids here as it arrives.
 const DEC_ART = new Set(["classrooms", "f_anchor", "f_assets", "f_cash", "f_coastal", "f_customs", "f_disability", "f_electoral", "f_electricity", "f_eo_assets", "f_eo_border", "f_eo_business", "f_eo_curfew", "f_eo_food", "f_eo_lg_funds", "f_eo_local", "f_eo_medical", "f_eo_merge", "f_eo_power", "f_eo_tsa", "f_eo_visa", "f_gas", "f_grid", "f_ippis", "f_jobs_corps", "f_lg_autonomy", "f_mambilla", "f_min_wage", "f_mining", "f_national_id", "f_nhia", "f_not_too_young", "f_oil_theft", "f_pib", "f_poca", "f_police_recruit", "f_primary_health", "f_rail", "f_refinery", "f_school_feed", "f_second_bridge", "f_state_police", "f_state_police_amend", "f_student_loans", "f_tax", "f_vat", "f_whistle", "nb_constituency", "nb_disabilities", "nb_nddc", "nb_peace_corps", "nb_pensions", "nb_social_media", "abandoned_audit", "afdb", "agro_processing", "anti_cor", "asuu", "cct", "child_rights", "china_infra", "chinese_steel", "cholera", "close_schools", "comm_pol", "cs_audit", "cs_digital", "cs_replace", "cs_retire", "cs_training", "curfew", "dangote_cement", "data_centre", "diaspora_houston", "digi_gov", "edu_compulsory", "emerg_edu", "emerg_health", "env_protect", "farm_sub", "fertilizer", "fg_efcc", "fg_faac_cut", "fg_grant", "fg_loan_block", "fg_military", "fg_party_pressure", "fg_road", "fintech_hub", "fiscal_resp", "flood", "foi", "four_day", "free_csec", "free_edu", "garment_factory", "ge_power", "gf_appointment", "gf_assembly", "gf_contract", "gf_land", "gf_money", "gf_revenue", "harvard", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "health_ins", "herder", "hiring_freeze", "hotel_resort", "housing", "ind_park", "irrigation", "jud_budget", "jud_corrupt", "jud_land", "jud_mining", "jud_policy", "jud_security", "kidnap", "korea_skills", "land", "land_digitise", "land_reform", "m_blogger_bribe", "m_fake_news", "m_hashtag_fail", "m_influencer_visit", "m_newspaper_expose", "m_newspaper_praise", "m_radio_angry", "m_radio_praise", "m_tv_documentary", "m_viral_good", "market_fire", "market_mod", "mega_airport", "mega_hospital", "min_wage", "mining_co", "mit", "oil_refinery", "oil_spill", "okada", "okada_kit", "open_grazing", "outreach", "pension", "pharma_plant", "phc", "poultry_farm", "procurement_law", "rail", "religious2", "revoke_land", "roads", "rural_elec", "sanitation", "school_feed", "school_voucher", "sh_bank_crisis", "sh_endsars", "sh_flood", "sh_naira_crash", "sh_oil_crash", "sh_pandemic", "sh_subsidy", "sh_terror", "shopping_mall", "skills", "smear", "solar_farm", "street_trading", "strike", "sweden_pm", "teachers", "tech_hub", "tenancy", "uae_invest", "uk_trade", "un_sdg", "uni", "university", "us_pres", "vapp", "water", "whistle", "world_bank", "youth_employ"]);
 const DEC_ALIAS = { f_fed_colleges: "free_edu", f_fed_university: "university", f_poly_uni: "uni", new_uni: "university", ease_business: "f_eo_business", electoral_law: "f_electoral", hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
+const VARIANT_ART = new Set([]);
+const artOf = (id, art) => art && VARIANT_ART.has(art) ? "./art/variants/" + art + ".webp" : decArt(id);
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
-const DecPic = ({ id, h }) => { const src = decArt(id); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
+const DecPic = ({ id, h, art }) => { const src = artOf(id, art); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
 const DILEMMA_ART = {
   herder: ["emirs-palace-courtyard", "police-commissioner"], strike: ["rally", "labour-leader"], land: ["back-room", "permanent-secretary"],
   flood: ["flooded-community", null], whistle: ["back-room", "commissioner-technocrat"], smear: ["tv-studio", "opposition-candidate-alt"],
@@ -5408,7 +5411,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
   const placesOf = (d) => (d.lgas && d.lgas.length ? d.lgas : [d.lga]).filter(Boolean);
   const placeLabel = (d) => { const L = placesOf(d); return L.length > 1 ? L[0] + " and " + (L.length - 1) + " more" : L[0] || null; };
   const where = (p) => [placeLabel(p), (ministries || []).find(m => m.id === p.ministryId)?.name].filter(Boolean).join(" · ");
-  const estOf = (d) => SYS.estimate(d.type, d.qty, { places: placesOf(d), perf: ((ministries || []).find(m => m.id === d.ministryId) || {}).perf ?? 70, federal: !!federal, second: !!d.second });
+  const estOf = (d) => SYS.estimate(d.type, d.qty, { places: placesOf(d), perf: ((ministries || []).find(m => m.id === d.ministryId) || {}).perf ?? 70, federal: !!federal, second: !!d.second, state: federal ? null : SEAT.state, costF: d.costF });
   const proj = F0 && F0.projId ? projects.find(x => x.id === F0.projId) : null;
 
   // ── 1. Proposal: what, where, how big ──
@@ -5466,7 +5469,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
             text={(covered.length ? "When it opens, approval rises in " + covered.map(g => g.nm || "those places").join(", ") + "." : "") + (big && covered.length < G1.length ? " " + G1.filter(g => !covered.includes(g)).map(g => g.nm).join(", ") + (G1.length - covered.length === 1 ? " is" : " are") + " left out and will notice." : "")} tone={big && covered.length < G1.length ? "warn" : null} />
           {est.overCap && <Situation tone="warn" head={minNm + " can manage about " + est.cap.toLocaleString() + " " + SYS.unitsOf(est.unit, est.cap) + " a year: this takes " + est.years + " years."} text={d.second ? "A second contractor is on it (+12% on the cost)." : "A second contractor doubles that, for 12% more."} />}
           {(est.overCap || d.second) && <button className="sp-opt" aria-pressed={!!d.second} onClick={() => onFlow({ ...F0, draft: { ...d, second: !d.second } })}><b style={{ display: "block", fontSize: 16 }}>{d.second ? "✓ Second contractor hired" : "Hire a second contractor"}</b><span style={{ fontSize: 14, color: "#5b665f" }}>{d.second ? "Tap to go back to one." : "+12% on the cost; about twice as fast."}</span></button>}
-          {est.hard.length > 0 && <Situation tone="warn" head={est.hard.map(h => h.place).join(", ") + (est.hard.length === 1 ? " is " : " are ") + [...new Set(est.hard.map(h => SYS.TERRAIN[h.kind].nm))].join(" and ") + ": it costs more to build there."} text={[...new Set(est.hard.map(h => h.kind))].map(k => "Up to " + Math.round((SYS.TERRAIN[k].f - 1) * 100) + "% more (" + SYS.TERRAIN[k].why + ")" + (k === "riverine" ? "; the river can flood the works." : ".")).join(" ")} />}
+          {est.hard.length > 0 && <Situation tone={est.hard.every(h => SYS.TERRAIN[h.kind].f < 1) ? "good" : "warn"} head={est.hard.map(h => h.place).join(", ") + (est.hard.length === 1 ? " is " : " are ") + [...new Set(est.hard.map(h => SYS.TERRAIN[h.kind].nm))].join(" and ") + (est.hard.every(h => SYS.TERRAIN[h.kind].f < 1) ? ": it costs less to build there." : ": it costs more to build there.")} text={[...new Set(est.hard.map(h => h.kind))].map(k => (SYS.TERRAIN[k].f < 1 ? "About " + Math.round((1 - SYS.TERRAIN[k].f) * 100) + "% less (" : "Up to " + Math.round((SYS.TERRAIN[k].f - 1) * 100) + "% more (") + SYS.TERRAIN[k].why + ")" + (k === "riverine" ? "; the river can flood the works." : k === "gully" ? "; a gully can open in the rains." : ".")).join(" ")} />}
         </div>}
         <Brief>
           {d.benefit && <div><b>What it should give:</b> {d.benefit}</div>}
@@ -6059,7 +6062,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const sd = STATES[state];
   // The presidency: the same engine with Nigeria as the polity (six zones, 37 "areas").
   const NAT = state === NATION, ZN = zonesOf(state), ZIX = ZN.map((_, i) => i);
-  SEAT.nat = NAT;
+  SEAT.nat = NAT; SEAT.state = NAT ? null : state;
   const SPK = NAT ? "speaker-of-the-house" : "speaker"; // the Speaker who sends you bills
   const MEM = NAT ? Math.round(NASS_SEATS / 40) : 1; // one governor-sized House member is about a dozen in the National Assembly
   useEffect(() => NAT ? presidentialScreen() : undefined, [NAT]);
@@ -6147,6 +6150,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const [impSurv, setImpSurv] = useState(ld?.impSurv || false);
   const [flagUsed, setFlagUsed] = useState(ld?.flagUsed || false);
   const [billsPassed, setBillsPassed] = useState(ld?.billsPassed || []);
+  // A state that passes its own electricity market law regulates its power from then on (SYS.profileOf ctx.ownMarket).
+  SEAT.ctx = { ownMarket: (billsPassed || []).some(b => b && b.id === "elec_market") };
+  const [localAsk, setLocalAsk] = useState(null); // a programme's local question, before it starts
   const [assentBill, setAssentBill] = useState(ld?.assentBill || null); // { bill, note }: passed by the legislature, waiting for your signature
   const [judEvent, setJudEvent] = useState(null);
   const [forcedBudget, setForcedBudget] = useState(ld?.forcedBudget || false);
@@ -9768,7 +9774,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const confirmPlan = (F0, a, overRoom) => {
     const d = F0.draft, P = F0.plan, places = (d.lgas && d.lgas.length ? d.lgas : [d.lga]).filter(Boolean), perf = ((ministries || []).find(m => m.id === d.ministryId) || {}).perf ?? 70;
-    const e = SYS.estimate(d.type, d.qty, { places, perf, federal: NAT, second: !!d.second }), placeTxt = places.length > 1 ? places.length + (NAT ? " states" : " local governments") + " (" + places.slice(0, 3).join(", ") + (places.length > 3 ? " and more" : "") + ")" : places[0];
+    const e = SYS.estimate(d.type, d.qty, { places, perf, federal: NAT, second: !!d.second, state: NAT ? null : state, costF: d.costF }), placeTxt = places.length > 1 ? places.length + (NAT ? " states" : " local governments") + " (" + places.slice(0, 3).join(", ") + (places.length > 3 ? " and more" : "") + ")" : places[0];
     if (P.choice === "defer") { setPflow(null); addL("🗂️ Deferred " + d.title + ": nothing starts this year.", "info"); return; }
     { const B = SYS.strikeBlock(strikeNow(), { type: d.type, sector: SYS.TYPE_SECTOR[d.type] }); if (B) { setPflow(null); return strikeRefuse(d.title, B); } }
     let approved = P.approvedM, qty = d.qty, note = null;
@@ -9777,11 +9783,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (P.choice === "proceed") note = "Approved " + SYS.fmtM(approved) + " for a scope costing " + SYS.fmtM(e.buildM) + ", against the warning.";
     if (!takeAgenda("project", d.title, "prj:" + d.title)) return;
     const id = "p_" + turn + "_" + hashStr(d.title + qty) % 100000;
-    const proj = SYS.makeProject({ id, title: d.title.trim(), type: d.type, qty, lga: d.lga, lgas: places, perf, federal: NAT, second: !!d.second, ministryId: d.ministryId, need: d.need || null, approvedM: approved, thisYearM: Math.min(approved, P.thisYearM), year: turn, decision: note, proposal: { text: d.description || null, assumptions: d.assumptions || [] } });
+    const proj = SYS.makeProject({ id, title: d.title.trim(), type: d.type, qty, lga: d.lga, lgas: places, perf, federal: NAT, second: !!d.second, state: NAT ? null : state, costF: d.costF, pick: d.pick, years: d.tAdd ? e.years + d.tAdd : undefined, ministryId: d.ministryId, need: d.need || null, approvedM: approved, thisYearM: Math.min(approved, P.thisYearM), year: turn, decision: note, proposal: { text: d.description || null, assumptions: d.assumptions || [] } });
     const needsLoan = P.choice === "finance" || overRoom;
     proj.status = needsLoan ? "pending_finance" : "pending_procurement";
     if (needsLoan) proj.needM = Math.max(a.shortM && P.choice !== "increase" ? a.shortM : 0, Math.min(approved, P.thisYearM) - roomM(SYS.TYPE_SECTOR[d.type])) || Math.round(approved / 2);
-    if (d.srcPolicy) { proj.srcPolicy = d.srcPolicy; const src = POL().find(x => x.id === d.srcPolicy); if (src) setPol(pp => pp.some(x => x.id === src.id) ? pp : [...pp, { ...src, pending: true, projectId: id }]); }
+    if (d.srcPolicy) { proj.srcPolicy = d.srcPolicy; const src = d.srcP || POL().find(x => x.id === d.srcPolicy); if (src) setPol(pp => pp.some(x => x.id === src.id) ? pp : [...pp, { ...src, pending: true, projectId: id }]); }
+    if (d.later) setDelayedFx(dl => [...dl, d.later]);
     setProjects(prev => [...(prev || []), proj]);
     setLastCon({ turn, icon: "🖋️", text: proj.title + " approved: " + SYS.fmtM(proj.approvedM) + ". Next: " + (needsLoan ? "find the money." : "award the contract.") });
     addL("🏗️ Approved " + proj.title + " (" + SYS.fmtM(proj.approvedM) + "; the scope costs " + SYS.fmtM(proj.estimateM) + ")." + (note ? " " + note : ""), "policy");
@@ -10433,7 +10440,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (on >= cap) { try { window.SOP_outcome({ icon: "🏛️", title: "That ministry is at capacity", text: "It is already running " + on + " " + (p.s || "") + " programme" + (on === 1 ? "" : "s") + ". It can take another when one finishes" + (cap < 3 ? ", or when a stronger " + (NAT ? "minister" : "commissioner") + " runs it (three at a time)." : "."), tone: "neutral", rows: (pol || []).filter(a => a.s === p.s).map(a => ({ l: a.nm.replace(/^⭐\s*/, ""), v: (a.tl || 0) + " yr left", good: true })) }); } catch (e) {} return; } }
     if (!spendB(perH, p.nm.replace(/^⭐\s*/, ""))) return;
     const [forS, againstS] = policySides(p);
-    setPol(pp => [...pp, { ...p, tl: p.t, perH }]);
+    setPol(pp => [...pp, { ...p, ask: undefined, later: null, tl: p.t, perH }]);
+    if (p.later) setDelayedFx(d => [...d, p.later]);
     // Two programmes that work together (pillar "plan") do more than the sum.
     const combo = pillarOn("plan") ? SYS.comboFor(p.id, (pol || []).map(a => a.id)) : null;
     if (combo) { const cf = { ...combo.fx }; if (cf.corM) { cf.cor = cf.corM; delete cf.corM; } scFx(cf); track("pil_combo", combo.a + "+" + combo.b); addL("★ Combo: " + combo.nm + ". " + combo.d, "success"); }
@@ -10454,7 +10462,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (p.s === "agriculture") setDelayedFx(d => [...d, { turn: turn + 2, made: turn, from: "funded " + p.nm.replace(/^⭐\s*/, ""), fx: { agr: .03, igr: 0.5 }, desc: p.nm + " paying off — harvest yields up, farm revenue flowing." }]);
     const later = { education: "In 3 years: literacy up, approval +5.", health: "In 2 years: better health, approval +3.", agriculture: "In 2 years: bigger harvests, revenue +₦0.5B." }[p.s];
     if (combo) return { icon: "★", img: decArt(p.id) || undefined, title: "Combo: " + combo.nm, text: combo.d + " " + p.nm.replace(/^⭐\s*/, "") + " launched at " + naira(perH) + " a year.", rows: Object.entries(combo.fx).map(([k, v]) => ({ l: ({ app: "Approval", agr: "Farms", sec: "Security", hp: "Health", lit: "Education", corM: "Corruption" })[k] || k, v: (v > 0 ? "+" : "−") + (k === "app" ? Math.abs(v) : Math.round(Math.abs(v) * 100)), good: k === "corM" ? v < 0 : v > 0 })), tone: "good" };
-    return { icon: "📋", img: decArt(p.id) || undefined, title: p.nm.replace(/^⭐\s*/, "") + " launched", text: naira(perH) + " a year for " + p.t + (p.t === 1 ? " year." : " years.") + " " + forS + " welcome it; " + againstS.toLowerCase() + " object." + (later ? " " + later : ""), tone: "good" };
+    return { icon: "📋", img: artOf(p.id, p.art) || undefined, title: p.nm.replace(/^⭐\s*/, "") + " launched", text: naira(perH) + " a year for " + p.t + (p.t === 1 ? " year." : " years.") + " " + forS + " welcome it; " + againstS.toLowerCase() + " object." + (later ? " " + later : ""), tone: "good" };
   });
   // ── CAPITAL PROJECT LIFECYCLE ──
   // Routes ALL capital builds through the shared sop-realism flow so the user
@@ -10470,14 +10478,24 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (pol.find(a => a.id === p.id)) return;
     { const B = SYS.strikeBlock(strikeNow(), { s: p.s, id: p.id }); if (B) return strikeRefuse(p.nm.replace(/^⭐\s*/, ""), B); }
     if (NAT && stc.impeach && stc.impeach.frozen === turn) { try { window.SOP_outcome({ icon: "⚖️", img: "./art/backgrounds/senate-chamber.webp", title: "Not in the year of the trial", text: "The Senate tribunal has frozen the government's programmes for the rest of this year.", tone: "bad" }); } catch (e) {} return; }
+    if (p.ask && !p.pick && !NAT) { setLocalAsk(p); return; } // how it is done in this state, first (SYS.localProgramme)
     if (!isCapital(p)) return enactP(p);
     // Capital programmes are projects: they go through the one project flow
     // (proposal → budget → money → contractor), prefilled from the programme.
-    const type = POLICY_TYPE[p.id] || "road";
+    const type = p.ptype || POLICY_TYPE[p.id] || "road";
     const need = openNeedsForProj.find(n => n.type === type) || null;
     const qty = Math.max(1, Math.round(((+p.c || 1) * 1000) / SYS.UNIT[type].per));
     const r = SYS.parseProposal(type + " " + qty + " " + SYS.UNIT[type].unit + "s " + (need ? need.lga : ""), { lgas: getLGAs(state), federal: NAT, type });
-    setPflow({ step: "propose", draft: { ...r.proposal, title: p.nm.replace(/^⭐\s*/, "").replace(/^\d[\d,]*\s*(km|-bed)?\s+/i, ""), qty, need: need ? need.id : null, srcPolicy: p.id, ministryId: null } });
+    setPflow({ step: "propose", draft: { ...r.proposal, title: p.nm.replace(/^⭐\s*/, "").replace(/^\d[\d,]*\s*(km|-bed)?\s+/i, ""), qty, need: need ? need.id : null, srcPolicy: p.id, ministryId: null,
+      ...(p.pick ? { pick: p.pick, costF: p.costF || 1, tAdd: p.tAdd || 0, later: p.later || null, srcP: { ...p, ask: undefined, later: null } } : {}) } });
+  };
+  const answerLocal = (p, o) => {
+    setLocalAsk(null);
+    const cap = isCapital(p), r = SYS.applyLocalPick(p, o, { state, turn, capital: cap });
+    const np = { ...r.p, later: r.later, tAdd: o.tAdd || 0 };
+    track("local_pick", p.id + ":" + o.id);
+    addL("📍 " + p.nm.replace(/^⭐\s*/, "") + ": you chose to " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".", "policy");
+    startPolicy(np);
   };
   const confirmCapital = () => {
     if (!capProj) return;
@@ -10971,6 +10989,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if ((bill.cost || 0) > 0 && !spendB(bill.cost, "The " + bill.nm)) return false;
     setBillsPassed(p => [...p, bill]);
     if (bill.id === "f_electoral" || bill.id === "electoral_law") setStc(p => ({ ...p, electoral: turn }));
+    if (bill.id === "elec_market") { addL("⚡ " + stName + " now regulates its own electricity market. Your regulator licenses mini-grids from now on: rural electrification gets cheaper.", "success"); scWiki("Governorship", "Signed the State Electricity Market Law, taking over regulation of " + stName + "'s power market from NERC under the Electricity Act 2023."); }
     const bn = bill.need && (needs || []).find(n => n.status === "open" && n.k === bill.need);
     if (bn) { setNeeds(ns => ns.map(n => n.id === bn.id ? { ...n, status: "met", closed: turn } : n)); addL("✅ The " + bill.nm + " answers a need: " + needType(bn).title(bn.lga) + ".", "success"); }
     if (bill.id === "f_poly_uni") { const w = chainPlace({ id: "f_fed_university" }); setStc(p => ({ ...p, chains: [...(p.chains || []), SYS.polyUniChain({ place: w.place, nat: NAT, turn: turn + 1 })] })); }
@@ -16040,11 +16059,31 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
 
 
 
+        {/* A programme's local question (SYS.localProgramme): how it is done in this state, before it starts. */}
+        {localAsk && localAsk.ask && <div data-sop-local-ask role="dialog" aria-modal="true" aria-label={localAsk.local.head} style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(10,20,14,.6)", display: "grid", placeItems: "center", padding: 16, overflowY: "auto" }}>
+          <div style={{ width: "100%", maxWidth: 560, background: "#fffdf6", borderRadius: 22, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,.35)" }}>
+            {artOf(localAsk.id, localAsk.art) && <img src={artOf(localAsk.id, localAsk.art)} alt="" style={{ display: "block", width: "100%", height: 170, objectFit: "cover" }} />}
+            <div style={{ padding: "16px 18px 18px" }}>
+              <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.5, color: CL.grn, textTransform: "uppercase" }}>📍 {localAsk.local.head}</div>
+              <h3 style={{ fontFamily: F.d, margin: "4px 0 6px", fontSize: 24, lineHeight: 1.15, color: CL.txt }}>{localAsk.ask.q}</h3>
+              <p style={{ margin: "0 0 8px", fontSize: 15, color: CL.tm, lineHeight: 1.45 }}>{localAsk.local.why}</p>
+              {localAsk.local.fact && <p style={{ margin: "0 0 12px", fontSize: 13, color: CL.td, lineHeight: 1.4 }}>📚 {localAsk.local.fact}</p>}
+              <div style={{ display: "grid", gap: 8 }}>
+                {localAsk.ask.opts.map(o => { const f = o.costF || 1, cost = f > 1.001 ? Math.round((f - 1) * 100) + "% dearer" : f < .999 ? Math.round((1 - f) * 100) + "% cheaper" : "the standard cost";
+                  return <button key={o.id} data-sop-local-opt={o.id} className="sp-opt" onClick={() => answerLocal(localAsk, o)} style={{ textAlign: "left" }}>
+                    <b style={{ fontSize: 16, display: "block" }}>{o.l}</b>
+                    <span style={{ fontSize: 14, color: CL.tm }}>{o.d} <b style={{ color: f > 1.001 ? CL.org : f < .999 ? CL.grn : CL.td }}>{cost.charAt(0).toUpperCase() + cost.slice(1)}{o.tAdd ? ", " + o.tAdd + " more year" + (o.tAdd > 1 ? "s" : "") : ""}.</b></span>
+                  </button>; })}
+                <button data-sop-local-cancel onClick={() => setLocalAsk(null)} style={{ minHeight: 44, borderRadius: 14, border: 0, background: "none", color: CL.td, fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: F.b }}>Not now</button>
+              </div>
+            </div>
+          </div>
+        </div>}
         {/* Your own bill, back from the legislature: sign it into law or veto it. */}
         {assentBill && (() => { const B = assentBill.bill, fxLine = Object.entries(B.fx || {}).map(([k, v]) => ({ app: "Approval", corM: "Corruption", lit: "Literacy", hp: "Health" }[k] || k) + " " + (v > 0 ? "+" : "−") + (Math.abs(v) < 1 ? Math.round(Math.abs(v) * 100) + "%" : Math.abs(v))).join(" · ");
           return <div data-sop-assent role="dialog" aria-modal="true" aria-label={"Assent: " + B.nm} style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(10,20,14,.6)", display: "grid", placeItems: "center", padding: 16 }}>
             <div style={{ width: "100%", maxWidth: 520, background: "#fffdf6", borderRadius: 22, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,.35)" }}>
-              <img src={NAT ? "./art/scenes/bill-assent.webp" : decArt(B.id) || "./art/scenes/news-signing-ceremony.webp"} alt="" style={{ display: "block", width: "100%", height: 170, objectFit: "cover" }} />
+              <img src={NAT ? "./art/scenes/bill-assent.webp" : artOf(B.id, B.art) || "./art/scenes/news-signing-ceremony.webp"} alt="" style={{ display: "block", width: "100%", height: 170, objectFit: "cover" }} />
               <div style={{ padding: "16px 18px 18px" }}>
                 <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1.5, color: CL.pur, textTransform: "uppercase" }}>On your desk for assent</div>
                 <h3 style={{ fontFamily: F.d, margin: "4px 0 6px", fontSize: 26, lineHeight: 1.15, color: CL.txt }}>{B.nm}</h3>
@@ -16516,15 +16555,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               {polTab === "pol" && <div>
               
               {pol.length > 0 && <Fold title={"In force (" + pol.length + ")"} summary={pol.slice(0, 3).map(x => x.nm.replace(/^⭐\s*/, "")).join(", ") + (pol.length > 3 ? "…" : "")}>
-                {pol.map(x => <div key={x.id} style={{ fontSize: PFS.s, color: CL.tm, padding: "6px 0", borderBottom: "1px solid " + CL.bdr + "66" }}><b style={{ color: CL.txt }}>{x.nm.replace(/^⭐\s*/, "")}</b> · {x.pending ? "in procurement" : x.tl > 0 ? x.tl + (x.tl === 1 ? " year" : " years") + " to go" : "delivered"}{x.perH ? " · " + naira(x.perH) + " a year" : ""}</div>)}
+                {pol.map(x => <div key={x.id} style={{ fontSize: PFS.s, color: CL.tm, padding: "6px 0", borderBottom: "1px solid " + CL.bdr + "66" }}><b style={{ color: CL.txt }}>{x.nm.replace(/^⭐\s*/, "")}</b>{x.pickNm ? " (" + x.pickNm.charAt(0).toLowerCase() + x.pickNm.slice(1) + ")" : ""} · {x.pending ? "in procurement" : x.tl > 0 ? x.tl + (x.tl === 1 ? " year" : " years") + " to go" : "delivered"}{x.perH ? " · " + naira(x.perH) + " a year" : ""}</div>)}
               </Fold>}
               {(() => { const avail = POL().filter(p => !pol.find(a => a.id === p.id)); const answers = (p) => activeNeeds.filter(n => n.status === "open" && (needType(n)?.fix || []).includes(p.id));
 const rankOf = (p) => answers(p).length ? 0 : touchesFlagship(p.nm + " " + p.d) ? 1 : 2;
 const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown = polAll ? ranked : ranked.slice(0, 2); return <><div style={{ display: "grid", gap: 12 }}>{shown.map(p => { const [forS, againstS] = policySides(p); const perH = Math.round(p.c / Math.max(1, p.t) * 100) / 100; return <Cd key={p.id} onClick={() => startPolicy(p)} style={{ padding: 22, borderColor: answers(p).length ? CL.grn + "88" : undefined }}>
-                <DecPic id={p.id} />
+                <DecPic id={p.id} art={p.art} />
                 {answers(p).map(n => <div key={n.id} style={{ display: "inline-block", marginBottom: 6, padding: "3px 10px", borderRadius: 999, background: CL.grn + "16", color: CL.grn, fontSize: PFS.s, fontWeight: 700 }}>{needType(n).icon} Answers: {needType(n).title(n.lga)}</div>)}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)} × {p.t}y</span></div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0" }}>{Object.entries(p.fx || {}).slice(0, 2).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}{p.jobsAdd ? <Bg text={p.jobsAdd.toLocaleString() + " jobs"} color={CL.blu} /> : null}</div>
+                {p.local && p.local.why && <div data-sop-local style={{ fontSize: PFS.s, color: CL.tm, lineHeight: 1.4, margin: "6px 0 2px" }}>📍 <b style={{ color: CL.txt }}>In {stName}:</b> {p.local.why}{p.ask ? <span style={{ color: CL.blu, fontWeight: 700 }}> You decide how.</span> : null}</div>}
                 {p.cr > .09 && <div style={{ fontSize: PFS.s, color: CL.org }}>Money can leak</div>}
                 {pillarOn("plan") && SYS.comboPartner(p.id).map(c => { const on = pol.some(a => a.id === c.with); const w = POL().find(x => x.id === c.with); return w ? <div key={c.with} style={{ fontSize: PFS.s, color: on ? CL.grn : CL.td, fontWeight: on ? 700 : 500 }}>{on ? "★ Combo ready: " : "Works with "}{nm0g(w.nm)}{on ? " (" + c.nm + ")" : ""}</div> : null; })}
                 {pillarOn("plan") && !isCapital(p) && (() => { const P = (stc.pilots || {})[p.id]; if (P) return <div style={{ fontSize: PFS.s, color: CL.blu, marginTop: 4 }}>🧪 {P.done ? "Piloted in " + P.lga : "Pilot running in " + P.lga + ": the result comes next year"}</div>;
@@ -16555,9 +16595,10 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(264px,1fr))", gap: 19 }}>
                   {BILLS_().filter(b => !billsPassed.find(bp => bp.id === b.id)).map(b => (
                     <Cd key={b.id} onClick={() => sponsorBill(b)} style={{ padding: 24 }}>
-                      <DecPic id={b.id} />
+                      <DecPic id={b.id} art={b.art} />
                       <div style={{ fontWeight: 600, fontSize: PFS.m, color: CL.pur, marginBottom: 7 }}>{b.nm}</div>
                       <div style={{ fontSize: PFS.s, color: CL.td, marginBottom: 10 }}>{b.d}</div>
+                      {b.fact && <div data-sop-bill-fact style={{ fontSize: PFS.s, color: CL.tm, marginBottom: 10, lineHeight: 1.4 }}>📚 {b.fact}</div>}
                       {touchesFlagship(b.nm + " " + b.d) && <div style={{ fontSize: PFS.s, color: CL.grn, marginBottom: 8 }}>Serves your flagship, {FLAGSHIP[setup.agenda].nm}.</div>}
                       <div style={{ display: "flex", gap: 7, flexWrap: "wrap" }}>
                         {b.cost > 0 && <Bg text={naira(b.cost)} color={CL.gold} />}

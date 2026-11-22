@@ -20,6 +20,7 @@
    decide what you get for the money. */
 import { seeded } from "./rng.js";
 import { fmtM } from "./money.js";
+import { stateKind, STATE_TERRAIN, profileOf } from "./stateprofile.js";
 
 export const SECTORS = {
   roads: "Roads and transport", health: "Health facilities", education: "Schools and colleges", water: "Water and sanitation",
@@ -69,7 +70,10 @@ export const FACILITY = {
 const RIVERINE = /Island|Bonny|Brass|Nembe|Ijaw|Ekeremor|Sagbama|Burutu|Bomadi|Warri|Ilaje|Ese Odo|Epe|Ibeju|Andoni|Opobo|Akuku|Asari|Degema|Okrika|Ogbia|Kolokuma|Yenagoa|Mbo$|Ibeno|Bakassi|Patani|Ogu\/Bolo|Ndokwa East|Anambra West|Ogbaru|Ogun Waterside|Ibaji|Amuwo|Eti-Osa|Badagry|Oguta/;
 const ROCKY = /^Jos |Bokkos|Mangu|Barkin Ladi|Riyom|Obudu|Sardauna|Kanam|Wase/;
 const RIVERINE_STATES = new Set(["Bayelsa", "Rivers", "Delta"]), ROCKY_STATES = new Set(["Plateau"]);
-export const TERRAIN = { riverine: { f: 1.3, nm: "riverine", why: "creeks and swamp: sand-filling, bridges, boats for materials" }, rocky: { f: 1.15, nm: "rocky", why: "hills and rock: blasting and steep grades" } };
+export const TERRAIN = { riverine: { f: 1.3, nm: "riverine", why: "creeks and swamp: sand-filling, bridges, boats for materials" }, rocky: { f: 1.15, nm: "rocky", why: "hills and rock: blasting and steep grades" }, ...STATE_TERRAIN };
+/* A place's terrain, or else (opts.state) what the state's land does to this type of work: gullies in the South-East,
+   land compensation in Lagos, strong sun for solar and a deep water table in the far north (SYS.stateKind). */
+export const terrainFor = (place, state, type) => terrainOf(place) || (state ? stateKind(state, type) : null);
 export const terrainOf = (place) => { const x = String(place || ""); return RIVERINE_STATES.has(x) || RIVERINE.test(x) ? "riverine" : ROCKY_STATES.has(x) || ROCKY.test(x) ? "rocky" : null; };
 // How much one ministry can oversee in a year, in the project's units. A good
 // minister (perf 100) manages a quarter more; a weak one (perf 40) a quarter less.
@@ -81,15 +85,16 @@ export const SECOND_CONTRACTOR = 1.12;
    ministry's capacity; opts.second: a second contractor. */
 export const estimate = (type, qty, opts = {}) => {
   const U = UNIT[type] || UNIT.road, F = FACILITY[type], q = Math.max(0, Number(qty) || U.def);
-  const places = (opts.places || []).filter(Boolean), terr = places.map(terrainOf);
+  const places = (opts.places || []).filter(Boolean), terr = places.map(x => terrainFor(x, opts.state, type));
   const tf = places.length ? terr.reduce((a, t) => a + (t ? TERRAIN[t].f : 1), 0) / places.length : 1;
   const cap = capacityOf(type, opts) * (opts.second ? 2 : 1), capYears = Math.ceil(q / cap);
   // Spread thin, a programme takes longer: every three more places, a year more.
   const spread = places.length > 1 ? Math.floor((places.length - 1) / 3) : 0;
-  const buildM = Math.round(U.per * q * tf * (opts.second ? SECOND_CONTRACTOR : 1));
+  // opts.costF: the answer to the programme's local question (SYS.applyLocalPick), e.g. escorts for the crews.
+  const buildM = Math.round(U.per * q * tf * (opts.second ? SECOND_CONTRACTOR : 1) * (opts.costF || 1));
   const odd = places.filter((x, i) => terr[i]);
   return { qty: q, unit: U.unit, buildM, equipM: F ? Math.round(buildM * F.equip) : 0, opsPerYearM: F ? Math.round(F.opsPer * q) : 0, years: Math.max(U.years, capYears) + spread, facility: !!F,
-    cap, capYears, overCap: capYears > U.years, spread, terrainF: Math.round(tf * 100) / 100, hard: odd.map(x => ({ place: x, kind: terrainOf(x) })) };
+    cap, capYears, overCap: capYears > U.years, spread, terrainF: Math.round(tf * 100) / 100, hard: odd.map((x, i) => ({ place: x, kind: terr[places.indexOf(x)] })) };
 };
 // The size a slider offers: from a small pilot to ten times the starting size.
 // A unit's name for n of them: 1 bed, 40 beds, 18 km, 5 MW.
@@ -162,9 +167,9 @@ export const assessFunding = ({ needM, approvedM, thisYearM, years }) => {
 };
 
 // Make a project record (after the player confirms the proposal and plan).
-export const makeProject = ({ id, title, type, qty, lga, lgas, ministryId, need, approvedM, thisYearM, year, years, decision, proposal, perf, federal, second }) => {
+export const makeProject = ({ id, title, type, qty, lga, lgas, ministryId, need, approvedM, thisYearM, year, years, decision, proposal, perf, federal, second, state, costF, pick }) => {
   const places = (lgas && lgas.length ? lgas : [lga]).filter(Boolean);
-  const e = estimate(type, qty, { places, perf, federal, second });
+  const e = estimate(type, qty, { places, perf, federal, second, state, costF });
   const yrs = years || e.years;
   return {
     id, title, type, sector: TYPE_SECTOR[type] || "roads", qty: e.qty, unit: e.unit, lga: places[0] || null, lgas: places, second: !!second, ministryId, need: need || null,
@@ -173,6 +178,7 @@ export const makeProject = ({ id, title, type, qty, lga, lgas, ministryId, need,
     progress: 0, quality: null, status: "pending_procurement", equipped: !e.facility, staffed: !e.facility,
     startYear: year, decisions: decision ? [{ year, text: decision }] : [], events: [], proposal: proposal || null,
     baseCost: e.buildM / 1000, // older code reads ₦B
+    ...(state ? { state } : {}), ...(costF && costF !== 1 ? { costF } : {}), ...(pick ? { pick } : {}),
   };
 };
 /* The contract sum: the work at the tender's price, times the contractor's rate.
@@ -199,8 +205,11 @@ export const remainingM = (p) => Math.max(0, p.estimateM - p.builtM);
    until they are paid (a third lost). Seeded, so a reload never changes it. */
 export const siteTrouble = (p, year, r = Math.random) => {
   const places = (p.lgas && p.lgas.length ? p.lgas : [p.lga]).filter(Boolean); if (!places.length) return null;
-  const x = places[Math.floor(r() * places.length)], t = terrainOf(x), roll = r();
+  const x = places[Math.floor(r() * places.length)], t = terrainFor(x, p.state, p.type), roll = r();
   if (t === "riverine" && roll < .18) return { kind: "flood", place: x, f: .75, text: "the river rose at the " + x + " site and swept away part of the works; a quarter of the year's work was lost." };
+  // The state's own trouble (SYS.profileOf): a gully opens in the rains; gunmen in bandit country (unless the crews have escorts).
+  if (t === "gully" && roll < .14) return { kind: "gully", place: x, f: .75, text: "a gully opened beside the " + x + " site in the rains and took part of the works; a quarter of the year's work was lost." };
+  if (p.state && roll < .12 && !["escort", "army", "walls", "quarters", "oversight"].includes(p.pick)) { const P = profileOf(p.state); if (P.bandits || P.insurgency) return { kind: "attack", place: x, f: .6, text: "gunmen attacked the " + x + " site and the crew fled; two fifths of the year's work was lost." }; }
   if (!t && roll < .1 && ["road", "housing", "market", "industrial", "dam", "school", "hospital"].includes(p.type)) return { kind: "land", place: x, f: .66, text: "landowners in " + x + " blocked the site until they were compensated; a third of the year's work was lost." };
   return null;
 };

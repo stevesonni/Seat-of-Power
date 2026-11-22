@@ -3,7 +3,35 @@
 
 
 
-## The Council remembers; Lagos produce (22 Nov, latest)
+## Every state's own programmes and bills (22 Nov, latest)
+
+- **What changed.** A new module, `game/systems/stateprofile.js`, gives every state a short profile of real facts:
+  - its land (creeks, lagoon city, gullies, rainforest, savannah, plateau, the dry north)
+  - whether it runs its own power market (NERC's list of 15 states), or, for Abia, the Aba ring-fenced area
+  - its oil, Sharia law, the Hisbah, almajiri children, bandits or insurgents, and floods
+  - the laws it already has (grazing law and year, Child Rights Act, VAPP)
+  - its security corps (Amotekun, Ebube Agu, Community Watch Corps, Civilian JTF …)
+- **Programmes follow the state** (`SYS.localProgramme`). The card says "📍 In <state>: …".
+  - Rural electrification, water, roads, irrigation, classrooms, free education, health centres and the security corps ask one local question before they start.
+  - The answers have real trade-offs. In Abia: meters in the Aba ring or mini-grids outside it. In Lagos and the other own-market states: license developers, build, or partner the federal agency. In bandit states: who guards the sites. In the creeks: flared gas or solar on stilts.
+  - Each answer changes the cost (`costF`) and the years. Its result, good or bad, is rolled once (seeded) and lands next year as a "because you…" card.
+  - Some programmes change shape:
+    - irrigation in the rainforest becomes farm processing (palm, cocoa, rice mills)
+    - irrigation in the creeks becomes fish farms
+    - dry-season irrigation does not exist in the south
+    - free education in almajiri states adds almajiri integration
+    - school feeding serves the state's own food
+- **Project costs follow the land** (`SYS.estimate` with `opts.state`). Gully country and Lagos cost more, solar in strong-sun country costs less, and deep boreholes in the dry north cost more.
+- **Site trouble follows the land.** A gully opens in the rains, and gunmen hit unguarded sites in bandit country.
+- **Bills follow the state** (`SYS.localBills`, `SYS.stateBills`, `SYS.localHouseBills`).
+  - A law the state already has becomes the law that funds it: the grazing law becomes an enforcement law, the Child Rights Act becomes Family Courts, VAPP becomes referral centres.
+  - The north gets a Grazing Reserves law.
+  - Each state has its own extra bills: the State Electricity Market Law (which switches the state to its own regulator) or a consumer law; a host community trust (oil states) or a revenue law; erosion control; flood plain; waterways safety; forest guards; the Hisbah board.
+  - Bills show the fact behind them (📚).
+- **Pictures:** `docs/LOVABLE-STATES.md` lists 40 images for Lovable, to go in `public/art/variants/`. Until they arrive, cards use the usual picture. Add each name to `VARIANT_ART` as it arrives.
+- **Tests:** `tests/stateprofile.test.mjs` (431 unit tests pass) and `tests/e2e/local-state.mjs` (Ogun: the question, the plan, Ogun's bills).
+
+## The Council remembers; Lagos produce (22 Nov)
 
 - **The calendar letter's buttons now call the latest council functions** (`calFns`). Before, a letter written at New Year opened the Council with the game as it stood then, so a later answer (the debt, the export plan) could look unanswered.
 - **The year-start update keeps the latest debt plan** (`setStc(p => ({ ...next, oldDebt: p.oldDebt }))`).
