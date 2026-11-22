@@ -52,9 +52,9 @@ export const FED_POLICIES = [
   // One year
   P("f_school_feed", "National Home-Grown School Feeding", "education", 30, 1, { lit: .02, hp: .01, agr: .01, app: 6 }, "A hot meal a day for 10 million pupils, cooked by local women from local farms.", .15, "agriculture", .02, 90000, "School meals for 10 million pupils"),
   P("f_cash", "National Social Register cash transfers", "administration", 45, 1, { app: 6, hp: .01 }, "₦25,000 a month to 15 million poor households, paid to verified bank accounts.", .12, "services", .01, 0, "Cash transfers reaching 15 million households"),
-  P("f_student_loans", "Student Loans Fund", "education", 25, 1, { lit: .03, app: 4 }, "Interest-free loans for university fees, repaid after national service and two years of work.", .06, "services", .01, 2000, "Student loans for 400,000 undergraduates"),
+  P("f_student_loans", "Widen the Student Loans Fund", "education", 25, 1, { lit: .03, app: 4 }, "The fund set up in 2024 pays university fees for students from poorer homes. Widen it to polytechnics and colleges of education, and add a living allowance.", .06, "services", .01, 2000, "Student loans for 400,000 undergraduates"),
   P("f_nhia", "Health insurance for the poorest", "health", 35, 1, { hp: .03, app: 5 }, "The federal government pays health insurance premiums for 20 million of the poorest.", .08, "services", .02, 12000, "Health cover for 20 million of the poorest"),
-  P("f_ippis", "Biometric federal payroll (no more ghost workers)", "administration", 6, 1, { corM: -.05, app: 2 }, "Every federal worker verified by fingerprint and BVN. Ghost names come off the payroll.", 0, null, 0, 0, "A verified federal payroll"),
+  P("f_ippis", "Re-verify the federal payroll (no more ghost workers)", "administration", 6, 1, { corM: -.05, app: 2 }, "The payroll system has let ghost names through for years. Every federal worker verified again by fingerprint and BVN; the ghosts come off.", 0, null, 0, 0, "A verified federal payroll"),
   P("f_fed_colleges", "Refurbish the federal unity colleges", "education", 35, 1, { lit: .03, app: 4 }, "New roofs, labs, dormitories and libraries in the 110 federal government colleges; teachers paid on time.", .1, "services", .01, 6000, "110 federal colleges refurbished"),
   P("f_police_recruit", "Recruit 30,000 police officers", "security", 40, 1, { sec: .05, app: 4 }, "Trained in Kaduna and Ikeja, posted to their own states, paid on time.", .05, null, 0, 30000, "30,000 new police officers on the streets"),
   // Two years
@@ -62,28 +62,30 @@ export const FED_POLICIES = [
   P("f_grid", "Grid rescue: transmission lines and substations", "infrastructure", 120, 2, { infra: .06, app: 6 }, "New transmission lines and substations so the power we generate reaches homes.", .1, "manufacturing", .05, 25000, "4,000 MW more reaching homes and factories"),
   P("f_anchor", "Farmers' loans against the harvest", "agriculture", 50, 2, { agr: .07, app: 5 }, "Seeds and fertiliser on credit for 2 million farmers, repaid in grain to the strategic reserve.", .18, "agriculture", .05, 60000, "Farm loans for 2 million farmers"),
   P("f_state_police", "State police pilot in six states", "security", 45, 2, { sec: .06, app: 3 }, "Six states, one per zone, run their own police under federal standards. Governors cheer; the IGP does not.", .08, null, 0, 18000, "State police running in six states"),
-  P("f_national_id", "A national ID for every Nigerian", "administration", 25, 2, { corM: -.03, lit: .01, app: 3 }, "Every citizen enrolled; banks, SIM cards and benefits linked to one number.", .05, "tech", .03, 15000, "100 million Nigerians enrolled"),
+  P("f_national_id", "Finish the national ID", "administration", 25, 2, { corM: -.03, lit: .01, app: 3 }, "Over 100 million Nigerians have a national identity number. Enrol the rest (children, villages, the displaced) and link every benefit to it.", .05, "tech", .03, 15000, "100 million Nigerians enrolled"),
   P("f_fed_university", "⭐ Establish a new federal university", "education", 70, 3, { lit: .05, app: 6 }, "A new federal university where there is none: faculties, hostels, a teaching hospital in time.", .1, "services", .03, 4000, "A new federal university, its first students enrolled"),
+  P("f_trunk_roads", "⭐ Rebuild the federal trunk roads", "infrastructure", 90, 3, { infra: .08, app: 8 }, "Fix the worst federal highways where they have collapsed: drainage, asphalt and weighbridges so trucks stop destroying them. It goes wherever a highway has collapsed.", .18, "trade", .04, 30000, "Collapsed federal highways rebuilt"),
+  P("f_sez", "⭐ A special economic zone", "infrastructure", 70, 3, { infra: .04, app: 5 }, "Land, power, a customs post and a road to the port for factories, where the jobs are needed most.", .12, "manufacturing", .06, 25000, "A special economic zone with factories running"),
   P("f_primary_health", "Revive 10,000 primary health centres", "health", 80, 2, { hp: .07, app: 6 }, "One working clinic per ward: a midwife, drugs, solar power and clean water.", .1, "services", .02, 40000, "10,000 primary health centres working again"),
   // Megaprojects
-  P("f_coastal", "⭐ The Coastal Highway", "infrastructure", 260, 4, { infra: .12, app: 10 }, "700 km of highway along the coast from Lagos to Calabar. Ports, resorts and estates follow.", .2, "trade", .07, 80000, "The coastal highway, Lagos to Calabar"),
-  P("f_rail", "⭐ The Lagos–Kano standard-gauge railway", "infrastructure", 300, 4, { infra: .14, app: 12 }, "Fast freight and passenger trains from the ports to the north.", .18, "trade", .08, 60000, "The Lagos–Kano railway carrying freight"),
-  P("f_gas", "⭐ The north–south gas pipeline", "infrastructure", 220, 3, { infra: .08, app: 6 }, "Gas from the delta to power plants and factories in the north.", .15, "manufacturing", .07, 30000, "Gas flowing north to power plants and factories"),
+  P("f_coastal", "⭐ The Coastal Highway", "infrastructure", 260, 4, { infra: .12, app: 10 }, "700 km of highway along the coast from Lagos to Calabar. The Lagos end has started; the rest has not. Ports, resorts and estates follow.", .2, "trade", .07, 80000, "The coastal highway, Lagos to Calabar"),
+  P("f_rail", "⭐ Finish the Lagos–Kano standard-gauge railway", "infrastructure", 300, 4, { infra: .14, app: 12 }, "Lagos–Ibadan and Abuja–Kaduna already run. Close the gaps, Ibadan to Abuja and Kaduna to Kano, so freight goes from the ports to the north by rail.", .18, "trade", .08, 60000, "The Lagos–Kano railway carrying freight"),
+  P("f_gas", "⭐ The north–south gas pipeline", "infrastructure", 220, 3, { infra: .08, app: 6 }, "Finish the Ajaokuta–Kaduna–Kano line: gas from the Delta to power plants and factories in the north.", .15, "manufacturing", .07, 30000, "Gas flowing north to power plants and factories"),
   P("f_refinery", "⭐ Modular refineries in the Niger Delta", "infrastructure", 160, 3, { infra: .05, app: 8 }, "Six small refineries run with the oil communities. Fewer imports, fewer illegal refineries.", .15, "manufacturing", .06, 20000, "Six modular refineries producing fuel"),
-  P("f_second_bridge", "⭐ A second bridge over the Niger", "infrastructure", 150, 3, { infra: .08, app: 9 }, "A second crossing between the east and the west. Trade stops queuing at the old bridge.", .15, "trade", .05, 15000, "A second bridge over the Niger"),
+  P("f_second_bridge", "⭐ A new bridge over the Niger", "infrastructure", 150, 3, { infra: .08, app: 9 }, "One more crossing of the Niger where the trucks queue longest. Onitsha's second bridge opened in 2022; Lokoja and the north still have one each.", .15, "trade", .05, 15000, "A second bridge over the Niger"),
   P("f_mambilla", "⭐ A 3,000 MW hydropower dam", "infrastructure", 280, 4, { infra: .12, app: 8 }, "A great dam on a highland river. The biggest single addition to the grid in a generation.", .2, "manufacturing", .08, 50000, "A 3,000 MW hydro dam feeding the grid"),
 ];
 // The national needs each federal programme answers.
 const FED_FIX = {
-  road: ["f_coastal", "f_second_bridge", "f_rail"], clinic: ["f_primary_health", "f_nhia"], school: ["f_school_feed", "f_student_loans", "f_fed_colleges", "f_fed_university"],
+  road: ["f_trunk_roads", "f_coastal", "f_second_bridge", "f_rail"], clinic: ["f_primary_health", "f_nhia"], school: ["f_school_feed", "f_student_loans", "f_fed_colleges", "f_fed_university"],
   water: ["f_primary_health"], security: ["f_police_recruit", "f_state_police"], farm: ["f_anchor"], power: ["f_grid", "f_mambilla", "f_gas"],
-  housing: [], traffic: ["f_rail"], youth: ["f_jobs_corps"], poverty: ["f_cash"], land: [], jobs: ["f_gas", "f_refinery"], digital: ["f_national_id", "f_ippis"],
+  housing: [], traffic: ["f_rail"], youth: ["f_jobs_corps"], poverty: ["f_cash"], land: [], jobs: ["f_sez", "f_gas", "f_refinery"], digital: ["f_national_id", "f_ippis"],
 };
 
 /* The country's needs, in a President's terms: l is a state. Each overrides
    the governor's text for the same need. */
 export const FED_NEEDS = {
-  road: { fix: FED_FIX.road, title: (l) => "The federal highway through " + l + " has collapsed", why: (l) => "Trucks queue for two days at the washed-out stretch in " + l + ". Food from the north rots before it reaches the south.", ask: "Start the coastal highway, the second Niger bridge or the railway.", fail: (l) => "A fuel tanker overturned on the federal highway in " + l + ". Dozens dead. The governor blames Abuja.", abandon: (l) => "The federal road contractor in " + l + " has gone. The road is worse than before.", win: (l) => "The federal highway through " + l + " is open again. Food prices in the south ease." },
+  road: { fix: FED_FIX.road, title: (l) => "The federal highway through " + l + " has collapsed", why: (l) => "Trucks queue for two days at the washed-out stretch in " + l + ". Food from the north rots before it reaches the south.", ask: "Rebuild the federal trunk roads there, or a corridor that passes through it: the coastal highway (coastal states), a new Niger bridge (on the river) or the railway (Lagos to Kano).", fail: (l) => "A fuel tanker overturned on the federal highway in " + l + ". Dozens dead. The governor blames Abuja.", abandon: (l) => "The federal road contractor in " + l + " has gone. The road is worse than before.", win: (l) => "The federal highway through " + l + " is open again. Food prices in the south ease." },
   clinic: { fix: FED_FIX.clinic, title: (l) => "The federal medical centre in " + l + " is on strike", why: (l) => "Resident doctors have not been paid for three months. Many have left for Britain.", ask: "Revive the primary health centres or fund health insurance for the poorest.", fail: (l) => "Patients died at the federal medical centre in " + l + " during the strike.", abandon: (l) => "The new federal hospital wing in " + l + " has no equipment.", win: (l) => "Doctors are back at work in " + l + ". The waiting lists are shrinking." },
   school: { pic: "scenes/campus-shut", fix: FED_FIX.school, title: (l) => "Universities in " + l + " are shut", why: (l) => "Lecturers' union strike: eight months and counting. Students sell phones to eat.", ask: "Fund school feeding or the Student Loans Fund, and settle with the unions.", fail: (l) => "Students in " + l + " block the federal highway in protest.", abandon: (l) => "The federal university hostels in " + l + " stand roofless.", win: (l) => "Lectures resume across " + l + ". The class of this year will graduate on time." },
   water: { fix: FED_FIX.water, title: (l) => "Cholera outbreak in " + l, why: (l) => "The NCDC counts 2,000 cases. The river basin authority's dam has not delivered water in years.", ask: "Revive the primary health centres; create the Ministry of Water Resources.", fail: (l) => "The cholera outbreak in " + l + " has spread to three neighbouring states.", abandon: (l) => "The federal water project in " + l + " was paid for and never finished.", win: (l) => "The outbreak in " + l + " is over. Clean water flows from the dam." },
@@ -102,18 +104,18 @@ export const FED_NEEDS = {
 // ── Bills the President sends to the National Assembly (shape of the governor's BILLS).
 export const FED_BILLS = [
   { id: "f_electoral", nm: "Electoral Act (Amendment) Bill", d: "Results sent electronically from every polling unit, in real time. Rigging gets harder, including for your own party.", fx: { corM: -.04, app: 5 }, sk: { media: 10, youth: 10, party: -8 }, cost: 2 },
-  { id: "f_pib", nm: "Petroleum Industry Bill", d: "Splits the national oil company into a commercial company and a regulator; 3% of oil profits to the host communities.", fx: { corM: -.03, app: 3 }, sk: { business: 10, party: -4 }, cost: 0 },
+  { id: "f_pib", nm: "Petroleum Industry Act (Amendment) Bill", d: "The 2021 Act made the national oil company a commercial company and gave host communities 3% of the oil firms' operating costs. This raises it to 5%, and makes the company publish every deduction it takes before paying into the Federation Account.", fx: { corM: -.03, app: 3 }, sk: { business: 10, party: -4 }, cost: 0 },
   { id: "f_state_police_amend", nm: "Constitution Alteration: state police", d: "Moves police from the Exclusive List so states can have their own. Needs two-thirds of both chambers and 24 State Houses of Assembly.", fx: { sec: .04, app: 4 }, sk: { traditional: 4, party: -5 }, cost: 0, need: "security" },
-  { id: "f_tax", nm: "Tax Reform Bill", d: "One revenue service, fewer taxes, and VAT shared more by where it is consumed. Lagos gains; the north protests.", fx: { app: 2, corM: -.02 }, sk: { business: 10, religious: -4 }, cost: 0 },
+  { id: "f_tax", nm: "Tax Acts (Amendment): end the waivers", d: "The 2025 tax laws created one federal revenue service and gave the states more of VAT. This amendment cancels the tax waivers big companies collected over the years. Business lobbies hard against it.", fx: { app: 2, corM: -.02 }, sk: { business: -6, media: 6 }, cost: 0 },
   { id: "f_whistle", nm: "Whistleblower Protection Bill", d: "Protection and a reward of up to 5% for reporting stolen public money.", fx: { corM: -.04, app: 3 }, sk: { media: 8, party: -4 }, cost: 0 },
-  { id: "f_lg_autonomy", nm: "Local Government Autonomy Bill", d: "Councils get their Federation Account share directly. Governors lose control of it; they will lobby their senators.", fx: { app: 4, corM: -.02 }, sk: { youth: 6, traditional: 4, party: -8 }, cost: 0 },
-  { id: "f_min_wage", nm: "National Minimum Wage Act", d: "A new national minimum wage of ₦70,000. Labour is happy; many states say they cannot pay.", fx: { app: 6 }, sk: { unions: 15, business: -6 }, cost: 30 },
-  { id: "f_poca", nm: "Proceeds of Crime Bill", d: "Assets that cannot be explained are forfeited, even without a conviction.", fx: { corM: -.05, app: 3 }, sk: { media: 6, party: -6 }, cost: 0 },
-  { id: "f_electricity", nm: "Electricity Act", d: "States may generate, sell and regulate their own power. The national monopoly ends.", fx: { infra: .03, app: 3 }, sk: { business: 8 }, cost: 0, need: "power" },
+  { id: "f_lg_autonomy", nm: "Local Government Autonomy (Enforcement) Bill", d: "The Supreme Court ruled in 2024 that councils must get their Federation Account share directly. Governors still route it through their own accounts; this makes diverting council money a crime. They will lobby their senators.", fx: { app: 4, corM: -.02 }, sk: { youth: 6, traditional: 4, party: -8 }, cost: 0 },
+  { id: "f_min_wage", nm: "National Minimum Wage (Amendment) Act", d: "The 2024 Act set ₦70,000 and a review every three years. The review is due: Labour wants it doubled; many states say they still struggle to pay ₦70,000.", fx: { app: 6 }, sk: { unions: 15, business: -6 }, cost: 30 },
+  { id: "f_poca", nm: "Unexplained Wealth Bill", d: "The 2022 Proceeds of Crime Act recovers stolen assets after a case. This goes further: an official who cannot explain their wealth forfeits it, even without a conviction.", fx: { corM: -.05, app: 3 }, sk: { media: 6, party: -6 }, cost: 0 },
+  { id: "f_electricity", nm: "Electricity Act (Amendment) Bill", d: "The 2023 Act let states run their own power markets, and fifteen do. This frees the national grid operator from the transmission company and lets states build their own lines.", fx: { infra: .03, app: 3 }, sk: { business: 8 }, cost: 0, need: "power" },
   { id: "f_mining", nm: "Mining (Enforcement) Bill", d: "Mining marshals and stiff fines for illegal mining that funds bandits.", fx: { sec: .02, app: 2 }, sk: { traditional: -3 }, cost: 4 },
   { id: "f_disability", nm: "Disability Rights Act (enforcement)", d: "Ramps, quotas and penalties: the 2019 law with teeth.", fx: { app: 2, hp: .01 }, sk: { media: 4 }, cost: 2 },
   { id: "f_poly_uni", nm: "Federal Polytechnic (Conversion to University) Bill", d: "Converts a federal polytechnic into a federal university of technology: degrees at home, and HND holders can top up.", fx: { lit: .02, app: 3 }, sk: { youth: 8, unions: 3 }, cost: 6, need: "school" },
-  { id: "f_not_too_young", nm: "Youth in Office Bill", d: "Lowers the age to run for the National Assembly and the presidency.", fx: { app: 3 }, sk: { youth: 12, party: -4 }, cost: 0 },
+  { id: "f_not_too_young", nm: "Youth in Office Bill", d: "The 2018 Not Too Young to Run Act lowered the ages to run. This lowers them again: 25 for the Senate, 30 for the presidency.", fx: { app: 3 }, sk: { youth: 12, party: -4 }, cost: 0 },
 ];
 
 // ── Executive orders (shape of the governor's ORDERS). A President's are federal and can be challenged.
@@ -360,3 +362,26 @@ export const defenceDelivery = (proc, hon = 50, r = Math.random) => {
     ? { ok: true, sec: .03, cor: -.005, app: 2, army: 5, title: "Delivered on time and on budget", line: "Open tender worked: every jet and drone arrived on time, on budget, with spares and training." }
     : { ok: false, sec: .02, cor: .01, app: -1, army: 2, title: "Late, and lighter than promised", line: "Six months late, with fewer drones than ordered. Money went to 'logistics' the ministry cannot explain." };
 };
+
+/* How the President's money comes in (owner, 22 Nov 2026: "for the presidency how does revenue come in monthly?").
+   Every month the Federation Account Allocation Committee (FAAC) meets in Abuja. Into the Federation Account go oil
+   and gas revenue (royalties, taxes, the national oil company's remittance), company income tax and customs duties.
+   13% of the oil money goes first to the oil-producing states (derivation). The rest is shared: the Federal Government
+   52.68%, the 36 states 26.72%, the 774 local governments 20.60%. VAT is shared separately (from 2026: federal 10%,
+   states 55%, councils 35%). On top come the Federal Government's own revenue (agencies' surpluses, fees). The game's
+   federal share (s.faac) is what reaches the Federal Government in a year; this works the month back from it. */
+export const FAAC_SHARE = { fg: .5268, states: .2672, lgs: .2060 };
+export const OIL_PART = .55; // roughly the oil and gas part of the Federation Account
+export const fedMonth = (s = {}, f = 1) => {
+  const yearFG = (s.faac || 0) * f, fgShare = FAAC_SHARE.fg * (1 - .13 * OIL_PART);
+  const gross = yearFG / fgShare / 12, deriv = gross * OIL_PART * .13, pool = gross - deriv, r1 = (x) => Math.round(x * 10) / 10;
+  return { grossB: r1(gross), derivB: r1(deriv), fgB: r1(pool * FAAC_SHARE.fg), statesB: r1(pool * FAAC_SHARE.states), lgsB: r1(pool * FAAC_SHARE.lgs), ownB: r1((s.igr || 0) / 12), yearB: r1(yearFG + (s.igr || 0)) };
+};
+export const fedMonthRows = (M) => [
+  { l: "Federation Account this month (oil, company tax, customs)", v: "₦" + M.grossB + "B", good: true },
+  { l: "13% derivation, first, to the oil states", v: "−₦" + M.derivB + "B", good: false },
+  { l: "36 states (26.72%)", v: "−₦" + M.statesB + "B", good: false },
+  { l: "774 local governments (20.60%)", v: "−₦" + M.lgsB + "B", good: false },
+  { l: "The Federal Government's share (52.68%)", v: "₦" + M.fgB + "B", good: true },
+  { l: "Federal agencies' own revenue", v: "₦" + M.ownB + "B", good: true },
+];

@@ -44,6 +44,8 @@ const RULES = [
   [/\bPick a local government\b/g, "Pick a state"],
   [/\bNo local government named\b/g, "No state named"],
   [/\bState House Report\b/g, "Nigeria Tonight"],
+  [/\bState Secretariat\b/g, "Federal Secretariat"],
+  [/\bSTATE SECRETARIAT\b/g, "FEDERAL SECRETARIAT"],
   [/\bState House of Assembly\b/g, "National Assembly"],
   [/\bHouse of Assembly\b/g, "National Assembly"],
   [/\bState Executive Council\b/g, "Federal Executive Council"],

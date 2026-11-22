@@ -899,12 +899,13 @@ const NEEDS_MINISTRY = { nursing: "health", stadium: "sports", esports: "sports"
 const SEAT = { nat: false, state: null, ctx: {} };
 { const fx = (SYS.COS_ROSTER || []).find(c => c.id === "fixer"); if (fx) { const own = fx.img; Object.defineProperty(fx, "img", { get: () => SEAT.nat ? "presidential-chief-of-staff" : own, enumerable: true }); } }
 const NEEDS = () => SEAT.nat ? NEED_TYPES.map(t => ({ ...t, ...(SYS.FED_NEEDS[t.k] || {}) })) : NEED_TYPES;
-const needType = (n) => NEEDS().find(t => t.k === (n && n.k));
+// For the President a need is in a state: only the works that can go there answer it (SYS.fedFits; no coastal highway in Jigawa).
+const needType = (n) => { const t = NEEDS().find(t => t.k === (n && n.k)); return SEAT.nat && t && n && n.lga && t.fix ? { ...t, fix: t.fix.filter(id => SYS.fedFits(id, n.lga)) } : t; };
 const needMin = (k) => SEAT.nat ? SYS.FED_NEED_MINISTRY[k] : NEED_MINISTRY[k];
 const projMin = (k) => SEAT.nat ? SYS.FED_PROJECT_MINISTRY[k] : NEEDS_MINISTRY[k];
 const MIN_CAT = () => SEAT.nat ? SYS.FED_MINISTRIES : MINISTRY_CATALOGUE;
 // Each state's own version of a programme or bill (SYS.localProgrammes, owner 22 Nov 2026: "rural electrification in Abia is not the same as in Lagos").
-const POL = () => SEAT.nat ? SYS.FED_POLICIES : SEAT.state ? SYS.localProgrammes(POLICIES, SEAT.state, SEAT.ctx) : POLICIES;
+const POL = () => SEAT.nat ? SYS.fedProgrammes(SYS.FED_POLICIES) : SEAT.state ? SYS.localProgrammes(POLICIES, SEAT.state, SEAT.ctx) : POLICIES;
 const BILLS_ = () => SEAT.nat ? SYS.FED_BILLS : SEAT.state ? SYS.localBills(BILLS, SEAT.state, SEAT.ctx) : BILLS;
 const ORDERS_ = () => SEAT.nat ? SYS.FED_ORDERS : ORDERS;
 const HBILLS = () => SEAT.nat ? SYS.FED_HOUSE_BILLS : SEAT.state ? SYS.localHouseBills(HOUSE_BILLS, SEAT.state, SEAT.ctx) : HOUSE_BILLS;
@@ -2127,9 +2128,10 @@ const tradRuler = (zone) => NORTH_ZONES.includes(zone) ? "traditional-ruler-emir
 // A picture for each decision (Lovable's decision packs, in ./art/decisions/). Decisions that
 // are the same moment share one. Add a pack's ids here as it arrives.
 const DEC_ART = new Set(["classrooms", "f_anchor", "f_assets", "f_cash", "f_coastal", "f_customs", "f_disability", "f_electoral", "f_electricity", "f_eo_assets", "f_eo_border", "f_eo_business", "f_eo_curfew", "f_eo_food", "f_eo_lg_funds", "f_eo_local", "f_eo_medical", "f_eo_merge", "f_eo_power", "f_eo_tsa", "f_eo_visa", "f_gas", "f_grid", "f_ippis", "f_jobs_corps", "f_lg_autonomy", "f_mambilla", "f_min_wage", "f_mining", "f_national_id", "f_nhia", "f_not_too_young", "f_oil_theft", "f_pib", "f_poca", "f_police_recruit", "f_primary_health", "f_rail", "f_refinery", "f_school_feed", "f_second_bridge", "f_state_police", "f_state_police_amend", "f_student_loans", "f_tax", "f_vat", "f_whistle", "nb_constituency", "nb_disabilities", "nb_nddc", "nb_peace_corps", "nb_pensions", "nb_social_media", "abandoned_audit", "afdb", "agro_processing", "anti_cor", "asuu", "cct", "child_rights", "china_infra", "chinese_steel", "cholera", "close_schools", "comm_pol", "cs_audit", "cs_digital", "cs_replace", "cs_retire", "cs_training", "curfew", "dangote_cement", "data_centre", "diaspora_houston", "digi_gov", "edu_compulsory", "emerg_edu", "emerg_health", "env_protect", "farm_sub", "fertilizer", "fg_efcc", "fg_faac_cut", "fg_grant", "fg_loan_block", "fg_military", "fg_party_pressure", "fg_road", "fintech_hub", "fiscal_resp", "flood", "foi", "four_day", "free_csec", "free_edu", "garment_factory", "ge_power", "gf_appointment", "gf_assembly", "gf_contract", "gf_land", "gf_money", "gf_revenue", "harvard", "hb_almajiri", "hb_anti_cult", "hb_land_use", "hb_lga_audit", "hb_lga_auto", "hb_min_wage", "hb_open_gov", "hb_pension", "hb_state_police", "hb_sukuk", "hb_trad_council", "hb_whistle", "hb_youth_fund", "health_ins", "herder", "hiring_freeze", "hotel_resort", "housing", "ind_park", "irrigation", "jud_budget", "jud_corrupt", "jud_land", "jud_mining", "jud_policy", "jud_security", "kidnap", "korea_skills", "land", "land_digitise", "land_reform", "m_blogger_bribe", "m_fake_news", "m_hashtag_fail", "m_influencer_visit", "m_newspaper_expose", "m_newspaper_praise", "m_radio_angry", "m_radio_praise", "m_tv_documentary", "m_viral_good", "market_fire", "market_mod", "mega_airport", "mega_hospital", "min_wage", "mining_co", "mit", "oil_refinery", "oil_spill", "okada", "okada_kit", "open_grazing", "outreach", "pension", "pharma_plant", "phc", "poultry_farm", "procurement_law", "rail", "religious2", "revoke_land", "roads", "rural_elec", "sanitation", "school_feed", "school_voucher", "sh_bank_crisis", "sh_endsars", "sh_flood", "sh_naira_crash", "sh_oil_crash", "sh_pandemic", "sh_subsidy", "sh_terror", "shopping_mall", "skills", "smear", "solar_farm", "street_trading", "strike", "sweden_pm", "teachers", "tech_hub", "tenancy", "uae_invest", "uk_trade", "un_sdg", "uni", "university", "us_pres", "vapp", "water", "whistle", "world_bank", "youth_employ"]);
-const DEC_ALIAS = { f_fed_colleges: "free_edu", f_fed_university: "university", f_poly_uni: "uni", new_uni: "university", ease_business: "f_eo_business", electoral_law: "f_electoral", hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
+const DEC_ALIAS = { f_trunk_roads: "fg_road", f_sez: "ind_park", f_fed_colleges: "free_edu", f_fed_university: "university", f_poly_uni: "uni", new_uni: "university", ease_business: "f_eo_business", electoral_law: "f_electoral", hb_grazing: "open_grazing", open_grazing_eo: "open_grazing", hb_gender: "vapp", sec_outfit: "hb_state_police", amotekun: "hb_state_police", kpa_irrigation: "irrigation", land_suit: "jud_land", budget_challenge: "jud_budget", policy_injunction: "jud_policy" };
 // All 40 delivered (22 Nov 2026, docs/LOVABLE-STATES.md).
 const VARIANT_ART = new Set(SYS.VARIANT_ART_ALL);
+const FAAC_ = "FA\u2060AC"; // the word FAAC on a President's screen (the word swapper would make it "the Federation Account")
 const artOf = (id, art) => art && VARIANT_ART.has(art) ? "./art/variants/" + art + ".webp" : decArt(id);
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
 const DecPic = ({ id, h, art }) => { const src = artOf(id, art); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
@@ -5433,7 +5435,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
         {(needs || []).length > 0 && <div style={{ display: "grid", gap: 8 }}>{needs.slice(0, 4).map(n => <button key={n.id} className="sp-opt" onClick={() => { const r = SYS.parseProposal(n.type + " in " + (n.lga || ""), { lgas, federal: SEAT.nat, type: n.type }); onFlow({ ...F0, draft: { ...r.proposal, title: n.label.replace(/^\S+\s/, ""), need: n.id } }); }}><b style={{ fontSize: 16 }}>{n.label}</b></button>)}</div>}
         {spLab("In your own words")}
         <textarea value={F0.text || ""} onChange={e => onFlow({ ...F0, text: e.target.value })} rows={2} placeholder="e.g. A 120-bed maternity hospital in Oredo" style={{ ...spField, resize: "vertical" }} />
-        <Actions><button className="sp-btn ghost" onClick={() => { const r = SYS.parseProposal(F0.text, { lgas, federal: SEAT.nat }); onFlow({ ...F0, parsed: r, draft: r.status === "ok" ? { ...r.proposal, title: r.proposal.name } : d }); }}>Read it</button></Actions>
+        <Actions><button className="sp-btn ghost" onClick={() => { const r = SYS.parseProposal(F0.text, { lgas, federal: SEAT.nat, state: SEAT.state }); onFlow({ ...F0, parsed: r, draft: r.status === "ok" ? { ...r.proposal, title: r.proposal.name } : d }); }}>Read it</button></Actions>
         {P && P.status === "clarify" && <Situation tone="warn" head={P.question} text={null} />}
         {P && P.status === "clarify" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} className="sp-btn ghost" style={{ minHeight: 40, padding: "6px 14px", fontSize: 15 }} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas, federal: SEAT.nat, type: c }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name } }); }}>{SYS.UNIT[c].nm}</button>)}</div>}
         {P && P.status === "unsupported" && <Situation tone="bad" head="Not something the state can build" text={P.why} />}
@@ -8308,7 +8310,35 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (next.rainyBill && !next.rainyLaw && next.rainyBill < turn) { const H = scHouse(); if (H.loyal / Math.max(1, H.seats) >= .5 || r() < .4) { next.rainyLaw = turn; notes.push(["📜 The Fiscal Responsibility Law passed: good years now fill a savings fund for bad ones.", "success"]); scWiki("Governorship", "Signed a Fiscal Responsibility Law creating a savings fund for lean years."); } else { next.rainyBill = null; notes.push(["📜 The House threw out the Fiscal Responsibility Bill.", "political"]); } }
     const f = next.rainyLaw && f0 < 1 ? Math.min(1, f0 + (1 - f0) * .5) : f0;
     const pct = Math.round(f * 100), short = Math.max(.2, Math.round((s.faac || 10) * (1 - f) * 10) / 10), mw = monthWage();
-    if (f < .95 || A > 0) {
+    /* The President's money (owner, 22 Nov 2026: "truly presidency, not governorship in a presidency wrapper"): every
+       month FAAC shares the Federation Account; the President decides how a short month is met, and what the 36
+       governors get when they come to Abuja for more. SYS.fedMonth works the month back from the federal year. */
+    if (NAT) {
+      const M = SYS.fedMonth(s, f), nnpc = sw < -.05 ? "Oil prices fell, and the Federation Account with them." : "The national oil company remitted less than it owed: it deducted subsidy costs and its frontier exploration fund before paying in.";
+      const opts = [];
+      if (f < .95) {
+        opts.push({ label: "Order the national oil company to remit in full", note: "Half the gap comes back. Its managers warn of fuel queues if they cannot pay for imports.", chips: fxChips({ app: -1 }), run: () => { const back = Math.round(short * 5) / 10; scFx({ debt: Math.round((short - back) * 10) / 10, app: -1 }); addL("🛢️ Ordered the national oil company to remit in full: " + naira(back) + " came back; the rest was borrowed.", "policy"); scWiki("Presidency", "Ordered the national oil company to stop deducting costs before paying into the Federation Account."); return { icon: "🛢️", img: "./art/objects/federation-account-ledger.webp", title: "The oil company paid in", text: naira(back) + " of the " + naira(short) + " gap came back. Fuel marketers warn of queues.", tone: "good" }; } });
+        opts.push({ label: "Ways and Means: an overdraft from the Central Bank", note: "Pays everything this month. It is printed money: prices rise next year.", chips: fxChips({ debt: short }).concat([{ text: "Inflation next year", color: CL.red }]), run: () => { scFx({ debt: short }); setDelayedFx(d => [...d, { turn: turn + 1, made: turn, from: "borrowed " + naira(short) + " from the Central Bank (Ways and Means)", fx: { app: -3 }, desc: "Prices rose: the Central Bank's overdraft to the government fed inflation." }]); addL("🏦 Covered the " + naira(short) + " gap with a Ways and Means overdraft from the Central Bank.", "policy"); } });
+        opts.push({ label: "Borrow abroad: a Eurobond", note: "Dollars at 9%, repaid in dollars. The Debt Management Office will remind you.", chips: fxChips({ debt: Math.round(short * 11) / 10 }), run: () => { scFx({ debt: Math.round(short * 11) / 10 }); addL("🌍 Raised a Eurobond to cover the " + naira(short) + " gap.", "policy"); } });
+        opts.push({ label: "Hold back capital releases", note: "Salaries paid; contractors on federal sites are not.", chips: fxChips({ app: -1 }).concat([{ text: "Federal sites stall", color: CL.red }]), run: () => { scFx({ app: -1, infra: -.01 }); stallWork(null); addL("🚧 Held back capital releases: work stopped on federal sites this year.", "crisis"); } });
+        opts.push({ label: "Pay what we have; owe federal workers", note: "No new debt. The NLC and the unions start counting.", chips: fxChips({ app: -1 }).concat([{ text: "Arrears +2 months", color: CL.red }]), run: () => { scFx({ app: -1 }); setStc(p => ({ ...p, arrears: p.arrears + 2, arrearsMax: Math.max(p.arrearsMax || 0, p.arrears + 2) })); addL("🧾 Federal workers are owed " + (A + 2) + " months.", "crisis"); } });
+      }
+      if (A > 0) { const all = Math.round(A * mw * 10) / 10; opts.push({ label: "Clear all " + A + " months owed to federal workers (" + naira(all) + ")", note: "The strike threat ends today.", chips: fxChips({ debt: all, app: 3 }), run: () => { scFx({ debt: all, app: 3 }); setStc(p => { const n = p.labour && p.labour.strikes && p.labour.strikes.nlc, ends = n && n.on && n.cause === "arrears"; return { ...p, arrears: 0, ultimatum: false, strike: false, labour: ends ? { ...p.labour, strikes: { ...p.labour.strikes, nlc: { ...n, on: false, over: "paid" } } } : p.labour }; }); addL("✅ Federal salary arrears cleared (" + naira(all) + ").", "success"); } }); }
+      if (f < .95 || A > 0) cards.push({ key: "faac", kicker: FAAC_ + " · the Federation Account", color: CL.gold, art: ["finance-ministry-office", "finance-minister", "federation-account-ledger"],
+        title: f < .95 ? "The Federation Account came in at " + pct + "%" : "The money is in. Federal workers are still owed",
+        brief: (f < .95 ? nnpc + " " : "") + "This month " + FAAC_ + " shared " + naira(M.grossB) + ": " + naira(M.derivB) + " first to the oil states (13% derivation), then " + naira(M.statesB) + " to the 36 states, " + naira(M.lgsB) + " to the councils, and " + naira(M.fgB) + " to the Federal Government." + (f < .95 ? " Over the year you are " + naira(short) + " short of the federal wage bill." : "") + (A ? " Federal workers are owed " + A + " month" + (A === 1 ? "" : "s") + "." : ""),
+        stakes: "At 3 months owed the NLC issues an ultimatum. At 5 it shuts the country down.", options: opts });
+      else notes.push(["📦 " + FAAC_ + " shared " + naira(M.grossB) + " this month: " + naira(M.fgB) + " to the Federal Government, " + naira(M.statesB) + " to the states, " + naira(M.lgsB) + " to the councils, after " + naira(M.derivB) + " derivation. Federal salaries paid.", "info"]);
+      // A short month hits the states harder: the 36 governors come to Abuja.
+      if (f < .95) cards.push({ key: "nge_" + turn, kicker: SYS.keepWord("The Governors' Forum"), color: CL.pur, art: ["villa-office", null, "federation-account-ledger"], title: SYS.keepWord("36 governors want a bailout"),
+        brief: SYS.keepWord("The same short Federation Account hit the states: ") + Math.round((1 - f) * 100) + "% less this month. Governors from all six zones are at the Villa. Some cannot pay salaries by the 25th.",
+        stakes: SYS.keepWord("Governors deliver votes and senators. They also remember who sent them home empty."),
+        options: [
+          { label: "Augment from the Excess Crude Account (" + naira(Math.round(short * 4) / 10) + ")", note: "The savings from good oil years, shared out. The account will be thinner next time.", chips: fxChips({ debt: Math.round(short * 4) / 10, pStab: 3 }), run: () => { scFx({ debt: Math.round(short * 4) / 10, pStab: 3 }); addL("🤝 Shared " + naira(Math.round(short * 4) / 10) + " from the Excess Crude Account with the 36 states.", "political"); } },
+          { label: "Bailout loans to the states, repaid from their FAAC", note: "They get it now and pay later. They will grumble when deductions start.", chips: fxChips({ pStab: 1 }), run: () => { scFx({ pStab: 1 }); addL("🏦 Offered the states bailout loans, to be deducted from their FAAC.", "political"); } },
+          { label: "No: each state lives within its allocation", note: SYS.keepWord("Sound money. The governors go home angry and talk to their senators."), chips: fxChips({ pStab: -3, app: 1 }), run: () => { scFx({ pStab: -3, app: 1 }); addL(SYS.keepWord("🚫 Refused the governors' bailout request."), "political"); } },
+        ] });
+    } else if (f < .95 || A > 0) {
       const owe = f < .85 ? 3 : f < .95 ? 2 : 0;
       const opts = [];
       if (f < .95) {
@@ -9726,11 +9756,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🏦 Year " + turn + "'s money is in: " + naira(a.inB) + ". Salaries and offices take " + naira(a.runB) + ", debt repayments " + naira(a.debtB + payNow) + "; " + naira(work) + " goes into the bank.", "info");
     // Leak 2: after the first year the money arrives as a banner (the coins still fly into the bank), not one more
     // card to dismiss at the turn of the year. A year that leaves almost nothing for work still gets the full card.
-    if (turn > 1 && total >= a.inB * .2 && window.SOP_impact) { try { window.SOP_impact({ money: true, icon: "🏦", title: "Year " + turn + "'s money is in: " + naira(total) + " for this year's work", rows: [{ l: "From Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }, { l: "Salaries and offices", v: "−" + naira(a.runB), good: false }].concat(a.debtB >= .05 ? [{ l: "Debt", v: "−" + naira(a.debtB), good: false }] : []), tone: "good" }); } catch (e) {} }
+    if (turn > 1 && total >= a.inB * .2 && window.SOP_impact) { try { window.SOP_impact({ money: true, icon: "🏦", title: "Year " + turn + "'s money is in: " + naira(total) + " for this year's work", rows: [{ l: NAT ? "Federal share of the Federation Account (12 " + FAAC_ + " meetings)" : "From Abuja", v: naira(s.faac || 0), good: true }, { l: NAT ? "Federal agencies' own revenue" : "Taxes and fees", v: naira(s.igr || 0), good: true }, { l: "Salaries and offices", v: "−" + naira(a.runB), good: false }].concat(a.debtB >= .05 ? [{ l: "Debt", v: "−" + naira(a.debtB), good: false }] : []), tone: "good" }); } catch (e) {} }
     else try { window.SOP_outcome({ icon: "🏦", img: "./art/objects/" + (turn === 1 || total < .5 ? "treasury-chest-empty" : "treasury-chest") + ".webp", coins: turn > 1 && total >= .5, title: turn === 1 ? "The treasury you inherited" : "Year " + turn + "'s money is in",
-      text: turn === 1 ? "The bank was empty, contractors were owed " + naira(bills) + ", and the state owes " + naira((oldPlan || {}).total || 0) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work." : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
+      text: turn === 1 ? (NAT ? "The Treasury was empty, federal contractors were owed " + naira(bills) + ", and the Federation owes " + naira((oldPlan || {}).total || 0) + ". The money comes in monthly: each " + FAAC_ + " meeting gives the Federal Government about " + naira(SYS.fedMonth(s).fgB) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work." : "The bank was empty, contractors were owed " + naira(bills) + ", and the state owes " + naira((oldPlan || {}).total || 0) + ". After salaries, debt and those bills, you have " + naira(total) + " for this year's work.") : naira(total) + " is in the bank for this year's work. Spending comes from here first; you borrow only when it runs out.",
       tone: total < a.inB * .2 ? "bad" : "good", ok: "Got it",
-      rows: [{ l: "FAAC from Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }]
+      rows: (NAT ? SYS.fedMonthRows(SYS.fedMonth(s)).map(r => ({ ...r, l: r.l + " (a month)" })) : [{ l: "FAAC from Abuja", v: naira(s.faac || 0), good: true }, { l: "Taxes and fees", v: naira(s.igr || 0), good: true }])
         .concat(news.map(x => ({ l: x.icon + " " + x.head + (x.who ? " · Hon. " + x.who : ""), v: (x.amtB >= 0 ? "+" : "−") + naira(Math.abs(x.amtB)) + (x.cash ? "" : " a year"), good: x.amtB >= 0 })))
         .concat([{ l: "Salaries and offices", v: "−" + naira(a.runB), good: false }])
         .concat(a.debtB >= .05 ? [{ l: "Debt repayments", v: "−" + naira(a.debtB), good: false }] : [])
@@ -9778,6 +9808,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const e = SYS.estimate(d.type, d.qty, { places, perf, federal: NAT, second: !!d.second, state: NAT ? null : state, costF: d.costF }), placeTxt = places.length > 1 ? places.length + (NAT ? " states" : " local governments") + " (" + places.slice(0, 3).join(", ") + (places.length > 3 ? " and more" : "") + ")" : places[0];
     if (P.choice === "defer") { setPflow(null); addL("🗂️ Deferred " + d.title + ": nothing starts this year.", "info"); return; }
     { const B = SYS.strikeBlock(strikeNow(), { type: d.type, sector: SYS.TYPE_SECTOR[d.type] }); if (B) { setPflow(null); return strikeRefuse(d.title, B); } }
+    { const sp = SYS.siteProblem(d.type, NAT ? places[0] : state, (d.title || "") + " " + (d.description || "")); if (sp) { try { window.SOP_outcome({ icon: "🗺️", title: "It cannot go there", text: sp + " Pick another place.", tone: "bad" }); } catch (e) {} return; } }
     let approved = P.approvedM, qty = d.qty, note = null;
     if (P.choice === "increase") approved = e.buildM;
     if (P.choice === "reduce") { qty = Math.max(1, Math.floor(d.qty * P.approvedM / e.buildM)); note = "Scope reduced to " + qty + " " + e.unit + "s to fit " + SYS.fmtM(P.approvedM) + "."; }
@@ -10413,8 +10444,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const chainPlace = (p) => {
     const nd = (needs || []).find(n => n.link === p.id && (n.status === "started" || n.status === "met" || n.status === "stalled")) || (needs || []).find(n => n.status === "open" && (needType(n)?.fix || []).includes(p.id));
     const zoneOfPlace = (pl) => NAT ? ((STATES[String(pl).replace(/ /g, "_")] || {}).zone || "NC") : sd.zone;
-    if (nd) return { place: nd.lga, zone: zoneOfPlace(nd.lga), needKind: nd.k };
-    if (NAT) { const pl = FED_PLACE[p.id] || stateLabel(Object.keys(STATES).filter(k => k !== NATION)[hashStr(p.id + turn) % 36]); return { place: pl, zone: zoneOfPlace(pl), needKind: null }; }
+    if (NAT && p.site) return { place: stateLabel(p.site), zone: zoneOfPlace(p.site), needKind: nd && SYS.fedFits(p.id, nd.lga) ? nd.k : null };
+    if (nd && (!NAT || SYS.fedFits(p.id, nd.lga))) return { place: nd.lga, zone: zoneOfPlace(nd.lga), needKind: nd.k };
+    if (NAT) { const pl = stateLabel(SYS.fedPlace(p.id, null, hashStr(p.id)) || FED_PLACE[p.id] || Object.keys(STATES).filter(k => k !== NATION)[hashStr(p.id + turn) % 36]); return { place: pl, zone: zoneOfPlace(pl), needKind: null }; }
     const lg = getLGAs(state); return { place: lg.length ? lg[hashStr(p.id + turn) % lg.length] : stName, zone: sd.zone, needKind: null };
   };
   const nm0g = (t) => String(t || "").replace(/^⭐\s*/, "");
@@ -10473,20 +10505,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Projects sheet, and gets Wikipedia entries at each stage.
   const CAPITAL_IDS = new Set(["roads","mega_airport","mega_hospital","housing","rail","ind_park","tech_hub","uni","new_uni","rural_elec","water","irrigation","phc"]);
   const isCapital = (p) => CAPITAL_IDS.has(p.id) || (p.nm||"").startsWith("⭐") || (p.t >= 3);
-  const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"road", ind_park:"industrial", tech_hub:"industrial", uni:"university", new_uni:"university", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam" };
+  const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"road", ind_park:"industrial", tech_hub:"industrial", uni:"university", new_uni:"university", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam", f_trunk_roads:"road", f_sez:"industrial" };
   const EIA_TYPES = new Set(["road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
     { const B = SYS.strikeBlock(strikeNow(), { s: p.s, id: p.id }); if (B) return strikeRefuse(p.nm.replace(/^⭐\s*/, ""), B); }
     if (NAT && stc.impeach && stc.impeach.frozen === turn) { try { window.SOP_outcome({ icon: "⚖️", img: "./art/backgrounds/senate-chamber.webp", title: "Not in the year of the trial", text: "The Senate tribunal has frozen the government's programmes for the rest of this year.", tone: "bad" }); } catch (e) {} return; }
-    if (p.ask && !p.pick && !NAT) { setLocalAsk(p); return; } // how it is done in this state, first (SYS.localProgramme)
+    if (p.ask && !p.pick) { setLocalAsk(p); return; } // how it is done in this state, first (SYS.localProgramme)
     if (!isCapital(p)) return enactP(p);
     // Capital programmes are projects: they go through the one project flow
     // (proposal → budget → money → contractor), prefilled from the programme.
     const type = p.ptype || POLICY_TYPE[p.id] || "road";
-    const need = openNeedsForProj.find(n => n.type === type) || null;
+    const need = openNeedsForProj.find(n => n.type === type && (!NAT || SYS.fedFits(p.id, n.lga))) || null;
     const qty = Math.max(1, Math.round(((+p.c || 1) * 1000) / SYS.UNIT[type].per));
-    const r = SYS.parseProposal(type + " " + qty + " " + SYS.UNIT[type].unit + "s " + (need ? need.lga : ""), { lgas: getLGAs(state), federal: NAT, type });
+    const site = NAT ? (p.site ? stateLabel(p.site) : SYS.FED_WHERE[p.id] ? stateLabel(SYS.fedPlace(p.id, null, hashStr(p.id))) : "") : "";
+    const r = SYS.parseProposal(type + " " + qty + " " + SYS.UNIT[type].unit + "s " + (need ? need.lga : site), { lgas: getLGAs(state), federal: NAT, type, state: NAT ? null : state });
     setPflow({ step: "propose", draft: { ...r.proposal, title: p.nm.replace(/^⭐\s*/, "").replace(/^\d[\d,]*\s*(km|-bed)?\s+/i, ""), qty, need: need ? need.id : null, srcPolicy: p.id, ministryId: null,
       ...(p.pick ? { pick: p.pick, costF: p.costF || 1, tAdd: p.tAdd || 0, later: p.later || null, srcP: { ...p, ask: undefined, later: null } } : {}) } });
   };
@@ -16070,7 +16103,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <p style={{ margin: "0 0 8px", fontSize: 15, color: CL.tm, lineHeight: 1.45 }}>{localAsk.local.why}</p>
               {localAsk.local.fact && <p style={{ margin: "0 0 12px", fontSize: 13, color: CL.td, lineHeight: 1.4 }}>📚 {localAsk.local.fact}</p>}
               <div style={{ display: "grid", gap: 8 }}>
-                {localAsk.ask.opts.map(o => { const f = o.costF || 1, cost = f > 1.001 ? Math.round((f - 1) * 100) + "% dearer" : f < .999 ? Math.round((1 - f) * 100) + "% cheaper" : "the standard cost";
+                {localAsk.ask.opts.map(o => { /* a President's answer can choose the site (the Lagos end of the coastal highway) */ const f = o.costF || 1, cost = f > 1.001 ? Math.round((f - 1) * 100) + "% dearer" : f < .999 ? Math.round((1 - f) * 100) + "% cheaper" : "the standard cost";
                   return <button key={o.id} data-sop-local-opt={o.id} className="sp-opt" onClick={() => answerLocal(localAsk, o)} style={{ textAlign: "left" }}>
                     <b style={{ fontSize: 16, display: "block" }}>{o.l}</b>
                     <span style={{ fontSize: 14, color: CL.tm }}>{o.d} <b style={{ color: f > 1.001 ? CL.org : f < .999 ? CL.grn : CL.td }}>{cost.charAt(0).toUpperCase() + cost.slice(1)}{o.tAdd ? ", " + o.tAdd + " more year" + (o.tAdd > 1 ? "s" : "") : ""}.</b></span>
@@ -16565,7 +16598,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 {answers(p).map(n => <div key={n.id} style={{ display: "inline-block", marginBottom: 6, padding: "3px 10px", borderRadius: 999, background: CL.grn + "16", color: CL.grn, fontSize: PFS.s, fontWeight: 700 }}>{needType(n).icon} Answers: {needType(n).title(n.lga)}</div>)}
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}><span style={{ fontWeight: 600, fontSize: PFS.m, color: CL.txt }}>{p.nm.replace(/^⭐\s*/, "")}</span><span style={{ fontFamily: F.m, fontSize: PFS.s, color: CL.gold, whiteSpace: "nowrap" }}>{naira(perH)} × {p.t}y</span></div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0" }}>{Object.entries(p.fx || {}).slice(0, 2).map(([k, v]) => <Bg key={k} text={fxChip(k, v)} color={(k === "corM" ? -v : v) > 0 ? CL.grn : CL.red} />)}{p.jobsAdd ? <Bg text={p.jobsAdd.toLocaleString() + " jobs"} color={CL.blu} /> : null}</div>
-                {p.local && p.local.why && <div data-sop-local style={{ fontSize: PFS.s, color: CL.tm, lineHeight: 1.4, margin: "6px 0 2px" }}>📍 <b style={{ color: CL.txt }}>In {stName}:</b> {p.local.why}{p.ask ? <span style={{ color: CL.blu, fontWeight: 700 }}> You decide how.</span> : null}</div>}
+                {p.local && p.local.why && <div data-sop-local style={{ fontSize: PFS.s, color: CL.tm, lineHeight: 1.4, margin: "6px 0 2px" }}>📍 {NAT ? null : <b style={{ color: CL.txt }}>In {stName}: </b>}{p.local.why}{p.ask ? <span style={{ color: CL.blu, fontWeight: 700 }}> You decide how.</span> : null}</div>}
                 {p.cr > .09 && <div style={{ fontSize: PFS.s, color: CL.org }}>Money can leak</div>}
                 {pillarOn("plan") && SYS.comboPartner(p.id).map(c => { const on = pol.some(a => a.id === c.with); const w = POL().find(x => x.id === c.with); return w ? <div key={c.with} style={{ fontSize: PFS.s, color: on ? CL.grn : CL.td, fontWeight: on ? 700 : 500 }}>{on ? "★ Combo ready: " : "Works with "}{nm0g(w.nm)}{on ? " (" + c.nm + ")" : ""}</div> : null; })}
                 {pillarOn("plan") && !isCapital(p) && (() => { const P = (stc.pilots || {})[p.id]; if (P) return <div style={{ fontSize: PFS.s, color: CL.blu, marginTop: 4 }}>🧪 {P.done ? "Piloted in " + P.lga : "Pilot running in " + P.lga + ": the result comes next year"}</div>;
@@ -16719,8 +16752,8 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
                 <img src={"./art/objects/" + img + ".webp"} alt="" style={{ width: TALL() ? 44 : 56, height: TALL() ? 44 : 56, objectFit: "contain" }} />
                 <span style={{ minWidth: 0 }}><b style={{ fontSize: fz.m, color: CL.txt }}>{l}: {v}</b><span style={{ display: "block", fontSize: fz.s, color: CL.td }}>{note}</span></span></div>;
                 return <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "repeat(3, 1fr)", gap: 8 }}>
-                  {src(NAT ? "federation-account-ledger" : "faac-envelope", "FAAC from Abuja", naira(s.faac || 0), "The federal share, every year. It rises and falls with oil.")}
-                  {src("igr-receipt-stack", "Taxes and fees", naira(s.igr || 0), "What the state collects itself. Reforms below grow it.")}
+                  {NAT ? src("federation-account-ledger", "Federation Account", naira(s.faac || 0), "The federal 52.68%, paid monthly at " + FAAC_ + " (about " + naira(SYS.fedMonth(s).fgB) + " a month), after 13% derivation to the oil states. It rises and falls with oil.") : src("faac-envelope", "FAAC from Abuja", naira(s.faac || 0), "The federal share, every year. It rises and falls with oil.")}
+                  {NAT ? src("igr-receipt-stack", "Independent revenue", naira(s.igr || 0), "Federal agencies' surpluses, fees and customs charges. Reforms below grow it.") : src("igr-receipt-stack", "Taxes and fees", naira(s.igr || 0), "What the state collects itself. Reforms below grow it.")}
                   {src("debt-ledger-book", "Debt repayments", naira(a.debtB), "Due this year, with 8% interest. Still owed: " + naira(s.debt || 0) + ".")}
                 </div>; })()}
               

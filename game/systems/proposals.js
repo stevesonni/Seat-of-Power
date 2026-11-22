@@ -6,6 +6,7 @@
    text gets one focused question; things a state government cannot build
    get an explanation instead of invented benefits. */
 import { UNIT, FACILITY, SECTORS, TYPE_SECTOR, estimate } from "./projects.js";
+import { siteProblem } from "./stateprofile.js";
 const FED_ONLY = ["rail", "pipeline", "refinery", "seaport", "airport"];
 
 const TYPE_WORDS = [
@@ -80,7 +81,7 @@ const BENEFIT = {
   airport: () => "A new terminal: more flights, more visitors, and cargo for exporters.",
 };
 
-export const parseProposal = (text, { lgas = [], federal = false, type: picked = null } = {}) => {
+export const parseProposal = (text, { lgas = [], federal = false, type: picked = null, state = null } = {}) => {
   const t = String(text || "").trim();
   // A kind picked from the list is that kind, whatever its short name reads like ("dam", "coe").
   const forced = picked && UNIT[picked] && (federal || !FED_ONLY.includes(picked)) ? picked : null;
@@ -99,6 +100,8 @@ export const parseProposal = (text, { lgas = [], federal = false, type: picked =
   const cap = UNIT[type].def * 20; if (qty > cap) { assumptions.push("Scaled down from " + qty + " to " + cap + " " + UNIT[type].unit + "s, the most one project can carry."); qty = cap; }
   const lga = lgas.find(l => new RegExp("\\b" + l.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&") + "\\b", "i").test(t)) || null;
   if (!lga) assumptions.push("No local government named: you can pick one below.");
+  // A seaport or a coastal road where there is no coast (owner, 22 Nov 2026: "a coastal road in Jigawa. Which coast?").
+  { const sp = siteProblem(type, federal ? lga : state, t); if (sp) return { status: "unsupported", why: sp }; }
   if (hits.length > 1 && !numbered) assumptions.push("Read as a " + UNIT[type].nm.toLowerCase() + " project (it also mentions " + hits.filter(h => h !== type).map(h => UNIT[h].nm.toLowerCase()).join(", ") + ").");
   const e = estimate(type, qty);
   return {

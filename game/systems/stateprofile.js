@@ -341,7 +341,7 @@ export const localProgrammes = (list, state, ctx = {}) => (list || []).map(p => 
    state, the programme and the year, and lands next year as a delayed effect. */
 export const applyLocalPick = (p, o, { state = "", turn = 1, capital = false } = {}) => {
   if (!p || !o) return { p, later: null };
-  const np = { ...p, pick: o.id, pickNm: o.l, t: (p.t || 1) + (o.tAdd || 0), fx: { ...(p.fx || {}) } };
+  const np = { ...p, pick: o.id, pickNm: o.l, t: (p.t || 1) + (o.tAdd || 0), fx: { ...(p.fx || {}) }, ...(o.site ? { site: o.site } : {}) };
   if (capital) np.costF = o.costF || 1; else np.c = Math.round((p.c || 0) * (o.costF || 1) * 100) / 100;
   Object.entries(o.fx || {}).forEach(([k, v]) => { np.fx[k] = Math.round(((np.fx[k] || 0) + v) * 1000) / 1000; });
   const r = seeded("local", state, p.id, o.id, turn);
@@ -402,3 +402,68 @@ export const localHouseBills = (list, state, ctx = {}) => (list || []).map(b => 
 
 // Every picture a state version can ask for (docs/LOVABLE-STATES.md).
 export const VARIANT_ART_ALL = ["rural_elec-ring", "rural_elec-gully", "rural_elec-lagoon", "rural_elec-sun", "rural_elec-creek", "water-deep", "water-creek", "water-city", "water-hill", "roads-swamp", "roads-gully", "roads-savannah", "roads-city", "irrigation-fadama", "irrigation-palm", "irrigation-cocoa", "irrigation-ricemill", "farm-fish", "school_feed-north", "school_feed-south", "free_edu-almajiri", "classrooms-raised", "classrooms-fenced", "phc-boat", "amotekun-west", "amotekun-east", "amotekun-north", "amotekun-civilian", "bill-ranching", "bill-grazing_reserve", "bill-family_court", "bill-sarc", "bill-power_market", "bill-host_trust", "bill-erosion", "bill-flood", "bill-waterways", "bill-forest_guards", "bill-hisbah", "bill-revenue"];
+
+// ── The presidency: federal works go where they make sense (owner, 22 Nov 2026: "I saw a coastal road in Jigawa.
+//    Which coast?"). A President's programme lands in a state; the coastal highway only on the coast, the railway only
+//    on its route, the refineries in the Delta. Needs elsewhere are answered by works that fit them.
+export const COAST = ["Lagos", "Ogun", "Ondo", "Delta", "Bayelsa", "Rivers", "Akwa_Ibom", "Cross_River"];
+export const FED_WHERE = {
+  f_coastal: { states: COAST, why: "The coastal highway runs along the Atlantic, Lagos to Calabar, through the eight coastal states." },
+  f_rail: { states: ["Lagos", "Ogun", "Oyo", "Kwara", "Niger", "FCT", "Kaduna", "Kano"], why: "The Lagos–Kano line runs from the port through Ibadan, Ilorin, Minna and Kaduna to Kano." },
+  f_gas: { states: ["Delta", "Edo", "Kogi", "FCT", "Niger", "Kaduna", "Kano"], why: "The north–south pipeline carries Delta gas through Ajaokuta, Abuja and Kaduna to Kano." },
+  f_refinery: { states: ["Delta", "Bayelsa", "Rivers", "Akwa_Ibom", "Edo", "Imo", "Ondo"], why: "Modular refineries sit beside the oil fields of the Niger Delta." },
+  f_second_bridge: { states: ["Anambra", "Delta", "Kogi", "Niger", "Kebbi", "Kwara"], why: "A bridge goes where the Niger is: Onitsha and Asaba, Lokoja, Jebba, the north." },
+  f_mambilla: { states: ["Taraba"], why: "The dam is on the Mambilla Plateau in Taraba, the one highland with the rivers and the drop for 3,000 MW." },
+};
+const key_ = (place) => String(place || "").replace(/ /g, "_");
+export const fedFits = (pid, place) => { const W = FED_WHERE[pid]; return !W || !place || W.states.includes(key_(place)); };
+// Where a federal programme goes: the place asked for if it fits, else a state on its route (seeded).
+export const fedPlace = (pid, wanted, seed = 1) => { const W = FED_WHERE[pid]; if (!W) return wanted || null; if (wanted && W.states.includes(key_(wanted))) return key_(wanted); return W.states[Math.abs(Number(seed) || 0) % W.states.length]; };
+/* A project that cannot be where it was asked for: a seaport or a coastal road in a state with no coast. */
+export const siteProblem = (type, place, text = "") => {
+  const k = key_(place); if (!k || !LAND[k]) return null; // only a state we know
+  const coastal = COAST.includes(k);
+  if (type === "seaport" && !coastal) return name(k) + " has no coast: a seaport can only go in one of the eight coastal states (" + COAST.map(name).join(", ") + ").";
+  if (/\bcoast(al)?\b/i.test(text) && !coastal) return name(k) + " has no coast. A coastal road runs only through the eight coastal states, Lagos to Calabar.";
+  return null;
+};
+
+/* The President's programmes: each megaproject asks the question a President really faces about it. */
+const FED_ASKS = {
+  f_coastal: { q: "How do you build 700 km along the coast?", why: "The route runs along the beach from Lagos to Calabar: homes, resorts and fishing villages are in the way, and so are the creeks.", fact: "Coastal highways in Nigeria have meant demolitions on the Lekki coast, and court cases from the owners.",
+    opts: [opt("lagos", "Start at the Lagos end, along the beach", "Fast where the money is. Homes and beach resorts in the way come down.", { site: "Lagos", risk: { p: .5, title: "Demolitions in court", text: "Owners of demolished homes and resorts on the Lagos coast took the government to court. The pictures went round the world.", fx: { app: -5 } }, good: { text: "The first section of the coastal highway opened from Lagos.", fx: { app: 4, infra: .02 } } }),
+      opt("inland", "Re-route inland around the communities", "Dearer and a year more; nobody loses a home.", { costF: 1.2, tAdd: 1, good: { text: "The re-routed coastal highway opened without a demolition.", fx: { app: 4 } } }),
+      opt("toll", "A toll road with a private partner", "Their money builds it; drivers pay for forty years.", { costF: .7, risk: { p: .4, title: "Tolls too high", text: "The concessionaire's tolls are the highest in West Africa. Truckers block the toll gates.", fx: { app: -4 } }, good: { text: "The tolled coastal highway is open and the Treasury paid little.", fx: { app: 2, infra: .02 } } })] },
+  f_rail: { q: "How is the railway paid for?", why: "A standard-gauge line costs more than a year of the federal capital budget.", fact: "Nigeria's standard-gauge lines (Lagos–Ibadan, Abuja–Kaduna) were built largely with Chinese loans.",
+    opts: [opt("loan", "A foreign loan with the lender's contractor", "Cheaper now; the loan's terms will be read in the newspapers.", { costF: .85, risk: { p: .35, title: "The loan's clauses", text: "A newspaper published the loan agreement: the lender can take assets if Nigeria defaults. The Senate wants answers.", fx: { app: -3 } }, good: { text: "The lender's contractor laid the track on time.", fx: { infra: .02, app: 3 } } }),
+      opt("budget", "Budget money, phased over more years", "Nobody else's terms; a year more.", { tAdd: 1, good: { text: "The railway, paid for at home, is carrying freight.", fx: { app: 3 } } }),
+      opt("ppp", "A private concession: they build it and run it", "The cheapest for the Treasury, if the investors come.", { costF: .6, risk: { p: .4, title: "The investors stalled", text: "The concessionaire could not raise the money. Work stopped for a year.", fx: { infra: -.02, app: -3 } } })] },
+  f_gas: { q: "Who guards the pipeline?", why: "A pipeline through the Delta and the bandit corridors is a target the whole way.", fact: "Pipeline surveillance contracts have been given to ex-militant leaders in the Delta; critics call it paying the people who blew them up.",
+    opts: [opt("army", "The army and the civil defence", "Dearer; under the government's command.", { costF: 1.1, good: { text: "The pipeline ran a year without a breach.", fx: { app: 3, sec: .01 } } }),
+      opt("militants", "Surveillance contracts with ex-militant groups", "They know the creeks. Some will call it a bribe.", { costF: .9, risk: { p: .35, title: "Paying the militants", text: "Newspapers reveal the surveillance contracts went to men who once blew up pipelines. The opposition calls it protection money.", fx: { app: -3, cor: .01 } }, good: { text: "The creeks stayed quiet and the gas flowed north.", fx: { app: 2, sec: .01 } } }),
+      opt("communities", "Pay the host communities to guard it", "They gain from it staying whole.", { good: { text: "Host communities guarded the pipeline as their own.", fx: { app: 3, sec: .01 } }, risk: { p: .2, title: "A community dispute", text: "Two communities fought over who gets the guarding money; the line was cut for a week.", fx: { app: -2 } } })] },
+  f_refinery: { q: "Who owns the refineries?", why: "Government refineries have run below capacity for decades; illegal refineries in the creeks make fuel and pollution every night.", fact: "Nigeria's state refineries have spent billions on repairs and run at a fraction of capacity for years.",
+    opts: [opt("national", "The national oil company", "Government-owned, as before.", { risk: { p: .45, title: "Below capacity again", text: "The new refineries are running at a third of capacity. The repair contractor blames the crude supply.", fx: { app: -3 } } }),
+      opt("private", "Private operators, with a share for the host communities", "Run for profit; the communities own a part.", { costF: .8, good: { text: "The modular refineries are running, and the host communities get dividends.", fx: { app: 4, sec: .01 } } }),
+      opt("illegal", "License the illegal refiners and bring them in", "Turn the creek cooks into licensed operators.", { costF: .7, risk: { p: .35, title: "Still polluting", text: "The newly licensed refiners kept dumping waste in the creeks.", fx: { hp: -.01, app: -2 } }, good: { text: "Illegal refining fell as the creek refiners went legal.", fx: { sec: .02, app: 3 } } })] },
+  f_second_bridge: { q: "Toll or free?", why: "Every Niger crossing carries the trade between the east, the west and the north; the queues cost billions.", fact: "The Second Niger Bridge between Asaba and Onitsha opened in 2022 after decades of promises.",
+    opts: [opt("free", "Free, paid from the budget", "Everybody crosses free.", { good: { text: "Traders cross the new bridge free.", fx: { app: 4 } } }),
+      opt("toll", "A tolled concession", "Cheaper for the Treasury; traders pay.", { costF: .7, risk: { p: .4, title: "Traders protest the toll", text: "Onitsha traders shut the market over the bridge toll.", fx: { app: -3 } } })] },
+  f_mambilla: { q: "The old contract is in arbitration. What now?", why: "A great dam on the Mambilla Plateau has been planned since the 1980s. The last contract ended in a billion-dollar arbitration claim.", fact: "The Mambilla hydropower project has been delayed for decades by contract disputes and arbitration.",
+    opts: [opt("settle", "Settle with the old contractor and go on", "Dearer; no court in Paris.", { costF: 1.1, good: { text: "Work started on the plateau at last.", fx: { app: 3, infra: .02 } } }),
+      opt("restart", "Start again with a new contractor", "Clean start; the old contractor goes to arbitration.", { risk: { p: .45, title: "The arbitration award", text: "An arbitration tribunal ordered Nigeria to pay the old contractor damages.", fx: { app: -3 } } }),
+      opt("bank", "With a foreign export bank's loan", "Cheaper money; a year more for the paperwork.", { costF: .85, tAdd: 1, good: { text: "The export bank's money is building the dam.", fx: { app: 3 } } })] },
+  f_grid: { q: "Who builds the new lines?", why: "Power is generated but cannot reach homes: the transmission lines are the bottleneck.", fact: "Since the Electricity Act 2023, fifteen states run their own power markets; transmission is still federal.",
+    opts: [opt("tcn", "The federal transmission company", "As it is done now.", { risk: { p: .3, title: "The grid collapsed anyway", text: "The grid collapsed again before the new substations were finished.", fx: { app: -3 } }, good: { text: "The new lines carry power to homes.", fx: { app: 3 } } }),
+      opt("concession", "Concession the lines to private operators", "Their money; their tariffs.", { costF: .8, risk: { p: .35, title: "Tariffs up", text: "The new line operators raised tariffs. Labour threatens a strike.", fx: { app: -3 } }, good: { text: "Private operators built the lines fast.", fx: { infra: .02, app: 2 } } }),
+      opt("states", "Fund the states that run their own markets to build", "The fifteen states build their own lines; slower in the rest.", { costF: .85, tAdd: 1, good: { text: "States with their own markets built lines to their towns.", fx: { app: 3 } } })] },
+};
+export const fedProgramme = (p) => {
+  if (!p) return p;
+  const A = FED_ASKS[p.id], W = FED_WHERE[p.id];
+  if (!A && !W) return p;
+  const out = { ...p, local: { head: String(p.nm || "").replace(/^⭐\s*/, ""), why: [W && W.why, A && A.why].filter(Boolean).join(" "), fact: A ? A.fact : null } };
+  if (A) out.ask = { q: A.q, opts: A.opts };
+  return out;
+};
+export const fedProgrammes = (list) => (list || []).map(fedProgramme);

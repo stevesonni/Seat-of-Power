@@ -109,3 +109,37 @@ test("every state picture is shipped and every shipped one is used (docs/LOVABLE
   });
   [...used].forEach(a => assert.ok(have.includes(a), a));
 });
+
+test("the presidency: the coastal highway only on the coast; a need elsewhere gets works that fit it", async () => {
+  const F = await import("../game/systems/federal.js");
+  assert.ok(S.fedFits("f_coastal", "Lagos")); assert.ok(!S.fedFits("f_coastal", "Jigawa")); assert.ok(S.fedFits("f_coastal", "Akwa Ibom"));
+  assert.ok(S.fedFits("f_trunk_roads", "Jigawa"), "trunk roads go anywhere");
+  assert.equal(S.fedPlace("f_coastal", "Jigawa", 3), S.COAST[3]); assert.equal(S.fedPlace("f_coastal", "Rivers", 3), "Rivers");
+  assert.equal(S.fedPlace("f_mambilla", null, 9), "Taraba");
+  assert.ok(F.FED_NEEDS.road.fix.includes("f_trunk_roads")); assert.ok(F.FED_POLICIES.some(p => p.id === "f_sez"));
+  assert.match(S.siteProblem("seaport", "Jigawa"), /no coast/); assert.equal(S.siteProblem("seaport", "Rivers"), null);
+  assert.match(S.siteProblem("road", "Jigawa", "A coastal road in Jigawa"), /no coast/);
+  const P = await import("../game/systems/proposals.js");
+  assert.equal(P.parseProposal("A coastal road in Jigawa", { lgas: ["Jigawa", "Lagos"], federal: true }).status, "unsupported");
+  assert.equal(P.parseProposal("A coastal road in Lagos", { lgas: ["Jigawa", "Lagos"], federal: true }).status, "ok");
+  // The President's megaprojects ask the President's question; the answer can pick the site.
+  const c = S.fedProgramme(F.FED_POLICIES.find(p => p.id === "f_coastal"));
+  assert.match(c.local.why, /Lagos to Calabar/); assert.equal(c.ask.opts[0].site, "Lagos");
+  const a = S.applyLocalPick(c, c.ask.opts[0], { state: "Nigeria", turn: 2, capital: true }); assert.equal(a.p.site, "Lagos");
+  assert.ok(S.fedProgramme(F.FED_POLICIES.find(p => p.id === "f_rail")).ask);
+  // A federal project's cost follows the state's land.
+  assert.equal(estimate("power", 10, { places: ["Sokoto"], federal: true }).hard[0].kind, "sun");
+});
+
+test("the President's money comes in monthly: the Federation Account, shared at FAAC", async () => {
+  const F = await import("../game/systems/federal.js");
+  const M = F.fedMonth({ faac: 480, igr: 60 });
+  assert.ok(Math.abs(M.fgB * 12 - 480) < 3, "twelve federal shares make the year (" + M.fgB + ")");
+  assert.ok(Math.abs(M.grossB - (M.derivB + M.fgB + M.statesB + M.lgsB)) < .5, "the account is fully shared");
+  assert.equal(M.ownB, 5); assert.ok(M.statesB > M.lgsB && M.fgB > M.statesB);
+  assert.ok(F.fedMonth({ faac: 480 }, .8).fgB < M.fgB, "a short month is smaller");
+  const rows = F.fedMonthRows(M); assert.match(rows[1].l, /13% derivation/); assert.match(rows[4].l, /52\.68%/);
+  // Federal bills read as the laws already passed.
+  assert.match(F.FED_BILLS.find(b => b.id === "f_electricity").nm, /Amendment/);
+  assert.match(F.FED_BILLS.find(b => b.id === "f_lg_autonomy").d, /Supreme Court ruled in 2024/);
+});

@@ -3,7 +3,44 @@
 
 
 
-## Every state's own programmes and bills (22 Nov, latest)
+## The presidency is a presidency: works on their routes, the Federation Account, current laws (22 Nov, latest)
+
+- **Federal works go where they make sense** (`SYS.FED_WHERE`, `fedFits`, `fedPlace`). The owner saw "a coastal road in Jigawa".
+  - The coastal highway goes only to the 8 coastal states. The railway follows Lagos–Kano, the gas pipeline follows Ajaokuta–Kaduna–Kano, the refineries go to the Delta, the dam to Taraba, and a Niger bridge to the river.
+  - A need only lists works that can go to its state (`needType` filters the fixes).
+  - Two new programmes work anywhere: **Rebuild the federal trunk roads** and **A special economic zone**.
+  - A typed "coastal road" or a seaport in a state with no coast is refused (`SYS.siteProblem`), and the plan is checked again at approval.
+  - Federal project costs follow the state's land.
+- **The President's megaprojects ask the President's question** (`SYS.fedProgramme`), using the same local question sheet:
+  - coastal highway: Lagos beach, re-route inland, or toll
+  - railway: foreign loan, budget, or concession
+  - pipeline: army, ex-militant contracts, or communities
+  - refineries: national company, private operators, or licensing the illegal refiners
+  - bridge: toll or free
+  - dam: settle the arbitration, restart, or an export bank
+  - grid: the transmission company, a concession, or the states
+- **The money comes in monthly** (`SYS.fedMonth`, `fedMonthRows`). The governor's FAAC day card no longer runs for the President. Instead:
+  - **FAAC · the Federation Account** shows the month: the gross account, 13% derivation to the oil states, then the states 26.72%, the councils 20.60% and the Federal Government 52.68%, plus the agencies' own revenue.
+  - On a short month the President chooses: make the national oil company remit in full, Ways and Means from the Central Bank (inflation next year), a Eurobond, hold capital releases, or owe federal workers.
+  - **The Governors' Forum** comes to the Villa for a bailout: augment from the Excess Crude Account, bailout loans against their FAAC, or refuse.
+  - The treasury tiles, the inherited-treasury card and the yearly banner use federal words. `FAAC_` and `SYS.keepWord` keep "FAAC" and "governors" from being swapped on the President's screen.
+- **Federal bills and programmes reflect the laws already passed:**
+  - Electricity Act 2023 → its amendment
+  - Petroleum Industry Act 2021 → 5% for host communities
+  - Tax Acts 2025 → end the waivers
+  - Local government autonomy → enforcement of the 2024 Supreme Court ruling
+  - Minimum Wage Act 2024 → its review
+  - Proceeds of Crime Act 2022 → unexplained wealth
+  - Not Too Young to Run 2018 → lower the ages again
+  - The student loans fund (2024), the national ID and the payroll are now framed as widening or finishing them.
+  - The railway and the pipeline say what is already built.
+- **The word swapper:** "State Secretariat" becomes "Federal Secretariat".
+- **Tests:**
+  - `tests/stateprofile.test.mjs` (434 unit tests pass). A scripted 4-year presidency run flagged no state wording.
+  - `federation`, `japa-president` and `local-state` pass.
+  - `president.mjs` still fails 2 checks (the President's Tori chip and the Villa compound image). These fail on the earlier code too.
+
+## Every state's own programmes and bills (22 Nov)
 
 - **What changed.** A new module, `game/systems/stateprofile.js`, gives every state a short profile of real facts:
   - its land (creeks, lagoon city, gullies, rainforest, savannah, plateau, the dry north)

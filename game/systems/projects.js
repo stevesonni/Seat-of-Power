@@ -85,7 +85,8 @@ export const SECOND_CONTRACTOR = 1.12;
    ministry's capacity; opts.second: a second contractor. */
 export const estimate = (type, qty, opts = {}) => {
   const U = UNIT[type] || UNIT.road, F = FACILITY[type], q = Math.max(0, Number(qty) || U.def);
-  const places = (opts.places || []).filter(Boolean), terr = places.map(x => terrainFor(x, opts.state, type));
+  // For the President a place is a state: its own land decides (a road in Anambra's gullies, solar in Sokoto's sun).
+  const places = (opts.places || []).filter(Boolean), terr = places.map(x => terrainFor(x, opts.state || (opts.federal ? String(x).replace(/ /g, "_") : null), type));
   const tf = places.length ? terr.reduce((a, t) => a + (t ? TERRAIN[t].f : 1), 0) / places.length : 1;
   const cap = capacityOf(type, opts) * (opts.second ? 2 : 1), capYears = Math.ceil(q / cap);
   // Spread thin, a programme takes longer: every three more places, a year more.
