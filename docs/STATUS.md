@@ -3,7 +3,16 @@
 
 
 
-## Buildings are projects; the President's year is federal; invitations read in full (22 Nov, latest)
+## No half-done letters (22 Nov, latest)
+
+- **What the owner saw:** a letter that read only "Hon.", and the White House and UN Geneva letters with no text at all.
+- **Fixes:**
+  - **The letter opening** (`two`) keeps whole sentences and never stops at a title (Hon., Dr., Gen., Prof. …). A short first sentence brings the second with it.
+  - **War and diplomatic letters** (`sc.letter`: the White House, the UN in Geneva …) show their own sender, office and full text.
+  - **A letter with its own lines** reads them (the students' letter used to read "Since the ASUU strike").
+- **Test:** `tests/e2e/letters-full.mjs` plays a governor and a President and reads every letter that arrives (44 in its run). None has a short body. `SOP.lettersTest()` is a test hook.
+
+## Buildings are projects; the President's year is federal; invitations read in full (22 Nov)
 
 - **A building chosen at the cabinet meeting is a real project** (`DEBATES[*].projB`). The owner asked why "40 classroom blocks" didn't go through the normal project process. It now does:
   - Choosing a build option opens the project plan, prefilled and run by the winning commissioner's ministry. It no longer spends at once.
