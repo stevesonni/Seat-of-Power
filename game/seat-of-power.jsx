@@ -9388,7 +9388,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const so = stc.successor || { name: gN(rng(state.length * 733 + turn), sd?.zone, state), kind: "party", loyal: .4, elect: 46 };
       const r = rng(state.length * 991 + Math.round(s.app) * 7 + Math.round(s.cor * 100));
       const won = stc.raceDone ? !!stc.raceWon : so.elect + (s.app - 50) * .6 + (s.pStab - 50) * .3 + (r() - .5) * 20 > 50;
-      const betrayed = won && r() < (1 - so.loyal - (stc.race?.loyalAdj || 0)) + (s.cor > .45 ? .15 : 0);
+      // A successor turning on you is the exception, not the rule (owner, 22 Nov 2026: "this mustn't happen all the
+      // time"): about 7% for your deputy, 20-30% for the others, a little more if your corruption gave them a file.
+      const betrayChance = Math.max(.03, Math.min(.4, (1 - so.loyal) * .5 + (s.cor > .45 ? .1 : 0) - (stc.race?.loyalAdj || 0)));
+      const betrayed = won && r() < betrayChance;
       return { ...so, won, betrayed, efcc: won && !betrayed ? -.12 : betrayed ? .12 : .08 };
     }
     if (gEnd === "defeated") return { name: cast?.rival?.name || "the opposition", kind: "opposition", won: true, betrayed: false, efcc: .08 };
@@ -13485,7 +13488,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 : gEnd === "impeached" ? succ.name + " was sworn in within the hour, and handed the Assembly's findings to the EFCC."
                 : gEnd === "nullified" ? succ.name + " took the oath the morning after the judgment, and the first executive order was a forensic audit of your years in office."
                 : !succ.won ? "Your candidate, " + succ.name + ", lost the governorship to the opposition. The new government set up a panel to probe your years in office."
-                : succ.betrayed ? succ.name + " won, then turned on you within months: suspended your projects, renamed your flagship, and sent your files to the EFCC. In Nigerian politics, the godson always comes for the godfather."
+                : succ.betrayed ? succ.name + " won, then turned on you within months: suspended your projects, renamed your flagship, and sent your files to the EFCC. It happens in Nigerian politics: the godson comes for the godfather."
                 : succ.name + " won and kept faith. Your projects continue, your name stays on the plaques, and the new government is in no hurry to help the EFCC."}
             </div>
             <div style={{ fontSize: TS(29), color: CL.td, marginTop: 8 }}>{succ.efcc < 0 ? "EFCC exposure lower: a friendly government holds your files." : "EFCC exposure higher: the people now in power have no reason to protect you."}</div>
