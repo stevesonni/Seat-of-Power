@@ -3,7 +3,17 @@
 
 
 
-## Silence on Tori costs you; a settled strike takes its letters (22 Nov, latest)
+## The tribunal after losing the short start; successors rarely betray (22 Nov, latest)
+
+- **The tribunal in the short start.** Losing election night in the short start now offers "Challenge the result at the tribunal", as in the long campaign:
+  - three courts (Tribunal, Court of Appeal, Supreme Court) and four grounds;
+  - lawyers paid from what is left of the war chest; evidence is better the closer the margin;
+  - the "settle the panel" option if you can afford it.
+  - Win and you take the oath. Lose and you can run again or go home.
+  - `SOP_TEST.lose` forces a loss for tests (`tests/e2e/short-tribunal.mjs`).
+- **Successor betrayal is the exception:** `(1 − loyalty) × 0.5`, +0.1 for high corruption, between 3% and 40%.
+
+## Silence on Tori costs you; a settled strike takes its letters (22 Nov)
 
 - **A year with no Tori post.** It costs approval −2 at the start of the next year, with a note saying so.
   - Citizens' posts in the feed: "#<Surname>MustGo", "too big to talk to us", "why can't … answer questions", "hiding behind proxies", "we elected you, tell us what is going on".

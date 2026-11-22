@@ -18,7 +18,7 @@ export const RALLY = { t: "Your last big rally", d: "One week to go. You can fil
     { id: "market", l: "The capital's biggest market", out: "Traders, okada riders, market women: the swing voters.", zone: "swing", swing: 3 },
   ] };
 /* Election night: each district's share for you, and the result. seed: per game. */
-export const electionNight = (seed, { deal = "half", rally = "market", homeDistrict = 1, forceWin = false } = {}) => {
+export const electionNight = (seed, { deal = "half", rally = "market", homeDistrict = 1, forceWin = false, forceLose = false } = {}) => {
   const D = DEAL.opts.find(o => o.id === deal) || DEAL.opts[1], R = RALLY.opts.find(o => o.id === rally) || RALLY.opts[2], r = seeded(seed, "night", deal, rally);
   const gamble = R.gamble ? (r() < .55 ? R.gamble : -R.gamble) : 0;
   const mood = r() * 10 - 5; // the year's national mood, the same in every district
@@ -27,6 +27,7 @@ export const electionNight = (seed, { deal = "half", rally = "market", homeDistr
   const count = () => voters.map((n, i) => Math.round(n * shares[i] / 100));
   let you = count();
   for (let k = 0; forceWin && k < 40 && you.reduce((a, b) => a + b, 0) * 2 <= voters.reduce((a, b) => a + b, 0) + 2000; k++) { shares.forEach((v, i) => { shares[i] = Math.round(Math.min(72, v + 1) * 10) / 10; }); you = count(); }
+  for (let k = 0; forceLose && k < 40 && you.reduce((a, b) => a + b, 0) * 2 >= voters.reduce((a, b) => a + b, 0) - 2000; k++) { shares.forEach((v, i) => { shares[i] = Math.round(Math.max(28, v - 1) * 10) / 10; }); you = count(); } // tests only
   const opp = voters.map((n, i) => n - you[i]);
   const tot = you.reduce((a, b) => a + b, 0), totO = opp.reduce((a, b) => a + b, 0), marginPct = Math.round((tot - totO) / (tot + totO) * 1000) / 10;
   return { shares, voters, you, opp, won: tot > totO, marginPct, zonesWon: shares.filter(v => v > 50).length, gamble };

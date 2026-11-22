@@ -5044,10 +5044,13 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
   const people = React.useMemo(() => { const used = new Set([nm]), names = []; for (let i = 0; i < 6; i++) { let x = ""; for (let j = 0; j < 12 && (!x || used.has(x)); j++) x = gN(r, z, st); used.add(x); names.push(x); } return names; }, [seed, st]);
   const deps = React.useMemo(() => SYS.genDeputies({ stateId: st, playerDistrict: hd, names: people.slice(2, 6) }), [people]);
   const [agenda, setAgenda] = useState(null), [depPick, setDepPick] = useState(null);
+  // Lost on election night: the tribunal, the Court of Appeal and the Supreme Court, as in the long campaign
+  // (owner, 22 Nov 2026: "if I lose at the start why is the tribunal removed?").
+  const [trib, setTrib] = useState(null); // { level, groundId, log, spent, chest, evidence, won, lost }
   const gf = "Chief " + people[0].split(" ").slice(-1)[0], oppName = people[1], dists = districtNamesOf(st);
   const [step, setStep] = useState(-3), [deal, setDeal] = useState(null), [rally, setRally] = useState(null), [res, setRes] = useState(null), [tick, setTick] = useState(0);
   useEffect(() => { track("start_short", "open"); }, []);
-  const night = React.useMemo(() => deal && rally ? SYS.electionNight(seed, { deal: deal.id, rally: rally.id, homeDistrict: hd, forceWin: !!(window.SOP_TEST && window.SOP_TEST.win) }) : null, [deal, rally]);
+  const night = React.useMemo(() => deal && rally ? SYS.electionNight(seed, { deal: deal.id, rally: rally.id, homeDistrict: hd, forceWin: !!(window.SOP_TEST && window.SOP_TEST.win), forceLose: !!(window.SOP_TEST && window.SOP_TEST.lose) }) : null, [deal, rally]);
   useEffect(() => { if (step !== 4 || !night) return; setTick(0); const t = setInterval(() => setTick(k => { if (k >= 20) { clearInterval(t); return k; } return k + 1; }), 220); return () => clearInterval(t); }, [step]);
   const done = () => {
     const dep = depPick || deps.find(c => c.partyFav) || deps[0], chosenParty = !depPick || depPick.partyFav;
@@ -5056,7 +5059,7 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
     onDone({ nm, firstNm: profile ? profile.first : nm.split(" ")[0], lastNm: profile ? profile.last : nm.split(" ").slice(-1)[0], party, state: st, depGov: dep, avatar: (profile && profile.avatar) || AVATARS[0].id,
       agenda: agenda || recAgenda(st), slogan: recSlogan(st), saName: SYS.SA_SHORTLIST[0], partyAccepted: chosenParty, startingStab: chosenParty ? SYS.PARTY_ACCEPTED.pStab : 70, gfDebt: SYS.toB(SYS.loanTotalM(loans)), gfLoans: loans, favours: deal.favours,
       gfMandates: [], homeDistrict: hd, homeLga: lgaCluster(getLGAs(st), hd)[0] || null, partyDeal: chosenParty ? "accepted" : "own_pick", partyPromise: null, level, warChestRemaining: Math.max(0, deal.chest - .6),
-      election: { opp: oppName, oppParty: O.id, zonesWon: night.zonesWon, marginPct: night.marginPct, votes: night.you.reduce((a, b) => a + b, 0), oppVotes: night.opp.reduce((a, b) => a + b, 0) }, short: true });
+      election: { opp: oppName, oppParty: O.id, zonesWon: night.zonesWon, marginPct: trib && trib.won ? 5 : night.marginPct, votes: night.you.reduce((a, b) => a + b, 0), oppVotes: night.opp.reduce((a, b) => a + b, 0), byTribunal: !!(trib && trib.won) }, short: true });
   };
   // The card fills the phone: the picture takes whatever height the words leave free.
   const box = { width: "100%", maxWidth: 560, margin: "0 auto", flex: "1 1 auto", display: "flex", flexDirection: "column", background: "#fffaf0", borderRadius: 24, overflow: "hidden", boxShadow: "0 18px 50px rgba(0,0,0,.18)" };
@@ -5065,6 +5068,42 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
   const art = step <= 1 ? "./art/backgrounds/veranda-night.webp" : step <= 3 ? "./art/scenes/camp-mega-rally.webp" : "./art/backgrounds/collation-board-lga.webp";
   const F2 = (t) => String(t).replace("{gf}", gf);
   const shown = (i) => night ? Math.min(1, tick / 20 * (1 + i * .15)) : 0;
+  if (trib && night) {
+    const LV = [{ nm: "Governorship Election Tribunal", tag: "Up to 180 days to judgment", bonus: 0 }, { nm: "Court of Appeal", tag: "60 days to rule", bonus: .08 }, { nm: "Supreme Court", tag: "Final: no further appeal", bonus: .15 }];
+    const opS = oppName.split(" ").pop(), lost3 = 3 - night.zonesWon;
+    const GR = [
+      { id: "over_voting", nm: "Over-voting", desc: "More votes than accredited voters in " + lost3 + " district" + (lost3 === 1 ? "" : "s") + ".", base: .42, req: "EC8A sheets and BVAS printouts" },
+      { id: "corrupt", nm: "Vote buying by " + opS, desc: "Cash at collation centres (S.121, Electoral Act 2022).", base: .36, req: "Affidavits from 12 agents, and video" },
+      { id: "qual", nm: "Opponent not qualified (S.177)", desc: "Doubts over " + opS + "'s certificates.", base: .30, req: "Certified certificates and Form EC9" },
+      { id: "return", nm: "Not a majority of lawful votes", desc: "Cancelled units change the result.", base: .48, req: "Reconciled EC8B and EC8C forms" },
+    ];
+    const L = LV[trib.level], gd = GR.find(g => g.id === trib.groundId);
+    const hear = (mode) => {
+      const cost = mode === "self" ? .2 : mode === "sans" ? 1.2 : mode === "wig" ? 3.5 : 5;
+      if (trib.chest < cost && mode !== "self") { try { window.SOP_outcome({ icon: "💼", title: "Not enough money for this team", text: "You have ₦" + trib.chest.toFixed(2) + "B; they want ₦" + cost + "B. Argue it yourself.", tone: "bad" }); } catch (e) {} return; }
+      const chance = Math.min(.9, Math.max(.05, gd.base + (mode === "self" ? -.1 : mode === "sans" ? .1 : mode === "wig" ? .22 : .35) + (trib.evidence - 50) / 200 + L.bonus));
+      const roll = Math.random(), won = roll < chance, final = won ? (trib.level >= 2 || (trib.level === 0 && chance > .7 && roll < .25)) : trib.level >= 2;
+      const line = (won ? "✅ " : "❌ ") + L.nm + " · " + (mode === "self" ? "in person" : mode === "sans" ? "a SAN" : mode === "wig" ? "a SAN team" : "a 'settled' panel") + " · odds " + Math.round(chance * 100) + "%";
+      const next = LV[trib.level + 1];
+      try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {}
+      try { window.SOP_outcome(won ? (final ? { icon: "⚖️", img: "./art/scenes/news-victory-rally.webp", title: "Petition upheld: you are Governor", text: "The " + L.nm + " nullified " + oppName + "'s return. You will be sworn in.", tone: "good" } : { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You won at the " + L.nm, text: oppName + " has appealed. Next: the " + next.nm + ".", tone: "good" })
+        : (final ? { icon: "⚖️", img: "./art/backgrounds/supreme-court-abuja.webp", title: "Supreme Court: petition dismissed", text: "This is final. " + oppName + " stays Governor.", tone: "bad" } : { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You lost at the " + L.nm, text: "You have appealed. Next: the " + next.nm + ".", tone: "bad" })); } catch (e) {}
+      track("start_short_tribunal", (won ? "won_" : "lost_") + trib.level);
+      setTrib(t => ({ ...t, chest: Math.round((t.chest - cost) * 100) / 100, spent: t.spent + cost, log: [...t.log, line], ...(final ? (won ? { won: true } : { lost: true }) : { level: t.level + 1, groundId: null }) }));
+    };
+    const end = (good) => <div style={{ ...box, textAlign: "center" }}><img src={good ? "./art/scenes/news-victory-rally.webp" : "./art/backgrounds/supreme-court-abuja.webp"} alt="" style={{ width: "100%", maxHeight: 260, objectFit: "cover" }} />
+      <div style={{ padding: "18px 20px 22px" }}><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 32 }}>{good ? "Petition upheld" : "Petition dismissed"}</h2>
+        <p style={{ margin: 0, fontSize: 19, lineHeight: 1.45 }}>{good ? oppName + "'s return is nullified. You are Governor of " + st.replace(/_/g, " ") + "." : "Final. You spent ₦" + trib.spent.toFixed(1) + "B on lawyers and lost."}</p>
+        {good ? <button style={main} onClick={() => { setTrib(t => ({ ...t, shown: true })); setStep(5); }}>Take the oath →</button>
+          : <><button style={main} onClick={() => { setTrib(null); setStep(0); setDeal(null); setRally(null); }}>Run again</button><button style={{ ...main, background: "transparent", color: CL.txt, border: "1px solid " + CL.bdr }} onClick={onExit}>Back to the title</button></>}</div></div>;
+    if (!trib.shown) return <div data-sop-short-tribunal style={{ minHeight: "100vh", background: CL.bg, padding: "12px 12px 32px", fontFamily: F.b, boxSizing: "border-box" }}>
+      {trib.won ? end(true) : trib.lost ? end(false) : <CourtScreen level={trib.level} court={L.nm} tag={L.tag}
+        facts={[["Lost by", Math.abs(night.marginPct) + "%"], ["Districts", night.zonesWon + "/3"], ["Evidence", trib.evidence + "%", trib.evidence <= 35], ["War chest", "₦" + trib.chest.toFixed(2) + "B", trib.chest < 1.2]]}
+        ground={gd} grounds={GR} onGround={id => setTrib(t => ({ ...t, groundId: id }))}
+        modes={[{ id: "self", ic: "👨🏾‍💼", l: "Argue it yourself", cost: .2, odds: -10 }, { id: "sans", ic: "📚", l: "A Senior Advocate", cost: 1.2, odds: 10 }, { id: "wig", ic: "🎓", l: "A SAN-led team", cost: 3.5, odds: 22 }, trib.chest >= 5 && { id: "bribe", ic: "💼", l: "\u201cSettle\u201d the panel", d: "Corruption. It can surface later.", cost: 5, odds: 35, tone: "bad" }].filter(Boolean)}
+        onMode={hear} fund={trib.chest} onWithdraw={() => { track("start_short_tribunal", "withdrew"); setTrib(null); }} log={trib.log} />}
+    </div>;
+  }
   return <div data-sop-short style={{ minHeight: "var(--sop-short-h, 100vh)", display: "flex", flexDirection: "column", background: CL.bg, padding: "12px 12px max(16px, env(safe-area-inset-bottom, 0px))", fontFamily: F.b, boxSizing: "border-box" }} ref={el => { try { if (el) { const z = parseFloat((document.getElementById("sop-stage") || {}).style?.zoom) || 1; el.style.setProperty("--sop-short-h", Math.round(window.innerHeight / z) + "px"); } } catch (e) {} }}>
     <div style={box} className="sp-step" key={step}>
       <div style={{ position: "relative", flex: "1 1 auto", minHeight: 220 }}><img src={art} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
@@ -5095,7 +5134,7 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
               <div style={{ height: 14, borderRadius: 7, background: "#e6dfd2", overflow: "hidden", display: "flex" }}><span style={{ width: (k * pc) + "%", background: CL.grn, transition: "width .2s" }} /><span style={{ width: (k * (100 - pc)) + "%", background: "#b3261e", transition: "width .2s" }} /></div>
               <div style={{ fontSize: 13, color: CL.td, fontVariantNumeric: "tabular-nums" }}>You {you.toLocaleString()} · {oppName.split(" ").slice(-1)[0]} {op.toLocaleString()}</div></div>; })}
           {tick >= 20 && <><div className="sop-pop" style={{ textAlign: "center", fontFamily: F.d, fontSize: 30, fontWeight: 700, color: night.won ? CL.grn : CL.red, margin: "10px 0 0" }}>{night.won ? "You win by " + night.marginPct + "%" : "You lose by " + Math.abs(night.marginPct) + "%"}</div>
-            {night.won ? <button style={main} className="sop-next" onClick={() => setStep(5)}>Take the oath →</button> : <><button style={main} onClick={() => { track("start_short", "lost"); setStep(0); setDeal(null); setRally(null); }}>Run again</button><button style={{ ...main, background: "transparent", color: CL.txt, border: "1px solid " + CL.bdr }} onClick={onExit}>Back to the title</button></>}</>}</>}
+            {night.won ? <button style={main} className="sop-next" onClick={() => setStep(5)}>Take the oath →</button> : <><button style={main} onClick={() => { track("start_short", "tribunal"); const m = Math.abs(night.marginPct); setTrib({ level: 0, groundId: null, log: [], spent: 0, chest: Math.round(Math.max(.8, (deal.chest || 1) - .6) * 100) / 100, evidence: Math.max(20, Math.min(80, Math.round(72 - m * 6))) }); }}>⚖️ Challenge the result at the tribunal</button><button style={{ ...main, background: "#fff", color: "#12301f", border: "1.5px solid #12301f" }} onClick={() => { track("start_short", "lost"); setStep(0); setDeal(null); setRally(null); }}>Run again</button><button style={{ ...main, background: "transparent", color: CL.txt, border: "1px solid " + CL.bdr }} onClick={onExit}>Back to the title</button></>}</>}</>}
         {step === 5 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>Governor of {st.replace(/_/g, " ")} State</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{SYS.SWORN}</p><button style={main} className="sop-next" onClick={done}>Begin your tenure →</button></>}
       </div>
     </div>
