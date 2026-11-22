@@ -143,3 +143,15 @@ test("the President's money comes in monthly: the Federation Account, shared at 
   assert.match(F.FED_BILLS.find(b => b.id === "f_electricity").nm, /Amendment/);
   assert.match(F.FED_BILLS.find(b => b.id === "f_lg_autonomy").d, /Supreme Court ruled in 2024/);
 });
+
+test("printed money is felt: inflation raises prices, drains approval, grows the debt, and the unions strike", async () => {
+  const I = await import("../game/systems/inflation.js");
+  const p = I.printInfl(null, 78.3, 600, 3);
+  assert.equal(p.from, 18); assert.ok(p.to > 25, "₦78B printed on a ₦600B year: " + p.to + "%");
+  assert.ok(I.priceF(p.I) > 1.1, "everything costs more");
+  const y = I.inflYear(p.I, { debtB: 400 });
+  assert.ok(y.fx.app <= -2, "approval drains"); assert.ok(y.debtGrowB > 0, "the dollar debt grows"); assert.ok(y.strike, "the NLC strikes past 25%");
+  assert.ok(y.now < y.was, "it falls slowly");
+  const t = I.inflYear(p.I, { tight: true, debtB: 400 }); assert.ok(t.now < y.now, "faster when the Central Bank raises rates");
+  assert.equal(I.priceF({ rate: 14 }), 1); assert.equal(I.inflYear({ rate: 14 }).fx.app, 0);
+});

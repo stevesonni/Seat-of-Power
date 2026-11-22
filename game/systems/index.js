@@ -70,3 +70,4 @@ export * from "./tori.js";
 export * from "./xp.js";
 export * from "./succession.js";
 export * from "./stateprofile.js";
+export * from "./inflation.js";

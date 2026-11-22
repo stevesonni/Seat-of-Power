@@ -17,7 +17,8 @@ const fed = (op, body) => fetch("http://127.0.0.1:" + port + "/api/fed/" + op, {
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const tap = (g, re) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && new RegExp(src).test(x.textContent.trim())); if (!b) return false; b.click(); return true; }, re.source);
 const clear = async (g) => { for (let i = 0; i < 8; i++) { if (!(await tap(g, /^(Continue|Okay|Got it|Later)$/))) break; await g.wait(500); } };
-const bank = (g) => g.page.evaluate(() => { const m = document.body.innerText.match(/₦([\d.]+)B\s*Bank/); return m ? +m[1] : null; });
+// The Treasury meter: "₦2.0B", or "₦40M", or "₦0" (money reads in millions and as ₦0 since the words review).
+const bank = (g) => g.page.evaluate(() => { const m = document.body.innerText.match(/₦([\d.]+)(B|M)?\s*(?:Bank|Treasury)/); return m ? (m[2] === "M" ? +m[1] / 1000 : +m[1]) : null; });
 
 // ── The President ──
 const profile = JSON.stringify({ first: "Ada", last: "Okafor", avatar: "agbada", origin: "Enugu", district: 1, leaning: "PFP" });

@@ -3,7 +3,24 @@
 
 
 
-## No half-done letters (22 Nov, latest)
+## Printed money is felt: inflation (22 Nov, latest)
+
+- **What the owner asked:** "There has to be a stronger consequence … the consequence has to be felt."
+- **How it works now** (`game/systems/inflation.js`):
+  - **Printing raises inflation:** Ways and Means (from the FAAC card or a strike payout) raises it in proportion to the amount against the federal year's revenue (`printImpact`, at least +6 points; it starts at 18%).
+  - **The print card** (`printCard`) spells out the cost: inflation before → after, what every programme and project will cost, approval each year, the dollar debt, the NLC and food protests.
+- **While inflation is above 15%:**
+  - **Prices:** every programme and project costs more (`SYS.priceF`: +1% per point above 15). Programme cards, the yearly cost and project estimates include it.
+  - **Approval** drains every year (up to −8).
+  - **The naira falls,** so the dollar debt grows.
+  - **Strike:** past 25% the NLC strikes for a pay rise (cause "prices").
+  - **Food protests:** past 30% there are food-price protests (approval −2 and a front page).
+  - **The Central Bank's card** (kept every year when inflation is 20% or more): back it and raise rates (inflation falls 3× faster; approval −2 now), or overrule it (+3 points).
+  - **On screen:** the budget header says it ("Inflation 34%: every programme and project costs 19% more"), and the Treasury has an Inflation tile.
+- **Tests:** `tests/stateprofile.test.mjs` (435 unit tests pass) and `tests/e2e/inflation.mjs`.
+  - `tests/e2e/federation.mjs` now reads the Treasury meter in any unit (₦0, ₦40M, ₦2.0B). It had broken with the words review.
+
+## No half-done letters (22 Nov)
 
 - **What the owner saw:** a letter that read only "Hon.", and the White House and UN Geneva letters with no text at all.
 - **Fixes:**

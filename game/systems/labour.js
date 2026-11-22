@@ -55,6 +55,7 @@ export const CAUSES = {
   vat: "the VAT rise from 7.5% to 10%", imf: "the IMF's conditions: the fuel subsidy gone and the naira floating",
   levy: "the new market levy", property: "the Land Use Charge", wage: "the minimum wage", fuel: "the new petrol price",
   arrears: "the salaries the state owes its workers",
+  prices: "prices that rose faster than wages, after the printed money",
 };
 
 /* The 14-day ultimatum: the letter that comes with a tax rise. */
