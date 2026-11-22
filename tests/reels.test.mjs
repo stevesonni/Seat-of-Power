@@ -17,7 +17,11 @@ test("reels: no film means no reel; two films alternate by project", () => {
   if (SYS.REELS.school && !SYS.REELS.secondary) assert.equal(SYS.reelFor("secondary", "p1"), "./art/reels/school.mp4", "a secondary school borrows the school film");
   // The lights-on film (dam.mp4) also plays for power plants and rural electrification (owner, 22 Nov 2026).
   assert.equal(SYS.reelFor("dam", "p1"), "./art/reels/dam.mp4");
-  assert.equal(SYS.reelFor("power", "p1"), "./art/reels/dam.mp4");
+  assert.equal(SYS.reelFor("power", "p1"), "./art/reels/power.mp4", "power plants, solar and rural electrification have their own film");
+  assert.equal(SYS.reelFor("seaport", "p1"), "./art/reels/seaport.mp4");
+  assert.equal(SYS.reelFor("refinery", "p1"), "./art/reels/refinery.mp4");
+  assert.equal(SYS.reelFor("pipeline", "p1"), "./art/reels/refinery.mp4", "a gas pipeline borrows the refinery film");
+  assert.equal(SYS.reelFor("vehicles", "p1"), null, "the patrol fleet film waits for a version without real badges");
   SYS.REELS.__t = 2;
   const a = new Set(["p1", "p2", "p3", "p4", "p5", "p6"].map(id => SYS.reelFor("__t", id)));
   assert.deepEqual([...a].sort(), ["./art/reels/__t-2.mp4", "./art/reels/__t.mp4"]);

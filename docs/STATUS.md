@@ -3,7 +3,14 @@
 
 
 
-## The presidency is a presidency: works on their routes, the Federation Account, current laws (22 Nov, latest)
+## Films: power, seaport, refinery (22 Nov, latest)
+
+- `public/art/reels/power.mp4`, `seaport.mp4` and `refinery.mp4` come from the owner's Gemini videos: 1024 px wide, muted, 10 s.
+  - Power plants and rural electrification play their own film now; a pipeline borrows the refinery's.
+  - The refinery was cut at the scene change (10.17 s) of the 20-second clip.
+- The patrol fleet video is held back: it shows Toyota badges and a crest. `docs/GEMINI-REELS.md` has the re-prompt.
+
+## The presidency is a presidency: works on their routes, the Federation Account, current laws (22 Nov)
 
 - **Federal works go where they make sense** (`SYS.FED_WHERE`, `fedFits`, `fedPlace`). The owner saw "a coastal road in Jigawa".
   - The coastal highway goes only to the 8 coastal states. The railway follows Lagos–Kano, the gas pipeline follows Ajaokuta–Kaduna–Kano, the refineries go to the Delta, the dam to Taraba, and a Niger bridge to the river.

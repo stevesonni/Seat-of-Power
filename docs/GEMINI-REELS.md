@@ -17,6 +17,12 @@ installs them.
 > **No text, no words, no signs with lettering, no logos, no flags with emblems, no watermarks.** No famous or
 > recognisable people. Nobody looks into the camera. Nothing violent or sad.
 
+## Delivered 22 Nov 2026 (second batch)
+
+- `power.mp4` (a town lights up at night, the market first): power plants, solar, gas and mini-grids, and rural electrification. It replaces the dam film for power projects.
+- `seaport.mp4` and `refinery.mp4`. The refinery film was cut from the second half of a 20-second clip that also held the seaport. A gas pipeline borrows the refinery film.
+- **`vehicles.mp4` (the patrol fleet) is not in yet.** The pickups carry real Toyota badges and the building has a crest, and the game uses no real logos. Ask Gemini again with: *"pickups with plain smooth grilles, no manufacturer badge or emblem anywhere; the building has no crest, sign or lettering"*.
+
 ## Night films (dam.mp4, power.mp4)
 
 **Delivered 22 Nov 2026:** `dam.mp4` is in the game and also plays for power projects (`REEL_SHARE.power`), so `power.mp4` is optional now.
