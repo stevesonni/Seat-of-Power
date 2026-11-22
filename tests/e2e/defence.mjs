@@ -31,7 +31,9 @@ const drop = () => g.page.evaluate(() => { const S = window.SOP; if (S && S.mini
 const r = await playUntil(g, t => /Approve it, through open procurement/.test(t), { max: 300, onStep: drop, prefer: [/The army wants new jets and drones/, /^✍️ Handle it personally$/] });
 check(r.ok, "the army's request for jets and drones arrives"); if (!r.ok) { console.log("  last clicks:", r.clicks.slice(-12).join(" / ")); console.log("  screen:", (await g.txt()).slice(0, 600).replace(/\n/g, " · ")); }
 await drop(); await g.wait(300);
-check(!!(await g.click(/through open procurement/)), "approve it through open procurement"); await g.wait(2500);
+// Another result card can still be open over it: close it first, as a player would.
+let approved = false; for (let i = 0; i < 8 && !approved; i++) { approved = !!(await g.click(/through open procurement/)); if (!approved) { await g.click(/^(Okay|Got it|Continue)$/); await g.wait(600); } }
+check(approved, "approve it through open procurement"); await g.wait(2500);
 for (let i = 0; i < 6 && !/we do not have one/.test(await g.txt()); i++) { await g.click(/^(Got it|Okay|Continue|Good)$/); await g.wait(600); }
 check(/Ministry of Defence, and we do not have one/.test(await g.txt()), "the adviser: it must go through the Ministry of Defence, and there is none");
 await shot("defence-ask");

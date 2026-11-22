@@ -3,7 +3,16 @@
 
 
 
-## The tribunal after losing the short start; successors rarely betray (22 Nov, latest)
+## Create a missing ministry from inside a project, and carry on (22 Nov, latest)
+
+- **What changed.** When a new project needs a ministry you do not have, "Create the Ministry of …" no longer throws the plan away.
+  - The plan is kept (`resumeFlow`), the ministry sheet opens, and after "Create and swear in" the same plan reopens with the new ministry in charge.
+  - If the House refuses the money, or you close the sheet ("Back to the project"), you return to the plan as it was.
+- **Tests:**
+  - `tests/e2e/project-ministry.mjs`.
+  - `tests/e2e/defence.mjs` now closes an open result card before approving the procurement. That was a test-timing failure from earlier, not a game bug.
+
+## The tribunal after losing the short start; successors rarely betray (22 Nov)
 
 - **The tribunal in the short start.** Losing election night in the short start now offers "Challenge the result at the tribunal", as in the long campaign:
   - three courts (Tribunal, Court of Appeal, Supreme Court) and four grounds;

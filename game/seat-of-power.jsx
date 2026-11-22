@@ -10223,6 +10223,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return kinds.map(([bg, , loy], i) => { const z = i === 0 ? homeZone : (homeZone + i) % ZN.length; const nm = gN(r, sd.zone, setup?.state); const t = traits(nm); return { nm, bg, zone: z, comp: t.comp, hon: t.hon, loyalty: 55 + loy }; });
   };
   const openNewMinistry = (cat) => setNewMin({ cat, picks: candidates(Date.now() % 99991, cat.id), choice: 0 });
+  // A project waiting for its ministry (owner, 22 Nov 2026: "ask me if I want to create a ministry and proceed; don't
+  // make me go back and restart the process"): the plan is kept and reopened, with the new ministry in charge.
+  const resumeFlow = React.useRef(null);
+  const resumeProject = (minId) => { const F = resumeFlow.current; resumeFlow.current = null; if (!F) return;
+    setTimeout(() => setPflow({ ...F, draft: { ...(F.draft || {}), ministryId: minId || (F.draft || {}).ministryId || null } }), 450); };
   const createMinistry = () => decide(() => {
     const N = newMin; if (!N) return; const c = N.cat, who = N.picks[N.choice];
     if (!canAfford(c.cost, "The Ministry of " + c.name)) return;
@@ -10231,12 +10236,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setNewMin(null);
     if (refused) {
       addL("🏛️ The House refused to fund a new " + c.name + " ministry.", "political");
+      resumeProject(null);
       return { icon: "🏛️", title: "The House said no", text: "Only " + hs.loyal + " of " + hs.seats + " members back you, and they won't fund a new " + c.name + " ministry this year. Win them over and try again.", tone: "bad" };
     }
     const t = traits(who.nm);
     const m = { id: c.id, name: c.name, icon: c.icon, key: c.key, unlock: c.unlock, budget: 0, staff: c.staff, perf: Math.round(40 + (t.comp - 50) * .4), cor: Math.max(8, Math.round((100 - t.hon) * .5)), minister: who.nm, permSec: gN(rng(Date.now() % 7777), sd.zone, setup?.state), loyalty: who.loyalty, zone: who.zone, hired: turn, record: [] };
     if (!spendB(c.cost, "Setting up the Ministry of " + c.name)) return;
     setMinistries(ms => [...(ms || []), m]); track("ministry_created", c.name);
+    resumeProject(c.id);
     if (c.id === "tourism" && stc.idleTourist) { const g = stc.idleTourist; setS(x => ({ ...x, igr: (x.igr || 0) + g })); setStc(x => ({ ...x, idleTourist: 0 })); setMail(ml => ml.filter(l => l.key !== "ministry_tip")); addL("🏝️ The new Tourism ministry takes over your tourist sites: own revenue +" + naira(g) + " a year.", "success"); }
     addL(c.icon + " Created the Ministry of " + c.name + ". Hon. " + who.nm + " is its first commissioner.", "policy");
     try { setWikiEvents(w => [{ turn, section: "Governorship", txt: "Created the Ministry of " + c.name + " and appointed Hon. " + who.nm + " as its commissioner." }, ...(w || [])]); } catch (e) {}
@@ -16154,7 +16161,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   <span style={{ fontWeight: 800, fontSize: fz.s, color: CL.org, whiteSpace: "nowrap" }}>₦{c.cost}B</span>
                 </button>)}
               </div>
-              <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={() => setNewMin(null)}>Close</Bt></div>
+              <div style={{ textAlign: "right", marginTop: 12 }}><Bt v="ghost" onClick={() => { setNewMin(null); resumeProject(null); }}>{resumeFlow.current ? "Back to the project" : "Close"}</Bt></div>
             </Cd>;
             const c = newMin.cat;
             return <Cd style={{ maxWidth: 984 }}>
@@ -16177,7 +16184,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
         </OL>
         <OL show={!!pflow}>
-          {pflow && <ProjectsView year={turn} projects={projects || []} loans={loans} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
+          {pflow && <ProjectsView year={turn} projects={projects || []} loans={loans} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { resumeFlow.current = pflow; setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </OL>
         <OL show={!!secr}>
           {secr && <SecretariatView year={turn} ministries={ministries} cases={cases.filter(c => !c.agency || c.stage === "decided" || c.stage === "closed" || (c.stage === "findings" && !stc.hos))} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
@@ -16936,7 +16943,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             addL(J.icon + " " + R.text, "success");
             try { window.SOP_sound && window.SOP_sound("good"); window.SOP_outcome({ icon: J.icon, title: J.l, text: R.text, tone: "good", rows: [{ l: "People in " + L, v: "+" + J.mood, good: true }, ...(J.costB ? [{ l: "From the bank", v: "−" + SYS.fmtM(Math.round(J.costB * 1000)), good: false }] : []), ...(R.eased ? [{ l: "The problem there can wait", v: "one more year", good: true }] : [])] }); } catch (e) {}
           } } : null} />}
-        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} loans={loans} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
+        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} loans={loans} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { resumeFlow.current = pflow; setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && NAT && FedCouncilsPanel()}
         {nav === "coun" && !NAT && !needSetup && StateEconPanel()}
