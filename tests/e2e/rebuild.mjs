@@ -13,8 +13,14 @@ await g.page.evaluate(() => { window.__tracked = []; const t = window.SOP_track;
 const seen = []; const words = () => g.page.evaluate(() => (document.body.innerText.match(/[A-Za-z₦\d'’-]+/g) || []).length);
 let total = await words(); const t0 = Date.now();
 await g.click(/^New game$/); await g.wait(900); await createPolitician(g); await g.wait(900);
-// 2. The short start: the godfather's deal is the first decision.
-check(/will pay for your campaign/.test(await g.txt()), "the first decision is the godfather's deal");
+// 2. The short start: your own choices first (owner, 22 Nov 2026): the state, the agenda, the running mate.
+check(/Which state will you run in\?/.test(await g.txt()) && /\(your home state\)/.test(await g.txt()), "you choose the state (your home state first)");
+await g.click(/^Run in /); await g.wait(500);
+check(/Your agenda/.test(await g.txt()) && !!(await g.page.$("[data-sop-short-agenda=health]")), "you choose the agenda");
+await g.page.evaluate(() => document.querySelector("[data-sop-short-agenda=health]").click()); await g.wait(500);
+check(/Your running mate/.test(await g.txt()) && (await g.page.$$("[data-sop-short-deputy]")).length === 4, "you choose the running mate from four");
+await g.page.evaluate(() => document.querySelector("[data-sop-short-deputy=technocrat]").click()); await g.wait(500);
+check(/will pay for your campaign/.test(await g.txt()), "then the godfather's deal");
 check(Date.now() - t0 < 60000, "a real decision within a minute of New game");
 total += await words();
 for (const re of [/^Take half/, /^On to the campaign/, /^The capital's biggest market$/, /^Election night/]) { check(!!(await g.click(re)), "short start: " + re.source); await g.wait(600); total += await words(); }
@@ -25,6 +31,8 @@ check(/Begin your tenure/.test(await g.txt()), "the oath");
 console.log("  words from New game to the oath: " + total);
 check(total < 500, "far fewer words before the oath than the 1,304 of the long path (" + total + ")");
 await g.click(/^Begin your tenure/); await g.wait(3000);
+{ const su = await g.page.evaluate(() => { try { return JSON.parse(localStorage.getItem("sop_save") || "{}").setup || {}; } catch (e) { return {}; } });
+  check(su.agenda === "health" && su.depGov && su.depGov.kind === "technocrat", "the game keeps the agenda and running mate you chose (" + su.agenda + ", " + (su.depGov && su.depGov.kind) + ")"); }
 // Round 2: the first Chief of Staff is three cards, a line each, under 80 words.
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && /^Continue$/.test(x.textContent.trim())); b && b.click(); }); await g.wait(500);
 const cos = await g.page.evaluate(() => { const d = document.querySelector('[role=dialog][aria-label="Pick your Chief of Staff"]'); if (!d) return null; const box = d.closest(".sop-sheet") || d; return { cards: d.querySelectorAll("button").length, words: (box.innerText.match(/[A-Za-z₦\d'’-]+/g) || []).length }; });

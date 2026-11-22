@@ -5032,25 +5032,30 @@ const MailboxStand = ({ letters, onNext, w = 132 }) => {
    in three big moments, then straight to Government House. It hands the governing screen the same setup
    the long path does. */
 const ExpressStart = ({ profile, level, onDone, onExit }) => {
-  const st = (profile && STATES[profile.origin] && profile.origin !== "FCT") ? profile.origin : recState(null);
-  const seed = React.useMemo(() => Date.now() % 1e9, []), r = React.useMemo(() => rng(seed % 99991 + 3), [seed]);
-  const hd = profile && profile.district != null ? profile.district : 1, z = STATES[st].zone;
+  // Your choices first (owner, 22 Nov 2026: "shouldn't I choose my agenda, my deputy, which state I run in? These
+  // decisions I should make"): the state (your home state by default), the agenda and the running mate.
+  const home = (profile && STATES[profile.origin] && profile.origin !== "FCT") ? profile.origin : recState(null);
+  const [st, setSt] = useState(home);
+  const seed = React.useMemo(() => Date.now() % 1e9, []), r = React.useMemo(() => rng(seed % 99991 + 3 + st.length * 31), [seed, st]);
+  const hd = profile && profile.district != null && st === home ? profile.district : 1, z = STATES[st].zone;
   const nm = profile ? profile.first + " " + profile.last : gN(r, z, st);
   const party = profile && MAIN_PARTY_IDS.includes(profile.leaning) ? profile.leaning : recParty(st), P = PARTIES.find(x => x.id === party) || PARTIES[0];
   const O = PARTIES.find(x => MAIN_PARTY_IDS.includes(x.id) && x.id !== party) || PARTIES[1];
-  const people = React.useMemo(() => { const used = new Set([nm]), names = []; for (let i = 0; i < 6; i++) { let x = ""; for (let j = 0; j < 12 && (!x || used.has(x)); j++) x = gN(r, z, st); used.add(x); names.push(x); } return names; }, [seed]);
+  const people = React.useMemo(() => { const used = new Set([nm]), names = []; for (let i = 0; i < 6; i++) { let x = ""; for (let j = 0; j < 12 && (!x || used.has(x)); j++) x = gN(r, z, st); used.add(x); names.push(x); } return names; }, [seed, st]);
+  const deps = React.useMemo(() => SYS.genDeputies({ stateId: st, playerDistrict: hd, names: people.slice(2, 6) }), [people]);
+  const [agenda, setAgenda] = useState(null), [depPick, setDepPick] = useState(null);
   const gf = "Chief " + people[0].split(" ").slice(-1)[0], oppName = people[1], dists = districtNamesOf(st);
-  const [step, setStep] = useState(0), [deal, setDeal] = useState(null), [rally, setRally] = useState(null), [res, setRes] = useState(null), [tick, setTick] = useState(0);
+  const [step, setStep] = useState(-3), [deal, setDeal] = useState(null), [rally, setRally] = useState(null), [res, setRes] = useState(null), [tick, setTick] = useState(0);
   useEffect(() => { track("start_short", "open"); }, []);
   const night = React.useMemo(() => deal && rally ? SYS.electionNight(seed, { deal: deal.id, rally: rally.id, homeDistrict: hd, forceWin: !!(window.SOP_TEST && window.SOP_TEST.win) }) : null, [deal, rally]);
   useEffect(() => { if (step !== 4 || !night) return; setTick(0); const t = setInterval(() => setTick(k => { if (k >= 20) { clearInterval(t); return k; } return k + 1; }), 220); return () => clearInterval(t); }, [step]);
   const done = () => {
-    const deps = SYS.genDeputies({ stateId: st, playerDistrict: hd, names: people.slice(2, 6) }), dep = deps.find(c => c.partyFav) || deps[0];
+    const dep = depPick || deps.find(c => c.partyFav) || deps[0], chosenParty = !depPick || depPick.partyFav;
     const loans = deal.loanB ? SYS.addLoan([], { key: "campaign_" + deal.id, amountM: SYS.toM(deal.loanB), reason: gf + " paid for the campaign" }) : [];
     track("start_short", "sworn_in");
     onDone({ nm, firstNm: profile ? profile.first : nm.split(" ")[0], lastNm: profile ? profile.last : nm.split(" ").slice(-1)[0], party, state: st, depGov: dep, avatar: (profile && profile.avatar) || AVATARS[0].id,
-      agenda: recAgenda(st), slogan: recSlogan(st), saName: SYS.SA_SHORTLIST[0], partyAccepted: true, startingStab: SYS.PARTY_ACCEPTED.pStab, gfDebt: SYS.toB(SYS.loanTotalM(loans)), gfLoans: loans, favours: deal.favours,
-      gfMandates: [], homeDistrict: hd, homeLga: lgaCluster(getLGAs(st), hd)[0] || null, partyDeal: "accepted", partyPromise: null, level, warChestRemaining: Math.max(0, deal.chest - .6),
+      agenda: agenda || recAgenda(st), slogan: recSlogan(st), saName: SYS.SA_SHORTLIST[0], partyAccepted: chosenParty, startingStab: chosenParty ? SYS.PARTY_ACCEPTED.pStab : 70, gfDebt: SYS.toB(SYS.loanTotalM(loans)), gfLoans: loans, favours: deal.favours,
+      gfMandates: [], homeDistrict: hd, homeLga: lgaCluster(getLGAs(st), hd)[0] || null, partyDeal: chosenParty ? "accepted" : "own_pick", partyPromise: null, level, warChestRemaining: Math.max(0, deal.chest - .6),
       election: { opp: oppName, oppParty: O.id, zonesWon: night.zonesWon, marginPct: night.marginPct, votes: night.you.reduce((a, b) => a + b, 0), oppVotes: night.opp.reduce((a, b) => a + b, 0) }, short: true });
   };
   // The card fills the phone: the picture takes whatever height the words leave free.
@@ -5066,6 +5071,18 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
         {step <= 1 && <img src={"./art/characters/godfather" + (step === 1 && deal && deal.id === "none" ? "-angry" : step === 1 ? "-pleased" : "") + ".webp"} alt={gf} style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", height: "92%", width: "auto", maxWidth: "90%", objectFit: "contain", objectPosition: "bottom", filter: "drop-shadow(0 12px 24px rgba(0,0,0,.5))" }} />}</div>
       <div style={{ padding: "18px 20px 22px", flex: "none" }}>
         <div className="sp-kicker" style={{ fontSize: 14 }}>{nm} · {P.id} · {st.replace(/_/g, " ")}</div>
+        {step === -3 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>Which state will you run in?</h2>
+          <p style={{ margin: "0 0 10px", fontSize: 18, lineHeight: 1.45 }}>Your home state knows your name. Any other state is a harder race, and a fresh start.</p>
+          <select data-sop-short-state value={st} onChange={e => { setSt(e.target.value); setDepPick(null); }} style={{ width: "100%", minHeight: 56, borderRadius: 14, border: "1.5px solid #e2d7bd", background: "#fff", fontSize: 20, fontWeight: 700, padding: "0 12px", color: "#17301f", fontFamily: F.b }}>
+            {Object.keys(STATES).filter(k => k !== "FCT").sort().map(k => <option key={k} value={k}>{k.replace(/_/g, " ")}{k === home ? " (your home state)" : ""}</option>)}</select>
+          <button style={main} onClick={() => { track("start_short_state", st === home ? "home" : "other"); setStep(-2); }}>Run in {st.replace(/_/g, " ")} →</button></>}
+        {step === -2 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>Your agenda</h2>
+          <p style={{ margin: "0 0 4px", fontSize: 18, lineHeight: 1.45 }}>The promise you campaign on and will be judged by.</p>
+          {Object.entries(FLAGSHIP).map(([id, A]) => <button key={id} data-sop-short-agenda={id} className="sp-opt" style={{ ...opt, fontSize: 19, padding: "12px 16px" }} onClick={() => { setAgenda(id); track("start_short_agenda", id); setStep(-1); }}>{A.i} {A.nm}<span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#5b6b61" }}>Promise: {A.goal}{id === recAgenda(st) ? " · what " + st.replace(/_/g, " ") + " needs most" : ""}</span></button>)}</>}
+        {step === -1 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>Your running mate</h2>
+          <p style={{ margin: "0 0 4px", fontSize: 18, lineHeight: 1.45 }}>Your deputy is on the ticket with you, and you cannot sack them once elected. The party has its favourite.</p>
+          {deps.map(d => { const risk = SYS.balanceRisk(hd, d); return <button key={d.nm} data-sop-short-deputy={d.kind} className="sp-opt" style={{ ...opt, fontSize: 19, padding: "12px 16px" }} onClick={() => { setDepPick(d); track("start_short_deputy", d.kind); setStep(0); }}>{d.nm} · {d.bg}{d.partyFav ? " · the party's choice" : ""}
+            <span style={{ display: "block", fontSize: 15, fontWeight: 600, color: "#5b6b61" }}>{d.desc} {(d.known || [])[0] || ""}{d.allegation ? " · Allegation: " + d.allegation.toLowerCase() : ""}{risk.same ? " · Same district as you: the other districts will notice" : ""}{!d.partyFav ? " · The party wanted someone else: a cooler start with them" : ""}</span></button>; })}</>}
         {step === 0 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>{F2(SYS.DEAL.t)}</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{SYS.DEAL.d}</p>
           {SYS.DEAL.opts.map(o => <button key={o.id} className="sp-opt" style={opt} onClick={() => { setDeal(o); track("start_deal", o.id); setStep(1); }}>{o.l}</button>)}</>}
         {step === 1 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 32, lineHeight: 1.12 }}>{deal.l.replace(/ \(.*\)$/, "")}</h2><p style={{ margin: 0, fontSize: 20, lineHeight: 1.45 }}>{deal.out}</p><button style={main} onClick={() => setStep(2)}>On to the campaign →</button></>}

@@ -3,7 +3,17 @@
 
 
 
-## Get the money back from Projects, and the lights-on film (22 Nov, latest)
+## A new game: you choose the state, the agenda and the running mate (22 Nov, latest)
+
+- **What changed.** With a politician already made, New game opens the short start (ExpressStart). It used to pick the state (your home state), the agenda and the deputy for you. Now it asks first:
+  - **The state:** any state except the FCT, with your home state marked and selected.
+  - **The agenda:** every flagship, showing its promise and which one the state needs most.
+  - **The running mate:** the four candidates. Each shows its kind, what it costs you, any allegation and a same-district warning.
+  - Picking anyone but the party's favourite starts with the party cooler (70).
+- **Then as before:** the godfather's deal, the rally, election night and the oath.
+- **Tests:** `tests/e2e/rebuild.mjs`, which also checks that the choices are kept in the saved game.
+
+## Get the money back from Projects, and the lights-on film (22 Nov)
 
 - **"Get the money back from …" button.** A project whose contractor fled now has this button in Projects, any year, until the money is home.
   - **President:** the Attorney-General asks the country, once a year. They agree at a standing abroad of 55+, and the money arrives at the year's end.
