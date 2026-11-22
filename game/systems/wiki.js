@@ -129,7 +129,7 @@ export const writeBio = (f) => {
   const p2 = [];
   if (f.election) p2.push(surname + " was elected governor in " + base + ", defeating " + f.election.opp + (f.election.oppParty ? " of the " + f.election.oppParty : "") + " by " + f.election.marginPct + " percentage points" + (f.election.zonesWon === 3 ? " and carrying all three senatorial districts" : "") + ". ");
   if (twoTerms) p2.push(He + " was re-elected in " + (base + 4) + ". ");
-  if (f.flag) p2.push(His + " administration was defined by " + f.flag.nm + ", a pledge to " + f.flag.goal + (fm.length ? "; " + num(fDone) + " of its " + num(fm.length) + " yearly targets " + (fDone === 1 ? "was" : "were") + " met" + (fCut ? ", " + num(fCut) + " of them by cutting corners" : "") : "") + ". ");
+  if (f.flag) p2.push(His + " administration was defined by " + f.flag.nm + ", a pledge to " + f.flag.goal + (fm.length ? "; " + (fm.length === 1 ? "its one yearly target " + (fDone ? "was met" : "was missed") : fDone === fm.length ? "all " + num(fm.length) + " of its yearly targets were met" : num(fDone) + " of its " + num(fm.length) + " yearly targets " + (fDone === 1 ? "was" : "were") + " met") + (fCut ? ", " + num(fCut) + " of them by cutting corners" : "") : "") + ". ");
   if (p2.length) lead.push(p2);
   const p3 = [];
   const did = [];
@@ -177,7 +177,7 @@ export const writeBio = (f) => {
     let es = (groups[th] || []).sort((a, b) => b.w - a.w).slice(0, 4).sort((a, b) => a.t - b.t || dateOf(a.t, a.txt).m - dateOf(b.t, b.txt).m);
     const pp = [];
     if (th === "Legislation and executive orders" && laws.length) { pp.push("During " + his + " tenure the House of Assembly passed, and " + he + " signed into law, the " + list(laws.slice(0, 5)) + ". "); }
-    if (th === "Infrastructure and public works" && f.flag && fm.length) { pp.push("The centrepiece of " + his + " programme, " + f.flag.nm + ", met " + num(fDone) + " of its " + num(fm.length) + " yearly targets" + (fCut ? "; auditors later found corners had been cut on " + num(fCut) : "") + ". "); pp.push(cite(f.flag.nm + ": " + num(fDone) + " of " + num(fm.length) + " targets met", lastT)); pp.push(" "); }
+    if (th === "Infrastructure and public works" && f.flag && fm.length) { pp.push("The centrepiece of " + his + " programme, " + f.flag.nm + ", met " + (fm.length === 1 ? (fDone ? "its one yearly target" : "none of its one yearly target") : fDone === fm.length ? "all " + num(fm.length) + " of its yearly targets" : num(fDone) + " of its " + num(fm.length) + " yearly targets") + (fCut ? "; auditors later found corners had been cut on " + num(fCut) : "") + ". "); pp.push(cite(f.flag.nm + ": " + num(fDone) + " of " + num(fm.length) + " targets met", lastT)); pp.push(" "); }
     if (th === "Fiscal policy and the budget" && f.debtStart != null) pp.push(He + " inherited a debt of " + f.debtStartTxt + " from the previous administration" + (f.ended || lastT > 1 ? "; by " + yearOf(lastT) + " it stood at " + f.debtTxt + ", and the state collected " + f.igrTxt + " a year in internally generated revenue" : "") + ". ");
     es.forEach((e, i) => { pp.push(dated(e, i === 0 && !pp.length) + " "); if (e.w >= 4) { pp.push(cite(clip(firstSentence(e.txt), 100), e.t)); pp.push(" "); } });
     if (pp.length) subs.push({ h: th, paras: [pp] });

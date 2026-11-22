@@ -49,6 +49,7 @@ for (let j = 0; j < 6; j++) { if (!(await g.click(/^(Okay|Got it|Continue|Close|
 check(!/Choose your Special Adviser|A unity ticket|STATE HOUSE REPORT/i.test(await g.txt()), "no adviser, running-mate or TV-report screens");
 // 3. Four meters and one card.
 const strip = await g.txt();
+if (!(/People/.test(strip) && /Treasury/.test(strip) && /Godfather/.test(strip) && !/Corruption/.test(strip))) console.log("  strip:", strip.replace(/\n/g, " · ").slice(0, 900));
 check(/People/.test(strip) && /Treasury/.test(strip) && /Godfather/.test(strip) && !/Corruption/.test(strip), "the four meters: People, Party, Treasury, Godfather");
 check(/Behind you|Warm|Restless|Angry/.test(strip) && /Healthy|Steady|Tight|Empty/.test(strip), "the meters read as words");
 check(!/NaN/.test(strip), "no NaN");
@@ -60,7 +61,7 @@ check((d0.ministries || []).length > 0 && !!d0.council, "the interim cabinet and
 let past1 = false, budgetSeen = false, fine = false, cards3 = 0, lawWord = false, hosWord = false, exco = false, badHead = false, heads = [], call = false, more = false;
 const r = await playUntil(g, (t) => {
   if (/Year [2-4] of 4/.test(t)) past1 = true;
-  if (/to split for the next six months/.test(t) && !past1 && cards3 < 2) { /* the first budget, year one's */ budgetSeen = true; if (/Fine-tune/.test(t)) fine = true; cards3 = Math.max(cards3, ["Balanced", "Populist", "Reformer", "Godfather's budget"].filter(x => t.includes(x)).length); }
+  if (/to share out this year/.test(t) && !past1 && cards3 < 2) { /* the first budget, year one's */ budgetSeen = true; if (/Fine-tune/.test(t)) fine = true; cards3 = Math.max(cards3, ["Balanced", "Populist", "Reformer", "Godfather's budget"].filter(x => t.includes(x)).length); }
   if (/BUDGET LAW|budget law/.test(t)) lawWord = true; if (/Head of Service|APPROPRIATION/.test(t)) hosWord = true;
   if (/State Executive Council/.test(t)) exco = true; if (/GOVERNOR: “|GOVERNOR SAYS NO/.test(t)) badHead = true; { const m = t.match(/Daily Tribune\s+\S[^\n]*\n+([^\n]+)/); if (m && !heads.includes(m[1])) heads.push(m[1]); } if (/on the phone, /i.test(t)) call = true; if (/More: what the state needs/.test(t)) more = true;
   return /Year 3 of 4/.test(t); }, { max: 700 });
@@ -85,7 +86,7 @@ check(!/Your term in six cards|REPORT CARD|Wikipedia Bio/.test(end), "the six ca
 check(endWords < 200, "the ending screen is under 200 words (" + endWords + ")");
 check(/Run for president with /.test(end) && await g.page.evaluate(() => !!document.querySelector("[data-testid=run-president]")), "the ending points to running for president with the same politician");
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Read the full story/.test(x.textContent)); b && b.click(); }); await g.wait(800);
-check(/Your term in six cards/i.test(await g.txt()) && /Wikipedia Bio/.test(await g.txt()), "Read the full story opens the cards and the bio");
+check(/Your term in six cards/i.test(await g.txt()) && /Your biography/.test(await g.txt()), "Read the full story opens the cards and the bio");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close();
 // The control group: none of it.

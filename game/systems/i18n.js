@@ -24,6 +24,10 @@ export const STRINGS = {
   "Letters and decisions": R("Leta and decision dem", "Lẹ́tà àti ìpinnu", "Wasiƙu da shawarwari", "Akwụkwọ ozi na mkpebi"),
   "Money and projects": R("Moni and projek dem", "Owó àti iṣẹ́ àkànṣe", "Kuɗi da ayyuka", "Ego na ọrụ"),
   "Cabinet and the public": R("Cabinet and di pipul", "Ìgbìmọ̀ àti àwọn ará ìlú", "Majalisar zartarwa da jama'a", "Ndị kansụl na ọha"),
+  // One name for each thing (the words review, 22 Nov 2026)
+  "Treasury": R("Treasury", "Àpò ìjọba", "Baitulmali", "Akụ ọha"),
+  "Party support": R("Party support", "Àtìlẹ́yìn ẹgbẹ́", "Goyon bayan jam'iyya", "Nkwado otu"),
+  "State's own revenue": R("Moni wey state gather by imsef", "Owó tí ìpínlẹ̀ rí fúnra rẹ̀", "Kuɗin shigar jiha", "Ego steeti nakọtara n'onwe ya"),
   "Approval": R("Approval", "Ìtẹ́wọ́gbà", "Karɓuwa", "Nkwado"),
   "In the bank": R("Inside bank", "Ní báńkì", "A banki", "N'ụlọ akụ"),
   "Party": R("Party", "Ẹgbẹ́", "Jam'iyya", "Otu"),

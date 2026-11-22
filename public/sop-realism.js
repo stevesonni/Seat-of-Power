@@ -421,7 +421,7 @@
         SOP_H('div',{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},[
           SOP_H('div',{},[
             SOP_H('div',{style:{fontSize: TS(48),fontWeight:600,color:c.txt}}, `${m.icon} ${m.name}`),
-            SOP_H('div',{style:{fontSize: TS(34),color:c.tm,marginTop: 7}}, `Minister: ${m.minister} · PS: ${m.permSec} · Staff: ${m.staff.toLocaleString()}`),
+            SOP_H('div',{style:{fontSize: TS(34),color:c.tm,marginTop: 7}}, `Commissioner: ${m.minister} · Permanent Secretary: ${m.permSec} · Staff: ${m.staff.toLocaleString()}`),
             m.godfatherMandate && SOP_H('div',{style:{fontSize: TS(31),color:c.red,marginTop: 10,fontWeight:700}}, `🎩 Godfather-imposed appointment from campaign bailout`),
             ...((m.record || []).slice(-2).reverse().map((e, i) => SOP_H('div',{key:"rec"+i, style:{fontSize: TS(29), color: e.kind === "praise" ? c.grn : c.red, marginTop: 8, lineHeight: 1.35}}, (e.kind === "praise" ? "🏅 " : "⚠️ ") + "Year " + e.t + ": " + e.text))),
           ]),
@@ -658,7 +658,7 @@
       ...SOP.council.rulers.map(r => SOP_H(Card,{key:r.id,style:{borderLeft:"3px solid "+(r.rel>60?c.grn:r.rel>40?c.org:c.red)}},[
         SOP_H('div',{style:{display:"flex",justifyContent:"space-between"}},[
           SOP_H('div',{},[
-            SOP_H('div',{style:{fontSize: TS(48),fontWeight:600}}, `${r.name}`, r.id===SOP.council.chair && SOP_H('span',{style:{fontSize: TS(34),marginLeft: 22,color:c.gold||c.grn}},"[CHAIR]")),
+            SOP_H('div',{style:{fontSize: TS(48),fontWeight:600}}, `${r.name}`, r.id===SOP.council.chair && SOP_H('span',{style:{fontSize: TS(34),marginLeft: 22,color:c.gold||c.grn}},"· Chair")),
             SOP_H('div',{style:{fontSize: TS(36),color:c.tm}}, `${r.stool} · ${r.domain} district · Age ${r.age} · Bloc: ${r.bloc.replace("_"," ")}`),
             SOP_H('div',{style:{fontSize: TS(34),color:c.td,marginTop: 7,fontStyle:"italic"}}, `Stance: ${r.stance} · Influence ${r.influence} · Relations ${r.rel}`),
           ]),

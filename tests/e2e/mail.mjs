@@ -43,7 +43,7 @@ t = await g.txt();
 await g.wait(1000); t = await g.txt(); // the mailbox comes back a moment after the adviser's pop-up closes
 if (/Yours faithfully/.test(t)) { await g.click(/^← Close the letter$/); await g.wait(800); t = await g.txt(); } // the adviser opened the urgent letter: close it to see the mailbox
 check(/\d+ unread/.test(t) && /letters? waits? in the mailbox/.test(t) && await g.page.evaluate(() => !!document.querySelector("[data-sop-mailbox] img[src*=mailbox-open]")), "the year's matters arrive as letters in the mailbox (" + ((t.match(/(\d+) unread/) || [])[1]) + " unread)");
-check(!/The tray is clear/.test(t), "the year cannot move on while letters wait");
+check(!/Every letter is answered/.test(t), "the year cannot move on while letters wait");
 check(presented, "the adviser steps in to announce the urgent letter");
 let handed = 0;
 for (let i = 0; i < 8; i++) {
@@ -55,11 +55,11 @@ for (let i = 0; i < 8; i++) {
   handed++; await g.wait(2800); await okay(g); await g.wait(400); await okay(g);
 }
 check(handed >= 1, "handed " + handed + " letters to the Chief of Staff");
-for (let i = 0; i < 10 && !/The tray is clear/.test(await g.txt()); i++) { await okay(g); await g.wait(500); }
+for (let i = 0; i < 10 && !/Every letter is answered/.test(await g.txt()); i++) { await okay(g); await g.wait(500); }
 t = await g.txt();
-if (!/The tray is clear/.test(t)) { console.log("  screen:", t.slice(0, 1400).replace(/\n/g, " · "), "| handed", handed); await g.page.screenshot({ path: "/tmp/claude-0/-home-user-Seat-of-Power/6d547f60-c541-5156-9aeb-8af4391cce86/scratchpad/audit/mailfail.png" }); }
-check(/The tray is clear/.test(t), "with the tray clear, the year can move on");
-await g.click(/^The tray is clear/); await g.wait(1500); await okay(g); await g.wait(1000);
+if (!/Every letter is answered/.test(t)) { console.log("  screen:", t.slice(0, 1400).replace(/\n/g, " · "), "| handed", handed); await g.page.screenshot({ path: "/tmp/claude-0/-home-user-Seat-of-Power/6d547f60-c541-5156-9aeb-8af4391cce86/scratchpad/audit/mailfail.png" }); }
+check(/Every letter is answered/.test(t), "with the tray clear, the year can move on");
+await g.click(/^Every letter is answered/); await g.wait(1500); await okay(g); await g.wait(1000);
 t = await g.txt();
 const fl = /drafted by Finance alone/i.test(t) || await findLetter(g, /drafted by Finance alone/i); if (!fl) console.log("  SCREEN:", (await g.txt()).slice(0, 900).replace(/\n/g, " · ")); check(fl, "next year's budget arrives as a letter, from Finance (no Budget & Planning commissioner)");
 if (!/drafted by Finance alone/i.test(await g.txt())) await findLetter(g, /drafted by Finance alone/i);

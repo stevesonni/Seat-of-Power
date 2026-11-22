@@ -98,7 +98,7 @@ if (!L.stance) {
 // The friend sees the year: the numbers and the front pages.
 await f.click(/^↻ Refresh$/); await f.wait(1200);
 t = await f.txt();
-check(/Approval/i.test(t) && /In the bank/i.test(t), "the friend's desk shows the state's numbers");
+check(/Approval/i.test(t) && /Treasury/i.test(t), "the friend's desk shows the state's numbers");
 check(/Friend (deputy|works|justice|social)/.test(t), "the friend sees the rest of the cabinet");
 check(!g.errors.length && !f.errors.length, "no page errors (" + [...g.errors, ...f.errors].join(" | ") + ")");
 await g.browser.close(); await f.browser.close(); srv.kill();

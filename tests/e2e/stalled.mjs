@@ -13,7 +13,7 @@ import * as SYS from "../../game/systems/index.js";
 const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
-const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|Not now|Later)$/); i++) await g.wait(350); };
+const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|On to year two|Not now|Later)$/); i++) await g.wait(350); };
 const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(700); };
 const save = (g) => g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
 const tap = (g, re) => g.page.evaluate((src) => { const b = [...document.querySelectorAll("button")].find(x => x.offsetParent && !x.disabled && new RegExp(src).test(x.textContent.trim())); if (b) { b.click(); return true; } return false; }, re.source);

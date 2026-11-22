@@ -11,7 +11,7 @@ const sv = JSON.parse(Y1.sop_save); sv.s = { ...sv.s, cash: 60 };
 sv.ministries = (sv.ministries || []).filter(m => m.id !== "power");
 const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) }, test: { noStrikes: true } });
 await g.click(/^Continue/); await g.wait(2000);
-const clear = async () => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|Not now)$/); i++) await g.wait(350); };
+const clear = async () => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|On to year two|Not now)$/); i++) await g.wait(350); };
 // As tests/e2e/projects.mjs: hear the adviser out, pick a Chief of Staff, then the Projects tab.
 await g.wait(900); await clear(); await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde/.test(x.textContent)); b && b.click(); }); await g.wait(500); await clear();
 await g.page.evaluate(() => window.postMessage({ type: "sop-nav", payload: "prj" }, "*")); await g.wait(700);

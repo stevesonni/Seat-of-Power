@@ -3,9 +3,9 @@
    where "budget law" and "top civil servant" explain what they stand for. Rules only, no React. */
 export const PLAIN = [
   [/\bAPPROPRIATION BILL\b/g, "BUDGET LAW"], [/\bAppropriation Bill\b/g, "budget law"], [/\bappropriation bill\b/g, "budget law"], [/\bthe Appropriation\b/g, "the budget law"], [/\bAppropriation\b/g, "Budget law"],
-  [/\bHEAD OF SERVICE\b/g, "TOP CIVIL SERVANT"], [/\bHead of Service\b/g, "top civil servant"],
+  [/\bHEAD OF SERVICE\b/g, "TOP CIVIL SERVANT"], [/\bHead of Service\b/g, "top civil servant"], [/\bHead of the Civil Service\b/g, "top civil servant"], [/\bPerm\.? Sec\.?\b/g, "Permanent Secretary"],
   [/\bEXECUTIVE COUNCIL\b/g, "CABINET"], [/\bState Executive Council\b/g, "State cabinet"], [/\bExecutive Council\b/g, "cabinet"],
-  [/ Senatorial District\b/g, " district"], [/ Senatorial\b/g, ""], [/\bsenatorial districts?\b/g, "districts"], [/\bsenatorial zones?\b/g, "districts"],
+  [/ Senatorial District\b/g, " district"], [/ Senatorial\b/g, ""], [/\bsenatorial districts\b/g, "districts"], [/\bsenatorial district\b/g, "district"], [/\bsenatorial zones\b/g, "districts"], [/\bsenatorial zone\b/g, "district"],
   [/\bconstituency projects\b/g, "projects in members' home areas"], [/\bconstituencies\b/g, "home areas"], [/\bconstituency\b/g, "home area"],
   [/\bProcurement\b/g, "Contracts"], [/\bprocurement\b/g, "contracts"],
   [/\b(Boost|Raise|Triple|Grow|Share|Cap|Lift) IGR\b/g, "$1 own revenue"], [/(^|[\n.!?]\s*)IGR\b/g, "$1State's own revenue"],

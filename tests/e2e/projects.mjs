@@ -37,7 +37,7 @@ const ROAD_PROG = "500km Road Network", ROAD = "Road Network"; // the programme,
 // Close any outcome card on top, as a player would, before the next click.
 // The adviser announces the year's next step a moment after the Desk opens, and her Continue takes you there: hear her out, pick a Chief of Staff if asked, then go back to the Desk.
 const toDesk = async (g) => { await g.wait(900); await clear(g); await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Dr\. Tunde/.test(x.textContent)); b && b.click(); }); await g.wait(500); await clear(g); await g.page.evaluate(() => window.postMessage({ type: "sop-nav", payload: "hub" }, "*")); await g.wait(600); };
-const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|Not now)$/); i++) await g.wait(350); };
+const clear = async (g) => { for (let i = 0; i < 6 && await g.click(/^(Got it|Okay|Understood|Continue|On to the next.*|On to year two|Not now)$/); i++) await g.wait(350); };
 const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessage({ type: "sop-nav", payload: t }, "*"), tab); await g.wait(600); };
 
 // ── Money: with money in the bank, a project is paid from it and nothing is borrowed ──
@@ -186,7 +186,7 @@ const toTab = async (g, tab) => { await g.page.evaluate((t) => window.postMessag
   await g.click(/^Fit the scope to the budget$/); await g.wait(1200);
   if (await g.click(/^Spread it over 4 years/)) { await g.wait(600); await g.click(/^Got it$/); await g.wait(400); await g.click(/^Revise the scope( →)?$/); await g.wait(400); await g.click(/^Fit the scope to the budget$/); await g.wait(1200); } // the debt choice came up first
   let t2 = await g.txt();
-  for (let i = 0; i < 4 && !/It still does not fit/.test(t2) && await g.click(/^(On to the next.*|Okay|Got it|Understood)$/); i++) { await g.wait(500); t2 = await g.txt(); } // cards queued ahead of the result
+  for (let i = 0; i < 4 && !/It still does not fit/.test(t2) && await g.click(/^(On to the next.*|On to year two|Okay|Got it|Understood)$/); i++) { await g.wait(500); t2 = await g.txt(); } // cards queued ahead of the result
   const p = await proj(g, "Ring Road");
   check((p.status === "pending_procurement" && p.estimateM < big.estimateM) || /It still does not fit/.test(t2), "9. fitting the scope either moves it to procurement or says why not (" + p.status + ", " + p.estimateM + "M)");
   check(!g.errors.length, "no page errors: " + g.errors.join(" | "));

@@ -35,7 +35,7 @@ let t = await g.txt();
 check(/NUATE has grounded every flight/.test(t), "year one: the airports are shut");
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Roundtable · \d/.test(x.textContent)); b && b.click(); }); await g.wait(600);
 t = await g.txt();
-check(/Their non-negotiable demand/.test(t) && /In the bank/.test(t), "the roundtable shows the bank and their demand side by side");
+check(/Their non-negotiable demand/.test(t) && /Treasury/.test(t), "the roundtable shows the bank and their demand side by side");
 check(/Order the Central Bank to print it/.test(t), "the President may print the money (Ways and Means)");
 check(/Send soldiers into the control rooms/.test(t), "or break it by force");
 await g.page.screenshot({ path: OUT + "/labour-table.png" });

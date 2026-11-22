@@ -3,7 +3,48 @@
 
 
 
-## Films: power, seaport, refinery (22 Nov, latest)
+## The words review, round 1: Perplexity's fixes (22 Nov, latest)
+
+From Perplexity's review of `docs/PERPLEXITY-WORDS-REVIEW.md` (Routes A and B):
+- **Broken text fixed:**
+  - "₦0.0B" now reads "₦0", and small sums read in millions (`naira`).
+  - "app -3" and "APP hit by shock" now read "Approval fell because of the …".
+  - "Hon. Hon." can no longer happen (`addL`), and "Last year Hon." is no longer cut off at "Hon." (first-sentence rule).
+  - "0K jobs" is fixed.
+  - "one of its one yearly targets" now reads correctly.
+  - "Delivered: Delivered" is gone, and "[CHAIR]" now reads "· Chair".
+  - "each districts" is fixed (`plainwords` keeps the singular).
+  - Lower-case "lg chairman" is fixed.
+  - Debt interest is no longer shown when nothing is owed.
+  - Biography sentences no longer have a colon in the middle ("the economy, 2027: Left …", "ASUU: …").
+- **One name for each thing:**
+  - "In the bank" / "Bank" / "Into the bank" now read **Treasury** everywhere (bank accounts stay bank accounts).
+  - **Party support**, and **the state's own revenue** (**independent revenue** for the President).
+  - **from Abuja (FAAC)** and **debt payments**.
+  - **Special Adviser**, no longer "SA".
+  - **Permanent Secretary**, no longer "Perm Sec" or "PS".
+  - "Head of the Civil Service" now reads "top civil servant".
+  - The Record shows **Year N**, no longer "T N". Efficiency, Resistance to change and Corruption are spelled out.
+  - "the mailbox" is used for letters, and "Every letter is answered" replaces "The tray is clear".
+- **Units:**
+  - Meter changes are points ("Security +5", "Approval −3"; `fxChip`, `statRows`).
+  - Money is in naira, and Abuja's share is in %.
+  - Programme cost reads "₦2.0B a year · 1 year", not "× 1y".
+  - Risk chips say what can happen ("30% chance of a backlash", "chance it fails", "chance it comes back").
+- **Time:** a turn is a year. The budget is "to share out this year" (no more "the next six months"), and "On to year two" / "On to the next year".
+- **The budget shows its sum:** own revenue + from Abuja − debt payments = the total.
+- **Bills show the votes:** "Likely to pass · 18 of 30 back you, 16 needed".
+- **Plain labels:**
+  - "Fixes:" replaces "Answers:".
+  - "Risk: some of the money may be stolen" replaces "Money can leak".
+  - "Abuja sent 90% of the money expected" replaces "The allocation came in at 90%".
+  - "PUBLIC IMAGE" replaces "NARRATIVE SHIFT".
+  - The protest card no longer names #EndSARS, and "slum corridor" becomes "a poor neighbourhood".
+  - The biography no longer says "Wikipedia": it is "Your biography" and "Profile", and "Still in office" replaces "Incumbent".
+- **Glossary:** 20 new terms, including executive order, arrears, swing voters, C of O, PHC, Amotekun, Hisbah, NERC, mini-grid, derivation, Eurobond, the Excess Crude Account, the Federation Account, okada and keke. Translations were added for Treasury, Party support and the state's own revenue.
+- **Tests:** unit tests 434 pass. These browser tests pass: rebuild, mail, cabinet, labour, peace, assent, local-state, projects and tours. president.mjs still has only its 2 earlier failures.
+
+## Films: power, seaport, refinery (22 Nov)
 
 - `public/art/reels/power.mp4`, `seaport.mp4` and `refinery.mp4` come from the owner's Gemini videos: 1024 px wide, muted, 10 s.
   - Power plants and rural electrification play their own film now; a pipeline borrows the refinery's.

@@ -39,7 +39,7 @@ const openLetter = async (g, re) => {
   check(await openLetter(g, /Ending insecurity: Seal/), "the plan's last step arrives as a letter");
   await g.wait(400); await tap(g, /^✍️ Handle it personally$/); await g.wait(1000);
   let t = await g.txt();
-  check(/Peace Plan · Ogun · Step 4 of 4: Seal/i.test(t) && /Risk 25%/.test(t) && /Risk 45%/.test(t), "three ways, with the risk of a setback shown");
+  check(/Peace Plan · Ogun · Step 4 of 4: Seal/i.test(t) && /25% chance it comes back/.test(t) && /45% chance it comes back/.test(t), "three ways, with the risk of a setback shown");
   check(!/End insecurity in Ogun for good/.test(t), "no new offer while a plan runs");
   await tap(g, /^Peace committees, forest guards and a law to keep them/); await g.wait(2500);
   let safe = false; for (let i = 0; i < 6 && !safe; i++) { safe = /OGUN IS SAFE AGAIN/i.test(await g.txt()); if (!safe) { await okay(g); await g.wait(500); } }
