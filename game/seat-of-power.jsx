@@ -7847,6 +7847,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       appPrev: (() => { const h = ((stc.tori || {}).hist || []).filter(x => x.turn < turn && x.app != null).pop(); return h ? h.app : null; })(),
       lies: Object.values((stc.tori || {}).acts || {}).reduce((a, v) => a + ((v.comments || []).filter(cm => cm.turn === turn && cm.lied).length), 0),
       tools: (((stc.tori || {}).tools || {})[turn]) || {},
+      // Years in a row (up to last year) without a single post: the people and the opposition make it the story.
+      silent: (() => { const P = (stc.tori || {}).posts || []; let k = 0; for (let y = turn - 1; y >= 1; y--) { if (P.some(p => p.turn === y)) break; k++; } return k; })(),
       // The feed's people and places, and last years' promises (the people replied to come back).
       // The neighbouring governors, who post on Tori too (SYS.toriNeighbours).
       nbrs: NAT ? [] : (() => { const I = interNow(); return SYS.neighboursOf(state).map(n => { const G = (I.gov || {})[n] || { rel: 50, party: "same" }; return { st: n, name: nGov(n), art: nGovImg(n), party: G.party, rel: G.rel, produce: SYS.produceOf(n)[0], deals: (I.deals || []).filter(d => d.partner === n && d.status === "active").map(d => SYS.DEAL_KINDS[d.kind].nm) }; }); })(), tradeAll: !!stc.tradeAll,
@@ -7926,7 +7928,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const extras = [SYS.toriPoll(c, H), SYS.toriClip(c), SYS.toriReceipts(c)].filter(Boolean);
     const follow = SYS.toriFollowing({ ...c, topStory: null });
     const mix = []; woven.forEach((x, i) => { mix.push(x); if (i % 3 === 1 && follow.length) mix.push(follow.shift()); if (i === 4 && extras.length) mix.push(extras.shift()); }); mix.push(...follow, ...extras);
-    const feed = [...SYS.toriInstant(c), ...head, ...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriNeighbours(c), ...SYS.toriInstitutions(c, H), ...opp.filter(o => o.w >= 3).slice(0, 2), ...mix]
+    const feed = [...SYS.toriInstant(c), ...SYS.toriSilence(c).people, ...head, ...SYS.toriWorld(c, H).slice(0, 3), ...SYS.toriNeighbours(c), ...SYS.toriInstitutions(c, H), ...opp.filter(o => o.w >= 3).slice(0, 2), ...mix]
       .filter(x => !blocked.includes(x.handle)).concat(memes).map(x => ({ ...x, media: SYS.toriMedia(x, c) }));
     const hero = SYS.toriMainStory(c, H);
     const heatTags = H.stage >= 2 ? H.stories.slice(0, 3).map((x, i) => ({ tag: x.tag, count: SYS.fmtCount(20000 * H.stage + 9000 * (3 - i)), about: x.cause })) : [];
@@ -8966,6 +8968,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           } })) });
       }
     }
+    // Silent on Tori for the whole of last year: it costs approval (owner, 22 Nov 2026).
+    if (turn >= 2 && !(((stc.tori || {}).posts) || []).some(p => p.turn === turn - 1)) { dApp -= 2; notes.push(["🐦 You did not post once on Tori last year. People say you are hiding: approval −2. Post this year to answer them.", "political"]); }
     // The 9th letter (owner, 21 Nov 2026: "if I don't go to the menu I can never remember to convene the yearly
     // state council or visit neighbouring states for a trade deal. Let's make that the 9th letter"): every year, outside
     // the 8-letter cap, the calendar with buttons that open them.
@@ -12541,6 +12545,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: two(src) };
   };
   // The year's matters arrive together after the year closes.
+  // A strike that has ended takes its letters with it (owner, 22 Nov 2026: "I paid off ASUU in full once they
+  // struck, but the letter from Adaeze Bala is still in my mailbox. If that action had been taken it should have
+  // been removed").
+  useEffect(() => {
+    const L = (stc.labour || {}).strikes || {};
+    const dead = (mail || []).filter(l => { const m = /^sc#lab_tw_([a-z0-9]+)_/.exec(l.key || ""); return m && !(L[m[1]] && L[m[1]].on); });
+    if (!dead.length) return;
+    const keys = new Set(dead.map(l => l.key));
+    setMail(m => m.filter(l => !keys.has(l.key)));
+    setScCards(cs => cs.filter(c => !keys.has("sc#" + c.key)));
+    scPending.current = scPending.current.filter(c => !keys.has("sc#" + c.key));
+    if (letterOpen && keys.has(letterOpen.key)) setLetterOpen(null);
+  }, [stc.labour, mail]);
   const postYearMail = (q) => {
     const pull = stc.gfRoadPull && stc.gfRoadPull.turn <= turn ? stc.gfRoadPull : null;
     if (pull) {

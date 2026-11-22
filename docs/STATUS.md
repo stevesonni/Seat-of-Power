@@ -3,7 +3,16 @@
 
 
 
-## A new game: you choose the state, the agenda and the running mate (22 Nov, latest)
+## Silence on Tori costs you; a settled strike takes its letters (22 Nov, latest)
+
+- **A year with no Tori post.** It costs approval −2 at the start of the next year, with a note saying so.
+  - Citizens' posts in the feed: "#<Surname>MustGo", "too big to talk to us", "why can't … answer questions", "hiding behind proxies", "we elected you, tell us what is going on".
+  - The opposition counts the years of silence.
+  - Posting again ends it (game/systems/tori.js `toriSilence`; ctx `silent`).
+- **A strike that ends takes its letters with it.** The strike's letters for the year (`sc#lab_tw_<union>_…`, for example the students' leader's letter about ASUU) leave the mailbox as soon as the strike is no longer on.
+- **Tests.** The test bot now declines the yearly calendar letter ("Not this year") unless a test asks for it, so it does not leave a council open.
+
+## A new game: you choose the state, the agenda and the running mate (22 Nov)
 
 - **What changed.** With a politician already made, New game opens the short start (ExpressStart). It used to pick the state (your home state), the agenda and the deputy for you. Now it asks first:
   - **The state:** any state except the FCT, with your home state marked and selected.

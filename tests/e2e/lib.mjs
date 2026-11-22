@@ -87,6 +87,8 @@ const SKIP = /^(Fire|🏠|🗑️|🔀 Restructure|☰|Compound|Govern|Today|New
 const PRIO = [/^(Okay|Got it|Understood|On to the next.*|Back to the compound|Open the Treasury|Watch them decide|Not now)$/, /^Do it: /, /^✍️ Handle it personally$/, /^✍️ Sign off the investigation$/, /^.{6,}(›|❗)$/, /^(Leave the Secretariat|Back to where you were|Not now|Later|Close|Cancel|Back)$/, /^Convene the ministries$/, /^Create and swear in/, /^Convene the council$/, /^Chair the first FEC$/, /^Convene the Security Council$/, /^(Submit|Send) to the (House of Assembly|National Assembly)/, /^🗳️ Call the vote/, /^(Proceed|On) to policies/, /^📬 \d+$/, /^Done: end the year/, /^Continue$/, /^The tray is clear/, /^(✍️ )?(Sign|Assent)$/];
 export async function playUntil(g, until, { max = 400, prefer = [], log = false, onStep = null, keepSession = false } = {}) {
   const clicks = [];
+  // The yearly calendar letter (the 9th letter) opens the councils; the bot declines it unless a test asks otherwise.
+  prefer = [...prefer, /^Not this year$/];
   for (let i = 0; i < max; i++) {
     if (onStep) await onStep(); // e.g. a screenshot of each new screen (audits)
     const t = await g.txt();

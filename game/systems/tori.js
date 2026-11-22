@@ -253,6 +253,8 @@ export function toriOpposition(c) {
   if (T.sack) post("A commissioner sacked to save his own skin. The rot starts at the top, " + me + ".", 3);
   if (T.silent && (c.heatStage || 0) >= 3) post("Where is " + me + "? " + N + " is burning and he has gone quiet. Is he in London?", 5);
   if ((c.heatStage || 0) >= 4 && c.heatTag) post(c.heatTag + " is trending across Nigeria. This is what failure looks like, " + me + ".", 5);
+  // A year without a single post: they make it about the silence.
+  toriSilence(c).opp.forEach(o => post(o.text, o.w, "approval"));
   // Even good news gets a jab.
   (c.done || []).slice(0, 1).forEach(d => post(d + " is open. Good. Now publish what it cost, " + me + ". We'll be checking the invoice.", 1.2, "approval"));
   post(pick(r, ["We are going ward to ward. " + N + " is ready for change. #" + S + "Decides" + (c.year || ""), "Join us this Saturday at the town hall. Bring your questions; we will bring answers."]), 0.5, "general");
@@ -1000,4 +1002,26 @@ export function toriNeighbours(c) {
   if (c.tradeAll) { const g = order[0]; out.push({ kind: "neighbour", verified: true, name: g.name, handle: toriHandle(g.st), art: g.art, sub: "Governor of " + stNm(g.st) + " State", ago: ago(r, out.length), ...counts(r, 4), id: "nball" + c.turn,
     text: "Credit where it is due: " + me + " is the first governor in the zone with a trade deal across every border. The region is one market now. 👏🏾", topic: "praise" }); }
   return out;
+}
+
+/* A year of silence on Tori (owner, 22 Nov 2026: "if I go a year without tweeting, both the people and the opposition
+   attack me for not communicating: #… must go, feels too big, why can't they answer questions, why hiding behind
+   proxies, we elected you, tell us what is going on"). c.silent: how many years in a row with no post (1, 2…);
+   c.govName for the hashtag. Returns posts for the feed (citizens) and for the opposition. */
+export function toriSilence(c) {
+  if (!c.silent) return { people: [], opp: [] };
+  const r = rngOf("silent" + c.st + c.turn), me = toriHandle(c.st), N = stNm(c.st), sur = String(c.govName || "Governor").split(" ").pop(), tag = "#" + camel(sur) + "MustGo";
+  const boss = c.nat ? "the President" : "the Governor", yrs = c.silent > 1 ? c.silent + " years" : "a whole year";
+  const say = [
+    tag + ". " + yrs.charAt(0).toUpperCase() + yrs.slice(1) + " and not one word from " + me + ". We are not your subjects.",
+    "Since when did " + me + " become too big to talk to us? Power don enter head. 🙄",
+    "Simple question: why can't " + me + " answer questions? We have been tagging for months. Nothing.",
+    "Every statement now comes from aides and 'sources close to " + boss + "'. Why are you hiding behind proxies, " + me + "?",
+    "We elected you. Tell us what is going on in " + N + "! " + me,
+    "Is " + me + " even in " + N + "? Somebody check on our " + (c.nat ? "President" : "Governor") + ". 😂 " + tag,
+  ];
+  const people = say.slice().sort(() => r() - .5).slice(0, 4).map((text, i) => { const p = person(r, i + 3); return { kind: "citizen", name: p.who, sub: p.what, handle: "@" + p.h, art: p.art, text, ago: ago(r, i), ...counts(r, 3), id: "sil" + hash(text + c.turn), topic: "approval", tone: "bad", silent: true }; });
+  const opp = [{ text: yrs.charAt(0).toUpperCase() + yrs.slice(1) + " of silence from " + me + ". A leader who will not face the people does not deserve their votes. " + tag, w: 7 },
+    { text: "We answer questions every week. " + me + " has not answered one in " + yrs + ". Spokesmen and press releases are not leadership.", w: 5 }];
+  return { people, opp, tag };
 }

@@ -21,3 +21,13 @@ test("the neighbouring governors post on Tori: their work, the deal with you, a 
   assert.ok(P.some(p => /@OgunGov/.test(p.text) && /every border/.test(p.text)), "the salute for a deal with every neighbour");
   assert.equal(toriNeighbours({ st: "Nigeria", nat: true, nbrs }).length, 0);
 });
+
+import { toriSilence, toriOpposition } from "../game/systems/tori.js";
+test("a year without a Tori post: the people and the opposition make it the story", () => {
+  assert.deepEqual(toriSilence({ st: "Ogun", turn: 3, silent: 0 }).people, []);
+  const S = toriSilence({ st: "Ogun", turn: 3, silent: 1, govName: "Ada Okafor" });
+  assert.equal(S.people.length, 4); assert.equal(S.tag, "#OkaforMustGo");
+  assert.ok(S.people.every(p => /@OgunGov/.test(p.text)));
+  const O = toriOpposition({ st: "Ogun", turn: 3, app: 50, silent: 2, govName: "Ada Okafor" });
+  assert.ok(O.some(p => /2 years of silence/.test(p.text)), "the opposition counts the years");
+});
