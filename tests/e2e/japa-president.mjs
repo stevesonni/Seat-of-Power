@@ -57,4 +57,16 @@ let again = false;
 await playUntil(bad.g, () => again, { max: 400, prefer: [/Attorney-General ask Canada again/], onStep: async () => { if (!again) again = await bad.g.page.evaluate(() => (window.SOP.logs || []).some(l => /asked Canada again/.test(l.tx))); } });
 check(again, "after a refusal, the President can ask again the next year");
 await bad.g.browser.close();
+// 3. The letter is long gone: the project itself has the button (owner, 21 Nov 2026: "where in the game do I go?").
+{ const sv = JSON.parse(base); sv.turn = 2; sv.projTicked = 2; sv.projects = [{ ...P(), fledFirm: "Kestrel Construction", fledTo: "Canada", fledM: 9000 }]; sv.s = { ...sv.s, app: 62, cor: .2, cash: 50 };
+  sv.stc = { ...sv.stc, lastTurn: 2, chains: [], pres: { ...(sv.stc.pres || {}), seen: [...((sv.stc.pres || {}).seen || []), ...SYS.PRES_WORLD.slice(0, 4).map(c => c.id)] } };
+  const h = await open(srv.port, { save: { ...keys, sop_save: JSON.stringify(sv) } });
+  await h.click(/^Continue/); await h.wait(2000);
+  let btn = false;
+  await playUntil(h, () => btn, { max: 60, onStep: async () => { await h.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /^(🏗️ )?Projects$/.test(x.textContent.trim()) || x.getAttribute("aria-label") === "Projects"); b && b.click(); [...document.querySelectorAll("button, summary")].filter(x => /Kano–Kaduna Rail/.test(x.textContent) && !x.querySelector("[data-sop-japa-get]")).forEach(x => x.click()); }); btn = await h.page.evaluate(() => !!document.querySelector("[data-sop-japa-get]")); } });
+  check(btn, "the fled project in Projects has a button to get the money back");
+  await h.page.evaluate(() => document.querySelector("[data-sop-japa-get]").click()); await h.wait(1500);
+  const lg = await h.page.evaluate(() => (window.SOP.logs || []).map(l => l.tx).join(" | "));
+  check(/The Attorney-General asked Canada/.test(lg) && /agreed to act/.test(lg), "the button has the Attorney-General ask Canada, and Canada agrees");
+  await h.browser.close(); }
 srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

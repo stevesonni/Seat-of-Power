@@ -3,7 +3,17 @@
 
 
 
-## Lights on: the dam and power plants (21 Nov, latest)
+## Get the money back from Projects, and the lights-on film (22 Nov, latest)
+
+- **"Get the money back from …" button.** A project whose contractor fled now has this button in Projects, any year, until the money is home.
+  - **President:** the Attorney-General asks the country, once a year. They agree at a standing abroad of 55+, and the money arrives at the year's end.
+  - **Governor:** you fly to Aso Rock and ask the President (the year's visit).
+- **The film.** The owner's Gemini film (`public/art/reels/dam.mp4`): a village at night, the lights come on, people pour out cheering. It is cropped, muted and 10 s long.
+  - It plays when a dam is finished (the 3,000 MW hydropower dam included) and, through `REEL_SHARE`, for every power project: power plants, solar mini-grids and rural electrification.
+  - The lights-on animation stays only for players who turn motion off.
+- **Tests:** `tests/e2e/japa-president.mjs` and `tests/reels.test.mjs`.
+
+## Lights on: the dam and power plants (21 Nov)
 
 - **The new film.** When a dam (including the President's 3,000 MW hydropower dam) or a power plant is finished, the film should show a dark village with the lights spreading out. docs/GEMINI-REELS.md has the new prompts for `dam.mp4` and `power.mp4`, for Gemini to make.
 - **The stand-in.** Until the films arrive, the result card plays a lights-on animation: `scenes/national-grid-dark` starts dark, a flash at the power line, then the lit city revealed outwards (public/seat-of-power.html, `o.lights`).

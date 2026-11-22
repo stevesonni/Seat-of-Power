@@ -19,6 +19,8 @@ installs them.
 
 ## Night films (dam.mp4, power.mp4)
 
+**Delivered 22 Nov 2026:** `dam.mp4` is in the game and also plays for power projects (`REEL_SHARE.power`), so `power.mp4` is optional now.
+
 For these two, replace "Late-afternoon golden light" in the style block with "Night, then the lights come on". Until the films arrive, the game shows a lights-on animation over `scenes/national-grid-dark` (the result card's `o.lights`). When `dam.mp4` or `power.mp4` is installed, add `dam: 1` or `power: 1` to `REELS` in game/systems/projects.js, and the film plays instead.
 
 ## The films

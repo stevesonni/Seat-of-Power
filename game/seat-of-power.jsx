@@ -5512,6 +5512,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
           {(p.status === "stalled" || p.status === "in_progress") && SYS.toFinishM(p) > 0 && <button className="sp-btn ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.toFinishM(p))}</button>}
           {SYS.stallCause(p) === "cash" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "restart")}>Restart the work</button>}
           {["stalled", "in_progress", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</button>}
+          {p.fled && !p.japaRecovered && <button className="sp-btn" data-sop-japa-get onClick={() => onAction(p.id, "japa")}>Get the money back from {p.fledTo || "abroad"}</button>}
           {(p.status === "stalled" || p.status === "in_progress") && <button className="sp-btn ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</button>}
           {p.status === "in_progress" && !p.fast && <button className="sp-btn ghost" onClick={() => onAction(p.id, "accelerate")}>Speed it up (+15%)</button>}
           {p.status === "in_progress" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</button>}
@@ -9855,6 +9856,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const projAction = (id, act) => decide(() => {
     const p = (projects || []).find(x => x.id === id); if (!p) return;
+    // The fled contractor's money, from the project itself (owner, 21 Nov 2026: "a contractor japaed, I want it back.
+    // Where in the game do I go?"). The President has the Attorney-General ask the country (once a year); a governor
+    // flies to Aso Rock and asks the President.
+    if (act === "japa") {
+      const d0 = (p.decisions || []).map(x => x.text).find(t => /fled to/.test(t)) || "";
+      const j = { projId: p.id, proj: p.title, firm: p.fledFirm || "The contractor", to: p.fledTo || ((d0.match(/fled to ([^.]+)\./) || [])[1]) || "abroad", lossM: p.fledM || Math.round((p.contractM || p.estimateM || 0) * .15) };
+      if ((stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id && !c.done)) return { icon: "⏳", title: "Already on its way", text: j.to + " has agreed. The " + SYS.fmtM(j.lossM) + " comes home at the end of this year.", tone: "good" };
+      if (!NAT) { if (stc.visitYear === turn) return { icon: "🗓️", title: "You have seen the President this year", text: "Only the Federal Government can ask " + j.to + " for the money. Your next visit to Aso Rock is next year.", tone: "neutral" }; visitJapa(j); return null; }
+      if (((stc.japaAsked || {})[p.id]) === turn) return { icon: "🗓️", title: "Asked already this year", text: j.to + " gave its answer. Raise your standing abroad (summits, state visits, approval, less corruption) and ask again next year.", tone: "neutral" };
+      const ab = SYS.abroadStanding({ trips: ((stc.pres || {}).seen || []).filter(id2 => SYS.PRES_WORLD.some(c => c.id === id2)).length, app: s.app, cor: s.cor || 0 }), good = ab >= SYS.JAPA_ABROAD_MIN;
+      setStc(q => ({ ...q, japaAsked: { ...(q.japaAsked || {}), [p.id]: turn }, chains: good ? [...(q.chains || []), { id: "japa_back_" + p.id, kind: "japa_back", nat: true, due: turn + 1, projId: p.id, proj: j.proj, firm: j.firm, to: j.to, lossM: j.lossM }] : (q.chains || []) }));
+      addL("⚖️ The Attorney-General asked " + j.to + " to freeze " + j.firm + "'s accounts (" + SYS.fmtM(j.lossM) + "). " + (good ? j.to + " agreed to act." : j.to + " declined to act."), good ? "political" : "crisis");
+      track("japa_get", good ? "yes" : "no");
+      return good ? { icon: "🤝", img: "./art/scenes/japa-departure.webp", title: j.to + " will act", text: "They will freeze " + j.firm + "'s accounts and send the " + SYS.fmtM(j.lossM) + " home. It arrives at the end of this year.", tone: "good", rows: [{ l: "Your standing abroad", v: ab + "/100", good: true }] }
+        : { icon: "🚫", img: "./art/scenes/japa-departure.webp", title: j.to + " will not act yet", text: "Your standing abroad is " + ab + "/100; they act at " + SYS.JAPA_ABROAD_MIN + ". Attend summits, make state visits, lift approval and cut corruption, then ask again next year.", tone: "bad", rows: [{ l: "Your standing abroad", v: ab + "/100", good: false }] };
+    }
     let n = p, text = "", tone = "neutral";
     if (act === "fund") { const add = SYS.toFinishM(p, s.cor || 0); n = SYS.addFunding(p, add, turn); text = (p.status === "stalled" && n.status === "in_progress" ? "Work restarts: " + SYS.fmtM(add) + " added, and the bank pays this year's share at the year's end." : p.status === "stalled" ? "Added " + SYS.fmtM(add) + ". " + (SYS.stallCause(n) === "fled" ? "It stays stalled until a new contractor is appointed." : "It is still short.") : "Added " + SYS.fmtM(add) + ". The bank pays it as the work is done."); }
     // A stall the bank caused: the money is approved, so restart, and this year's share is paid at the year's end.
