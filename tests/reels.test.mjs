@@ -21,7 +21,7 @@ test("reels: no film means no reel; two films alternate by project", () => {
   assert.equal(SYS.reelFor("seaport", "p1"), "./art/reels/seaport.mp4");
   assert.equal(SYS.reelFor("refinery", "p1"), "./art/reels/refinery.mp4");
   assert.equal(SYS.reelFor("pipeline", "p1"), "./art/reels/refinery.mp4", "a gas pipeline borrows the refinery film");
-  assert.equal(SYS.reelFor("vehicles", "p1"), null, "the patrol fleet film waits for a version without real badges");
+  assert.equal(SYS.reelFor("vehicles", "p1"), "./art/reels/vehicles.mp4", "the patrol fleet (installed at the owner's request, 22 Nov 2026)");
   SYS.REELS.__t = 2;
   const a = new Set(["p1", "p2", "p3", "p4", "p5", "p6"].map(id => SYS.reelFor("__t", id)));
   assert.deepEqual([...a].sort(), ["./art/reels/__t-2.mp4", "./art/reels/__t.mp4"]);

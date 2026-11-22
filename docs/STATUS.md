@@ -8,7 +8,7 @@
 - `public/art/reels/power.mp4`, `seaport.mp4` and `refinery.mp4` come from the owner's Gemini videos: 1024 px wide, muted, 10 s.
   - Power plants and rural electrification play their own film now; a pipeline borrows the refinery's.
   - The refinery was cut at the scene change (10.17 s) of the 20-second clip.
-- The patrol fleet video is held back: it shows Toyota badges and a crest. `docs/GEMINI-REELS.md` has the re-prompt.
+- The patrol fleet video (`vehicles.mp4`) is installed too, at the owner's request, though it shows Toyota badges and a crest. `docs/GEMINI-REELS.md` has a re-prompt for a cleaner version.
 
 ## The presidency is a presidency: works on their routes, the Federation Account, current laws (22 Nov)
 
