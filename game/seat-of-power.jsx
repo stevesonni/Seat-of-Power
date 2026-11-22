@@ -9696,7 +9696,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const purse = fresh && pillarOn("purse") && !NAT; // pillar "purse": a quarter less inherited debt
       const a = SYS.yearAccounts(s, bud), owed = fresh ? Math.round(SYS.inheritedDebtB(s) * (purse ? .75 : 1) * 10) / 10 : 0;
       setS(p => ({ ...p, cash: fresh ? 0 : a.workB, cashYear: fresh ? 0 : turn, debt: (p.debt || 0) + owed }));
-      if (owed) setStc(p => ({ ...p, oldDebt: { total: owed, kind: null } }));
+      // A plan already chosen at the Council (before the first budget) is kept: the question is never asked twice
+      // (owner, 22 Nov 2026: "the second time in one year that I am seeing this").
+      if (owed) setStc(p => p.oldDebt && p.oldDebt.decided ? p : ({ ...p, oldDebt: { total: owed, kind: null } }));
       return;
     }
     if (phase !== "policy" || s.cashYear === turn) return;
@@ -14444,7 +14446,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {session && <CouncilTable key={session.id + ":" + turn} T={session} onPick={(o) => { const T0 = session; setSession(null); let r = null; try { r = o.run(); } catch (e) { console.error("[council]", e); }
           // The result is shown in the session itself (one screen per sitting), unless it needs its own pop-up (an action, a speaker).
           if (r && !r.present && !r.paper && !r.action && !r.onClose) { try { window.SOP_sound && window.SOP_sound(r.tone === "good" ? "good" : r.tone === "bad" ? "bad" : "neutral"); } catch (e) {} setSession(cur => cur || { ...T0, decision: null, result: r, doneLabel: "Close the session" }); }
-          else if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => setSession(null)} />}
+          else if (r) setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome(r); } catch (e) {} }, 60); }} onClose={() => {
+          // The debt question is asked once (owner, 22 Nov 2026: "the second time in one year I am seeing this"):
+          // closing it keeps the four-year plan already running, and it is settled.
+          if (session.id === "debt" && stc.oldDebt && !stc.oldDebt.decided) { if (!stc.oldDebt.kind) { try { chooseOldDebt("four"); } catch (e) {} } else { setStc(p => ({ ...p, oldDebt: { ...p.oldDebt, decided: true, auto: false } })); addL("💳 The last government's debt stays on the four-year plan.", "info"); } }
+          setSession(null); }} />}
         {phase === "sc" && scCards[0] && !scCards[0].letter && !scCards[0].military && !scCards[0].doc && (() => { const c = scCards[0];
           return <LvDecision key={c.key} c={{ ...c, ...(pillarOn("words") ? { brief: SYS.cut25(c.brief), stakes: c.stakes ? SYS.cut25(c.stakes, 1, 20) : c.stakes } : {}), options: c.options.map(o => ({ label: o.label, note: o.note, risk: o.risk, chips: fcChips("sc#" + c.key, o.label, o.chips), disabled: o.disabled, raw: o })) }}
             advice={<>{fcStrip("sc#" + c.key)}{c.advice ? <div className="recall" style={{ background: "#fff4f2", borderLeftColor: "#8e0c0c" }}><span><b style={{ color: "#8e0c0c" }}>URGENT: {BKC().nm.toUpperCase()} 🚨 · {String(c.adviceFrom || c.from || "The Chief of Army Staff").split(" · ")[0]} advises:</b> “{c.advice}”</span></div> : null}</>}

@@ -3,7 +3,14 @@
 
 
 
-## Create a missing ministry from inside a project, and carry on (22 Nov, latest)
+## The debt question is asked once (22 Nov, latest)
+
+- **The bug.** In year one, if the State Economic Council sat before the first budget (the yearly calendar letter makes this common), your answer about the last government's debt was wiped when the budget set up the year's accounts, so the Council asked again.
+  - The accounts set-up now keeps a plan already chosen.
+  - Closing the question without an answer also settles it on the four-year plan.
+- **Test:** `tests/e2e/debt-once.mjs`. It fails on the old code and passes now.
+
+## Create a missing ministry from inside a project, and carry on (22 Nov)
 
 - **What changed.** When a new project needs a ministry you do not have, "Create the Ministry of …" no longer throws the plan away.
   - The plan is kept (`resumeFlow`), the ministry sheet opens, and after "Create and swear in" the same plan reopens with the new ministry in charge.
