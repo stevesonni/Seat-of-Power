@@ -5112,8 +5112,12 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
   }
   return <div data-sop-short style={{ minHeight: "var(--sop-short-h, 100vh)", display: "flex", flexDirection: "column", background: CL.bg, padding: "12px 12px max(16px, env(safe-area-inset-bottom, 0px))", fontFamily: F.b, boxSizing: "border-box" }} ref={el => { try { if (el) { const z = parseFloat((document.getElementById("sop-stage") || {}).style?.zoom) || 1; el.style.setProperty("--sop-short-h", Math.round(window.innerHeight / z) + "px"); } } catch (e) {} }}>
     <div style={box} className="sp-step" key={step}>
+      {/* Choosing the state: the map of Nigeria, as on the full setup (owner, 22 Nov 2026: "this should be the map"). */}
+      {step === -3 ? <div data-sop-short-map style={{ flex: "1 1 auto", minHeight: 220, display: "flex", alignItems: "center", justifyContent: "center", background: UI.cream, padding: "12px 10px 4px" }}>
+        <div style={{ width: "100%", maxWidth: 560 }}><NigeriaMap value={st} onPick={(k) => { if (k === "FCT") return; setSt(k); setDepPick(null); }} zone={null} tints={{ SW: UI.tints[3], SS: UI.tints[0], SE: UI.tints[4], NW: UI.tints[1], NE: UI.tints[2], NC: UI.tints[5] }} /></div>
+      </div> :
       <div style={{ position: "relative", flex: "1 1 auto", minHeight: 220 }}><img src={art} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        {step <= 1 && <img src={"./art/characters/godfather" + (step === 1 && deal && deal.id === "none" ? "-angry" : step === 1 ? "-pleased" : "") + ".webp"} alt={gf} style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", height: "92%", width: "auto", maxWidth: "90%", objectFit: "contain", objectPosition: "bottom", filter: "drop-shadow(0 12px 24px rgba(0,0,0,.5))" }} />}</div>
+        {step <= 1 && <img src={"./art/characters/godfather" + (step === 1 && deal && deal.id === "none" ? "-angry" : step === 1 ? "-pleased" : "") + ".webp"} alt={gf} style={{ position: "absolute", bottom: 0, left: "50%", transform: "translateX(-50%)", height: "92%", width: "auto", maxWidth: "90%", objectFit: "contain", objectPosition: "bottom", filter: "drop-shadow(0 12px 24px rgba(0,0,0,.5))" }} />}</div>}
       <div style={{ padding: "18px 20px 22px", flex: "none" }}>
         <div className="sp-kicker" style={{ fontSize: 14 }}>{nm} · {P.id} · {st.replace(/_/g, " ")}</div>
         {step === -3 && <><h2 style={{ fontFamily: F.d, margin: "6px 0 8px", fontSize: 34, lineHeight: 1.12 }}>Which state will you run in?</h2>

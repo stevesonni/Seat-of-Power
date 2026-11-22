@@ -15,6 +15,13 @@ let total = await words(); const t0 = Date.now();
 await g.click(/^New game$/); await g.wait(900); await createPolitician(g); await g.wait(900);
 // 2. The short start: your own choices first (owner, 22 Nov 2026): the state, the agenda, the running mate.
 check(/Which state will you run in\?/.test(await g.txt()) && /\(your home state\)/.test(await g.txt()), "you choose the state (your home state first)");
+check(!!(await g.page.$("[data-sop-short-map] svg path")), "the state step shows the map of Nigeria (owner, 22 Nov 2026)");
+if (process.env.SHOT) await g.page.screenshot({ path: process.env.SHOT });
+const home0 = await g.page.evaluate(() => document.querySelector("[data-sop-short-state]").value);
+const other = home0 === "Kano" ? "Lagos" : "Kano";
+await g.page.evaluate((k) => { const p = [...document.querySelectorAll("[data-sop-short-map] path")].find(x => (x.querySelector("title") || {}).textContent === k); p && p.dispatchEvent(new MouseEvent("click", { bubbles: true })); }, other); await g.wait(400);
+check(await g.page.evaluate(() => document.querySelector("[data-sop-short-state]").value) === other && /Run in /.test(await g.txt()), "tapping a state on the map picks it (" + other + ")");
+await g.page.evaluate((k) => { const p = [...document.querySelectorAll("[data-sop-short-map] path")].find(x => (x.querySelector("title") || {}).textContent === k.replace(/_/g, " ")); p && p.dispatchEvent(new MouseEvent("click", { bubbles: true })); }, home0); await g.wait(300);
 await g.click(/^Run in /); await g.wait(500);
 check(/Your agenda/.test(await g.txt()) && !!(await g.page.$("[data-sop-short-agenda=health]")), "you choose the agenda");
 await g.page.evaluate(() => document.querySelector("[data-sop-short-agenda=health]").click()); await g.wait(500);
