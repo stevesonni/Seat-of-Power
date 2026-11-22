@@ -19,6 +19,10 @@ await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")]
 const local = await g.page.evaluate(() => [...document.querySelectorAll("[data-sop-local]")].map(e => e.innerText));
 check(local.some(t => /In Ogun:/.test(t) && /regulates its own electricity market/.test(t)), "the electrification card says what is different in Ogun (" + (local[0] || "none") + ")");
 check(local.some(t => /Amotekun/.test(t)), "the security corps is Ogun's own: Amotekun");
+const srcs = await g.page.evaluate(() => [...document.querySelectorAll("img")].map(i => i.getAttribute("src")).filter(x => /art\/variants\//.test(x || "")));
+check(srcs.some(x => /amotekun-west/.test(x)), "Ogun's Amotekun card shows its own picture (" + srcs.join(", ") + ")");
+const broken = await g.page.evaluate(() => [...document.querySelectorAll("img")].filter(i => /art\/variants\//.test(i.src) && i.complete && !i.naturalWidth).map(i => i.src));
+check(!broken.length, "every state picture loads (" + broken.join(", ") + ")");
 // Bills: Ogun's own.
 await tab("Bills"); await g.wait(600);
 const bills = await g.txt();

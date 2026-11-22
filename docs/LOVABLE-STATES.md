@@ -1,5 +1,7 @@
 # Lovable art: each state's own programmes and bills
 
+**Delivered (22 Nov 2026): all 40 are in `public/art/variants/` and the game uses them (`VARIANT_ART` reads `SYS.VARIANT_ART_ALL`).**
+
 Programmes and bills now change with the state. Rural electrification in Abia means working with Aba's ring-fenced power company. In Lagos you license your own mini-grids. In Bayelsa the panels come by boat, and in Zamfara the sites need guards. Each version needs its own picture. Until a picture arrives, the game shows the programme's usual picture, so nothing breaks.
 
 ## Rules (as docs/LOVABLE-DECISIONS.md)

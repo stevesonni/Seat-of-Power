@@ -28,7 +28,7 @@
   - The north gets a Grazing Reserves law.
   - Each state has its own extra bills: the State Electricity Market Law (which switches the state to its own regulator) or a consumer law; a host community trust (oil states) or a revenue law; erosion control; flood plain; waterways safety; forest guards; the Hisbah board.
   - Bills show the fact behind them (📚).
-- **Pictures:** `docs/LOVABLE-STATES.md` lists 40 images for Lovable, to go in `public/art/variants/`. Until they arrive, cards use the usual picture. Add each name to `VARIANT_ART` as it arrives.
+- **Pictures:** all 40 from `docs/LOVABLE-STATES.md` were delivered and are in `public/art/variants/`. Programme cards, bill cards, the local question and the assent desk show the state's own picture. A unit test checks every picture is shipped and used.
 - **Tests:** `tests/stateprofile.test.mjs` (431 unit tests pass) and `tests/e2e/local-state.mjs` (Ogun: the question, the plan, Ogun's bills).
 
 ## The Council remembers; Lagos produce (22 Nov)

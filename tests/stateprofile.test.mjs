@@ -93,3 +93,19 @@ test("project costs follow the state's land", () => {
   let k = 0; assert.equal(siteTrouble(z, 1, () => [0, .05][k++] ?? .5).kind, "attack");
   const zg = { ...z, pick: "escort" }; k = 0; assert.notEqual((siteTrouble(zg, 1, () => [0, .05][k++] ?? .5) || {}).kind, "attack");
 });
+
+test("every state picture is shipped and every shipped one is used (docs/LOVABLE-STATES.md)", async () => {
+  const fs = await import("node:fs");
+  const dir = new URL("../public/art/variants/", import.meta.url);
+  const have = fs.readdirSync(dir).map(f => f.replace(/\.webp$/, "")).sort();
+  assert.deepEqual(have, [...S.VARIANT_ART_ALL].sort());
+  // Every picture a programme or bill names is one of them.
+  const ALLST = ["Lagos", "Abia", "Kano", "Bayelsa", "Zamfara", "Borno", "Ondo", "Ebonyi", "Benue", "Plateau", "Oyo", "Anambra"];
+  const used = new Set();
+  ALLST.forEach(st => {
+    ["rural_elec", "water", "roads", "irrigation", "classrooms", "free_edu", "phc", "amotekun", "school_feed"].forEach(id => { const p = S.localProgramme({ id, nm: id, c: 1, t: 1 }, st); if (p && p.art) used.add(p.art); });
+    S.localBills([{ id: "open_grazing", nm: "x", d: "x" }, { id: "child_rights", nm: "x", d: "x" }, { id: "vapp", nm: "x", d: "x" }], st).forEach(b => b.art && used.add(b.art));
+    S.stateBills(st, { ownMarket: true }).forEach(b => b.art && used.add(b.art));
+  });
+  [...used].forEach(a => assert.ok(have.includes(a), a));
+});
