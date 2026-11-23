@@ -17,6 +17,11 @@ installs them.
 > **No text, no words, no signs with lettering, no logos, no flags with emblems, no watermarks.** No famous or
 > recognisable people. Nobody looks into the camera. Nothing violent or sad.
 
+## Delivered 23 Nov 2026 (third batch)
+
+- `housing.mp4` (a new estate of bungalows, families carrying boxes in) and `industrial.mp4` (an industrial park, trucks through the gate). Re-encoded to 960×540 with no sound, as the others.
+- Still wanted, in this order: bridge, university (also used for the polytechnic and the college of education), stadium, tourist site.
+
 ## Delivered 22 Nov 2026 (second batch)
 
 - `power.mp4` (a town lights up at night, the market first): power plants, solar, gas and mini-grids, and rural electrification. It replaces the dam film for power projects.

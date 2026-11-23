@@ -2155,3 +2155,6 @@ Owner: "Let projects needing contractors go through contractors. We have many cl
 
 ## Lovable's small works and faces installed (23 Nov 2026)
 14 pictures in public/art/works/ (resized to 1280×720) and 66 portraits in public/art/people/ (512×640, transparent), 4 MB in all instead of 21 MB. Commissioners, ministers and neighbouring governors now draw from the new faces (checked in the cabinet: eight different faces, nothing broken). Small works show their own picture on the tender, the "contract signed" screen and the "Finished" pop-up.
+
+## Gemini films: housing estate and industrial park (23 Nov 2026)
+public/art/reels/housing.mp4 and industrial.mp4 (960×540, no sound, about 1 MB each); listed in REELS. They play when a housing estate or an industrial park is finished.
