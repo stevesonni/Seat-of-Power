@@ -2149,3 +2149,6 @@ Owner: "Let projects needing contractors go through contractors. We have many cl
 - Routed through it: the neighbourhood jobs on the map (patch a road, a borehole, the market lights, a school roof; "Visit and listen" stays one tap), the governor's quick wins (streetlights, clinic, drains, hand pumps, potholes; desks stay one tap) and the building choices in the state crisis stories (11 options tagged `works:` in statestories.js). The President's versions are unchanged.
 - Pictures: public/art/works/ (stand-ins until they arrive). Faces: when public/art/people/official-m-01.webp exists, commissioners, ministers and neighbouring governors are drawn from 16 + 6 new portraits (`peopleArt`). Brief: docs/LOVABLE-WORKS-PEOPLE.md.
 - Test: tests/e2e/works.mjs.
+
+## The guide is findable (23 Nov 2026)
+/wiki was already live and linked from the home page. Added /robots.txt and /sitemap.xml (home, /play and every guide page) in server/vatar-server.mjs so search engines find it.

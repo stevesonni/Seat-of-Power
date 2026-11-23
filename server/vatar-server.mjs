@@ -585,6 +585,13 @@ http.createServer(async (req, res) => {
       if (url.search) { res.writeHead(302, { ...baseHeaders, Location: "/play" + url.search }); return res.end(); }
       return send(res, 200, landing, TYPES[".html"]);
     }
+    // So search engines find the guide (owner, 23 Nov 2026: "our how to play, did you let it go live").
+    if (url.pathname === "/robots.txt") { res.writeHead(200, { ...baseHeaders, "Content-Type": TYPES[".txt"] }); return res.end("User-agent: *\nAllow: /\nSitemap: https://seatofpower.online/sitemap.xml\n"); }
+    if (url.pathname === "/sitemap.xml") {
+      const paths = ["/", "/play", "/wiki", "/wiki/how-to", "/wiki/glossary", ...WIKI_PAGES.filter(x => !["home", "howto", "glossary", "search"].includes(x)).map(x => "/wiki/" + x)];
+      res.writeHead(200, { ...baseHeaders, "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" });
+      return res.end('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + paths.map(x => "<url><loc>https://seatofpower.online" + x + "</loc></url>").join("") + "</urlset>\n");
+    }
     // The public guide: /wiki, /wiki/<topic>, /wiki/how-to, /wiki/glossary, /wiki/search?q= (server/wiki.mjs).
     if (url.pathname === "/wiki" || url.pathname.startsWith("/wiki/")) {
       const html = wikiPage(url.pathname, url.searchParams);
