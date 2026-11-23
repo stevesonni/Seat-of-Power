@@ -151,7 +151,9 @@ export const eligible = (type, projects = [], key = "") => {
   const pc = CONTRACTORS.filter(c => c.player && !c.hidden && c.sectors.includes(sector)).sort((a, b) => (b.mine - a.mine) || (b.hires - a.hires));
   const others = pc.filter(c => !c.mine), top = others.slice(0, 2);
   const shown = pc.filter(c => c.mine).concat(top, rotatePick(others.filter(c => !top.includes(c)), 3, String(key)));
-  return shown.concat(CONTRACTORS.filter(c => !c.player && c.sectors.includes(sector))).map(c => ({ ...c, active: busy(c.id), full: busy(c.id) >= c.capacity }));
+  // A firm that fled with a mobilisation fee never bids again (owner, 23 Nov 2026).
+  const fledIds = new Set(projects.filter(p => p.fledId).map(p => p.fledId)), fledNames = new Set(projects.filter(p => p.fledFirm).map(p => p.fledFirm));
+  return shown.concat(CONTRACTORS.filter(c => !c.player && c.sectors.includes(sector))).filter(c => !fledIds.has(c.id) && !fledNames.has(c.name)).map(c => ({ ...c, active: busy(c.id), full: busy(c.id) >= c.capacity }));
 };
 
 /* The funding check. needM is the full cost of the scope you set. */

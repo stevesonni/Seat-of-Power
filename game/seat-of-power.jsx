@@ -5601,7 +5601,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
           {(p.status === "stalled" || p.status === "in_progress") && SYS.toFinishM(p) > 0 && <button className="sp-btn ghost" onClick={() => onAction(p.id, "fund")}>Add {SYS.fmtM(SYS.toFinishM(p))}</button>}
           {SYS.stallCause(p) === "cash" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "restart")}>Restart the work</button>}
           {["stalled", "in_progress", "pending_finance"].includes(p.status) && <button className="sp-btn ghost" onClick={() => onAction(p.id, "reduce")}>Cut the scope</button>}
-          {p.fled && !p.japaRecovered && <button className="sp-btn" data-sop-japa-get onClick={() => onAction(p.id, "japa")}>Get the money back from {p.fledTo || "abroad"}</button>}
+          {(p.fledM || p.fled) && !p.japaRecovered && !p.japaLetGo && <button className="sp-btn" data-sop-japa-get onClick={() => onAction(p.id, "japa")}>Get the money back from {p.fledTo || "abroad"}</button>}
           {(p.status === "stalled" || p.status === "in_progress") && <button className="sp-btn ghost" onClick={() => onAction(p.id, "replace")}>Replace the contractor</button>}
           {p.status === "in_progress" && !p.fast && <button className="sp-btn ghost" onClick={() => onAction(p.id, "accelerate")}>Speed it up (+15%)</button>}
           {p.status === "in_progress" && <button className="sp-btn ghost" onClick={() => onAction(p.id, "suspend")}>Suspend</button>}
@@ -7913,7 +7913,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const L = stc.labour || {}, cm = stc.complaints || {};
     const strikes = Object.values(L.strikes || {}).filter(x => x && x.on).map(x => ({ id: x.id, short: (SYS.UNIONS[x.id] || {}).short || x.id, years: SYS.yearsOn(x, turn) + 1, talks: roundsLeft(x.id) < SYS.ROUNDS_A_YEAR }));
     const done = (projects || []).filter(p => p.status === "delivered").slice(-2).map(p => p.title);
-    const fled = (projects || []).filter(p => p.fled && !p.japaRecovered).map(p => ({ proj: p.title, firm: p.fledFirm || "The contractor", to: p.fledTo || "abroad", lossM: p.fledM || 0, back: false, asked: (stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id) }));
+    const fled = (projects || []).filter(p => (p.fledM || p.fled) && !p.japaRecovered && !p.japaLetGo).map(p => ({ proj: p.title, firm: p.fledFirm || "The contractor", to: p.fledTo || "abroad", lossM: p.fledM || 0, back: false, asked: (stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id) }));
     const needs = activeNeeds.filter(n => n.status !== "resolved").slice(0, 3).map(n => { const nt = needType(n); return { title: nt ? nt.title(n.lga) : "A need", inWork: n.status !== "open" }; });
     const complaints = complaintsNow().map(c => ({ id: c.id, who: c.who, place: c.place, t: c.t, icon: c.icon, answered: !!(cm[c.id] && cm[c.id].t === turn), lied: !!c.lied }));
     let tag = ""; try { tag = streetVoices({ stName, last: null, app: s.app, cor: s.cor, arrears: stc.arrears, needs, house: stc.house, balance: null, turn }).tag; } catch (e) {}
@@ -8386,6 +8386,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           { label: "Overrule it: keep rates low", note: "Business is happy this year. Inflation stays high.", chips: fxChips({ app: 1 }), run: () => { scFx({ app: 1 }); setStc(p => ({ ...p, inflation: { ...(p.inflation || {}), rate: SYS.infl(p.inflation) + 3 } })); addL("🏦 Overruled the Central Bank: rates stay low, and so does the naira.", "political"); } },
         ] });
     }
+    // Money a contractor ran abroad with: a letter every year until it is home or you let it go, with the way to get it
+    // back (the governor's Aso Rock visit; the President's Attorney-General). Never forgotten after a new contractor.
+    (projects || []).filter(P => japaOwed(P) && !(next.chains || []).some(c => c.projId === P.id && !c.done && /^japa/.test(c.kind || ""))).slice(0, 2).forEach(P => {
+      const d0 = (P.decisions || []).map(x => x.text).find(t => /fled to/.test(t)) || "", to = P.fledTo || ((d0.match(/fled to ([^.]+)\./) || [])[1]) || "abroad", firm = P.fledFirm || "The contractor", lossM = P.fledM || Math.round((P.contractM || P.estimateM || 0) * .15);
+      if (!lossM) return;
+      const seen = !NAT && stc.visitYear === turn, standing = NAT ? SYS.abroadStanding({ trips: ((stc.pres || {}).seen || []).filter(id => SYS.PRES_WORLD.some(c => c.id === id)).length, app: s.app, cor: s.cor || 0 }) : Math.round(fgRelation);
+      cards.push({ key: "japa_remind_" + P.id + "_" + turn, kicker: "🧳 The missing money · " + P.title, color: CL.red, art: [NAT ? "villa-office" : "governor-office", NAT ? "attorney-general" : "finance-commissioner", null, "japa-departure"],
+        title: SYS.fmtM(lossM) + " is still in " + to,
+        brief: firm + " fled to " + to + " with the mobilisation fee for " + P.title + ". " + (NAT ? "Only your Attorney-General can ask " + to + " to freeze their accounts. Your standing abroad: " + standing + "/100 (they act at " + SYS.JAPA_ABROAD_MIN + ")." : "A state cannot chase money abroad: only the Federal Government can. Use your yearly visit to Aso Rock to ask the President. Your standing with Abuja: " + standing + "/100 (he acts at " + SYS.JAPA_FG_MIN + ")."),
+        stakes: "If the request succeeds, the full amount comes back to the treasury next year.",
+        options: [
+          ...(seen ? [] : [{ label: NAT ? "⚖️ Have the Attorney-General ask " + to + " for it" : "✈️ Fly to Aso Rock: ask the President to get it back", note: NAT ? "Standing abroad " + standing + "/100 · needs " + SYS.JAPA_ABROAD_MIN : "Uses this year's visit to the President · standing " + standing + "/100 · needs " + SYS.JAPA_FG_MIN, run: () => projAction(P.id, "japa") }]),
+          { label: "Not this year", note: "The letter comes back next year.", run: () => ({ icon: "🗂️", title: "Filed for next year", text: "The " + SYS.fmtM(lossM) + " is still owed. You can also ask from the project (State → Projects).", tone: "neutral" }) },
+          { label: "Let the money go", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); setProjects(prev => (prev || []).map(x => x.id === P.id ? { ...x, japaLetGo: true } : x)); addL("🧳 You stopped chasing " + firm + "'s " + SYS.fmtM(lossM) + " in " + to + ".", "info"); return { icon: "🧳", title: "Let go", text: "The " + SYS.fmtM(lossM) + " stays in " + to + ". The opposition will remember.", tone: "bad" }; } },
+        ] });
+    });
     // Recovery plans that are due (SYS.recoveryPlan): costed steps you approve; what you approve happens.
     (next.recPlans || []).filter(x => !x.done && x.due <= turn).slice(0, 2).forEach(R => {
       const m = (ministries || []).find(k => k.id === R.mid);
@@ -9017,9 +9033,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 setStc(p => ({ ...p, chains: [...(p.chains || []), good ? { id: "japa_back_" + b.projId, kind: "japa_back", nat: true, due: turn + 1, projId: b.projId, proj: b.proj, firm: b.firm, to: b.to, lossM: b.lossM } : { ...b, id: "japa_ask_" + b.projId + "_" + (turn + 1), due: turn + 1, done: false }] }));
                 return good ? { icon: "🤝", img: "./art/scenes/japa-departure.webp", title: b.to + " will act", text: "They will freeze " + b.firm + "'s accounts and send the " + SYS.fmtM(b.lossM) + " home. Expect word next year.", tone: "good" }
                   : { icon: "🚫", img: "./art/scenes/japa-departure.webp", title: b.to + " refused again", text: "Standing abroad " + ab + "/100 is still under " + SYS.JAPA_ABROAD_MIN + ". Attend summits and make state visits this year; the request comes back next year.", tone: "bad" }; } },
-              { label: "Let it go", note: "The money stays abroad.", run: () => { addL("🧳 You stopped chasing " + b.firm + "'s " + SYS.fmtM(b.lossM) + " in " + b.to + ".", "info"); return { icon: "🧳", title: "Let go", text: "The " + SYS.fmtM(b.lossM) + " stays in " + b.to + ". The opposition will remember.", tone: "bad" }; } }] });
+              { label: "Let it go", note: "The money stays abroad.", run: () => { setProjects(prev => (prev || []).map(x => x.id === b.projId ? { ...x, japaLetGo: true } : x)); addL("🧳 You stopped chasing " + b.firm + "'s " + SYS.fmtM(b.lossM) + " in " + b.to + ".", "info"); return { icon: "🧳", title: "Let go", text: "The " + SYS.fmtM(b.lossM) + " stays in " + b.to + ". The opposition will remember.", tone: "bad" }; } }] });
         } else if (b.kind === "japa") {
-          const P = (projects || []).find(x => x.id === b.projId); if (!P || P.status !== "stalled") return;
+          const P = (projects || []).find(x => x.id === b.projId); if (!P || P.japaRecovered || P.japaLetGo) return;
+          const stuck = P.status === "stalled"; // a new contractor may already be on site: the money is still owed
           cards.push({ key: "chain_japa_" + b.projId, beat: b, kicker: "🧳 Japa · " + P.title, color: CL.red, art: ["project-site-stalled", null, null, "japa-departure"], title: b.firm + " took the mobilisation fee and fled to " + b.to,
             brief: "The mobilisation fee for " + P.title + " (" + SYS.fmtM(b.lossM) + ") was paid. The site is empty; the directors' phones are off. Immigration says they flew to " + b.to + " last month.",
             options: [
@@ -9044,8 +9061,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/attorney-general" + (good ? "-pleased" : "-angry") + ".webp", bg: "./art/scenes/japa-departure.webp", name: "The Attorney-General of the Federation", text: good ? "\u201cMr. President, " + b.to + " has agreed. Their courts will freeze " + b.firm + "'s accounts and the money will be sent home. Give it until next year.\u201d" : "\u201cMr. President, " + b.to + " will not move on our request. Our standing abroad is too weak. Attend the summits, keep corruption down, and we can ask again.\u201d", ok: "Continue" } }); } catch (e) {} }, 400);
                   return good ? { icon: "🤝", img: "./art/scenes/japa-departure.webp", title: b.to + " will act", text: "They will freeze " + b.firm + "'s accounts and send the " + SYS.fmtM(b.lossM) + " home. Expect word next year. The project still needs a new contractor (Projects).", tone: "good" }
                     : { icon: "🚫", img: "./art/scenes/japa-departure.webp", title: b.to + " will not act", text: "Your standing abroad (" + ab + "/100) is not strong enough. The " + SYS.fmtM(b.lossM) + " is gone for now.", tone: "bad" }; } }]; })() : []),
-              { label: "Hire a new contractor now", run: () => { projAction(P.id, "replace"); return { icon: "🏗️", img: "./art/objects/mobilisation-cheque.webp", title: "A new contractor, a new cheque", text: "The work restarts under new management. Another mobilisation fee, and this time the money is released in stages.", tone: "neutral" }; } },
-              { label: "Abandon the project", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); setProjects(prev => prev.map(x => x.id === P.id ? SYS.abandon(x, turn) : x)); addL("🚧 " + P.title + " abandoned after the contractor fled.", "crisis"); return { icon: "🚧", title: "Abandoned", text: "Another abandoned project for the papers.", tone: "bad" }; } }] });
+              ...(stuck ? [] : [{ label: "Let the money go", note: "Stop chasing it. The opposition will remember.", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); setProjects(prev => prev.map(x => x.id === P.id ? { ...x, japaLetGo: true } : x)); addL("🧳 You stopped chasing " + b.firm + "'s " + SYS.fmtM(b.lossM) + " in " + b.to + ".", "info"); return { icon: "🧳", title: "Let go", text: "The " + SYS.fmtM(b.lossM) + " stays in " + b.to + ".", tone: "bad" }; } }]),
+              ...(!stuck ? [] : [{ label: "Hire a new contractor now", run: () => { projAction(P.id, "replace"); return { icon: "🏗️", img: "./art/objects/mobilisation-cheque.webp", title: "A new contractor, a new cheque", text: "The work restarts under new management. Another mobilisation fee, and this time the money is released in stages.", tone: "neutral" }; } },
+              { label: "Abandon the project", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); setProjects(prev => prev.map(x => x.id === P.id ? SYS.abandon(x, turn) : x)); addL("🚧 " + P.title + " abandoned after the contractor fled.", "crisis"); return { icon: "🚧", title: "Abandoned", text: "Another abandoned project for the papers. The " + SYS.fmtM(b.lossM) + " is still owed: you can still ask for it.", tone: "bad" }; } }])] });
         } else if (b.kind === "eo_court") {
           const inv = "Van der Berg Logistics";
           // Struck down for good: the order's own savings stop, and it no longer counts as in force.
@@ -10127,7 +10145,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (!p.japaChecked && (p.progress || 0) < 40 && p.startTurn != null && p.startTurn < turn) {
         if (Math.random() < SYS.japaRisk({ cor: s.cor || 0, soleSource: /direct/i.test(p.method || "") }) * (PACE === "relaxed" ? .5 : 1)) {
           const to = SYS.JAPA_TO[hashStr(p.id) % SYS.JAPA_TO.length], lossM = Math.round((p.contractM || p.estimateM || 0) * .15);
-          next[p.id] = { ...p, status: "stalled", japaChecked: true, fled: true, fledFirm: p.contractor || "The contractor", fledTo: to, fledM: lossM, decisions: [...(p.decisions || []), { year: turn, text: "The contractor took the mobilisation fee (" + SYS.fmtM(lossM) + ") and fled to " + to + "." }] };
+          next[p.id] = { ...p, status: "stalled", japaChecked: true, fled: true, fledId: p.contractorId || null, fledFirm: p.contractor || "The contractor", fledTo: to, fledM: lossM, decisions: [...(p.decisions || []), { year: turn, text: "The contractor took the mobilisation fee (" + SYS.fmtM(lossM) + ") and fled to " + to + "." }] };
           setStc(st => ({ ...st, chains: [...(st.chains || []), { id: "japa_" + p.id, kind: "japa", due: turn + 1, projId: p.id, firm: p.contractor || "The contractor", to, lossM }] }));
           notes.push(["🧳 Japa: " + (p.contractor || "the contractor") + " took " + SYS.fmtM(lossM) + " of mobilisation fee for " + p.title + " and fled to " + to + ".", "crisis"]);
           setTimeout(() => paper("CONTRACTOR 'JAPAS' WITH " + SYS.fmtM(lossM).toUpperCase() + " MOBILISATION FEE", p.title + ": the site is empty, the directors are in " + to, false, "./art/scenes/japa-departure.webp"), 1200);
@@ -10703,10 +10721,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       postMail([letterOf("investor_come", { key, live: true, kind: "investment", stakes: 1, lines, tip: ["Foreign investors", "./art/characters/investor-foreign.webp", "Your projects brought investors to " + stName, got.length ? "Some are coming to build." : "They are watching how the state is run."] })]);
     }, 900);
   };
+  /* Money a contractor ran off with stays owed until it is recovered or you let it go, even after a new contractor
+     takes over the site (owner, 23 Nov 2026: "money was japaed… I got nothing in the visit to the President or even
+     a letter on how to recover it"). */
+  const japaOwed = (p) => !!(p && (p.fledM || p.fled) && !p.japaRecovered && !p.japaLetGo);
   /* The visit to Aso Rock (SYS.visits): once a year a governor flies to Abuja with one request. */
   const [visitOpen, setVisitOpen] = useState(false);
   // Money a contractor ran abroad with, not yet recovered or promised: the governor can ask for it at Aso Rock.
-  const japaOpen = () => NAT ? [] : (projects || []).filter(p => p.fled && !p.japaRecovered && !(stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id)).map(p => {
+  const japaOpen = () => NAT ? [] : (projects || []).filter(p => japaOwed(p) && !(stc.chains || []).some(c => c.kind === "japa_back" && c.projId === p.id)).map(p => {
     const d = (p.decisions || []).map(x => x.text).find(t => /fled to/.test(t)) || "";
     return { projId: p.id, proj: p.title, firm: p.fledFirm || "The contractor", to: p.fledTo || ((d.match(/fled to ([^.]+)\./) || [])[1]) || "abroad", lossM: p.fledM || Math.round((p.contractM || p.estimateM || 0) * .15) };
   }).filter(j => j.lossM > 0);
@@ -12350,7 +12372,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : k === "investor" ? 56 /* investors bring money, and their land deals bring the lawsuits */ : k === "house_bill" ? 45 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k === "judiciary" || k === "nic_ruling" /* a lawsuit is never handled away (owner, 23 Nov 2026: "we could fight it all the way to the Supreme Court") */ || k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#rplan_") /* the plan you asked a minister for */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
+    const WAR = (k) => k === "judiciary" || k === "nic_ruling" /* a lawsuit is never handled away (owner, 23 Nov 2026: "we could fight it all the way to the Supreme Court") */ || k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#rplan_") /* the plan you asked a minister for */ || k.startsWith("sc#japa_remind_") /* money a contractor fled with */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
     // A district's request is always seen (an unseen one could lapse unfairly), and one House or cabinet matter a year has its own slot.
     const ASK = (k) => k.startsWith("sc#zask_"), PEOPLE = (k) => /^sc#(exco_|leg_member_|leg_hearing_|chair_)/.test(k);
     const pType = (k) => k.startsWith("sc#exco_") ? 0 : k.startsWith("sc#chair_") ? 2 : 1; // the slot turns: the House, then the cabinet, then the party

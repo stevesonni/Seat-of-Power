@@ -3,7 +3,21 @@
 
 
 
-## The FCT has a minister, not a governor (23 Nov, latest)
+## Japa money is never forgotten (23 Nov, latest)
+
+- **What the owner saw:** "This is the second time money is being japaed. I got nothing in the visit to the President or even a letter on how to recover it. For the presidency, the same."
+- **The cause:** hiring a new contractor for the site cleared the project's `fled` flag. With it went three things:
+  - the project's "Get the money back" button;
+  - the Aso Rock visit's recovery request;
+  - the next year's japa letter, which also needed the site to still be stalled.
+- **Fixes:**
+  - **The money stays owed** (`japaOwed`: `fledM`, not recovered, not let go), whoever is on site now.
+  - **The japa letter still comes after a new contractor.** It offers recovery or "Let the money go", and hire/abandon only while the site is stalled.
+  - **A yearly letter** (`japa_remind`, always kept) says how to get it back. The governor flies to Aso Rock to ask the President; the President has the Attorney-General ask. Each shows your standing against the bar needed. The other choices are "Not this year" and "Let the money go".
+  - **A firm that fled never bids again** (`fledId`/`fledFirm` excluded in `eligible`).
+- **Tests:** `tests/e2e/japa-owed.mjs`. The japa, japa-president, visit and state-visit browser tests pass, and 452 unit tests pass.
+
+## The FCT has a minister, not a governor (23 Nov)
 
 - **What the owner saw:** the trade mission listed "FCT · Gov. Damilola Inuwa (your party)". The FCT is run by a Minister of the Federal Capital Territory, whom the President appoints.
 - **Fixes:**
