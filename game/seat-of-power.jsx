@@ -7981,11 +7981,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🔥 Tori: " + t.l + ". " + R.line, (R.adj || 0) > 0 ? "political" : "info"); track("tori_tool", t.id + (R.exposed ? ":exposed" : ""));
     setToriRespond(false);
   };
-  // The first post on Tori (owner, 23 Nov 2026): thanks for the mandate, or "we reclaimed our mandate at the
-  // tribunal", and the agenda you campaigned on. Posted once, at the start of the first term.
+  // The first post of each term on Tori (owner, 23 Nov 2026): thanks for the mandate (or the re-election), or "we
+  // reclaimed our mandate at the tribunal", and the agenda. Posted once, at the start of the first and second terms.
   useEffect(() => {
-    if (turn !== 1 || gEnd || needSetup || (stc.tori || {}).firstPost || toriPosts().length) return;
-    const t = setTimeout(() => { try { toriPost({ id: "first_post", ...SYS.toriFirstPost({ nat: NAT, st: stName, court: !!setup?.wonInCourt, agenda: (FLAGSHIP[setup?.agenda] || {}).nm, slogan: setup?.slogan, tag: SYS.toriHandle(NAT ? "Nigeria" : state) }) }); setStc(p => ({ ...p, tori: { ...(p.tori || {}), firstPost: true } })); setToriTab("home"); } catch (e) {} }, 400);
+    const second = turn === 5, key = second ? "secondPost" : "firstPost";
+    if ((turn !== 1 && !second) || gEnd || needSetup || (stc.tori || {})[key] || toriPosts().some(p => p.turn === turn && /^term_post/.test(p.id || ""))) return;
+    if (!second && toriPosts().length) return; // an older save that already posted in year one
+    const t = setTimeout(() => { try { toriPost({ id: second ? "term_post_2" : "term_post_1", ...SYS.toriFirstPost({ nat: NAT, st: stName, second, court: second ? !!stc.reWonInCourt : !!setup?.wonInCourt, agenda: (FLAGSHIP[setup?.agenda] || {}).nm, slogan: setup?.slogan }) }); setStc(p => ({ ...p, tori: { ...(p.tori || {}), [key]: true } })); setToriTab("home"); } catch (e) {} }, 400);
     return () => clearTimeout(t);
   }, [turn, needSetup, gEnd]);
   const toriPost = (opt) => {
@@ -16240,7 +16242,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                        { icon: "💸", text: "Legal spend", value: "₦" + spendTotal + "B", bad: true },
                      ],
                      tone: "good",
-                     nextFn: () => { setTribunal(null); setTurn(5); setPhase("budget"); }
+                     nextFn: () => { setTribunal(null); setStc(p => ({ ...p, reWonInCourt: true })); setTurn(5); setPhase("budget"); }
                    });
                  } else {
                    setTribunal(t => ({ ...t, level: t.level + 1, log: [...newLog, "They appealed: on to the " + LEVELS[t.level + 1].nm + "."], spent: t.spent + cost, groundId: null }));

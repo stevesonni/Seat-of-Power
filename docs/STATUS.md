@@ -9,7 +9,10 @@
 - **How it works:** at the start of the first year, once the government is formed, your account posts once (`SYS.toriFirstPost`). This applies to the governor and the President.
   - **After a normal win:** "Thank you, Ogun! I am humbled and happy to have been elected your Governor. To those who voted for us and those who did not: I will serve you all. Now we get on with the work: Build, Build, Build. #ANewDawn"
   - **After winning at the tribunal:** "Justice has prevailed. The tribunal has restored the mandate you gave us at the polls…" The tribunal win is carried into the game as `setup.wonInCourt`. For the governor it comes from the reinstated petition; for the President, from `petitionWon`.
-- **Tests:** `tests/e2e/tori-first.mjs`. Both versions post once, in year one, and name the agenda.
+- **The second term** ("make sure it spreads into our second term"): year 5 opens with its own post.
+  - **After re-election:** "Thank you, Ogun, for re-electing us! Your trust is humbling. Four more years to finish what we started: … #FourMoreYears"
+  - **After winning a re-election petition:** "We have reclaimed our mandate to continue. The tribunal has restored what you gave us at the polls…" This uses `stc.reWonInCourt`.
+- **Tests:** `tests/e2e/tori-first.mjs`. All four versions post once, at the start of their term.
 
 ## The last month in office: closure before the record (23 Nov)
 

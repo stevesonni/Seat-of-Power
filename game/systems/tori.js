@@ -1066,10 +1066,14 @@ export function toriCabinet(c) {
 /* The first post (owner, 23 Nov 2026: "my first post on Tori should be announcing that I am happy to have been
    elected, or we have reclaimed our mandate via the tribunal, and we look forward to getting on with our agenda").
    { nat, st (state name), court (won at the tribunal), agenda (the flagship's name), slogan, tag (the handle) }. */
-export function toriFirstPost({ nat, st, court, agenda, slogan } = {}) {
+export function toriFirstPost({ nat, st, court, agenda, slogan, second } = {}) {
   const place = nat ? "Nigeria" : st || "our state", office = nat ? "President" : "Governor";
   const work = agenda ? "Now we get on with the work: " + agenda + "." : "Now we get on with the work we promised.";
   const hash = "#" + String(slogan || (nat ? "ANewNigeria" : "ANewDawn")).replace(/[^A-Za-z0-9]/g, "");
+  // The second term: thanks for re-electing us, or the tribunal gave the mandate back; we continue.
+  if (second) return { tone: "warm", about: "election", topic: "general", text: court
+    ? "We have reclaimed our mandate to continue. The tribunal has restored what you gave us at the polls. Thank you, " + place + ", for standing with us. Four more years to finish what we started: " + (agenda || "the work we promised") + ". " + hash + " #FourMoreYears"
+    : "Thank you, " + place + ", for re-electing us! Your trust is humbling. Four more years to finish what we started: " + (agenda || "the work we promised") + ". " + hash + " #FourMoreYears" };
   const text = court
     ? "Justice has prevailed. The tribunal has restored the mandate you gave us at the polls. Thank you, " + place + ", for standing with us through it all. " + work + " " + hash
     : "Thank you, " + place + "! I am humbled and happy to have been elected your " + office + ". To those who voted for us and those who did not: I will serve you all. " + work + " " + hash;
