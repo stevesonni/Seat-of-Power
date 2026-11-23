@@ -8278,13 +8278,41 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // 1. The Speaker race (year one).
       if (turn <= 2 && !L.speaker) { const C = SYS.speakerCandidates(L);
         const run = (id) => () => { const R = SYS.speakerRace(next.pseed || 7, L, id, ratio), W = SYS.memberOf(L, R.winner);
-          setStc(p => ({ ...p, leg: { ...(p.leg || L), speaker: R }, persona: { ...(p.persona || {}), speaker: R.kind } })); houseBy(R.owes ? 2 : R.crossed ? -2 : 0);
+          const asks = R.hostile ? SYS.speakerAsks((next.pseed || 7) + ":" + R.winner, NAT) : [];
+          setStc(p => ({ ...p, leg: { ...(p.leg || L), speaker: { ...R, at: turn, asks, done: [] } }, persona: { ...(p.persona || {}), speaker: R.kind },
+            // A hostile Speaker takes the House with him: you lose your majority (owner, 23 Nov 2026).
+            ...(R.hostile && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, Math.floor(p.house.seats / 2) - 1) } } : {}) }));
+          if (!R.hostile) houseBy(R.owes ? 2 : 0);
           setCast(c => ({ ...c, speaker: { ...c.speaker, name: "Rt. Hon. " + W.name.replace(/^Hon\. /, "") } })); track("leg_speaker", (id ? (id === R.winner ? "backed_winner" : "backed_loser") : "stayed_out") + "_" + R.kind);
           addL("🏛️ " + W.name + " is the new Speaker" + (R.owes ? ", and owes you." : R.crossed ? ". You backed the other candidate, and the new Speaker knows it." : "."), R.crossed ? "political" : "success");
+          if (R.hostile) { const H = next.house || { seats: 24 }; addL("🏛️ You have lost your majority in the House: the new Speaker's bloc now outvotes you. He wants " + asks.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", and ") + ".", "crisis");
+            return { icon: "🏛️", title: W.name.replace(/^Hon\. /, "Rt. Hon. ") + " is Speaker. You have lost the House", text: "Your candidate lost, and the House went with the new Speaker: you no longer have a majority. He has his own programmes: " + asks.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join("; and ") + ". From next year, deal with him or your bills stay off the floor and your new programmes get no money.", tone: "bad", rows: [{ l: "Your majority", v: "Lost", good: false }, { l: "Members with you", v: "under " + (Math.floor(H.seats / 2) + 1) + " of " + H.seats, good: false }] }; }
           return { icon: "🏛️", title: W.name.replace(/^Hon\. /, "Rt. Hon. ") + " is Speaker", text: R.owes ? "Your candidate won. The Speaker owes you, and the House knows it." : R.crossed ? "Your candidate lost. The new Speaker will remember who you backed." : "You stayed out. The new Speaker owes you nothing, and resents you for nothing.", rows: [{ l: "Members with you", v: R.owes ? "+" + 2 * MEM : R.crossed ? "−" + 2 * MEM : "±0", good: R.owes ? true : R.crossed ? false : undefined }], tone: R.crossed ? "bad" : "good" }; };
         cards.push({ key: "leg_speaker", kicker: "House of Assembly · the Speaker race", color: CL.pur, art: ["assembly-chamber", "speaker"], title: "The House elects its Speaker this week",
-          brief: C[0].name + " is your party's candidate. " + C[1].name + " is a swing member, popular on both sides. Whoever wins decides which of your bills come to the floor.", stakes: "Back the winner and the Speaker owes you. Back the loser and the Speaker remembers.",
+          brief: C[0].name + " is your party's candidate. " + C[1].name + " is a swing member, popular on both sides. Whoever wins decides which of your bills come to the floor.", stakes: "If your candidate wins, the House is yours. If the other side's man wins without your backing, you lose your majority, and the new Speaker will want his own programmes before yours.",
           options: C.map(c => ({ label: "Back " + c.name, note: c.bloc === "ours" ? "Your party's choice." : "Liked across the aisle.", chips: [], run: run(c.id) })).concat([{ label: "Stay out of it", note: "Whoever wins owes you nothing.", chips: [], run: run(null) }]) });
+      }
+      // 1b. A hostile Speaker's price, every year after the race: pay it and the House works with you this year.
+      const SP = L.speaker;
+      if (SYS.hostileSpeaker(SP) && turn > (SP.at || 0) && next.speakerDeal !== turn) {
+        const W = SYS.memberOf(L, SP.winner) || { name: cast.speaker.name }, SN = "Rt. Hon. " + String(W.name).replace(/^(Rt\. )?Hon\. /, ""), open = (SP.asks || []).filter(a => !(SP.done || []).includes(a.id));
+        const H = next.house || { seats: 24, loyal: 10 }, maj = Math.floor(H.seats / 2) + 1;
+        const deal = (extra) => setStc(p => ({ ...p, speakerDeal: turn, ...extra, house: p.house ? { ...p.house, loyal: Math.max(p.house.loyal, maj) } : p.house }));
+        cards.push({ key: "leg_spprice_" + turn, kicker: "House of Assembly · the Speaker's price", color: CL.pur, art: ["assembly-chamber", "speaker", null, null],
+          title: SN + " wants his programmes first",
+          brief: "You have no majority: until you deal with " + SN + ", your bills stay off the floor and new programmes get no money. This year he wants " + (open.length ? open.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", or ") : "committee chairs and contracts for his members") + ".",
+          stakes: "Pay his price and his bloc votes with you this year, budget included.",
+          options: [
+            ...open.map(a => ({ label: "Fund it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), note: naira(a.costB) + ". His bloc votes with you this year." + (open.length === 1 ? " It is the last thing he asked for." : ""), chips: [{ text: "−" + naira(a.costB), color: CL.red }].concat(fxChips(a.fx || {})).slice(0, 3), run: () => {
+              if (!spendB(a.costB, "The Speaker's " + a.id)) return; scFx(a.fx || {});
+              const left = open.filter(x => x.id !== a.id).length;
+              deal({ leg: { ...(next.leg || L), speaker: { ...SP, done: [...(SP.done || []), a.id], hostile: left > 0 } } });
+              addL("🏛️ Funded " + SN + "'s " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " (" + naira(a.costB) + "). " + (left ? "His bloc votes with you this year." : "Both his programmes are funded: the Speaker is with you from now on."), "political");
+              scWiki("Governorship", "Funded the Speaker's " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " to win back the House.");
+              return { icon: "🤝", title: left ? "The House is with you this year" : "The Speaker is with you now", text: left ? "His bloc will vote for your budget and bring your bills to the floor. Next year he will want the rest." : "Both of his programmes are funded. The Speaker stops blocking you.", tone: "good" }; } })),
+            { label: "Give his members committee chairs and contracts", note: "No money from the Treasury now. The papers will call it a sharing formula.", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); deal(); addL("🏛️ Shared committee chairs and contracts with " + SN + "'s members for the year.", "political"); return { icon: "🤝", title: "A deal for this year", text: "His members get their chairs and their contracts; your bills reach the floor this year.", tone: "neutral" }; } },
+            { label: "Refuse: govern without him", note: "Your bills stay off the floor this year, new programmes get no money, and the budget vote is his.", chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); setStc(p => ({ ...p, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house })); addL("🏛️ You refused " + SN + "'s price. The House will block you this year.", "crisis"); return { icon: "🚫", title: "The House will block you", text: "No bills on the floor and no money for new programmes this year. The budget vote will be hard.", tone: "bad" }; } },
+          ] });
       }
       // 2. The budget battle, and the promise that comes due the year after.
       const F = (L.promises || []).find(x => x.kind === "formula"), opp = SYS.memberOf(L, F ? F.member : null) || SYS.budgetOffer(L);
@@ -10639,6 +10667,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const EIA_TYPES = new Set(["road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
+    // A hostile Speaker with no deal this year: the House will not appropriate money for anything new.
+    if (speakerBlocks()) { try { window.SOP_outcome({ icon: "🏛️", img: "./art/backgrounds/assembly-chamber.webp", title: "The House will not fund it", text: cast.speaker.name + " has not let the House approve money for anything new this year: you have not met his price. Deal with him first (his letter is in your mail).", tone: "bad" }); } catch (e) {} return; }
     { const B = SYS.strikeBlock(strikeNow(), { s: p.s, id: p.id }); if (B) return strikeRefuse(p.nm.replace(/^⭐\s*/, ""), B); }
     if (NAT && stc.impeach && stc.impeach.frozen === turn) { try { window.SOP_outcome({ icon: "⚖️", img: "./art/backgrounds/senate-chamber.webp", title: "Not in the year of the trial", text: "The Senate tribunal has frozen the government's programmes for the rest of this year.", tone: "bad" }); } catch (e) {} return; }
     if (p.ask && !p.pick) { setLocalAsk(p); return; } // how it is done in this state, first (SYS.localProgramme)
@@ -12253,6 +12283,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // decision behind it and whether it is a fair objection or leverage.
   // Only an overdue debt to the godfather, or refusing him while the party
   // is weak, can block a bill on its own.
+  const speakerBlocks = () => !NAT && SYS.hostileSpeaker(((stc.leg || {}).speaker)) && turn > ((stc.leg || {}).speaker.at || 0) && stc.speakerDeal !== turn;
   const houseGrudges = () => {
     const M = window.SOP_MEMORY; const out = [];
     if (!M) return out;
@@ -12272,6 +12303,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (nep) out.push({ who: "The opposition caucus", why: nep + " appointment" + (nep === 1 ? "" : "s") + " of relatives and allies are on the record.", good: true, block: false });
     } catch (e) {}
     if (forcedBudget) out.push({ who: "Members across the House", why: "you forced an earlier budget through without them.", good: true, block: false });
+    // A hostile Speaker with no deal this year keeps your bills off the order paper (owner, 23 Nov 2026).
+    if (speakerBlocks()) out.unshift({ who: cast.speaker.name + ", the Speaker", why: "you have not met his price this year, so he has kept your bill off the order paper. His price is in your mail.", good: false, block: true, kind: "speaker" });
     // The Hostile House: the opposition majority votes down whatever you send, until you hold a majority.
     if (hostileOn()) { const H = stc.house || scHouse(); out.unshift({ who: "The opposition majority under " + cast.speaker.name, why: "they hold " + (H.seats - H.loyal) + " of " + H.seats + " seats, and they vote down whatever you send.", good: false, block: stc.appealed !== turn && (stc.scen || {}).truce !== turn, fix: "truce", majority: true }); }
     return out;
@@ -12378,7 +12411,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : k === "investor" ? 56 /* investors bring money, and their land deals bring the lawsuits */ : k === "house_bill" ? 45 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k === "judiciary" || k === "nic_ruling" /* a lawsuit is never handled away (owner, 23 Nov 2026: "we could fight it all the way to the Supreme Court") */ || k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#rplan_") /* the plan you asked a minister for */ || k.startsWith("sc#japa_remind_") /* money a contractor fled with */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
+    const WAR = (k) => k === "judiciary" || k === "nic_ruling" /* a lawsuit is never handled away (owner, 23 Nov 2026: "we could fight it all the way to the Supreme Court") */ || k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#rplan_") /* the plan you asked a minister for */ || k.startsWith("sc#japa_remind_") /* money a contractor fled with */ || k.startsWith("sc#leg_spprice_") /* the hostile Speaker's price */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
     // A district's request is always seen (an unseen one could lapse unfairly), and one House or cabinet matter a year has its own slot.
     const ASK = (k) => k.startsWith("sc#zask_"), PEOPLE = (k) => /^sc#(exco_|leg_member_|leg_hearing_|chair_)/.test(k);
     const pType = (k) => k.startsWith("sc#exco_") ? 0 : k.startsWith("sc#chair_") ? 2 : 1; // the slot turns: the House, then the cabinet, then the party

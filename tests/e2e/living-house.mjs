@@ -27,7 +27,10 @@ check(!!st.situ || seen.has("situ"), "a starting situation (" + st.situ + ")");
 check(await g.page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem("sop_seen_cards") || "{}")).length > 0), "the cards seen this run are remembered for the next");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 // Life after office: two full terms, then the successor.
-await g.page.evaluate(() => window.SOP.setGEnd("complete")); await g.wait(4000);
+await g.page.evaluate(() => window.SOP.setGEnd("complete")); await g.wait(1500);
+// The last month in office comes first (the farewell): walk through it to the record.
+for (let i = 0; i < 12 && await g.page.$("[data-sop-farewell]"); i++) { await g.page.evaluate(() => { document.querySelectorAll("[data-ach]").forEach(e => e.remove()); const b = [...document.querySelectorAll("button")].filter(x => /(→|^Sign it$|^Humble: )/.test(x.textContent.trim())).pop(); b && b.click(); }); await g.wait(500); }
+await g.wait(3000);
 let stay = false;
 for (let i = 0; i < 12 && !stay; i++) { stay = !(await g.page.evaluate(() => !!document.querySelector("[data-ach]"))) && await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Stay in the game: your successor/.test(x.textContent)); if (b) { b.click(); return true; } return false; }); if (!stay) { if (!(await g.page.evaluate(() => { const b = document.querySelector("[data-ach] .ach-x"); if (b) { b.click(); return true; } return false; }))) await g.click(/^(Okay|Got it|Not now|Later)$/); await g.wait(600); } }
 check(stay, "after two terms: stay in the game"); await g.wait(600);

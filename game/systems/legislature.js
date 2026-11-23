@@ -31,7 +31,8 @@ export const speakerRace = (seed, L, backed, ratio = .5) => {
   const [a, b] = speakerCandidates(L), r = seeded(seed, "speaker", backed || "none")();
   let pa = .35 + ratio * .4; if (backed === a.id) pa += .15; if (backed === b.id) pa -= .15;
   const win = r < pa ? a : b, kind = win.bloc === "ours" ? (win.interest === "ambition" ? "ambitious" : "fixer") : (win.interest === "money" ? "fixer" : "principled");
-  return { winner: win.id, kind, owes: backed === win.id, crossed: !!backed && backed !== win.id };
+  // Hostile: the winner is not your party's man, and you did not back him (owner, 23 Nov 2026).
+  return { winner: win.id, kind, owes: backed === win.id, crossed: !!backed && backed !== win.id, hostile: win.bloc !== "ours" && backed !== win.id };
 };
 
 // ── The budget battle and the promise that comes due ──
@@ -90,3 +91,20 @@ export const debateFor = (agenda, ministries = []) => {
   const ma = find(D.a[0]), mb = find(D.b[0], ma); if (!ma || !mb) return null;
   return { a: { ministry: ma, plan: D.a[1], fx: D.fxA, cost: D.costA }, b: { ministry: mb, plan: D.b[1], fx: D.fxB, cost: D.costB, proj: D.projB || null } };
 };
+
+/* A hostile Speaker (owner, 23 Nov 2026: "if my candidate loses, I lose my majority in the House, so I have to deal
+   with the Speaker to get my bills and programmes through. The Speaker has his own programmes that he wants done").
+   hostile: your candidate lost, or you stayed out and the other side won. Each Speaker wants two things of his own;
+   every year the price comes due: pay it and the House works with you that year; refuse and your bills stay off the
+   order paper, new programmes get no money, and you have no majority for the budget. */
+export const hostileSpeaker = (R) => !!(R && R.hostile);
+export const SPEAKER_ASKS = [
+  { id: "hospital", l: "A specialist hospital in the Speaker's home town", costB: .9, fx: { app: 1 } },
+  { id: "assembly", l: "A new Assembly complex, with offices for every member", costB: .7, fx: { app: -1, cor: .01 } },
+  { id: "roads", l: "Township roads in the Speaker's constituency", costB: .6, fx: { app: 1 } },
+  { id: "autonomy", l: "Financial autonomy for the House: its budget paid straight to it, first, every month", costB: .4, fx: { pStab: -2 } },
+  { id: "empower", l: "An empowerment scheme run through members' offices", costB: .5, fx: { cor: .02 } },
+  { id: "university", l: "A state university campus in the Speaker's district", costB: 1.2, fx: { app: 1 } },
+];
+export const speakerAsks = (seed, nat) => { const r = seeded(seed, "speaker_asks"), a = SPEAKER_ASKS.slice().sort(() => r() - .5).slice(0, 2);
+  return nat ? a.map(x => ({ ...x, costB: Math.round(x.costB * 10 * 10) / 10, l: x.l.replace("The House", "the National Assembly").replace("House", "National Assembly") })) : a; };

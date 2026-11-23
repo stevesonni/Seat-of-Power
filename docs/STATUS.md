@@ -3,7 +3,27 @@
 
 
 
-## A strike on election day sinks you (23 Nov, latest)
+## Lose the Speaker race, lose the House (23 Nov, latest)
+
+- **What the owner asked:** "First I lose majority in the House, so I have to deal with the Speaker to get my bills and programmes through. The Speaker has his own programmes that he wants done. If my own person wins then I am safe."
+- **The race** (`SYS.speakerRace`): the result is `hostile` when the winner is not your party's candidate and you did not back him.
+  - **If your candidate wins,** or you backed the winner, you are safe, as before.
+  - **If the race is hostile,** you lose your majority at once. The House drops to just under half. The new Speaker has two programmes of his own (`SYS.speakerAsks`), for example:
+    - township roads in his constituency;
+    - a specialist hospital in his home town;
+    - a new Assembly complex;
+    - financial autonomy for the House;
+    - an empowerment scheme;
+    - a university campus.
+- **The Speaker's price,** every year after the race (always kept):
+  - **Fund one of his programmes:** his bloc votes with you that year, budget included. Once both are funded, he stops being hostile.
+  - **Committee chairs and contracts for his members:** a deal for this year (corruption +, approval −).
+  - **Refuse:** you stay without a majority. Your bills stay off the order paper (a blocking objection on every bill), and new programmes get no money ("The House will not fund it").
+- **Tests:**
+  - `tests/e2e/speaker-hostile.mjs`: paying wins the House back with one programme still owed; refusing keeps you without a majority.
+  - `tests/e2e/living-house.mjs` now walks through the farewell. Its end-of-career checks pass again.
+
+## A strike on election day sinks you (23 Nov)
 
 - **What the owner asked:** "If ASUU or NLC is on strike by the time the election comes around, without an MoU in place or full payment, nothing can ever make your party or successor win the election. Nothing."
 - **The rule** (`liveStrikes()`: any strike with `on`; an MoU suspends a strike and payment ends it):
