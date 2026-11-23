@@ -198,8 +198,18 @@ const withP = (id, fn) => { const prev = locks.get(id) || Promise.resolve(); con
 // Our own shop on seatofpower.online (Google sign-in + Paystack): off unless WEB_SHOP=1 and its keys are set.
 const shop = makeShop({ DATA, PRODUCTS, withP, writeP });
 const KEY_OK = /^[a-z_]{1,32}$/; // sop_save, sop_profile, sop_preelection…
+/* One device at a time (owner, 23 Nov 2026: "You're playing on another device… Play here"). Each open of the game
+   has its own device id; the newest open owns the save. Another device's saves are refused with moved: true, and it
+   shows "You're playing on another device" until the player taps Play here, which takes the save back. Kept in
+   memory: after a restart, the first device to save owns it again. */
+const DEVICE_OK = /^[a-z0-9]{8,40}$/i, activeDev = new Map();
+const deviceOf = (b) => DEVICE_OK.test(String(b.device || "")) ? String(b.device) : null;
+const claimDev = (id, b) => { const d = deviceOf(b); if (d) activeDev.set(id, d); };
+const movedFrom = (id, b) => { const d = deviceOf(b), a = activeDev.get(id); if (!d) return false; if (!a) { activeDev.set(id, d); return false; } return a !== d; };
 const api = {
-  "/api/load": async (b, id) => { const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents, id), bak: (p.bak || []).map((x, i) => ({ i, t: x.t, name: careerName(x.v) })) }; },
+  "/api/device": async (b, id) => ({ ok: true, moved: movedFrom(id, b) }),
+  "/api/device/claim": async (b, id) => { claimDev(id, b); const p = readP(id); return { ok: true, data: p.data || {}, ents: entsOut(p.ents, id) }; },
+  "/api/load": async (b, id) => { claimDev(id, b); const p = readP(id); return { data: p.data || {}, ents: entsOut(p.ents, id), bak: (p.bak || []).map((x, i) => ({ i, t: x.t, name: careerName(x.v) })) }; },
   // Bring back a career kept in p.bak; the one in its place is kept in turn.
   "/api/restore": async (b, id) => withP(id, (p) => {
     const i = +b.i, x = (p.bak || [])[i]; if (!x) return { ok: false };
@@ -208,6 +218,7 @@ const api = {
     p.data.sop_save = x.v; writeP(id, p); return { ok: true, value: x.v };
   }),
   "/api/save": async (b, id) => withP(id, (p) => {
+    if (movedFrom(id, b)) return { ok: false, moved: true };
     const d = b.data && typeof b.data === "object" ? b.data : {};
     for (const [k, v] of Object.entries(d)) { if (!KEY_OK.test(k)) continue; if (typeof v === "string" || v == null) keepBackup(p, k, v); if (v == null || v === "") delete p.data[k]; else if (typeof v === "string" && v.length < 900_000) p.data[k] = v; }
     writeP(id, p); return { ok: true };

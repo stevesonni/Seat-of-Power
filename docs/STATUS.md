@@ -3,7 +3,20 @@
 
 
 
-## Plans you can carry out, and ministers on Tori (22 Nov, latest)
+## One device at a time (23 Nov, latest)
+
+- **What the owner asked:** the "You're playing on another device · Play here" screen, so two phones never overwrite each other's game.
+- **How it works:**
+  - **Who owns the save:** each open of the game has its own device id. The newest open owns the save (`activeDev` in `server/vatar-server.mjs`). A save from another device is refused with `moved: true`. Saves without a device id (older pages) still work.
+  - **The older device stops:** it shows "You're playing on another device. Your game moved there just now. Play here to bring it to this phone. Nothing is lost." It no longer saves, even to the phone, so it can't overwrite the newer game.
+  - **When it checks:** on every save, every 30 seconds while the game is open, when the phone comes back to the game, and when Vatar resumes it.
+  - **Play here** (`/api/device/claim`): takes the save back, puts the server's newer copy on this phone, and reloads.
+  - **Not now:** leaves the game on screen, asleep, with a "Play here" bar at the bottom.
+  - **After a server restart,** the first device to save owns the save again.
+- **Where it works:** Lagos Life only. Our own site (seatofpower.online) still merges the phone's and the server's saves as before.
+- **Tests:** `tests/saves-server.test.mjs` covers the newest open owning the save, the older phone's save being refused, Play here taking the save back, and the other phone then being the one asleep.
+
+## Plans you can carry out, and ministers on Tori (22 Nov)
 
 - **What the owner asked:**
   - Ministers and commissioners should have their own Tori accounts, where they post what they are doing.

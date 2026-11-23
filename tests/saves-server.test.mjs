@@ -42,6 +42,22 @@ test("a new game never wipes out a career: the old one is kept and can be brough
   await call("/api/save", "bo", { data: { sop_save: "" } }); // a career that ends is kept too
   assert.equal((await call("/api/load", "bo")).bak.length, 2);
 });
+test("one device at a time: the newest open owns the save; Play here takes it back", async () => {
+  const A = "devicephonea1", B = "devicephoneb2";
+  await call("/api/load", "cy", { device: A });
+  assert.equal((await call("/api/save", "cy", { device: A, data: { sop_save: game("Cy", 1, 2) } })).ok, true);
+  await call("/api/load", "cy", { device: B }); // opened on a second phone
+  const r = await call("/api/save", "cy", { device: A, data: { sop_save: game("Cy", 1, 9) } });
+  assert.equal(r.moved, true, "the first phone is told the game moved"); assert.notEqual(r.ok, true);
+  assert.equal(JSON.parse((await call("/api/load", "cy", { device: B })).data.sop_save).turn, 2, "its save did not overwrite the newer game");
+  assert.equal((await call("/api/device", "cy", { device: A })).moved, true);
+  assert.equal((await call("/api/device", "cy", { device: B })).moved, false);
+  const c = await call("/api/device/claim", "cy", { device: A }); // Play here
+  assert.equal(JSON.parse(c.data.sop_save).turn, 2, "Play here brings the latest save");
+  assert.equal((await call("/api/save", "cy", { device: A, data: { sop_save: game("Cy", 1, 3) } })).ok, true);
+  assert.equal((await call("/api/save", "cy", { device: B, data: { sop_save: game("Cy", 1, 4) } })).moved, true, "now the second phone is the one asleep");
+  assert.equal((await call("/api/save", "cy", { data: { sop_save: game("Cy", 1, 3) } })).ok, true, "an older game without a device id still saves");
+});
 test("the backup rules on their own", () => {
   assert.equal(careerOf(game("A", 1, 2)), careerOf(game("A", 1, 7))); assert.notEqual(careerOf(game("A", 1, 2)), careerOf(game("A", 2, 2)));
   const p = { data: {} }; keepBackup(p, "sop_save", game("A", 1, 1)); assert.equal(p.bak, undefined, "nothing to keep yet");

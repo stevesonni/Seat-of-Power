@@ -17,6 +17,9 @@
   var framed = false; try { framed = window.top !== window; } catch (e) { framed = true; }
   var hasSdk = framed && !!window.Vatar;
   var cache = {}, dirty = {}, timer = null;
+  // One device at a time: this open of the game has its own id; the newest open owns the save (server: activeDev).
+  var DEVICE = (function () { var a = "abcdefghijklmnopqrstuvwxyz0123456789", x = ""; for (var i = 0; i < 20; i++) x += a[Math.floor(Math.random() * a.length)]; return x; })();
+  var moved = false;
   window.SOP_ENTS = {};
 
   var local = {
@@ -25,7 +28,7 @@
   };
   function call(path, body) {
     return window.Vatar.session().then(function (r) {
-      var payload = JSON.stringify(Object.assign({ session: r.session }, body || {}));
+      var payload = JSON.stringify(Object.assign({ session: r.session, device: DEVICE }, body || {}));
       // keepalive lets a save finish after the app is closed (browsers allow it up to 64 KB).
       return fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: payload, keepalive: payload.length < 60000 });
     }).then(function (x) { return x.json().then(function (j) { if (!x.ok) { var e = new Error(j.error || "http_" + x.status); e.code = j.error; throw e; } return j; }); });
@@ -62,7 +65,8 @@
     // A refused login (Lagos Life's session expired, say after the game was left open for hours) gets one fresh try
     // at once; after that the game stops hammering the server and waits longer each time (5 s, 30 s, 2 min, 5 min),
     // and tells the player once that the progress is safe on this phone.
-    return call("/api/save", { data: d }).then(function () { fails = 0; }).catch(function (e) {
+    if (moved) return Promise.resolve();
+    return call("/api/save", { data: d }).then(function (r) { fails = 0; if (r && r.moved) movedHere(); }).catch(function (e) {
       for (var k in d) if (!(k in dirty)) dirty[k] = d[k];
       if (e && e.code === "bad_session" && !fails) { fails = 1; return flush(); }
       fails++;
@@ -77,16 +81,53 @@
     // The newer of the cloud copy and this phone's copy: a save that never
     // reached the server (closed too fast, no network) is not lost.
     get: function (k) { return ready.then(function (on) { if (!on) return local.get(k); var c = cache[k] != null && cache[k] !== "" ? cache[k] : null, l = local.get(k); l = l && l.value; if (!c) return l ? { value: l } : null; if (l && l !== c && savedAt(l) > savedAt(c)) { dirty[k] = l; cache[k] = l; clearTimeout(timer); timer = setTimeout(flush, 1200); return { value: l }; } return { value: c }; }); },
-    set: function (k, v) { return ready.then(function (on) { local.set(k, v); if (!on) return; cache[k] = v; dirty[k] = v; clearTimeout(timer); timer = setTimeout(flush, 1200); }); }
+    set: function (k, v) { return ready.then(function (on) { if (moved) return; local.set(k, v); if (!on) return; cache[k] = v; dirty[k] = v; clearTimeout(timer); timer = setTimeout(flush, 1200); }); }
   };
+  // "You're playing on another device": this phone stops saving, so it never overwrites the newer game.
+  // Play here takes the save back (the server's copy replaces this phone's) and reloads; Not now leaves the game
+  // visible but asleep, with a bar to bring it back.
+  var mv = null;
+  function movedHere() {
+    if (moved) return; moved = true; dirty = {}; clearTimeout(timer); window.SOP_MOVED = true;
+    try {
+      mv = document.createElement("div"); mv.setAttribute("data-sop-moved", "");
+      mv.style.cssText = "position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;background:#eef1f5;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1d2433;padding:24px;box-sizing:border-box";
+      mv.innerHTML = '<div style="max-width:420px;width:100%;text-align:center">'
+        + '<div style="width:104px;height:104px;margin:0 auto 22px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:48px;box-shadow:0 8px 30px rgba(20,30,50,.08)">📱</div>'
+        + '<h2 style="margin:0 0 10px;font-size:28px;line-height:1.2;font-weight:800">You\'re playing on another device</h2>'
+        + '<p style="margin:0 0 26px;font-size:17px;line-height:1.5;color:#5b6577">Your game moved there just now. Play here to bring it to this phone. Nothing is lost.</p>'
+        + '<button data-sop-moved-here style="width:100%;min-height:56px;border:0;border-radius:999px;background:#0f3d2a;color:#fff;font-size:18px;font-weight:700;cursor:pointer">Play here</button>'
+        + '<button data-sop-moved-later style="margin-top:14px;background:none;border:0;color:#5b6577;font-size:17px;font-weight:600;cursor:pointer;padding:10px 18px">Not now</button></div>';
+      document.body.appendChild(mv);
+      mv.querySelector("[data-sop-moved-here]").onclick = playHere;
+      mv.querySelector("[data-sop-moved-later]").onclick = function () {
+        // The game stays on screen but cannot be played here; a bar brings it back.
+        mv.style.background = "rgba(10,20,15,.35)"; mv.style.alignItems = "flex-end"; mv.style.padding = "0";
+        mv.innerHTML = '<div style="width:100%;display:flex;gap:12px;align-items:center;justify-content:space-between;background:#0f3d2a;color:#fff;padding:14px 16px calc(14px + env(safe-area-inset-bottom));font-size:15px;box-sizing:border-box"><span>You\'re playing on another device.</span><button data-sop-moved-here style="min-height:42px;padding:0 18px;border:0;border-radius:999px;background:#fff;color:#0f3d2a;font-weight:800;font-size:15px;cursor:pointer">Play here</button></div>';
+        mv.querySelector("[data-sop-moved-here]").onclick = playHere;
+      };
+    } catch (e) {}
+  }
+  function playHere() {
+    var b = mv && mv.querySelector("[data-sop-moved-here]"); if (b) { b.disabled = true; b.textContent = "Bringing your game here…"; }
+    call("/api/device/claim").then(function (r) {
+      // The other device's save is the newer one: it replaces this phone's copy before the game reloads.
+      var d = (r && r.data) || {}; for (var k in d) local.set(k, d[k]);
+      location.reload();
+    }).catch(function () { if (b) { b.disabled = false; b.textContent = "Play here"; } try { window.SOP_toast && window.SOP_toast("Couldn't reach your save. Check the connection and try again.", "warn"); } catch (x) {} });
+  }
+  window.SOP_movedTest = movedHere;
+  // Coming back to this phone, and every 30 seconds while it is open: is the game still here?
+  function checkDevice() { if (moved || document.visibilityState !== "visible") return; ready.then(function (on) { if (on) return call("/api/device").then(function (r) { if (r && r.moved) movedHere(); }); }).catch(function () {}); }
+  setInterval(checkDevice, 30000);
   // Leaving the page: send anything still waiting.
-  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flush(); });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flush(); else checkDevice(); });
   window.addEventListener("pagehide", function () { flush(); });
 
   // No sound while Vatar has the game paused (the phone went to the background, or its pay sheet is open).
   if (hasSdk) {
     window.Vatar.onPause(function () { window.SOP_paused = true; flush(); });
-    window.Vatar.onResume(function () { window.SOP_paused = false; });
+    window.Vatar.onResume(function () { window.SOP_paused = false; checkDevice(); });
   }
   var sound = window.SOP_sound;
   if (sound) window.SOP_sound = function (k) { if (!window.SOP_paused) sound(k); };
