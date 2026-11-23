@@ -3829,7 +3829,8 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
   // that raises corruption in office, not money owed: kept apart from the loans.
   const [favours, setFavours] = useState(0);
   const [gfMandates, setGfMandates] = useState([]); // concrete godfather obligations that must handshake with cabinet/projects
-  const [preTrib, setPreTrib] = useState(null); // {level, spent, log, oppName, oppPartyId, margin, zonesWon, evidence}
+  const [preTrib, setPreTrib] = useState(null);
+  const courtWin = React.useRef(false); // reinstated by the tribunal: the first Tori post says the mandate was reclaimed // {level, spent, log, oppName, oppPartyId, margin, zonesWon, evidence}
   // Each new screen (and each new court stage) opens at its top, not at the
   // scroll position the last, longer screen was left at.
   useEffect(() => { try { window.scrollTo(0, 0); } catch (e) {} }, [step, preTrib ? preTrib.level : -1]);
@@ -4653,7 +4654,7 @@ const SetupScreen = ({ onDone, level, setLevel, profile, mode }) => {
       <img src={good ? "./art/scenes/news-victory-rally.webp" : "./art/backgrounds/supreme-court-abuja.webp"} alt="" style={{ width: "100%", borderRadius: 14, display: "block" }} />
       <h3 style={{ color: good ? CL.grn : CL.red, fontFamily: F.d, fontSize: TS(TALL() ? 40 : 60), margin: "14px 0 6px" }}>{good ? "Petition upheld" : "Petition dismissed"}</h3>
       <p style={{ color: CL.tm, fontSize: TS(TALL() ? 24 : 34), lineHeight: 1.45, margin: "0 0 14px" }}>{good ? preTrib.oppName + "'s return is nullified. You are Governor of " + st.replace("_", " ") + "." : "Final. You spent ₦" + preTrib.spent.toFixed(1) + "B and lost."}</p>
-      {good ? <Bt onClick={() => { setPreTrib(null); setStep(9); }}>🏛️ To Government House →</Bt> : <Bt onClick={quit}>Try again</Bt>}
+      {good ? <Bt onClick={() => { courtWin.current = true; setPreTrib(null); setStep(9); }}>🏛️ To Government House →</Bt> : <Bt onClick={quit}>Try again</Bt>}
     </Cd>;
     return (
       <div style={{ minHeight: "100%", background: CL.bg, padding: TALL() ? "12px 16px 40px" : "28px 32px" }}>
@@ -5084,7 +5085,7 @@ const ExpressStart = ({ profile, level, onDone, onExit }) => {
     const dep = depPick || deps.find(c => c.partyFav) || deps[0], chosenParty = !depPick || depPick.partyFav;
     const loans = deal.loanB ? SYS.addLoan([], { key: "campaign_" + deal.id, amountM: SYS.toM(deal.loanB), reason: gf + " paid for the campaign" }) : [];
     track("start_short", "sworn_in");
-    onDone({ nm, firstNm: profile ? profile.first : nm.split(" ")[0], lastNm: profile ? profile.last : nm.split(" ").slice(-1)[0], party, state: st, depGov: dep, avatar: (profile && profile.avatar) || AVATARS[0].id,
+    onDone({ wonInCourt: courtWin.current, nm, firstNm: profile ? profile.first : nm.split(" ")[0], lastNm: profile ? profile.last : nm.split(" ").slice(-1)[0], party, state: st, depGov: dep, avatar: (profile && profile.avatar) || AVATARS[0].id,
       agenda: agenda || recAgenda(st), slogan: recSlogan(st), saName: SYS.SA_SHORTLIST[0], partyAccepted: chosenParty, startingStab: chosenParty ? SYS.PARTY_ACCEPTED.pStab : 70, gfDebt: SYS.toB(SYS.loanTotalM(loans)), gfLoans: loans, favours: deal.favours,
       gfMandates: [], homeDistrict: hd, homeLga: lgaCluster(getLGAs(st), hd)[0] || null, partyDeal: chosenParty ? "accepted" : "own_pick", partyPromise: null, level, warChestRemaining: Math.max(0, deal.chest - .6),
       election: { opp: oppName, oppParty: O.id, zonesWon: night.zonesWon, marginPct: trib && trib.won ? 5 : night.marginPct, votes: night.you.reduce((a, b) => a + b, 0), oppVotes: night.opp.reduce((a, b) => a + b, 0), byTribunal: !!(trib && trib.won) }, short: true });
@@ -7980,6 +7981,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🔥 Tori: " + t.l + ". " + R.line, (R.adj || 0) > 0 ? "political" : "info"); track("tori_tool", t.id + (R.exposed ? ":exposed" : ""));
     setToriRespond(false);
   };
+  // The first post on Tori (owner, 23 Nov 2026): thanks for the mandate, or "we reclaimed our mandate at the
+  // tribunal", and the agenda you campaigned on. Posted once, at the start of the first term.
+  useEffect(() => {
+    if (turn !== 1 || gEnd || needSetup || (stc.tori || {}).firstPost || toriPosts().length) return;
+    const t = setTimeout(() => { try { toriPost({ id: "first_post", ...SYS.toriFirstPost({ nat: NAT, st: stName, court: !!setup?.wonInCourt, agenda: (FLAGSHIP[setup?.agenda] || {}).nm, slogan: setup?.slogan, tag: SYS.toriHandle(NAT ? "Nigeria" : state) }) }); setStc(p => ({ ...p, tori: { ...(p.tori || {}), firstPost: true } })); setToriTab("home"); } catch (e) {} }, 400);
+    return () => clearTimeout(t);
+  }, [turn, needSetup, gEnd]);
   const toriPost = (opt) => {
     const c = toriCtx(), R = SYS.toriReact(opt, c, turn + ":" + opt.id + ":" + toriPosts().length), E = opt.tone ? SYS.toneEffect(opt.tone, opt, c) : null;
     const likes = Math.round(R.likes * (E ? E.likes : 1)), fxApp = (R.fx.app || 0) + (E ? E.app : 0), replies = [...R.replies, SYS.toriOppReply(opt, c, turn + opt.id)];
@@ -17295,7 +17303,7 @@ const presidentSetup = (G, setup) => {
   const mate = G.mate || { name: gN(rng(G.seed || 7), "NC", NATION), zone: "NC", kind: "partyman" };
   const mz = Math.max(0, NATION_ZONE_IDS.indexOf(mate.zone));
   const dep = SYS.genDeputies({ stateId: NATION, playerDistrict: zi, names: [mate.name, mate.name, mate.name, mate.name] })[0];
-  return { office: "president", legacy: setup?.legacy || null, nm: G.name, firstNm: parts[0], lastNm: parts.slice(1).join(" "), party: G.party, state: NATION,
+  return { office: "president", wonInCourt: !!G.petitionWon, legacy: setup?.legacy || null, nm: G.name, firstNm: parts[0], lastNm: parts.slice(1).join(" "), party: G.party, state: NATION,
     depGov: { ...dep, nm: mate.name, district: mz, bio: genBio(rng(mate.name.length * 31 + 5)) }, avatar: G.avatar, agenda: PLEDGE_AGENDA[G.pledges && G.pledges[0]] || setup?.agenda || "infrastructure",
     slogan: setup?.slogan || "A New Dawn", saName: setup?.saName || null, partyAccepted: true, startingStab: 62, gfDebt: Math.min(3, (G.ious || []).length), gfLoans: [], favours: Math.min(.12, (G.ious || []).length * .03),
     gfMandates: [], homeDistrict: zi, homeLga: G.state, partyDeal: "accepted", partyPromise: null, level: setup?.level, warChestRemaining: Math.max(0, G.chest || 0),

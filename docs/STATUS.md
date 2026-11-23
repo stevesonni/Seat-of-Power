@@ -3,7 +3,15 @@
 
 
 
-## The last month in office: closure before the record (23 Nov, latest)
+## Your first post on Tori (23 Nov, latest)
+
+- **What the owner asked:** "My first post on Tori should be announcing that I am happy to have been elected (or we have reclaimed our mandate via the tribunal) and we look forward to getting on with our agenda."
+- **How it works:** at the start of the first year, once the government is formed, your account posts once (`SYS.toriFirstPost`). This applies to the governor and the President.
+  - **After a normal win:** "Thank you, Ogun! I am humbled and happy to have been elected your Governor. To those who voted for us and those who did not: I will serve you all. Now we get on with the work: Build, Build, Build. #ANewDawn"
+  - **After winning at the tribunal:** "Justice has prevailed. The tribunal has restored the mandate you gave us at the polls…" The tribunal win is carried into the game as `setup.wonInCourt`. For the governor it comes from the reinstated petition; for the President, from `petitionWon`.
+- **Tests:** `tests/e2e/tori-first.mjs`. Both versions post once, in year one, and name the agenda.
+
+## The last month in office: closure before the record (23 Nov)
 
 - **What the owner asked:** "now if i finish, next thing i see is see results and i am out… how best to give closure… build it. let lovable generate the images". Later: "i dont want that two years later", so the ending stops at 29 May.
 - **Who gets it:** a governor or President who leaves on their own feet: a full term, stepping down, or losing re-election. These are `SYS.FAREWELL_ENDS`. The record still comes after it.
