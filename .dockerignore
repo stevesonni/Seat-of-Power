@@ -2,6 +2,9 @@ node_modules
 .git
 src
 game
+# The guide's content is read by server/wiki.mjs.
+!game/systems/guide.js
+!game/systems/glossary.js
 docs
 *.jsx
 .data
