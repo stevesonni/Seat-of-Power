@@ -50,6 +50,31 @@ export const UNIT = {
   refinery: { unit: "thousand-barrel capacity", per: 3200, def: 30, years: 3, nm: "Modular refinery" }, seaport: { unit: "berth", per: 22000, def: 4, years: 4, nm: "Deep seaport" },
   airport: { unit: "terminal", per: 45000, def: 1, years: 3, nm: "Airport terminal" },
 };
+/* Small works (owner, 23 Nov 2026: "let projects needing contractors go through contractors… we have many click and
+   click"): the neighbourhood jobs, the quick wins and the small repairs in letters are tendered like any project, in one
+   year, and pay off when they are finished, as well as the contractor did them. art: the picture on the projects screen
+   (public/art/works/, docs/LOVABLE-WORKS.md), with a stand-in until it arrives. */
+export const WORKS = {
+  patch: { unit: "km", per: 60, nm: "Road patching", sector: "roads", art: "works/road-patching", alt: "backgrounds/road-construction-site" },
+  potholes: { unit: "km", per: 45, nm: "Pothole repairs", sector: "roads", art: "works/pothole-repairs", alt: "backgrounds/road-construction-site" },
+  borehole: { unit: "borehole", per: 75, nm: "Borehole", sector: "water", art: "works/borehole-drilling", alt: "backgrounds/project-site-cleared" },
+  handpump: { unit: "hand pump", per: 15, nm: "Hand pump repairs", sector: "water", art: "works/hand-pump-repair", alt: "backgrounds/project-site-cleared" },
+  drains: { unit: "km of drain", per: 25, nm: "Drain clearing", sector: "water", art: "works/drain-clearing", alt: "backgrounds/project-site-cleared" },
+  roof: { unit: "school", per: 50, nm: "School roof repair", sector: "education", art: "works/school-roof-repair", alt: "backgrounds/project-site-halfway" },
+  marketfix: { unit: "market", per: 80, nm: "Market clean-up and lights", sector: "markets", art: "works/market-lights", alt: "backgrounds/project-site-halfway" },
+  streetlights: { unit: "km of streetlights", per: 60, nm: "Streetlights", sector: "roads", art: "works/streetlights", alt: "backgrounds/project-site-halfway" },
+  clinicfix: { unit: "clinic", per: 400, nm: "Clinic renovation", sector: "health", art: "works/clinic-renovation", alt: "backgrounds/project-site-halfway" },
+  gully: { unit: "site", per: 600, nm: "Erosion control", sector: "water", art: "works/erosion-control", alt: "backgrounds/gully-erosion" },
+  drainage: { unit: "town", per: 600, nm: "Flood drainage", sector: "water", art: "works/flood-drainage", alt: "backgrounds/project-site-cleared" },
+  rebuild: { unit: "town", per: 1200, nm: "Rebuilding a town", sector: "markets", art: "works/community-rebuild", alt: "backgrounds/project-site-halfway" },
+  marketbuild: { unit: "market", per: 800, nm: "Market rebuilding", sector: "markets", art: "works/market-rebuild", alt: "backgrounds/project-site-halfway" },
+  grazing: { unit: "reserve", per: 1000, nm: "Grazing reserve", sector: "water", art: "works/grazing-reserve", alt: "backgrounds/project-site-cleared" },
+};
+export const isWorks = (type) => !!WORKS[type];
+// Readable by name, but not listed: a borehole is not one of the kinds a player proposes as a project.
+Object.entries(WORKS).forEach(([k, W]) => { Object.defineProperty(UNIT, k, { value: { unit: W.unit, per: W.per, def: 1, years: 1, nm: W.nm }, enumerable: false }); Object.defineProperty(TYPE_SECTOR, k, { value: W.sector, enumerable: false }); });
+/* A small job as a project: { type, costM, lga, title }. The scope is sized to the money (at least one unit). */
+export const worksQty = (type, costM) => Math.max(1, Math.round((costM || WORKS[type].per) / WORKS[type].per));
 // Facilities that must be equipped and staffed to work.
 export const FACILITY = {
   hospital: { equip: .25, opsPer: 4, what: "beds, theatres and oxygen; doctors and nurses" },   // opsPer: ₦M a year per unit
@@ -78,7 +103,7 @@ export const terrainOf = (place) => { const x = String(place || ""); return RIVE
 // How much one ministry can oversee in a year, in the project's units. A good
 // minister (perf 100) manages a quarter more; a weak one (perf 40) a quarter less.
 export const CAPACITY = { secondary: 200, nursing: 600, coe: 3000, polytechnic: 4000, university: 5000, road: 150, bridge: 2, hospital: 250, school: 200, water: 60, dam: 1, power: 15, market: 2000, housing: 1500, vehicles: 200, cctv: 2000, landfill: 2, industrial: 150, stadium: 30000, esports: 3000, tourist: 2, rail: 120, pipeline: 250, refinery: 50, seaport: 3, airport: 1 };
-export const capacityOf = (type, { perf = 70, federal = false } = {}) => Math.max(1, Math.round((CAPACITY[type] || 100) * (federal ? 2.5 : 1) * (.75 + Math.max(0, Math.min(100, perf)) / 200)));
+export const capacityOf = (type, { perf = 70, federal = false } = {}) => Math.max(1, Math.round((CAPACITY[type] || (WORKS[type] ? 1000 : 100)) * (federal ? 2.5 : 1) * (.75 + Math.max(0, Math.min(100, perf)) / 200)));
 // A second contractor doubles what can be built in a year, for 12% more.
 export const SECOND_CONTRACTOR = 1.12;
 /* opts.places: where it goes (spread evenly); opts.perf, opts.federal: the

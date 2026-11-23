@@ -89,12 +89,12 @@ export const firstYearCushion = (faacB) => r1(Math.max(1, (faacB || 10) * .15));
    Quick wins finish inside the year; a big project opens in stages; and
    things happen on site while it is being built. */
 export const QUICK_WINS = [
-  { id: "lights", l: "Fix the streetlights on the market road", cost: .3, fx: { app: 2, sec: .01 }, out: "The market stays open after dark. Traders say they feel safer.", art: "streetlights" },
-  { id: "clinic", l: "Repaint and restock a busy clinic", cost: .4, fx: { app: 2, hp: .01 }, out: "New drugs, clean walls, a working fridge for vaccines. The queue is shorter by Friday.", art: "clinic" },
-  { id: "drain", l: "Clear the blocked drains before the rains", cost: .25, fx: { app: 1, infra: .01 }, out: "The first heavy rain runs off instead of flooding the motor park.", art: "drain" },
+  { id: "lights", works: "streetlights", l: "Fix the streetlights on the market road", cost: .3, fx: { app: 2, sec: .01 }, out: "The market stays open after dark. Traders say they feel safer.", art: "streetlights" },
+  { id: "clinic", works: "clinicfix", l: "Repaint and restock a busy clinic", cost: .4, fx: { app: 2, hp: .01 }, out: "New drugs, clean walls, a working fridge for vaccines. The queue is shorter by Friday.", art: "clinic" },
+  { id: "drain", works: "drains", l: "Clear the blocked drains before the rains", cost: .25, fx: { app: 1, infra: .01 }, out: "The first heavy rain runs off instead of flooding the motor park.", art: "drain" },
   { id: "desks", l: "Desks for 50 classrooms", cost: .35, fx: { app: 2, lit: .01 }, out: "Pupils who sat on the floor now sit at desks. Parents notice.", art: "desks" },
-  { id: "pump", l: "Repair 20 broken hand pumps", cost: .3, fx: { app: 2, hp: .01 }, out: "Twenty villages get their water back within the month.", art: "pump" },
-  { id: "potholes", l: "Patch the potholes on the busiest road", cost: .45, fx: { app: 2, infra: .01 }, out: "Okada riders and bus drivers stop complaining, for now.", art: "potholes" },
+  { id: "pump", works: "handpump", l: "Repair 20 broken hand pumps", cost: .3, fx: { app: 2, hp: .01 }, out: "Twenty villages get their water back within the month.", art: "pump" },
+  { id: "potholes", works: "potholes", l: "Patch the potholes on the busiest road", cost: .45, fx: { app: 2, infra: .01 }, out: "Okada riders and bus drivers stop complaining, for now.", art: "potholes" },
 ];
 /* The President's quick wins: federal jobs a President can finish in weeks (owner, 22 Nov 2026: "the president shouldn't be
    bothered by hand pumps and classrooms"). */

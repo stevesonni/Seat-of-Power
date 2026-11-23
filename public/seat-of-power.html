@@ -585,7 +585,7 @@
           if (still()) { art.appendChild(lit); } else { lit.className = 'sop-lit'; var fl = document.createElement('div'); fl.className = 'sop-flash'; fl.style.cssText = 'position:absolute;inset:0'; art.appendChild(dark); art.appendChild(lit); art.appendChild(fl); }
         } else if (o.img) {
           var wide = /\/(scenes|backgrounds|decisions)\//.test(o.img), pic = document.createElement('img');
-          pic.src = o.img; pic.alt = '';
+          pic.src = o.img; pic.alt = ''; if (o.alt) pic.onerror = function () { pic.onerror = null; pic.src = o.alt; };
           if (wide) { art.style.height = '180px'; pic.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:none;filter:none'; }
           art.appendChild(pic);
           if (wide && o.badge) { var bd = document.createElement('img'); bd.src = o.badge; bd.alt = ''; bd.style.cssText = 'position:absolute;right:10px;bottom:6px;height:84px;transform:none'; art.appendChild(bd); }

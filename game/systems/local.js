@@ -4,10 +4,10 @@
    there (one year more before it gets worse). Rules only, no React. */
 export const LOCAL_PER_YEAR = 6;
 export const LOCAL_JOBS = [
-  { k: "road", icon: "🚧", l: "Patch the worst road", costB: .12, mood: 4, fx: { infra: .003 }, eases: "road", done: "The worst stretch in {L} is patched. Okadas and buses move again." },
-  { k: "water", icon: "🚰", l: "Sink a borehole", costB: .15, mood: 5, fx: { hp: .002 }, eases: "water", done: "A new borehole in {L}. Women queue with buckets, laughing." },
-  { k: "market", icon: "🛒", l: "Clean up and light the market", costB: .08, mood: 3, fx: { igr: .02 }, eases: null, done: "{L}'s market is swept, drained and lit. Traders stay open after dark." },
-  { k: "school", icon: "🏫", l: "Fix a leaking school roof", costB: .1, mood: 3, fx: { lit: .002 }, eases: "school", done: "The school roof in {L} no longer leaks. Classes go on when it rains." },
+  { k: "road", icon: "🚧", l: "Patch the worst road", works: "patch", costB: .12, mood: 4, fx: { infra: .003 }, eases: "road", done: "The worst stretch in {L} is patched. Okadas and buses move again." },
+  { k: "water", icon: "🚰", l: "Sink a borehole", works: "borehole", costB: .15, mood: 5, fx: { hp: .002 }, eases: "water", done: "A new borehole in {L}. Women queue with buckets, laughing." },
+  { k: "market", icon: "🛒", l: "Clean up and light the market", works: "marketfix", costB: .08, mood: 3, fx: { igr: .02 }, eases: null, done: "{L}'s market is swept, drained and lit. Traders stay open after dark." },
+  { k: "school", icon: "🏫", l: "Fix a leaking school roof", works: "roof", costB: .1, mood: 3, fx: { lit: .002 }, eases: "school", done: "The school roof in {L} no longer leaks. Classes go on when it rains." },
   { k: "visit", icon: "📣", l: "Visit and listen", costB: 0, mood: 2, fx: {}, eases: null, done: "You walked {L}'s market and listened. People talk about it for days." },
 ];
 /* This year's jobs so far: [{ lga, k }]. */

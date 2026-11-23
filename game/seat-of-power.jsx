@@ -899,6 +899,12 @@ const NEEDS_MINISTRY = { nursing: "health", stadium: "sports", esports: "sports"
    these accessors hand it the Federal Government's own ministries, programmes,
    bills, orders and needs (game/systems/federal.js) instead of a state's. */
 const SEAT = { nat: false, state: null, ctx: {} };
+/* More faces (owner, 23 Nov 2026: "photos for commissioners, ministers and governors etc: we are reusing many";
+   docs/LOVABLE-WORKS-PEOPLE.md). When Lovable's portraits are in public/art/people/, the game finds them by itself and
+   draws commissioners, ministers and neighbouring governors from the larger set. */
+const PEOPLE = { official: 8, governor: 3 };
+try { if (typeof fetch === "function") fetch("./art/people/official-m-01.webp", { method: "HEAD" }).then(r => { if (r.ok) SEAT.morePeople = true; }).catch(() => {}); } catch (e) {}
+const peopleArt = (kind, female, h, mood) => "people/" + kind + "-" + (female ? "f" : "m") + "-" + String(h % PEOPLE[kind] + 1).padStart(2, "0") + (mood ? "-" + mood : "");
 { const fx = (SYS.COS_ROSTER || []).find(c => c.id === "fixer"); if (fx) { const own = fx.img; Object.defineProperty(fx, "img", { get: () => SEAT.nat ? "presidential-chief-of-staff" : own, enumerable: true }); } }
 const NEEDS = () => SEAT.nat ? NEED_TYPES.map(t => ({ ...t, ...(SYS.FED_NEEDS[t.k] || {}) })) : NEED_TYPES;
 // For the President a need is in a state: only the works that can go there answer it (SYS.fedFits; no coastal highway in Jigawa).
@@ -2169,6 +2175,7 @@ const commissionerArt = (name, perf, mid) => {
   if (SEAT.nat && MINISTER_ART[mid] && isFemaleName(name) === (mid === "fin")) return "./art/characters/" + MINISTER_ART[mid] + (perf == null ? "" : perf >= 65 ? "-pleased" : perf < 40 ? "-angry" : "") + ".webp";
   const nm = String(name || ""), set = FEMALE_FIRST.includes(nm.split(" ")[0]) ? COMM_F : COMM_M;
   let h = 0; for (const ch of nm) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  if (SEAT.morePeople) return "./art/" + peopleArt("official", set === COMM_F, h, perf == null ? null : perf >= 65 ? "pleased" : perf < 40 ? "worried" : null) + ".webp";
   const base = set[h % set.length], mood = perf == null ? null : COMM_MOODS.find(x => x === base + (perf >= 65 ? "-pleased" : perf < 40 ? "-worried" : ""));
   return "./art/characters/" + (mood || base) + ".webp";
 };
@@ -5346,10 +5353,10 @@ const MilestoneStrip = ({ at }) => <div className="sp-ms" role="list" aria-label
 </div>;
 const Tiles = ({ items }) => <div className="sp-tiles">{items.filter(Boolean).map(([l, v, tone]) => <div key={l} className={"sp-tile" + (tone ? " " + tone : "")}><div className="l">{l}</div><div className="v">{v}</div></div>)}</div>;
 // What a project's site looks like at each stage, and its stage pin (art pack 2).
-const siteArt = (p) => p.status === "delivered" ? "project-ribbon-cutting" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "project-site-stalled" : (p.status === "in_progress" && (p.progress || 0) >= 35) || p.status === "built" ? "project-site-halfway" : "project-site-cleared";
+const siteArt = (p) => SYS.isWorks(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? "../" + SYS.WORKS[p.type].art : p.status === "delivered" ? "project-ribbon-cutting" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "project-site-stalled" : (p.status === "in_progress" && (p.progress || 0) >= 35) || p.status === "built" ? "project-site-halfway" : "project-site-cleared";
 const pinOf = (p) => p.status === "delivered" ? "green" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "red" : p.status === "in_progress" || p.status === "built" ? "gold" : "grey";
 const Dossier = ({ icon, kicker, title, place, at, children, wide, pic, thumb, pin }) => <div className="sp-card sp-step" style={{ maxWidth: wide ? 980 : 900, margin: "0 auto", padding: TALL() ? "16px 16px 18px" : "22px 26px 24px" }}>
-  {pic && <img src={"./art/backgrounds/" + pic + ".webp"} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 14 }} />}
+  {pic && <img src={"./art/backgrounds/" + pic + ".webp"} onError={(e) => { const t = e.currentTarget; if (!t.dataset.f) { t.dataset.f = "1"; t.src = "./art/backgrounds/project-site-cleared.webp"; } }} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 14 }} />}
   <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
     <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: 16, background: "linear-gradient(180deg,#fff7e2,#f1e2b8)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, boxShadow: "inset 0 0 0 1px #e7d6a8" }}>{icon}</div>
     <div style={{ minWidth: 0 }}>
@@ -5357,7 +5364,7 @@ const Dossier = ({ icon, kicker, title, place, at, children, wide, pic, thumb, p
       <div style={{ font: "700 " + (TALL() ? 24 : 30) + "px/1.15 'Fraunces', Georgia, serif", color: "#17301f", marginTop: 3 }}>{title}</div>
       {place && <div style={{ font: "600 14px 'Plus Jakarta Sans', sans-serif", color: "#7a6c4c", marginTop: 2 }}>{place}</div>}
     </div>
-    {thumb && <img src={"./art/backgrounds/" + thumb + ".webp"} alt="" style={{ marginLeft: "auto", width: TALL() ? 84 : 120, aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, flexShrink: 0 }} />}
+    {thumb && <img src={"./art/backgrounds/" + thumb + ".webp"} onError={(e) => { const t = e.currentTarget; if (!t.dataset.f) { t.dataset.f = "1"; t.src = "./art/backgrounds/project-site-cleared.webp"; } }} alt="" style={{ marginLeft: "auto", width: TALL() ? 84 : 120, aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, flexShrink: 0 }} />}
   </div>
   {at != null && <div style={{ margin: "14px 0 4px" }}><MilestoneStrip at={at} /></div>}
   {children}
@@ -7544,7 +7551,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // The FCT has no governor: the President appoints a Minister of the Federal Capital Territory (owner, 23 Nov 2026).
   const nbSide = (st, G) => st === "FCT" ? "appointed by the President" : (G || {}).party === "same" ? "your party" : "opposition";
   const nGov = (st) => (st === "FCT" ? "Minister " : "Gov. ") + gNAs(rng(hashStr(state + ":" + pName + ":" + st)), (STATES[st] || {}).zone || "SW", st, hashStr(st + pName) % 4 === 0);
-  const nGovImg = (st) => { const G = (interNow().gov || {})[st] || { rel: 50 }; return NB_GOV[hashStr(st + pName) % 4 === 0 ? "female" : "male"][G.rel >= 60 ? 1 : G.rel < 40 ? 2 : 0]; };
+  const nGovImg = (st) => { const G = (interNow().gov || {})[st] || { rel: 50 };
+    if (SEAT.morePeople) return "../" + peopleArt("governor", hashStr(st + pName) % 4 === 0, hashStr(st + "gov"), G.rel >= 60 ? "pleased" : G.rel < 40 ? "angry" : null);
+    return NB_GOV[hashStr(st + pName) % 4 === 0 ? "female" : "male"][G.rel >= 60 ? 1 : G.rel < 40 ? 2 : 0]; };
   const interFill = (x, d) => { const X = (stc.inter || {}).stories || {}, key = Object.keys(X).find(k => X[k].deal === d.id), third = key ? X[key].third : null;
     return SYS.fillText(x, { p: SYS.stateLabel(d.partner), t: third ? SYS.stateLabel(third) : "a neighbouring state", g: nGov(d.partner), k: (SYS.DEAL_KINDS[d.kind] || {}).nm.toLowerCase(), c: SYS.produceOf(d.partner)[0], y: SYS.produceOf(state)[0] }); };
   const [visit, setVisit] = useState(null); // a trade mission: { step: "pick" | "kind" | "how" | "ask", partner, kind, ask }
@@ -7682,8 +7691,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       options: c.opts.map(o => { const fx = { ...(o.fx || {}), debt: o.cost || 0 };
         return { label: o.l, note: o.kind === "bill" ? "Goes to the House: the vote comes next year. If it passes, it lasts." : o.kind === "order" ? "In force today. A State High Court can strike it down next year." : undefined, risk: o.odds != null ? "A gamble: it can go either way." : null,
           chips: (o.tag ? [{ text: o.tag, color: o.kind === "bill" ? CL.blu : o.kind === "order" ? CL.gold : CL.grn }] : []).concat(fxChips(fx, o.dz)), run: () => {
-            if (o.cost && !spendB(o.cost, d.nm + ": " + o.l)) return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for this. Choose another way.", tone: "bad" };
+            // Building work goes to tender (SYS.WORKS): the money is the project's budget, paid as it is built.
+            if (o.cost && !(o.works && !NAT) && !spendB(o.cost, d.nm + ": " + o.l)) return { icon: "🏦", title: "The bank cannot cover it", text: "There is not enough money for this. Choose another way.", tone: "bad" };
             const R = SYS.storyAfter(d, T.S, o, turn, { nat: NAT }, rng(turn * 811 + hashStr(id + o.id)));
+            if (o.works && !NAT) { const past0 = ((R.S.hist[R.S.hist.length - 1] || {}).past || o.l).replace(/^(started |ran )/, "");
+              startWorks({ type: o.works, costB: o.cost, title: SYS.WORKS[o.works].nm + " in " + T.lga, lga: T.lga, fx: {}, mood: 3, text: "The work at " + T.lga + " is done: people can see what you " + past0.replace(/\{l\}/g, T.lga) + ".", icon: C.icon || "🛠️", src: d.nm }); }
             scFx({ ...(R.fx || {}), debt: 0 }, zi, o.dz || 0);
             if (R.decree) scFx({ app: -1 });
             setStc(p => ({ ...p, stateStories: { ...(p.stateStories || {}), [id]: { ...((p.stateStories || {})[id] || T), S: R.S } } }));
@@ -9488,7 +9500,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const qs = SYS.quickWinsFor(PS, turn, next.qwDone || [], NAT);
         if (qs.length) cards.push({ key: "pil_qw_" + turn, kicker: "Quick wins · done before the year ends", color: CL.grn, art: ["state-secretariat", "commissioner-technocrat"], title: "Three jobs you can finish this year",
           brief: "Big projects take years. These take weeks, and people see them. Pick one.", stakes: "Each one is paid from the treasury and finished before the year is out.",
-          options: qs.map(q => ({ label: q.l + " (" + naira(q.cost) + ")", note: q.out.split(".")[0] + ".", chips: fxChips({ debt: q.cost, app: q.fx.app }), run: () => { scFx({ debt: q.cost, ...q.fx }); setStc(p => ({ ...p, qwDone: [...(p.qwDone || []), q.id] })); track("pil_qw", q.id); addL("✂️ Quick win: " + q.l.replace(/^./, c => c.toLowerCase()) + ". " + q.out, "success");
+          options: qs.map(q => q.works ? ({ label: q.l + " (" + naira(q.cost) + ")", note: "Pick the contractor. It is finished before the year ends.", chips: [{ text: naira(q.cost), color: CL.org }, { text: "To tender", color: CL.blu || CL.grn }], run: () => {
+            setStc(p => ({ ...p, qwDone: [...(p.qwDone || []), q.id] })); track("pil_qw", q.id);
+            startWorks({ type: q.works, costB: q.cost, title: q.l.replace(/^./, c => c.toUpperCase()), fx: q.fx, text: q.out, icon: "✂️", src: "a quick win" }); return null; } }) : ({ label: q.l + " (" + naira(q.cost) + ")", note: q.out.split(".")[0] + ".", chips: fxChips({ debt: q.cost, app: q.fx.app }), run: () => { scFx({ debt: q.cost, ...q.fx }); setStc(p => ({ ...p, qwDone: [...(p.qwDone || []), q.id] })); track("pil_qw", q.id); addL("✂️ Quick win: " + q.l.replace(/^./, c => c.toLowerCase()) + ". " + q.out, "success");
             return res("✂️", "Done: " + q.l.replace(/^./, c => c.toLowerCase()), q.out, fxRows(q.fx, q.cost), "good", "./art/scenes/" + (q.id === "clinic" || q.art === "clinic" ? "ribbon-hospital" : q.id === "desks" ? "ribbon-school" : q.id === "pump" ? "ribbon-water" : q.id === "lights" ? "ribbon-market" : q.art === "ports" ? "port-congestion" : "ribbon-road") + ".webp"); } }))
             .concat([{ label: "Not this year", note: "The money stays in the treasury.", chips: [], run: () => { track("pil_qw", "none"); } }]) });
         const opened = { ...(next.staged || {}) };
@@ -11054,6 +11068,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       postMail([letterOf("ministry_tip", { id: "refund_" + p.id, key: "refund_" + p.id, live: true, kind: "budget", stakes: 1, tip: [finName, fin ? commissionerArt(fin.minister, 75, fin.id) : "./art/characters/finance-commissioner.webp", p.title + " is complete: " + SYS.fmtM(leftM) + " recovered", p.title + " came in under its approved budget. I have recovered the unspent " + SYS.fmtM(leftM) + " to the treasury."] })]);
       addL("💰 " + p.title + " finished under budget: " + SYS.fmtM(leftM) + " recovered to the treasury by " + finName.replace(", Commissioner for Finance", "") + ".", "success");
     }
+    // Small works: what was promised lands now, as well as the contractor did it (SYS.WORKS).
+    if (p.works) { const W = p.works, eff = typeof p.effective === "number" ? p.effective : .8, fx = {};
+      Object.entries(W.fx || {}).forEach(([k2, v]) => { fx[k2] = k2 === "app" ? Math.round(v * eff * 10) / 10 : Math.round(v * eff * 10000) / 10000; });
+      if (Object.keys(fx).length) scFx(fx);
+      if (W.mood && W.lga) setStc(x => { const m = { ...(x.lgaMood || {}) }; m[W.lga] = Math.min(20, (m[W.lga] || 0) + Math.round(W.mood * eff)); return { ...x, lgaMood: m }; });
+      const poor = eff < .6;
+      addL((W.icon || "🛠️") + " " + p.title + " is finished" + (p.contractor ? " by " + p.contractor : "") + ". " + (poor ? "The work is poor: people noticed less than they should have." : W.text || ""), poor ? "political" : "success");
+      try { window.SOP_outcome({ icon: W.icon || "🛠️", img: "./art/" + SYS.WORKS[p.type].art + ".webp", alt: "./art/" + SYS.WORKS[p.type].alt + ".webp", title: "Finished: " + p.title, text: (poor ? "Done, but done badly: " + (p.contractor || "the contractor") + " cut corners. " : "") + (W.text || ""), tone: poor ? "bad" : "good",
+        rows: [{ l: "How well it was done", v: Math.round(eff * 100) + "%", good: !poor }, ...(W.mood && W.lga ? [{ l: "People in " + W.lga, v: "+" + Math.round(W.mood * eff), good: true }] : [])] }); } catch (e) {}
+      return; }
     const k = PROJ_STAT[p.type]; if (!k) return;
     const eff = typeof p.effective === "number" ? p.effective : .8, size = +(p.cost || p.baseCost || 1);
     const gain = k === "igr" ? Math.round(Math.min(1.5, size * .12) * eff * 10) / 10 : Math.round(Math.min(.06, .01 + size * .006) * eff * 1000) / 1000;
@@ -12815,6 +12839,21 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
   };
   const scDirect = (l) => { const C = scOf(l); return C && !C.letter && !C.military && !C.doc && (C.options || []).length >= 2 && C.options.length <= 4 && C.options.every(o => !o.travel) ? C : null; };
+  /* Small works through the contractors (owner, 23 Nov 2026: "let projects needing contractors go through contractors.
+     We have many click and click"). A job becomes a one-year project at its price and opens the tender: you pick who
+     does it, the bank pays at the year's end, and what it promised (fx, the place's mood) lands when it is finished,
+     as well as that contractor did it. w: { type, costB, title, lga, fx, mood, text, icon, src }. */
+  const startWorks = (w) => {
+    const L0 = getLGAs(state) || [], lga = w.lga || (L0.length ? L0[hashStr(w.title + turn) % L0.length] : null), costM = Math.round((w.costB || 0) * 1000);
+    const id = "w_" + turn + "_" + (hashStr(w.title + (lga || "") + turn) % 100000);
+    const ex = (projects || []).find(x => x.id === id); if (ex) { setPflow({ step: ex.status === "pending_procurement" ? "contractor" : "dossier", projId: id }); return; }
+    const P0 = SYS.makeProject({ id, title: w.title, type: w.type, qty: SYS.worksQty(w.type, costM), lga, lgas: lga ? [lga] : [], federal: NAT, state: NAT ? null : state, costF: SEAT.priceF || 1,
+      approvedM: costM, thisYearM: costM, year: turn, decision: "Small works" + (w.src ? ": " + w.src : "") + "." });
+    const P = { ...P0, approvedM: Math.max(costM, P0.estimateM), alloc: { [turn]: Math.max(costM, P0.estimateM) }, works: { fx: w.fx || {}, mood: w.mood || 0, lga, text: w.text || "", icon: w.icon || "🛠️" } };
+    setProjects(prev => [...(prev || []), P]);
+    addL((w.icon || "🛠️") + " " + w.title + (lga ? " in " + lga : "") + ": " + SYS.fmtM(P.approvedM) + " approved. Next: pick the contractor.", "policy");
+    setTimeout(() => setPflow({ step: "contractor", projId: id }), 400);
+  };
   /* The Speaker's building project (owner, 23 Nov 2026: "it should open the project screen where I give it to a
      contractor. Because it is from the Speaker… we'll use the Speaker's pre-approved contractor, which increases
      corruption… You can refuse, but if you refuse, your bill will stay blocked"). The project is made at his price and
@@ -17385,6 +17424,11 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             const J = SYS.LOCAL_JOBS.find(j => j.k === k), c = SYS.localCan(stc, turn, L, k); if (!J || !c.ok) return;
             // A fast double tap must not pay twice: the second tap still sees the old year until React redraws.
             const key = turn + "|" + L + "|" + k; if (localBusy.current[key]) return; localBusy.current[key] = true;
+            // A job that needs a builder goes to tender; it pays off when it is finished (SYS.WORKS).
+            if (J.works) { const R = SYS.localDo(stc, turn, L, k, needs); track("local", k);
+              setStc(p => { const st = SYS.localDo(p, turn, L, k, needs).stc; return { ...p, local: st.local }; });
+              if (R.eased) setNeeds(ns => ns.map(n => n.id === R.eased ? { ...n, due: (n.due || turn) + 1, eased: turn } : n));
+              startWorks({ type: J.works, costB: J.costB, title: J.l.replace(/^./, c => c.toUpperCase()) + " in " + L, lga: L, fx: J.fx, mood: J.mood, text: R.text, icon: J.icon, src: "a neighbourhood job" }); return; }
             if (J.costB && !spendB(J.costB, J.l + " in " + L)) return;
             const R = SYS.localDo(stc, turn, L, k, needs); track("local", k);
             setStc(p => ({ ...p, ...SYS.localDo(p, turn, L, k, needs).stc })); if (Object.keys(J.fx).length) scFx(J.fx);
