@@ -15,7 +15,8 @@ export const plainText = (t) => { let x = String(t == null ? "" : t); PLAIN.forE
 /* At most two sentences and 25 words; if two sentences run over, one; if one still runs over, its first 25 words. */
 export const cut25 = (t, maxS = 2, maxW = 25) => {
   const s = String(t == null ? "" : t).trim(); if (!s) return s;
-  const sn = s.match(/[^.!?]+[.!?]+["”’)]*|[^.!?]+$/g) || [s], wc = (x) => (x.trim().match(/\S+/g) || []).length;
+  // Sentences end at . ! ? but never at a title or a decimal (owner, 23 Nov 2026: a card that read only "Rt. Hon.").
+  const sn = s.match(/(?:\b(?:Hon|Rt|Dr|Mr|Mrs|Ms|Prof|Gov|Sen|Barr|Alh|Engr|Gen|Col|Maj|Capt|Lt|St|No|Mt|vs|Jr|Sr|Chief)\.|\d\.\d|[^.!?])+(?:[.!?]+["”’)]*|$)/g) || [s], wc = (x) => (x.trim().match(/\S+/g) || []).length;
   let out = sn.slice(0, maxS).join(" ").replace(/\s+/g, " ").trim();
   if (wc(out) > maxW) out = sn[0].trim();
   if (wc(out) > maxW) out = out.split(/\s+/).slice(0, maxW).join(" ").replace(/[,;:]$/, "") + "…";

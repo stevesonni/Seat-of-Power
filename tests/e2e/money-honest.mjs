@@ -21,7 +21,7 @@ await g.page.evaluate(() => window.SOP.spendTest(.5, "The new ambulances")); awa
 check(toasts.some(t => /Treasury was short: ₦0\.5B borrowed for the new ambulances\. Debt is now ₦1\.5B/.test(t)), "spending from an empty Treasury says it was borrowed (" + (toasts[0] || "none") + ")");
 await g.page.evaluate(() => window.SOP.setS(p => ({ ...p, cash: 0, debt: 200 }))); await g.wait(300);
 const strip = await g.txt();
-check(/owes ₦\d/.test(strip), "an empty Treasury shows what the state owes");
+check(/−₦\d/.test(strip), "an empty Treasury shows what the state owes, as a minus");
 // Salaries four months behind on top of the debt: insolvency at the year's end.
 await g.page.evaluate(() => window.SOP.stcTest(p => ({ ...p, arrears: 4 }))); await g.wait(300);
 const r = await playUntil(g, t => /Bailed out by Abuja, once/.test(t), { max: 500, prefer: [/^Later$/] });

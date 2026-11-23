@@ -8314,7 +8314,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               scWiki("Governorship", "Funded the Speaker's " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " to win back the House.");
               return { icon: "🤝", title: left ? "The House is with you this year" : "The Speaker is with you now", text: left ? "His bloc will vote for your budget and bring your bills to the floor. Next year he will want the rest." : "Both of his programmes are funded. The Speaker stops blocking you.", tone: "good" }; } })),
             { label: "Give his members committee chairs and contracts", note: "No money from the Treasury now. The papers will call it a sharing formula.", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); deal(); addL("🏛️ Shared committee chairs and contracts with " + SN + "'s members for the year.", "political"); return { icon: "🤝", title: "A deal for this year", text: "His members get their chairs and their contracts; your bills reach the floor this year.", tone: "neutral" }; } },
-            { label: "Refuse: govern without him", note: "Your bills stay off the floor this year, new programmes get no money, and the budget vote is his.", chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); setStc(p => ({ ...p, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house })); addL("🏛️ You refused " + SN + "'s price. The House will block you this year.", "crisis"); return { icon: "🚫", title: "The House will block you", text: "No bills on the floor and no money for new programmes this year. The budget vote will be hard.", tone: "bad" }; } },
+            { label: "Refuse: govern without him", note: "Your bills stay off the floor this year, new programmes get no money, and the budget vote is his.", chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); setStc(p => ({ ...p, speakerRefused: turn, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house })); addL("🏛️ You refused " + SN + "'s price. The House will block you this year.", "crisis"); return { icon: "🚫", title: "The House will block you", text: "No bills on the floor and no money for new programmes this year. The budget vote will be hard.", tone: "bad" }; } },
           ] });
       }
       // 2. The budget battle, and the promise that comes due the year after.
@@ -10671,7 +10671,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
     // A hostile Speaker with no deal this year: the House will not appropriate money for anything new.
-    if (speakerBlocks()) { try { window.SOP_outcome({ icon: "🏛️", img: "./art/backgrounds/assembly-chamber.webp", title: "The House will not fund it", text: cast.speaker.name + " has not let the House approve money for anything new this year: you have not met his price. Deal with him first (his letter is in your mail).", tone: "bad" }); } catch (e) {} return; }
+    if (speakerBlocks()) { const refused = stc.speakerRefused === turn, nm = String(cast.speaker.name || "The Speaker");
+      try { window.SOP_outcome({ icon: "🏛️", img: "./art/backgrounds/assembly-chamber.webp", title: "The House will not fund it",
+        text: "You have no majority, and the Speaker, " + nm + ", is blocking new spending. " + (refused ? "You refused his price this year, so nothing new gets money until he asks again next year." : "Pay his price (his letter is in your mail) and the House will fund your programmes this year."),
+        tone: "bad", ...(refused ? {} : { action: { label: "Open the Speaker's letter", fn: () => { setMailOpen(true); } } }) }); } catch (e) {} return; }
     { const B = SYS.strikeBlock(strikeNow(), { s: p.s, id: p.id }); if (B) return strikeRefuse(p.nm.replace(/^⭐\s*/, ""), B); }
     if (NAT && stc.impeach && stc.impeach.frozen === turn) { try { window.SOP_outcome({ icon: "⚖️", img: "./art/backgrounds/senate-chamber.webp", title: "Not in the year of the trial", text: "The Senate tribunal has frozen the government's programmes for the rest of this year.", tone: "bad" }); } catch (e) {} return; }
     if (p.ask && !p.pick) { setLocalAsk(p); return; } // how it is done in this state, first (SYS.localProgramme)
@@ -13957,7 +13960,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const tone = (v, good, warn) => v >= good ? "#2fa866" : v >= warn ? "#d9a21b" : "#e0574c";
   const STRIP = [
     ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40), "icon-approval", s.app],
-    ["Treasury", (s.cash || 0) > .05 || !(s.debt > .05) ? naira(s.cash || 0) : "owes " + naira(s.debt), (s.cash || 0) > .05 ? null : "#e0574c", "icon-bank", null, s.cash || 0],
+    ["Treasury", (s.cash || 0) > .05 || !(s.debt > .05) ? naira(s.cash || 0) : "−" + naira(s.debt), /* empty: what the state owes, as a minus */ (s.cash || 0) > .05 ? null : "#e0574c", "icon-bank", null, s.cash || 0],
     ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30), "icon-party", s.pStab],
     ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55), "icon-corruption", (s.cor || 0) * 100, null, true],
   ];
