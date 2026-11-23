@@ -73,3 +73,4 @@ export * from "./stateprofile.js";
 export * from "./inflation.js";
 export * from "./plans.js";
 export * from "./guide.js";
+export * from "./farewell.js";

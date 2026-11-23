@@ -2328,6 +2328,10 @@ const TripOpt = ({ onClick, children, fly }) => {
 const PlanSteps = ({ P }) => <div data-sop-plan style={{ display: "grid", gap: 8 }}>{P.steps.map((x, i) => <div key={x.id} data-sop-plan-step={x.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: "10px 12px", borderRadius: 14, background: CL.blu + "0d", border: "1px solid " + CL.blu + "33" }}>
   <b style={{ minWidth: 24, height: 24, borderRadius: 12, background: CL.blu, color: "#fff", display: "grid", placeItems: "center", fontSize: 13 }}>{i + 1}</b>
   <div style={{ flex: 1, textAlign: "left" }}><div style={{ fontWeight: 800, fontSize: "0.8em", lineHeight: 1.3 }}>{x.l} <span style={{ color: CL.red, whiteSpace: "nowrap" }}>{naira(x.c)}</span></div><div style={{ fontSize: "0.7em", color: CL.tm, lineHeight: 1.35, marginTop: 2 }}>{x.does}</div></div></div>)}</div>;
+// A farewell picture: Lovable's when it has arrived (public/art/farewell/), else the stand-in (SYS.FAREWELL_ART).
+const FarewellArt = ({ k, nat, h = 220 }) => { const [a, b] = SYS.farewellArt(k, nat), [src, setSrc] = useState("./art/" + a + ".webp");
+  useEffect(() => { setSrc("./art/" + a + ".webp"); }, [a]);
+  return <div data-sop-farewell-art={k} style={{ height: h, borderRadius: 18, background: "#1b2a22 url(" + src + ") center/cover", marginBottom: 14 }}><img src={src} alt="" style={{ display: "none" }} onError={() => src !== "./art/" + b + ".webp" && setSrc("./art/" + b + ".webp")} /></div>; };
 const DecisionCard = ({ kicker, kickerColor = CL.org, title, brief, stakes, aside, options, onPick, letter, salute, sendImg, military, doc }) => military ? <ForcePicker M={military} options={options} onPick={onPick} /> : doc ? <DocCard D={doc} options={options} onPick={onPick} /> : letter ? <TripLetter L={letter} salute={salute} options={options} onPick={onPick} sendImg={sendImg} /> :
   React.createElement("div", { className: "ds-card ds-stack", style: { borderColor: kickerColor + "66" } },
     aside || null,
@@ -6293,7 +6297,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
       postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
-      pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null,
+      pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null, endTest: (k) => { if (window.SOP_TEST) setGEnd(k); },
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
       skApp, setSkApp, pApp, setPApp,
@@ -13405,7 +13409,70 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       { id: "challenge", kicker: tr("Beat my score"), title: "I scored " + ov + " in " + st, sub: "Same state, same luck for everyone who opens the link. Beat " + gr + ".", color: "#c9922a", rows: [["My grade", gr], ["My score", String(ov)]], foot: ch.replace(/^https?:\/\//, ""), text: "I scored " + ov + " (grade " + gr + ") governing " + st + ". Same state, same luck: beat me. " + ch },
     ];
   };
+  /* The last month in office (SYS farewell.js): the commissioning rush, the last Executive Council, the midnight
+     files, the farewell broadcast, 29 May, and two years later. Shown once, before the record. */
+  const farewellView = () => {
+    const F0 = stc.farewell || { step: 0, picks: {} }, P = F0.picks || {}, step = F0.step || 0, tall = TALL();
+    const setF = (f) => setStc(p => { const o = p.farewell || { step: 0, picks: {} }; const n = f(o); return { ...p, farewell: { ...o, ...n, picks: { ...(o.picks || {}), ...(n.picks || {}) } } }; });
+    const nextStep = (picks) => { setF(o => ({ step: (o.step || 0) + 1, picks: picks || {} })); try { window.scrollTo(0, 0); } catch (e) {} };
+    const succ = successionOutcome() || {}, sKind = SYS.successorKind(succ), lost = !succ.won;
+    const sName = gEnd === "defeated" ? (cast?.rival?.name || "the new governor") : lost ? (cast?.rival?.name || "the opposition's candidate") : succ.name || "your successor";
+    const office = NAT ? "President" : "Governor", house = NAT ? "Aso Rock" : "Government House", place = NAT ? "Nigeria" : stName + " State";
+    const home = NAT ? (setup?.homeLga ? String(setup.homeLga).replace(/_/g, " ") + ", " : "") + stName + " State" : (setup?.homeLga ? String(setup.homeLga).replace(/_/g, " ") : "your hometown in " + stName);
+    const fz = tall ? { h: TS(30), b: TS(19), s: TS(16) } : { h: TS(46), b: TS(27), s: TS(22) };
+    const wrap = (k, kicker, title, body, foot) => <div data-sop-farewell={BEATS_[step]} style={{ maxWidth: 760, margin: "0 auto", padding: tall ? "14px 14px 40px" : "28px 24px 60px" }}>
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12 }}>{BEATS_.map((b, i) => <span key={b} style={{ width: i === step ? 22 : 8, height: 8, borderRadius: 4, background: i <= step ? CL.grn : CL.bdr }} />)}</div>
+      <FarewellArt k={k} nat={NAT} h={tall ? 200 : 300} />
+      <div style={{ fontSize: fz.s, fontWeight: 800, letterSpacing: 1.5, textTransform: "uppercase", color: CL.grn }}>{kicker}</div>
+      <h2 style={{ fontFamily: F.d, fontSize: fz.h, margin: "4px 0 12px", color: CL.txt, lineHeight: 1.15 }}>{title}</h2>
+      {body}<div style={{ marginTop: 18 }}>{foot}</div></div>;
+    const BEATS_ = SYS.BEATS;
+    const ln = (t) => <p style={{ fontSize: fz.b, lineHeight: 1.55, color: CL.tm, margin: "0 0 12px" }}>{t}</p>;
+    const tick = (on) => <span style={{ minWidth: 24, height: 24, borderRadius: 6, border: "2px solid " + (on ? CL.grn : CL.bdr), background: on ? CL.grn : "#fff", color: "#fff", display: "grid", placeItems: "center", fontSize: 15, fontWeight: 900 }}>{on ? "✓" : ""}</span>;
+    const finish = () => { const E = SYS.farewellEffect(P);
+      scFx({ app: E.fx.app || 0, pStab: E.fx.pStab || 0 }); if (E.fund) setPersonalFund(f => Math.round((f + E.fund / 1000) * 1000) / 1000);
+      E.wiki.forEach(w => scWiki("Controversies", w));
+      const B = SYS.BROADCAST.find(b => b.id === P.broadcast); if (B) scWiki(NAT ? "Presidency" : "Governorship", "In a " + B.id + " farewell broadcast, said: " + B.line);
+      track("farewell", [P.broadcast || "-", (P.midnight || []).length, P.ask || "-"].join(":"));
+      setF(o => ({ done: true, efcc: E.efcc })); try { window.scrollTo(0, 0); } catch (e) {} };
+    if (step === 0) { const C = SYS.commissionChoices(projects || []), sel = P.commission || [];
+      const toggle = (c) => setF(o => { const cur = (o.picks || {}).commission || [], on = cur.some(x => x.id === c.id); return { picks: { commission: on ? cur.filter(x => x.id !== c.id) : cur.length >= 2 ? cur : [...cur, c] } }; });
+      return wrap("commission", "Your last month · the commissioning rush", "Cut the last ribbons", <>
+        {ln(C.length ? "Every outgoing " + office.toLowerCase() + " opens what they can before 29 May. Pick up to two. A half-built site will take a ribbon too, if you dare." : "Nothing is finished in time to commission. You visit the sites, shake hands, and promise your successor will finish them.")}
+        <div style={{ display: "grid", gap: 8 }}>{C.map(c => { const on = sel.some(x => x.id === c.id); return <button key={c.id} data-sop-farewell-pick={c.id} onClick={() => toggle(c)} style={{ display: "flex", gap: 12, alignItems: "center", textAlign: "left", padding: "12px 14px", borderRadius: 14, border: "1px solid " + (on ? CL.grn : CL.bdr), background: "#fff", cursor: "pointer", fontFamily: F.b }}>
+          {tick(on)}<div><b style={{ fontSize: fz.b, color: CL.txt }}>{c.title}</b><div style={{ fontSize: fz.s, color: c.done ? CL.grn : CL.org }}>{c.done ? "Finished. Approval +1." : c.progress + "% built. Commission it anyway: approval +2 now, and the papers may remember."}</div></div></button>; })}</div></>,
+        <Bt onClick={() => { sel.forEach(c => addL((c.done ? "✂️ Commissioned " : "✂️ Commissioned (half-built) ") + c.title + " in the last month.", c.done ? "success" : "political")); nextStep(); }}>{sel.length ? "Cut the ribbon" + (sel.length > 1 ? "s" : "") + " →" : "On to the last meeting →"}</Bt>); }
+    if (step === 1) { const X = SYS.excoLines(ministries || [], { nat: NAT, boss: NAT ? "Mr President" : "Your Excellency" });
+      const bubble = (m, i) => { const mm = minById(m.id) || {}; return <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}><img src={commissionerArt(mm.minister, mm.perf, m.id)} alt="" style={{ width: 48, height: 48, borderRadius: 24, objectFit: "cover", objectPosition: "top", background: "#e8e1d0" }} />
+        <div style={{ background: "#fff", border: "1px solid " + CL.bdr, borderRadius: "4px 16px 16px 16px", padding: "10px 12px" }}><div style={{ fontSize: fz.s, fontWeight: 800, color: CL.txt }}>{m.who} <span style={{ fontWeight: 600, color: CL.td }}>· {m.role}</span></div><div style={{ fontSize: fz.b, color: CL.tm, lineHeight: 1.45 }}>“{m.text}”</div></div></div>; };
+      return wrap("exco", "The last " + (NAT ? "Federal Executive Council" : "Executive Council"), "One last meeting", <>
+        {ln("The council photograph is taken. Then, one by one, they speak.")}{X.lines.map(bubble)}{X.ask && <div data-sop-farewell-ask style={{ marginTop: 6 }}>{bubble(X.ask, 99)}</div>}</>,
+        X.ask ? <div style={{ display: "grid", gap: 8 }}><Bt onClick={() => { addL("🖊️ Signed a last contract approval for " + X.ask.who + " on the eve of the handover.", "scandal"); nextStep({ ask: "yes" }); }}>Sign it</Bt><Bt v="ghost" onClick={() => { addL("🖊️ Refused a last-minute approval for " + X.ask.who + ".", "info"); nextStep({ ask: "no" }); }}>Refuse: “Leave it for the next government.”</Bt></div>
+          : <Bt onClick={() => nextStep()}>Close the last meeting →</Bt>); }
+    if (step === 2) { const M = SYS.midnightFor(NAT), sel = P.midnight || [];
+      const toggle = (id) => setF(o => { const cur = (o.picks || {}).midnight || []; return { picks: { midnight: cur.includes(id) ? cur.filter(x => x !== id) : [...cur, id] } }; });
+      return wrap("midnight", "The midnight files", "Your desk, the night before you go", <>
+        {ln("Your aides bring the files outgoing " + (NAT ? "Presidents" : "governors") + " always sign in the last days. Your immunity ends at noon on 29 May.")}
+        <div style={{ display: "grid", gap: 8 }}>{M.map(m => { const on = sel.includes(m.id); return <button key={m.id} data-sop-farewell-midnight={m.id} onClick={() => toggle(m.id)} style={{ display: "flex", gap: 12, alignItems: "flex-start", textAlign: "left", padding: "12px 14px", borderRadius: 14, border: "1px solid " + (on ? CL.red : CL.bdr), background: "#fff", cursor: "pointer", fontFamily: F.b }}>
+          {tick(on)}<div><b style={{ fontSize: fz.b, color: CL.txt }}>{m.l}</b><div style={{ fontSize: fz.s, color: CL.grn }}>{m.gain}</div><div style={{ fontSize: fz.s, color: CL.red }}>{m.cost}</div></div></button>; })}</div></>,
+        <Bt onClick={() => { sel.forEach(id => { const m = M.find(x => x.id === id); m && addL("🌙 " + m.l + ", on your last night in office.", "scandal"); }); nextStep(); }}>{sel.length ? "Sign " + sel.length + " file" + (sel.length > 1 ? "s" : "") + " →" : "Sign nothing. Go to bed →"}</Bt>); }
+    if (step === 3) return wrap("broadcast", "The farewell broadcast", "Your last words to " + (NAT ? "Nigerians" : "the people of " + stName), <>
+        {ln("The cameras are ready in " + house + ". How do you say goodbye?")}
+        <div style={{ display: "grid", gap: 8 }}>{SYS.BROADCAST.map(b => <button key={b.id} data-sop-farewell-tone={b.id} onClick={() => { const t = b.papers.replace("GOVERNOR", NAT ? "PRESIDENT" : "GOVERNOR"); addL("📺 Farewell broadcast: “" + b.line.replace("a state", NAT ? "a country" : "a state") + "”", "political"); setTimeout(() => paper(t, b.line.replace("a state", NAT ? "a country" : "a state"), b.id !== "attack", "./art/scenes/national-broadcast.webp"), 300); nextStep({ broadcast: b.id }); }} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 14, border: "1px solid " + CL.bdr, background: "#fff", cursor: "pointer", fontFamily: F.b }}>
+          <b style={{ fontSize: fz.b, color: CL.txt }}>{b.l}</b><div style={{ fontSize: fz.s, color: CL.tm, fontStyle: "italic", marginTop: 3 }}>“{b.line.replace("a state", NAT ? "a country" : "a state")}”</div></button>)}</div></>, null);
+    if (step === 4) { const sp = SYS.successorSpeech({ kind: gEnd === "defeated" || lost ? "opposition" : sKind, betrayed: succ.betrayed, broadcast: P.broadcast, midnight: P.midnight, handover: typeof stc.handover === "string" ? stc.handover : null, name: sName, you: "my predecessor" }, rng(hashStr(state + pName + "oath")));
+      return wrap("oath", "29 May · " + (NAT ? "Eagle Square, Abuja" : house + ", " + stName), sName + " takes the oath", <>
+        {ln("The handover notes are signed and passed across. At noon " + sName + " swears to uphold the Constitution as " + office + " of " + place + ". Your immunity ends with the last word of the oath.")}
+        <div data-sop-farewell-speech={sp.tone} style={{ background: sp.tone === "warm" ? "#eaf6ee" : sp.tone === "snub" ? "#fbeceb" : "#f4f1ea", borderLeft: "4px solid " + (sp.tone === "warm" ? CL.grn : sp.tone === "snub" ? CL.red : CL.org), borderRadius: 10, padding: "12px 14px", fontSize: fz.b, color: CL.txt, lineHeight: 1.5, marginBottom: 14 }}>{sp.line}</div>
+        <FarewellArt k="depart" nat={NAT} h={tall ? 170 : 240} />
+        {ln(NAT ? "Minutes later you leave Eagle Square. Your ministers see you off at the airport, and the jet turns towards home." : "Minutes later your convoy leaves " + house + " for the last time. Behind you, the sirens fade.")}
+        <FarewellArt k="home" nat={NAT} h={tall ? 170 : 240} />
+        {ln("In " + home + ", " + (s.app >= 50 ? "your people line the road. Drummers, dancers, and an old teacher who taught you to read." : "a small crowd waits: family, old friends, and a few who still believe.") + " You are home.")}</>,
+        <Bt onClick={() => { addL("🕊️ Handed over to " + sName + " on 29 May and went home to " + home + ".", "political"); finish(); }}>See your record →</Bt>); }
+    return null;
+  };
   if (gEnd) {
+    if (SYS.FAREWELL_ENDS.includes(gEnd) && !(stc.farewell || {}).done && !(window.SOP_TEST && window.SOP_TEST.noFarewell)) return farewellView();
     const di = ((s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100).toFixed(1);
     const fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40).toFixed(1);
     const ov = (parseFloat(di) * .3 + s.app * .3 + parseFloat(fi) * .2 + (100 - s.cor * 100) * .2).toFixed(1);
@@ -13413,7 +13480,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const gc = { A: CL.grn, B: "#84cc16", C: CL.org, D: CL.red, F: "#8b0000" }[gr];
     // Who came after you, and what that means for your file at the EFCC.
     const succ = successionOutcome();
-    const ecor = cl(s.cor + (succ?.efcc || 0));
+    const ecor = cl(s.cor + (succ?.efcc || 0) + ((stc.farewell || {}).efcc || 0)); // the midnight files feed the EFCC
     const rc = { gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(p => p.status === "kept").length, broken: (stc.promises || []).filter(p => p.status === "broken").length, promised: (stc.promises || []).length };
     const rcTitle = reportTitle(rc);
     // Everything the presidential run needs to know about this governorship.

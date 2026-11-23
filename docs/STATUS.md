@@ -3,7 +3,33 @@
 
 
 
-## The guide, like Lagos Life's wiki (23 Nov, latest)
+## The last month in office: closure before the record (23 Nov, latest)
+
+- **What the owner asked:** "now if i finish, next thing i see is see results and i am out… how best to give closure… build it. let lovable generate the images". Later: "i dont want that two years later", so the ending stops at 29 May.
+- **Who gets it:** a governor or President who leaves on their own feet: a full term, stepping down, or losing re-election. These are `SYS.FAREWELL_ENDS`. The record still comes after it.
+- **The five beats** (`game/systems/farewell.js`, `farewellView` in the game screen), each one tap or one choice:
+  1. **The commissioning rush.** Cut up to two ribbons. A finished project gives approval +1. A site 50% or more built can be commissioned anyway: approval +2, a Controversies line in your biography, and a little more EFCC exposure.
+  2. **The last Executive Council** (or Federal Executive Council for the President). Each commissioner says one line in character, and no two say the same thing. The most corrupt one asks for "one last approval": sign it or refuse.
+  3. **The midnight files.** Each is tempting, and each feeds the EFCC's file and your successor's mood:
+     - appoint loyalists to boards for five years;
+     - sign a pardon list with a friend on it;
+     - give the last big contract to a friend (₦150M into your campaign fund);
+     - share out the lagoon plots.
+  4. **The farewell broadcast:** proud, humble, or fighting. The tone sets the newspaper's front page, approval, and how your successor speaks of you.
+  5. **29 May:**
+     - the handover notes;
+     - the successor takes the oath, and your immunity ends;
+     - the successor's speech: warm, polite or a snub, depending on who they are, the handover dossier, your broadcast and your midnight files;
+     - the convoy, or for the President the jet from Eagle Square;
+     - home to your own LGA, where your people line the road if they liked you.
+- **What the choices change:** approval, party support, the campaign fund, biography lines, and the EFCC file. The record's EFCC verdict adds the farewell's exposure.
+- **Pictures:** `docs/LOVABLE-FAREWELL.md` asks Lovable for 10 images in `public/art/farewell/`. Until they arrive, each beat uses existing art as a stand-in (`SYS.FAREWELL_ART`), and new files are picked up automatically.
+- **Tests:**
+  - `tests/farewell.test.mjs` (451 unit tests pass).
+  - `tests/e2e/farewell.mjs`: all five beats, then the record, with the midnight files feeding the EFCC. It also passes after a lost re-election.
+  - Test hook: `SOP.endTest(kind)`.
+
+## The guide, like Lagos Life's wiki (23 Nov)
 
 - **What the owner asked:** "See how they did their how to play… build all."
 - **One source:** `game/systems/guide.js` holds the guide for both the game and the website. When the game changes, change this file and `GUIDE_UPDATED`. It has:
