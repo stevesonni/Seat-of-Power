@@ -23,6 +23,6 @@ check(/The House will not fund it/.test(await g.txt()), "the House blocks it");
 await g.click(/^Open the Speaker's letter$/); await g.wait(1200);
 const t = await g.txt();
 if (process.env.SHOTS) await g.page.screenshot({ path: process.env.SHOTS + "/speaker-letter.png" });
-check(/wants his programmes first|township roads/i.test(t) && !/The House will not fund it/.test(t), "the button opens the Speaker's letter");
+check(/wants his programmes first|build it: township roads/i.test(t) && !/The House will not fund it/.test(t), "the button opens the Speaker's letter");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

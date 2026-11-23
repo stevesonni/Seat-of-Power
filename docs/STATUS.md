@@ -2134,3 +2134,10 @@ Owner: "If the president agrees to stand with me it puts me in majority back wit
 
 ## "Open the Speaker's letter" opens it (23 Nov 2026)
 Owner: "I clicked open the speakers letter and nothing happened." The button opened the mailbox without a letter, and the mailbox closes itself when no letter is chosen. `openSpeakerLetter()` now finds this year's `sc#leg_spprice_` letter (in the mailbox, inside a merged envelope, or held back for next year) and opens it. Test hook `SOP.policyTest()`; test tests/e2e/speaker-letter.mjs.
+
+## The Speaker's building projects go through the projects screen, with his contractor (23 Nov 2026)
+Owner: "it should open the project screen where I give it to a contractor… we'll use the speaker's pre-approved contractor, which increases corruption… You can refuse, but if you refuse, your bill will stay blocked."
+- His asks with a building (`type` in SPEAKER_ASKS: township roads, the hospital, the university campus) now read "Build it: …" with the real contract sum. Tapping it makes the project (in an LGA of the state, sized so his firm's contract comes near his ask, budget = that contract sum) and opens procurement.
+- Procurement for a Speaker's project offers only his firm, Mace & Gavel Works Ltd (projects.js id "gavel", `speakerFirm`, never in an open tender): "Award" starts the work, adds 3% corruption, and wins the House this year (his ask marked done; the last ask ends his hostility). "Refuse his contractor" removes the project, sets speakerRefused: your bills stay blocked this year. "Later" leaves it waiting on the projects screen.
+- Asks with no building (autonomy, empowerment, the Assembly complex) stay one-tap "Fund it".
+- Test: tests/e2e/speaker-project.mjs (award and refuse); speaker-hostile.mjs now uses the empowerment ask.

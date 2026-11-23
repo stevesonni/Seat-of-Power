@@ -118,6 +118,8 @@ export const CONTRACTORS = [
   { id: "rainbow", name: "Rainbow Ventures Ltd", sectors: Object.keys(SECTORS), capacity: 9, price: 1.4, reliability: .35, speed: .5, quality: .4, integrity: .1, ties: "family", nepotism: true, note: "Owned by your spouse's cousin." },
   { id: "atlantic", name: "Atlantic Rail & Marine Consortium", sectors: ["roads", "energy", "industry"], capacity: 3, price: 1.1, reliability: .82, speed: .75, quality: .85, integrity: .75, ties: "federal", note: "Rail, ports and pipelines: the heavy federal work, with foreign partners." },
   { id: "muhammad", name: "Alhaji Muhammad & Sons Ltd", sectors: Object.keys(SECTORS), capacity: 9, price: 1.3, reliability: .45, speed: .55, quality: .45, integrity: .15, ties: "godfather", nepotism: true, note: "The godfather's front company." },
+  // The Speaker's own firm (legislature.js SPEAKER_FIRM): offered only for the Speaker's projects, never in a tender.
+  { id: "gavel", name: "Mace & Gavel Works Ltd", sectors: Object.keys(SECTORS), capacity: 9, price: 1.25, reliability: .5, speed: .55, quality: .5, integrity: .2, ties: "speaker", speakerFirm: true, note: "The Speaker's pre-approved contractor. His members' cut is in the price." },
 ];
 export const contractorById = (id) => CONTRACTORS.find(c => c.id === id);
 
@@ -153,7 +155,7 @@ export const eligible = (type, projects = [], key = "") => {
   const shown = pc.filter(c => c.mine).concat(top, rotatePick(others.filter(c => !top.includes(c)), 3, String(key)));
   // A firm that fled with a mobilisation fee never bids again (owner, 23 Nov 2026).
   const fledIds = new Set(projects.filter(p => p.fledId).map(p => p.fledId)), fledNames = new Set(projects.filter(p => p.fledFirm).map(p => p.fledFirm));
-  return shown.concat(CONTRACTORS.filter(c => !c.player && c.sectors.includes(sector))).filter(c => !fledIds.has(c.id) && !fledNames.has(c.name)).map(c => ({ ...c, active: busy(c.id), full: busy(c.id) >= c.capacity }));
+  return shown.concat(CONTRACTORS.filter(c => !c.player && !c.speakerFirm && c.sectors.includes(sector))).filter(c => !fledIds.has(c.id) && !fledNames.has(c.name)).map(c => ({ ...c, active: busy(c.id), full: busy(c.id) >= c.capacity }));
 };
 
 /* The funding check. needM is the full cost of the scope you set. */

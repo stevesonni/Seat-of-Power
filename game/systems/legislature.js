@@ -99,12 +99,19 @@ export const debateFor = (agenda, ministries = []) => {
    order paper, new programmes get no money, and you have no majority for the budget. */
 export const hostileSpeaker = (R) => !!(R && R.hostile);
 export const SPEAKER_ASKS = [
-  { id: "hospital", l: "A specialist hospital in the Speaker's home town", costB: .9, fx: { app: 1 } },
+  { id: "hospital", l: "A specialist hospital in the Speaker's home town", costB: .9, fx: { app: 1 }, type: "hospital" },
   { id: "assembly", l: "A new Assembly complex, with offices for every member", costB: .7, fx: { app: -1, cor: .01 } },
-  { id: "roads", l: "Township roads in the Speaker's constituency", costB: .6, fx: { app: 1 } },
+  { id: "roads", l: "Township roads in the Speaker's constituency", costB: .6, fx: { app: 1 }, type: "road" },
   { id: "autonomy", l: "Financial autonomy for the House: its budget paid straight to it, first, every month", costB: .4, fx: { pStab: -2 } },
   { id: "empower", l: "An empowerment scheme run through members' offices", costB: .5, fx: { cor: .02 } },
-  { id: "university", l: "A state university campus in the Speaker's district", costB: 1.2, fx: { app: 1 } },
+  { id: "university", l: "A state university campus in the Speaker's district", costB: 1.2, fx: { app: 1 }, type: "university" },
 ];
+/* A Speaker's building project goes through the projects screen like any other, but he names the contractor (owner,
+   23 Nov 2026: "we'll use the Speaker's pre-approved contractor, which increases corruption… You can refuse, but if
+   you refuse, your bill will stay blocked"). His firm is in the contractor roster (projects.js, id "gavel") and never
+   bids in an open tender. */
+export const SPEAKER_FIRM = "gavel", SPEAKER_FIRM_COR = .03;
+// Older saves stored the asks without a type: find it by id.
+export const speakerAskType = (a) => (a && (a.type || (SPEAKER_ASKS.find(x => x.id === a.id) || {}).type)) || null;
 export const speakerAsks = (seed, nat) => { const r = seeded(seed, "speaker_asks"), a = SPEAKER_ASKS.slice().sort(() => r() - .5).slice(0, 2);
   return nat ? a.map(x => ({ ...x, costB: Math.round(x.costB * 10 * 10) / 10, l: x.l.replace("The House", "the National Assembly").replace("House", "National Assembly") })) : a; };

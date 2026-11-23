@@ -5435,7 +5435,7 @@ const AdviserDesk = ({ name, say, why, action, onAction, onLater, alert, soundOn
 // What changed because of the last decision.
 const Consequence = ({ text, icon = "✅" }) => text ? <div className="sp-con" role="status"><span aria-hidden="true" style={{ fontSize: 20 }}>{icon}</span><span><b>What changed:</b> {text}</span></div> : null;
 
-const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, groups, federal, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound, onNeedMinistry, survive, lastYear = 8 }) => {
+const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, groups, federal, ministries, roomM, onConfirmPlan, onApplyLoan, onAcceptOffer, onAward, onAction, onOpenStep, nextOf, agendaLeft, adviser, soundOn, onSound, onNeedMinistry, survive, onSpeaker, lastYear = 8 }) => {
   const F0 = flow;
   // Where a draft goes (one place or several), and what its ministry can manage (SYS.estimate).
   const placesOf = (d) => (d.lgas && d.lgas.length ? d.lgas : [d.lga]).filter(Boolean);
@@ -5560,6 +5560,20 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
   }
 
   // ── 4. Procurement: who builds it ──
+  if (F0 && F0.step === "contractor" && proj && proj.speakerAsk && onSpeaker) {
+    const C = SYS.contractorById(SYS.SPEAKER_FIRM), cv = SYS.contractCover(proj, C, "open");
+    return <Dossier icon={SECTOR_ICON[proj.sector]} kicker="Procurement · the Speaker's project" title={proj.title} place={where(proj)} at={SYS.milestoneOf(proj)}>
+      <Situation tone="warn" head={"The Speaker has his own contractor"} text={proj.speakerName + " wants this job for " + C.name + ". Use his firm and his bloc votes with you this year. Refuse, and your bills stay blocked."} />
+      <div className="sp-card" data-sop-speaker-firm style={{ padding: "12px 14px", boxShadow: "none", borderColor: "#efc2bc" }}>
+        <b style={{ font: "700 17px 'Plus Jakarta Sans', sans-serif", color: "#17301f" }}>{C.name}</b>
+        <div style={{ fontSize: 13, color: "#b3261e" }}>{C.note}</div>
+        <div style={{ fontSize: 14, marginTop: 6, color: cv.covered ? "#0b6b42" : "#a3271c", fontWeight: 700 }}>Contract sum {SYS.fmtM(cv.sum)}: {cv.over <= 0 ? "within the budget" : cv.covered ? SYS.fmtM(cv.over) + " over, covered by the 10% contingency" : SYS.fmtM(cv.over) + " over the budget. The money runs out before the work is done unless you add funding."}</div>
+        <div style={{ fontSize: 14, marginTop: 4, color: "#b3261e", fontWeight: 700 }}>Corruption +{Math.round(SYS.SPEAKER_FIRM_COR * 100)}%</div>
+      </div>
+      <Actions><button className="sp-btn ghost" onClick={() => onSpeaker(proj.id, false)}>Refuse his contractor</button><button className="sp-btn" onClick={() => onSpeaker(proj.id, true)}>Award to {C.name}</button></Actions>
+      <Actions><button className="sp-btn quiet" onClick={() => onFlow(null)}>Later</button></Actions>
+    </Dossier>;
+  }
   if (F0 && F0.step === "contractor" && proj) {
     const list = SYS.eligible(proj.type, projects, proj.id), meth = F0.method || "open", n = nextOf(proj);
     const bar = (l, v) => <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#5b6b55" }}>{l}<span style={{ width: 54, height: 6, borderRadius: 3, background: "#ece3cd", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.round(v * 100) + "%", background: v > .75 ? "#0b6b42" : v > .55 ? "#c9922a" : "#b3261e" }} /></span></span>;
@@ -8306,7 +8320,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           brief: "You have no majority: until you deal with " + SN + ", your bills stay off the floor and new programmes get no money. This year he wants " + (open.length ? open.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", or ") : "committee chairs and contracts for his members") + ".",
           stakes: "Pay his price and his bloc votes with you this year, budget included. Or ask the President for his backing at the party on your Aso Rock visit: a yes wins you back the House by one.",
           options: [
-            ...open.map(a => ({ label: "Fund it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), note: naira(a.costB) + ". His bloc votes with you this year." + (open.length === 1 ? " It is the last thing he asked for." : ""), chips: [{ text: "−" + naira(a.costB), color: CL.red }].concat(fxChips(a.fx || {})).slice(0, 3), run: () => {
+            // A building project (roads, a hospital, a campus) opens the projects screen with his contractor (owner, 23 Nov 2026).
+            ...open.filter(a => SYS.speakerAskType(a)).map(a => ({ label: "Build it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), note: SYS.fmtM(speakerSize(a, SN).sumM) + ", with his contractor. It goes through the projects screen.", chips: [{ text: SYS.fmtM(speakerSize(a, SN).sumM), color: CL.org }, { text: "His contractor", color: CL.red }], run: () => { speakerProject(a, SN); return null; } })),
+            ...open.filter(a => !SYS.speakerAskType(a)).map(a => ({ label: "Fund it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), note: naira(a.costB) + ". His bloc votes with you this year." + (open.length === 1 ? " It is the last thing he asked for." : ""), chips: [{ text: "−" + naira(a.costB), color: CL.red }].concat(fxChips(a.fx || {})).slice(0, 3), run: () => {
               if (!spendB(a.costB, "The Speaker's " + a.id)) return; scFx(a.fx || {});
               const left = open.filter(x => x.id !== a.id).length;
               deal({ leg: { ...(next.leg || L), speaker: { ...SP, done: [...(SP.done || []), a.id], hostile: left > 0 } } });
@@ -12799,6 +12815,48 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
   };
   const scDirect = (l) => { const C = scOf(l); return C && !C.letter && !C.military && !C.doc && (C.options || []).length >= 2 && C.options.length <= 4 && C.options.every(o => !o.travel) ? C : null; };
+  /* The Speaker's building project (owner, 23 Nov 2026: "it should open the project screen where I give it to a
+     contractor. Because it is from the Speaker… we'll use the Speaker's pre-approved contractor, which increases
+     corruption… You can refuse, but if you refuse, your bill will stay blocked"). The project is made at his price and
+     opens at procurement, where only his firm is offered; accepting it is what wins the House this year. */
+  const speakerProject = (a, SN) => {
+    const ex = (projects || []).find(x => x.speakerAsk === a.id && x.status === "pending_procurement");
+    if (ex) { setPflow({ step: "contractor", projId: ex.id }); return; }
+    const { P } = speakerSize(a, SN);
+    setProjects(prev => [...(prev || []), P]);
+    addL("🏛️ " + SN + "'s project is on the projects screen: " + P.title + " (" + SYS.fmtM(P.approvedM) + "). He wants his own contractor on it.", "political");
+    setTimeout(() => setPflow({ step: "contractor", projId: P.id }), 400);
+  };
+  // The Speaker's project at its real price: his firm's contract sum for a scope near what he asked for.
+  const speakerSize = (a, SN) => {
+    const type = SYS.speakerAskType(a), U = SYS.UNIT[type], L0 = getLGAs(state) || [], lga = L0.length ? L0[hashStr(String(SN) + a.id) % L0.length] : null;
+    const id = "p_" + turn + "_sp_" + a.id, wantM = Math.round(a.costB * 1000), F = SYS.contractorById(SYS.SPEAKER_FIRM);
+    const mk = (qty) => SYS.makeProject({ id, title: a.l.replace(/^(A|An) /, "").replace(/^./, c => c.toUpperCase()), type, qty, lga, lgas: lga ? [lga] : [], federal: NAT, state: NAT ? null : state, costF: SEAT.priceF || 1,
+      approvedM: wantM, thisYearM: wantM, year: turn, decision: "The Speaker's project: " + SN + " asked for it as his price for the House." });
+    // Sized so his firm's contract (padded price and all) comes to what he asked for, and the budget covers it.
+    const q0 = Math.max(1, Math.round(wantM / U.per)), p0 = mk(q0), proj = mk(Math.max(1, Math.round(q0 * wantM / Math.max(1, SYS.contractSum(p0, F, "open")))));
+    const sumM = SYS.contractSum(proj, F, "open");
+    return { P: { ...proj, approvedM: sumM, alloc: { [turn]: sumM }, speakerAsk: a.id, speakerName: SN, status: "pending_procurement" }, sumM };
+  };
+  const speakerContract = (projId, yes) => {
+    const P = (projects || []).find(x => x.id === projId); if (!P) return;
+    const SPk = ((stc.leg || {}).speaker) || {}, SN = P.speakerName || String(cast.speaker.name || "The Speaker");
+    const H = stc.house || { seats: 24, loyal: 10 }, maj = Math.floor(H.seats / 2) + 1;
+    if (yes) {
+      awardProject(projId, SYS.SPEAKER_FIRM, "open"); scFx({ cor: SYS.SPEAKER_FIRM_COR });
+      const left = (SPk.asks || []).filter(x => !(SPk.done || []).includes(x.id) && x.id !== P.speakerAsk).length;
+      setStc(p => ({ ...p, speakerDeal: turn, speakerRefused: null, leg: { ...(p.leg || {}), speaker: { ...SPk, done: [...(SPk.done || []), P.speakerAsk], hostile: left > 0 } }, house: p.house ? { ...p.house, loyal: Math.max(p.house.loyal, maj) } : p.house }));
+      addL("🏛️ " + P.title + " went to Mace & Gavel Works, " + SN + "'s contractor. " + (left ? "His bloc votes with you this year." : "That was the last thing he asked for: the Speaker is with you from now on."), "political");
+      scWiki("Controversies", "Gave " + P.title + " to the Speaker's own contractor to win back the House.");
+      setTimeout(() => { try { window.SOP_outcome({ icon: "🤝", img: "./art/backgrounds/assembly-chamber.webp", title: left ? "The House is with you this year" : "The Speaker is with you now", text: "His contractor has the job, and his members have their cut. " + (left ? "Your bills reach the floor and your programmes get their money this year. Next year he will want the rest." : "He stops blocking you."), tone: "neutral",
+        rows: [{ l: "Corruption", v: "+" + Math.round(SYS.SPEAKER_FIRM_COR * 100) + "%", good: false }, { l: "The House", v: "With you", good: true }] }); } catch (e) {} }, 900);
+    } else {
+      setProjects(prev => prev.filter(x => x.id !== projId)); setPflow(null); scFx({ pStab: -2 });
+      setStc(p => ({ ...p, speakerRefused: turn, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house }));
+      addL("🏛️ You refused " + SN + "'s contractor for " + P.title + ". The House will block you this year.", "crisis");
+      try { window.SOP_outcome({ icon: "🚫", img: "./art/backgrounds/assembly-chamber.webp", title: "Your bills stay blocked", text: "No contractor of his, no project, and no deal. " + SN + " keeps your bills off the floor and your new programmes get no money this year.", tone: "bad", rows: [{ l: "The House", v: "Still his", good: false }] }); } catch (e) {}
+    }
+  };
   /* The Speaker's price, opened straight from the blocked-programme pop-up (owner, 23 Nov 2026: "I clicked open the
      Speaker's letter and nothing happened": the mailbox needs a letter to open, or it closes at once). If the letter
      was held back for next year, it comes in now. */
@@ -16571,7 +16629,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           {gold && goldOpen && <GoldView D={gold} year={turn} onChoose={chooseGold} onClose={() => setGoldOpen(false)} />}
         </OL>
         <OL show={!!pflow}>
-          {pflow && <ProjectsView year={turn} projects={projects || []} loans={loans} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { resumeFlow.current = pflow; setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
+          {pflow && <ProjectsView year={turn} projects={projects || []} loans={loans} flow={pflow} onFlow={setPflow} needs={openNeedsForProj} lgas={getLGAs(state)} groups={placeGroups()} federal={NAT} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onSpeaker={speakerContract} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { resumeFlow.current = pflow; setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} />}
         </OL>
         <OL show={!!secr}>
           {secr && <SecretariatView year={turn} ministries={ministries} cases={cases.filter(c => !c.agency || c.stage === "decided" || c.stage === "closed" || (c.stage === "findings" && !stc.hos))} commits={commits} focus={secr} agendaLeft={agendaLeftNow}
@@ -17334,7 +17392,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
             addL(J.icon + " " + R.text, "success");
             try { window.SOP_sound && window.SOP_sound("good"); window.SOP_outcome({ icon: J.icon, title: J.l, text: R.text, tone: "good", rows: [{ l: "People in " + L, v: "+" + J.mood, good: true }, ...(J.costB ? [{ l: "From the bank", v: "−" + SYS.fmtM(Math.round(J.costB * 1000)), good: false }] : []), ...(R.eased ? [{ l: "The problem there can wait", v: "one more year", good: true }] : [])] }); } catch (e) {}
           } } : null} />}
-        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} loans={loans} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { resumeFlow.current = pflow; setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
+        {nav === "prj" && <div style={{ maxWidth: TALL() ? 900 : 1100, margin: "0 auto" }}><ProjectsView year={turn} projects={projects || []} loans={loans} flow={null} onFlow={setPflow} needs={openNeedsForProj} groups={placeGroups()} federal={NAT} lgas={getLGAs(state)} ministries={ministries} roomM={roomM} onConfirmPlan={confirmPlan} onApplyLoan={applyLoan} onAcceptOffer={acceptOfferNow} onAward={awardProject} onSpeaker={speakerContract} onAction={projAction} onOpenStep={openStep} onNeedMinistry={(cat) => { resumeFlow.current = pflow; setPflow(null); openNewMinistry(cat); }} nextOf={nextOf} agendaLeft={agendaLeftNow} survive={projSurvive} lastYear={MT} adviser={saOffice.adviser && saOffice.adviser.name} soundOn={soundOn} onSound={() => { try { setSoundOn(window.SOP_soundOn(!window.SOP_soundOn())); } catch (e) {} }} /></div>}
         {nav === "proc" && <div id="sop-realism-proc" data-nav="proc"><div style={{ padding: 72, textAlign: "center", color: CL.td, fontSize: TS(38) }}>Loading Procurement Log…</div></div>}
         {nav === "coun" && NAT && FedCouncilsPanel()}
         {nav === "coun" && !NAT && !needSetup && StateEconPanel()}

@@ -15,16 +15,16 @@ for (const pay of [true, false]) {
   await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await g.wait(800);
   // The other side's man won last year without your backing: you have lost the House.
   await g.page.evaluate(() => window.SOP.stcTest(p => { const L = p.leg || { members: [{ id: "m1", name: "Hon. Uzo Agbo", bloc: "swing", interest: "money", rel: 40 }], promises: [], asked: [] }; const w = (L.members.find(m => m.bloc !== "ours") || L.members[0]);
-    return { ...p, house: { seats: 24, loyal: 10 }, leg: { ...L, speaker: { winner: w.id, kind: "fixer", owes: false, crossed: true, hostile: true, at: 0, done: [], asks: [{ id: "roads", l: "Township roads in the Speaker's constituency", costB: .6, fx: { app: 1 } }, { id: "hospital", l: "A specialist hospital in the Speaker's home town", costB: .9, fx: { app: 1 } }] } } }; })); await g.wait(500);
+    return { ...p, house: { seats: 24, loyal: 10 }, leg: { ...L, speaker: { winner: w.id, kind: "fixer", owes: false, crossed: true, hostile: true, at: 0, done: [], asks: [{ id: "empower", l: "An empowerment scheme run through members' offices", costB: .5, fx: { cor: .02 } }, { id: "hospital", l: "A specialist hospital in the Speaker's home town", costB: .9, fx: { app: 1 } }] } } }; })); await g.wait(500);
   const r = await playUntil(g, t => /wants his programmes first/.test(t), { max: 400, prefer: [/^Later$/] });
   check(r.ok, "the hostile Speaker's price arrives");
   const t = await g.txt();
-  check(/no majority/i.test(t) && /bills stay off the floor/i.test(t) && /township roads/i.test(t), "it says: no majority, bills blocked, and his own programmes");
+  check(/no majority/i.test(t) && /bills stay off the floor/i.test(t) && /empowerment scheme/i.test(t), "it says: no majority, bills blocked, and his own programmes");
   if (pay) {
-    await g.click(/^Fund it: township roads/i); await g.wait(800);
+    await g.click(/^Fund it: an empowerment scheme/i); await g.wait(800);
     const st = await g.page.evaluate(() => ({ h: window.SOP.stc.house, d: window.SOP.stc.speakerDeal, t: window.SOP.turn, sp: window.SOP.stc.leg.speaker }));
     check(st.h.loyal >= 13 && st.d === st.t, "paying his price wins the House back this year (" + st.h.loyal + "/24)");
-    check(st.sp.hostile === true && st.sp.done.includes("roads"), "one of his two programmes is done; he still wants the other");
+    check(st.sp.hostile === true && st.sp.done.includes("empower"), "one of his two programmes is done; he still wants the other");
   } else {
     await g.click(/^Refuse: govern without him/); await g.wait(800);
     const st = await g.page.evaluate(() => ({ h: window.SOP.stc.house, d: window.SOP.stc.speakerDeal, t: window.SOP.turn }));
