@@ -8402,6 +8402,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           { label: "Let the money go", chips: fxChips({ app: -1 }), run: () => { scFx({ app: -1 }); setProjects(prev => (prev || []).map(x => x.id === P.id ? { ...x, japaLetGo: true } : x)); addL("🧳 You stopped chasing " + firm + "'s " + SYS.fmtM(lossM) + " in " + to + ".", "info"); return { icon: "🧳", title: "Let go", text: "The " + SYS.fmtM(lossM) + " stays in " + to + ". The opposition will remember.", tone: "bad" }; } },
         ] });
     });
+    // Election year with a strike on: the warning (re-election in year 4; your successor's race in the last year).
+    if ((turn === 4 || turn === MT) && liveStrikes().length) notes.push(["✊🏾 Election year, and the " + liveStrikes().join(" and ") + " strike is still on. If it is not settled by election day (an MoU signed, or the money paid), " + (turn === 4 ? "you cannot be re-elected" : "your party's candidate cannot win") + ". Nothing else will save it.", "crisis"]);
     // Recovery plans that are due (SYS.recoveryPlan): costed steps you approve; what you approve happens.
     (next.recPlans || []).filter(x => !x.done && x.due <= turn).slice(0, 2).forEach(R => {
       const m = (ministries || []).find(k => k.id === R.mid);
@@ -9578,8 +9580,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const log = [...R.log, { atk: hitNow.t, hit: hitNow.hit, move: m.l, d: m.d }];
     const round = R.round + 1, loyalAdj = R.loyalAdj + (m.loyal || 0);
     if (round < 3) { setStc(p => ({ ...p, race: { ...R, round, poll, hit: false, log, loyalAdj } })); return; }
-    const final = Math.round((poll + (Math.random() * 6 - 3)) * 10) / 10, won = final > 50;
-    addL("🗳️ " + (stc.successor?.name || "Your candidate") + (won ? " won the governorship " : " lost the governorship ") + final.toFixed(1) + "% to " + (100 - final).toFixed(1) + "%.", won ? "success" : "crisis");
+    // A strike still on, with no MoU and nothing paid: your candidate cannot win, whatever the campaign did.
+    const onStrike = liveStrikes(), final = onStrike.length ? Math.min(38, Math.round((poll - 25) * 10) / 10) : Math.round((poll + (Math.random() * 6 - 3)) * 10) / 10, won = final > 50;
+    addL("🗳️ " + (stc.successor?.name || "Your candidate") + (won ? " won the " + (NAT ? "presidency " : "governorship ") : " lost the " + (NAT ? "presidency " : "governorship ")) + final.toFixed(1) + "% to " + (100 - final).toFixed(1) + "%." + (onStrike.length ? " The " + onStrike.join(" and ") + " strike was still on: workers and students voted against your party." : ""), won ? "success" : "crisis");
     setStc(p => ({ ...p, race: { ...R, round, poll, log, final, loyalAdj }, raceDone: true, raceWon: won }));
   };
   // The attack lands when a round opens.
@@ -9594,7 +9597,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (gEnd === "complete" || gEnd === "stepped_down") {
       const so = stc.successor || { name: gN(rng(state.length * 733 + turn), sd?.zone, state), kind: "party", loyal: .4, elect: 46 };
       const r = rng(state.length * 991 + Math.round(s.app) * 7 + Math.round(s.cor * 100));
-      const won = stc.raceDone ? !!stc.raceWon : so.elect + (s.app - 50) * .6 + (s.pStab - 50) * .3 + (r() - .5) * 20 > 50;
+      const won = stc.raceDone ? !!stc.raceWon : !liveStrikes().length && so.elect + (s.app - 50) * .6 + (s.pStab - 50) * .3 + (r() - .5) * 20 > 50;
       // A successor turning on you is the exception, not the rule (owner, 22 Nov 2026: "this mustn't happen all the
       // time"): about 7% for your deputy, 20-30% for the others, a little more if your corruption gave them a file.
       const betrayChance = Math.max(.03, Math.min(.4, (1 - so.loyal) * .5 + (s.cor > .45 ? .1 : 0) - (stc.race?.loyalAdj || 0)));
@@ -10724,6 +10727,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   /* Money a contractor ran off with stays owed until it is recovered or you let it go, even after a new contractor
      takes over the site (owner, 23 Nov 2026: "money was japaed… I got nothing in the visit to the President or even
      a letter on how to recover it"). */
+  /* A strike still on at election time (no MoU signed, nothing paid) sinks you, your party and your successor: nothing
+     can win that election (owner, 23 Nov 2026: "nothing can ever make your party or successor win… Nothing"). */
+  const liveStrikes = () => Object.values(((stc.labour || {}).strikes) || {}).filter(x => x && x.on).map(x => (SYS.UNIONS[x.id] || {}).short || String(x.id).toUpperCase());
   const japaOwed = (p) => !!(p && (p.fledM || p.fled) && !p.japaRecovered && !p.japaLetGo);
   /* The visit to Aso Rock (SYS.visits): once a year a governor flies to Abuja with one request. */
   const [visitOpen, setVisitOpen] = useState(false);
@@ -14762,6 +14768,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </div>
               {!done && atk && R.hit && <div className="sop-fade-in" style={{ background: CL.red, color: "#fff", borderRadius: 14, padding: "10px 14px", fontSize: fz.m, fontWeight: 700, marginBottom: 12 }}>{atk.t}: your candidate −{atk.hit}</div>}
               {!done && <div style={{ display: "grid", gap: 10 }}>
+                {liveStrikes().length > 0 && <div data-sop-race-strike style={{ background: "#fbeceb", borderLeft: "4px solid " + CL.red, borderRadius: 10, padding: "10px 12px", fontSize: fz.s, color: CL.txt, lineHeight: 1.45 }}>✊🏾 <b>The {liveStrikes().join(" and ")} strike is still on.</b> With no MoU and nothing paid, workers and students will vote against your party, whatever you do here.</div>}
                 <b style={{ fontFamily: F.d, fontSize: fz.l, color: CL.txt }}>How do you help?</b>
                 {raceMoves().map(m => <Cd key={m.l} onClick={() => racePick(m)} style={{ padding: TALL() ? "12px 14px" : "16px 18px", textAlign: "left" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}><b style={{ fontSize: fz.m, color: CL.txt }}>{m.l}</b><span style={{ fontSize: fz.s, fontWeight: 800, color: m.d > 0 ? CL.grn : m.d < 0 ? CL.red : CL.td }}>{m.d > 0 ? "+" + m.d : m.d}</span></div>
@@ -15948,7 +15955,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const eDay = rng(turn * 977 + (state?.length || 5) * 131 + campScore * 7 + campOpp * 13 + campLog.length * 29);
               // Under your Electoral Act, results are uploaded from every polling unit: less noise on the day.
               const EL = SYS.electoralEffects(!!stc.electoral);
-              const swayedReZones = activeReZones.map(z => ({ ...z, support: cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 7 : 4) * EL.jitter), opp: cl100(z.opp - recordBoost * 0.35 + (eDay() - 0.5) * (hm2 ? 5 : 3) * EL.jitter) }));
+              const onStrike = liveStrikes(), sunk = onStrike.length > 0; // the unions, the students and their families vote you out
+              const swayedReZones = activeReZones.map(z => ({ ...z, support: sunk ? Math.min(cl100(z.support - 60), 20) : cl100(z.support + recordBoost + (eDay() - 0.5) * (hm2 ? 7 : 4) * EL.jitter), opp: sunk ? Math.max(cl100(z.opp + 40), 70) : cl100(z.opp - recordBoost * 0.35 + (eDay() - 0.5) * (hm2 ? 5 : 3) * EL.jitter) }));
               const collation = lgaElectionSummary(swayedReZones, 1, 1, state); // party strength is already in the poll
               const won = collation.won;
               const marginPct = (collation.totalYou + collation.totalOpp) > 0 ? Math.abs(collation.margin) / (collation.totalYou + collation.totalOpp) * 100 : 0;
@@ -15958,9 +15966,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 <Sfx k={won ? "cheer" : "lose"} />{won ? <img src={"./art/scenes/" + (collation.runoff ? "second-election" : "declaration") + ".webp"} alt={collation.runoff ? "A second election" : "The Returning Officer declares the result"} style={{ display: "block", width: "100%", maxWidth: 520, aspectRatio: "16/9", objectFit: "cover", borderRadius: 18, margin: "0 auto 12px" }} /> : <ObjArt name="ballot-paper" alt="" size={TALL() ? 110 : 150} />}
                 <h3 style={{ fontFamily: F.d, color: won ? CL.grn : CL.red, fontSize: TS(53), fontWeight: 600, margin: "7px 0" }}>{won ? "RE-ELECTED!" : "DEFEATED"}</h3>
                 <p style={{ color: CL.tm, fontSize: TS(36), margin: "14px 0 29px", lineHeight: 1.35 }}>{(won ? "Four more years! INEC declares " + pName + " (" + party + ") re-elected, with the most votes and 25% or more in " + collation.you25 + " of " + collation.lgas.length + " local governments. Margin: " + marginPct.toFixed(1) + "%." : oppName + " (" + (oppParty?.id || "OPP") + ") defeats you with the most votes and 25% or more in " + collation.opp25 + " of " + collation.lgas.length + " local governments. Margin against: " + marginPct.toFixed(1) + "%.") + (collation.runoff ? " A second election between the top two settled it." : "")}</p>
+                {!won && sunk && <div data-sop-strike-loss style={{ background: "#fbeceb", borderLeft: "4px solid " + CL.red, borderRadius: 10, padding: "12px 14px", textAlign: "left", fontSize: TS(30), color: CL.txt, lineHeight: 1.45, margin: "0 0 22px" }}>✊🏾 <b>The {onStrike.join(" and ")} strike was still on.</b> No MoU, no payment: workers, students and their families voted against you in every district. No campaign and no court could change that.</div>}
                 {!won && <div style={{ display: "flex", gap: 22, justifyContent: "center", flexWrap: "wrap", marginBottom: 36 }}>
                   <Bt onClick={() => { addL("🗳️ DEFEATED by " + oppName + ": " + fmtVotesFull(collation.totalOpp) + " to " + fmtVotesFull(collation.totalYou) + " (lost " + (ZN.length - collation.zonesWon) + "/" + ZN.length + " zones)", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setGEnd("defeated"); }} style={{ padding: "29px 43px", fontSize: TS(38) }}>😔 Accept</Bt>
-                  <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Filed within 21 days (S.285(5)). Case GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(marginPct * 10) / 10 }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>
+                  {!sunk && <Bt onClick={() => { addL("⚖️ Filed election petition at the " + state.replace("_", " ") + " Governorship Election Tribunal.", "political"); setCampRound(0); setCampScore(0); setCampOpp(0); setCampLog([]); setCampZones(null); setTribunal({ level: 0, groundId: null, spent: 0, log: ["Filed within 21 days (S.285(5)). Case GET/" + Math.floor(Math.random() * 900 + 100) + "/" + (new Date().getFullYear()) + "."], oppName, oppPartyId: oppParty?.id || "OPP", margin: Math.round(marginPct * 10) / 10 }); setPhase("tribunal"); }} style={{ padding: "29px 43px", fontSize: TS(38), background: CL.gold, color: "#000" }}>⚖️ Petition Tribunal</Bt>}
                 </div>}
                 <details className="sp-brief" style={{ textAlign: "left", margin: "0 0 22px" }}><summary style={{ fontSize: 17 }}>See the full count</summary>
                 <Cd style={{ textAlign: "left", marginBottom: 29, padding: 29 }}>

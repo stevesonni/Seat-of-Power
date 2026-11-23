@@ -3,7 +3,16 @@
 
 
 
-## Japa money is never forgotten (23 Nov, latest)
+## A strike on election day sinks you (23 Nov, latest)
+
+- **What the owner asked:** "If ASUU or NLC is on strike by the time the election comes around, without an MoU in place or full payment, nothing can ever make your party or successor win the election. Nothing."
+- **The rule** (`liveStrikes()`: any strike with `on`; an MoU suspends a strike and payment ends it):
+  - **Re-election** (the governor's or the President's): you lose, whatever the record, the campaign or the test boost. The result says "The ASUU strike was still on…", and no petition is offered.
+  - **Your successor's race:** your candidate loses, at 38% at most. The record explains why. A successor decided without a race also loses.
+  - **A warning** at the start of each election year (year 4 and the last year) while a strike is on, and on the successor's race screen.
+- **Tests:** `tests/e2e/strike-election.mjs` (it plays to the re-election).
+
+## Japa money is never forgotten (23 Nov)
 
 - **What the owner saw:** "This is the second time money is being japaed. I got nothing in the visit to the President or even a letter on how to recover it. For the presidency, the same."
 - **The cause:** hiring a new contractor for the site cleared the project's `fled` flag. With it went three things:
