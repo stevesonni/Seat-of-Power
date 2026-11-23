@@ -119,7 +119,7 @@
   window.SOP_movedTest = movedHere;
   // Coming back to this phone, and every 30 seconds while it is open: is the game still here?
   function checkDevice() { if (moved || document.visibilityState !== "visible") return; ready.then(function (on) { if (on) return call("/api/device").then(function (r) { if (r && r.moved) movedHere(); }); }).catch(function () {}); }
-  setInterval(checkDevice, 30000);
+  if (typeof setInterval === "function") setInterval(checkDevice, 30000);
   // Leaving the page: send anything still waiting.
   document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") flush(); else checkDevice(); });
   window.addEventListener("pagehide", function () { flush(); });
