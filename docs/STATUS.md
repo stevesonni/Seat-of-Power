@@ -3,7 +3,35 @@
 
 
 
-## The courts are back (23 Nov, latest)
+## The guide, like Lagos Life's wiki (23 Nov, latest)
+
+- **What the owner asked:** "See how they did their how to play… build all."
+- **One source:** `game/systems/guide.js` holds the guide for both the game and the website. When the game changes, change this file and `GUIDE_UPDATED`. It has:
+  - `QUICK`: how to play in 5 minutes, each step with where to tap ("Desk → Mailbox").
+  - `TOPICS`: 11 topics named the way a player thinks: Start here, A year in office, Your four meters, Money, Projects, Your government, Politics, Courts & the law, Tori & the people, Other careers, Help & FAQ.
+  - `HOWTO`: 39 quick answers.
+  - The glossary (from `glossary.js`, each meaning once).
+  - `searchGuide`: searches word stems across all of it.
+- **In the game:** How to play → the five basics → "Read the full guide" opens the guide (`GuideView`). It has:
+  - a search box;
+  - the five steps;
+  - "How to… 39 quick answers";
+  - the topics, the glossary and the Civic Lens;
+  - "Was this helpful?";
+  - "Last updated".
+- **Retired:** the old 19-section guide, which read like developer notes ("Economic Production Engine") with stale facts. The basics' third card is now "Four things to watch": People, Party, Treasury, Godfather.
+- **On the website** (`server/wiki.mjs`):
+  - **The pages:** `/wiki`, `/wiki/<topic>`, `/wiki/how-to`, `/wiki/glossary` and `/wiki/search?q=`. They can be shared and found by search engines, and follow the phone's dark mode.
+  - **Links to it:** the landing page links to it.
+  - **What the server image needs:** the Dockerfile copies `guide.js` and `glossary.js`.
+- **"Was this helpful?" votes:** `POST /api/guide-vote` counts a yes or no for each page, at most 40 a day per address, in `DATA_DIR/guide-votes.json`. The feedback page shows the counts.
+- **Also:** the market project's video (`public/art/reels/market.mp4`, Gemini). It plays when a market is built.
+- **Tests:**
+  - `tests/guide.test.mjs` (446 unit tests pass): every link inside the wiki goes to a real page, no stale or builder's words appear, the server serves `/wiki`, and votes are counted.
+  - `tests/e2e/guide.mjs`: the five steps, search, a topic, a vote, a quick answer and the glossary.
+  - `tests/e2e/glossary.mjs` now checks the underlining on the Money topic.
+
+## The courts are back (23 Nov)
 
 - **What the owner asked:** "We used to have industrial court and other courts where we were sued after investors came in, and we could fight it all the way to the Supreme Court. What happened to it?"
 - **What happened:** the courts were never removed, but the yearly cap on decisions (since 5 Oct) hid them.

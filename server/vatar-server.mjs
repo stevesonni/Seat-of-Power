@@ -24,6 +24,7 @@ import { careerOf, careerName, keepBackup } from "./saves.mjs";
 import { makeShop } from "./shop.mjs";
 import { dropOff, dropOffSplit, DROP_PILLARS, PILLARS, experimentSummary } from "./experiment.mjs";
 import { makeToriAI, makeToriReplies, makeToriCompose } from "./tori-ai.mjs";
+import { wikiPage, WIKI_PAGES } from "./wiki.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "public");
 const DATA = path.resolve(process.env.DATA_DIR || path.join(ROOT, "..", ".data"));
@@ -143,6 +144,8 @@ loadPage();
 // The landing page for seatofpower.online (public/landing.html).
 let landing = ""; try { landing = fs.readFileSync(path.join(ROOT, "landing.html"), "utf8"); } catch (e) { landing = page; }
 
+const guideIps = new Map();
+const readGuideVotes = () => { try { return JSON.parse(fs.readFileSync(path.join(DATA, "guide-votes.json"), "utf8")) || {}; } catch (e) { return {}; } };
 const send = (res, code, body, type = "application/json") => {
   res.writeHead(code, { ...baseHeaders, "Content-Type": type, "Cache-Control": "no-store" });
   res.end(type === "application/json" ? JSON.stringify(body) : body);
@@ -455,6 +458,17 @@ http.createServer(async (req, res) => {
       const t = shop.on && shop.readToken(b.token); if (!t) return send(res, 401, { error: "sign_in" });
       const out = await api["/api/" + url.pathname.slice(9)](b, t.a); return send(res, out._code || 200, out);
     }
+    // "Was this helpful?" on the guide (in the game and at /wiki): a yes or no per page, forty a day per address.
+    if (req.method === "POST" && url.pathname === "/api/guide-vote") {
+      let b; try { b = JSON.parse(await readBody(req, 2_000)); } catch (e) { return send(res, 400, { error: "bad_request" }); }
+      const pg = String(b.page || ""); if (!WIKI_PAGES.includes(pg)) return send(res, 400, { error: "bad_page" });
+      const ip = String(req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim(), day = new Date().toISOString().slice(0, 10), k = day + ip;
+      const n = (guideIps.get(k) || 0) + 1; guideIps.set(k, n); if (guideIps.size > 50000) guideIps.clear();
+      if (n > 40) return send(res, 429, { error: "slow_down" });
+      const V = readGuideVotes(); V[pg] = V[pg] || { yes: 0, no: 0 }; V[pg][b.yes ? "yes" : "no"]++;
+      try { fs.mkdirSync(DATA, { recursive: true }); fs.writeFileSync(path.join(DATA, "guide-votes.json"), JSON.stringify(V)); } catch (e) {}
+      return send(res, 200, { ok: true });
+    }
     // Feedback from a player whose Lagos Life session could not be confirmed (or who opened
     // the game directly): kept all the same, marked anonymous, five a day per address.
     if (req.method === "POST" && url.pathname === "/api/feedback-open") {
@@ -552,6 +566,7 @@ http.createServer(async (req, res) => {
         + '<style>body{font:16px/1.5 system-ui,sans-serif;margin:0;background:#f6f2ea;color:#13261c}main{max-width:860px;margin:0 auto;padding:20px 16px}h1{margin:0 0 4px}.k{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0 18px}.k b{display:block;font-size:26px}.k div{background:#fff;border:1px solid #e6dfd2;border-radius:14px;padding:10px 16px}.c{background:#fff;border:1px solid #e6dfd2;border-radius:16px;padding:14px 16px;margin:0 0 10px}.m{color:#6b7a70;font-size:14px}.l{font-weight:700;color:#a3271c}.w{font-weight:700;color:#0b6b42}a{color:#0b6b42}</style>'
         + '<main><h1>Player feedback</h1><div class="m">Seat of Power · newest first · <a href="?key=' + encodeURIComponent(FEEDBACK_KEY) + '&format=csv">download CSV</a></div>'
         + '<div class="k"><div><b>' + rows.length + '</b>messages</div><div><b>' + avg + ' ★</b>average of ' + rated.length + '</div><div><b>' + new Set(rows.map(r => r.player)).size + '</b>players</div></div>'
+        + (() => { const V = readGuideVotes(), ks = Object.keys(V); return '<h2 style="margin:22px 0 8px">The guide: was this helpful?</h2>' + (ks.length ? '<div class="c">' + ks.sort((a, b) => (V[b].yes + V[b].no) - (V[a].yes + V[a].no)).map(k => '<div>' + esc(k) + ': 👍 ' + V[k].yes + ' · 👎 ' + V[k].no + '</div>').join("") + '</div>' : '<div class="m">No votes yet.</div>'); })()
         + playHtml
         + dropHtml + dropSplitHtml + expHtml
         + coHtml
@@ -569,6 +584,12 @@ http.createServer(async (req, res) => {
     if (url.pathname === "/" && site && req.headers["sec-fetch-dest"] !== "iframe") {
       if (url.search) { res.writeHead(302, { ...baseHeaders, Location: "/play" + url.search }); return res.end(); }
       return send(res, 200, landing, TYPES[".html"]);
+    }
+    // The public guide: /wiki, /wiki/<topic>, /wiki/how-to, /wiki/glossary, /wiki/search?q= (server/wiki.mjs).
+    if (url.pathname === "/wiki" || url.pathname.startsWith("/wiki/")) {
+      const html = wikiPage(url.pathname, url.searchParams);
+      if (!html) return send(res, 404, "Not found", TYPES[".txt"]);
+      res.writeHead(200, { ...baseHeaders, "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300" }); return res.end(html);
     }
     if (url.pathname === "/play/") { res.writeHead(301, { ...baseHeaders, Location: "/play" + url.search }); return res.end(); } // the page uses ./ paths
     if (url.pathname === "/" || url.pathname === "/play" || url.pathname === "/seat-of-power.html") return send(res, 200, page, TYPES[".html"]);

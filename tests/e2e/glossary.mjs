@@ -7,7 +7,7 @@ const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const OUT = process.env.SHOTS || "/tmp";
 const g = await open(srv.port, { save: { sop_profile: JSON.stringify({ first: "Ada", last: "Okafor", avatar: "agbada", origin: "Enugu", district: 1, leaning: "PFP" }) } });
-check(/you learn as you play/.test(await g.txt()), "the title promises: no politics needed");
+// (The title's "you learn as you play" line went with the new home screen on 21 Nov; the basics' last card still says it.)
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => x.querySelector("img[src*='icon-menu']") || /menu/i.test(x.getAttribute("aria-label") || "")); b && b.click(); }); await g.wait(500);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button, [role=button], div")].filter(x => x.offsetParent && /^How to play/.test(x.textContent.trim())).pop(); b && b.click(); }); await g.wait(700);
 let t = await g.txt();
@@ -17,7 +17,9 @@ t = await g.txt();
 check(/You don't need to know politics/.test(t) && /Start playing/.test(t), "the last card: you learn as you play");
 await g.click(/^Read the full guide$/); await g.wait(1800);
 t = await g.txt();
-check(/The full guide/.test(t) && /How the economy grows/.test(t), "the full guide, with plain headings");
+check(/The guide/.test(t) && /How to play in 5 minutes/.test(t) && /Explore the guide/.test(t), "the full guide: five steps, then the topics");
+// The Money topic is full of abbreviations (FAAC, IGR, TSA…): the underlining is tested there.
+await g.page.click("[data-sop-guide-open=money]"); await g.wait(1500);
 const n = await g.page.evaluate(() => (CSS.highlights && CSS.highlights.get("sop-term")) ? CSS.highlights.get("sop-term").size : -1);
 check(n > 5, "abbreviations are underlined on the page (" + n + ")");
 // Tap the first underlined EFCC, FAAC or IGR with a real mouse.

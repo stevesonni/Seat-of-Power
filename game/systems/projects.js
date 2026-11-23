@@ -392,9 +392,9 @@ export const migrateOldProject = (p, year) => {
 /* The short film shown when a project opens (art/reels/<type>.mp4, 3–4 seconds, made with Gemini; see
    docs/GEMINI-REELS.md). REELS lists the films that exist: a type with two films alternates between them by
    project. A type with none returns null, and the ribbon picture is shown instead. */
-export const REELS = {road: 1, hospital: 1, school: 1, water: 1, dam: 1, power: 1, seaport: 1, refinery: 1, vehicles: 1}; // power.mp4: a town lights up at night; seaport.mp4; refinery.mp4 (Gemini, 22 Nov 2026) // dam.mp4: the lights come on in a village at night (Gemini, 22 Nov 2026)
+export const REELS = {road: 1, hospital: 1, school: 1, water: 1, dam: 1, power: 1, seaport: 1, refinery: 1, vehicles: 1, market: 1}; // market.mp4: a busy covered market (Gemini, 23 Nov 2026) // power.mp4: a town lights up at night; seaport.mp4; refinery.mp4 (Gemini, 22 Nov 2026) // dam.mp4: the lights come on in a village at night (Gemini, 22 Nov 2026)
 // A type without its own film borrows a close one (secondary schools use the school film).
-export const REEL_SHARE = { secondary: "school", nursing: "hospital", pipeline: "refinery" }; // power plants, solar, gas and mini-grids have their own film now; a gas pipeline shares the refinery's
+export const REEL_SHARE = { secondary: "school", nursing: "hospital", pipeline: "refinery", markets: "market" }; // power plants, solar, gas and mini-grids have their own film now; a gas pipeline shares the refinery's
 export const reelFor = (type, id) => {
   if (!REELS[type] && REEL_SHARE[type]) type = REEL_SHARE[type];
   const n = REELS[type] || 0; if (!n) return null;
