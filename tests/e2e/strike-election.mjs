@@ -8,13 +8,13 @@ import { serve } from "./serve.mjs";
 const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", import.meta.url)));
-const sv = JSON.parse(Y1.sop_save); sv.s = { ...sv.s, cash: 40, pStab: 80, app: 75 };
+const sv = JSON.parse(Y1.sop_save); sv.s = { ...sv.s, cash: 40, pStab: 80, app: 75 }; sv.turn = 4;
+// Year 4, ASUU out with no MoU and nothing paid.
+sv.stc = { ...(sv.stc || {}), lastTurn: 3, labour: { strikes: { asuu: { id: "asuu", cause: "pay", on: true, start: 2, stage: 2, trust: 20, sessions: 0, rounds: { t: 4, n: 0 }, lastSession: -9, mou: null } } } };
 const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) }, seed: 7, test: { reWin: true } });
 await g.click(/^Continue/); await g.wait(1800);
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await g.wait(800);
-// ASUU out, no MoU, nothing paid; then the re-election.
-await g.page.evaluate(() => window.SOP.stcTest(p => ({ ...p, labour: { ...(p.labour || {}), strikes: { ...((p.labour || {}).strikes || {}), asuu: { id: "asuu", cause: "pay", on: true, start: 1, stage: 2, trust: 20, sessions: 0, rounds: { t: 1, n: 0 }, lastSession: -9, mou: null } } } }))); await g.wait(400);
-const r = await playUntil(g, t => /RE-ELECTED!|DEFEATED/.test(t), { max: 1500, prefer: [/^Later$/, /^🗳️ Run for Re-Election/, /^Go on without a loan/] });
+const r = await playUntil(g, t => /RE-ELECTED!|DEFEATED/.test(t), { max: 700, prefer: [/^Later$/, /^🗳️ Run for Re-Election/, /^Go on without a loan/] });
 check(r.ok, "the re-election is counted");
 const t = await g.txt();
 check(/DEFEATED/.test(t) && !/RE-ELECTED!/.test(t), "with ASUU still out, the governor loses even with a strong record");
