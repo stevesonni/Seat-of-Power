@@ -10,7 +10,11 @@ test("reels: listed films exist and every film is listed", () => {
   const want = Object.entries(SYS.REELS).flatMap(([t, n]) => Array.from({ length: n }, (_, i) => t + (i ? "-" + (i + 1) : "") + ".mp4"));
   want.forEach(f => assert.ok(files.includes(f), f + " is listed but missing"));
   files.forEach(f => assert.ok(want.includes(f), f + " is on disk but not listed in REELS"));
-  Object.keys(SYS.REELS).forEach(t => assert.ok(SYS.UNIT[t], t + " is a project type"));
+  const byPolicy = new Set(Object.values(SYS.REEL_BY_POLICY || {}));
+  Object.keys(SYS.REELS).forEach(t => assert.ok(SYS.UNIT[t] || byPolicy.has(t), t + " is a project type, or a programme's own film"));
+  // The Irrigation Network builds a dam, but shows water reaching the fields (owner, 23 Nov 2026).
+  assert.equal(SYS.reelFor("dam", "p1", "irrigation"), "./art/reels/irrigation.mp4");
+  assert.equal(SYS.reelFor("dam", "p1", "f_mambilla"), "./art/reels/dam.mp4");
 });
 test("reels: no film means no reel; two films alternate by project", () => {
   assert.equal(SYS.reelFor("nothing-here", "p1"), null);

@@ -2167,3 +2167,6 @@ Owner: "when you're re-elected the Speaker will also be re-elected… the way yo
 - Years 2–3 of each term, at most once a term: a plot to remove a friendly Speaker when the members have reasons (late money, rubber-stamping while unpopular, a broken godfather, a scandal, succession, zoning, his own ambition). Seven ways to answer; if he falls, his replacement depends on your record. A failed court order can leave two Speakers: the House is frozen (no new programmes) until the court rules the next year, or you settle.
 - Fixed on the way: after a trip, the quiet answering ("sop-silent") stayed on if the year ended during it, hiding every overlay that followed (the impeachment screen among them).
 - Guide: "The Speaker" section and two quick answers. Browser test: tests/e2e/house-memory.mjs (race, plot, imp, split); test switch SOP_TEST.plotNow.
+
+## Gemini film: irrigation (23 Nov 2026)
+public/art/reels/irrigation.mp4 (960×540, no sound); REELS.irrigation, and REEL_BY_POLICY sends the Irrigation Network and the Dry-Season Irrigation Scheme to it instead of the dam film (no lights-on overlay for them).

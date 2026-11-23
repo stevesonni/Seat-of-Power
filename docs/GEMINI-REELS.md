@@ -17,7 +17,9 @@ installs them.
 > **No text, no words, no signs with lettering, no logos, no flags with emblems, no watermarks.** No famous or
 > recognisable people. Nobody looks into the camera. Nothing violent or sad.
 
-## Wanted: irrigation.mp4 (23 Nov 2026)
+## Delivered: irrigation.mp4 (23 Nov 2026)
+
+In the game: it plays when the Irrigation Network or the Dry-Season Irrigation Scheme is finished. The prompt used:
 
 For the Irrigation Network programme (and the Dry-Season Irrigation Scheme). Until it arrives, the game plays the dam film. Use the shared style block, then:
 
