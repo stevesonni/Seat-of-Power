@@ -2131,3 +2131,6 @@ Owner: "If the president agrees to stand with me it puts me in majority back wit
 - No: nothing changes; the answer adds "<Speaker> still holds the House."
 - The Speaker's price letter now mentions this route.
 - Test: tests/e2e/speaker-president.mjs (a yes run and a no run).
+
+## "Open the Speaker's letter" opens it (23 Nov 2026)
+Owner: "I clicked open the speakers letter and nothing happened." The button opened the mailbox without a letter, and the mailbox closes itself when no letter is chosen. `openSpeakerLetter()` now finds this year's `sc#leg_spprice_` letter (in the mailbox, inside a merged envelope, or held back for next year) and opens it. Test hook `SOP.policyTest()`; test tests/e2e/speaker-letter.mjs.

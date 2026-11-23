@@ -6297,7 +6297,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
-      postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
+      policyTest: () => { const p = POL().find(x => !pol.find(a => a.id === x.id)); if (p) startPolicy(p); return !!p; }, postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
       pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null, endTest: (k) => { if (window.SOP_TEST) setGEnd(k); }, spendTest: (b, what) => window.SOP_TEST ? spendB(b, what || "A test payment") : null,
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
@@ -10674,7 +10674,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (speakerBlocks()) { const refused = stc.speakerRefused === turn, nm = String(cast.speaker.name || "The Speaker");
       try { window.SOP_outcome({ icon: "🏛️", img: "./art/backgrounds/assembly-chamber.webp", title: "The House will not fund it",
         text: "You have no majority, and the Speaker, " + nm + ", is blocking new spending. " + (refused ? "You refused his price this year, so nothing new gets money until he asks again next year." : "Pay his price (his letter is in your mail) and the House will fund your programmes this year."),
-        tone: "bad", ...(refused ? {} : { action: { label: "Open the Speaker's letter", fn: () => { setMailOpen(true); } } }) }); } catch (e) {} return; }
+        tone: "bad", ...(refused ? {} : { action: { label: "Open the Speaker's letter", fn: () => openSpeakerLetter() } }) }); } catch (e) {} return; }
     { const B = SYS.strikeBlock(strikeNow(), { s: p.s, id: p.id }); if (B) return strikeRefuse(p.nm.replace(/^⭐\s*/, ""), B); }
     if (NAT && stc.impeach && stc.impeach.frozen === turn) { try { window.SOP_outcome({ icon: "⚖️", img: "./art/backgrounds/senate-chamber.webp", title: "Not in the year of the trial", text: "The Senate tribunal has frozen the government's programmes for the rest of this year.", tone: "bad" }); } catch (e) {} return; }
     if (p.ask && !p.pick) { setLocalAsk(p); return; } // how it is done in this state, first (SYS.localProgramme)
@@ -12799,6 +12799,18 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
   };
   const scDirect = (l) => { const C = scOf(l); return C && !C.letter && !C.military && !C.doc && (C.options || []).length >= 2 && C.options.length <= 4 && C.options.every(o => !o.travel) ? C : null; };
+  /* The Speaker's price, opened straight from the blocked-programme pop-up (owner, 23 Nov 2026: "I clicked open the
+     Speaker's letter and nothing happened": the mailbox needs a letter to open, or it closes at once). If the letter
+     was held back for next year, it comes in now. */
+  const openSpeakerLetter = () => {
+    const k = "sc#leg_spprice_" + turn, show = (l) => { setMailOpen(true); setLetterOpen(l.id); };
+    const inMail = mailRef.current.find(x => x.key === k || (x.absorbed || []).includes(k)); if (inMail) return show(inMail);
+    const w = mailWait.current.find(x => x.key === k);
+    const l = w ? { ...w, slot: "politics#" + turn + "#sp", slotT: turn } : scPending.current.some(c => "sc#" + c.key === k) ? { ...letterOf(k, { live: true }), slot: "politics#" + turn + "#sp", slotT: turn } : null;
+    if (!l) { try { window.SOP_outcome({ icon: "🏛️", title: "His letter is on its way", text: "The Speaker's price comes with this year's mail. Answer it there and the House will fund your programmes.", tone: "neutral" }); } catch (e) {} return; }
+    if (w) mailWait.current = mailWait.current.filter(x => x.key !== k);
+    setMail(m => m.some(x => x.key === k) ? m : [...m, l]); setTimeout(() => show(l), 0);
+  };
   const scOf = (l) => l && l.key && l.key.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === l.key) || null : null;
   const sealOf = (l) => (l && l.seal) || (scOf(l) || {}).seal;
   const letterOf = (key, extra) => { const [kind, stakes] = SYS.letterKind(key); return { id: ((extra && extra.key) || key) + "@" + turn, key, kind, stakes, ...(extra || {}) }; };
