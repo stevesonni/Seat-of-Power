@@ -3,7 +3,20 @@
 
 
 
-## One device at a time (23 Nov, latest)
+## The courts are back (23 Nov, latest)
+
+- **What the owner asked:** "We used to have industrial court and other courts where we were sued after investors came in, and we could fight it all the way to the Supreme Court. What happened to it?"
+- **What happened:** the courts were never removed, but the yearly cap on decisions (since 5 Oct) hid them.
+  - **Lowest urgency:** a lawsuit (`judiciary`) and the National Industrial Court's ruling (`nic_ruling`) had the lowest urgency. So they were nearly always "handled by your chief of staff".
+  - **Never came back:** the case was still marked as seen, so it never returned.
+  - **Lost in the mailbox:** a case left unopened there was dropped too.
+- **Fixes:**
+  - **Always seen:** lawsuits and the Industrial Court's ruling are always kept (WAR). The appeal chain is unchanged: State High Court → Court of Appeal → Supreme Court.
+  - **Never lost:** a court case left unopened is adjourned to next year ("It has not gone away"). The Industrial Court's ruling waits too.
+  - **Investors come first more often:** investor visits move up the queue (42 → 56), so their land and mining deals, and the lawsuits that follow, happen again.
+- **Tests:** `tests/e2e/courts.mjs`. A governor who forced the budget through is sued by the opposition at the State High Court, and can fight (and appeal if they lose) or comply.
+
+## One device at a time (23 Nov)
 
 - **What the owner asked:** the "You're playing on another device · Play here" screen, so two phones never overwrite each other's game.
 - **How it works:**
