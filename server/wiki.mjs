@@ -1,7 +1,8 @@
 /* The public guide at /wiki on our site (owner, 23 Nov 2026: "see how they did their how to play… build all").
    The same content as the in-game guide (game/systems/guide.js), as plain pages that can be linked, shared and
    found: /wiki, /wiki/<topic>, /wiki/how-to, /wiki/glossary and /wiki/search?q=. "Was this helpful?" posts to
-   /api/guide-vote. */
+   /api/guide-vote. The server image gets guide.js and glossary.js through exceptions in .dockerignore (which
+   leaves out game/). */
 import { QUICK, TOPICS, HOWTO, glossaryList, searchGuide, topicById, GUIDE_UPDATED } from "../game/systems/guide.js";
 
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
