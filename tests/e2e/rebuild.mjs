@@ -78,7 +78,10 @@ check(heads.every(h => !/undefined|null|NaN|[\u{1F000}-\u{1FFFF}]/u.test(h)), "e
 const tr = await g.page.evaluate(() => window.__tracked.filter(([e]) => e === "at").map(([, v]) => v));
 check(tr.length >= 3 && tr.some(v => /^gov · /.test(v)), "the screen a player is on is reported (" + tr.slice(0, 4).join(" / ") + ")");
 // The five-line story at the end.
-await g.page.evaluate(() => window.SOP.setGEnd("complete")); await g.wait(3500);
+await g.page.evaluate(() => window.SOP.setGEnd("complete")); await g.wait(1500);
+// The last month in office comes first (the farewell): walk through it to the record.
+for (let i = 0; i < 12 && await g.page.$("[data-sop-farewell]"); i++) { await g.page.evaluate(() => { document.querySelectorAll("[data-ach]").forEach(e => e.remove()); const b = [...document.querySelectorAll("button")].filter(x => /(→|^Sign it$|^Humble: )/.test(x.textContent.trim())).pop(); b && b.click(); }); await g.wait(500); }
+await g.wait(2500);
 for (let i = 0; i < 8; i++) { await g.page.evaluate(() => { const b = document.querySelector("[data-ach] .ach-x"); b && b.click(); }); await g.wait(300); }
 const end = await g.txt(), endWords = (end.match(/[A-Za-z₦\d'’-]+/g) || []).length;
 check(/My story in five lines/i.test(end) && /Remembered as /.test(end) && /Grade [A-F]\./.test(end), "the life story in five lines");
