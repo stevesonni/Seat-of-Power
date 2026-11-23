@@ -23,7 +23,9 @@
      - the convoy, or for the President the jet from Eagle Square;
      - home to your own LGA, where your people line the road if they liked you.
 - **What the choices change:** approval, party support, the campaign fund, biography lines, and the EFCC file. The record's EFCC verdict adds the farewell's exposure.
-- **Pictures:** `docs/LOVABLE-FAREWELL.md` asks Lovable for 10 images in `public/art/farewell/`. Until they arrive, each beat uses existing art as a stand-in (`SYS.FAREWELL_ART`), and new files are picked up automatically.
+- **Pictures:** Lovable's 10 pictures (`docs/LOVABLE-FAREWELL.md`) are in `public/art/farewell/`. Existing art stays as a stand-in if one fails to load (`SYS.FAREWELL_ART`).
+- **Nothing pops up over the farewell:** the career record, the Hall of Governors question, the cabinet share card and the feedback question now wait for it (`endReady`). They also count its choices in the score.
+- **The test bot knows the farewell's buttons** (`tests/e2e/lib.mjs` PRIO).
 - **Tests:**
   - `tests/farewell.test.mjs` (451 unit tests pass).
   - `tests/e2e/farewell.mjs`: all five beats, then the record, with the midnight files feeding the EFCC. It also passes after a lost re-election.

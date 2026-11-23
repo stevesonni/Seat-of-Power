@@ -1,5 +1,7 @@
 # Lovable art: the last month in office
 
+**Delivered (23 Nov 2026): all 10 are in `public/art/farewell/` and the game uses them.**
+
 When a governor or President finishes their time, the game now plays their last month before showing the record:
 
 1. the commissioning rush;

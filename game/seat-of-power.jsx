@@ -6369,31 +6369,6 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setHall(h => ({ ...h, busy: false, view: "board", entered: r }));
     if (r && r.ok) { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} track("hall", "entered"); } else track("hall", r && r.already ? "already" : "failed");
   };
-  // A finished career goes into the Hall of Governors on this device.
-  useEffect(() => {
-    if (!gEnd) return;
-    (async () => {
-      const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
-      const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2;
-      // The career score for the Vatar leaderboard: the grade's points, plus honours and a second term.
-      // A Second Chance buys the extra years, not the glory: no second-term points.
-      const careerScore = Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 && !stc.secondChance ? 200 : 0) + (stc.tradeAll ? 100 : 0); // a deal with every neighbour raises the bar
-      try { window.SOP_vatarScore && window.SOP_vatarScore(careerScore); } catch (e) {}
-      const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
-      // The all-time Hall of Governors (Lagos Life): the best career per player.
-      // The Hall of Governors: every finished career counts; the player chooses whether to enter it today.
-      try { window.SOP_hallFinish && window.SOP_hallFinish(); } catch (e) {}
-      if (!stc.secondChance && !NAT && window.SOP_hallEnter) setTimeout(() => setHall({ view: "ask", res: { score: careerScore, grade, state: String(state).replace(/_/g, " "), title: ({ complete: "Two terms", defeated: "Voted out", stepped_down: "Stepped down", pres_bid: "Ran for president", impeached: "Impeached", bankrupt: "State bankrupt", nullified: "Removed by the courts" }[gEnd] || "Governor") } }), 2500);
-      const p = await loadProfile(); if (!p) return;
-      const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
-      const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
-      const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now(), honours: (stc.honours || []).slice(), secondChance: !!stc.secondChance, mode: setup?.mode || null, score: careerScore };
-      if (setup?.mode?.kind === "challenge") try { window.SOP_chScore && window.SOP_chScore(setup.mode.week, careerScore, pName, title); } catch (e) {}
-      const games = p.games || [], last = games[games.length - 1];
-      if (last && last.name === rec.name && last.state === rec.state && last.ending === rec.ending && last.turn === rec.turn) return;
-      await saveProfile({ ...p, games: [...games, rec].slice(-30) });
-    })();
-  }, [gEnd]);
 
   const tb = Math.max(0, s.igr + s.faac - s.debt * .08);
   // Every decision ends with its result on screen. decide() notes the four
@@ -6756,6 +6731,34 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // House, state crises, succession). Runs once a year when the
   // events are built; its decisions arrive as "sc" cards.
   const [stc, setStc] = useState(() => ld?.stc || { oldDebt: { total: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, kind: null }, lastTurn: 0, arrears: scenarioStart(setup).arrears || 0, arrearsMax: scenarioStart(setup).arrears || 0, house: scenarioStart(setup).houseLoyal ? (() => { const seats = houseSeats(sd.pop || 5); return { seats, loyal: Math.max(Math.round(seats * scenarioStart(setup).houseLoyal), seats - Math.ceil(seats * 2 / 3) + 1) }; })() : null, ultimatum: false, strike: false, houseCardTurn: -9, promises: [], crisesSeen: [], balanceWarned: false, successor: null, successionAsked: false });
+  // The career is "over" for the record, the Hall, the share card and the feedback question only after the last
+  // month in office (SYS.FAREWELL_ENDS): nothing pops up over the farewell, and its choices count in the score.
+  const endReady = gEnd && (!SYS.FAREWELL_ENDS.includes(gEnd) || (stc.farewell || {}).done || (window.SOP_TEST && window.SOP_TEST.noFarewell)) ? gEnd : null;
+  // A finished career goes into the Hall of Governors on this device.
+  useEffect(() => {
+    if (!endReady) return;
+    (async () => {
+      const di = (s.lit + s.hp + s.infra + s.sec + s.agr) / 5 * 100, fi = Math.max(0, 100 - (s.debt || 0) / Math.max(1, SYS.revenueB(s)) * 40 - s.cor * 40);
+      const ov = di * .3 + s.app * .3 + fi * .2 + (100 - s.cor * 100) * .2;
+      // The career score for the Vatar leaderboard: the grade's points, plus honours and a second term.
+      // A Second Chance buys the extra years, not the glory: no second-term points.
+      const careerScore = Math.round(ov * 10) + (stc.honours || []).length * 50 + (turn > 4 && !stc.secondChance ? 200 : 0) + (stc.tradeAll ? 100 : 0); // a deal with every neighbour raises the bar
+      try { window.SOP_vatarScore && window.SOP_vatarScore(careerScore); } catch (e) {}
+      const grade = ov > 75 ? "A" : ov > 60 ? "B" : ov > 45 ? "C" : ov > 30 ? "D" : "F";
+      // The all-time Hall of Governors (Lagos Life): the best career per player.
+      // The Hall of Governors: every finished career counts; the player chooses whether to enter it today.
+      try { window.SOP_hallFinish && window.SOP_hallFinish(); } catch (e) {}
+      if (!stc.secondChance && !NAT && window.SOP_hallEnter) setTimeout(() => setHall({ view: "ask", res: { score: careerScore, grade, state: String(state).replace(/_/g, " "), title: ({ complete: "Two terms", defeated: "Voted out", stepped_down: "Stepped down", pres_bid: "Ran for president", impeached: "Impeached", bankrupt: "State bankrupt", nullified: "Removed by the courts" }[gEnd] || "Governor") } }), 2500);
+      const p = await loadProfile(); if (!p) return;
+      const title = reportTitle({ gEnd, cor: s.cor, app: s.app, arrearsMax: stc.arrearsMax || 0, met: needs.filter(n => n.status === "met").length, failed: needs.filter(n => n.status === "failed").length, kept: (stc.promises || []).filter(x => x.status === "kept").length, broken: (stc.promises || []).filter(x => x.status === "broken").length });
+      const ending = { complete: "two terms", defeated: "voted out", stepped_down: "stepped down", pres_bid: "ran for president", impeached: "impeached", bankrupt: "state bankrupt", nullified: "removed by the courts" }[gEnd] || gEnd;
+      const rec = { name: pName, avatar: setup?.avatar, state, party, title, grade, ending, turn, at: Date.now(), honours: (stc.honours || []).slice(), secondChance: !!stc.secondChance, mode: setup?.mode || null, score: careerScore };
+      if (setup?.mode?.kind === "challenge") try { window.SOP_chScore && window.SOP_chScore(setup.mode.week, careerScore, pName, title); } catch (e) {}
+      const games = p.games || [], last = games[games.length - 1];
+      if (last && last.name === rec.name && last.state === rec.state && last.ending === rec.ending && last.turn === rec.turn) return;
+      await saveProfile({ ...p, games: [...games, rec].slice(-30) });
+    })();
+  }, [endReady]);
   // Printed money is felt (owner, 22 Nov 2026): while inflation is high, everything the President buys costs more (SYS.priceF).
   SEAT.priceF = NAT ? SYS.priceF(stc.inflation) : 1;
   stcRef.current = stc;
@@ -12930,8 +12933,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const c = r0.kind === "grant" ? 2 : (FED_PROJ[r0.kind] || FED_PROJ.road)[2]; fedPay(c, KEEP("Answering " + r0.state), "answer", { id: r0.id, yes: true }, () => addL(KEEP("🇳🇬 Granted " + r0.state + "'s request."), "policy")); };
   const fedRemove = async (st, nm) => { if (!(await window.SOP_confirm(KEEP("Cut " + st + " out of the federation?\n\nGovernor " + nm + " keeps playing, but your grants and the Forum no longer reach them."), "Cut them off", "Keep them"))) return; fedAct("remove", { state: st }); };
   // The end of the term: the cabinet's card goes to everyone.
-  useEffect(() => { const F0 = fcRef.current; if (!gEnd || !F0) return; cabCall("end", { code: F0.code, key: F0.hostKey, endYear: absYear, why: String(gEnd) }).then(() => fcLoad()).then(v => { const card = SYS.shareCard(v); if (!card || !card.rows.length) return;
-    setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/scenes/cabinet-share-card.webp", icon: "👥", title: card.head, text: card.rows.map(r => r.name + ", " + r.t + ": " + r.word).join(". ") + ".", tone: "good", action: { label: "Share on WhatsApp", fn: () => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname) } }); } catch (e) {} }, 2500); }).catch(() => {}); }, [gEnd]);
+  useEffect(() => { const F0 = fcRef.current; if (!endReady || !F0) return; cabCall("end", { code: F0.code, key: F0.hostKey, endYear: absYear, why: String(gEnd) }).then(() => fcLoad()).then(v => { const card = SYS.shareCard(v); if (!card || !card.rows.length) return;
+    setTimeout(() => { try { window.SOP_outcome && window.SOP_outcome({ img: "./art/scenes/cabinet-share-card.webp", icon: "👥", title: card.head, text: card.rows.map(r => r.name + ", " + r.t + ": " + r.word).join(". ") + ".", tone: "good", action: { label: "Share on WhatsApp", fn: () => waShare("🏛️ " + card.text + "\n\nPlay Seat of Power: " + location.origin + location.pathname) } }); } catch (e) {} }, 2500); }).catch(() => {}); }, [endReady]);
   const handleLetter = (l) => {
     if (l.secr && l.secr.agency) { setLetterOpen(l.id); return; }
     if (l.secr && (l.secr.hosAppoint || l.secr.hosBrief)) { setLetterOpen(null); setMailOpen(false); setHosOpen(l.secr.hosAppoint ? "appoint" : "brief"); return; }
@@ -13381,7 +13384,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }).catch(() => {});
   };
   useEffect(() => { if (phase === "end_turn" && turn === 2) askFeedback("fb_y2", "One more thing, Your Excellency: the people who made this game want to hear from you. What don't you like, and what would you change?"); }, [phase, turn]);
-  useEffect(() => { if (gEnd) setTimeout(() => askFeedback("fb_end", "Before you go: what did you not like, and what do you want to see better? The makers read every message."), 2500); }, [gEnd]);
+  useEffect(() => { if (endReady) setTimeout(() => askFeedback("fb_end", "Before you go: what did you not like, and what do you want to see better? The makers read every message."), 2500); }, [endReady]);
   useEffect(() => {
     if (gEnd) return;
     const n = hubNext(); if (!n || !NEXT_SAY[n.label]) return;
