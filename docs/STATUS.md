@@ -2158,3 +2158,12 @@ Owner: "Let projects needing contractors go through contractors. We have many cl
 
 ## Gemini films: housing estate and industrial park (23 Nov 2026)
 public/art/reels/housing.mp4 and industrial.mp4 (960×540, no sound, about 1 MB each); listed in REELS. They play when a housing estate or an industrial park is finished.
+
+## The House remembers (23 Nov 2026)
+Owner: "when you're re-elected the Speaker will also be re-elected… the way you managed the House in your first term will determine the kind of Speaker they elect… the House can throne a friendly Speaker in your second or third year." Answers: a hostile Speaker blocks AND impeaches at the slightest approval dip; a Speaker is removed at most once a term; two Speakers is in.
+- Rules (legislature.js): `HOUSE_NOTES`/`houseNote` (the House's record of you: promises kept or broken, the Speaker's price met or refused, his contractor, constituency projects, shared appointments, going over their heads, the Assembly paid late), `houseKind` (loyalist, dealer, reformer, avenger, godfather's man), `newHouseLoyal`, `speakerRace2`, `speakerImpeaches`, `speakerPlot` + `PLOT_WHY` + `PLOT_MOVES` + `plotOdds`, `splitRuling`. Unit tests: tests/house-memory.test.mjs.
+- Second term (year 5): a new House is sworn in (your re-election margin brings your members back; a tribunal win thins them), and its Speaker race ("leg_speaker2"): the old Speaker against the House's own choice, by your first-term record. A hostile winner takes the House.
+- A hostile Speaker (either term) moves to impeach at year end when approval is below last year's (and under 62%), unless his price was met that year. The impeachment screen says so.
+- Years 2–3 of each term, at most once a term: a plot to remove a friendly Speaker when the members have reasons (late money, rubber-stamping while unpopular, a broken godfather, a scandal, succession, zoning, his own ambition). Seven ways to answer; if he falls, his replacement depends on your record. A failed court order can leave two Speakers: the House is frozen (no new programmes) until the court rules the next year, or you settle.
+- Fixed on the way: after a trip, the quiet answering ("sop-silent") stayed on if the year ended during it, hiding every overlay that followed (the impeachment screen among them).
+- Guide: "The Speaker" section and two quick answers. Browser test: tests/e2e/house-memory.mjs (race, plot, imp, split); test switch SOP_TEST.plotNow.

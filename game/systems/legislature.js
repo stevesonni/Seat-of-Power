@@ -115,3 +115,96 @@ export const SPEAKER_FIRM = "gavel", SPEAKER_FIRM_COR = .03;
 export const speakerAskType = (a) => (a && (a.type || (SPEAKER_ASKS.find(x => x.id === a.id) || {}).type)) || null;
 export const speakerAsks = (seed, nat) => { const r = seeded(seed, "speaker_asks"), a = SPEAKER_ASKS.slice().sort(() => r() - .5).slice(0, 2);
   return nat ? a.map(x => ({ ...x, costB: Math.round(x.costB * 10 * 10) / 10, l: x.l.replace("The House", "the National Assembly").replace("House", "National Assembly") })) : a; };
+
+/* ── The House remembers (owner, 23 Nov 2026) ─────────────────────────────────────────────
+   "Even when you're re-elected, the Speaker will also be re-elected… the way you managed the House in your first term
+   will determine the kind of Speaker they elect… the House can throne a friendly Speaker in your second or third year
+   and elect a new one." Answers: a hostile Speaker can block you AND impeach you at the slightest approval dip; a
+   Speaker is removed at most once a term; two rival Speakers (a split House) is in. */
+
+// The House's record of you: each way you dealt with it, and what it is worth to the members.
+export const HOUSE_NOTES = {
+  kept: [2, "kept your promise to the House"], broke: [-3, "broke your promise to the House"],
+  paid: [1, "met the Speaker's price"], deal: [1, "shared committee chairs and contracts"], refused: [-2, "refused the Speaker's price"],
+  projects: [1, "gave members constituency projects"], shared: [1, "shared appointments with the party barons"], overheads: [-2, "went over the members' heads to the people"],
+  firm: [-1, "made them take the Speaker's contractor"], firmNo: [-1, "refused the Speaker's contractor"], late: [-2, "paid the Assembly late"], funded: [1, "paid the Assembly on time"],
+};
+export const houseNote = (rec = {}, k) => { const N = HOUSE_NOTES[k]; if (!N) return rec; return { score: (rec.score || 0) + N[0], n: { ...(rec.n || {}), [k]: ((rec.n || {})[k] || 0) + 1 } }; };
+
+/* Who the new House puts up for Speaker after the election, from that record. gfFreed: you broke with your godfather. */
+export const SPEAKER_KINDS = {
+  loyalist: { nm: "your loyalist", bloc: "ours", line: "He has stood with you for four years. The House trusts you, so it trusts him." },
+  dealer: { nm: "a dealer", bloc: "swing", line: "He knows you pay when you are pushed. He will push." },
+  reformer: { nm: "a reformer", bloc: "swing", line: "You went over the members' heads too often. He promises hearings on every naira you spend." },
+  avenger: { nm: "an avenger", bloc: "opp", line: "The members you crossed have found their man. He talks about impeachment in the canteen." },
+  godfather: { nm: "your old godfather's man", bloc: "ours", line: "Your old godfather never forgave the break. His man answers to him, not to you." },
+};
+export const houseKind = (rec = {}, { gfFreed = false } = {}) => {
+  const sc = rec.score || 0, n = rec.n || {};
+  if (gfFreed) return "godfather";
+  if (sc <= -4) return "avenger";
+  if ((n.overheads || 0) >= 2 && sc < 3) return "reformer";
+  if (sc >= 3) return "loyalist";
+  return "dealer";
+};
+/* How many members are with you in the new House: your share of the vote carries them (margin in points; a win in
+   court instead of at the polls thins them out), and the record decides how the rest lean. */
+export const newHouseLoyal = (seats, { margin = 5, wonInCourt = false, score = 0 } = {}) => {
+  const share = .5 + Math.max(-.12, Math.min(.18, margin / 100)) - (wonInCourt ? .08 : 0) + Math.max(-.08, Math.min(.08, score / 50));
+  return Math.max(Math.round(seats * .3), Math.min(seats - 2, Math.round(seats * share)));
+};
+/* The second-term race: the old Speaker (if he was friendly and is still there) against the House's choice.
+   backed: "old" | "new" | null. Returns { winner: "old"|"new", hostile, kind }. */
+export const speakerRace2 = (seed, { kind, oldFriendly, backed, ratio = .5 }) => {
+  const r = seeded(seed, "speaker2", backed || "none")(), K = SPEAKER_KINDS[kind] || SPEAKER_KINDS.dealer;
+  // How strong the House's own choice is: an avenger or the godfather's man has the members; your loyalist is yours anyway.
+  let pNew = kind === "loyalist" ? .7 : kind === "avenger" ? .55 + (1 - ratio) * .4 : kind === "godfather" ? .6 : .45 + (1 - ratio) * .2;
+  if (!oldFriendly) pNew = Math.max(pNew, .85);
+  if (backed === "old") pNew -= .2 * ratio + .05; if (backed === "new") pNew += .1;
+  const win = r < Math.max(.05, Math.min(.95, pNew)) ? "new" : "old";
+  const hostile = win === "new" ? kind !== "loyalist" && !(kind === "dealer" && backed === "new") : false;
+  return { winner: win, hostile, kind: win === "new" ? kind : "incumbent", owes: !!backed && backed === win, crossed: !!backed && backed !== win, line: K.line };
+};
+
+/* The impeachment threat of a hostile Speaker: at the slightest dip in approval since last year, unless you met his
+   price this year. */
+export const speakerImpeaches = ({ hostile, dealThisYear, app, appMark }) => !!hostile && !dealThisYear && appMark != null && app < appMark && app < 62;
+
+/* A plot against a friendly Speaker (years 2 and 3 of a term, at most once a term). Returns the reasons the members
+   give and the odds it starts. ctx: { arrears, app, cor, gfFreed, kind, termYear, sameZone, oppState, rubber } */
+export const PLOT_WHY = {
+  money: "Members' allowances and constituency money are months late, and they blame the Speaker for not fighting for them.",
+  rubber: "He passed everything you sent, even the unpopular bills. Members fear their voters, and call him the governor's errand boy.",
+  gf: "Your old godfather is paying members to remove your Speaker and put in his own.",
+  scandal: "A contract scandal around the Speaker is trending. Members want to be rid of it.",
+  succession: "The men who want your job need their own Speaker before the primaries.",
+  zone: "You and the Speaker come from the same senatorial district. The other two districts want their turn.",
+  ambition: "The Speaker has grown too big: he talks like a governor-in-waiting, and his own members want him cut down.",
+  abuja: "The President's party wants this House, and it has money for members who switch.",
+};
+export const speakerPlot = (seed, turn, ctx = {}) => {
+  const why = [];
+  if ((ctx.arrears || 0) >= 2) why.push("money");
+  if (ctx.rubber && (ctx.app || 50) < 48) why.push("rubber");
+  if (ctx.gfFreed) why.push("gf");
+  if ((ctx.cor || 0) > .45) why.push("scandal");
+  if (ctx.termYear === 3 && ctx.term === 2) why.push("succession");
+  if (ctx.sameZone) why.push("zone");
+  if (ctx.kind === "ambitious") why.push("ambition");
+  if (ctx.oppState) why.push("abuja");
+  const p = why.length ? Math.min(.75, .2 + .15 * why.length) : 0;
+  return { go: seeded(seed, "plot", turn)() < p, why, p };
+};
+// The ways to save him, and how likely each is to work. fg: standing with Abuja; money: whether late money is the cause.
+export const PLOT_MOVES = [
+  { id: "pay", l: "Pay the members: projects and envelopes", note: "It usually works. It costs money, and the papers call it what it is.", odds: .85, costPerSeat: .04, fx: { cor: .02 } },
+  { id: "release", l: "Release the Assembly's money now, in full", note: "Takes away their best reason. Works if money is what this is about.", odds: .5, oddsIf: { money: .85 }, cost: .5, fx: {} },
+  { id: "chairs", l: "Give the plotters' leaders committee chairs", note: "They get what they wanted from the new Speaker, without a new Speaker.", odds: .65, fx: { pStab: -2, cor: .01 } },
+  { id: "abuja", l: "Ask the President and the party to step in", note: "Works if Abuja likes you.", odds: .35, oddsFg: .8, fx: {} },
+  { id: "court", l: "Get a court order stopping the sitting", note: "Sometimes the court says yes. If it says no, they sit anyway, and you may end up with two Speakers.", odds: .4, fx: {}, split: .6 },
+  { id: "police", l: "Have the police seal the Assembly", note: "They cannot sit if they cannot get in. The papers will show the locked gates for a week.", odds: .9, fx: { app: -4, pStab: -1 } },
+  { id: "let", l: "Let him fall, and back your own man in the new race", note: "No money and no fight. Who replaces him depends on how you treated the House.", odds: 0, fx: {} },
+];
+export const plotOdds = (m, { why = [], fg = 50 } = {}) => m.id === "release" && why.includes("money") ? m.oddsIf.money : m.id === "abuja" && fg >= 60 ? m.oddsFg : m.odds;
+/* Two Speakers: when the court ruling comes the next year. yourSide: how strong your faction is (0–1). */
+export const splitRuling = (seed, turn, yourSide = .5) => seeded(seed, "split", turn)() < .35 + yourSide * .3 ? "ours" : "theirs";

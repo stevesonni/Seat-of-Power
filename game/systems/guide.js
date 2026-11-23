@@ -65,6 +65,7 @@ export const TOPICS = [
   ] },
   { id: "politics", icon: "🗳️", t: "Politics", d: "The House, the godfather, the party, impeachment and re-election.", s: [
     { h: "The House of Assembly", p: "Passes your budget and your bills. Members' loyalty moves with your party support, your approval, unpaid salaries and corruption. The Speaker decides what comes to the floor." },
+    { h: "The Speaker", p: "The House elects a Speaker at the start of each term. If the Speaker is not your man, he blocks your bills until you meet his price, and he moves to impeach you the moment your approval slips. The House remembers how you treated it in your first term when it picks the Speaker for your second. Once a term, members may try to remove a friendly Speaker: save him, let him fall, or end up with two Speakers until a court decides." },
     { h: "The godfather", p: "He paid for your campaign and expects returns: contracts, appointments, his candidate. He can rise to a federal post, fall out with you, defect with House members, or die and leave his network behind. You can break free, at a price." },
     { h: "Impeachment", p: "Two-thirds of the House must vote for it, after a panel investigates. It becomes a danger when the people and the party turn on you at the same time." },
     { h: "Promises", p: "Your flagship promise and your promises to each district are judged at re-election. Broken promises make the opponent's attacks hit harder." },
@@ -121,6 +122,8 @@ export const HOWTO = [
   { q: "How does a recovery plan work?", a: "Tell a failing commissioner \"No money: bring a recovery plan\". Next year they send costed steps; approve what you want done.", topic: "government" },
   { q: "How do I create a ministry?", a: "People → Ministries. Some projects ask you to create the right ministry and carry on from there.", topic: "government" },
   { q: "How do I deal with my godfather?", a: "Give him what he asks and he stays quiet; refuse and he pushes back. You can break free later, at a price.", topic: "politics" },
+  { q: "Why is the Speaker trying to impeach me?", a: "A hostile Speaker moves to impeach as soon as your approval drops below last year's. Meet his price that year, win the House back (the President's backing at the party can do it), or keep your approval rising.", topic: "politics" },
+  { q: "How do I get a friendly Speaker in my second term?", a: "Keep your promises to the House, pay the Assembly on time and meet the Speaker's price when it comes. Break promises and go over the members' heads, and the new House elects someone who wants you gone.", topic: "politics" },
   { q: "How do I avoid impeachment?", a: "Don't lose the people and the party at the same time. Pay salaries, keep corruption down, and keep House members on side.", topic: "politics" },
   { q: "How do I win re-election?", a: "Keep your promises, deliver the projects people can see, and keep approval up in every district.", topic: "politics" },
   { q: "Why am I being sued?", a: "Your own actions trigger suits: land and mining deals, a forced budget, high corruption, a harmful policy.", topic: "courts" },
