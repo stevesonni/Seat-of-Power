@@ -2123,3 +2123,11 @@ Owner: "my replies are not fresh with respect to context."
 - Quick replies (no AI) now answer the need, strike, contractor or project the post names rather than the first on the list, and the accounts you follow get their own: Aproko Desk (deny, probe, laugh it off), the praise singer (thanks, or disown the paid post), the meme page, the student (strike, graduation, leaving), the trader after a flood.
 - `toriReplyReact` uses the drafted reaction when there is one.
 - Every office (21 Nov 2026, owner: "do the same AI drafted replies for Senate Tori and all offices Tori"): the Senate, the LGA chairman and the ambassador's Tori (RoleTori) use the same drafted replies (`toriDraft`, shared with the governor and the President). Each sends its office's record (support, corruption, votes, what happened, the governor's favour, the posting, and so on) without the player's name; the player's own handle (which can carry the surname, e.g. @SenOkafor) is replaced by "@you" before anything leaves the game and put back in the options. The aide's prompt knows each office's powers. tests/e2e/role-tori.mjs stubs the server and checks the office, the redaction and the poster's reaction.
+
+## The President's backing breaks a hostile Speaker (23 Nov 2026)
+Owner: "If the president agrees to stand with me it puts me in majority back with one member over the speaker… If the president refuses then status quo continues."
+- On the Aso Rock visit, "The President's backing at the party" now says what a yes would do while a hostile Speaker holds the House.
+- Yes: the party whips members back, the House is yours by one (half the seats + 1), and the Speaker is no longer hostile (no yearly price, no block). The answer, the result card ("The House: Your majority, by one"), the log and the wiki say so.
+- No: nothing changes; the answer adds "<Speaker> still holds the House."
+- The Speaker's price letter now mentions this route.
+- Test: tests/e2e/speaker-president.mjs (a yes run and a no run).

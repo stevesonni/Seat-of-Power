@@ -8304,7 +8304,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         cards.push({ key: "leg_spprice_" + turn, kicker: "House of Assembly · the Speaker's price", color: CL.pur, art: ["assembly-chamber", "speaker", null, null],
           title: SN + " wants his programmes first",
           brief: "You have no majority: until you deal with " + SN + ", your bills stay off the floor and new programmes get no money. This year he wants " + (open.length ? open.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", or ") : "committee chairs and contracts for his members") + ".",
-          stakes: "Pay his price and his bloc votes with you this year, budget included.",
+          stakes: "Pay his price and his bloc votes with you this year, budget included. Or ask the President for his backing at the party on your Aso Rock visit: a yes wins you back the House by one.",
           options: [
             ...open.map(a => ({ label: "Fund it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), note: naira(a.costB) + ". His bloc votes with you this year." + (open.length === 1 ? " It is the last thing he asked for." : ""), chips: [{ text: "−" + naira(a.costB), color: CL.red }].concat(fxChips(a.fx || {})).slice(0, 3), run: () => {
               if (!spendB(a.costB, "The Speaker's " + a.id)) return; scFx(a.fx || {});
@@ -10795,18 +10795,27 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, visitYear: turn })); track("visit_president", ask.id); noteTrip();
     try { window.SOP_outcome && window.SOP_outcome({ flight: { dir: "out", right: "Abuja", left: stName } }); } catch (e) {}
     const R = SYS.visitOutcome(ask, { fg: fgRelation, app: s.app, cor: s.cor, revB: SYS.revenueB(s) }, rng(hashStr("visit" + turn + pName)));
+    /* The President's backing breaks a hostile Speaker's hold (owner, 23 Nov 2026): the party whips enough members
+       back to give you the House by one, and the Speaker stops holding your bills hostage. A no changes nothing. */
+    const SPK = String(cast.speaker.name || "The Speaker"), breakSp = ask.id === "backing" && SYS.hostileSpeaker((stc.leg || {}).speaker);
+    if (breakSp) R.line = R.ok ? R.line + " That night the party whips go round the House: enough members cross back to give you a majority of one. " + SPK + " can no longer hold your bills hostage."
+      : R.line + " " + SPK + " still holds the House.";
     try { window.SOP_outcome && window.SOP_outcome({ icon: "🚘", img: "./art/scenes/aso-rock-arrival.webp", title: "Aso Rock Villa", text: "Your convoy pulls up at the Villa gates. The guards salute; the President is expecting you.", ok: "Go in" }); } catch (e) {}
     setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/the-president.webp", bg: "./art/backgrounds/villa-office.webp", name: "The President · Aso Rock Villa", text: "Governor " + String(pName || "").split(" ").pop() + ", welcome to the Villa. What brings you to Abuja?", ok: "Ask for " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1),
       fn: () => {
         scFx(R.fx); if (R.cashB) setS(x => ({ ...x, cash: Math.round(((x.cash || 0) + R.cashB) * 100) / 100 }));
         setFgRelation(f => Math.min(100, f + R.fg));
+        if (breakSp && R.ok) { setStc(p => { const H = p.house, maj = H ? Math.floor(H.seats / 2) + 1 : 0;
+          return { ...p, speakerRefused: null, leg: { ...(p.leg || {}), speaker: { ...((p.leg || {}).speaker || {}), hostile: false, broken: turn } }, house: H ? { ...H, loyal: Math.max(H.loyal, maj) } : H }; });
+          addL("🏛️ With the President behind you, the party whipped its members back: you have a majority of one, and " + SPK + " can no longer block your bills.", "success");
+          scWiki("Governorship", "Won back the House by one vote with the President's backing, ending " + SPK + "'s hold."); }
         addL((R.ok ? "🇳🇬 Aso Rock: the President granted " : "🇳🇬 Aso Rock: the President would not commit to ") + ask.l.charAt(0).toLowerCase() + ask.l.slice(1) + ".", R.ok ? "success" : "political");
         scWiki("Governorship", "Visited the President at Aso Rock to ask for " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1) + (R.ok ? "; the President agreed." : "; the President made no promise."));
         try {
           window.SOP_outcome({ present: { img: "./art/characters/the-president-" + (R.ok ? "pleased" : "angry") + ".webp", bg: "./art/backgrounds/villa-office.webp", name: "The President · Aso Rock Villa", text: R.line, ok: "Fly home" } });
           window.SOP_outcome({ flight: { dir: "home", right: "Abuja", left: stName } });
           window.SOP_outcome({ icon: R.ok ? "🤝" : "🧳", img: "./art/scenes/president-meets-governor.webp", title: R.ok ? "The President said yes" : "The President made no promise", text: R.line, tone: R.ok ? "good" : "neutral",
-            rows: [{ l: "Standing with Abuja", v: "+" + R.fg, good: true }].concat(R.cashB ? [{ l: "Refund paid", v: "+" + naira(R.cashB), good: true }] : [], R.fx.infra ? [{ l: "Federal road", v: "In the federal budget", good: true }] : [], R.fx.sec ? [{ l: "Security", v: "+" + Math.round(R.fx.sec * 100), good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : []) });
+            rows: [{ l: "Standing with Abuja", v: "+" + R.fg, good: true }].concat(R.cashB ? [{ l: "Refund paid", v: "+" + naira(R.cashB), good: true }] : [], R.fx.infra ? [{ l: "Federal road", v: "In the federal budget", good: true }] : [], R.fx.sec ? [{ l: "Security", v: "+" + Math.round(R.fx.sec * 100), good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], breakSp ? [{ l: "The House", v: R.ok ? "Your majority, by one" : "Still the Speaker's", good: R.ok }] : [], R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : []) });
         } catch (e) {}
         setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/scenes/" + (R.ok ? "president-meets-governor" : "aso-rock-arrival") + ".webp"), 300);
       } } }); } catch (e) {} }, 300);
@@ -14318,7 +14327,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <b style={{ display: "block" }}>🧳 Get back the {SYS.fmtM(j.lossM)} {j.firm} took to {j.to}</b><span className="ds-option-note" style={{ display: "block" }}>{j.proj}. Only the Federal Government can ask {j.to} to freeze it.</span>
               <span className="ds-chip" style={{ color: ok ? CL.grn : CL.red, background: (ok ? CL.grn : CL.red) + "12", marginTop: 6, display: "inline-block" }}>{ok ? "The President will help" : "Standing too low (needs " + SYS.JAPA_FG_MIN + ")"}</span>
             </button>; })}{SYS.VISIT_ASKS.map(a => { const p = SYS.visitOdds(a, { fg: fgRelation, app: s.app, cor: s.cor }); return <button key={a.id} className="ds-option" onClick={() => visitPresident(a)} style={{ textAlign: "left" }}>
-              <b style={{ display: "block" }}>{a.l}</b><span className="ds-option-note" style={{ display: "block" }}>{a.d}</span>
+              <b style={{ display: "block" }}>{a.l}</b><span className="ds-option-note" style={{ display: "block" }}>{a.id === "backing" && !NAT && SYS.hostileSpeaker((stc.leg || {}).speaker) ? "If the President says yes, the party whips members back to give you the House by one, and the Speaker stops blocking you." : a.d}</span>
               <span className="ds-chip" style={{ color: p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red, background: (p >= .55 ? CL.grn : p >= .35 ? CL.org : CL.red) + "12", marginTop: 6, display: "inline-block" }}>{p >= .55 ? "Likely" : p >= .35 ? "Even chance" : "Unlikely"}</span>
             </button>; })}</div>
             <div style={{ marginTop: 14 }}><Bt v="ghost" onClick={() => setVisitOpen(false)} style={{ width: "100%" }}>Not this year</Bt></div>
