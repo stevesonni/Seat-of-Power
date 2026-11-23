@@ -6298,7 +6298,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
       postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
-      pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null, endTest: (k) => { if (window.SOP_TEST) setGEnd(k); },
+      pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null, endTest: (k) => { if (window.SOP_TEST) setGEnd(k); }, spendTest: (b, what) => window.SOP_TEST ? spendB(b, what || "A test payment") : null,
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
       skApp, setSkApp, pApp, setPApp,
@@ -6395,7 +6395,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     moneyRef.current = r.s; // a second payment in the same tap sees this one
     setS(p => SYS.pay(p, cost, { level: lvl, force: true }).s);
-    if (r.borrowedB >= .05) addL("🏦 " + what + ": " + (r.fromBankB >= .05 ? naira(r.fromBankB) + " from the bank, " : "") + naira(r.borrowedB) + " borrowed because the bank ran out.", "info");
+    if (r.borrowedB >= .05) { addL("🏦 " + what + ": " + (r.fromBankB >= .05 ? naira(r.fromBankB) + " from the Treasury, " : "") + naira(r.borrowedB) + " borrowed because the Treasury ran out.", "political");
+      // The Treasury was empty: say so on screen, with the debt it adds to (owner, 23 Nov 2026: "money is still being spent at zero").
+      try { window.SOP_toast && window.SOP_toast("🏦 The Treasury was short: " + naira(r.borrowedB) + " borrowed for " + String(what).replace(/^The /, "the ") + ". Debt is now " + naira(r.s.debt || 0) + ".", "warn"); } catch (e) {} }
     return r;
   };
   // Where the money came from: every windfall, grant, deal or loss is a named story,
@@ -6787,7 +6789,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const n = { ...p };
     ["app", "pStab"].forEach(k => { if (fx[k]) n[k] = cl100(n[k] + fx[k]); });
     ["cor", "sec", "infra", "hp", "agr", "lit"].forEach(k => { if (fx[k]) n[k] = cl(n[k] + fx[k]); });
-    if (fx.debt > 0) { const pr = payIn(n, fx.debt, true); n.cash = pr.s.cash; n.debt = pr.s.debt; } // paid from the bank first
+    if (fx.debt > 0) { const pr = payIn(n, fx.debt, true); n.cash = pr.s.cash; n.debt = pr.s.debt; // paid from the Treasury first
+      if (pr.borrowedB >= .05) setTimeout(() => { try { window.SOP_toast && window.SOP_toast("🏦 The Treasury was short: " + naira(pr.borrowedB) + " borrowed. Debt is now " + naira(pr.s.debt || 0) + ".", "warn"); } catch (e) {} }, 0); }
     else if (fx.debt < 0) n.debt = Math.max(0, (n.debt || 0) + fx.debt);
     if (fx.igr) n.igr = (n.igr || 0) + fx.igr;
     if (dz && zone != null) { const zm = { ...(p.zoneMood || {}) }; zm[zone] = Math.max(-25, Math.min(25, (zm[zone] || 0) + dz)); n.zoneMood = zm; }
@@ -11985,6 +11988,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const _lvE = setup?.level || "medium";
     const _bankT = _lvE === "hard" ? 3.0 : _lvE === "easy" ? 1.5 : 2.2;
     if (s.igr + s.faac < _bankT) { addL("🚨 STATE BANKRUPT: Revenue collapsed. Salaries unpaid for 3 months. The people chase you from Government House!", "crisis"); setGEnd("bankrupt"); return; }
+    /* Insolvency (owner, 23 Nov 2026: "how does the state become bankrupt?"): debt far beyond what the state earns,
+       with salaries months behind. The first time, Abuja bails you out with conditions; the second time, you are done. */
+    { const rev = Math.max(.1, SYS.revenueB(s)), ratio = (s.debt || 0) / rev, lim = (SYS.DEBT_CAP[_lvE] || 1.6) * 1.5, arr = stc.arrears || 0;
+      if (!NAT && ratio >= lim && arr >= 3) {
+        if (!stc.bailout) {
+          const owedB = Math.round(Math.min(rev * .5, (monthWage() || .5) * arr) * 10) / 10;
+          setStc(p => ({ ...p, bailout: turn, arrears: 0 })); setS(p => ({ ...p, cash: Math.round(((p.cash || 0) + owedB) * 100) / 100, debt: Math.round(((p.debt || 0) + owedB) * 100) / 100, app: cl100(p.app - 3), pStab: cl100(p.pStab - 4) }));
+          addL("🆘 Insolvent: debt is " + ratio.toFixed(1) + "× a year's revenue and salaries are " + arr + " months behind. Abuja lent " + naira(owedB) + " to pay the workers, with conditions. There will be no second bailout.", "crisis");
+          setTimeout(() => { try { window.SOP_outcome({ icon: "🆘", img: "./art/scenes/inherited-debt.webp", title: "Bailed out by Abuja, once", text: "The state could not pay its workers or its lenders. The Federal Government lent " + naira(owedB) + " to clear the salaries, on conditions: a payroll audit, every account in one Treasury, and no new loans without its approval. If it happens again, the state is bankrupt and your government falls.", tone: "bad", rows: [{ l: "Debt", v: ratio.toFixed(1) + "× a year's revenue", good: false }, { l: "Salaries paid", v: "+" + naira(owedB), good: true }, { l: "Approval", v: "−3", good: false }, { l: "Party support", v: "−4", good: false }] }); } catch (e) {} }, 600);
+        } else if (stc.bailout < turn) { addL("🚨 STATE BANKRUPT: debt " + ratio.toFixed(1) + "× a year's revenue, salaries " + arr + " months behind, and Abuja will not bail you out twice.", "crisis"); setGEnd("bankrupt"); return; }
+      } }
     // Impeachment — easier to trigger on hard (House moves faster when blood is in the water)
     const _impA = _lvE === "hard" ? 38 : _lvE === "easy" ? 25 : 30;
     const _impS = _lvE === "hard" ? 48 : _lvE === "easy" ? 35 : 40;
@@ -13943,7 +13957,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const tone = (v, good, warn) => v >= good ? "#2fa866" : v >= warn ? "#d9a21b" : "#e0574c";
   const STRIP = [
     ["Approval", Math.round(s.app) + "%", tone(s.app, 60, 40), "icon-approval", s.app],
-    ["Treasury", naira(s.cash || 0), (s.cash || 0) > .05 ? null : "#e0574c", "icon-bank", null, s.cash || 0],
+    ["Treasury", (s.cash || 0) > .05 || !(s.debt > .05) ? naira(s.cash || 0) : "owes " + naira(s.debt), (s.cash || 0) > .05 ? null : "#e0574c", "icon-bank", null, s.cash || 0],
     ["Party", Math.round(s.pStab) + "%", tone(s.pStab, 50, 30), "icon-party", s.pStab],
     ["Corruption", Math.round((s.cor || 0) * 100) + "%", tone(100 - (s.cor || 0) * 100, 70, 55), "icon-corruption", (s.cor || 0) * 100, null, true],
   ];
@@ -15673,7 +15687,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 goAway(6, String(curInvite.from || "").replace(/^[^,]*,\s*/, "")); track("trip", "went in person");
                 setS(p => {
                   const n = { ...p };
-                  if (curInvite.goFx.igr) { n.igr += curInvite.goFx.igr; n.invIGR = (n.invIGR || 0) + curInvite.goFx.igr * .5; }
+                  // The deal's money: a first instalment into the Treasury today, and the rest as own revenue every year
+                  // (owner, 23 Nov 2026: "the money I got didn't reflect in my treasury").
+                  if (curInvite.goFx.igr) { n.igr += curInvite.goFx.igr; n.invIGR = (n.invIGR || 0) + curInvite.goFx.igr * .5; n.cash = Math.round(((n.cash || 0) + curInvite.goFx.igr * .25) * 100) / 100; }
                   if (curInvite.goFx.app) n.app = cl100(n.app + curInvite.goFx.app);
                   if (curInvite.goFx.lit) n.lit = cl(n.lit + curInvite.goFx.lit);
                   if (curInvite.goFx.hp) n.hp = cl(n.hp + curInvite.goFx.hp);
@@ -15686,13 +15702,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 addL("🌍 " + curInvite.goLog, "policy");
                 paper(govShort + " Shines in " + curInvite.from.split(",").pop().trim(), briefly(curInvite.goLog, 70), true, "./art/scenes/news-governor-abroad.webp");
                 const goEffects = [];
-                if (curInvite.goFx.igr) goEffects.push({ icon: "💰", text: "IGR boosted", value: "+₦" + curInvite.goFx.igr + "B", good: true });
+                if (curInvite.goFx.igr) { goEffects.push({ icon: "💰", text: "Paid into the Treasury now (first instalment)", value: "+" + naira(curInvite.goFx.igr * .25), good: true }); goEffects.push({ icon: "📈", text: "Own revenue, every year from now", value: "+" + naira(curInvite.goFx.igr) + " a year", good: true }); }
                 if (curInvite.goFx.app) goEffects.push({ icon: "📈", text: "Approval rises", value: "+" + curInvite.goFx.app + "%", good: true });
                 if (curInvite.goFx.infra) goEffects.push({ icon: "🏗️", text: "Infrastructure improved", value: "+" + Math.round(curInvite.goFx.infra * 100) + "%", good: true });
                 if (curInvite.goFx.lit) goEffects.push({ icon: "📚", text: "Education improved", good: true });
                 if (curInvite.goFx.hp) goEffects.push({ icon: "🏥", text: "Health improved", good: true });
                 if (curInvite.goFx.agr) goEffects.push({ icon: "🌾", text: "Agriculture improved", good: true });
-                if (curInvite.goCost) goEffects.push({ icon: "💸", text: "Travel costs", value: "₦" + curInvite.goCost + "B", bad: true });
+                if (curInvite.goCost) goEffects.push({ icon: "💸", text: "Travel costs, from the Treasury", value: "−" + naira(curInvite.goCost), bad: true });
                 Object.entries(curInvite.goSk || {}).forEach(([k, v]) => { if (v > 0) goEffects.push({ icon: "👥", text: (SK_PLAIN[k] || k) + " pleased", value: "+" + v, good: true }); });
                 const invRef = curInvite;
                 setCurInvite(null);

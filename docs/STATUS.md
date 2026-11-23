@@ -3,7 +3,26 @@
 
 
 
-## Lose the Speaker race, lose the House (23 Nov, latest)
+## Money that says what it does; bankruptcy that means something (23 Nov, latest)
+
+- **What the owner saw:**
+  - "How does the state become bankrupt, and what happens?"
+  - "I came back from the US but the money didn't reflect in my treasury… even when the treasury has zero balance, money is still being spent. The money system is broken."
+- **What was happening:**
+  - **Spending at ₦0:** whatever the Treasury cannot pay is borrowed (`SYS.pay`), up to the lenders' limit; wages and running costs are borrowed past it. This was noted only in the log.
+  - **Trip money** raised own revenue (IGR) by "₦2B" *a year*, arriving month by month. Only the travel cost left the Treasury that day.
+  - **Bankruptcy** happened only if yearly revenue fell under about ₦2.2B, which is almost never.
+- **Fixes:**
+  - **Borrowing is shown:** every borrowed payment pops up "🏦 The Treasury was short: ₦X borrowed for … Debt is now ₦Y." This covers `spendB` and decision costs (`scFx`).
+  - **The meter:** with ₦0 and a debt, the Treasury meter reads "owes ₦Y".
+  - **Trips:** a quarter of a trip deal's yearly revenue is paid into the Treasury at once. The result card says "Paid into the Treasury now (first instalment)" and "Own revenue, every year from now: +₦X a year".
+  - **Bankruptcy:** debt at 1.5× the lenders' limit (2.4× a year's revenue on Medium) with salaries 3 or more months behind.
+    - **The first time,** Abuja bails you out with conditions: salaries are paid, the debt grows, approval −3, party −4.
+    - **The second time,** the state is bankrupt and your government falls.
+    - **The old rule** (revenue collapsing under the floor) still applies.
+- **Tests:** `tests/e2e/money-honest.mjs` (test hook `SOP.spendTest`).
+
+## Lose the Speaker race, lose the House (23 Nov)
 
 - **What the owner asked:** "First I lose majority in the House, so I have to deal with the Speaker to get my bills and programmes through. The Speaker has his own programmes that he wants done. If my own person wins then I am safe."
 - **The race** (`SYS.speakerRace`): the result is `hostile` when the winner is not your party's candidate and you did not back him.
