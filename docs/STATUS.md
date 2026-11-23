@@ -2152,3 +2152,6 @@ Owner: "Let projects needing contractors go through contractors. We have many cl
 
 ## The guide is findable (23 Nov 2026)
 /wiki was already live and linked from the home page. Added /robots.txt and /sitemap.xml (home, /play and every guide page) in server/vatar-server.mjs so search engines find it.
+
+## Lovable's small works and faces installed (23 Nov 2026)
+14 pictures in public/art/works/ (resized to 1280×720) and 66 portraits in public/art/people/ (512×640, transparent), 4 MB in all instead of 21 MB. Commissioners, ministers and neighbouring governors now draw from the new faces (checked in the cabinet: eight different faces, nothing broken). Small works show their own picture on the tender, the "contract signed" screen and the "Finished" pop-up.

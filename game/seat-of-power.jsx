@@ -5584,7 +5584,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
   if (F0 && F0.step === "contractor" && proj) {
     const list = SYS.eligible(proj.type, projects, proj.id), meth = F0.method || "open", n = nextOf(proj);
     const bar = (l, v) => <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "#5b6b55" }}>{l}<span style={{ width: 54, height: 6, borderRadius: 3, background: "#ece3cd", overflow: "hidden" }}><span style={{ display: "block", height: "100%", width: Math.round(v * 100) + "%", background: v > .75 ? "#0b6b42" : v > .55 ? "#c9922a" : "#b3261e" }} /></span></span>;
-    return <Dossier icon={SECTOR_ICON[proj.sector]} kicker="Procurement" title={proj.title} place={where(proj)} at={SYS.milestoneOf(proj)} wide>
+    return <Dossier icon={SECTOR_ICON[proj.sector]} thumb={SYS.isWorks(proj.type) ? siteArt(proj) : null} kicker="Procurement" title={proj.title} place={where(proj)} at={SYS.milestoneOf(proj)} wide>
       <Situation tone={n.blocked ? "warn" : null} head={n.blocked ? "No qualified contractor is free" : "Award the contract"} text={n.blocked ? n.say : "Only firms that can do " + SYS.SECTORS[proj.sector].toLowerCase() + " work can bid. Awarding the contract is what starts the work."} />
       {spLab("How the contract is let")}
       <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr 1fr", gap: 8 }}>{Object.entries(SYS.PROCUREMENT).map(([k, M]) => <button key={k} className="sp-opt" aria-pressed={meth === k} onClick={() => onFlow({ ...F0, method: k })}><b style={{ display: "block", fontSize: 15 }}>{M.nm}</b><span style={{ fontSize: 13, color: "#5b6b55" }}>{Math.round(M.price * 100)}% of price{M.cor > 0 ? " · corruption risk" : ""}</span></button>)}</div>
@@ -5642,7 +5642,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
       funded: ["Funded", SYS.fmtM(F0.amountM || 0) + " received", true, SYS.fmtM(F0.amountM || 0) + " received from " + (F0.lender || "the lender"), "The money is held for this project. No contractor has been paid; the debt is on the state's books."],
       contract: ["Contract signed", C ? C.name : "", true, "Contract signed with " + (C ? C.name : "the contractor"), "Work starts this year. How far it gets depends on the money released and on the contractor; you will see it at year end."] }[k];
     if (!S || !recorded) return <Card p={proj} big />;
-    return <Dossier pic={k === "contract" ? "project-site-cleared" : null} pin={pinOf(proj)} icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
+    return <Dossier pic={k === "contract" ? (SYS.isWorks(proj.type) ? siteArt(proj) : "project-site-cleared") : null} pin={pinOf(proj)} icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
       <div style={{ margin: "14px 0 4px" }}><MilestoneMove from={F0.fromAt} at={SYS.milestoneOf(proj)} /></div>
       <Situation head={S[3]} text={S[4]} />
       <Tiles items={[["Scope costs", SYS.fmtM(proj.estimateM)], ["Approved", SYS.fmtM(proj.approvedM)], k === "funded" ? ["Loan in hand", SYS.fmtM(proj.loanLeftM), "good"] : ["Spent", SYS.fmtM(proj.spentM)], ["Stage", SYS.MILESTONES[SYS.milestoneOf(proj)][1]]]} />

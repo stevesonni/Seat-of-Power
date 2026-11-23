@@ -1,5 +1,7 @@
 # Lovable art: small works, and more faces
 
+**Delivered (23 Nov 2026): all 14 small works and all 66 portraits are in the game** (resized to 1280×720 and 512×640 to keep the download small).
+
 Two sets. The game already uses both: until a picture arrives it shows a stand-in, and when you drop a file in, the game picks it up by itself. Nothing else needs changing.
 
 ## Rules (as docs/LOVABLE-DECISIONS.md)
