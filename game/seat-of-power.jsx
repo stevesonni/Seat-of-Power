@@ -6986,7 +6986,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         {SYS.neighboursOf(state).map(n => { const G = I.gov[n] || { rel: 50, party: "same" }, deals = I.deals.filter(d => d.partner === n);
           return <div key={n} style={{ border: "1.5px solid " + CL.bdr, borderRadius: 14, padding: "10px 12px", background: CL.bg }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src={"./art/characters/" + nGovImg(n) + ".webp"} alt={nGov(n)} style={{ width: big ? 56 : 48, height: big ? 56 : 48, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#efe3c6", flexShrink: 0 }} /><div style={{ fontWeight: 800, fontSize: fz.m, color: CL.txt }}>{SYS.stateLabel(n)}</div></div>
-            <div style={{ fontSize: fz.s, color: CL.td }}>{nGov(n)} · {G.party === "same" ? "your party" : "opposition"} · grows {SYS.produceOf(n)[0]}</div>
+            <div style={{ fontSize: fz.s, color: CL.td }}>{nGov(n)} · {nbSide(n, G)} · grows {SYS.produceOf(n)[0]}</div>
             <div style={{ height: 6, borderRadius: 6, background: CL.bdr, margin: "6px 0", overflow: "hidden" }}><i style={{ display: "block", height: "100%", width: G.rel + "%", background: G.rel >= 55 ? CL.grn : G.rel < 40 ? CL.red : CL.org }} /></div>
             {deals.map(d => { const K = SYS.DEAL_KINDS[d.kind], sx = d.status === "active" ? (turn < d.opens ? ["Building · opens in year " + d.opens, CL.org] : d.mods.levy ? ["Toll gates on the route", CL.red] : d.mods.frozen ? ["Frozen", CL.red] : ST.active) : ST.ended;
               return <div key={d.id} style={{ fontSize: fz.s, display: "flex", justifyContent: "space-between", gap: 8 }}><span style={{ display: "flex", alignItems: "center", gap: 6 }}><Ico n={K.ico} s={big ? 28 : 24} />{K.nm}</span><b style={{ color: sx[1] }}>{sx[0]}</b></div>; })}
@@ -7524,7 +7524,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      every year and can turn into a storyline. */
   const interNow = () => stc.inter || SYS.interInit(state, state + ":" + pName, party);
   const tradeAll = () => SYS.tradeCoverage(interNow(), state);
-  const nGov = (st) => "Gov. " + gNAs(rng(hashStr(state + ":" + pName + ":" + st)), (STATES[st] || {}).zone || "SW", st, hashStr(st + pName) % 4 === 0);
+  // The FCT has no governor: the President appoints a Minister of the Federal Capital Territory (owner, 23 Nov 2026).
+  const nbSide = (st, G) => st === "FCT" ? "appointed by the President" : (G || {}).party === "same" ? "your party" : "opposition";
+  const nGov = (st) => (st === "FCT" ? "Minister " : "Gov. ") + gNAs(rng(hashStr(state + ":" + pName + ":" + st)), (STATES[st] || {}).zone || "SW", st, hashStr(st + pName) % 4 === 0);
   const nGovImg = (st) => { const G = (interNow().gov || {})[st] || { rel: 50 }; return NB_GOV[hashStr(st + pName) % 4 === 0 ? "female" : "male"][G.rel >= 60 ? 1 : G.rel < 40 ? 2 : 0]; };
   const interFill = (x, d) => { const X = (stc.inter || {}).stories || {}, key = Object.keys(X).find(k => X[k].deal === d.id), third = key ? X[key].third : null;
     return SYS.fillText(x, { p: SYS.stateLabel(d.partner), t: third ? SYS.stateLabel(third) : "a neighbouring state", g: nGov(d.partner), k: (SYS.DEAL_KINDS[d.kind] || {}).nm.toLowerCase(), c: SYS.produceOf(d.partner)[0], y: SYS.produceOf(state)[0] }); };
@@ -7537,7 +7539,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const I = interNow(), V = visit; if (!V) return null;
     const MAXD = Math.max(SYS.ACTIVE_MAX, SYS.neighboursOf(state).length), active = SYS.activeDeals(I), full = active.length >= MAXD; // room for a deal with every neighbour
     if (V.step === "pick") return { kicker: "A trade mission", title: "Which neighbour?", brief: stName + " borders " + SYS.neighboursOf(state).map(SYS.stateLabel).join(", ") + ". One mission a year; at most " + MAXD + " deals in force." + (full ? " You have " + MAXD + " already: one must end before another." : "") + (tradeAll().done ? " You have a deal with every neighbour." : " A deal with every neighbour is a mark of a regional statesman: " + tradeAll().left.map(SYS.stateLabel).join(", ") + " still to sign."),
-      options: SYS.neighboursOf(state).map(n => { const G = I.gov[n]; return { label: SYS.stateLabel(n) + " · " + nGov(n) + (G.party === "same" ? " (your party)" : " (opposition)"), note: "They grow " + SYS.produceOf(n).join(" and ") + ". Relations " + G.rel + "/100.", disabled: full,
+      options: SYS.neighboursOf(state).map(n => { const G = I.gov[n]; return { label: SYS.stateLabel(n) + " · " + nGov(n) + " (" + nbSide(n, G) + ")", note: "They grow " + SYS.produceOf(n).join(" and ") + ". Relations " + G.rel + "/100.", disabled: full,
         chips: [{ text: "Relations " + G.rel, color: G.rel >= 55 ? CL.grn : G.rel < 40 ? CL.red : CL.org }].concat(active.some(d => d.partner === n) ? [{ text: "A deal in force", color: CL.blu }] : []), run: () => setVisit({ step: "kind", partner: n }) }; }) };
     const P = SYS.stateLabel(V.partner), m = { p: P, c: SYS.produceOf(V.partner)[0], y: SYS.produceOf(state)[0] };
     if (V.step === "kind") return { kicker: "A trade mission · " + P, title: "What will you offer " + P + "?", brief: nGov(V.partner) + " will hear you out. " + P + " grows " + SYS.produceOf(V.partner).join(" and ") + "; " + stName + " grows " + SYS.produceOf(state).join(" and ") + ".",
@@ -9490,7 +9492,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       });
       // 6. Regional influence: the race with the governor next door, or (for a President) a trade war with Lokassa.
       if (pillarOn("region") && !NAT) {
-        if (!next.rivalry) { const nbs = SYS.neighboursOf(state); if (nbs.length) { const nb = nbs[SYS.hashStr(PS + state) % nbs.length]; next.rivalry = { nb, name: "Gov. " + gN(rng(PS % 99991 + 7), (STATES[nb] || sd).zone || sd.zone, nb), us: 0, them: 0, seen: [] }; } }
+        if (!next.rivalry) { const nbs = SYS.neighboursOf(state); if (nbs.length) { const nb = nbs[SYS.hashStr(PS + state) % nbs.length]; next.rivalry = { nb, name: (nb === "FCT" ? "Minister " : "Gov. ") + gN(rng(PS % 99991 + 7), (STATES[nb] || sd).zone || sd.zone, nb), us: 0, them: 0, seen: [] }; } }
         const RV = next.rivalry, C = RV && SYS.rivalryFor(PS, turn, RV.seen);
         if (C) { const nbN = RV.nb.replace(/_/g, " "), F0 = (x) => String(x).replace(/\{nb\}/g, nbN).replace(/\{rival\}/g, RV.name);
           cards.push({ key: "pil_rival_" + turn, kicker: stName + " v. " + nbN + " · " + RV.us + "–" + RV.them, color: CL.pur, art: ["state-secretariat", "commissioner-male-suit"], title: F0(C.t), brief: F0(C.d), stakes: "You lead " + RV.us + "–" + RV.them + ". The press keeps score between the two states.",

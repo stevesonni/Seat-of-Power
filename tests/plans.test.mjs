@@ -39,3 +39,8 @@ test("ministers post what their ministry is doing on Tori", () => {
   assert.ok(out.every(x => x.kind === "cabinet" && /^@Hon/.test(x.handle)));
   assert.deepEqual(S.toriCabinet({ st: "Ogun", turn: 3, cab: [] }), []);
 });
+test("the FCT has a minister, not a governor", () => {
+  assert.equal(S.toriHandle("FCT"), "@FCTMinister");
+  const o = S.toriNeighbours({ st: "Niger", turn: 2, app: 60, nbrs: [{ st: "FCT", name: "Minister Damilola Inuwa", party: "same", rel: 60, deals: [], produce: "yams" }] });
+  assert.ok(o.length && o.every(x => /^Minister of the Federal Capital Territory/.test(x.sub) && !/your party|opposition|Governor/.test(x.sub) && !/FCT State|FCT Government House/.test(x.text)));
+});

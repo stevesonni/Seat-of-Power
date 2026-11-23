@@ -10,7 +10,7 @@ const pick = (r, a) => a[Math.floor(r() * a.length) % a.length];
 const fmtM = (m) => { m = Math.round(+m || 0); return m >= 1000 ? "₦" + String(Math.round(m / 10) / 100).replace(/\.0+$/, "") + "B" : "₦" + m + "M"; };
 const stNm = (st) => String(st || "").replace(/_/g, " ");
 const tagSt = (st) => stNm(st).replace(/[^A-Za-z]/g, "");
-export const toriHandle = (st) => /^nigeria$/i.test(String(st)) ? "@NGRPresident" : "@" + tagSt(st) + "Gov";
+export const toriHandle = (st) => /^nigeria$/i.test(String(st)) ? "@NGRPresident" : /^fct$/i.test(String(st)) ? "@FCTMinister" : "@" + tagSt(st) + "Gov";
 export const fmtCount = (n) => n >= 1e6 ? (Math.round(n / 1e5) / 10) + "M" : n >= 1e3 ? (Math.round(n / 100) / 10) + "K" : String(Math.round(n));
 
 // The people who post. art: a picture in public/art/characters.
@@ -993,14 +993,14 @@ export function toriNeighbours(c) {
   const order = nb.slice().sort(() => r() - .5);
   order.slice(0, 3).forEach((g, i) => {
     const N = stNm(g.st), H = toriHandle(g.st), P = (g.produce || "cassava");
-    const say = (text, sub) => out.push({ kind: "neighbour", verified: true, name: g.name, handle: H, art: g.art || "neighbour-governor-male", sub: "Governor of " + N + " State" + (sub ? " · " + sub : ""), text, ago: ago(r, out.length), ...counts(r, 2), id: "nb" + hash(H + text + c.turn), topic: "general" });
+    const say = (text0, sub) => { const text = g.st === "FCT" ? text0.replace(/ State Specialist Hospital/g, " Specialist Hospital").replace(/Government House/g, "the FCT Administration").replace(/my colleague/g, "my good friend") : text0; out.push({ kind: "neighbour", verified: true, name: g.name, handle: H, art: g.art || "neighbour-governor-male", sub: (g.st === "FCT" ? "Minister of the Federal Capital Territory" : "Governor of " + N + " State") + (sub ? " · " + (g.st === "FCT" && /party|opposition/.test(sub) ? "appointed by the President" : sub) : ""), text, ago: ago(r, out.length), ...counts(r, 2), id: "nb" + hash(H + text + c.turn), topic: "general" }); };
     const deal = (g.deals || [])[0];
     if (deal && g.rel >= 55 && r() < .7) say("Productive session with my colleague " + me + " on our " + deal.toLowerCase() + ". " + N + " and " + Y + " rise together. 🤝🏾", "your partner");
     else if (deal && g.rel < 40) say("We signed a " + deal.toLowerCase() + " with " + Y + " in good faith. " + N + " is still waiting to see " + me + " keep their side.", "your partner");
     else if (!deal && g.party === "opp" && c.app < 45 && r() < .6) say("Watching what is happening next door in " + Y + (c.arrears ? ": " + c.arrears + " months of salaries owed" : "") + ". In " + N + " we pay our workers and finish our roads. Just saying. 👀", "opposition");
     else say(WORK[Math.floor(r() * WORK.length)](N, P), g.party === "same" ? "your party" : null);
   });
-  if (c.tradeAll) { const g = order[0]; out.push({ kind: "neighbour", verified: true, name: g.name, handle: toriHandle(g.st), art: g.art, sub: "Governor of " + stNm(g.st) + " State", ago: ago(r, out.length), ...counts(r, 4), id: "nball" + c.turn,
+  if (c.tradeAll) { const g = order[0]; out.push({ kind: "neighbour", verified: true, name: g.name, handle: toriHandle(g.st), art: g.art, sub: g.st === "FCT" ? "Minister of the Federal Capital Territory" : "Governor of " + stNm(g.st) + " State", ago: ago(r, out.length), ...counts(r, 4), id: "nball" + c.turn,
     text: "Credit where it is due: " + me + " is the first governor in the zone with a trade deal across every border. The region is one market now. 👏🏾", topic: "praise" }); }
   return out;
 }

@@ -3,7 +3,15 @@
 
 
 
-## Your first post on Tori (23 Nov, latest)
+## The FCT has a minister, not a governor (23 Nov, latest)
+
+- **What the owner saw:** the trade mission listed "FCT · Gov. Damilola Inuwa (your party)". The FCT is run by a Minister of the Federal Capital Territory, whom the President appoints.
+- **Fixes:**
+  - **In the game:** "Minister …", labelled "appointed by the President" instead of "your party" or "opposition" (`nGov`, `nbSide`). This covers the trade mission, the neighbours list and the rivalry.
+  - **On Tori:** the account is `@FCTMinister`, "Minister of the Federal Capital Territory · appointed by the President". The FCT's posts no longer say "FCT State" or "Government House".
+- **Tests:** a unit test in `tests/plans.test.mjs`. The councils and calendar browser tests pass.
+
+## Your first post on Tori (23 Nov)
 
 - **What the owner asked:** "My first post on Tori should be announcing that I am happy to have been elected (or we have reclaimed our mandate via the tribunal) and we look forward to getting on with our agenda."
 - **How it works:** at the start of the first year, once the government is formed, your account posts once (`SYS.toriFirstPost`). This applies to the governor and the President.
