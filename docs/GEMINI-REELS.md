@@ -17,6 +17,14 @@ installs them.
 > **No text, no words, no signs with lettering, no logos, no flags with emblems, no watermarks.** No famous or
 > recognisable people. Nobody looks into the camera. Nothing violent or sad.
 
+## Wanted: irrigation.mp4 (23 Nov 2026)
+
+For the Irrigation Network programme (and the Dry-Season Irrigation Scheme). Until it arrives, the game plays the dam film. Use the shared style block, then:
+
+> A wide irrigation scheme in the dry season in northern Nigeria: a long concrete canal carries water from a small earth dam, and gates open so the water runs into green fields of rice, onions and tomatoes, while the land beyond is dry and brown. Farmers in caps and wrappers work the rows, a solar pump hums beside a channel, and white egrets land in the wet fields. The camera follows the water along the canal and rises over the green patchwork. Harmattan haze, late-afternoon golden light.
+
+Claude adds `irrigation: 1` to REELS when the file is in public/art/reels/; `REEL_BY_POLICY` already sends both irrigation programmes to it.
+
 ## Delivered 23 Nov 2026 (third batch)
 
 - `housing.mp4` (a new estate of bungalows, families carrying boxes in) and `industrial.mp4` (an industrial park, trucks through the gate). Re-encoded to 960×540 with no sound, as the others.

@@ -424,7 +424,11 @@ export const migrateOldProject = (p, year) => {
 export const REELS = {road: 1, hospital: 1, school: 1, water: 1, dam: 1, power: 1, seaport: 1, refinery: 1, vehicles: 1, market: 1, housing: 1, industrial: 1}; // housing.mp4: a new estate, families moving in; industrial.mp4: an industrial park, trucks at the gate (Gemini, 23 Nov 2026) // market.mp4: a busy covered market (Gemini, 23 Nov 2026) // power.mp4: a town lights up at night; seaport.mp4; refinery.mp4 (Gemini, 22 Nov 2026) // dam.mp4: the lights come on in a village at night (Gemini, 22 Nov 2026)
 // A type without its own film borrows a close one (secondary schools use the school film).
 export const REEL_SHARE = { secondary: "school", nursing: "hospital", pipeline: "refinery", markets: "market" }; // power plants, solar, gas and mini-grids have their own film now; a gas pipeline shares the refinery's
-export const reelFor = (type, id) => {
+// A programme with its own film, whatever kind of project it builds (the Irrigation Network builds a dam, but its
+// film shows water reaching the fields: docs/GEMINI-REELS.md, irrigation.mp4).
+export const REEL_BY_POLICY = { irrigation: "irrigation", kpa_irrigation: "irrigation" };
+export const reelFor = (type, id, src) => {
+  if (src && REEL_BY_POLICY[src] && REELS[REEL_BY_POLICY[src]]) type = REEL_BY_POLICY[src];
   if (!REELS[type] && REEL_SHARE[type]) type = REEL_SHARE[type];
   const n = REELS[type] || 0; if (!n) return null;
   const h = String(id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0), k = n > 1 ? h % n + 1 : 1;
