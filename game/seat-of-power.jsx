@@ -6324,6 +6324,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
+      carryNow: () => ({ turn, carried: scCarry.current.map(c => c.key) }),
       worksNow: () => ({ pol: (pol || []).map(p => p.nm), projects: (projects || []).map(p => ({ id: p.id, status: p.status, courtStopped: p.courtStopped })) }),
       injunctionTest: (nm, sites) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0]; if (!P) return false;
         if (sites) setProjects(prev => [...(prev || []), ...Array.from({ length: sites }, (_, i) => ({ id: "p_court_" + i, title: P.nm + " site " + (i + 1), type: "school", status: "in_progress", progress: 30, events: [], _srcPolicy: { id: P.id, nm: P.nm } }))]);
@@ -9845,6 +9846,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...next, oldDebt: p.oldDebt || next.oldDebt })); // the debt plan is only ever changed by its own question: never undo an answer
     notes.forEach(([t, k]) => addL(t, k));
     scPending.current = [...cards, ...scCarry.current.filter(cc => !cards.some(x => x.key === cc.key))]; scLast.current = next;
+    // The carried letters are back in the pile; the carry list starts empty again, so a letter you answer is gone for good
+    // (owner, 25 Nov 2026: "This is the third time I am asking the President for the same army for the same site").
+    scCarry.current = [];
     cards.forEach(c => q.push("sc#" + c.key));
   };
 
@@ -13295,6 +13299,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setMail(m => m.filter(l => !keys.has(l.key)));
     setScCards(cs => cs.filter(c => !keys.has("sc#" + c.key)));
     scPending.current = scPending.current.filter(c => !keys.has("sc#" + c.key));
+    scCarry.current = scCarry.current.filter(c => !keys.has("sc#" + c.key));
     if (letterOpen && keys.has(letterOpen.key)) setLetterOpen(null);
   }, [stc.labour, mail]);
   const postYearMail = (q) => {

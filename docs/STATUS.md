@@ -2371,3 +2371,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - Court letters say the court wants the state's answer: fight the case (and appeal if you lose) or comply.
   - Invitations say who invites you, why, and the trade-off of going yourself or sending a delegation.
   - The Head of Service's yearly brief says what it contains (the cabinet report, failing commissioners, requests already decided, anti-graft findings) and what to do: read it, and reverse anything before you sign.
+
+## An answered letter does not come back (25 Nov 2026)
+- Owner: "This is the third time I am asking the President for the same army for the same site."
+- Cause: letters held back by the yearly mail cap were put on a carry list (scCarry) that was never emptied, so every carried letter returned every year, even after you answered it.
+- The carry list now empties when its letters are put back in the pile at the year's turn; a letter still unanswered is carried again, and an answered one is gone for good.
+- Test: tests/e2e/letters-no-repeat.mjs plays three years and checks that no letter appears in the mailbox in more than two years. The mail and mail-cap tests still pass. A test hook, SOP.carryNow(), shows the carry list.
