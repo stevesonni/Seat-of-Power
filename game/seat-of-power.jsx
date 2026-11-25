@@ -2158,8 +2158,7 @@ const artOf = (id, art) => art && VARIANT_ART.has(art) ? "./art/variants/" + art
 SEAT.got = SEAT.got || {};
 // The pictures arrived (Lovable, 25 Nov 2026); the film is still checked for.
 ["scenes/stadium-derelict", "scenes/stadium-full-house", "scenes/stadium-cracked-stand", "scenes/mini-stadium", "scenes/youth-assembly", "characters/football-official"].forEach(p => { SEAT.got[p] = true; });
-try { if (typeof fetch === "function") { fetch("./art/reels/stadium.mp4", { method: "HEAD" }).then(r => { if (r.ok) SYS.REELS.stadium = 1; }).catch(() => {}); fetch("./art/reels/ministadium.mp4", { method: "HEAD" }).then(r => { if (r.ok) SYS.REELS.ministadium = 1; }).catch(() => {});
-  fetch("./art/characters/fifa-official.webp", { method: "HEAD" }).then(r => { if (r.ok) SEAT.got["characters/fifa-official"] = true; }).catch(() => {}); } } catch (e) {}
+try { if (typeof fetch === "function") { fetch("./art/characters/fifa-official.webp", { method: "HEAD" }).then(r => { if (r.ok) SEAT.got["characters/fifa-official"] = true; }).catch(() => {}); } } catch (e) {}
 const sportArt = (p, fb) => SEAT.got[p] ? p.split("/").pop() : fb;
 const sportImg = (p, fb) => SEAT.got[p] ? "./art/" + p + ".webp" : fb;
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
@@ -11502,7 +11501,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     try {
       window.SOP_outcome({ icon: "✂️", img: ribbonImg, badge: "./art/objects/ceremonial-scissors.webp", title: "Commissioning: " + p.title, text: "The crowd is here, the band is playing and the ribbon is stretched across " + p.title + ". " + (p.contractor ? "The team from " + p.contractor + " stands beside you." : "") + " The scissors are yours, Your Excellency.", ok: "✂️ Cut the ribbon", tone: "good" });
       // The finished work on film (art/reels, made with Gemini; docs/GEMINI-REELS.md); the ribbon picture if there is none yet.
-      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", video: SYS.reelFor(p.type === "stadium" && (p.qty || 0) <= 10000 && SYS.REELS.ministadium ? "ministadium" : p.type, p.id, p.srcPolicy), lights: ["dam", "power"].includes(p.type) && !(SYS.REEL_BY_POLICY[p.srcPolicy] && SYS.reelFor(p.type, p.id, p.srcPolicy) !== SYS.reelFor(p.type, p.id)) ? "./art/scenes/national-grid-dark.webp" : null, ...(pillarOn("map") && !NAT && (p.lga || (p.lgas || [])[0]) ? { action: { label: "🗺️ See it on the map", fn: () => { setMapFocus(p.lga || p.lgas[0]); setNav("smap"); } } } : {}), title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
+      window.SOP_outcome({ icon: "🎉", img: "./art/scenes/ribbon-cut.webp", video: SYS.reelFor(SYS.REEL_SMALL[p.type] && (p.qty || 0) <= SYS.REEL_SMALL[p.type].maxQty && SYS.REELS[SYS.REEL_SMALL[p.type].film] ? SYS.REEL_SMALL[p.type].film : p.type, p.id, p.srcPolicy), lights: ["dam", "power"].includes(p.type) && !(SYS.REEL_BY_POLICY[p.srcPolicy] && SYS.reelFor(p.type, p.id, p.srcPolicy) !== SYS.reelFor(p.type, p.id)) ? "./art/scenes/national-grid-dark.webp" : null, ...(pillarOn("map") && !NAT && (p.lga || (p.lgas || [])[0]) ? { action: { label: "🗺️ See it on the map", fn: () => { setMapFocus(p.lga || p.lgas[0]); setNav("smap"); } } } : {}), title: "The ribbon is cut!", text: "Applause, confetti and the band strikes up. " + p.title + " is open.", ok: "Continue", tone: "good" });
     } catch (e) {}
     paper(RH.h, RH.sub, RH.good, ribbonImg);
   };

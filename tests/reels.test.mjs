@@ -11,7 +11,8 @@ test("reels: listed films exist and every film is listed", () => {
   want.forEach(f => assert.ok(files.includes(f), f + " is listed but missing"));
   files.forEach(f => assert.ok(want.includes(f), f + " is on disk but not listed in REELS"));
   const byPolicy = new Set(Object.values(SYS.REEL_BY_POLICY || {}));
-  Object.keys(SYS.REELS).forEach(t => assert.ok(SYS.UNIT[t] || byPolicy.has(t), t + " is a project type, or a programme's own film"));
+  const small = new Set(Object.values(SYS.REEL_SMALL || {}).map(x => x.film));
+  Object.keys(SYS.REELS).forEach(t => assert.ok(SYS.UNIT[t] || byPolicy.has(t) || small.has(t), t + " is a project type, a programme's own film, or a small one's"));
   // The Irrigation Network builds a dam, but shows water reaching the fields (owner, 23 Nov 2026).
   assert.equal(SYS.reelFor("dam", "p1", "irrigation"), "./art/reels/irrigation.mp4");
   assert.equal(SYS.reelFor("dam", "p1", "f_mambilla"), "./art/reels/dam.mp4");

@@ -124,3 +124,5 @@ Same rules as the other films: no words on screen, no logos, no real people; kee
 
 **Prompt for Gemini (Veo), 8–10 seconds, 16:9, no sound needed:**
 > Morning in a Nigerian town. A slow tracking shot along the fence of a small new community stadium: one covered stand, open terraces, a fresh green pitch and a red running track. Young men and women in plain training kit run drills and kick footballs; a coach blows a whistle; children press their faces to the fence to watch; okadas and a few cars are parked outside the gate. The camera rises gently over the stand to show the town's rooftops around it. Painted, warm, semi-realistic; no readable words, logos, club crests or sponsor boards; no real people.
+
+**Delivered 25 Nov 2026: stadium.mp4 and ministadium.mp4** (installed at 960×540, no sound). The big stadium plays for the national stadium and the club's ground; the mini-stadium plays for stadiums of up to 10,000 seats (SYS.REEL_SMALL).
