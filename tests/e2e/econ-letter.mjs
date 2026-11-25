@@ -28,6 +28,7 @@ console.log("  " + (await g.txt()).replace(/\s+/g, " ").slice(0, 400));
 const c = await g.txt();
 check(/The President's trade policy is not yours to set, but it raises or lowers what each plan earns\./.test(c), "the Council says whose policy it is");
 check(!/Abuja's policy (hurts|helps)/.test(c) && !/fishing grounds/.test(c) && !/earn from the first year/.test(c), "no muddled chip, no fishing grounds for cocoa, no first-year promise");
+check(!/Abuja's trade policy: −/.test(c) || /The President: annoyed \(-4\)/.test(c), "a plan that goes against Abuja's policy says the President will be annoyed");
 check(!/Abuja's trade policy/.test(c) || /Abuja's trade policy: [+−]\d+% earnings/.test(c), "any policy chip gives the effect in %");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

@@ -214,6 +214,20 @@ export const FED_STANCE_FX = {
   open: { raw: .85, zone: 1.15, hub: 1.05, border: 1.05, d: "Abuja has opened the borders: imported food undercuts the farmers, but machines and packaging are cheap." },
   targeted: { raw: 1, zone: 1, hub: 1, border: 1, d: "Abuja protects only what local farms can supply. Your exports are neither helped nor hurt." },
 };
+/* What the President thinks of your export plan (owner, 25 Nov 2026: "Build it": a plan that cuts against Abuja's
+   policy annoys the President; a border state's markets smuggling goods past his import ban turns him against you).
+   Returns { once: standing change when you choose the plan, yearly: each year after, why, smuggle (a border
+   state's markets under a ban) }. */
+export const fedFriction = (plan, stance = "targeted", border = false) => {
+  const F = FED_STANCE_FX[stance] || FED_STANCE_FX.targeted, f = F[plan] == null ? 1 : F[plan];
+  const smuggle = stance === "protect" && !!border;
+  const against = f < 1, inStep = f > 1;
+  const why = against ? (stance === "open" ? "Abuja opened the borders to make trade cheap; raw exports through middlemen are the old way it wants to end."
+      : "Abuja banned imports to make things at home; a plan that imports processing machines in bulk works against the ban.")
+    : inStep ? (stance === "open" ? "Abuja opened the borders to make trade cheap; your plan rides on it." : "Abuja banned imports to protect farmers; your plan pays them more for what they grow.")
+    : "Abuja's policy neither helps nor hurts this plan.";
+  return { once: against ? -4 : inStep ? 2 : 0, yearly: (against ? -1 : 0) + (smuggle ? -2 : 0), why, smuggle, against, inStep };
+};
 export const exportInit = (state, plan, turn, crop) => ({ crop: crop || produceOf(state)[0], plan, t0: turn, opens: turn + (EXPORT_PLANS[plan] ? EXPORT_PLANS[plan].years : 0), stories: {}, mods: {}, hist: [], earned: 0 });
 
 /* A state's export year. ctx: { turn, sec, agr (0–1), stance, border (bool) }.

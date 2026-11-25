@@ -2335,3 +2335,16 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - A granted refund is now about a fifth of a year's revenue, from ₦2B to ₦6B (it was 8%, often about ₦1B).
 - The President names the sum ("₦3.4B is paid into the state's account today"). The result card is titled "₦3.4B is in the Treasury", coins fall, and a row shows the Treasury before → after. The record line names the amount too.
 - Test: tests/visits.test.mjs.
+
+## The President minds your trade plan (25 Nov 2026)
+- Owner: "Build it" (a plan that cuts against Abuja's policy annoys the President; border markets that smuggle past his ban turn him against you).
+- SYS.fedFriction(plan, stance, border):
+  - A plan Abuja's policy hurts goes against the President: −4 standing with Abuja when you choose it, then −1 every year.
+  - A plan in step with his policy: +2.
+  - A targeted policy minds nothing.
+- The Council shows it before you choose: the plan's note says why ("Abuja opened the borders to make trade cheap; raw exports through middlemen are the old way it wants to end."), and a chip reads "The President: annoyed (−4)" or "pleased (+2)". The result card and the record say it too.
+- A border state under the President's import ban: goods are smuggled through its markets, costing −2 standing a year. The first year, a letter from the Presidency asks you to act:
+  - Close the border markets to smuggled goods: ₦0.5B, approval −2, the President +4, and the yearly loss ends.
+  - Look away: approval +1, and −2 a year goes on.
+- Each year's notes say why Abuja is unhappy.
+- Tests: tests/trade-friction.test.mjs; tests/e2e/econ-letter.mjs checks the President's chip on the Council.
