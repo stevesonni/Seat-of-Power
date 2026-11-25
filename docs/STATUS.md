@@ -2399,3 +2399,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - interstatebus.mp4 (Gemini) is installed: the President's interstate terminals now play their own film; a state's town terminals keep busterminal.mp4. Every film asked for is now in.
 - docs/LOVABLE-BUSES-BUYS.md asks Lovable for four pictures: the two bus terminal programmes (the only programmes without a picture), the patrol fleet, and cameras going up.
 - The game checks for each file (SEAT.got) and uses it as soon as it is there.
+- 25 Nov 2026, later: Lovable delivered all four pictures (resized to 1280×720). They are now part of the game: the two bus terminal programmes have their pictures, and patrol vehicles and cameras show the patrol fleet and the cameras going up instead of the police stand-in. tests/art-usage.test.mjs counts the new federal picture; tests/projects.test.mjs checks the purchase pictures exist.

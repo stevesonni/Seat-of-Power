@@ -121,7 +121,7 @@ test("every Pack 18 picture is used by the presidency", () => {
   const fed = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.basename(f, ".webp"))
     .filter(n => /^(f_|nb_)/.test(n) || /^(fct-minister|finance-minister|petroleum-minister|defence-minister|attorney-general|national-security-adviser|presidential-chief-of-staff|speaker-of-the-house|labour-leader|oil-community-leader)(-pleased|-angry)?$/.test(n)
       || ["abuja-skyline", "bill-assent", "campus-shut", "executive-order-signing", "federal-project-commissioning", "labour-strike", "port-congestion", "presidential-media-chat", "veto-override", "assent-pen", "executive-order-folder", "federation-account-ledger", "national-id-card"].includes(n));
-  assert.equal(fed.length, 95, "95 pictures in Pack 18 (" + fed.length + ")");
+  assert.equal(fed.length, 96, "95 pictures in Pack 18, and the interstate bus terminal (25 Nov 2026) (" + fed.length + ")");
   assert.deepEqual(fed.filter(n => !all.includes(n.replace(/-(pleased|angry)$/, "")) && !all.includes(n)), []);
 });
 // Pack 19: the round icons on the trip letters' buttons, and Defence Headquarters.

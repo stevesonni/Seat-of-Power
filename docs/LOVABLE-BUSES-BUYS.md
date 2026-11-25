@@ -1,5 +1,7 @@
 # Lovable art: bus terminals, and things bought rather than built
 
+**Delivered and installed (25 Nov 2026):** all four pictures, resized to 1280×720 like the other cards.
+
 Four pictures. The game already checks for each file: until it arrives it shows a stand-in, and when you drop the file in, the game uses it by itself. Nothing else needs changing.
 
 ## Rules (as docs/LOVABLE-DECISIONS.md)

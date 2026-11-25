@@ -187,3 +187,7 @@ test("patrol vehicles and cameras are a purchase: on order, delivered, on patrol
   assert.doesNotMatch(S.nextStep(v, {}).say, /under construction/);
   assert.equal(S.milestonesFor({ type: "road" })[4][1], "Under construction", "a road is still built");
 });
+test("bought things show their own pictures (Lovable, 25 Nov 2026)", async () => {
+  const S = await import("../game/systems/index.js"), fs = await import("node:fs");
+  for (const t of ["vehicles", "cctv"]) { const a = S.BUY[t].art.replace(/^\.\.\//, ""); assert.ok(fs.existsSync(new URL("../public/art/" + a + ".webp", import.meta.url)), a); }
+});

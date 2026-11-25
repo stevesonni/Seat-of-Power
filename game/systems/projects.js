@@ -368,8 +368,8 @@ export const MILESTONES = [
 /* Things bought, not built (owner, 25 Nov 2026: "How can patrol vehicles be under construction?"): their stages,
    their progress and their words are a purchase's. */
 export const BUY = {
-  vehicles: { steps: ["On order", "Delivered", "On patrol"], doing: "on order: the vehicles are being built at the factory and shipped. Deliveries are counted at the end of the year", stage: "On order", done: "Delivered, not on patrol", tile: "Delivered", art: "../decisions/f_state_police" },
-  cctv: { steps: ["Being installed", "Installed", "Watching"], doing: "being installed: the cameras go up street by street. Progress is counted at the end of the year", stage: "Being installed", done: "Installed, not switched on", tile: "Installed", art: "../decisions/f_state_police" },
+  vehicles: { steps: ["On order", "Delivered", "On patrol"], doing: "on order: the vehicles are being built at the factory and shipped. Deliveries are counted at the end of the year", stage: "On order", done: "Delivered, not on patrol", tile: "Delivered", art: "../scenes/patrol-fleet" },
+  cctv: { steps: ["Being installed", "Installed", "Watching"], doing: "being installed: the cameras go up street by street. Progress is counted at the end of the year", stage: "Being installed", done: "Installed, not switched on", tile: "Installed", art: "../scenes/cctv-install" },
 };
 export const isBuy = (t) => !!BUY[t];
 export const milestonesFor = (p) => { const B = p && BUY[p.type]; return !B ? MILESTONES : MILESTONES.map(([k, l]) => [k, k === "building" ? B.steps[0] : k === "built" ? B.steps[1] : k === "working" ? B.steps[2] : l]); };
