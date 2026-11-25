@@ -426,7 +426,7 @@ export const REELS = {road: 1, hospital: 1, school: 1, water: 1, dam: 1, power: 
 export const REEL_SHARE = { secondary: "school", nursing: "hospital", pipeline: "refinery", markets: "market" }; // power plants, solar, gas and mini-grids have their own film now; a gas pipeline shares the refinery's
 // A programme with its own film, whatever kind of project it builds (the Irrigation Network builds a dam, but its
 // film shows water reaching the fields: docs/GEMINI-REELS.md, irrigation.mp4).
-export const REEL_BY_POLICY = { irrigation: "irrigation", kpa_irrigation: "irrigation" };
+export const REEL_BY_POLICY = { irrigation: "irrigation", kpa_irrigation: "irrigation", rural_elec: "dam" }; // Rural Electrification: the village whose lights come on (dam.mp4), not the town and its market (power.mp4) (owner, 25 Nov 2026)
 export const reelFor = (type, id, src) => {
   if (src && REEL_BY_POLICY[src] && REELS[REEL_BY_POLICY[src]]) type = REEL_BY_POLICY[src];
   if (!REELS[type] && REEL_SHARE[type]) type = REEL_SHARE[type];

@@ -2170,3 +2170,6 @@ Owner: "when you're re-elected the Speaker will also be re-elected… the way yo
 
 ## Gemini film: irrigation (23 Nov 2026)
 public/art/reels/irrigation.mp4 (960×540, no sound); REELS.irrigation, and REEL_BY_POLICY sends the Irrigation Network and the Dry-Season Irrigation Scheme to it instead of the dam film (no lights-on overlay for them).
+
+## Rural Electrification plays the village film (25 Nov 2026)
+Owner: the video for rural electrification was not the right one. REEL_BY_POLICY.rural_elec = "dam": the village whose street lamps come on (dam.mp4), not the town and its market (power.mp4). Power plants, solar farms and gas keep power.mp4.

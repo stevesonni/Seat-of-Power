@@ -34,7 +34,7 @@ Claude adds `irrigation: 1` to REELS when the file is in public/art/reels/; `REE
 
 ## Delivered 22 Nov 2026 (second batch)
 
-- `power.mp4` (a town lights up at night, the market first): power plants, solar, gas and mini-grids, and rural electrification. It replaces the dam film for power projects.
+- `power.mp4` (a town lights up at night, the market first): power plants, solar, gas and mini-grids. **Rural Electrification plays the village film, `dam.mp4`, instead (owner, 25 Nov 2026).**
 - `seaport.mp4` and `refinery.mp4`. The refinery film was cut from the second half of a 20-second clip that also held the seaport. A gas pipeline borrows the refinery film.
 - **`vehicles.mp4` (the patrol fleet): installed at the owner's request (22 Nov 2026), badges and all.** If a cleaner version is wanted later: The pickups carry real Toyota badges and the building has a crest, and the game uses no real logos. Ask Gemini again with: *"pickups with plain smooth grilles, no manufacturer badge or emblem anywhere; the building has no crest, sign or lettering"*.
 

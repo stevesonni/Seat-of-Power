@@ -15,6 +15,9 @@ test("reels: listed films exist and every film is listed", () => {
   // The Irrigation Network builds a dam, but shows water reaching the fields (owner, 23 Nov 2026).
   assert.equal(SYS.reelFor("dam", "p1", "irrigation"), "./art/reels/irrigation.mp4");
   assert.equal(SYS.reelFor("dam", "p1", "f_mambilla"), "./art/reels/dam.mp4");
+  // Rural Electrification shows the village lights coming on, not the town (owner, 25 Nov 2026).
+  assert.equal(SYS.reelFor("power", "p1", "rural_elec"), "./art/reels/dam.mp4");
+  assert.equal(SYS.reelFor("power", "p1"), "./art/reels/power.mp4");
 });
 test("reels: no film means no reel; two films alternate by project", () => {
   assert.equal(SYS.reelFor("nothing-here", "p1"), null);
