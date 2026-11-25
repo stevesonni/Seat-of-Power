@@ -424,7 +424,7 @@ export const migrateOldProject = (p, year) => {
 /* The short film shown when a project opens (art/reels/<type>.mp4, 3–4 seconds, made with Gemini; see
    docs/GEMINI-REELS.md). REELS lists the films that exist: a type with two films alternates between them by
    project. A type with none returns null, and the ribbon picture is shown instead. */
-export const REELS = {road: 1, hospital: 1, school: 1, water: 1, dam: 1, power: 1, seaport: 1, refinery: 1, vehicles: 1, market: 1, housing: 1, industrial: 1, irrigation: 1}; // irrigation.mp4: water down the canal into green dry-season fields (Gemini, 23 Nov 2026) // housing.mp4: a new estate, families moving in; industrial.mp4: an industrial park, trucks at the gate (Gemini, 23 Nov 2026) // market.mp4: a busy covered market (Gemini, 23 Nov 2026) // power.mp4: a town lights up at night; seaport.mp4; refinery.mp4 (Gemini, 22 Nov 2026) // dam.mp4: the lights come on in a village at night (Gemini, 22 Nov 2026)
+export const REELS = {road: 1, hospital: 1, school: 1, water: 1, dam: 1, power: 1, seaport: 1, refinery: 1, vehicles: 1, market: 1, housing: 1, industrial: 1, irrigation: 1, rail: 1, metro: 1, busterminal: 1}; // busterminal.mp4: a town terminal, yellow buses under a steel roof (Gemini, 25 Nov 2026); it also plays for the President's terminals until interstatebus.mp4 arrives // metro.mp4: a light rail over a jammed city road at sunset (Gemini, 25 Nov 2026) // rail.mp4: the green-and-white train across the savannah into a new station (Gemini, 25 Nov 2026) // irrigation.mp4: water down the canal into green dry-season fields (Gemini, 23 Nov 2026) // housing.mp4: a new estate, families moving in; industrial.mp4: an industrial park, trucks at the gate (Gemini, 23 Nov 2026) // market.mp4: a busy covered market (Gemini, 23 Nov 2026) // power.mp4: a town lights up at night; seaport.mp4; refinery.mp4 (Gemini, 22 Nov 2026) // dam.mp4: the lights come on in a village at night (Gemini, 22 Nov 2026)
 // A type without its own film borrows a close one (secondary schools use the school film).
 export const REEL_SHARE = { secondary: "school", nursing: "hospital", pipeline: "refinery", markets: "market" }; // power plants, solar, gas and mini-grids have their own film now; a gas pipeline shares the refinery's
 // A programme with its own film, whatever kind of project it builds (the Irrigation Network builds a dam, but its
@@ -441,9 +441,9 @@ export const reelFor = (type, id, src) => {
 /* A contractor who flees abroad (japa): only the Federal Government can get the money back. The President agrees to
    intervene when the state's standing with Abuja is at least this high (out of 100); the full amount comes back the
    next year. */
-export const JAPA_FG_MIN = 55;
+export const JAPA_FG_MIN = 50; // owner, 25 Nov 2026: "too high… at least 50/100, don't make it too hard"
 /* The President's standing abroad, for asking another country to freeze a fled contractor's money (0-100).
    Countries help a President who shows up (summits and state visits), is popular at home and keeps corruption
-   down. 55 or more, and the country acts: the full amount comes home the next year. */
-export const JAPA_ABROAD_MIN = 55;
+   down. 51 or more, and the country acts: the full amount comes home the next year. */
+export const JAPA_ABROAD_MIN = 51; // owner, 25 Nov 2026: "for the President maybe 51/100"
 export const abroadStanding = ({ trips = 0, app = 50, cor = 0 } = {}) => Math.max(0, Math.min(100, Math.round(35 + trips * 12 + (app - 50) * 0.5 - cor * 30)));

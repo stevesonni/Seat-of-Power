@@ -75,3 +75,4 @@ export * from "./plans.js";
 export * from "./guide.js";
 export * from "./farewell.js";
 export * from "./nass.js";
+export * from "./inherited.js";

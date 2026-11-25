@@ -13696,7 +13696,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // then takes the governor there.
   const NEXT_SAY = {
     "Set up your government": pillarOn("stagger") && !NAT ? "Welcome to Government House, Your Excellency. An acting cabinet is in place, so you can start work at once." : "Welcome to Government House, Your Excellency. First things first: set up your government. Appoint your commissioners so the ministries can start work.",
-    "Pass this year's budget": "A new year starts with the budget. You decide what each ministry gets; the House then votes on it.",
+    "The budget you inherit": "Your predecessor's budget is already law, and it runs until December. Keep it, or change part of it with the House's agreement. Your own budget comes next year.",
+    "Pass this year's budget": turn === 1 ? "Your predecessor's budget is already law, and it runs until December. Keep it, or change part of it with the House's agreement. Your own budget comes next year." : "A new year starts with the budget. You decide what each ministry gets; " + (NAT ? "the Senate and the House of Representatives then vote on it." : "the House then votes on it."),
     "Take the budget to the House": "The budget is ready. Now the House of Assembly must pass it, and members will want to be asked.",
     "Sign programmes and orders": "The budget is through. Now sign the programmes and orders that deliver what you promised.",
   };
@@ -14387,7 +14388,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   const hubNext = () => needSetup ? { id: "gh", label: "Set up your government" }
     : phase === "mail" ? { id: "gh", label: mail.length ? "Open your mail (" + mailN + ")" : "On to next year" }
-    : phase === "budget" ? { id: "gh", label: "Pass this year's budget" }
+    : phase === "budget" ? { id: "gh", label: turn === 1 ? "The budget you inherit" : "Pass this year's budget" }
     : phase === "house_vote" ? { id: "assembly", label: "Take the budget to the House" }
     : phase === "policy" ? { id: "gh", label: "Sign programmes and orders" }
     : phase === "end_turn" ? { id: "gh", label: "Review the year" } : null;
@@ -17061,6 +17062,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   godfather:   { salaries: 18, debt: 5,  administration: 12, health: 10, education: 10, security: 12, infrastructure: 22, agriculture: 11 },
               };
               const remaining = 100 - bs;
+              // Year one: your predecessor's budget is already law (SYS.predecessorBudget). Keep it, or change part of it.
+              const INH = turn === 1 && !(stc.inh && stc.inh.kept), PRED = INH ? SYS.predecessorBudget(hashStr(pName + state + (setup?.startYear || 2027)), NAT) : null, AMEND = INH && !!(stc.inh && stc.inh.amend), moved = AMEND ? SYS.movedOf(PRED.bud, bud) : 0;
+              const HOUSE = NAT ? "the National Assembly" : "the House of Assembly";
               // What this split means, in plain words, before it goes to the House
               const SAYS = {
                 salaries:       ["Salaries will fall into arrears. Expect a strike.", "Teachers and civil servants will be paid on time.", "Wages will eat money meant for building."],
@@ -17095,20 +17099,34 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const same = (a, b) => BSECTORS.every(sec => (a[sec.k] || 0) === (b[sec.k] || 0));
               const warnCount = (v) => BSECTORS.filter(sec => { const m = SEC_META[sec.k], x = v[sec.k] || 0; return m && (x < m.min || x > m.max); }).length;
               const GRP_SHORT = { "Human Development": "People", "Growth Engines": "Growth", "Obligations": "Running costs" };
-              const cards = (STANCES.some(([k]) => same(bud, presets[k])) || simpleBud ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "On your desk" : "Not balanced: " + bs + "%", bud]])
+              const cards = AMEND ? [] : (STANCES.some(([k]) => same(bud, presets[k])) || simpleBud ? [] : [["__draft", turn === 1 ? "Budget Office draft" : "Your current split", bs === 100 ? "On your desk" : "Not balanced: " + bs + "%", bud]])
                 .concat(STANCES.map(([k, l, d]) => [k, l, d, presets[k]]))
                 // The cabinet of friends: Finance's proposed budget, with the other ministers' bids.
                 .concat(fcv && fcv.split && fcv.year === turn ? [["__cab", "👥 " + fcv.split.by + "'s budget (Finance)", (fcv.split.note ? "“" + fcv.split.note + "” " : "") + (Object.values(fcv.bids || {}).map(b => b.by + " asked " + Object.entries(b.ask).map(([l2, v2]) => SYS.LINE_NAME[l2] + " " + v2 + "%").join(", ")).join(" · ") || "From your cabinet"), fcv.split.shares]] : []);
-              const step = (k, d) => setBud(p => ({ ...p, [k]: Math.max(0, Math.min(40, (p[k] || 0) + d)) }));
+              const step = (k, d) => setBud(p => { const n = { ...p, [k]: Math.max(0, Math.min(40, (p[k] || 0) + d)) }; return AMEND && SYS.movedOf(PRED.bud, n) > SYS.SUPP_LIMIT ? p : n; });
               const stepBtn = { width: tall ? 48 : 64, height: tall ? 48 : 64, minHeight: tall ? 48 : 64, borderRadius: 12, border: "1px solid " + CL.bdr, background: CL.bg, color: CL.txt, fontSize: fs.m, fontWeight: 800, cursor: "pointer", flexShrink: 0 };
               // The budget (dark green and gold): the sum, how it splits, the five shapes, then Submit. The eight sectors open in a light panel.
               const ICONS = { __cab: "👥", __draft: "📋", recommended: "⚖️", populist: "📣", reformer: "🧮", godfather: "🎩" };
               const grpPct = (g) => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (bud[sec.k] || 0), 0);
               const LIGHT = { "Human Development": "#6ea0ff", "Growth Engines": "#7fd3a5", "Obligations": "#b99cff" };
               const fz = tall ? { s: TS(15), m: TS(17), l: TS(46), k: TS(12) } : { s: TS(19), m: TS(22), l: TS(64), k: TS(14) };
+              if (INH && !AMEND) { const gp = (g) => BSECTORS.filter(sec => SEC_META[sec.k]?.grp === g).reduce((a, sec) => a + (PRED.bud[sec.k] || 0), 0), SH = { "Human Development": "Schools, clinics, safety", "Growth Engines": "Roads and farms", "Obligations": "Wages, offices, debts" };
+                return <div data-sop-inherited style={{ background: "radial-gradient(120% 120% at 0 0, #1d4a33 0, #0f2a1d 55%, #0b1f15 100%)", color: "#f3eedf", borderRadius: 24, padding: tall ? "18px 16px" : "28px 30px", boxShadow: "0 18px 40px rgba(0,0,0,.25)" }}>
+                  <div style={{ color: "#e9c46a", fontSize: tall ? TS(12) : TS(14), fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Year 1 · {(setup?.startYear || 2027)} · The budget you inherit</div>
+                  <div style={{ fontFamily: F.d, fontSize: tall ? TS(28) : TS(40), lineHeight: 1.15, margin: "8px 0 8px" }}>Your predecessor's budget is already law</div>
+                  <div style={{ color: "#d9d3c2", fontSize: fs.s, lineHeight: 1.5 }}>{HOUSE.charAt(0).toUpperCase() + HOUSE.slice(1)} passed it before you were sworn in, and it runs until December. Your own budget comes next year. It is {PRED.nm}. {PRED.lines.join(" ")}</div>
+                  <div style={{ display: "grid", gap: 10, margin: "16px 0" }}>{grpOrder.map(g => { const v = gp(g); return <div key={g} style={{ display: "grid", gridTemplateColumns: (tall ? 150 : 200) + "px 1fr 48px", gap: 10, alignItems: "center", fontSize: fs.s }}>
+                    <span>{SH[g]}</span><span style={{ height: 10, borderRadius: 10, background: "rgba(255,255,255,.1)", overflow: "hidden" }}><i style={{ display: "block", height: "100%", width: v + "%", background: "#e9c46a" }} /></span><b>{v}%</b></div>; })}</div>
+                  <div style={{ display: "grid", gap: 10 }}>
+                    <button data-sop-inh-keep onClick={() => { setBud({ ...PRED.bud }); setStc(p => ({ ...p, inh: { kept: turn, kind: PRED.kind } })); track("inh_budget", "keep_" + PRED.kind); addL("📜 You kept your predecessor's budget for the rest of the year. Your own comes next year.", "policy"); scWiki(NAT ? "Presidency" : "Governorship", "Ran " + PRED.nm + " left by the previous administration for the rest of " + (setup?.startYear || 2027) + "."); setPhase("policy"); }}
+                      style={{ textAlign: "left", borderRadius: 16, padding: "14px 16px", cursor: "pointer", fontFamily: F.b, background: "#e9c46a", color: "#1b1b1b", border: 0 }}><b style={{ display: "block", fontSize: fs.m }}>Keep it as it is</b><span style={{ fontSize: fs.s }}>No fight with {HOUSE}. You live with his choices until December.</span></button>
+                    <button data-sop-inh-change onClick={() => { setBud({ ...PRED.bud }); setStc(p => ({ ...p, inh: { amend: turn, kind: PRED.kind } })); track("inh_budget", "amend_" + PRED.kind); }}
+                      style={{ textAlign: "left", borderRadius: 16, padding: "14px 16px", cursor: "pointer", fontFamily: F.b, background: "rgba(255,255,255,.06)", color: "#f3eedf", border: "1.5px solid rgba(255,255,255,.2)" }}><b style={{ display: "block", fontSize: fs.m }}>Change part of it</b><span style={{ fontSize: fs.s, color: "#c9c3b2" }}>Move up to {SYS.SUPP_LIMIT} of every 100 naira to what you care about. {HOUSE.charAt(0).toUpperCase() + HOUSE.slice(1)} must agree to it{NAT ? ": the Senate and the House of Representatives each vote" : ""}.</span></button>
+                  </div></div>; }
               return <div style={{ background: "radial-gradient(120% 120% at 0 0, #1d4a33 0, #0f2a1d 55%, #0b1f15 100%)", color: "#f3eedf", borderRadius: 24, padding: tall ? "18px 16px" : "28px 30px", boxShadow: "0 18px 40px rgba(0,0,0,.25)", border: "1px solid rgba(233,196,106,.25)" }}>
                 {s.igr + s.faac < 3 && <div style={{ fontSize: fz.s, color: "#ffb38a", fontWeight: 700, marginBottom: 10 }}>Revenue has collapsed to {naira(s.igr + s.faac)}. The {NAT ? "country" : "state"} is close to bankrupt.</div>}
-                <div style={{ color: "#e9c46a", fontSize: fz.k, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Year {turn <= 4 ? turn : turn - 4} of 4 · {(setup?.startYear || 2027) + turn - 1} · The Appropriation Bill</div>
+                <div style={{ color: "#e9c46a", fontSize: fz.k, fontWeight: 800, letterSpacing: ".12em", textTransform: "uppercase" }}>Year {turn <= 4 ? turn : turn - 4} of 4 · {(setup?.startYear || 2027) + turn - 1} · {AMEND ? "Changing the budget you inherited" : "The Appropriation Bill"}</div>
+                {AMEND && <div data-sop-supp style={{ marginTop: 8, fontSize: fz.s, color: moved >= SYS.SUPP_LIMIT ? "#ffb38a" : "#c9c3b2" }}>Moved so far: <b>{moved} of {SYS.SUPP_LIMIT}</b> in every 100 naira. Change the lines below, then send it to {HOUSE}.</div>}
                 <div style={{ display: "grid", gridTemplateColumns: tall ? "1fr" : "1.1fr 1fr", gap: tall ? 16 : 26, marginTop: 10, alignItems: "start" }}>
                   <div>
                     <div style={{ fontFamily: F.d, fontSize: fz.l, lineHeight: 1, margin: "4px 0 6px" }}>{naira(tb)}</div>
@@ -17160,7 +17178,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </div>)}
                   </div>}
                 <button onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} disabled={bs !== 100} style={{ width: "100%", marginTop: 16, border: 0, borderRadius: 14, padding: tall ? "14px" : "18px", fontWeight: 800, fontSize: fz.m, fontFamily: F.b, background: "#e9c46a", color: "#1b1404", opacity: bs === 100 ? 1 : .55, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
-                  {bs === 100 ? (NAT ? "Send to the National Assembly →" : "Send to the House of Assembly →") : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
+                  {bs === 100 ? (AMEND ? "Send the changes to " + HOUSE + " →" : NAT ? "Send to the National Assembly →" : "Send to the House of Assembly →") : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
                 </button>
               </div>;
             })()}
