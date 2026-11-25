@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import { open, playUntil } from "./lib.mjs";
 import { serve } from "./serve.mjs";
+import * as SYS from "../../game/systems/index.js";
 const srv = await serve();
 let fails = 0; const check = (ok, what) => { console.log((ok ? "PASS " : "FAIL ") + what); if (!ok) fails++; };
 const OUT = process.env.SHOTS || "/tmp";
@@ -25,9 +26,10 @@ check(await g.page.evaluate(() => { const b = [...document.querySelectorAll("but
 let t = await g.txt(), heard = false;
 for (let i = 0; i < 6 && !(heard = new RegExp("Chairman, " + lga, "i").test(t)); i++) { await g.click(/^Continue$/); await g.wait(700); t = await g.txt(); }
 check(heard, "the chairman of " + lga + " speaks in person");
+{ const own = SYS.lgaIssue("Ogun", lga, "chairman", 0); check(own && t.includes(own.d), "he raises " + lga + "'s own issue (" + (own && own.t) + ")"); }
 await g.page.screenshot({ path: OUT + "/tour-chairman.png" });
-for (let i = 0; i < 4 && !/The request is on your Desk/.test(t); i++) { await g.click(/^(Continue|Okay|Got it)$/); await g.wait(700); t = await g.txt(); }
-check(/The request is on your Desk/.test(t), "his request goes to the Desk");
+for (let i = 0; i < 4 && !/On your Desk now/.test(t); i++) { await g.click(/^(Continue|Okay|Got it)$/); await g.wait(700); t = await g.txt(); }
+check(/On your Desk now/.test(t), "his request goes to the Desk");
 for (let i = 0; i < 4 && await g.click(/^(Okay|Got it|Continue|Close)$/); i++) await g.wait(400);
 await g.wait(2600);
 const sv = await g.page.evaluate(() => JSON.parse(localStorage.getItem("sop_save") || "{}"));
@@ -64,6 +66,7 @@ let all = "";
 for (let i = 0; i < 14 && !/It is on your Desk now/.test(all += await g.txt()); i++) { if (!(await g.click(/^(Continue|Got it|Okay|Noted|Go)$/))) await g.page.evaluate(() => { const f = document.querySelector(".sop-flight"); f && f.click(); }); await g.wait(1200); }
 t = all + await g.txt(); console.log("  seen:", [...new Set((t.match(/[^\n]*(Ebonyi|Desk now|hear)[^\n]*/gi) || []))].slice(0, 12).join(" // "));
 check(/It is on your Desk now/.test(t), "Ebonyi's request lands on the Desk");
+{ const own = SYS.stateIssue("Ebonyi", "town", 0); check(t.includes(own.d), "the people raise Ebonyi's own issue (" + own.t + ")"); }
 await g.page.screenshot({ path: OUT + "/tour-ebonyi.png" });
 for (let i = 0; i < 4 && await g.click(/^(Okay|Got it|Continue|Close)$/); i++) await g.wait(400);
 await g.wait(2600);

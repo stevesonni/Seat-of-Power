@@ -908,7 +908,8 @@ const peopleArt = (kind, female, h, mood) => "people/" + kind + "-" + (female ? 
 { const fx = (SYS.COS_ROSTER || []).find(c => c.id === "fixer"); if (fx) { const own = fx.img; Object.defineProperty(fx, "img", { get: () => SEAT.nat ? "presidential-chief-of-staff" : own, enumerable: true }); } }
 const NEEDS = () => SEAT.nat ? NEED_TYPES.map(t => ({ ...t, ...(SYS.FED_NEEDS[t.k] || {}) })) : NEED_TYPES;
 // For the President a need is in a state: only the works that can go there answer it (SYS.fedFits; no coastal highway in Jigawa).
-const needType = (n) => { const t = NEEDS().find(t => t.k === (n && n.k)); return SEAT.nat && t && n && n.lga && t.fix ? { ...t, fix: t.fix.filter(id => SYS.fedFits(id, n.lga)) } : t; };
+const needType = (n) => { let t = NEEDS().find(t => t.k === (n && n.k)); if (t && n && n.it) t = { ...t, title: () => n.it, why: () => n.iw || t.why(n.lga) };
+  return SEAT.nat && t && n && n.lga && t.fix ? { ...t, fix: t.fix.filter(id => SYS.fedFits(id, n.lga)) } : t; };
 const needMin = (k) => SEAT.nat ? SYS.FED_NEED_MINISTRY[k] : NEED_MINISTRY[k];
 const projMin = (k) => SEAT.nat ? SYS.FED_PROJECT_MINISTRY[k] : NEEDS_MINISTRY[k];
 const MIN_CAT = () => SEAT.nat ? SYS.FED_MINISTRIES : MINISTRY_CATALOGUE;
@@ -11073,11 +11074,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   /* A request heard on a visit lands on the Desk as a need for that place (a
      state for the President, an LGA for the governor), answered by a
      programme, a project, a bill or an order like any other. */
-  const visitNeed = (place, zi, stats, seedS, force) => {
+  const visitNeed = (place, zi, stats, seedS, force, issue) => {
     const open = (needs || []).filter(n => n.lga === place && (n.status === "open" || n.status === "started" || n.status === "stalled")).map(n => n.k);
     const k = force && !open.includes(force) ? force : SYS.visitRequest(stats, rng(hashStr(seedS)), open);
     if (!k || !needType({ k })) return null;
-    const n = { id: "need_" + turn + "_" + k + "_v" + (hashStr(seedS) % 1e5), k, lga: place, zone: zi, sev: 1, raised: turn, due: turn + 1, status: "open", link: null, proj: null, stall: 0, visit: true };
+    const n = { id: "need_" + turn + "_" + k + "_v" + (hashStr(seedS) % 1e5), k, lga: place, zone: zi, sev: 1, raised: turn, due: turn + 1, status: "open", link: null, proj: null, stall: 0, visit: true, ...(issue && issue.k === k ? { it: issue.t, iw: issue.d } : {}) };
     setNeeds(ns => ns.some(x => x.lga === place && x.k === k && x.status === "open") ? ns : [...ns, n]);
     return n;
   };
@@ -11086,9 +11087,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStateVisit(null); if (!NAT || stateVisitsLeft() <= 0 || !STATES[st]) return;
     if (!flown && groundedNow()) return airportGate(stateLabel(st), () => visitState(st, purposeId, true));
     const S = STATES[st], label = stateLabel(st), zi = NATION_ZONE_IDS.indexOf(S.zone);
-    const R = SYS.stateVisitOutcome(purposeId, { state: label, zone: S.zone, sec: S.sec, issue: (S.issues || [])[0], north: NORTH_ZONES.includes(S.zone) }, rng(hashStr("sv" + turn + st + purposeId)));
-    const ask = purposeId === "inspect" ? null : visitNeed(label, zi, { sec: S.sec, infra: S.infra, hp: S.hp, lit: S.lit, agr: S.agr, unemp: S.unemp, pov: S.pov }, "sv" + turn + st + purposeId, purposeId === "security" ? "security" : null);
-    setStc(p => { const v = p.stateVisits && p.stateVisits.turn === turn ? p.stateVisits : { turn, list: [] }; return { ...p, stateVisits: { turn, list: [...v.list, st] }, blessed: purposeId === "rulers" ? { ...(p.blessed || {}), [S.zone]: turn } : p.blessed }; });
+    // The state's own issue, by who the President meets (SYS.stateIssue; owner, 25 Nov 2026).
+    const seenSt = ((stc.stSeen || {})[st + ":" + purposeId]) || 0, issue = purposeId === "inspect" ? null : SYS.stateIssue(st, purposeId, seenSt);
+    const R = SYS.stateVisitOutcome(purposeId, { state: label, zone: S.zone, sec: S.sec, issue: issue ? issue.t.charAt(0).toLowerCase() + issue.t.slice(1) : (S.issues || [])[0], north: NORTH_ZONES.includes(S.zone) }, rng(hashStr("sv" + turn + st + purposeId)));
+    const ask = purposeId === "inspect" ? null : visitNeed(label, zi, { sec: S.sec, infra: S.infra, hp: S.hp, lit: S.lit, agr: S.agr, unemp: S.unemp, pov: S.pov }, "sv" + turn + st + purposeId, issue ? issue.k : purposeId === "security" ? "security" : null, issue);
+    setStc(p => { const v = p.stateVisits && p.stateVisits.turn === turn ? p.stateVisits : { turn, list: [] }; return { ...p, stSeen: { ...(p.stSeen || {}), [st + ":" + purposeId]: seenSt + 1 }, stateVisits: { turn, list: [...v.list, st] }, blessed: purposeId === "rulers" ? { ...(p.blessed || {}), [S.zone]: turn } : p.blessed }; });
     noteTrip(); track("state_visit", purposeId);
     try {
       window.SOP_outcome({ flight: { dir: "out", right: label, left: "Abuja" } });
@@ -11102,7 +11105,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       try {
         window.SOP_outcome({ icon: R.found ? "🔎" : "🇳🇬", img: "./art/" + R.img + ".webp", title: R.title, text: R.line, tone: "good",
           rows: [{ l: "The " + ({ NW: "North-West", NE: "North-East", NC: "North-Central", SW: "South-West", SE: "South-East", SS: "South-South" }[S.zone] || S.zone), v: "+" + R.zone, good: true }].concat(R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : [], R.fx.sec ? [{ l: "Security", v: "up", good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], R.fx.cor ? [{ l: "Corruption", v: "down", good: true }] : []) });
-        if (ask) window.SOP_outcome({ present: { img: "./art/characters/" + (purposeId === "rulers" ? (NORTH_ZONES.includes(S.zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi") : "market-women-group-cheering") + ".webp", bg: "./art/" + R.img + ".webp", name: purposeId === "rulers" ? "The royal fathers of " + label : "The people of " + label, text: (SYS.ASK_LINE[ask.k] || "") + " It is on your Desk now: " + needType(ask).title(label) + ".", ok: "Continue" } });
+        if (ask) window.SOP_outcome({ present: { img: "./art/characters/" + (purposeId === "rulers" ? (NORTH_ZONES.includes(S.zone) ? "traditional-ruler-emir" : "traditional-ruler-oba-obi") : "market-women-group-cheering") + ".webp", bg: "./art/" + R.img + ".webp", name: purposeId === "rulers" ? "The royal fathers of " + label : purposeId === "security" ? "The troops and the displaced in " + label : "The people of " + label, text: (ask.iw || SYS.ASK_LINE[ask.k] || "") + " It is on your Desk now: " + needType(ask).title(label) + ".", ok: "Continue" } });
         window.SOP_outcome({ flight: { dir: "home", right: label, left: "Abuja" } });
       } catch (e) {}
       setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + R.img + ".webp"), 300);
@@ -11116,15 +11119,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const L = getLGAs(state), zi = [0, 1, 2].find(i => lgaCluster(L, i).includes(lga)) ?? 0;
     const jit = (v, k) => v == null ? .5 : Math.max(0, Math.min(1, v + ((hashStr(lga + k) % 21) - 10) / 100)); // each LGA a little better or worse than the state
     const chairman = "Hon. " + gNAs(rng(hashStr("lgc" + lga)), sd.zone, state, false);
-    const ask = visitNeed(lga, zi, { sec: jit(s.sec, "s"), infra: jit(s.infra, "i"), hp: jit(s.hp, "h"), lit: jit(s.lit, "l"), agr: jit(s.agr, "a"), unemp: jit(s.unemp, "u"), pov: jit(s.pov, "p") }, "lt" + turn + lga + purposeId);
-    const R = SYS.lgaTourOutcome(purposeId, { lga, app: s.app, chairman, ask: ask && ask.k }, rng(hashStr("lto" + turn + lga)));
-    setStc(p => { const v = p.lgaTours && p.lgaTours.turn === turn ? p.lgaTours : { turn, list: [] }; return { ...p, lgaTours: { turn, list: [...v.list, lga] } }; });
+    // The place's own issue (SYS.lgaIssue), by who you meet and how often you have been (owner, 25 Nov 2026).
+    const seen = ((stc.lgaSeen || {})[lga]) || 0, issue = SYS.lgaIssue(state, lga, purposeId, seen);
+    const ask = visitNeed(lga, zi, { sec: jit(s.sec, "s"), infra: jit(s.infra, "i"), hp: jit(s.hp, "h"), lit: jit(s.lit, "l"), agr: jit(s.agr, "a"), unemp: jit(s.unemp, "u"), pov: jit(s.pov, "p") }, "lt" + turn + lga + purposeId, issue && issue.k, issue);
+    const R = SYS.lgaTourOutcome(purposeId, { lga, app: s.app, chairman, ask: ask && ask.k, issue, north: NORTH_ZONES.includes(sd.zone) }, rng(hashStr("lto" + turn + lga)));
+    setStc(p => { const v = p.lgaTours && p.lgaTours.turn === turn ? p.lgaTours : { turn, list: [] }; return { ...p, lgaTours: { turn, list: [...v.list, lga] }, lgaSeen: { ...(p.lgaSeen || {}), [lga]: seen + 1 } }; });
     scFx(R.fx, zi, R.zone); track("lga_tour", purposeId);
-    addL("🚙 You toured " + lga + ": " + R.title.charAt(0).toLowerCase() + R.title.slice(1) + (ask ? ". Their request: " + needType(ask).title(lga).toLowerCase() + "." : "."), R.rough ? "political" : "success");
-    scWiki("Governorship", "Toured " + lga + " Local Government Area" + (purposeId === "chairman" ? " and met the council chairman, " + chairman + "." : " and held a town hall."));
+    addL("🚙 You toured " + lga + ": " + R.title.charAt(0).toLowerCase() + R.title.slice(1) + (ask ? ". Raised with you: " + needType(ask).title(lga) + "." : "."), R.rough ? "political" : "success");
+    scWiki("Governorship", "Toured " + lga + " Local Government Area" + (purposeId === "chairman" ? " and met the council chairman, " + chairman : purposeId === "palace" ? " and paid homage at the palace" : " and held a town hall") + (issue ? "; the issue raised was " + issue.t + "." : "."));
     try {
-      window.SOP_outcome({ present: { img: "./art/" + R.who + ".webp", bg: "./art/" + R.img + ".webp", name: purposeId === "chairman" ? chairman + " · Chairman, " + lga + " LGA" : "The people of " + lga, text: R.line, ok: "Continue" } });
-      window.SOP_outcome({ icon: "🚙", img: "./art/" + R.img + ".webp", title: R.title, text: ask ? "The request is on your Desk: " + needType(ask).title(lga) + ". " + (needType(ask).ask || "") : R.line, tone: R.rough ? "bad" : "good",
+      window.SOP_outcome({ present: { img: "./art/" + R.who + ".webp", bg: "./art/" + R.img + ".webp", name: purposeId === "chairman" ? chairman + " · Chairman, " + lga + " LGA" : purposeId === "palace" ? "The royal father of " + lga : "The people of " + lga, text: R.line, ok: "Continue" } });
+      window.SOP_outcome({ icon: "🚙", img: "./art/" + R.img + ".webp", title: R.title, text: ask ? "On your Desk now: " + needType(ask).title(lga) + ". " + (needType(ask).ask || "") : R.line, tone: R.rough ? "bad" : "good",
         rows: [{ l: zoneLabel(zi), v: (R.zone > 0 ? "+" : "") + R.zone, good: R.zone > 0 }].concat(R.fx.app ? [{ l: "Approval", v: (R.fx.app > 0 ? "+" : "") + R.fx.app, good: R.fx.app > 0 }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : []) });
     } catch (e) {}
     setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + R.img + ".webp"), 300);

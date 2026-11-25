@@ -2280,3 +2280,14 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - Tori and the scene pictures now accept either folder.
 - A commissioner with a project at under 5% posts "Work starts at X this week" instead of boasting of "0% done".
 - Test: tests/e2e/tori-faces.mjs checks that every picture in the feed loads and that commissioners use their own faces.
+
+## Every place raises its own problems (25 Nov 2026)
+- Owner: "As a governor when I tour a local government it should be variations of problems unique to that particular LGA in real-life Nigeria… whether I am meeting the council chairman or the people via town hall. Same for the President."
+- **game/systems/placeissues.js** with **game/systems/places/a–f.js**: all 774 local governments, each with two or three issues (1,738 in all). Each issue is "kind|title|what they say".
+  - Many are named and real: Chibok's school and the kidnapped girls, Aba South's Ariaria floods and shoemakers, Apapa's port trucks, Kantin Kwari, the Tiga and Watari dams, the Falgore forest, Ogoni, Baga, Makoko, Ajaokuta, Mambilla.
+  - Lesser-known councils get issues true to their area (bandits in Zamfara, gullies in Anambra, the Niger floods in Kogi). Any short line shared by more than one place is retold locally, using the council's name, the state's own crops and a problem chosen for that place. So no two councils say the same thing, and Aba never hears about fertiliser.
+- **Who you meet decides what comes first**: the council chairman, a town hall, or (new) the palace. Each later visit to the same council moves on to its next issue.
+- The issue becomes the Desk need, with its own title and words; the need's kind decides which programmes fix it.
+- **The President**: places/states.js gives each of the 37 states its own issue for a town hall (the people), the royal fathers, and the troops and the displaced.
+- Tests: tests/place-issues.test.mjs (all 774 councils covered, no repeated words, Chibok is not Aba, audiences differ, all 37 states); tests/e2e/tours.mjs checks that the chairman raises his council's own issue and that Ebonyi's town hall raises Ebonyi's.
+- Note: written from what is known and reported about each place, not from fieldwork. The best-known councils have the most detail; any state can be deepened with more research.

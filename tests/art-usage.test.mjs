@@ -6,7 +6,7 @@ import path from "node:path";
 // Every image shipped in public/art is used somewhere: by name in the game,
 // its rules (game/systems) or the page shell. An unused image is a mistake.
 const root = new URL("..", import.meta.url).pathname;
-const src = [path.join(root, "game/seat-of-power.jsx"), path.join(root, "public/seat-of-power.html"), ...fs.readdirSync(path.join(root, "game/systems")).map(f => path.join(root, "game/systems", f)), ...fs.readdirSync(path.join(root, "public")).filter(f => /^sop-(?!app).*\.js$/.test(f)).map(f => path.join(root, "public", f))]
+const src = [path.join(root, "game/seat-of-power.jsx"), path.join(root, "public/seat-of-power.html"), ...fs.readdirSync(path.join(root, "game/systems")).filter(f => f.endsWith(".js")).map(f => path.join(root, "game/systems", f)), ...fs.readdirSync(path.join(root, "public")).filter(f => /^sop-(?!app).*\.js$/.test(f)).map(f => path.join(root, "public", f))]
   .map(f => fs.readFileSync(f, "utf8")).join("\n");
 const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
 const PACK2 = ["backgrounds/finance-ministry-office", "characters/finance-commissioner", "scenes/money-", "scenes/inherited-debt", "scenes/ghost-workers-purge"];
@@ -116,7 +116,7 @@ test("every decision picture is used by the game", () => {
 
 // Pack 18, the Federal Government: every picture is in the game (moods by their base portrait).
 test("every Pack 18 picture is used by the presidency", () => {
-  const sys = fs.readdirSync(path.join(root, "game/systems")).map(f => fs.readFileSync(path.join(root, "game/systems", f), "utf8")).join("\n");
+  const sys = fs.readdirSync(path.join(root, "game/systems")).filter(f => f.endsWith(".js")).map(f => fs.readFileSync(path.join(root, "game/systems", f), "utf8")).join("\n");
   const all = src + sys;
   const fed = walk(path.join(root, "public/art")).filter(f => f.endsWith(".webp")).map(f => path.basename(f, ".webp"))
     .filter(n => /^(f_|nb_)/.test(n) || /^(fct-minister|finance-minister|petroleum-minister|defence-minister|attorney-general|national-security-adviser|presidential-chief-of-staff|speaker-of-the-house|labour-leader|oil-community-leader)(-pleased|-angry)?$/.test(n)

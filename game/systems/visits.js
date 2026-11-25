@@ -98,9 +98,13 @@ export const LGA_TOURS_A_YEAR = 2;
 export const LGA_TOUR_PURPOSES = [
   { id: "chairman", l: "Meet the council chairman", d: "A closed-door briefing at the secretariat: what the council needs from Government House." },
   { id: "townhall", l: "Hold a town hall", d: "The open square, the cameras and anyone who wants the microphone." },
+  { id: "palace", l: "Pay homage at the palace", d: "The royal father and his chiefs, in council: the land, the peace and the town's old grievances." },
 ];
 export const lgaTourOutcome = (purposeId, ctx = {}, r = Math.random) => {
-  const L = String(ctx.lga || "the LGA"), ask = ctx.ask || "road", say = ASK_LINE[ask] || ASK_LINE.road, chair = ctx.chairman || "The chairman";
+  // The place's own issue when there is one (SYS.lgaIssue): what they say is the place's, not the state's.
+  const L = String(ctx.lga || "the LGA"), ask = ctx.ask || "road", say = (ctx.issue && ctx.issue.d) || ASK_LINE[ask] || ASK_LINE.road, chair = ctx.chairman || "The chairman";
+  if (purposeId === "palace") return { title: "At the palace in " + L, img: ctx.north ? "backgrounds/emirs-palace-courtyard" : "backgrounds/council-table-palace", who: "characters/traditional-ruler-" + (ctx.north ? "emir" : "oba-obi"), line: "The royal father receives you with his chiefs. After the greetings and the kola, he comes to it: " + say, fx: { pStab: 1, app: 1 }, zone: 2,
+    paper: ["GOVERNOR AT THE PALACE IN " + L.toUpperCase(), "The royal father raises the town's grievance", true] };
   if (purposeId === "chairman") return { title: "At the " + L + " council secretariat", img: "backgrounds/lga-secretariat", who: "characters/lg-chairman", line: chair + " walks you through the council's books, then makes the ask: " + say, fx: { pStab: 1 }, zone: 1,
     paper: ["GOVERNOR MEETS " + L.toUpperCase() + " COUNCIL", "The chairman's request goes to Government House", true] };
   const hostile = (ctx.app == null ? 50 : ctx.app) < 40 && r() < .6;

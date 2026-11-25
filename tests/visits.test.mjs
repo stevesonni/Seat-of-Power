@@ -44,5 +44,5 @@ test("an LGA tour: the chairman's ask, or a town hall that may turn rough", () =
   assert.ok(!good.rough); assert.equal(good.fx.app, 2); assert.match(good.paper[0], /JOS NORTH/);
   const rough = SYS.lgaTourOutcome("townhall", { lga: "Jos North", app: 30, ask: "road" }, () => .1);
   assert.ok(rough.rough); assert.equal(rough.fx.app, -1);
-  assert.equal(SYS.LGA_TOURS_A_YEAR, 2); assert.equal(SYS.LGA_TOUR_PURPOSES.length, 2);
+  assert.equal(SYS.LGA_TOURS_A_YEAR, 2); assert.equal(SYS.LGA_TOUR_PURPOSES.length, 3); // the chairman, a town hall, or the palace (25 Nov 2026)
 });
