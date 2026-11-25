@@ -42,3 +42,13 @@ Six pictures for the new sport stories (the Youth Assembly, the mini-stadia, FIF
 - 4: the mini-stadia letters.
 - 5: the Youth Assembly's letter.
 - 6: the face on the FIFA and CAF letters (until then, the foreign investor's face).
+
+## Added 25 Nov 2026: a FIFA face
+
+The owner asked for FIFA's officials to look like FIFA's: European. The current portrait stays as CAF's.
+
+### 7. `public/art/characters/fifa-official.webp`: the visiting FIFA official (portrait)
+*A senior official of the world football body, not a real person: a white European man in his early sixties, grey hair neatly cut, rimless glasses, a navy suit with an open-collared white shirt, a lanyard with a blank card, a slim leather folder under his arm. A courteous but firm expression: he has come to inspect a stadium and expects to be disappointed.*
+- 1024×1280 (4:5), transparent background preferred, head to waist, the same as the other character art.
+- No FIFA marks, logos or words on the lanyard, folder or clothes.
+- Where it appears: the face on every FIFA letter (the World Cup qualifier and the Under-17 World Cup). CAF's letters keep the current face.

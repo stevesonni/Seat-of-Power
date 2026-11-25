@@ -117,3 +117,10 @@ country (for example, a road through northern savannah instead of southern hills
 > A slow aerial shot rising over a newly renovated stadium in a Nigerian city at dusk. The floodlights flicker on one tower at a time, lighting a bright green pitch and a running track. Fans in green and white stream through the gates below, waving plain flags; drummers play in the stands. The camera rises to show the city lights and the stadium glowing in the middle. Painted, warm, semi-realistic; no readable words, logos, club crests or sponsor boards; no real people.
 
 Same rules as the other films: no words on screen, no logos, no real people; keep the subject in the middle of the frame.
+
+## New, 25 Nov 2026: the mini-stadium film
+
+**File:** `public/art/reels/ministadium.mp4`. It plays when a state's mini-stadium (up to 10,000 seats) is finished; a big stadium plays `stadium.mp4`. The game checks for it and uses it as soon as it is there.
+
+**Prompt for Gemini (Veo), 8–10 seconds, 16:9, no sound needed:**
+> Morning in a Nigerian town. A slow tracking shot along the fence of a small new community stadium: one covered stand, open terraces, a fresh green pitch and a red running track. Young men and women in plain training kit run drills and kick footballs; a coach blows a whistle; children press their faces to the fence to watch; okadas and a few cars are parked outside the gate. The camera rises gently over the stand to show the town's rooftops around it. Painted, warm, semi-realistic; no readable words, logos, club crests or sponsor boards; no real people.
