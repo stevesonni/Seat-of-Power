@@ -2274,3 +2274,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - The Speaker race letter now says what is happening (the new House elects its Speaker this week, and the Speaker decides which bills reach the floor), who is standing and what each means, what is at stake, and asks "Whom do you back?". Its results no longer assume the Speaker is a man.
 - Two Head of Service letters ended without a full stop. Fixed.
 - Test: tests/e2e/letters-read.mjs plays two years, reads every letter that arrives, and checks for one greeting, each sentence once and whole sentences. It also checks the Speaker letter word for word.
+
+## Commissioners on Tori show their faces (25 Nov 2026)
+- Owner: "Where are their photos?" The 66 new faces live in art/people/, but Tori (and the recovery-plan cards) looked for them in art/characters/, so commissioners and ministers showed a blank silhouette.
+- Tori and the scene pictures now accept either folder.
+- A commissioner with a project at under 5% posts "Work starts at X this week" instead of boasting of "0% done".
+- Test: tests/e2e/tori-faces.mjs checks that every picture in the feed loads and that commissioners use their own faces.

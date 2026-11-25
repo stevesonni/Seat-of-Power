@@ -1051,6 +1051,7 @@ export function toriCabinet(c) {
     const P = m.projects || [], live = P.find(p => p.status === "in_progress"), done = P.find(p => p.status === "delivered"), stuck = P.find(p => p.status === "stalled");
     if (m.plan) say("Our recovery plan starts today. First step: " + lc(m.plan).replace(/:.*$/, "") + ". Thank you " + me + " for approving it. Judge us by the results next year. " + tag(m));
     else if (done && r() < .7) say(done.title + " is complete and open to the public. Promise made, promise kept. " + tag(m) + " 🎉");
+    else if (live && Math.round(live.progress || 0) < 5) say("Work starts at " + live.title + " this week. The contractor is on site; we will publish progress every month. " + tag(m));
     else if (live) say("On site at " + live.title + " this morning: " + Math.round(live.progress || 0) + "% done. We publish progress every month. " + tag(m));
     else if (stuck && (m.cor || 0) > 45) say("The delays at " + stuck.title + " are due to funding issues that are being resolved. We urge stakeholders to remain calm.");
     else if (stuck) say("I will not hide it: " + stuck.title + " has stalled. I have asked for a recovery plan and will publish it here.");

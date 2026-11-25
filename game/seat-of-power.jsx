@@ -1991,7 +1991,7 @@ const POPULATED_BG = new Set(["bakunda-war-room", "sbs-raid", "airport-arrivals"
 const SceneArt = ({ bg, scene, who: who0, obj: obj0, alt, h = 230 }) => { const crowd = !scene && POPULATED_BG.has(bg), who = crowd ? null : who0, obj = crowd ? null : obj0; return React.createElement("div", {
   style: { height: h, borderRadius: 20, overflow: "hidden", marginBottom: 18, display: "flex", alignItems: "flex-end", justifyContent: "center",
     background: "#1d2a22 url(./art/" + (scene ? "scenes/" + scene : "backgrounds/" + bg) + ".webp) center/cover" } },
-  scene ? null : who ? React.createElement("img", { src: "./art/characters/" + who + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
+  scene ? null : who ? React.createElement("img", { src: /^\.\//.test(who) ? who : "./art/" + (who.includes("/") ? who : "characters/" + who) + ".webp", alt: alt || "", style: { height: h - 8, width: "auto", objectFit: "contain", objectPosition: "bottom" } })
     : obj ? React.createElement("img", { src: "./art/objects/" + obj + ".webp", alt: alt || "", style: { height: Math.round(h * .68), width: "auto", objectFit: "contain", marginBottom: Math.round(h * .12), filter: "drop-shadow(0 10px 18px rgba(0,0,0,.35))" } }) : null); };
 
 // ── Campaign screens (first election and re-election) ──
@@ -2455,6 +2455,8 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
     setDrafts(d => ({ ...d, [replyTo]: "loading" })); replies.remote(x).then(o => setDrafts(d => ({ ...d, [x.id]: o && o.length ? o : "none" }))); }, [replyTo]);
   const tall = TALL(), blue = "#1d9bf0", ink = "#0f1419", sub = "#536471", line = "#eff3f4", fs = tall ? TS(15) : TS(20), sm = tall ? TS(13) : TS(17);
   const rich = (t) => String(t).split(/([#@][A-Za-z0-9_]+)/).map((x, k) => /^[#@]/.test(x) ? <span key={k} style={{ color: blue }}>{x}</span> : x);
+  // A face on Tori: "people/official-m-03" (the new faces) or a bare name in characters/ (owner, 25 Nov 2026: "Where are their photos?").
+  const pic = (art) => "./art/" + (String(art).includes("/") ? art : "characters/" + art) + ".webp";
   const av = (src, size) => <img src={src} alt="" style={{ width: size, height: size, borderRadius: "50%", objectFit: "cover", objectPosition: "top", background: "#e8dcc4", flex: "none" }} />;
   const A = (store && store.acts) || {}, myPosts = (store && store.posts) || [];
   const actBtn = { background: "transparent", border: 0, padding: "6px 0", minHeight: 36, cursor: "pointer", fontFamily: F.b, fontSize: sm, display: "inline-flex", alignItems: "center", gap: 5, color: sub };
@@ -2486,7 +2488,7 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
     </div>}
   </>; };
   const tweet = (x) => <article key={x.id} data-sop-tweet={x.kind} style={{ display: "flex", gap: 10, padding: tall ? "10px 14px 4px" : "14px 20px 6px", borderBottom: "1px solid " + line, background: "#fff" }}>
-    {x.art === "__me" ? av(me.pic, tall ? 40 : 52) : av("./art/characters/" + (x.art || voiceArt(x.who || x.name)) + ".webp", tall ? 40 : 52)}
+    {x.art === "__me" ? av(me.pic, tall ? 40 : 52) : av(pic(x.art || voiceArt(x.who || x.name)), tall ? 40 : 52)}
     <div style={{ minWidth: 0, flex: 1 }}>
       {x.pinned && <div style={{ fontSize: sm - 1, color: sub, fontWeight: 700, marginBottom: 2 }}>{x.pinLabel || <>📌 Speaking on {where}</>}</div>}
       <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: fs, color: sub, minWidth: 0 }}>
@@ -2497,7 +2499,7 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
       <div style={{ fontSize: fs, color: ink, lineHeight: 1.4, marginTop: 2, whiteSpace: "pre-wrap" }}>{rich(x.text)}</div>
       {x.media && toriMedia(x.media)}
       {x.quote && <div style={{ marginTop: 8, border: "1px solid #cfd9de", borderRadius: 16, padding: "8px 12px" }}><b style={{ fontSize: sm, color: ink }}>{x.quote.name}</b><ToriBadge s={14} /><div style={{ fontSize: sm + 1, color: ink, lineHeight: 1.35 }}>{x.quote.text}</div></div>}
-      {(x.thread || []).length > 0 && <div data-sop-tori-thread style={{ marginTop: 8, display: "grid", gap: 6 }}>{x.thread.map((rp, k) => <div key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>{av("./art/characters/" + (rp.art || "young-voter-student") + ".webp", tall ? 24 : 30)}<div style={{ fontSize: sm, color: ink, lineHeight: 1.35, minWidth: 0 }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div></div>)}</div>}
+      {(x.thread || []).length > 0 && <div data-sop-tori-thread style={{ marginTop: 8, display: "grid", gap: 6 }}>{x.thread.map((rp, k) => <div key={k} style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>{av(pic(rp.art || "young-voter-student"), tall ? 24 : 30)}<div style={{ fontSize: sm, color: ink, lineHeight: 1.35, minWidth: 0 }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div></div>)}</div>}
       {tweetExtra && tweetExtra(x)}
       {x.mine && onDelete && <div style={{ display: "flex", gap: 8, marginTop: 6 }}><button data-sop-tori-pin onClick={() => onPin(x.idx)} style={{ minHeight: 32, padding: "2px 12px", borderRadius: 999, border: "1px solid #cfd9de", background: "#fff", fontFamily: F.b, fontWeight: 700, fontSize: sm - 1, color: ink, cursor: "pointer" }}>{x.pinned ? "Unpin" : "📌 Pin"}</button><button data-sop-tori-delete onClick={() => onDelete(x.idx)} style={{ minHeight: 32, padding: "2px 12px", borderRadius: 999, border: "1px solid #f4b4b4", background: "#fff", fontFamily: F.b, fontWeight: 700, fontSize: sm - 1, color: "#f4212e", cursor: "pointer" }}>Delete</button></div>}
       {x.mine && (x.replyList || []).length > 0 && <div style={{ marginTop: 8, borderLeft: "2px solid " + line, paddingLeft: 10, display: "grid", gap: 6 }}>{x.replyList.map((rp, k) => <div key={k} style={{ fontSize: sm + 1, color: ink }}><b>{rp.name}</b> <span style={{ color: sub }}>{rp.handle}</span><div>{rich(rp.text)}</div></div>)}</div>}
@@ -2538,7 +2540,7 @@ const ToriApp = ({ me, feed, trends, where, opp, oppLabel = "Opposition", mentio
                 <div style={{ fontSize: sm - 1, color: sub }}>{hero.posts} posts · <span style={{ color: blue }}>{hero.tag}</span></div>
                 <b style={{ display: "block", fontSize: fs + 2, color: ink, lineHeight: 1.25, margin: "2px 0 4px" }}>{hero.title}</b>
                 <div style={{ fontSize: sm, color: sub }}>{hero.why}</div>
-                <div style={{ display: "grid", gap: 6, marginTop: 8 }}>{(hero.quotes || []).map((q, k) => <div key={k} style={{ display: "flex", gap: 8 }}>{av("./art/characters/" + (q.art || "young-voter-student") + ".webp", 26)}<div style={{ fontSize: sm, color: ink }}><b>{q.name}</b> <span style={{ color: sub }}>{q.handle}</span><div>{rich(q.text)}</div></div></div>)}</div>
+                <div style={{ display: "grid", gap: 6, marginTop: 8 }}>{(hero.quotes || []).map((q, k) => <div key={k} style={{ display: "flex", gap: 8 }}>{av(pic(q.art || "young-voter-student"), 26)}<div style={{ fontSize: sm, color: ink }}><b>{q.name}</b> <span style={{ color: sub }}>{q.handle}</span><div>{rich(q.text)}</div></div></div>)}</div>
               </div></section>}
             {space && <button data-sop-tori-space onClick={() => setSp({ i: 0, picks: [] })} style={{ display: "flex", alignItems: "center", gap: 10, width: "calc(100% - 28px)", margin: "0 14px 10px", padding: "10px 14px", borderRadius: 16, border: "1px solid #c9b6f5", background: "#f6f1ff", cursor: "pointer", fontFamily: F.b, textAlign: "left" }}><span style={{ width: 36, height: 36, borderRadius: "50%", background: "#7856ff", display: "grid", placeItems: "center", color: "#fff", flex: "none" }}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v3" /></svg></span><span><b style={{ display: "block", fontSize: sm + 1, color: ink }}>Host a Space</b><span style={{ fontSize: sm - 1, color: sub }}>Go live. Three questions, no script. Once a year.</span></span></button>}
             {why}{feed.map(tweet)}</div>
@@ -7967,7 +7969,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       crackdown: !!((((stc.tori || {}).tools || {})[turn] || {}).crackdown),
       // Ministers and commissioners: their own accounts post what their ministry is doing (SYS.toriCabinet).
       cab: (ministries || []).filter(m => m.minister && !m.acting).map(m => { const pl = (stc.recPlans || []).find(x => x.mid === m.id && (x.done === "all" || x.done === "part") && x.at === turn);
-        return { id: m.id, name: m.name, minister: m.minister, art: commissionerArt(m.minister, m.perf, m.id).replace(/^\.\/art\/characters\/|\.webp$/g, ""), perf: m.perf, cor: m.cor, loyalty: m.loyalty, sub: (NAT ? "Minister · " : "Commissioner · ") + m.name.replace(/^Ministry of /, ""),
+        return { id: m.id, name: m.name, minister: m.minister, art: commissionerArt(m.minister, m.perf, m.id).replace(/^\.\/art\/(characters\/)?|\.webp$/g, ""), perf: m.perf, cor: m.cor, loyalty: m.loyalty, sub: (NAT ? "Minister · " : "Commissioner · ") + m.name.replace(/^Ministry of /, ""),
           projects: (projects || []).filter(p => p.ministryId === m.id).slice(-4).map(p => ({ title: p.title, status: p.status, progress: p.progress })), programmes: [], plan: pl ? (pl.steps || [])[0] : null }; }),
       // For the opposition, who watch everything: approval when last year closed, lies called out, this year's moves.
       appPrev: (() => { const h = ((stc.tori || {}).hist || []).filter(x => x.turn < turn && x.app != null).pop(); return h ? h.app : null; })(),
@@ -8684,7 +8686,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         return { icon: "📝", title: "The plan is under way", text: steps.length + " step" + (steps.length > 1 ? "s" : "") + " paid for. " + (E.restarts.length ? E.restarts.length + " stalled site" + (E.restarts.length > 1 ? "s" : "") + " reopen now. " : "") + "You will see the results next year." + (P.padB > 0 ? " About " + naira(P.padB) + " of it was padding." : ""), tone: "good" };
       };
       const fxOf = (steps) => fxChips(SYS.planEffect(P, steps.map(x => x.id)).fx);
-      cards.push({ key: "rplan_" + m.id + "_" + turn, kicker: m.name + " · the recovery plan", color: CL.blu, art: [NAT ? "villa-office" : "governor-office", commissionerArt(m.minister, m.perf, m.id).replace(/^\.\/art\/characters\/|\.webp$/g, ""), "memo-folder"], plan: P,
+      cards.push({ key: "rplan_" + m.id + "_" + turn, kicker: m.name + " · the recovery plan", color: CL.blu, art: [NAT ? "villa-office" : "governor-office", commissionerArt(m.minister, m.perf, m.id).replace(/^\.\/art\/(characters\/)?|\.webp$/g, ""), "memo-folder"], plan: P,
         title: who + " is back with a plan",
         brief: "Last year you gave no money and asked for a plan. Here it is: " + P.steps.length + " steps, " + naira(P.total) + " in all. Approve what you want done." + (P.padB > 0 ? " Your adviser says about " + naira(P.padB) + " of it is padded." : "") + (P.delivery < .55 ? " The ministry's record is weak: expect part of it to be delivered." : ""),
         stakes: "What you approve is paid for now and happens: stalled sites reopen, and the sector moves next year.",
