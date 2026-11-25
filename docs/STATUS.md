@@ -2492,3 +2492,14 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 ## 25 Nov 2026: Mr. Projects / Madam Projects
 - The eight-projects badge (was "Ribbon Cutter") is "Mr. Projects", or "Madam Projects" when the player chose a woman. The title is kept with the earned card.
 - Checked live on the Katsina page (name as placeholders): the rewrite runs to the end, never mentions its sources, keeps events in a possible order and lists the figures; it now keeps the game's own fictional firm names.
+
+## 25 Nov 2026: Flood & Erosion Control
+- Owner: "How does a mass estate solve flooding? We need a new programme here." New programme flood_ctrl (₦4B, 2 years), with its own version by the land (SYS.localProgramme, game/systems/stateprofile.js FLOOD):
+  - South-East gully states: Gully Erosion Control (concrete channels and check dams / vetiver and trees / move families from the gully edges);
+  - the creeks: Flood Defences for the Creeks (embankments / early warning, boats and raised shelters / dredging);
+  - Lagos: Storm Drains & Canals (dredge and clear / clear buildings off the channels / new channels and ponds);
+  - the Niger and Benue floodplains (Kogi, Benue, Niger, Kebbi, Jigawa, Adamawa): River Embankments & Flood Warning (embankments / NIHSA warning and shelters / resettle riverbank villages);
+  - everywhere else: Town Drains & Flood Channels (line the drains / clear them monthly / stop building on waterways).
+- A flood or erosion problem on your Desk (a tour's "Anambra East's floods", a gully) is now answered by flood control, not the housing estate. The flood-displaced families need offers both: stop the floods, or rehouse them.
+- Pictures: existing art (decisions/flood, variants bill-erosion, bill-flood, bill-waterways).
+- Tests: tests/flood-programme.test.mjs; tests/e2e/flood-programme.mjs.

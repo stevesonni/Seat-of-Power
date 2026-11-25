@@ -305,6 +305,47 @@ const SECURITY = (P) => {
     ] };
 };
 
+/* Flood & Erosion Control, by the land (owner, 25 Nov 2026: "We need a new programme here and it will follow the pattern
+   of differing based on where it's being constructed"). The South-East's gullies, the creeks, Lagos's lagoon, the big
+   river floodplains (the Niger and the Benue), and every other town's blocked drains. */
+const FLOOD = (P) => {
+  if (P.land === "gully") return { nm: "Gully Erosion Control", head: "Gullies in " + P.name, art: "bill-erosion", d: "Stop the gullies eating " + P.name + "'s towns: channels, check dams and replanting at the worst sites.",
+    why: "In " + P.name + " the danger is not water standing but water running: gullies swallow roads and houses every rainy season.", fact: "The South-East has hundreds of active erosion gullies; the World Bank-backed NEWMAP project has repaired some of them.",
+    q: "How do you stop the gullies?", opts: [
+      opt("engineer", "Concrete channels and check dams", "Costly and slow to build; it holds.", { costF: 1.15, good: { text: "The channels held through the rains; the gullies stopped growing.", fx: { infra: .01, app: 3 } } }),
+      opt("green", "Vetiver grass, trees and terraces", "Cheaper; the roots take two seasons to hold.", { costF: .7, risk: { p: .4, title: "The first rains washed it away", text: "A heavy storm came before the grass had rooted; the gully took the new terraces with it.", fx: { app: -3 } } }),
+      opt("move", "Move the families from the gully edges first", "Lives saved now; the gullies keep growing.", { costF: .8, good: { text: "No one died at the gully edges this year.", fx: { app: 2 } }, risk: { p: .3, title: "They will not move", text: "Families refused to leave land their grandparents farmed.", fx: { app: -2 } } }),
+    ] };
+  if (P.land === "creek") return { nm: "Flood Defences for the Creeks", head: "Floods in " + P.name, art: "bill-waterways", d: "Embankments, raised walkways and early warning for " + P.name + "'s creek towns.",
+    why: "In " + P.name + " the creeks rise every year, and some years whole towns are under water for weeks.", fact: "The 2012 and 2022 floods left much of Bayelsa and its neighbours under water for weeks.",
+    q: "How do you keep the water out?", opts: [
+      opt("embank", "Embankments and shoreline protection", "Costly; the towns behind them stay dry.", { costF: 1.2, good: { text: "The embankments held when the creeks rose.", fx: { infra: .01, app: 3 } } }),
+      opt("warn", "Early warning, boats and raised shelters", "Cheap; homes still flood, but people get out.", { costF: .6, good: { text: "When the water came, the warning went out and everyone reached the shelters.", fx: { app: 2 } } }),
+      opt("dredge", "Dredge the creeks and clear the channels", "The water drains faster; it silts up again in a few years.", { costF: .9, risk: { p: .3, title: "The channels silted up", text: "The dredged channels filled with silt in one season.", fx: { app: -2 } } }),
+    ] };
+  if (P.land === "lagoon") return { nm: "Storm Drains & Canals for " + P.name, head: "Floods in " + P.name, art: null, d: "Dredge the canals, clear the drains and build new channels where the city floods.",
+    why: "In " + P.name + " the rain has nowhere to go: drains are blocked with refuse and houses stand on the channels.", fact: "Lagos floods most rainy seasons; blocked drains and building on drainage channels are blamed every time.",
+    q: "What do you do first?", opts: [
+      opt("dredge", "Dredge the canals and clear every drain", "The water moves again; the refuse comes back unless the bins come too.", { costF: 1, good: { text: "The canals ran clear in the rains; the worst streets stayed dry.", fx: { app: 3 } } }),
+      opt("demolish", "Clear the buildings off the drainage channels", "It works, but families lose their homes.", { costF: .8, risk: { p: .5, title: "Demolitions on the channels", text: "Bulldozers cleared houses on the drainage channels; the families protest at Alausa.", fx: { app: -4 } }, good: { text: "With the channels clear, the water drains in hours, not days.", fx: { infra: .01 } } }),
+      opt("new", "Build new drainage channels and retention ponds", "Costly and a year more; it lasts.", { costF: 1.25, tAdd: 1, good: { text: "The new channels carried the storm water away.", fx: { infra: .02, app: 3 } } }),
+    ] };
+  if (P.floods) return { nm: "River Embankments & Flood Warning", head: "Floods in " + P.name, art: "bill-flood", d: "Embankments where the river breaks its banks, and early warning for the riverside villages.",
+    why: "In " + P.name + " the river comes over its banks in the rains and takes the farms and the villages beside it.", fact: "Heavy rains and releases from the Lagdo dam in Cameroon flooded the Niger and Benue floodplains in 2012 and 2022.",
+    q: "How do you protect the riverside?", opts: [
+      opt("dyke", "Earth embankments along the river", "Costly; the villages behind them stay dry.", { costF: 1.15, good: { text: "The embankments held when the river rose.", fx: { agr: .01, app: 3 } } }),
+      opt("warn", "Early warning and shelters on higher ground", "Cheap; lives are saved, the farms still flood.", { costF: .6, good: { text: "When NIHSA's warning came, the villages moved to the shelters in time.", fx: { app: 2 } } }),
+      opt("move", "Resettle the riverbank villages", "It ends the yearly loss; the villagers must agree.", { costF: .9, risk: { p: .35, title: "The villages refuse", text: "Riverside farmers will not leave the land where their crops grow best.", fx: { app: -2 } } }),
+    ] };
+  return { nm: "Town Drains & Flood Channels", head: "Floods in " + P.name, art: null, d: "Clear and line the town drains, build culverts and stop building on the waterways.",
+    why: "In " + P.name + " the floods come from the towns themselves: blocked drains and houses built on the waterways.", fact: "Most town floods in Nigeria come from blocked drains and building on waterways, not from the rivers.",
+    q: "How do you fix the drains?", opts: [
+      opt("line", "Line the drains and build culverts", "Costly; it lasts.", { costF: 1.1, good: { text: "The new drains carried the storm away; the market stayed dry.", fx: { infra: .01, app: 3 } } }),
+      opt("clear", "Clear the drains every month before the rains", "Cheap, but it must be kept up.", { costF: .6, risk: { p: .35, title: "The drains choked again", text: "Nobody cleared the drains after the first month; the market flooded.", fx: { app: -2 } } }),
+      opt("enforce", "Stop building on the waterways", "Fewer floods; some houses must come down.", { costF: .8, risk: { p: .4, title: "Houses on the waterways", text: "Owners of houses marked for removal took the state to court.", fx: { app: -3 } } }),
+    ] };
+};
+
 /* The local version of a programme: its own name, picture, the line that says what is different here, and the
    question. Returns p unchanged if nothing is different; null if the programme does not make sense here. */
 export const localProgramme = (p, state, ctx = {}) => {
@@ -320,6 +361,7 @@ export const localProgramme = (p, state, ctx = {}) => {
   else if (p.id === "classrooms" || p.id === "free_edu") L = SCHOOLS(P, p.id);
   else if (p.id === "phc") L = HEALTH(P, p.id);
   else if (p.id === "amotekun") L = SECURITY(P);
+  else if (p.id === "flood_ctrl") L = FLOOD(P);
   const out = { ...p };
   if (p.id === "school_feed") { out.d = "Hot meals for 500K pupils every school day: " + P.food + ", bought from " + P.name + "'s farmers." + (P.land === "creek" ? " The food goes by boat to the creek schools." : ""); if (P.land === "creek") out.c = Math.round(p.c * 1.2 * 100) / 100; out.art = P.north ? "school_feed-north" : "school_feed-south"; out.local = { why: P.land === "creek" ? "Food for the creek schools goes by boat, so it costs a fifth more." : "The menu is " + P.name + "'s own food.", fact: "The federal school feeding programme pays local cooks to buy from local farmers." }; }
   if (p.id === "farm_sub") { out.d = "Seeds, fertiliser and tools for 100K " + P.crops.join(" and ") + " farmers" + (P.bandits ? ", with escorts in the farming season." : "."); if (P.bandits) out.local = { why: "Farmers here cannot reach their farms in the bandits' season without escorts.", fact: "In Zamfara and Katsina, bandits levy farmers before they let them harvest." }; }
