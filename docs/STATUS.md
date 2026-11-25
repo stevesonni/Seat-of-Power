@@ -2400,3 +2400,23 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - docs/LOVABLE-BUSES-BUYS.md asks Lovable for four pictures: the two bus terminal programmes (the only programmes without a picture), the patrol fleet, and cameras going up.
 - The game checks for each file (SEAT.got) and uses it as soon as it is there.
 - 25 Nov 2026, later: Lovable delivered all four pictures (resized to 1280×720). They are now part of the game: the two bus terminal programmes have their pictures, and patrol vehicles and cameras show the patrol fleet and the cameras going up instead of the police stand-in. tests/art-usage.test.mjs counts the new federal picture; tests/projects.test.mjs checks the purchase pictures exist.
+
+## Sport and stadiums (25 Nov 2026)
+- Owner: "No one ever has need for a stadium… the President should receive the FIFA or CAF president, rotating per game… for the governor, a request from the youth leader of the State Youth Assembly… and the commissioner, after he is appointed, says they need two mini-stadia… Tori has to be buzzing… if the stadium isn't ready: both [rush it, or CAF moves the match]… a hostile Speaker, Speaker of the Reps or Senate can scuttle a project… if you already have the commissioner, all they ask for is the mini-stadia… make sure you don't need any new icon or veto stamp."
+- **A sports need** (NEED_TYPES and FED_NEEDS): a stadium now answers it (PROJ_NEED stadium → sports), so building one wins the approval of the place that asked.
+- **The governor** (years 1–3, once):
+  - Without a Sports & Youth commissioner: the Speaker of the State Youth Assembly asks for a voice. Yes opens the new ministry, to choose its commissioner. No costs approval and leaves a sports need on the Desk.
+  - The new commissioner's first memo asks for two mini-stadia (about 5,000 seats each) in the capital's council and one in another zone. With a commissioner already in place, the Youth Assembly asks for the mini-stadia straight away.
+  - Choices: build two, build one, or not this year. A yes leaves sports needs and opens the contractor screen for the first.
+  - A hostile Speaker holds the purse. Asking the House is scuttled; giving his firm a contract gets the money (corruption +3); or wait.
+- **The President** (year 2, once):
+  - FIFA or CAF (SYS.fixtureFor rotates between a World Cup qualifier, an AFCON qualifier, the Women's AFCON, the Under-17 World Cup and CHAN) offers Nigeria a home match next year, but no stadium passes inspection.
+  - Choices: renovate Abuja (one year), rebuild Lagos's derelict National Stadium (two years, so not ready in time), upgrade Uyo's with the Akwa Ibom governor (one year, South-South goodwill), or play abroad (approval −4).
+  - A hostile Senate President or Speaker of the House blocks the money.
+- **Match day**:
+  - If the stadium is delivered, the match is hosted: approval +5 and a full-house front page.
+  - If not, FIFA or CAF writes again. Rush it (half again the cost; a 35% chance a stand cracks), or let them move the match abroad (approval −6, a front page of humiliation).
+  - With a hostile chamber: asking for the money fails, or you pay the leadership's price (corruption +3) and rush.
+- **Tori buzzes** at each step (SYS.sportsBuzz, shown at the top of the feed as c.buzz): sports journalists, fans, the Youth Assembly, a footballer.
+- No new art: existing portraits and rooms; FIFA and CAF are named, their people are not.
+- Tests: tests/sports.test.mjs; tests/e2e/sports.mjs.

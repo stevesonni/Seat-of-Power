@@ -111,6 +111,8 @@ export function toriFeed(c) {
   const thread = (x, lines) => { x.thread = lines.filter(Boolean).slice(0, 3).map(([p, t]) => ({ name: p.who, handle: "@" + p.h, art: p.art, text: t })); return x; };
   // The complaints: the people waiting for an answer, first.
   (c.complaints || []).forEach((q, i) => out.push({ id: "q" + q.id + "_" + c.turn, kind: "complaint", complaint: q.id, name: q.who.split(",")[0], sub: q.place || "", handle: "@" + String(q.who.split(",")[0]).toLowerCase().replace(/[^a-z]/g, "_") + "_" + S.toLowerCase().slice(0, 4), art: null, who: q.who, text: (q.icon ? q.icon + " " : "") + q.t + " " + me, ago: ago(r, i), ...counts(r, 2), answered: q.answered, lied: q.lied }));
+  // What the whole country is buzzing about this year (SYS.sportsBuzz and the like): c.buzz = [{ who, h, what, art, text }].
+  (c.buzz || []).forEach(b => post({ who: b.who, what: b.what, h: b.h, art: b.art }, b.text, 9, { buzz: true, followUp: true }));
   // Promises from last year: the same people come back.
   (c.back || []).slice(-4).forEach(b => {
     const kept = promiseKept(b, c);

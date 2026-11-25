@@ -78,3 +78,4 @@ export * from "./nass.js";
 export * from "./inherited.js";
 export * from "./prose.js";
 export * from "./placeissues.js";
+export * from "./sports.js";

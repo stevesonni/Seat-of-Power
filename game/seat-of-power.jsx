@@ -862,6 +862,14 @@ const NEED_TYPES = [
     fail: (l) => "A gang war in " + l + " leaves four teenagers dead.",
     abandon: (l) => "The skills centre in " + l + " was built and never opened.",
     win: (l) => "The skills centre in " + l + " is full. The gangs have fewer recruits." },
+  // Sport (owner, 25 Nov 2026): a stadium or mini-stadium answers it, through the Ministry of Sports & Youth.
+  { k: "sports", icon: "🏟️", stat: "lit", sector: "infrastructure", fix: [],
+    title: (l) => "Young people in " + l + " have nowhere to play",
+    why: (l) => "The only pitch in " + l + " became a car park. Boys train on a refuse dump; the gangs are waiting.",
+    ask: "Create the Ministry of Sports & Youth Development, then build a stadium or mini-stadium through a contractor.",
+    fail: (l) => "The youth of " + l + " marched on the council: no pitch, no programme, no hope.",
+    abandon: (l) => "The stadium in " + l + " stands half-built; cattle graze on the pitch.",
+    win: (l) => "The new stadium in " + l + " is full every weekend. The youth assembly has thanked the government." },
   { k: "poverty", icon: "🍲", stat: "hp", sector: "health", fix: ["cct"],
     title: (l) => "Families in " + l + " are going hungry",
     why: (l) => "Food prices doubled this year. Mothers skip meals so children can eat once a day.",
@@ -922,7 +930,7 @@ const INVITES = () => SEAT.nat ? [] : INTL_INVITES; // the President's world sta
 const REVM = () => SEAT.nat ? SYS.FED_REVENUE : REVENUE_MEASURES;
 const TYPES_FOR = () => SEAT.nat ? SYS.FED_TYPES : Object.keys(SYS.UNIT).filter(k => !SYS.FED_ONLY.includes(k));
 // What kind of need each project type answers, and what it improves when done.
-const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", secondary: "school", nursing: "clinic", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security", industrial: "jobs", stadium: "youth", esports: "youth" };
+const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", secondary: "school", nursing: "clinic", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security", industrial: "jobs", stadium: "sports", esports: "youth" };
 const PROJ_STAT = { metro: "infra", busterminal: "infra", stadium: "igr", esports: "igr", tourist: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", secondary: "lit", nursing: "hp", coe: "lit", polytechnic: "lit", university: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
 const STAT_NAME = { infra: "Infrastructure", hp: "Health", lit: "Education", agr: "Agriculture", sec: "Security", igr: "Own revenue" };
 // Ministries a governor can add when the state needs them. key: the number a
@@ -7970,7 +7978,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const delivered = (projects || []).filter(p => p.status === "delivered" && (p.decisions || []).some(d => d.year === turn)).length;
     const weak = (ministries || []).filter(m => m.minister).sort((a, b) => (a.perf || 50) - (b.perf || 50))[0];
     const PT = stc.petition, court = PT && PT.at != null && PT.at >= turn - 1 && PT.court ? { court: PT.court, won: !!PT.won, final: PT.stage >= 3, quit: !!PT.quit, opp: PT.opp } : null;
-    return { court, nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
+    const buzz = (stc.buzz || []).filter(B => B.turn >= turn - 1).slice(-3).flatMap(B => SYS.sportsBuzz(B.stage, B.ctx));
+    return { buzz, court, nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
       stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, ...(() => { const T = SYS.toriOpponent({ turn, R: stc.rival, dep: depGov && depGov.nm, rival: cast.rival && cast.rival.name, rivalParty: setup?.election?.oppParty, reOpp: stc.reOpp, reOppParty: stc.reOppParty }); return { oppName: T.name, oppParty: T.party, oppDeputy: !!T.deputy }; })(), reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints,
       // The President's world: the war (once the storyline starts) and this year's crackdown, for foreign accounts.
       war: NAT && stc.bakunda && (stc.bakunda.stage || 0) >= 2 ? (() => { const B = stc.bakunda, K = SYS.bkCountry(B); return { nm: K.nm, adj: K.adj, cap: K.cap, gen: K.gen, art: K.art, stage: B.stage, atWar: !!B.atWar, progress: B.progress || 0, done: !!B.done, treaty: B.treaty }; })() : null,
@@ -9449,6 +9458,107 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (F1.news && F1.news.kind === "rejected") notes.push(["📜 The House threw out the " + F1.news.nm + " a second time.", "political"]);
       }
     }
+    /* Sport and stadiums (SYS.sports; owner, 25 Nov 2026). The governor: the State Youth Assembly asks for a voice
+       (the ministry) or, once there is a commissioner, two mini-stadia; the commissioner's first memo asks for them
+       too. The President: FIFA or CAF wants Nigeria to host a match next year, and no stadium passes. A hostile
+       Speaker (or Senate President, or Speaker of the Reps) can scuttle the money. Tori buzzes at every step. */
+    try { if (!scenId) {
+      const buzzAdd = (stage, ctx) => setStc(p => ({ ...p, buzz: [...(p.buzz || []), { turn, stage, ctx }].slice(-8) }));
+      const sportsMin = (ministries || []).find(m => m.id === "sports" && m.minister);
+      const mkNeed = (k, lga, zone, extra = {}) => { const id = "need_" + turn + "_" + k + "_" + String(lga).replace(/\W/g, "").slice(0, 10);
+        setNeeds(ns => ns.some(x => x.id === id) ? ns : [...ns, { id, k, lga, zone, sev: 2, raised: turn, due: turn + 2, status: "open", link: null, proj: null, stall: 0, ...extra }]); return id; };
+      const hostileNow = NAT ? SYS.nassBlocks(next.nass || stc.nass, turn) : SYS.hostileSpeaker((next.leg || {}).speaker) && turn > (((next.leg || {}).speaker || {}).at || 0);
+      const blocker = NAT ? (hostileNow ? "the " + ((SYS.CHAMBERS[hostileNow] || {}).title || "leadership of the National Assembly") : null) : (hostileNow ? String(cast.speaker.name || "the Speaker") : null);
+      if (!NAT) {
+        const L = getLGAs(state), zOf = (l) => [0, 1, 2].find(i => lgaCluster(L, i).includes(l)) ?? 0;
+        const two = (() => { const cap = L.find(l => (SYS.STATE_CAPITALS[state] || "").split(" ")[0] && l.includes((SYS.STATE_CAPITALS[state] || "").split(" ")[0])) || L[0], other = L.filter(l => zOf(l) !== zOf(cap))[hashStr(state + pName) % Math.max(1, L.filter(l => zOf(l) !== zOf(cap)).length)] || L[1]; return [cap, other]; })();
+        const ministadia = (from, key, kicker, who, img, brief) => {
+          const est = SYS.estimate("stadium", SYS.MINI.qty, { places: [two[0]], state, costF: SYS.MINI.costF }), eachB = Math.round(est.buildM / 100) / 10;
+          const go = (both) => () => {
+            const ids = (both ? two : [two[0]]).map(l => mkNeed("sports", l, zOf(l), { it: "Young people in " + l + " need a mini-stadium", iw: "The State Youth Assembly asked for it, and the Commissioner for Sports & Youth agreed: a 5,000-seat ground for football, athletics and the youth league." }));
+            setStc(p => ({ ...p, ministadia: { turn, both, ids } })); buzzAdd("mini_yes", { st: stName, place: two[0] });
+            addL("🏟️ You agreed to " + (both ? "two mini-stadia, in " + two.join(" and ") : "a mini-stadium in " + two[0]) + ". The contracts go out now.", "policy");
+            setTimeout(() => setPflow({ step: "propose", draft: { type: "stadium", qty: SYS.MINI.qty, years: SYS.MINI.years, costF: SYS.MINI.costF, lga: two[0], title: "Mini-stadium, " + two[0], need: ids[0], ministryId: sportsMin ? sportsMin.id : "sports" } }), 900);
+            return { icon: "🏟️", title: both ? "Two mini-stadia" : "A mini-stadium in " + two[0], text: "The first contract is ready to award" + (both ? "; the second, in " + two[1] + ", waits on your Desk as a need." : ".") + " About " + naira(eachB) + " each.", tone: "good" }; };
+          const opts = blocker ? [
+            { label: "Ask the House to fund two mini-stadia", note: blocker.charAt(0).toUpperCase() + blocker.slice(1) + " is hostile and holds the purse.", chips: [], run: () => { scFx({ app: -1 }); buzzAdd("mini_no", { st: stName }); addL("🏛️ " + blocker + " kept the mini-stadia out of the budget.", "political");
+              return { icon: "🏛️", title: "The House scuttled it", text: blocker + " would not put the mini-stadia in the budget. The youth blame you both.", tone: "bad" }; } },
+            { label: "Give " + blocker + "'s firm one of the contracts", note: "The House funds both. Corruption rises.", chips: fxChips({ cor: .03 }), run: () => { scFx({ cor: .03 }); return go(true)(); } },
+            { label: "Not this year", note: "The youth will not forget.", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); buzzAdd("mini_no", { st: stName }); return { icon: "🧑🏾‍🤝‍🧑🏾", title: "Not this year", text: "The Youth Assembly calls it a betrayal; the need stays on your Desk.", tone: "bad" }; } },
+          ] : [
+            { label: "Build two mini-stadia, in " + two.join(" and "), note: "About " + naira(eachB) + " each, through contractors.", chips: [{ text: naira(eachB * 2), color: CL.org }], run: go(true) },
+            { label: "One, in " + two[0], note: "Half the cost; the other town waits.", chips: [{ text: naira(eachB), color: CL.org }], run: go(false) },
+            { label: "Not this year", note: "The youth will not forget.", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); mkNeed("sports", two[0], zOf(two[0])); buzzAdd("mini_no", { st: stName }); return { icon: "🧑🏾‍🤝‍🧑🏾", title: "Not this year", text: "The Youth Assembly calls it a betrayal. Their ask stays on your Desk as a need.", tone: "bad" }; } },
+          ];
+          cards.push({ key, kicker, color: CL.grn, from, img, art: [NAT ? "villa-office" : "governor-office", null, null, null], title: "Two mini-stadia for " + stName + "'s young people", brief, stakes: "Whom the grounds go to, and whether the House pays for them, is the test of your word to the youth.", options: opts });
+          buzzAdd("mini_ask", { st: stName }); };
+        const yName = gN(rng(hashStr("ya" + state + pName)), sd.zone, state);
+        if (turn >= 1 && turn <= 3 && !next.youthAsm) { next.youthAsm = { turn, had: !!sportsMin };
+          if (sportsMin) ministadia("Hon. " + yName + ", Speaker of the " + stName + " State Youth Assembly", "youth_asm_mini", "The State Youth Assembly · a request", null, "./art/characters/young-voter-student.webp",
+            "Our young people have a commissioner now, and we thank you. What they do not have is a place to play: the only pitches are car parks and refuse dumps. We ask for two mini-stadia, in " + two.join(" and ") + ", for football, athletics and a youth league.");
+          else { cards.push({ key: "youth_asm", kicker: "The State Youth Assembly · a request", color: CL.grn, from: "Hon. " + yName + ", Speaker of the " + stName + " State Youth Assembly", img: "./art/characters/young-voter-student.webp", art: ["governor-office", "young-voter-student", null, null],
+              title: "The youth of " + stName + " have no voice in your government",
+              brief: "Half of " + stName + " is under thirty, yet there is no commissioner for youth or sport, no programme for us and nowhere to play. The Youth Assembly asks you to create a Ministry of Sports & Youth Development and give it a commissioner who will answer to us.",
+              stakes: "Say yes and the young people have a voice; ignore it and they will say so loudly, on Tori and at the polls.",
+              options: [
+                { label: "Create the Ministry of Sports & Youth Development", note: "Choose its commissioner now.", chips: [], run: () => { const cat = MIN_CAT().find(c => c.id === "sports"); setStc(p => ({ ...p, youthAsm: { ...(p.youthAsm || {}), yes: turn } })); if (cat) setTimeout(() => openNewMinistry(cat), 700); addL("🧑🏾‍🤝‍🧑🏾 You agreed to create a Ministry of Sports & Youth Development.", "policy");
+                  return { icon: "🧑🏾‍🤝‍🧑🏾", title: "A ministry for the youth", text: "Choose its commissioner. Their first job, the Youth Assembly says, is a place to play.", tone: "good" }; } },
+                { label: "Not now", note: "The youth will take it to Tori.", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); setStc(p => ({ ...p, youthAsm: { ...(p.youthAsm || {}), no: turn } })); mkNeed("sports", two[0], zOf(two[0])); buzzAdd("mini_no", { st: stName });
+                  return { icon: "🧑🏾‍🤝‍🧑🏾", title: "Not now", text: "The Youth Assembly calls it a betrayal. Their ask stays on your Desk as a need.", tone: "bad" }; } },
+              ] });
+            buzzAdd("youth_ask", { st: stName }); } }
+        // The commissioner's first memo, once the ministry has one (and nobody has asked for the grounds yet).
+        else if (sportsMin && next.youthAsm && !next.youthAsm.had && !next.ministadia && !next.miniMemo) { next.miniMemo = turn;
+          ministadia((sportsMin.acting ? "" : "Hon. ") + sportsMin.minister + ", Commissioner for Sports & Youth Development", "sports_memo_mini", "Sports & Youth · the commissioner's first memo", null, commissionerArt(sportsMin.minister, sportsMin.perf, sportsMin.id),
+            "Thank you for the appointment. My first ask is the one the Youth Assembly made: the state has no ground where young people can play safely. I propose two mini-stadia of about 5,000 seats, in " + two.join(" and ") + ", built by contractors and run by my ministry."); }
+      } else {
+        // The President: FIFA or CAF asks Nigeria to host, one fixture a game.
+        const F = SYS.fixtureFor(pName + state + (setup?.startYear || 2027));
+        if (turn === 2 && !next.caf) { next.caf = { fix: F.id, turn, match: turn + 1 };
+          const choose = (P) => () => {
+            if (blocker) { buzzAdd("caf_abroad", { fix: F }); scFx({ app: -2 }); setStc(p => ({ ...p, caf: { ...(p.caf || next.caf), plan: P.id, blocked: true } }));
+              return { icon: "🏛️", title: "The National Assembly will not fund it", text: blocker.charAt(0).toUpperCase() + blocker.slice(1) + " refused the money for the stadium. Unless you deal with the leadership, the match goes abroad.", tone: "bad" }; }
+            const zi = NATION_ZONE_IDS.indexOf((STATES[P.lga] || {}).zone), id = mkNeed("sports", stateLabel(P.lga), zi, { it: "The stadium for " + F.what, iw: F.who + " needs a stadium fit to host " + F.what + " by match day next year." });
+            setStc(p => ({ ...p, caf: { ...(p.caf || next.caf), plan: P.id, lga: P.lga, need: id } })); buzzAdd("caf_plan", { fix: F, plan: P.l });
+            if (P.id === "uyo") scFx({}, zi, 3);
+            setTimeout(() => setPflow({ step: "propose", draft: { type: "stadium", qty: P.qty, years: P.years, costF: P.costF, lga: stateLabel(P.lga), title: P.title, need: id, ministryId: (ministries || []).find(m => m.id === "sports") ? "sports" : undefined } }), 900);
+            addL("🏟️ For " + F.what + ": you chose to " + P.l.charAt(0).toLowerCase() + P.l.slice(1) + ".", "policy");
+            return { icon: "🏟️", title: P.l, text: P.note + " Match day is next year.", tone: "good" }; };
+          cards.push({ key: "caf_" + turn, kicker: F.body + " · a request to host", color: CL.grn, from: F.who, img: "./art/characters/investor-foreign.webp", art: ["villa-office", null, null, null],
+            title: F.body + " wants Nigeria to host " + F.what,
+            brief: "I write to offer Nigeria the honour of hosting " + F.what + " next year, with " + F.team + " at home. But our inspectors have failed every Nigerian stadium: the National Stadium in Abuja needs its roof, seats and pitch redone, and Lagos's has been derelict for years. Without a stadium fit to host by match day, the match will be played abroad.",
+            stakes: "Choose how to get a stadium ready, or play the home match in another country." + (blocker ? " Note: " + blocker + " is blocking your spending." : ""),
+            options: SYS.STADIUM_PLANS.map(P => ({ label: P.l, note: P.note, chips: [{ text: P.years === 1 ? "Ready by match day, if signed now" : "Not ready by match day", color: P.years === 1 ? CL.grn : CL.org }], run: choose(P) })).concat([
+              { label: "Play the home match abroad", note: "No cost. A national embarrassment.", chips: fxChips({ app: -4 }), run: () => { scFx({ app: -4 }); buzzAdd("caf_abroad", { fix: F }); setStc(p => ({ ...p, caf: { ...(p.caf || next.caf), plan: "abroad", done: turn } }));
+                setTimeout(() => paper("HOME MATCH TO BE PLAYED ABROAD", F.team + " have no stadium at home", false), 200);
+                return { icon: "✈️", title: "The home match goes abroad", text: F.team.charAt(0).toUpperCase() + F.team.slice(1) + " will play their home match in another country. Fans and players are furious.", tone: "bad" }; } }]) });
+          buzzAdd("caf_ask", { fix: F }); }
+        // Match day.
+        const C = next.caf;
+        if (C && !C.done && C.match === turn && C.plan && C.plan !== "abroad") { const P = (projects || []).find(p => p.need === C.need), Fx = SYS.FIXTURES.find(x => x.id === C.fix) || F, place = stateLabel(C.lga || "FCT");
+          next.caf = { ...C, done: turn };
+          if (P && P.status === "delivered") { scFx({ app: 5 }); buzzAdd("caf_hosted", { fix: Fx, place }); notes.push(["🏟️ Match day: " + Fx.team + " played " + Fx.what + " at home in " + place + ", in a full stadium.", "success"]); scWiki("Presidency", "Hosted " + Fx.what + " in " + place + " after the stadium was made ready in time.");
+            setTimeout(() => paper("A FULL HOUSE IN " + place.toUpperCase(), Fx.team + " play at home at last", true), 300); }
+          else { const leftB = P ? Math.round(SYS.remainingM(P) * SYS.RUSH_X / 100) / 10 : 0, moved = () => { scFx({ app: -6 }); buzzAdd("caf_moved", { fix: Fx }); scWiki("Presidency", Fx.body + " moved " + Fx.what + " out of Nigeria because the stadium was not ready.");
+                setTimeout(() => paper(Fx.body + " MOVES THE MATCH OUT OF NIGERIA", "The stadium was not ready", false), 200);
+                return { icon: "✈️", title: Fx.body + " moved the match abroad", text: "The stadium was not ready. " + Fx.team.charAt(0).toUpperCase() + Fx.team.slice(1) + " will play their home match in another country: a public humiliation.", tone: "bad" }; };
+            const rush = (price) => () => { if (!P) return moved(); if (!spendB(leftB, "Rushing the stadium")) return moved(); if (price) scFx({ cor: .03 });
+              const O = SYS.rushOutcome(); setProjects(prev => (prev || []).map(x => x.id === P.id ? { ...x, status: "delivered", progress: 100, quality: O.quality, decisions: [...(x.decisions || []), { year: turn, text: "Rushed for match day: night shifts, half again the cost." }] } : x));
+              scFx({ app: O.app }); buzzAdd(O.crack ? "caf_crack" : "caf_rushed", { fix: Fx, place });
+              setTimeout(() => paper(O.crack ? "CRACKS IN THE NEW STAND" : "FINISHED THE NIGHT BEFORE", O.crack ? "A stand emptied mid-match; the rush job shows" : Fx.team + " play at home in a stadium finished in a hurry", !O.crack), 200);
+              return { icon: O.crack ? "💥" : "🏟️", title: O.crack ? "The rushed stand cracked" : "Finished in time, just", text: O.crack ? "The match went ahead, but a stand had to be emptied after cracks appeared. " + Fx.body + " is asking questions." : "Night shifts finished the stadium the night before. The match went ahead at home.", tone: O.crack ? "bad" : "good" }; };
+            cards.push({ key: "caf_day_" + turn, kicker: Fx.body + " · match day", color: CL.red, from: Fx.who, img: "./art/characters/investor-foreign.webp", art: ["villa-office", null, null, null],
+              title: "Match day is here, and the stadium is not ready",
+              brief: "Our inspectors have been back to " + place + ": the stadium is not finished. Either it is finished in days, at whatever it costs, or we move " + Fx.what + " to another country." + (blocker ? " Your officials tell us " + blocker + " is refusing the extra money." : ""),
+              stakes: "Rushing it costs half again, and a rush job can crack. Letting it go is a public humiliation.",
+              options: (blocker ? [
+                { label: "Ask the National Assembly for the extra money", note: blocker.charAt(0).toUpperCase() + blocker.slice(1) + " is blocking your spending.", chips: [], run: () => { addL("🏛️ " + blocker + " refused the money to finish the stadium.", "political"); return moved(); } },
+                { label: "Pay the leadership's price, then rush it", note: "Their price is their own projects. " + naira(leftB) + " to finish.", chips: fxChips({ cor: .03 }).concat([{ text: naira(leftB), color: CL.org }]), run: rush(true) },
+              ] : [
+                { label: "Rush it: night shifts, half again the cost", note: naira(leftB) + ". It may crack.", chips: [{ text: naira(leftB), color: CL.org }], run: rush(false) },
+              ]).concat([{ label: "Let " + Fx.body + " move the match abroad", note: "No cost now. A public humiliation.", chips: fxChips({ app: -6 }), run: moved }]) }); } }
+      }
+    } } catch (e) { console.error("[sports]", e); }
     // The feud with the deputy (SYS.rivalry): one beat a year once you refused their appointments.
     {
       if (window.SOP_TEST && window.SOP_TEST.rival && !next.rival) next.rival = SYS.rivalryStart(0); // test-only (tests/e2e)
@@ -10254,7 +10364,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (P.choice === "proceed") note = "Approved " + SYS.fmtM(approved) + " for a scope costing " + SYS.fmtM(e.buildM) + ", against the warning.";
     if (!takeAgenda("project", d.title, "prj:" + d.title)) return;
     const id = "p_" + turn + "_" + hashStr(d.title + qty) % 100000;
-    const proj = SYS.makeProject({ id, title: d.title.trim(), type: d.type, qty, lga: d.lga, lgas: places, perf, federal: NAT, second: !!d.second, state: NAT ? null : state, costF: (d.costF || 1) * (SEAT.priceF || 1), pick: d.pick, years: d.tAdd ? e.years + d.tAdd : undefined, ministryId: d.ministryId, need: d.need || null, approvedM: approved, thisYearM: Math.min(approved, P.thisYearM), year: turn, decision: note, proposal: { text: d.description || null, assumptions: d.assumptions || [] } });
+    const proj = SYS.makeProject({ id, title: d.title.trim(), type: d.type, qty, lga: d.lga, lgas: places, perf, federal: NAT, second: !!d.second, state: NAT ? null : state, costF: (d.costF || 1) * (SEAT.priceF || 1), pick: d.pick, years: d.years || (d.tAdd ? e.years + d.tAdd : undefined), ministryId: d.ministryId, need: d.need || null, approvedM: approved, thisYearM: Math.min(approved, P.thisYearM), year: turn, decision: note, proposal: { text: d.description || null, assumptions: d.assumptions || [] } });
     const needsLoan = P.choice === "finance" || overRoom;
     proj.status = needsLoan ? "pending_finance" : "pending_procurement";
     if (needsLoan) proj.needM = Math.max(a.shortM && P.choice !== "increase" ? a.shortM : 0, Math.min(approved, P.thisYearM) - roomM(SYS.TYPE_SECTOR[d.type])) || Math.round(approved / 2);
