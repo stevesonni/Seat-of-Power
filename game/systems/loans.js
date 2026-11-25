@@ -43,7 +43,8 @@ export const acceptOffer = (loans, offer, year) => (loans || []).some(l => l.key
 export const serviceLoans = (loans, year) => {
   let paid = 0;
   const next = (loans || []).map(l => {
-    if (l.outstandingM <= 0 || year <= l.disbursedYear || l.servicedYear >= year) return l;
+    // A loan the lender has called in (a court stopped its project) leaves the schedule: it is settled by the recall letter.
+    if (l.calledIn || l.outstandingM <= 0 || year <= l.disbursedYear || l.servicedYear >= year) return l;
     const princ = Math.min(l.outstandingM, Math.round(l.principalM / l.years));
     const interest = Math.round(l.outstandingM * l.rate);
     paid += princ + interest;

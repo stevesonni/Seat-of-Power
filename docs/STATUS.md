@@ -2458,3 +2458,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - With no ministries yet, pressing "Later" on "Convene your ministries first" crashed the game ("Something went wrong"). Fixed: the cabinet check now skips when there are no ministries.
 - The bank's repayment letter shows small sums in millions ("You drew ₦150M; with ₦33M of interest, ₦183M is owed now"), not "₦0 of interest". The money taken is exact to the million.
 - Browser tests: court-loan.mjs and sports.mjs pass in full.
+
+## 25 Nov 2026: refusing to repay, tested
+- Bug: after you refused, the ordinary yearly repayments carried on, so by the next year the loan was paid off and nothing was forced. A loan the court stopped now leaves the yearly schedule (calledIn); the recall letter settles it. The letter now asks for the whole amount drawn plus interest (e.g. ₦600M + ₦132M).
+- Bug: the lenders' yearly check saved its own copy of the loans, undoing a recall closed earlier that year. Loan updates now keep only what each step changed.
+- The lender's letters (and the Youth Assembly, the commissioner's memo, FIFA/CAF and the club) now carry their own letterhead; the bank's letter was printed as "The Party Secretariat".
+- New browser test: tests/e2e/court-loan-refuse.mjs, governor and President: refuse, then next year Abuja takes it from FAAC (governor) or the creditors abroad force it (President), a quarter more, on the record, the loan closed.

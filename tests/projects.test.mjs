@@ -191,3 +191,8 @@ test("bought things show their own pictures (Lovable, 25 Nov 2026)", async () =>
   const S = await import("../game/systems/index.js"), fs = await import("node:fs");
   for (const t of ["vehicles", "cctv"]) { const a = S.BUY[t].art.replace(/^\.\.\//, ""); assert.ok(fs.existsSync(new URL("../public/art/" + a + ".webp", import.meta.url)), a); }
 });
+
+test("a loan the lender has called in leaves the yearly schedule (the recall letter settles it)", () => {
+  const L = { key: "k", principalM: 1800, years: 4, rate: .22, outstandingM: 600, disbursedYear: 1, calledIn: 1 };
+  const s = serviceLoans([L], 2); assert.equal(s.paidM, 0); assert.equal(s.loans[0].outstandingM, 600);
+});

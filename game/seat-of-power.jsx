@@ -9480,7 +9480,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           setLoans(ls => ls.map(x => x.key === L.key ? { ...x, recalled: turn, outstandingM: 0 } : x)); setStc(p => ({ ...p, recalls: (p.recalls || []).map(x => x.key === L.key ? { ...x, ...ch } : x) })); };
         RC.forEach(R => { const L = (loans || []).find(x => x.key === R.key); if (!L) return; const T = SYS.recallTerms(L); if (!T) return; const B = (m) => Math.round(m / 10) / 100, nm = SYS.LENDERS[L.lenderId] ? SYS.LENDERS[L.lenderId].nm : "the loan";
           if (R.stage === "due" && R.turn < turn) { upd(R.key, { stage: "asked", asked: turn });
-            cards.push({ key: "recall_" + L.key.replace(/\W/g, "_") + "_" + turn, kicker: "🏦 " + (L.lender || nm) + " · the loan falls due", color: CL.red, from: (SYS.TRANCHE_RULES[L.lenderId] || {}).from || L.lender || "The lender", img: "./art/characters/" + ((SYS.TRANCHE_RULES[L.lenderId] || {}).who || "bank-relationship-manager") + ".webp", art: ["finance-ministry-office", null, null, "lender-suspends"],
+            cards.push({ key: "recall_" + L.key.replace(/\W/g, "_") + "_" + turn,  office: L.lender || nm, kicker: "🏦 " + (L.lender || nm) + " · the loan falls due", color: CL.red, from: (SYS.TRANCHE_RULES[L.lenderId] || {}).from || L.lender || "The lender", img: "./art/characters/" + ((SYS.TRANCHE_RULES[L.lenderId] || {}).who || "bank-relationship-manager") + ".webp", art: ["finance-ministry-office", null, null, "lender-suspends"],
               title: "The court stopped " + R.title + ": repay what was drawn",
               brief: "The High Court has stopped " + R.title + ", so it will not be finished, and under our agreement the loan falls due at once. You drew " + SYS.fmtM(T.outM) + "; with " + SYS.fmtM(T.interestM) + " of interest, " + SYS.fmtM(T.totalM) + " is owed now.",
               stakes: "If you do not pay, we will go to " + (NAT ? "court abroad and to Nigeria's other lenders" : "the Federal Ministry of Finance, which guarantees the loan and can take it from your allocation") + ", with a penalty.",
@@ -9537,13 +9537,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             { label: "One, in " + two[0], note: "Half the cost; the other town waits.", chips: [{ text: naira(eachB), color: CL.org }], run: go(false) },
             { label: "Not this year", note: "The youth will not forget.", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); mkNeed("sports", two[0], zOf(two[0])); buzzAdd("mini_no", { st: stName }); return { icon: "🧑🏾‍🤝‍🧑🏾", title: "Not this year", text: "The Youth Assembly calls it a betrayal. Their ask stays on your Desk as a need.", tone: "bad" }; } },
           ];
-          cards.push({ key, kicker, color: CL.grn, from, img, art: [NAT ? "villa-office" : "governor-office", null, null, sportArt("scenes/mini-stadium", null)], title: "Two mini-stadia for " + stName + "'s young people", brief, stakes: "Whom the grounds go to, and whether the House pays for them, is the test of your word to the youth.", options: opts });
+          cards.push({ key, kicker, color: CL.grn, from, img, office: key === "sports_memo_mini" ? "Ministry of Sports & Youth Development" : "The State Youth Assembly", art: [NAT ? "villa-office" : "governor-office", null, null, sportArt("scenes/mini-stadium", null)], title: "Two mini-stadia for " + stName + "'s young people", brief, stakes: "Whom the grounds go to, and whether the House pays for them, is the test of your word to the youth.", options: opts });
           buzzNow("mini_ask", { st: stName }); };
         const yName = gN(rng(hashStr("ya" + state + pName)), sd.zone, state);
         if (turn >= 1 && turn <= 3 && !next.youthAsm) { next.youthAsm = { turn, had: !!sportsMin };
           if (sportsMin) ministadia("Hon. " + yName + ", Speaker of the " + stName + " State Youth Assembly", "youth_asm_mini", "The State Youth Assembly · a request", null, "./art/characters/young-voter-student.webp",
             "Our young people have a commissioner now, and we thank you. What they do not have is a place to play: the only pitches are car parks and refuse dumps. We ask for two mini-stadia, in " + two.join(" and ") + ", for football, athletics and a youth league.");
-          else { cards.push({ key: "youth_asm", kicker: "The State Youth Assembly · a request", color: CL.grn, from: "Hon. " + yName + ", Speaker of the " + stName + " State Youth Assembly", img: "./art/characters/young-voter-student.webp", art: ["governor-office", "young-voter-student", null, sportArt("scenes/youth-assembly", null)],
+          else { cards.push({ key: "youth_asm", office: "The State Youth Assembly", kicker: "The State Youth Assembly · a request", color: CL.grn, from: "Hon. " + yName + ", Speaker of the " + stName + " State Youth Assembly", img: "./art/characters/young-voter-student.webp", art: ["governor-office", "young-voter-student", null, sportArt("scenes/youth-assembly", null)],
               title: "The youth of " + stName + " have no voice in your government",
               brief: "Half of " + stName + " is under thirty, yet there is no commissioner for youth or sport, no programme for us and nowhere to play. The Youth Assembly asks you to create a Ministry of Sports & Youth Development and give it a commissioner who will answer to us.",
               stakes: "Say yes and the young people have a voice; ignore it and they will say so loudly, on Tori and at the polls.",
@@ -9568,7 +9568,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             setStc(p => ({ ...p, club: { ...(p.club || next.club), plan: "fix", need: id } })); buzzAdd("club_fix", CX);
             setTimeout(() => setPflow({ step: "propose", draft: { type: "stadium", qty: 20000, years, costF, lga: capL, title, need: id, ministryId: sportsMin ? sportsMin.id : "sports" } }), 900);
             return { icon: "🏟️", title, text: note + " Match day is next year.", tone: "good" }; };
-          cards.push({ key: "club_caf_" + turn, kicker: "CAF · " + CLUB, color: CL.grn, from: "The Chairman, " + CLUB + " F.C.", img: "./art/characters/investor-nigerian.webp", art: ["governor-office", null, null, sportArt("scenes/stadium-derelict", null)],
+          cards.push({ key: "club_caf_" + turn, office: CLUB + " Football Club", kicker: "CAF · " + CLUB, color: CL.grn, from: "The Chairman, " + CLUB + " F.C.", img: "./art/characters/investor-nigerian.webp", art: ["governor-office", null, null, sportArt("scenes/stadium-derelict", null)],
             title: CLUB + " are in Africa, but CAF will not approve their ground",
             brief: CLUB + ", the club the state owns, have qualified for " + CUP + " for the first time in years. But CAF's inspectors have refused to approve our stadium in " + capL + ": the floodlights fail, the seats are broken and the dressing rooms flood. Unless the ground is fixed by next year's home match, we must play it in another state or pull out.",
             stakes: "The supporters are watching. So is CAF." + (blocker ? " " + blocker + " is hostile and holds the purse." : ""),
@@ -9598,7 +9598,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             setTimeout(() => setPflow({ step: "propose", draft: { type: "stadium", qty: P.qty, years: P.years, costF: P.costF, lga: stateLabel(P.lga), title: P.title, need: id, ministryId: (ministries || []).find(m => m.id === "sports") ? "sports" : undefined } }), 900);
             addL("🏟️ For " + F.what + ": you chose to " + P.l.charAt(0).toLowerCase() + P.l.slice(1) + ".", "policy");
             return { icon: "🏟️", title: P.l, text: P.note + " Match day is next year.", tone: "good" }; };
-          cards.push({ key: "caf_" + turn, kicker: F.body + " · a request to host", color: CL.grn, from: F.who, img: F.body === "FIFA" && SEAT.got["characters/fifa-official"] ? "./art/characters/fifa-official.webp" : sportImg("characters/football-official", "./art/characters/investor-foreign.webp"), art: ["villa-office", null, null, sportArt("scenes/stadium-derelict", null)],
+          cards.push({ key: "caf_" + turn, office: F.body === "FIFA" ? "FIFA · Zurich" : "CAF · Cairo", kicker: F.body + " · a request to host", color: CL.grn, from: F.who, img: F.body === "FIFA" && SEAT.got["characters/fifa-official"] ? "./art/characters/fifa-official.webp" : sportImg("characters/football-official", "./art/characters/investor-foreign.webp"), art: ["villa-office", null, null, sportArt("scenes/stadium-derelict", null)],
             title: F.body + " wants Nigeria to host " + F.what,
             brief: "I write to offer Nigeria the honour of hosting " + F.what + " next year, with " + F.team + " at home. But our inspectors have failed every Nigerian stadium: the National Stadium in Abuja needs its roof, seats and pitch redone, and Lagos's has been derelict for years. Without a stadium fit to host by match day, the match will be played abroad.",
             stakes: "Choose how to get a stadium ready, or play the home match in another country." + (blocker ? " Note: " + blocker + " is blocking your spending." : ""),
@@ -9621,7 +9621,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               scFx({ app: O.app }); buzzAdd(O.crack ? "caf_crack" : "caf_rushed", { fix: Fx, place });
               setTimeout(() => paper(O.crack ? "CRACKS IN THE NEW STAND" : "FINISHED THE NIGHT BEFORE", O.crack ? "A stand emptied mid-match; the rush job shows" : Fx.team + " play at home in a stadium finished in a hurry", !O.crack, SEAT.got[O.crack ? "scenes/stadium-cracked-stand" : "scenes/stadium-full-house"] ? "./art/scenes/" + (O.crack ? "stadium-cracked-stand" : "stadium-full-house") + ".webp" : undefined), 200);
               return { icon: O.crack ? "💥" : "🏟️", title: O.crack ? "The rushed stand cracked" : "Finished in time, just", text: O.crack ? "The match went ahead, but a stand had to be emptied after cracks appeared. " + Fx.body + " is asking questions." : "Night shifts finished the stadium the night before. The match went ahead at home.", tone: O.crack ? "bad" : "good" }; };
-            cards.push({ key: "caf_day_" + turn, kicker: Fx.body + " · match day", color: CL.red, from: Fx.who, img: Fx.body === "FIFA" && SEAT.got["characters/fifa-official"] ? "./art/characters/fifa-official.webp" : sportImg("characters/football-official", "./art/characters/investor-foreign.webp"), art: ["villa-office", null, null, sportArt("scenes/stadium-derelict", null)],
+            cards.push({ key: "caf_day_" + turn, office: Fx.body === "FIFA" ? "FIFA · Zurich" : "CAF · Cairo", kicker: Fx.body + " · match day", color: CL.red, from: Fx.who, img: Fx.body === "FIFA" && SEAT.got["characters/fifa-official"] ? "./art/characters/fifa-official.webp" : sportImg("characters/football-official", "./art/characters/investor-foreign.webp"), art: ["villa-office", null, null, sportArt("scenes/stadium-derelict", null)],
               title: "Match day is here, and the stadium is not ready",
               brief: "Our inspectors have been back to " + place + ": the stadium is not finished. Either it is finished in days, at whatever it costs, or we move " + Fx.what + " to another country." + (blocker ? " Your officials tell us " + blocker + " is refusing the extra money." : ""),
               stakes: "Rushing it costs half again, and a rush job can crack. Letting it go is a public humiliation.",
@@ -9871,7 +9871,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         else { if (W.act === "lift") notes.push(["🏦 " + finFrom(L) + " has lifted the suspension on " + P.title + ": the money flows again.", "success"]); cards.push(finTrancheCard(L, P)); }
         return L;
       });
-      setLoans(nl);
+      setLoans(ls => (ls || []).map(x => { const i = loans.findIndex(y => y.key === x.key); return i >= 0 && nl[i] !== loans[i] ? nl[i] : x; })); // only what this step changed: a recall closed earlier this year stays closed
     }
 
     // The scenario (SYS.scenarios): while it lasts it bites every year; the rival makes a move;
@@ -10670,7 +10670,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (Object.keys(next).length) setProjects(prev => prev.map(p => next[p.id] || p));
     if (paidM || owedM) { spendB(SYS.toB(paidM + owedM), "Paying your contractors", { force: true }); notes.push(["🏗️ Contractors were paid " + SYS.fmtM(paidM + owedM) + " for last year's work" + (owedM ? ", " + SYS.fmtM(owedM) + " of it borrowed because the bank ran short" : ", all from the bank") + ".", "info"]); }
     if (opsM) { spendB(SYS.toB(opsM), "Running your hospitals, schools and plants", { force: true }); notes.push(["🏥 Running your hospitals, schools and plants cost " + SYS.fmtM(opsM) + " this year.", "info"]); }
-    const sv = SYS.serviceLoans(loans, turn); if (sv.paidM) { setLoans(sv.loans); notes.push(["🏦 Project loans: " + SYS.fmtM(sv.paidM) + " repaid this year (part of debt service).", "info"]); }
+    const sv = SYS.serviceLoans(loans, turn); if (sv.paidM) { setLoans(ls => (ls || []).map(x => { const i = loans.findIndex(y => y.key === x.key); return i >= 0 && sv.loans[i] !== loans[i] ? sv.loans[i] : x; })); notes.push(["🏦 Project loans: " + SYS.fmtM(sv.paidM) + " repaid this year (part of debt service).", "info"]); }
     notes.forEach(([t, k]) => addL(t, k));
     done.forEach((p, i) => setTimeout(() => projDelivered({ ...p, effective: SYS.benefitFactor(p), cost: p.spentM / 1000 }), 600 + i * 300));
   }, [turn]);
@@ -11768,6 +11768,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // A loan on a stopped project falls due: its lender writes next (SYS.recallTerms).
     const owed = hit.filter(x => x.loanKey && (loans || []).some(L => L.key === x.loanKey && !L.recalled && SYS.recallTerms(L)));
     if (owed.length) setStc(p => ({ ...p, recalls: [...(p.recalls || []), ...owed.map(x => ({ key: x.loanKey, projId: x.id, title: x.title, turn, stage: "due" }))] }));
+    if (owed.length) setLoans(ls => (ls || []).map(L => owed.some(x => x.loanKey === L.key) ? { ...L, calledIn: turn } : L)); // off the yearly schedule: the recall letter settles it
     if (hit.length) setProjects(prev => (prev || []).map(x => hit.some(h => h.id === x.id) ? { ...SYS.abandon({ ...x, decisions: x.decisions || [], spentM: x.spentM || 0 }, turn), courtStopped: turn } : x));
     return hit.length; };
   const resolveJudiciary = (mode) => decide(() => {
