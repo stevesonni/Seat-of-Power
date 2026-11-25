@@ -2491,3 +2491,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 
 ## 25 Nov 2026: Mr. Projects / Madam Projects
 - The eight-projects badge (was "Ribbon Cutter") is "Mr. Projects", or "Madam Projects" when the player chose a woman. The title is kept with the earned card.
+- Checked live on the Katsina page (name as placeholders): the rewrite runs to the end, never mentions its sources, keeps events in a possible order and lists the figures; it now keeps the game's own fictional firm names.

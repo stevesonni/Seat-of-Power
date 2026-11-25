@@ -212,7 +212,7 @@ Rewrite it as a Wikipedia-style article:
 - Open the lead with "{NAME} (born …) is a Nigerian politician who served as …", as an encyclopedia does.
 - Write as the encyclopedia itself. Never mention "the record", "the page", "the sources", "entries" or the game; never say that something is unclear. Where two facts disagree, quietly keep the one that makes sense and leave the other out.
 - The day and month given for each event are approximate. When they would put events in an impossible order (a strike ending before it began), drop the month and give only the year, in the order that makes sense.
-- Never name a real person, real politician or real company. Real Nigerian states, places, courts and institutions are fine.`;
+- Every person and firm named in the page (ministers, Speakers, contractors such as builders) is fictional: keep their names exactly. Never add the name of a real person, real politician or real company. Real Nigerian states, places, courts and institutions are fine.`;
 export function makeBioAI({ dataDir }) {
   const dir = path.join(dataDir, "tori-ai", "bio"); try { fs.mkdirSync(dir, { recursive: true }); } catch (e) {}
   const client = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null, hits = new Map();
