@@ -2420,3 +2420,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - **Tori buzzes** at each step (SYS.sportsBuzz, shown at the top of the feed as c.buzz): sports journalists, fans, the Youth Assembly, a footballer.
 - No new art: existing portraits and rooms; FIFA and CAF are named, their people are not.
 - Tests: tests/sports.test.mjs; tests/e2e/sports.mjs.
+- Fix (same day): Tori posts queued while the year turned were overwritten when the year's record was saved, so the feed never buzzed. They now go straight into the year's record (buzzNow). tests/e2e/sports.mjs now watches for the letters during play, because its autoplay can hand them to the Chief of Staff before the end.

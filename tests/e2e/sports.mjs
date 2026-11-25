@@ -13,8 +13,8 @@ const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", impo
   const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) }, seed: 3, test: { noStrikes: true } });
   await g.click(/^Continue/); await g.wait(1800);
   await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await g.wait(800);
-  const find = () => g.page.evaluate(() => (window.SOP.lettersTest() || []).find(x => x.key === "sc#youth_asm"));
-  let L = await find(); if (!L) { await playUntil(g, t => /have no voice in your government/.test(t), { max: 400 }); L = await find(); }
+  let L = null; const grab = async () => { if (L) return; try { L = await g.page.evaluate(() => (window.SOP.lettersTest() || []).find(x => x.key === "sc#youth_asm")) || null; } catch (e) {} };
+  await playUntil(g, () => !!L, { max: 400, onStep: grab });
   check(!!L, "the State Youth Assembly writes");
   console.log("  " + (L && L.body));
   check(L && /there is no commissioner for youth or sport, no programme for us and nowhere to play\. The Youth Assembly asks you to create a Ministry of Sports & Youth Development/.test(L.body), "it asks for a voice: the ministry");
@@ -37,8 +37,8 @@ const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", impo
   await g.click(/Road to Aso Rock/); await g.wait(900); await g.click(/Take the oath of office/); await g.wait(1500); await g.click(/^✋ Take the oath$/); await g.wait(600);
   for (const re of [/Steady electricity/, /Jobs for young people/, /End grand corruption/]) { await g.page.evaluate((src) => { const b = [...document.querySelectorAll("[aria-label=Inauguration] button")].find(x => new RegExp(src).test(x.textContent)); b && b.click(); }, re.source); await g.wait(150); }
   await g.click(/^Next: the address$/); await g.wait(500);
-  const find = () => g.page.evaluate(() => (window.SOP.lettersTest() || []).find(x => /^sc#caf_/.test(x.key)));
-  let L = await find(); if (!L) { await playUntil(g, t => /wants Nigeria to host/.test(t), { max: 700 }); L = await find(); }
+  let L = null; const grab = async () => { if (L) return; try { L = await g.page.evaluate(() => (window.SOP.lettersTest() || []).find(x => /^sc#caf_/.test(x.key))) || null; } catch (e) {} };
+  await playUntil(g, () => !!L, { max: 700, onStep: grab });
   check(!!L, "FIFA or CAF writes to the President");
   console.log("  " + (L && L.title) + " · " + (L && L.body));
   check(L && /(FIFA|CAF) wants Nigeria to host/.test(L.title) && /inspectors have failed every Nigerian stadium/.test(L.body) && /the match will be played abroad/.test(L.body), "it says what, why there is no stadium, and what happens otherwise");

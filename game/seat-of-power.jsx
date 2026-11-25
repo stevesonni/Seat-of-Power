@@ -9463,6 +9463,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
        too. The President: FIFA or CAF wants Nigeria to host a match next year, and no stadium passes. A hostile
        Speaker (or Senate President, or Speaker of the Reps) can scuttle the money. Tori buzzes at every step. */
     try { if (!scenId) {
+      // Tori's buzz: straight into this year's record while the year turns (a setStc here would be overwritten by the
+      // record saved at the end), and through setStc from a choice made later.
+      const buzzNow = (stage, ctx) => { next.buzz = [...(next.buzz || []), { turn, stage, ctx }].slice(-8); };
       const buzzAdd = (stage, ctx) => setStc(p => ({ ...p, buzz: [...(p.buzz || []), { turn, stage, ctx }].slice(-8) }));
       const sportsMin = (ministries || []).find(m => m.id === "sports" && m.minister);
       const mkNeed = (k, lga, zone, extra = {}) => { const id = "need_" + turn + "_" + k + "_" + String(lga).replace(/\W/g, "").slice(0, 10);
@@ -9491,7 +9494,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             { label: "Not this year", note: "The youth will not forget.", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); mkNeed("sports", two[0], zOf(two[0])); buzzAdd("mini_no", { st: stName }); return { icon: "🧑🏾‍🤝‍🧑🏾", title: "Not this year", text: "The Youth Assembly calls it a betrayal. Their ask stays on your Desk as a need.", tone: "bad" }; } },
           ];
           cards.push({ key, kicker, color: CL.grn, from, img, art: [NAT ? "villa-office" : "governor-office", null, null, null], title: "Two mini-stadia for " + stName + "'s young people", brief, stakes: "Whom the grounds go to, and whether the House pays for them, is the test of your word to the youth.", options: opts });
-          buzzAdd("mini_ask", { st: stName }); };
+          buzzNow("mini_ask", { st: stName }); };
         const yName = gN(rng(hashStr("ya" + state + pName)), sd.zone, state);
         if (turn >= 1 && turn <= 3 && !next.youthAsm) { next.youthAsm = { turn, had: !!sportsMin };
           if (sportsMin) ministadia("Hon. " + yName + ", Speaker of the " + stName + " State Youth Assembly", "youth_asm_mini", "The State Youth Assembly · a request", null, "./art/characters/young-voter-student.webp",
@@ -9506,7 +9509,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 { label: "Not now", note: "The youth will take it to Tori.", chips: fxChips({ app: -2 }), run: () => { scFx({ app: -2 }); setStc(p => ({ ...p, youthAsm: { ...(p.youthAsm || {}), no: turn } })); mkNeed("sports", two[0], zOf(two[0])); buzzAdd("mini_no", { st: stName });
                   return { icon: "🧑🏾‍🤝‍🧑🏾", title: "Not now", text: "The Youth Assembly calls it a betrayal. Their ask stays on your Desk as a need.", tone: "bad" }; } },
               ] });
-            buzzAdd("youth_ask", { st: stName }); } }
+            buzzNow("youth_ask", { st: stName }); } }
         // The commissioner's first memo, once the ministry has one (and nobody has asked for the grounds yet).
         else if (sportsMin && next.youthAsm && !next.youthAsm.had && !next.ministadia && !next.miniMemo) { next.miniMemo = turn;
           ministadia((sportsMin.acting ? "" : "Hon. ") + sportsMin.minister + ", Commissioner for Sports & Youth Development", "sports_memo_mini", "Sports & Youth · the commissioner's first memo", null, commissionerArt(sportsMin.minister, sportsMin.perf, sportsMin.id),
@@ -9532,7 +9535,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               { label: "Play the home match abroad", note: "No cost. A national embarrassment.", chips: fxChips({ app: -4 }), run: () => { scFx({ app: -4 }); buzzAdd("caf_abroad", { fix: F }); setStc(p => ({ ...p, caf: { ...(p.caf || next.caf), plan: "abroad", done: turn } }));
                 setTimeout(() => paper("HOME MATCH TO BE PLAYED ABROAD", F.team + " have no stadium at home", false), 200);
                 return { icon: "✈️", title: "The home match goes abroad", text: F.team.charAt(0).toUpperCase() + F.team.slice(1) + " will play their home match in another country. Fans and players are furious.", tone: "bad" }; } }]) });
-          buzzAdd("caf_ask", { fix: F }); }
+          buzzNow("caf_ask", { fix: F }); }
         // Match day.
         const C = next.caf;
         if (C && !C.done && C.match === turn && C.plan && C.plan !== "abroad") { const P = (projects || []).find(p => p.need === C.need), Fx = SYS.FIXTURES.find(x => x.id === C.fix) || F, place = stateLabel(C.lga || "FCT");
