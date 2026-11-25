@@ -177,3 +177,13 @@ test("a stalled project says why, and its fix restarts it", () => {
   assert.equal(SYS.stallCause(old), "fled");
   assert.equal(SYS.stallCause({ ...old, decisions: [...old.decisions, { year: 2, text: "Replaced the contractor; handover adds ₦0.2B." }] }), "cash");
 });
+
+// Things bought are not built (owner, 25 Nov 2026: "How can patrol vehicles be under construction?").
+test("patrol vehicles and cameras are a purchase: on order, delivered, on patrol", async () => {
+  const S = await import("../game/systems/index.js");
+  const v = { type: "vehicles", title: "40 new patrol vehicles", status: "in_progress", progress: 35 };
+  assert.deepEqual(S.milestonesFor(v).slice(4).map(x => x[1]), ["On order", "Delivered", "On patrol"]);
+  assert.match(S.nextStep(v, {}).say, /is on order: the vehicles are being built at the factory and shipped/);
+  assert.doesNotMatch(S.nextStep(v, {}).say, /under construction/);
+  assert.equal(S.milestonesFor({ type: "road" })[4][1], "Under construction", "a road is still built");
+});

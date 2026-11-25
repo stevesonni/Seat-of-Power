@@ -2348,3 +2348,13 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - Look away: approval +1, and −2 a year goes on.
 - Each year's notes say why Abuja is unhappy.
 - Tests: tests/trade-friction.test.mjs; tests/e2e/econ-letter.mjs checks the President's chip on the Council.
+
+## Things bought are not built (25 Nov 2026)
+- Owner: "How can patrol vehicles be under construction?"
+- SYS.BUY: patrol vehicles and CCTV are purchases.
+  - Their stages read "On order → Delivered → On patrol" for vehicles, and "Being installed → Installed → Watching" for cameras.
+  - The project card says "On order", "Waiting for a supplier", or "Delivered, not on patrol".
+  - The progress tile reads "Delivered 35%", and the status line reads "40 new patrol vehicles is on order: the vehicles are being built at the factory and shipped."
+  - The picture is the police, not a building site (a proper patrol-fleet picture is still wanted from Lovable).
+- The Speaker's "Buy 40 new patrol vehicles" now goes to the security ministry, not Transport.
+- Test: tests/projects.test.mjs.

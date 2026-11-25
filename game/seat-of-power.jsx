@@ -5354,14 +5354,14 @@ const SecondChance = () => {
 // supports), and an optional full briefing. Milestones and the next step
 // come from SYS.milestoneOf / SYS.nextStep, so what you see is what is true.
 const SECTOR_ICON = { roads: "🛣️", health: "🏥", education: "🏫", water: "🚰", energy: "⚡", markets: "🏬", security: "🛡️", waste: "♻️", industry: "🏭", sports: "🏟️", tourism: "🏝️" };
-const MilestoneStrip = ({ at }) => <div className="sp-ms" role="list" aria-label="Project stages">
-  {SYS.MILESTONES.map(([k, l], i) => <div key={k} role="listitem" className={"s" + (i < at ? " done" : i === at ? " now" : "")} aria-current={i === at ? "step" : undefined}><span>{l}</span></div>)}
+const MilestoneStrip = ({ at, p }) => <div className="sp-ms" role="list" aria-label="Project stages">
+  {SYS.milestonesFor(p).map(([k, l], i) => <div key={k} role="listitem" className={"s" + (i < at ? " done" : i === at ? " now" : "")} aria-current={i === at ? "step" : undefined}><span>{l}</span></div>)}
 </div>;
 const Tiles = ({ items }) => <div className="sp-tiles">{items.filter(Boolean).map(([l, v, tone]) => <div key={l} className={"sp-tile" + (tone ? " " + tone : "")}><div className="l">{l}</div><div className="v">{v}</div></div>)}</div>;
 // What a project's site looks like at each stage, and its stage pin (art pack 2).
-const siteArt = (p) => SYS.isWorks(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? "../" + SYS.WORKS[p.type].art : p.status === "delivered" ? "project-ribbon-cutting" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "project-site-stalled" : (p.status === "in_progress" && (p.progress || 0) >= 35) || p.status === "built" ? "project-site-halfway" : "project-site-cleared";
+const siteArt = (p) => SYS.isBuy(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? SYS.BUY[p.type].art : SYS.isWorks(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? "../" + SYS.WORKS[p.type].art : p.status === "delivered" ? "project-ribbon-cutting" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "project-site-stalled" : (p.status === "in_progress" && (p.progress || 0) >= 35) || p.status === "built" ? "project-site-halfway" : "project-site-cleared";
 const pinOf = (p) => p.status === "delivered" ? "green" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "red" : p.status === "in_progress" || p.status === "built" ? "gold" : "grey";
-const Dossier = ({ icon, kicker, title, place, at, children, wide, pic, thumb, pin }) => <div className="sp-card sp-step" style={{ maxWidth: wide ? 980 : 900, margin: "0 auto", padding: TALL() ? "16px 16px 18px" : "22px 26px 24px" }}>
+const Dossier = ({ icon, kicker, title, place, at, children, wide, pic, thumb, pin, proj }) => <div className="sp-card sp-step" style={{ maxWidth: wide ? 980 : 900, margin: "0 auto", padding: TALL() ? "16px 16px 18px" : "22px 26px 24px" }}>
   {pic && <img src={"./art/backgrounds/" + pic + ".webp"} onError={(e) => { const t = e.currentTarget; if (!t.dataset.f) { t.dataset.f = "1"; t.src = "./art/backgrounds/project-site-cleared.webp"; } }} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 14 }} />}
   <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
     <div aria-hidden="true" style={{ width: 54, height: 54, borderRadius: 16, background: "linear-gradient(180deg,#fff7e2,#f1e2b8)", display: "grid", placeItems: "center", fontSize: 28, flexShrink: 0, boxShadow: "inset 0 0 0 1px #e7d6a8" }}>{icon}</div>
@@ -5372,7 +5372,7 @@ const Dossier = ({ icon, kicker, title, place, at, children, wide, pic, thumb, p
     </div>
     {thumb && <img src={"./art/backgrounds/" + thumb + ".webp"} onError={(e) => { const t = e.currentTarget; if (!t.dataset.f) { t.dataset.f = "1"; t.src = "./art/backgrounds/project-site-cleared.webp"; } }} alt="" style={{ marginLeft: "auto", width: TALL() ? 84 : 120, aspectRatio: "16/9", objectFit: "cover", borderRadius: 12, flexShrink: 0 }} />}
   </div>
-  {at != null && <div style={{ margin: "14px 0 4px" }}><MilestoneStrip at={at} /></div>}
+  {at != null && <div style={{ margin: "14px 0 4px" }}><MilestoneStrip at={at} p={proj} /></div>}
   {children}
 </div>;
 const Situation = ({ head, text, tone }) => <div style={{ margin: "14px 0 12px", padding: "12px 14px", borderRadius: 16, background: tone === "bad" ? "#fdf0ee" : tone === "warn" ? "#fdf6e7" : "#f1f7f1", borderLeft: "4px solid " + (tone === "bad" ? "#b3261e" : tone === "warn" ? "#c9922a" : "#0b6b42") }}>
@@ -5385,10 +5385,10 @@ const spField = { padding: "11px 12px", font: "600 16px 'Plus Jakarta Sans', san
 const spLab = (t) => <div className="sp-kicker" style={{ margin: "12px 0 6px" }}>{t}</div>;
 // The milestone strip moves from where the project was to where it is now,
 // so an advance is seen happening (CSS transitions; none with reduced motion).
-const MilestoneMove = ({ from, at }) => {
+const MilestoneMove = ({ from, at, p }) => {
   const [shown, setShown] = useState(from != null && from < at ? from : at);
   useEffect(() => { if (shown === at) return; const t = setTimeout(() => setShown(at), 650); return () => clearTimeout(t); }, [at]);
-  return <MilestoneStrip at={shown} />;
+  return <MilestoneStrip at={shown} p={p} />;
 };
 // Reduced motion: the device setting, or the player's own switch.
 const spStill = () => { try { return localStorage.getItem("sop_still") === "1"; } catch (e) { return false; } };
@@ -5610,9 +5610,9 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
 
   // ── The project dossier (from the adviser or the portfolio) ──
   const Card = ({ p, big }) => { const n = nextOf(p), C = SYS.contractorById(p.contractorId), bf = SYS.benefitFactor(p);
-    return <Dossier pic={big ? siteArt(p) : null} thumb={big ? null : siteArt(p)} pin={pinOf(p)} icon={SECTOR_ICON[p.sector] || "🏗️"} kicker={{ pending_finance: "Waiting for money", pending_procurement: "Waiting for a contractor", in_progress: "Under construction", stalled: "Stalled", built: "Built, not working", delivered: "Open", suspended: "Suspended", abandoned: "Abandoned" }[p.status] || p.status} title={p.title} place={where(p) + (C ? " · " + C.name : "")} at={SYS.milestoneOf(p)}>
+    return <Dossier pic={big ? siteArt(p) : null} thumb={big ? null : siteArt(p)} pin={pinOf(p)} icon={SECTOR_ICON[p.sector] || "🏗️"} kicker={{ pending_finance: "Waiting for money", pending_procurement: SYS.isBuy(p.type) ? "Waiting for a supplier" : "Waiting for a contractor", in_progress: SYS.isBuy(p.type) ? SYS.BUY[p.type].stage : "Under construction", stalled: "Stalled", built: SYS.isBuy(p.type) ? SYS.BUY[p.type].done : "Built, not working", delivered: SYS.isBuy(p.type) ? SYS.BUY[p.type].steps[2] : "Open", suspended: "Suspended", abandoned: "Abandoned" }[p.status] || p.status} title={p.title} place={where(p) + (C ? " · " + C.name : "")} at={SYS.milestoneOf(p)} proj={p}>
       <Situation tone={n.blocked ? "bad" : n.due ? "warn" : null} head={n.due ? (n.blocked ? "Blocked" : "Next: " + n.button.toLowerCase()) : p.status === "delivered" ? "Open and working" : "Nothing due yet"} text={n.say + (n.when ? " Next check: " + n.when + "." : "")} />
-      <Tiles items={[["Scope costs", SYS.fmtM(p.estimateM)], ["Approved", SYS.fmtM(p.approvedM), p.approvedM < p.estimateM * .95 ? "bad" : null], ["Spent", SYS.fmtM(p.spentM)], p.status === "delivered" || p.status === "built" ? ["Benefit", Math.round(bf * 100) + "%", bf < .6 ? "bad" : "good"] : ["Built", p.progress + "%"]]} />
+      <Tiles items={[["Scope costs", SYS.fmtM(p.estimateM)], ["Approved", SYS.fmtM(p.approvedM), p.approvedM < p.estimateM * .95 ? "bad" : null], ["Spent", SYS.fmtM(p.spentM)], p.status === "delivered" || p.status === "built" ? ["Benefit", Math.round(bf * 100) + "%", bf < .6 ? "bad" : "good"] : [SYS.isBuy(p.type) ? SYS.BUY[p.type].tile : "Built", p.progress + "%"]]} />
       {survive && !["delivered", "built", "abandoned"].includes(p.status) && (() => { const S = survive(p); return <div data-testid="proj-survive" style={{ marginTop: 8, fontSize: 14, color: S.odds >= .7 ? "#0b6b42" : S.odds >= .45 ? "#9a5b12" : "#a3271c", fontFamily: F.b }}>
         If you left office today: <b>{Math.round(S.odds * 100)}%</b> chance it gets finished. {S.kind}{p.fast ? " · Sped up" : ""}{p.protected ? " · Protected" : ""}</div>; })()}
       {n.due && (n.id === "blocked_finance"
@@ -5649,7 +5649,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
       contract: ["Contract signed", C ? C.name : "", true, "Contract signed with " + (C ? C.name : "the contractor"), "Work starts this year. How far it gets depends on the money released and on the contractor; you will see it at year end."] }[k];
     if (!S || !recorded) return <Card p={proj} big />;
     return <Dossier pic={k === "contract" ? (SYS.isWorks(proj.type) ? siteArt(proj) : "project-site-cleared") : null} pin={pinOf(proj)} icon={SECTOR_ICON[proj.sector] || "🏗️"} kicker="Recorded" title={proj.title} place={where(proj) + (C ? " · " + C.name : "")} at={null}>
-      <div style={{ margin: "14px 0 4px" }}><MilestoneMove from={F0.fromAt} at={SYS.milestoneOf(proj)} /></div>
+      <div style={{ margin: "14px 0 4px" }}><MilestoneMove from={F0.fromAt} at={SYS.milestoneOf(proj)} p={proj} /></div>
       <Situation head={S[3]} text={S[4]} />
       <Tiles items={[["Scope costs", SYS.fmtM(proj.estimateM)], ["Approved", SYS.fmtM(proj.approvedM)], k === "funded" ? ["Loan in hand", SYS.fmtM(proj.loanLeftM), "good"] : ["Spent", SYS.fmtM(proj.spentM)], ["Stage", SYS.MILESTONES[SYS.milestoneOf(proj)][1]]]} />
       <div style={{ marginTop: 14 }}>

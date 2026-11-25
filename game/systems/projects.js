@@ -365,6 +365,14 @@ export const MILESTONES = [
   ["proposed", "Proposed"], ["approved", "Budget approved"], ["financed", "Money found"], ["contracted", "Contract signed"],
   ["building", "Under construction"], ["built", "Built"], ["working", "Open and working"],
 ];
+/* Things bought, not built (owner, 25 Nov 2026: "How can patrol vehicles be under construction?"): their stages,
+   their progress and their words are a purchase's. */
+export const BUY = {
+  vehicles: { steps: ["On order", "Delivered", "On patrol"], doing: "on order: the vehicles are being built at the factory and shipped. Deliveries are counted at the end of the year", stage: "On order", done: "Delivered, not on patrol", tile: "Delivered", art: "../decisions/f_state_police" },
+  cctv: { steps: ["Being installed", "Installed", "Watching"], doing: "being installed: the cameras go up street by street. Progress is counted at the end of the year", stage: "Being installed", done: "Installed, not switched on", tile: "Installed", art: "../decisions/f_state_police" },
+};
+export const isBuy = (t) => !!BUY[t];
+export const milestonesFor = (p) => { const B = p && BUY[p.type]; return !B ? MILESTONES : MILESTONES.map(([k, l]) => [k, k === "building" ? B.steps[0] : k === "built" ? B.steps[1] : k === "working" ? B.steps[2] : l]); };
 export const milestoneOf = (p) => {
   if (!p) return 0;
   if (p.status === "delivered") return 6;
@@ -388,7 +396,7 @@ export const nextStep = (p, ctx = {}) => {
     if (!free.length) return { id: "blocked_contractor", due: true, blocked: true, button: "See the bidders", say: "Every qualified " + short(p) + " contractor is busy. One frees up when one of their projects finishes at year end." };
     return { id: "contractor", due: true, button: "Review " + short(p) + " procurement", say: "Governor, " + t + " is approved and the money is in place. The next step is to review its procurement and award the contract." };
   }
-  if (p.status === "in_progress") return { id: "wait", due: false, say: t + " is under construction. Progress is measured at the end of the year.", when: "year end" };
+  if (p.status === "in_progress") return { id: "wait", due: false, say: BUY[p.type] ? t + " is " + BUY[p.type].doing + "." : t + " is under construction. Progress is measured at the end of the year.", when: "year end" };
   if (p.status === "stalled") { const why = stallCause(p);
     if (why === "fled") return { id: "replace", due: true, blocked: true, button: "Replace the contractor", say: t + " has stalled: the contractor fled with the mobilisation fee. Appoint a new contractor to restart the work." };
     if (why === "money") return { id: "stall_fund", due: true, blocked: true, button: "Add " + fmtM(toFinishM(p)) + " and restart", say: t + " has stalled: the approved money is spent and " + fmtM(remainingM(p)) + " of work is left. Add the money to restart it, or cut the scope to what is approved." };
