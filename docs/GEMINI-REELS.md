@@ -17,6 +17,17 @@ installs them.
 > **No text, no words, no signs with lettering, no logos, no flags with emblems, no watermarks.** No famous or
 > recognisable people. Nobody looks into the camera. Nothing violent or sad.
 
+## Wanted: transport films (25 Nov 2026)
+
+Owner: "we need videos for the rail, and a new programme called Bus Terminals… for the presidency it is interstate; for a state it could be intra-state rail or metro." Use the shared style block, then one prompt each. Claude adds each to REELS when the file arrives.
+
+| File | Plays for | Prompt (after the style block) |
+|---|---|---|
+| rail.mp4 | The President's railway (the Lagos–Kano standard-gauge line, any federal railway) | A long modern passenger train, green and white with no lettering, glides along a new standard-gauge line across open savannah, then past a town with a new station. Passengers wave from the windows; children by the track wave back. The camera tracks alongside the train, then rises to show the line running to the horizon. |
+| metro.mp4 | A state's Intra-State Rail Line (light rail or metro) | A sleek light-rail train, two carriages, plain colours with no lettering, pulls into a new elevated station in a busy Nigerian city at sunset. Commuters with bags step off; below, the road traffic is jammed with danfo buses while the train moves freely above it. The camera follows the train along its viaduct over the city. |
+| busterminal.mp4 | A state's Modern Bus Terminals | A new bus terminal in a Nigerian town: a big shaded steel roof, clean bays with yellow buses lined up, travellers with luggage queuing at ticket windows, traders selling snacks in neat kiosks, a uniformed attendant waving a bus out. The camera glides in under the roof from the entrance. |
+| interstatebus.mp4 | The President's Interstate bus terminals | A large interstate bus terminal at dawn: rows of long-distance coaches (plain liveries, no company names) loading luggage, families saying goodbye, passengers boarding for the journey across the country. The camera rises from the boarding bays to show the coaches pulling out onto the highway. |
+
 ## Delivered: irrigation.mp4 (23 Nov 2026)
 
 In the game: it plays when the Irrigation Network or the Dry-Season Irrigation Scheme is finished. The prompt used:

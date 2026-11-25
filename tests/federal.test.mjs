@@ -28,7 +28,10 @@ test("federal projects: rail, ports, refineries, pipelines and airports for the 
   F.FED_ONLY.forEach(t => assert.ok(ATTRACTS[t] > 0, t));
   assert.equal(parseProposal("a 300 km railway to Kano", { federal: true }).proposal.type, "rail");
   assert.equal(parseProposal("a deep seaport with 4 berths", { federal: true }).proposal.qty, 4);
-  assert.equal(parseProposal("a 300 km railway to Kano").status, "unsupported");
+  // Since 2023 railways are on the Concurrent List: a state's railway is its own light rail or metro line.
+  assert.equal(parseProposal("a 30 km railway to Kano").proposal.type, "metro");
+  assert.equal(parseProposal("standard gauge to Kano").status, "unsupported");
+  assert.equal(parseProposal("4 interstate bus terminals", { federal: true }).proposal.type, "busterminal");
   assert.equal(parseProposal("50 boreholes in Kano", { federal: true }).status, "unsupported");
   assert.equal(parseProposal("50 boreholes in Kano").proposal.type, "water");
 });

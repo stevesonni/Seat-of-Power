@@ -2173,3 +2173,10 @@ public/art/reels/irrigation.mp4 (960×540, no sound); REELS.irrigation, and REEL
 
 ## Rural Electrification plays the village film (25 Nov 2026)
 Owner: the video for rural electrification was not the right one. REEL_BY_POLICY.rural_elec = "dam": the village whose street lamps come on (dam.mp4), not the town and its market (power.mp4). Power plants, solar farms and gas keep power.mp4.
+
+## Transport: state rail is a metro, Bus Terminals, and the transport films wanted (25 Nov 2026)
+Owner: "we need videos for the rail, and a new programme called Bus Terminals… for the presidency it is interstate; for a state it could be intra-state rail or metro."
+- New project kinds (projects.js): `metro` (light rail / metro line, km) and `busterminal` (bus terminal; the President's is an "Interstate bus terminal"). A governor's Intra-State Rail Line now builds a metro, not a road.
+- New programmes: "Modern Bus Terminals" (governor, ₦1.5B, 3 terminals, fixes traffic) and "Interstate bus terminals in every zone" (President, f_bus_terminals, also fixes traffic).
+- The law: railways moved to the Concurrent List in 2023, so a governor's "railway" is now read as their own light rail or metro; only "standard gauge" is refused.
+- Films: rail.mp4, metro.mp4, busterminal.mp4 and interstatebus.mp4 (REEL_BY_POLICY.f_bus_terminals) are briefed in docs/GEMINI-REELS.md.

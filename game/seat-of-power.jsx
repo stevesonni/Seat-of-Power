@@ -848,7 +848,7 @@ const NEED_TYPES = [
     abandon: (l) => "The housing estate in " + l + " is a field of unfinished walls.",
     win: (l) => "Displaced families in " + l + " have keys to new homes." },
   // Needs that only a ministry you create can answer (see NEED_MINISTRY).
-  { k: "traffic", icon: "🚦", stat: "infra", sector: "infrastructure", fix: ["rail", "okada_kit"],
+  { k: "traffic", icon: "🚦", stat: "infra", sector: "infrastructure", fix: ["rail", "bus_terminals", "okada_kit"],
     title: (l) => "Gridlock is choking " + l,
     why: (l) => "Workers spend four hours a day in traffic. Danfo drivers block the junctions and nobody plans the routes.",
     ask: "Create the Ministry of Transport, then start the rail line or the keke scheme.",
@@ -922,7 +922,7 @@ const REVM = () => SEAT.nat ? SYS.FED_REVENUE : REVENUE_MEASURES;
 const TYPES_FOR = () => SEAT.nat ? SYS.FED_TYPES : Object.keys(SYS.UNIT).filter(k => !SYS.FED_ONLY.includes(k));
 // What kind of need each project type answers, and what it improves when done.
 const PROJ_NEED = { road: "road", bridge: "road", hospital: "clinic", school: "school", secondary: "school", nursing: "clinic", water: "water", power: "power", housing: "housing", dam: "farm", cctv: "security", vehicles: "security", industrial: "jobs", stadium: "youth", esports: "youth" };
-const PROJ_STAT = { stadium: "igr", esports: "igr", tourist: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", secondary: "lit", nursing: "hp", coe: "lit", polytechnic: "lit", university: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
+const PROJ_STAT = { metro: "infra", busterminal: "infra", stadium: "igr", esports: "igr", tourist: "igr", road: "infra", bridge: "infra", hospital: "hp", school: "lit", secondary: "lit", nursing: "hp", coe: "lit", polytechnic: "lit", university: "lit", water: "hp", power: "infra", housing: "infra", dam: "agr", cctv: "sec", vehicles: "sec", landfill: "hp", market: "igr", industrial: "igr" };
 const STAT_NAME = { infra: "Infrastructure", hp: "Health", lit: "Education", agr: "Agriculture", sec: "Security", igr: "Own revenue" };
 // Ministries a governor can add when the state needs them. key: the number a
 // good commissioner moves each year; unlock: project types it adds.
@@ -1638,7 +1638,9 @@ const POLICIES = [
   { id: "mega_airport", nm: "⭐ Cargo Airport", s: "infrastructure", c: 15, t: 4, fx: { infra: .15, app: 14 }, d: "International cargo airport. ₦15B mega project.", cr: .20, ecoSec: "trade", ecoBoost: .08, jobsAdd: 5000, compDesc: "International cargo airport opens for business" },
   { id: "tech_hub", nm: "⭐ Technology Innovation City", s: "education", c: 6, t: 3, fx: { lit: .04, infra: .03, app: 8 }, d: "Tech campus, incubators, coding schools.", cr: .05, ecoSec: "tech", ecoBoost: .08, jobsAdd: 3000, compDesc: "Technology Innovation City launched — 3,000 tech jobs" },
   { id: "housing", nm: "⭐ Mass Housing Estate", s: "infrastructure", c: 10, t: 3, fx: { infra: .08, app: 10 }, d: "5,000 affordable housing units.", cr: .15, ecoSec: "manufacturing", ecoBoost: .04, jobsAdd: 12000, compDesc: "5,000 housing units delivered to residents" },
-  { id: "rail", nm: "⭐ Intra-State Rail Line", s: "infrastructure", c: 18, t: 4, fx: { infra: .18, app: 15 }, d: "Light rail connecting 3 major cities. Transformational.", cr: .20, ecoSec: "trade", ecoBoost: .10, jobsAdd: 8000, compDesc: "Light rail system operational — 3 cities connected" },
+  { id: "rail", nm: "⭐ Intra-State Rail Line", s: "infrastructure", c: 18, t: 4, fx: { infra: .18, app: 15 }, d: "A light rail or metro line inside the state, linking the capital to its biggest towns. Since 2023 a state may build its own rail.", cr: .20, ecoSec: "trade", ecoBoost: .10, jobsAdd: 8000, compDesc: "Light rail system operational — 3 cities connected" },
+  // Bus terminals (owner, 25 Nov 2026): a governor's are in the towns; the President's are interstate (federal.js f_bus_terminals).
+  { id: "bus_terminals", nm: "Modern Bus Terminals", s: "infrastructure", c: 1.5, t: 2, fx: { infra: .03, app: 7 }, d: "Three modern terminals in the busiest towns: shaded halls, toilets, ticketing and CCTV. The roadside motor parks clear and the touts move out.", cr: .08, ecoSec: "trade", ecoBoost: .03, jobsAdd: 1500, compDesc: "Three modern bus terminals open" },
   { id: "ind_park", nm: "⭐ Industrial Park", s: "infrastructure", c: 12, t: 3, fx: { infra: .10, app: 8 }, d: "200-hectare industrial zone with power & roads.", cr: .12, ecoSec: "manufacturing", ecoBoost: .08, jobsAdd: 20000, compDesc: "Industrial park attracting 20+ manufacturers — 20K jobs" },
   { id: "mega_hospital", nm: "⭐ State Teaching Hospital", s: "health", c: 8, t: 3, fx: { hp: .10, app: 10 }, d: "500-bed specialist hospital. MRI, dialysis, cancer.", cr: .10, ecoSec: "services", ecoBoost: .03, jobsAdd: 2000, compDesc: "500-bed teaching hospital — specialist care available" },
   { id: "new_uni", nm: "⭐ Establish a new state university", s: "education", c: 9, t: 3, fx: { lit: .07, app: 8 }, d: "A second state university in the zone that has none: faculties, hostels, a library.", cr: .08, ecoSec: "services", ecoBoost: .03, jobsAdd: 3500, compDesc: "A new state university, its first students enrolled" },
@@ -1676,6 +1678,7 @@ const POLICY_SIDES = {
   anti_cor: ["The press and civil society", "Party financiers"],
   health_ins: ["Patients and nurses", "Workers who resent the monthly deduction"],
   rural_elec: ["Villages off the grid", "Generator dealers"],
+  bus_terminals: ["Commuters and traders", "Motor-park touts"],
   water: ["Households without taps", "Water vendors"],
   sec_outfit: ["Communities hit by kidnapping", "Federal police headquarters"],
   amotekun: ["Communities hit by kidnapping", "Federal police headquarters"],
@@ -6318,7 +6321,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
-      policyTest: () => { const p = POL().find(x => !pol.find(a => a.id === x.id)); if (p) startPolicy(p); return !!p; }, postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
+      policyTest: (id) => { const p = POL().find(x => (!id || x.id === id) && !pol.find(a => a.id === x.id)); if (p) startPolicy(p); return !!p; }, postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
       pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null, endTest: (k) => { if (window.SOP_TEST) setGEnd(k); }, spendTest: (b, what) => window.SOP_TEST ? spendB(b, what || "A test payment") : null,
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
       bud, setBud, logs, addL,
@@ -10781,10 +10784,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // and then (d) selects a contractor from the real bidder pool. The resulting
   // proj lives in `projects[]` so it appears in the Projects tab, the sop-v2
   // Projects sheet, and gets Wikipedia entries at each stage.
-  const CAPITAL_IDS = new Set(["roads","mega_airport","mega_hospital","housing","rail","ind_park","tech_hub","uni","new_uni","rural_elec","water","irrigation","phc"]);
+  const CAPITAL_IDS = new Set(["roads","mega_airport","mega_hospital","housing","rail","ind_park","tech_hub","uni","new_uni","rural_elec","water","irrigation","phc","bus_terminals","f_bus_terminals"]);
   const isCapital = (p) => CAPITAL_IDS.has(p.id) || (p.nm||"").startsWith("⭐") || (p.t >= 3);
-  const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"road", ind_park:"industrial", tech_hub:"industrial", uni:"university", new_uni:"university", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam", f_trunk_roads:"road", f_sez:"industrial" };
-  const EIA_TYPES = new Set(["road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
+  const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"metro", bus_terminals:"busterminal", f_bus_terminals:"busterminal", ind_park:"industrial", tech_hub:"industrial", uni:"university", new_uni:"university", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam", f_trunk_roads:"road", f_sez:"industrial" };
+  const EIA_TYPES = new Set(["metro","road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
     // A hostile Speaker with no deal this year: the House will not appropriate money for anything new.

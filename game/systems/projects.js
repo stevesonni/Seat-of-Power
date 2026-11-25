@@ -26,7 +26,7 @@ export const SECTORS = {
   roads: "Roads and transport", health: "Health facilities", education: "Schools and colleges", water: "Water and sanitation",
   energy: "Power", markets: "Markets and housing", security: "Security equipment", waste: "Waste", industry: "Industrial estates", sports: "Sports", tourism: "Tourism and culture",
 };
-export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", secondary: "education", nursing: "health", coe: "education", polytechnic: "education", university: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports", esports: "sports", tourist: "tourism", rail: "roads", airport: "roads", seaport: "industry", refinery: "industry", pipeline: "energy" };
+export const TYPE_SECTOR = { road: "roads", bridge: "roads", hospital: "health", school: "education", secondary: "education", nursing: "health", coe: "education", polytechnic: "education", university: "education", water: "water", dam: "water", power: "energy", market: "markets", housing: "markets", vehicles: "security", cctv: "security", landfill: "waste", industrial: "industry", stadium: "sports", esports: "sports", tourist: "tourism", rail: "roads", airport: "roads", seaport: "industry", refinery: "industry", pipeline: "energy", metro: "roads", busterminal: "roads" };
 
 // Simulation unit costs (₦M) and typical duration. Assumptions for play, not
 // real tender prices.
@@ -49,6 +49,9 @@ export const UNIT = {
   rail: { unit: "km", per: 6500, def: 120, years: 4, nm: "Standard-gauge railway" }, pipeline: { unit: "km", per: 900, def: 200, years: 3, nm: "Gas pipeline" },
   refinery: { unit: "thousand-barrel capacity", per: 3200, def: 30, years: 3, nm: "Modular refinery" }, seaport: { unit: "berth", per: 22000, def: 4, years: 4, nm: "Deep seaport" },
   airport: { unit: "terminal", per: 45000, def: 1, years: 3, nm: "Airport terminal" },
+  // Transport (owner, 25 Nov 2026: "for the presidency it is interstate; for a state it could be intra-state rail or metro").
+  metro: { unit: "km", per: 900, def: 20, years: 3, nm: "Light rail / metro line" },
+  busterminal: { unit: "terminal", per: 500, def: 3, years: 1, nm: "Bus terminal", fed: "Interstate bus terminal" },
 };
 /* Small works (owner, 23 Nov 2026: "let projects needing contractors go through contractors… we have many click and
    click"): the neighbourhood jobs, the quick wins and the small repairs in letters are tendered like any project, in one
@@ -102,7 +105,7 @@ export const terrainFor = (place, state, type) => terrainOf(place) || (state ? s
 export const terrainOf = (place) => { const x = String(place || ""); return RIVERINE_STATES.has(x) || RIVERINE.test(x) ? "riverine" : ROCKY_STATES.has(x) || ROCKY.test(x) ? "rocky" : null; };
 // How much one ministry can oversee in a year, in the project's units. A good
 // minister (perf 100) manages a quarter more; a weak one (perf 40) a quarter less.
-export const CAPACITY = { secondary: 200, nursing: 600, coe: 3000, polytechnic: 4000, university: 5000, road: 150, bridge: 2, hospital: 250, school: 200, water: 60, dam: 1, power: 15, market: 2000, housing: 1500, vehicles: 200, cctv: 2000, landfill: 2, industrial: 150, stadium: 30000, esports: 3000, tourist: 2, rail: 120, pipeline: 250, refinery: 50, seaport: 3, airport: 1 };
+export const CAPACITY = { metro: 15, busterminal: 8, secondary: 200, nursing: 600, coe: 3000, polytechnic: 4000, university: 5000, road: 150, bridge: 2, hospital: 250, school: 200, water: 60, dam: 1, power: 15, market: 2000, housing: 1500, vehicles: 200, cctv: 2000, landfill: 2, industrial: 150, stadium: 30000, esports: 3000, tourist: 2, rail: 120, pipeline: 250, refinery: 50, seaport: 3, airport: 1 };
 export const capacityOf = (type, { perf = 70, federal = false } = {}) => Math.max(1, Math.round((CAPACITY[type] || (WORKS[type] ? 1000 : 100)) * (federal ? 2.5 : 1) * (.75 + Math.max(0, Math.min(100, perf)) / 200)));
 // A second contractor doubles what can be built in a year, for 12% more.
 export const SECOND_CONTRACTOR = 1.12;
@@ -426,7 +429,7 @@ export const REELS = {road: 1, hospital: 1, school: 1, water: 1, dam: 1, power: 
 export const REEL_SHARE = { secondary: "school", nursing: "hospital", pipeline: "refinery", markets: "market" }; // power plants, solar, gas and mini-grids have their own film now; a gas pipeline shares the refinery's
 // A programme with its own film, whatever kind of project it builds (the Irrigation Network builds a dam, but its
 // film shows water reaching the fields: docs/GEMINI-REELS.md, irrigation.mp4).
-export const REEL_BY_POLICY = { irrigation: "irrigation", kpa_irrigation: "irrigation", rural_elec: "dam" }; // Rural Electrification: the village whose lights come on (dam.mp4), not the town and its market (power.mp4) (owner, 25 Nov 2026)
+export const REEL_BY_POLICY = { irrigation: "irrigation", kpa_irrigation: "irrigation", rural_elec: "dam", f_bus_terminals: "interstatebus" }; // interstatebus.mp4: the President's interstate terminals; a state's town terminals play busterminal.mp4 // Rural Electrification: the village whose lights come on (dam.mp4), not the town and its market (power.mp4) (owner, 25 Nov 2026)
 export const reelFor = (type, id, src) => {
   if (src && REEL_BY_POLICY[src] && REELS[REEL_BY_POLICY[src]]) type = REEL_BY_POLICY[src];
   if (!REELS[type] && REEL_SHARE[type]) type = REEL_SHARE[type];

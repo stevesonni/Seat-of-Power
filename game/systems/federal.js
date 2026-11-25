@@ -35,7 +35,7 @@ export const FED_MINISTRIES = [
 // The ministry a national need must have before it can be answered.
 export const FED_NEED_MINISTRY = { water: "water", power: "power", housing: "fct", traffic: "transport", youth: "sports", poverty: "humanitarian", land: "fct", jobs: "commerce", digital: "digital" };
 // The ministry a federal project type must have.
-export const FED_PROJECT_MINISTRY = { rail: "transport", refinery: "petroleum", pipeline: "petroleum", seaport: "marine", airport: "aviation", power: "power", dam: "water", housing: "fct", industrial: "commerce", stadium: "sports", tourist: "tourism" };
+export const FED_PROJECT_MINISTRY = { rail: "transport", busterminal: "transport", refinery: "petroleum", pipeline: "petroleum", seaport: "marine", airport: "aviation", power: "power", dam: "water", housing: "fct", industrial: "commerce", stadium: "sports", tourist: "tourism" };
 // The cabinet the President starts with (ids match the governor's, names are federal).
 export const FED_CORE = {
   works: "Works", health: "Health & Social Welfare", educ: "Education", agric: "Agriculture & Food Security", sec: "Defence",
@@ -43,7 +43,7 @@ export const FED_CORE = {
 };
 
 // ── Federal project types the President can build (the governor's list minus local ones).
-export const FED_TYPES = ["road", "bridge", "rail", "pipeline", "refinery", "power", "dam", "seaport", "airport", "hospital", "school", "secondary", "nursing", "coe", "polytechnic", "university", "housing", "industrial", "water"];
+export const FED_TYPES = ["road", "bridge", "rail", "busterminal", "pipeline", "refinery", "power", "dam", "seaport", "airport", "hospital", "school", "secondary", "nursing", "coe", "polytechnic", "university", "housing", "industrial", "water"];
 export const FED_ONLY = ["rail", "pipeline", "refinery", "seaport", "airport"];
 
 // ── Programmes (same shape as the governor's POLICIES).
@@ -58,6 +58,7 @@ export const FED_POLICIES = [
   P("f_fed_colleges", "Refurbish the federal unity colleges", "education", 35, 1, { lit: .03, app: 4 }, "New roofs, labs, dormitories and libraries in the 110 federal government colleges; teachers paid on time.", .1, "services", .01, 6000, "110 federal colleges refurbished"),
   P("f_police_recruit", "Recruit 30,000 police officers", "security", 40, 1, { sec: .05, app: 4 }, "Trained in Kaduna and Ikeja, posted to their own states, paid on time.", .05, null, 0, 30000, "30,000 new police officers on the streets"),
   // Two years
+  P("f_bus_terminals", "Interstate bus terminals in every zone", "infrastructure", 6, 2, { infra: .03, app: 5 }, "Two modern interstate terminals in each geopolitical zone: waiting halls, toilets, ticketing and security, so travellers stop boarding on the roadside at night.", .1, "trade", .02, 3000, "Twelve interstate bus terminals open across the six zones"),
   P("f_jobs_corps", "National Youth Jobs Corps", "education", 60, 2, { lit: .02, app: 7 }, "Two-year paid placements for 500,000 graduates in schools, clinics and farms.", .15, "services", .03, 500000, "500,000 young graduates in paid placements"),
   P("f_grid", "Grid rescue: transmission lines and substations", "infrastructure", 120, 2, { infra: .06, app: 6 }, "New transmission lines and substations so the power we generate reaches homes.", .1, "manufacturing", .05, 25000, "4,000 MW more reaching homes and factories"),
   P("f_anchor", "Farmers' loans against the harvest", "agriculture", 50, 2, { agr: .07, app: 5 }, "Seeds and fertiliser on credit for 2 million farmers, repaid in grain to the strategic reserve.", .18, "agriculture", .05, 60000, "Farm loans for 2 million farmers"),
@@ -79,7 +80,7 @@ export const FED_POLICIES = [
 const FED_FIX = {
   road: ["f_trunk_roads", "f_coastal", "f_second_bridge", "f_rail"], clinic: ["f_primary_health", "f_nhia"], school: ["f_school_feed", "f_student_loans", "f_fed_colleges", "f_fed_university"],
   water: ["f_primary_health"], security: ["f_police_recruit", "f_state_police"], farm: ["f_anchor"], power: ["f_grid", "f_mambilla", "f_gas"],
-  housing: [], traffic: ["f_rail"], youth: ["f_jobs_corps"], poverty: ["f_cash"], land: [], jobs: ["f_sez", "f_gas", "f_refinery"], digital: ["f_national_id", "f_ippis"],
+  housing: [], traffic: ["f_rail", "f_bus_terminals"], youth: ["f_jobs_corps"], poverty: ["f_cash"], land: [], jobs: ["f_sez", "f_gas", "f_refinery"], digital: ["f_national_id", "f_ippis"],
 };
 
 /* The country's needs, in a President's terms: l is a state. Each overrides
