@@ -42,6 +42,7 @@ const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", impo
   check(!!L, "FIFA or CAF writes to the President");
   console.log("  " + (L && L.title) + " · " + (L && L.body));
   check(L && /(FIFA|CAF) wants Nigeria to host/.test(L.title) && /inspectors have failed every Nigerian stadium/.test(L.body) && /the match will be played abroad/.test(L.body), "it says what, why there is no stadium, and what happens otherwise");
+  check(L && (/^FIFA/.test(L.title) ? /characters\/fifa-official\.webp/.test(L.face) : /characters\/football-official\.webp/.test(L.face)), "FIFA's letter shows the FIFA official, CAF's the football official (" + (L && L.face) + ")");
   check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
   await g.browser.close(); }
 srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

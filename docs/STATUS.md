@@ -2464,3 +2464,6 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - Bug: the lenders' yearly check saved its own copy of the loans, undoing a recall closed earlier that year. Loan updates now keep only what each step changed.
 - The lender's letters (and the Youth Assembly, the commissioner's memo, FIFA/CAF and the club) now carry their own letterhead; the bank's letter was printed as "The Party Secretariat".
 - New browser test: tests/e2e/court-loan-refuse.mjs, governor and President: refuse, then next year Abuja takes it from FAAC (governor) or the creditors abroad force it (President), a quarter more, on the record, the loan closed.
+
+## 25 Nov 2026: the FIFA official
+- Installed public/art/characters/fifa-official.webp as delivered. Every FIFA letter (World Cup qualifier, Under-17 World Cup) shows him; CAF letters keep the football official.
