@@ -24,6 +24,9 @@ const bu = [...seen.values()].find(L => L.key === "budget");
 if (bu) { console.log("  " + bu.body);
   check(/budget is drafted|drafted the \d{4} budget alone/.test(bu.body) && /We expect about ₦[\d.]+B this year: ₦[\d.]+B from .+ and ₦[\d.]+B from /.test(bu.body) && /send the bill to the House of Assembly\. Nothing new can be paid for until it passes\./.test(bu.body), "the budget letter gives the money, who decides and what the House does"); }
 else console.log("  (no budget letter in this run)");
+const ho = [...seen.values()].find(L => /hosappoint/.test(L.key));
+if (ho) { console.log("  " + ho.body);
+  check(/civil service has no head\. The Head of Service runs it: .+ Until you appoint one, those requests land on your own desk, .+ Will you choose one now\?$/.test(ho.body), "the top civil servant letter says what the office does and why now"); }
 const bad = [];
 for (const L of seen.values()) {
   const b = L.body, S = (b.match(/(?:\b(?:Hon|Rt|Dr|Mr|Mrs|Prof|St|No)\.|\d\.\d|[^.!?])+(?:[.!?]+["”’]?|$)/g) || []).map(x => x.trim().toLowerCase()).filter(Boolean);

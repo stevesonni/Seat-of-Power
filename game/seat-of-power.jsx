@@ -13233,6 +13233,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The agenda letter says what this year's share is, what it costs and what is asked (owner, 25 Nov 2026: "Look at this cut and join too").
     // The budget letter says what money there is, who asked for it, what you decide and what the House does with it
     // (owner, 25 Nov 2026: "This letter makes no sense").
+    // The letter asking for a top civil servant says what the office does and why it matters now (owner, 25 Nov 2026).
+    if (l.secr && l.secr.hosAppoint) { const sa2 = cast.adviser.name.split(" ").slice(-2).join(" ");
+      const txt = (NAT ? "The federal civil service" : "The state civil service") + " has no head. The Head of Service runs it: every commissioner's request for staff, promotions, transfers and discipline goes through that office, and each year it reports to you on how every ministry is doing. Until you appoint one, those requests land on your own desk, and nobody checks the ministries for you. " + sa2 + " has a candidate to recommend, but the choice is yours. Will you choose one now?";
+      return { from, img, title, line: "The civil service has no head; the requests are piling up.", body: txt }; }
     if (k === "budget") { const inc = (s.faac || 0) + (s.igr || 0), nMin = (ministries || []).length, H = NAT ? "the National Assembly" : "the House of Assembly";
       const txt = (bm ? "The " + absYear + " budget is drafted." : "Finance has drafted the " + absYear + " budget alone: there is no Commissioner for Budget & Planning, so nobody checked the ministries' bids, and some are padded.")
         + " We expect about " + naira(inc) + " this year: " + naira(s.faac || 0) + " from " + (NAT ? "the Federation Account" : "Abuja's monthly allocation") + " and " + naira(s.igr || 0) + " from " + (NAT ? "taxes and customs" : "the state's own taxes and fees") + "."

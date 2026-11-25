@@ -2308,3 +2308,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - Ignore the court: the work goes on, but S.287 says court orders must be obeyed.
 - The results say what happened in the same words.
 - Test: tests/e2e/court-stop.mjs (a programme with two sites under way; obey; both sites close and the programme leaves the list).
+
+## The letter asking for a top civil servant reads as a letter (25 Nov 2026)
+- It said: "The commissioners' requests will go to them. Bola Adekunle has a recommendation."
+- It now says the civil service has no head; what the Head of Service (shown as "top civil servant") does: staff, promotions, transfers and discipline for every commissioner, and a yearly report on every ministry; that until one is appointed those requests land on your desk and nobody checks the ministries; that the Special Adviser has a candidate, but the choice is yours. It ends with "Will you choose one now?"
+- tests/e2e/letters-read.mjs checks it.
