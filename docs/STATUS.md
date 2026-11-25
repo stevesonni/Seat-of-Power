@@ -2259,3 +2259,10 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - The Special Adviser's yearly economic letter now shows in full, from the Adviser's office. The export letter says what can be sold abroad and why, and what the State Economic Council would do if called.
 - No letter says "Your Excellency," twice: a greeting at the start of a text is dropped, because the letter already has one.
 - Test: tests/e2e/econ-letter.mjs.
+
+## The Economic Council's trade-policy chip says what it means (25 Nov 2026)
+- The chip "Abuja's policy hurts/helps" read as if your choice hurt Abuja. It means the opposite: the President's trade policy changes what your plan earns. It now says "Abuja's trade policy: −15% earnings" (or +15%).
+- The Council's question says so too: "The President's trade policy is not yours to set, but it raises or lowers what each plan earns."
+- "Fishing grounds" appears only for a state that exports seafood.
+- The raw-export plan no longer says "you earn from the first year" next to a chip saying "Earns from next year".
+- tests/e2e/econ-letter.mjs goes on through the inherited-debt question into the Council and checks these.

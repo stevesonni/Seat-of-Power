@@ -202,7 +202,7 @@ export const BORDER_STATES = ["Lagos", "Ogun", "Oyo", "Kwara", "Niger", "Kebbi",
 export const produceOf = (state) => STATE_PRODUCE[state] || ["cassava", "palm oil"];
 
 export const EXPORT_PLANS = {
-  raw: { nm: "Aggregate and ship raw {c}", cost: 1.5, years: 0, base: 1.2, d: "Cheap and quick: warehouses and buyers for the farmers. You earn from the first year, but raw {c} earns little." },
+  raw: { nm: "Aggregate and ship raw {c}", cost: 1.5, years: 0, base: 1.2, d: "Cheap and quick: warehouses and buyers for the farmers. The first money comes next year, but raw {c} earns little." },
   zone: { nm: "An export processing zone for {c}", cost: 8, years: 2, base: 4, d: "Process it here and sell it for five times the price. Two years to build; jobs and money after." },
   hub: { nm: "An inland container depot and a farm-to-port road", cost: 5, years: 1, base: 2.5, d: "Containers packed and cleared in the state, and a good road to the port. Every crop leaves cheaper." },
 };

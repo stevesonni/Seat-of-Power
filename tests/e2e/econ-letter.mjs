@@ -19,5 +19,15 @@ check((t.match(/Your Excellency,/g) || []).length === 1, "\"Your Excellency,\" c
 check(/can be sold abroad, for dollars, every year\. Buyers overseas want our /.test(body), "it says what the idea is");
 check(/If you call the State Economic Council, your commissioners and the state's business people will sit today and draw up a plan to sell it abroad/.test(body), "it says what the Council would do");
 check(/Today, taxes and fees bring in only ₦[\d.]+B a year\./.test(body), "the whole letter is there, figures intact");
+// The Council (owner, 25 Nov 2026: "If I pick a policy that hurts Abuja shouldn't it affect my standing with the president?"):
+// the chip is about what Abuja's trade policy does to your earnings, and says so.
+await g.click(/Handle it personally/); await g.wait(1200); await g.click(/^Convene the State Economic Council now/); await g.wait(2500); if (/How do we pay the debt/.test(await g.txt())) { await g.click(/^Spread it over 4 years/); await g.wait(2500); }
+for (let i = 0; i < 4 && !/How will .* sell its/.test(await g.txt()); i++) { await g.click(/^(Okay|On to the Council.s business)$/).catch(() => {}); await g.wait(1500); }
+if (process.env.SH) await g.page.screenshot({ path: process.env.SH + '/council.png' }); if (process.env.SH) await g.page.screenshot({ path: process.env.SH + '/council.png' });
+console.log("  " + (await g.txt()).replace(/\s+/g, " ").slice(0, 400));
+const c = await g.txt();
+check(/The President's trade policy is not yours to set, but it raises or lowers what each plan earns\./.test(c), "the Council says whose policy it is");
+check(!/Abuja's policy (hurts|helps)/.test(c) && !/fishing grounds/.test(c) && !/earn from the first year/.test(c), "no muddled chip, no fishing grounds for cocoa, no first-year promise");
+check(!/Abuja's trade policy/.test(c) || /Abuja's trade policy: [+−]\d+% earnings/.test(c), "any policy chip gives the effect in %");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);
