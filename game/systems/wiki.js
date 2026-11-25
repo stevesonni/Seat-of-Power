@@ -110,7 +110,9 @@ export const writeBio = (f) => {
   // ── Sort the record ──
   const evs = [], seen = new Set();
   // Each line of the record told as history: no choice labels, past tense, the pronoun filled in.
-  const tok = (t) => String(t).replace(/\{He\}/g, He).replace(/\{he\}/g, he).replace(/\{His\}/g, His).replace(/\{his\}/g, his);
+  // The biography dates each line itself, so a year inside the line ("…was elected Speaker in 2029") is dropped.
+  const tok = (t) => String(t).replace(/\{He\}/g, He).replace(/\{he\}/g, he).replace(/\{His\}/g, His).replace(/\{his\}/g, his).replace(/\{him\}/g, him)
+    .replace(/^In (19|20)\d\d,? /, "").replace(/ in (19|20)\d\d(?=[;,.]| after| to )/g, "").replace(/^./, c => c.toUpperCase());
   (f.events || []).slice().reverse().forEach(e => { if (!e || !e.txt) return; const txt = tok(proseOf(toPast(e.txt))), k = txt.toLowerCase(); if (seen.has(k)) return; seen.add(k); evs.push({ ...e, txt }); });
   const warn = [], broken = [], kept = [], honours = [], rest = [];
   evs.forEach(e => {
@@ -120,8 +122,16 @@ export const writeBio = (f) => {
     const bp = t.match(/^Broke the campaign promise to [“"](.*)[”"]\.?$/); if (bp) return broken.push({ t: e.turn, what: bp[1] });
     const kp = t.match(/^Kept the campaign promise to [“"](.*)[”"]\.?$/); if (kp) return kept.push({ t: e.turn, what: kp[1] });
     const hn = t.match(/^Earned the honour [“"](.*)[”"]: (.*)$/); if (hn) return honours.push({ t: e.turn, nm: hn[1], why: hn[2].replace(/\byour\b/g, his).replace(/\byou\b/g, he) });
-    rest.push({ t: e.turn, txt: t, bad: e.section === "Controversies", w: weightOf(t) });
+    rest.push({ t: e.turn, txt: t, bad: e.section === "Controversies", w: weightOf(t), sec: e.section });
   });
+  /* The House (or the National Assembly) and the war are told as their own stories, in order, not scattered across
+     themes (owner, 25 Nov 2026: "the biography doesn't chronicle the skirmish with the House or the National Assembly…
+     it doesn't even account for the war-time actions"). Older saves' lines are found by what they say. */
+  const WAR_RX = /\b(Bakunda|Kasongo|Angova|Saharia|Ostrava|the Axis|junta)\b|war against/i;
+  const LEG_RX = /\bSpeaker\b|House of Assembly|National Assembly|House of Representatives|Senate President|impeach|overr(ode|idden) (the|his|her) veto|the House (blocked|split|passed)|two-Speaker|mace/i;
+  const warEvs = rest.filter(e => e.sec === "War" || WAR_RX.test(e.txt)); warEvs.forEach(e => { e.used = true; e.story = "war"; });
+  const legEvs = rest.filter(e => !e.used && (e.sec === "Legislature" || LEG_RX.test(e.txt))); legEvs.forEach(e => { e.used = true; e.story = "leg"; });
+  const warName = ((warEvs.map(e => (e.txt.match(/\b(Bakunda|Kasongo|Angova|Saharia)\b/) || [])[1]).find(Boolean)) || null);
   const lastT = Math.max(1, f.turn || 1);
   const app = f.appH && f.appH.length ? f.appH : [55, f.app];
   const appStart = Math.round(app[0]), appEnd = Math.round(f.app);
@@ -160,6 +170,8 @@ export const writeBio = (f) => {
   if (f.strikes && f.strikes.length) hard.push(f.strikes.length === 1 ? "a strike by " + f.strikes[0] : "strikes by " + list(f.strikes));
   if (warn.length) hard.push("criticism that " + his + " government ignored warnings before preventable deaths");
   if (f.godfather && (f.gfDeals || []).length) hard.push("questions about " + his + " ties to the political financier " + f.godfather);
+  if (legEvs.some(e => /impeach|split|blocked|refused|removed|overrode/i.test(e.txt))) hard.push("a running battle with " + (f.nat ? "the National Assembly" : "the House of Assembly"));
+  if (warEvs.length) hard.push(warName ? "the war with " + warName : "a war abroad");
   if (hard.length) p3.push(His + " tenure was also marked by " + list(hard) + ". ");
   if (p3.length) lead.push(p3);
   const p4 = [];
@@ -205,6 +217,16 @@ export const writeBio = (f) => {
   });
   sections.push({ h: (nat ? "Presidency (" : "Governorship (") + base + "–" + (f.ended ? f.endYear : "present") + ")", subs });
 
+  // ── The House (or the National Assembly), and the war: each its own story, in order ──
+  const story = (es, cap) => { const pp = [], seen2 = new Set(); es.slice().sort((a, b) => a.t - b.t || dateOf(a.t, a.txt).m - dateOf(b.t, b.txt).m).slice(0, cap).forEach((e, i) => { const k = e.txt.toLowerCase(); if (seen2.has(k)) return; seen2.add(k); pp.push(dated(e, i === 0) + " "); if (e.w >= 5) { pp.push(cite(clip(firstSentence(e.txt), 100), e.t)); pp.push(" "); } }); return pp; };
+  if (legEvs.length) sections.push({ h: "Relations with " + (f.nat ? "the National Assembly" : "the House of Assembly"), paras: [story(legEvs, 14)] });
+  if (warEvs.length) {
+    const missions = warEvs.filter(e => /^(He |She )?sent the .* on a mission/i.test(e.txt) || /on a mission against/.test(e.txt)), won = missions.filter(e => /succeeded/.test(e.txt)).length, lost = missions.length - won;
+    const pp = story(warEvs.filter(e => !missions.includes(e)), 14);
+    if (missions.length) pp.push("Over the course of the war " + he + " ordered " + num(missions.length) + (missions.length === 1 ? " military mission" : " military missions") + "; " + (won === missions.length ? (missions.length === 1 ? "it succeeded" : "all succeeded") : lost === missions.length ? (missions.length === 1 ? "it failed" : "all failed") : num(won) + " succeeded and " + num(lost) + " failed") + ". ");
+    sections.push({ h: warName ? "The war with " + warName : "The war", paras: [pp] });
+  }
+
   // ── Re-election ──
   if (twoTerms) sections.push({ h: (base + 4) + " re-election", paras: [[surname + " sought a second term in " + (base + 4) + " and was re-elected. " + His + " second term began on 29 May " + (base + 4) + "."]] });
 
@@ -236,7 +258,7 @@ export const writeBio = (f) => {
     cpp.push("Critics argued that " + his + " government ignored warnings before " + (warn.length === 1 ? "a preventable tragedy" : num(warn.length) + " preventable tragedies") + ": " + list(warn.slice(0, 4).map(w => low(w.what.replace(/\.$/, "")) + " (" + yearOf(w.t) + ")")) + ". ");
     cpp.push(cite("Warnings ignored: " + clip(warn[0].what, 70), warn[0].t)); cpp.push(" ");
   }
-  rest.filter(e => e.bad).sort((a, b) => b.w - a.w || a.t - b.t).slice(0, 5).sort((a, b) => a.t - b.t).forEach((e, i) => { cpp.push(dated(e, i === 0 && !warn.length) + " "); cpp.push(cite(clip(firstSentence(e.txt), 100), e.t)); cpp.push(" "); });
+  rest.filter(e => e.bad && !e.story).sort((a, b) => b.w - a.w || a.t - b.t).slice(0, 5).sort((a, b) => a.t - b.t).forEach((e, i) => { cpp.push(dated(e, i === 0 && !warn.length) + " "); cpp.push(cite(clip(firstSentence(e.txt), 100), e.t)); cpp.push(" "); });
   if (cpp.length) cpp.push(He + " " + (f.ended ? "denied wrongdoing in each case." : "has denied wrongdoing."));
   sections.push({ h: "Controversies", paras: [cpp.length ? cpp : ["No significant controversy had been reported."]] });
 

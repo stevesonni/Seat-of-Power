@@ -2224,3 +2224,15 @@ Owner's brief: "the biography generator must stop concatenating event-log lines 
   - A consistency pass: no sentence twice on the page, no "one of its one"; a debt of nothing reads "paid off" / "none"; a met target beside no finished project is explained.
 - Tests: tests/bio-prose.test.mjs (the brief's own broken examples in, history out; the President's words).
 - Checked with a real two-year game (the bot to year 4, then the biography read in full). Two more fixes came from it: the oath is taken in the state capital (wiki.js `STATE_CAPITALS`; the game had no capitals), and a recovery plan is "a three-step recovery plan for the Ministry of X", not its steps' labels.
+
+## The biography tells the fight with the House and the war (25 Nov 2026)
+Owner: "The biography doesn't chronicle the skirmish with the House or National Assembly. It doesn't even account for the war time actions."
+- The record (scWiki) has two new sections:
+  - "Legislature" (22 places): both Speaker races, the price paid, refused or dealt for, the plot and its outcome, the split and the court's ruling, the Speaker's impeachment move, surviving impeachment, a veto overridden, the President's backing, and the Speaker's contractor. The President's two chambers (election, price, plot, split, ruling) are recorded the same way.
+  - "War": every war decision, each mission and whether it succeeded, the coup, the resolution and the peace.
+- writeBio:
+  - New sections "Relations with the House of Assembly" / "Relations with the National Assembly" and "The war with Bakunda" (or Kasongo/Angova/Saharia), each told in order and not capped at four. Missions are summed up ("ordered two military missions; one succeeded and one failed").
+  - Older saves' lines are found by what they say.
+  - The lead names "a running battle with the House/National Assembly" and "the war with X".
+  - Lines no longer carry their own year beside the biography's date, and {him} is filled in.
+- Test: tests/bio-prose.test.mjs (order, both sections, the lead).

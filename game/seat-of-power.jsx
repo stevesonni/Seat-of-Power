@@ -8198,9 +8198,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (((o.id === "assent" && c.id === "bk3") || (o.id === "comply" && c.id === "bk3o")) && NEWS_BK.war) anchors(NEWS_BK.war[0], NEWS_BK.war[1]);
         addL("🌍 " + BKC().nm + ": " + (c.kind === "mission" ? "a mission" : c.t.replace(/⁠/g, "")) + ". You chose: " + o.l.toLowerCase() + "." + (c.spill ? " Refugees crossed into the north: we were not ready." : ""), c.spill || c.fatigue || wrong ? "crisis" : "policy");
         if (B1.done && !(B0 || {}).done && B1.treaty === "enacted") setTimeout(() => anchors(NEWS_BK.treaty[0], NEWS_BK.treaty[1]), 300);
-        if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
-        else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the " + BKC().nm + "–Ostrava Axis." : "Vetoed the resolution for war and answered the " + BKC().nm + "–Ostrava Axis with sanctions and diplomacy.");
-        else if (c.id === "bk2") scWiki("Presidency", "Responded to General " + BKC().gen + "'s coup in " + BKC().nm + " by " + SYS.byDoing(o.l) + ".");
+        if (B1.done && !(B0 || {}).done) { scWiki("War", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
+        else if (c.id === "bk3") scWiki("War", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the " + BKC().nm + "–Ostrava Axis." : "Vetoed the resolution for war and answered the " + BKC().nm + "–Ostrava Axis with sanctions and diplomacy.");
+        else if (c.id === "bk2") scWiki("War", "Responded to General " + BKC().gen + "'s coup in " + BKC().nm + " by " + SYS.byDoing(o.l) + ".");
+        // Every war decision goes on the record, for the biography's war section (owner, 25 Nov 2026: "it doesn't even account for the war-time actions").
+        else scWiki("War", c.kind === "mission" ? "Sent " + SYS.didOf(o.l).replace(/^\w+ /, "").replace(/^(the )?/, "the ") + " on a mission against the " + BKC().nm + "–Ostrava Axis" + (wrong ? ", the wrong force for the task; the mission failed." : "; the mission succeeded.") : SYS.toPast(String(c.t || "").replace(/⁠/g, "")).replace(/\.$/, "") + ". {He} " + SYS.didOf(o.l) + ".");
         track("bakunda_" + (c.kind === "mission" ? "mission" : c.id), o.id + (c.kind === "mission" ? (wrong ? ":wrong" : ":right") : ""));
         const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id.startsWith("bkg_") || c.id === "bk6";
         return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (o.result ? o.result + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
@@ -8318,8 +8320,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const asks = hostile ? SYS.speakerAsks((next.pseed || 7) + ":" + ch + name, true) : [];
             setCh(ch, c => ({ ...c, race: term, bias: hostile ? SYS.biasFor(ratio, "lost") : Math.max(c.bias || 0, SYS.biasFor(ratio, "held")), leader: { name, hostile, kind: R.winner === "new" ? kind : "incumbent", asks, done: [], at: turn, term } }));
             track("nass_race_" + ch, kind + "_" + (backed || "out") + "_" + R.winner);
+            scWiki("Legislature", name + " was elected " + title + " in " + absYear + (hostile ? ", against the President's candidate." : backed && R.winner === (backed === "old" ? "old" : "new") ? ", with the President's backing." : "."));
             addL("🏛️ " + name + " is the new " + title + (hostile ? ": not your man. " + CH.Nm + " will block your budget until you meet his price." : "."), hostile ? "crisis" : "success");
-            scWiki("Presidency", name + " was elected " + title + " in " + absYear + (hostile ? ", against the President's candidate." : "."));
             return { icon: "🏛️", img: "./art/characters/" + CH.art + (hostile ? "-angry" : "-pleased") + ".webp", title: name + " is " + title, text: hostile ? CH.Nm + " has its own man. He blocks new spending until you meet his price, and if the other chamber turns too, a dip in your approval is all they need to impeach you." : CH.Nm + " is with you.", tone: hostile ? "bad" : "good",
               rows: [{ l: CH.Nm, v: hostile ? "Against you" : "With you", good: !hostile }] }; };
           const lead = term === 1 ? "The new " + CH.nm.replace(/^the /, "") + " elects its " + title + " this week. Your party has a candidate; the " + CH.members + " have their own." : ((rec.score || 0) >= 3 ? "You kept faith with the Assembly in your first term." : (rec.score || 0) <= -4 ? "You crossed the Assembly too often in your first term." : "The Assembly found you a hard bargainer in your first term.") + " It puts up " + NMn + ", " + K.nm + ".";
@@ -8338,12 +8340,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             stakes: "Pay his price and " + CH.nm + " votes with you this year. Refuse, and nothing new gets money.",
             options: [
               ...open.map(a => ({ label: "Fund it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), chips: [{ text: "−" + naira(a.costB), color: CL.red }].concat(fxChips(a.fx || {})).slice(0, 3), run: () => {
-                if (!spendB(a.costB, title + "'s " + a.id)) return; scFx(a.fx || {}); houseRec("paid");
+                if (!spendB(a.costB, title + "'s " + a.id)) return; scFx(a.fx || {}); houseRec("paid"); scWiki("Legislature", "Funded " + L.name + "'s " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " in " + absYear + " to get {his} budget through " + CH.nm + ".");
                 const left = open.filter(x => x.id !== a.id).length; deal({ leader: { ...L, done: [...(L.done || []), a.id], hostile: left > 0 } });
                 addL("🏛️ Funded " + L.name + "'s " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + ". " + (left ? CH.Nm + " votes with you this year." : "That was all he asked for: the " + title + " is with you now."), "political");
                 return { icon: "🤝", title: left ? CH.Nm + " is with you this year" : "The " + title + " is with you now", text: left ? "Your budget and programmes pass " + CH.nm + " this year. Next year he will want the rest." : "He stops blocking you.", tone: "good" }; } })),
-              { label: "Give his " + CH.members + " committee chairs and contracts", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); houseRec("deal"); deal(); addL("🏛️ Committee chairs and contracts for " + L.name + "'s " + CH.members + " this year.", "political"); return { icon: "🤝", title: "A deal for this year", text: CH.Nm + " passes your budget and programmes this year.", tone: "neutral" }; } },
-              { label: "Refuse: govern without " + CH.nm.replace(/^the /, "the "), chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); setCh(ch, c => ({ ...c, refused: turn })); addL("🏛️ You refused " + L.name + "'s price. " + CH.Nm + " will block new spending this year.", "crisis"); return { icon: "🚫", title: CH.Nm + " will block you", text: "No new programme gets money this year.", tone: "bad" }; } },
+              { label: "Give his " + CH.members + " committee chairs and contracts", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); houseRec("deal"); scWiki("Legislature", "Gave committee chairs and contracts to " + L.name + "'s " + CH.members + " in " + absYear + " to get {his} budget through " + CH.nm + "."); deal(); addL("🏛️ Committee chairs and contracts for " + L.name + "'s " + CH.members + " this year.", "political"); return { icon: "🤝", title: "A deal for this year", text: CH.Nm + " passes your budget and programmes this year.", tone: "neutral" }; } },
+              { label: "Refuse: govern without " + CH.nm.replace(/^the /, "the "), chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); scWiki("Legislature", "Refused " + L.name + "'s price in " + absYear + "; " + CH.nm + " blocked {his} new programmes that year."); setCh(ch, c => ({ ...c, refused: turn })); addL("🏛️ You refused " + L.name + "'s price. " + CH.Nm + " will block new spending this year.", "crisis"); return { icon: "🚫", title: CH.Nm + " will block you", text: "No new programme gets money this year.", tone: "bad" }; } },
             ] });
         }
         // 3. A plot against a friendly presiding officer: second or third year of a term, at most once a term.
@@ -8355,11 +8357,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             const fall = () => { const hostile = !["loyalist", "dealer"].includes(kindNow), name = nmOf(ch, "coup"), asks = hostile ? SYS.speakerAsks((next.pseed || 7) + ":" + ch + name, true) : [];
               setCh(ch, c => ({ ...c, bias: hostile ? SYS.biasFor(ratio, "lost") : c.bias, leader: { name, hostile, kind: kindNow, asks, done: [], at: turn, term, removed: L.name } }));
               addL("🏛️ " + CH.Nm + " removed " + L.name + " as " + title + "; " + name + " replaces him" + (hostile ? ". He is not your man." : "."), hostile ? "crisis" : "political");
+              scWiki("Legislature", CH.Nm + " removed " + L.name + " as " + title + " in " + absYear + "; " + name + " replaced him" + (hostile ? ", an opponent of the President." : "."));
               setTimeout(() => paper(title.toUpperCase() + " IMPEACHED", L.name + " is out; " + name + " takes the chair", !hostile, "./art/backgrounds/" + CH.bg + ".webp"), 400);
               return { icon: "🏛️", title: L.name + " is out", text: need + " " + CH.members + " voted to remove him. The new " + title + " is " + name + ", " + SYS.SPEAKER_KINDS[kindNow].nm + ".", tone: hostile ? "bad" : "neutral" }; };
             const split = () => { const name = nmOf(ch, "rival");
               setCh(ch, c => ({ ...c, leader: { ...L, split: { at: turn, rival: name } } }));
               addL("🏛️ Two " + title + "s: " + L.name + " and " + name + " both claim the chair. " + CH.Nm + " is frozen until the court rules.", "crisis");
+              scWiki("Legislature", "In " + absYear + " " + CH.nm + " split: " + L.name + " and " + name + " each claimed to be " + title + ", and nothing passed until the courts ruled.");
               setTimeout(() => paper("TWO " + title.toUpperCase() + "S", CH.Nm + " splits; nothing can pass", false, "./art/backgrounds/" + CH.bg + ".webp"), 400);
               return { icon: "⚖️", title: "Two " + title + "s", text: "The court said no, and they sat anyway. Until the court rules next year, " + CH.nm + " passes nothing, and no new programme gets money.", tone: "bad" }; };
             cards.push({ key: "nass_plot_" + ch + "_" + turn, kicker: CH.Nm + " · a plot against the " + title, color: CL.red, urgent: true, art: [CH.bg, CH.art + "-worried", null, null],
@@ -8371,7 +8375,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 return { label, note: (m.id === "abuja" ? "Works if the party is strong behind you." : m.note) + (m.id !== "let" ? " About " + Math.round(odds * 100) + "% it works." : ""), chips: fxChips({ ...(m.fx || {}), debt: cost }).slice(0, 3), run: () => {
                   if (cost && !spendB(cost, "Saving the " + title)) return; if (m.fx && Object.keys(m.fx).length) scFx(m.fx); track("nass_plot_" + ch, m.id);
                   if (m.id === "let") return fall();
-                  if (rng(hashStr("nplot" + ch + turn + m.id + pName))() < odds) { addL("🏛️ " + L.name + " survives as " + title + ".", "success"); return { icon: "🛡️", title: L.name + " survives", text: "The signatures stop short. He stays in the chair, and remembers who saved him.", tone: "good" }; }
+                  if (rng(hashStr("nplot" + ch + turn + m.id + pName))() < odds) { addL("🏛️ " + L.name + " survives as " + title + ".", "success"); scWiki("Legislature", "Saved " + title + " " + L.name + " from a removal plot in " + absYear + "."); return { icon: "🛡️", title: L.name + " survives", text: "The signatures stop short. He stays in the chair, and remembers who saved him.", tone: "good" }; }
                   if (m.id === "court" && rng(hashStr("nsplit" + ch + turn + pName))() < m.split) return split();
                   return fall(); } }; }) });
           }
@@ -8382,6 +8386,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             if (settle) scFx({ cor: .02, pStab: -1 });
             setCh(ch, c => ({ ...c, bias: ours ? c.bias : SYS.biasFor(ratio, "lost"), leader: ours ? { ...L, split: null } : { name: L.split.rival, hostile: true, kind: "avenger", asks: SYS.speakerAsks((next.pseed || 7) + ":" + ch + L.split.rival, true), done: [], at: turn, term } }));
             addL("⚖️ " + (settle ? "A settlement ends the standoff" : "The court rules") + ": " + (ours ? L.name : L.split.rival) + " is " + title + ".", ours ? "success" : "crisis");
+            scWiki("Legislature", (settle ? "A settlement" : "A court ruling") + " in " + absYear + " made " + (ours ? L.name : L.split.rival) + " " + title + (ours ? ", the President's ally." : ", an opponent of the President."));
             return { icon: "⚖️", title: (ours ? L.name : L.split.rival) + " is " + title, text: ours ? CH.Nm + " sits as one again, with your man in the chair." : "The court recognised the other faction. " + CH.Nm + " is against you now.", tone: ours ? "good" : "bad" }; };
           cards.push({ key: "nass_split_" + ch + "_" + turn, kicker: "The courts · two " + title + "s", color: CL.red, art: [CH.bg, CH.art, null, null], title: "The court rules on the two " + title + "s",
             brief: L.name + " and " + L.split.rival + " have each sat with their own faction for a year, and nothing has passed " + CH.nm + ". The judgment is today.", stakes: "Your man, or theirs.",
@@ -8410,7 +8415,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             // A hostile Speaker takes the House with him: you lose your majority (owner, 23 Nov 2026).
             ...(R.hostile && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, Math.floor(p.house.seats / 2) - 1) } } : {}) }));
           if (!R.hostile) houseBy(R.owes ? 2 : 0);
-          setCast(c => ({ ...c, speaker: { ...c.speaker, name: "Rt. Hon. " + W.name.replace(/^Hon\. /, "") } })); track("leg_speaker", (id ? (id === R.winner ? "backed_winner" : "backed_loser") : "stayed_out") + "_" + R.kind);
+          setCast(c => ({ ...c, speaker: { ...c.speaker, name: "Rt. Hon. " + W.name.replace(/^Hon\. /, "") } }));
+          scWiki("Legislature", W.name.replace(/^Hon\. /, "Rt. Hon. ") + " was elected Speaker of the House of Assembly in " + absYear + (R.hostile ? "; the governor's candidate lost, and with him the governor's majority." : id && id === R.winner ? ", with the governor's backing." : "."));
+          track("leg_speaker", (id ? (id === R.winner ? "backed_winner" : "backed_loser") : "stayed_out") + "_" + R.kind);
           addL("🏛️ " + W.name + " is the new Speaker" + (R.owes ? ", and owes you." : R.crossed ? ". You backed the other candidate, and the new Speaker knows it." : "."), R.crossed ? "political" : "success");
           if (R.hostile) { const H = next.house || { seats: 24 }; addL("🏛️ You have lost your majority in the House: the new Speaker's bloc now outvotes you. He wants " + asks.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", and ") + ".", "crisis");
             return { icon: "🏛️", title: W.name.replace(/^Hon\. /, "Rt. Hon. ") + " is Speaker. You have lost the House", text: "Your candidate lost, and the House went with the new Speaker: you no longer have a majority. He has his own programmes: " + asks.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join("; and ") + ". From next year, deal with him or your bills stay off the floor and your new programmes get no money.", tone: "bad", rows: [{ l: "Your majority", v: "Lost", good: false }, { l: "Members with you", v: "under " + (Math.floor(H.seats / 2) + 1) + " of " + H.seats, good: false }] }; }
@@ -8442,7 +8449,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             ...(hostile && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } } : {}) }));
           setCast(c => ({ ...c, speaker: { ...c.speaker, name: spNm(W) } })); track("leg_speaker2", kind + "_" + (backed || "out") + "_" + R.winner);
           addL("🏛️ " + spNm(W) + " is Speaker of the new House" + (hostile ? ". He is not your man: you have lost the House." : R.owes ? ", and owes you." : "."), hostile ? "crisis" : "success");
-          scWiki("Governorship", spNm(W) + " was elected Speaker of the new House of Assembly in " + absYear + (hostile ? ", against the governor." : "."));
+          scWiki("Legislature", spNm(W) + " was elected Speaker of the new House of Assembly in " + absYear + (hostile ? ", against the governor." : "."));
           return { icon: "🏛️", title: spNm(W) + " is Speaker of the new House", text: hostile ? "He is the House's man, not yours: your bills wait on his price, and if your approval slips he will move to impeach you." : R.winner === "old" ? "The old Speaker keeps his chair for your second term." : "The new Speaker is on your side.", tone: hostile ? "bad" : "good",
             rows: [{ l: "The House", v: hostile ? "Against you" : "With you", good: !hostile }, { l: "What they think of your first term", v: K.nm, good: kind === "loyalist" }] }; };
         cards.push({ key: "leg_speaker2", kicker: "The new House of Assembly · the Speaker race", color: CL.pur, art: ["assembly-chamber", "speaker", null, null], title: "The new House elects its Speaker",
@@ -8464,13 +8471,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             setStc(p => ({ ...p, leg: { ...(p.leg || L), members: next.leg.members, speaker: { winner: NM.id, kind, hostile, at: turn, asks, done: [], term, removed: SP1.winner } }, ...(hostile && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } } : {}) }));
             setCast(c => ({ ...c, speaker: { ...c.speaker, name: spNm(NM) } }));
             addL("🏛️ The House removed " + SN + " as Speaker and elected " + spNm(NM) + (hostile ? ". He is not your man: you have lost the House." : "."), hostile ? "crisis" : "political");
-            scWiki("Controversies", SN + " was removed as Speaker in " + absYear + "; " + spNm(NM) + " replaced him" + (hostile ? ", against the governor" : "") + ".");
+            scWiki("Legislature", SN + " was removed as Speaker in " + absYear + "; " + spNm(NM) + " replaced him" + (hostile ? ", against the governor" : "") + ".");
             setTimeout(() => paper("SPEAKER IMPEACHED", (how === "dawn" ? "A dawn sitting removes " : "The House removes ") + SN + "; " + spNm(NM) + " takes the chair", !hostile, "./art/backgrounds/assembly-chamber.webp"), 400);
             return { icon: "🏛️", title: SN + " is out", text: (how === "dawn" ? "At a sitting at dawn, with the mace carried in under guard, " : "") + need + " members voted to remove him. The new Speaker is " + spNm(NM) + ", " + K.nm + ". " + (hostile ? "Your bills now wait on his price, and he is watching your approval." : "He will work with you."), tone: hostile ? "bad" : "neutral",
               rows: [{ l: "The House", v: hostile ? "Against you" : "Still with you", good: !hostile }] }; };
           const split = () => { const NM = newMember("spx", "opp");
             setStc(p => ({ ...p, leg: { ...(p.leg || L), members: next.leg.members, speaker: { ...SP1, split: { at: turn, rival: NM.id } } } }));
             addL("🏛️ Two Speakers: " + SN + " and " + spNm(NM) + " both claim the mace. The House is frozen until the court rules next year.", "crisis");
+            scWiki("Legislature", "In " + absYear + " the House split: " + SN + " and " + spNm(NM) + " each claimed the Speaker's mace, and nothing passed until the courts ruled.");
             setTimeout(() => paper("TWO SPEAKERS, ONE MACE", "Rival factions sit in separate halls; nothing can pass", false, "./art/backgrounds/assembly-chamber.webp"), 400);
             return { icon: "⚖️", title: "Two Speakers", text: "The court said no, and they sat anyway. " + spNm(NM) + " was elected by one faction; " + SN + " still holds the chair with the other. Until the court rules next year, no bill passes and no new programme gets money.", tone: "bad", rows: [{ l: "The House", v: "Frozen", good: false }] }; };
           cards.push({ key: "leg_spplot_" + turn, kicker: "House of Assembly · a plot against the Speaker", color: CL.red, urgent: true, art: ["assembly-chamber", "speaker", null, null],
@@ -8483,7 +8491,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 track("leg_spplot", m.id + ":" + P.why.join("+"));
                 if (m.id === "let") return fall("vote");
                 const roll = rng(hashStr("plot" + turn + m.id + pName))();
-                if (roll < odds) { addL("🏛️ " + SN + " survives: the plot against him collapsed after you " + m.l.charAt(0).toLowerCase() + m.l.slice(1) + ".", "success"); scWiki("Governorship", "Saved Speaker " + SN + " from a removal plot in " + absYear + ".");
+                if (roll < odds) { addL("🏛️ " + SN + " survives: the plot against him collapsed after you " + m.l.charAt(0).toLowerCase() + m.l.slice(1) + ".", "success"); scWiki("Legislature", "Saved Speaker " + SN + " from a removal plot in " + absYear + ".");
                   if (m.id === "release") houseRec("funded"); if (m.id === "police") setTimeout(() => paper("POLICE SEAL ASSEMBLY", "Lawmakers locked out; the Speaker's foes cry foul", false, "./art/backgrounds/assembly-chamber.webp"), 400);
                   return { icon: "🛡️", title: SN + " survives", text: "The signatures stop at " + have + ". He stays in the chair, and remembers who saved him.", tone: "good", rows: [{ l: "The Speaker", v: "Still yours", good: true }] }; }
                 if (m.id === "court" && rng(hashStr("split" + turn + pName))() < m.split) return split();
@@ -8499,6 +8507,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           setStc(p => ({ ...p, leg: { ...(p.leg || L), speaker: ours ? { ...SP1, split: null } : { winner: RIV.id, kind: "avenger", hostile: true, at: turn, asks, done: [], term } }, ...(!ours && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } } : {}) }));
           setCast(c => ({ ...c, speaker: { ...c.speaker, name: spNm(winner) } }));
           addL("⚖️ " + (settle ? "A settlement ends the two-Speaker standoff: " : "The court rules on the two Speakers: ") + spNm(winner) + " holds the mace.", ours ? "success" : "crisis");
+          scWiki("Legislature", (settle ? "A settlement" : "A High Court ruling") + " in " + absYear + " ended the two-Speaker standoff in favour of " + spNm(winner) + (ours ? ", the governor's ally." : ", the governor's opponent."));
           return { icon: "⚖️", title: spNm(winner) + " is the Speaker", text: ours ? "The House sits as one again, and your Speaker is in the chair." : "The court recognised the other faction. The new Speaker is against you, and your approval is his weapon.", tone: ours ? "good" : "bad" }; };
         cards.push({ key: "leg_split_" + turn, kicker: "High Court · the two Speakers", color: CL.red, art: ["assembly-chamber", "speaker", null, null], title: "The court rules on the two Speakers",
           brief: spNm(OLDm) + " and " + spNm(RIV) + " have each sat with their own faction for a year, and nothing has passed. The judgment is today.",
@@ -8524,10 +8533,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               const left = open.filter(x => x.id !== a.id).length;
               deal({ leg: { ...(next.leg || L), speaker: { ...SP, done: [...(SP.done || []), a.id], hostile: left > 0 } } });
               addL("🏛️ Funded " + SN + "'s " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " (" + naira(a.costB) + "). " + (left ? "His bloc votes with you this year." : "Both his programmes are funded: the Speaker is with you from now on."), "political");
-              scWiki("Governorship", "Funded the Speaker's " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " to win back the House.");
+              scWiki("Legislature", "Funded the Speaker's " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " to win back the House.");
               return { icon: "🤝", title: left ? "The House is with you this year" : "The Speaker is with you now", text: left ? "His bloc will vote for your budget and bring your bills to the floor. Next year he will want the rest." : "Both of his programmes are funded. The Speaker stops blocking you.", tone: "good" }; } })),
-            { label: "Give his members committee chairs and contracts", note: "No money from the Treasury now. The papers will call it a sharing formula.", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); deal(); houseRec("deal"); addL("🏛️ Shared committee chairs and contracts with " + SN + "'s members for the year.", "political"); return { icon: "🤝", title: "A deal for this year", text: "His members get their chairs and their contracts; your bills reach the floor this year.", tone: "neutral" }; } },
-            { label: "Refuse: govern without him", note: "Your bills stay off the floor this year, new programmes get no money, and the budget vote is his.", chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); setStc(p => ({ ...p, speakerRefused: turn, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house })); addL("🏛️ You refused " + SN + "'s price. The House will block you this year.", "crisis"); return { icon: "🚫", title: "The House will block you", text: "No bills on the floor and no money for new programmes this year. The budget vote will be hard.", tone: "bad" }; } },
+            { label: "Give his members committee chairs and contracts", note: "No money from the Treasury now. The papers will call it a sharing formula.", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); deal(); houseRec("deal"); scWiki("Legislature", "Gave committee chairs and contracts to " + SN + "'s members in " + absYear + " so that the House would pass {his} budget."); addL("🏛️ Shared committee chairs and contracts with " + SN + "'s members for the year.", "political"); return { icon: "🤝", title: "A deal for this year", text: "His members get their chairs and their contracts; your bills reach the floor this year.", tone: "neutral" }; } },
+            { label: "Refuse: govern without him", note: "Your bills stay off the floor this year, new programmes get no money, and the budget vote is his.", chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); scWiki("Legislature", "Refused " + SN + "'s price in " + absYear + "; the House blocked {his} bills and new programmes that year."); setStc(p => ({ ...p, speakerRefused: turn, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house })); addL("🏛️ You refused " + SN + "'s price. The House will block you this year.", "crisis"); return { icon: "🚫", title: "The House will block you", text: "No bills on the floor and no money for new programmes this year. The budget vote will be hard.", tone: "bad" }; } },
           ] });
       }
       // 2. The budget battle, and the promise that comes due the year after.
@@ -11031,7 +11040,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (breakSp && R.ok) { setStc(p => { const H = p.house, maj = H ? Math.floor(H.seats / 2) + 1 : 0;
           return { ...p, speakerRefused: null, leg: { ...(p.leg || {}), speaker: { ...((p.leg || {}).speaker || {}), hostile: false, broken: turn } }, house: H ? { ...H, loyal: Math.max(H.loyal, maj) } : H }; });
           addL("🏛️ With the President behind you, the party whipped its members back: you have a majority of one, and " + SPK + " can no longer block your bills.", "success");
-          scWiki("Governorship", "Won back the House by one vote with the President's backing, ending " + SPK + "'s hold."); }
+          scWiki("Legislature", "Won back the House by one vote with the President's backing, ending " + SPK + "'s hold."); }
         addL((R.ok ? "🇳🇬 Aso Rock: the President granted " : "🇳🇬 Aso Rock: the President would not commit to ") + ask.l.charAt(0).toLowerCase() + ask.l.slice(1) + ".", R.ok ? "success" : "political");
         scWiki("Governorship", "Visited the President at Aso Rock to ask for " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1) + (R.ok ? "; the President agreed." : "; the President made no promise."));
         try {
@@ -11628,6 +11637,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (!NAT && stc.spImp !== turn && SYS.speakerImpeaches({ hostile: SYS.hostileSpeaker(SPk) && turn > ((SPk || {}).at || 0), dealThisYear: stc.speakerDeal === turn, app: Math.round(s.app), appMark: stc.appMark })) {
         setStc(p => ({ ...p, spImp: turn, spImpFrom: p.appMark, appMark: Math.round(s.app) })); setPhase("impeach");
         addL("⚠️ " + String(cast.speaker.name || "The Speaker") + " has moved to impeach you: your approval slipped from " + stc.appMark + "% to " + Math.round(s.app) + "%.", "crisis");
+        scWiki("Legislature", "In " + absYear + " " + String(cast.speaker.name || "the Speaker") + " moved to impeach {him} after {his} approval slipped from " + stc.appMark + "% to " + Math.round(s.app) + "%.");
         try { paper("SPEAKER MOVES TO IMPEACH GOVERNOR", "Approval down to " + Math.round(s.app) + "%: the House serves notice", false, "./art/backgrounds/assembly-chamber.webp"); } catch (e) {}
         return; } }
     // Party collapse triggers impeachment only if approval also low (House needs justification)
@@ -11650,6 +11660,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setS(p => ({ ...p, app: cl100(p.app + 5), pStab: cl100(p.pStab + 15) })); // Boost pStab so it doesn't re-trigger
       setStc(p => p.house ? { ...p, house: { ...p.house, loyal: Math.min(p.house.seats, Math.max(p.house.loyal + 4 * MEM, Math.ceil(p.house.seats / 3) + 2)) } } : p);
       addL("🛡️ Survived impeachment! Public rallied. Party stability restored.", "political");
+      scWiki("Legislature", "Survived an impeachment motion in " + absYear + ".");
       advance();
     } else {
       setGEnd("impeached");
@@ -13090,7 +13101,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const left = (SPk.asks || []).filter(x => !(SPk.done || []).includes(x.id) && x.id !== P.speakerAsk).length;
       setStc(p => ({ ...p, speakerDeal: turn, speakerRefused: null, leg: { ...(p.leg || {}), speaker: { ...SPk, done: [...(SPk.done || []), P.speakerAsk], hostile: left > 0 } }, house: p.house ? { ...p.house, loyal: Math.max(p.house.loyal, maj) } : p.house }));
       addL("🏛️ " + P.title + " went to Mace & Gavel Works, " + SN + "'s contractor. " + (left ? "His bloc votes with you this year." : "That was the last thing he asked for: the Speaker is with you from now on."), "political");
-      scWiki("Controversies", "Gave " + P.title + " to the Speaker's own contractor to win back the House.");
+      scWiki("Legislature", "Gave " + P.title + " to the Speaker's own contractor to win back the House.");
       setTimeout(() => { try { window.SOP_outcome({ icon: "🤝", img: "./art/backgrounds/assembly-chamber.webp", title: left ? "The House is with you this year" : "The Speaker is with you now", text: "His contractor has the job, and his members have their cut. " + (left ? "Your bills reach the floor and your programmes get their money this year. Next year he will want the rest." : "He stops blocking you."), tone: "neutral",
         rows: [{ l: "Corruption", v: "+" + Math.round(SYS.SPEAKER_FIRM_COR * 100) + "%", good: false }, { l: "The House", v: "With you", good: true }] }); } catch (e) {} }, 900);
     } else {
@@ -16780,6 +16791,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 const hs = scHouse(), over = hs.seats - hs.loyal >= Math.ceil(hs.seats * 2 / 3); // the President: S.58(5); a governor: two-thirds of the one House of Assembly, S.100(5)
                 if (over) {
                   setS(p => { const n = { ...p }; Object.entries(B.signFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); }); if (badClauses.length) n.cor = cl(n.cor + .04); return n; });
+                  scWiki("Legislature", "Vetoed the " + B.nm + "; " + (NAT ? "the National Assembly" : "the House of Assembly") + " overrode the veto by a two-thirds vote, and it became law without {his} assent.");
                   addL("⛔ Vetoed the " + B.nm + ". " + (NAT ? "Two-thirds of both chambers overrode you: it is law anyway (S.58(5))." : "Two-thirds of the House of Assembly overrode you: it is law anyway (S.100(5))."), "crisis");
                   paper((NAT ? "National Assembly" : "House of Assembly") + " Overrides " + govShort + "'s Veto", billNm + " becomes law without assent · Party −5", false, "./art/scenes/veto-override.webp");
                 } else {
