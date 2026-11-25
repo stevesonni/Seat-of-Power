@@ -9096,6 +9096,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       };
       cards.push({ key: "petition", kicker: "Election petition · " + SHORT[st0] + (NAT ? " (" + st0 + "/2)" : " (" + (st0 + 1) + "/3)"), color: CL.red, art: st0 === 2 ? ["supreme-court-abuja", "senior-advocate"] : st0 === 1 ? ["courtroom", "senior-advocate"] : ["courtroom", null, "petition-file"],
         title: P0.opp + " v. You",
+        letter: (() => { const ag = (ministries || []).find(m => m.id === "just"), agN = ag ? (ag.acting ? "" : "Hon. ") + ag.minister : null,
+            office = NAT ? "Attorney-General of the Federation and Minister of Justice" : "Attorney-General and Commissioner for Justice", race = NAT ? "presidential election" : "governorship election",
+            what = { "inducement of voters and misuse of state funds": "you bought votes and used state money in the campaign", "over-voting in the polling units you won": "more votes were cast than voters accredited in the polling units you won", "non-compliance with the Electoral Act": "the election was not run the way the Electoral Act requires" }[grounds] || grounds;
+          return { who: agN || "The Ministry of Justice", where: NAT ? "Federal Ministry of Justice, Abuja" : "Ministry of Justice, " + (SYS.STATE_CAPITALS[state] || state), signed: agN ? agN + ", " + office : office,
+            body: [
+              st0 === (NAT ? 1 : 0) ? P0.opp + " (" + P0.oppParty + "), who lost the " + (P0.term === 1 ? "" : "second-term ") + race + " to you, has asked the " + COURTS[st0] + " to cancel your win."
+                : P0.lostBelow ? "You lost at the " + COURTS[st0 - 1] + ", and our appeal is now before the " + COURTS[st0] + "."
+                : P0.opp + " lost at the " + COURTS[st0 - 1] + " and has appealed to the " + COURTS[st0] + ".",
+              "They say " + what + ". You won by " + P0.margin + "% of the vote" + (P0.margin < 2 ? ", which is thin." : ".") + (s.cor > .45 ? " The talk of corruption in your government helps their case." : ""),
+              final ? "This is the last court. If we lose, you leave office." : "If we lose here, you stay in office while we appeal.",
+              "How do you want us to defend the case?"] }; })(),
         brief: "Their claim: " + grounds + ". Your margin: " + P0.margin + "%." + (P0.lostBelow ? " You lost below and appealed." : "") + (s.cor > .45 ? " Your record helps them." : ""),
         stakes: final ? "Final. Lose and you leave office." : "Lose and you appeal.",
         options: [

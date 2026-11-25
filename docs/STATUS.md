@@ -2241,3 +2241,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - "Dearer" and "dear" (British for "more expensive") are gone. They now say "costs more", "costlier" or "costly".
 - Project option chips now say "10% more" or "5% less" instead of "10% dearer" or "5% cheaper".
 - Two governor options no longer name the army: "Police and civil defence escort", and "The police and the civil defence" for the pipeline. Only the President commands the forces.
+
+## The election-petition letter reads as a whole letter (25 Nov 2026)
+- The letter used to show only "Their claim: … Your margin: …%." and was signed by the Special Adviser.
+- It now comes from the Attorney-General (Ministry of Justice). It says who went to court, against what, and what they ask; gives the claim in plain words and the margin as a sentence; says what losing means at this court; and asks how to defend the case.
+- At the appeal stages it says who lost below and which court has the appeal.
+- Test: tests/e2e/petition-letter.mjs.
