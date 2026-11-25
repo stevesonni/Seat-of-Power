@@ -284,7 +284,8 @@ export const writeBio = (f) => {
   // ── Public image ──
   const img = [];
   if (app.length > 2) {
-    const peak = app.reduce((b, v, i) => (v > b.v ? { v, i } : b), { v: -1, i: 0 }), low0 = app.reduce((b, v, i) => (v < b.v ? { v, i } : b), { v: 999, i: 0 });
+    // The final rating counts too: a peak below the rating he left with would contradict the lead.
+    const appAll = app.concat(f.ended ? [f.app] : []), peak = appAll.reduce((b, v, i) => (v > b.v ? { v, i: Math.min(i, lastT) } : b), { v: -1, i: 0 }), low0 = appAll.reduce((b, v, i) => (v < b.v ? { v, i } : b), { v: 999, i: 0 });
     img.push("According to surveys by the " + (nat ? "National" : st) + " Centre for Public Opinion Research, " + surname + "'s approval rating peaked at " + Math.round(peak.v) + "%" + (peak.i ? " in " + yearOf(peak.i) : " shortly after " + his + " inauguration") + " and fell to a low of " + Math.round(low0.v) + "%" + (low0.i ? " in " + yearOf(low0.i) : " early in " + his + " term") + ". ");
     img.push(cite("Polls track " + name + "'s approval", lastT, "Centre for Public Opinion Research"));
     img.push(" ");
