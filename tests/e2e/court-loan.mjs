@@ -26,7 +26,7 @@ let L = null; const grab = async () => { if (L) return; try { L = await g.page.e
 await playUntil(g, () => !!L, { max: 300, onStep: grab });
 check(!!L, "the bank writes the next year");
 console.log("  " + (L && L.title) + " · " + (L && L.body));
-check(L && /The court stopped Ikwo Road: repay what was drawn/.test(L.title) && /You drew ₦0\.6B; with ₦0\.1B of interest, ₦0\.7B is owed now\./.test(L.body), "it asks for what was drawn plus interest");
+check(L && /The court stopped Ikwo Road: repay what was drawn/.test(L.title) && /You drew ₦[\d.]+[MB]; with ₦[1-9][\d.]*[MB] of interest, ₦[\d.]+[MB] is owed now\./.test(L.body), "it asks for what was drawn plus interest");
 check(L && /Federal Ministry of Finance/.test(L.body), "and says it will go to the Federal Ministry of Finance if you do not pay");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

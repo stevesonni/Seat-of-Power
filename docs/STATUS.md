@@ -2453,3 +2453,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - There is a front page and an entry in the record.
 - Test: tests/e2e/court-loan.mjs (a named road on a bank loan; the court halts it by name; obeying stops it and its loan falls due; the bank writes the next year asking for ₦0.6B plus interest).
 - Fix (same day): the President's FIFA/CAF letter, and the bank's letter for a stopped project, were handed to the Chief of Staff in busy years (the yearly cap keeps the most important matters, and the war letters outrank the rest). Sport's invitations and a loan falling due are now in the "always yours" class with court cases (WAR). The test switch for a named road no longer needs a programme running.
+
+## 25 Nov 2026: the loan letter arrives, and a crash fixed
+- With no ministries yet, pressing "Later" on "Convene your ministries first" crashed the game ("Something went wrong"). Fixed: the cabinet check now skips when there are no ministries.
+- The bank's repayment letter shows small sums in millions ("You drew ₦150M; with ₦33M of interest, ₦183M is owed now"), not "₦0 of interest". The money taken is exact to the million.
+- Browser tests: court-loan.mjs and sports.mjs pass in full.
