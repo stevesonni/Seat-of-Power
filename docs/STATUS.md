@@ -2475,3 +2475,7 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - While hostile, every approval gain counts half; losses are untouched.
 - Tests: tests/press.test.mjs; tests/e2e/press.mjs (the same Hague deal at 55% and 45%, a halved gain, hostile at 51% while climbing, balanced at 52%).
 - The President: the same rule on The Daily Impact, the TV desk and Tori (tests/e2e/press.mjs plays it as President too).
+
+## 25 Nov 2026: paying the Speaker on a kept letter
+- Bug (owner: "I did what the Speaker asked for, still he won't let my programme pass"): a Speaker's letter kept over from last year still carried last year's date, so paying it recorded the deal for last year and the House kept blocking. Deals and refusals (the Speaker, and the President's Senate and House) now count for the year you answer in. Paying also clears an old refusal.
+- tests/e2e/speaker-hostile.mjs: paying a year late wins the House back and a new programme gets its money (fails without the fix); the test also closes a sheet the bot may leave over the letter.

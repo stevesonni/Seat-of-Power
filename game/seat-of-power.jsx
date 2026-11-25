@@ -6142,6 +6142,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const ld = loadedSave; // shorthand
   // A comeback after defeat is the final term (S.182: two terms in all): it starts at year 5.
   const [turn, setTurn] = useState(ld?.turn || (setup?.comeback ? 5 : 1));
+  const turnNow = React.useRef(turn); turnNow.current = turn; // the live year: a letter kept from last year still acts in this one
   const campaignGfDebt = setup?.gfDebt || 0;
   const [s, _setSRaw] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: pillarOn("front") && !ld ? SYS.firstYearCushion(sd.faac) : 0, cashYear: 0, zoneMood: {} /* the other districts ask first (statecraftTurn, SYS.makeAsk "start") instead of starting at −2 */, pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
@@ -6351,6 +6352,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // named: a road you named, on a bank loan, is the one the court halts (tests/e2e/court-stop.mjs).
       paperTest: (h, sub, good) => { if (!window.SOP_TEST) return null; const o = window.SOP_outcome; let got = null; window.SOP_outcome = (x) => { if (x && x.paper) got = x.paper; return o && o(x); }; try { paper(h, sub, good); } finally { window.SOP_outcome = o; } return got; },
       pressNow: () => ({ hostile: !!pressRef.current, app: s.app }),
+      turnTest: (n) => { if (window.SOP_TEST) setTurn(n); },
       injunctionTest: (nm, sites, named) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0];
         if (named) { const L = { key: "loan:p_ikwo:bank", lenderId: "bank", lender: "A syndicate of three commercial banks", nm: "Commercial bank loan", principalM: 1800, rate: .22, years: 4, tranches: 3, drawn: 1, trancheM: 600, drawnM: 600, outstandingM: 600, projId: "p_ikwo", disbursedYear: turn };
           setProjects(prev => [...(prev || []), { id: "p_ikwo", title: named, type: "road", lga: getLGAs(state)[0], status: "in_progress", progress: 30, events: [], decisions: [], spentM: 600, loanKey: L.key }]); setLoans(ls => [...(ls || []), L]);
@@ -8376,7 +8378,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         // 2. A hostile presiding officer's price, every year after the race.
         if (L && L.hostile && !L.split && turn > (L.at || 0) && C.deal !== turn) {
           const open = (L.asks || []).filter(a => !(L.done || []).includes(a.id));
-          const deal = (extra) => setCh(ch, c => ({ ...c, deal: turn, bias: Math.max(c.bias || 0, SYS.biasFor(ratio, "held")), ...extra }));
+          const deal = (extra) => setCh(ch, c => ({ ...c, deal: turnNow.current, bias: Math.max(c.bias || 0, SYS.biasFor(ratio, "held")), ...extra }));
           cards.push({ key: "nass_price_" + ch + "_" + turn, kicker: CH.Nm + " · the " + title + "'s price", color: CL.pur, art: [CH.bg, CH.art + "-angry", null, null],
             title: L.name + " wants his programmes first",
             brief: CH.Nm + " is not yours: until you deal with " + L.name + ", the budget and every new programme wait. This year he wants " + (open.length ? open.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", or ") : "committee chairs and contracts for his " + CH.members) + ".",
@@ -8388,7 +8390,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 addL("🏛️ Funded " + L.name + "'s " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + ". " + (left ? CH.Nm + " votes with you this year." : "That was all he asked for: the " + title + " is with you now."), "political");
                 return { icon: "🤝", title: left ? CH.Nm + " is with you this year" : "The " + title + " is with you now", text: left ? "Your budget and programmes pass " + CH.nm + " this year. Next year he will want the rest." : "He stops blocking you.", tone: "good" }; } })),
               { label: "Give his " + CH.members + " committee chairs and contracts", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); houseRec("deal"); scWiki("Legislature", "Gave committee chairs and contracts to " + L.name + "'s " + CH.members + " in " + absYear + " to get {his} budget through " + CH.nm + "."); deal(); addL("🏛️ Committee chairs and contracts for " + L.name + "'s " + CH.members + " this year.", "political"); return { icon: "🤝", title: "A deal for this year", text: CH.Nm + " passes your budget and programmes this year.", tone: "neutral" }; } },
-              { label: "Refuse: govern without " + CH.nm.replace(/^the /, "the "), chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); scWiki("Legislature", "Refused " + L.name + "'s price in " + absYear + "; " + CH.nm + " blocked {his} new programmes that year."); setCh(ch, c => ({ ...c, refused: turn })); addL("🏛️ You refused " + L.name + "'s price. " + CH.Nm + " will block new spending this year.", "crisis"); return { icon: "🚫", title: CH.Nm + " will block you", text: "No new programme gets money this year.", tone: "bad" }; } },
+              { label: "Refuse: govern without " + CH.nm.replace(/^the /, "the "), chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); scWiki("Legislature", "Refused " + L.name + "'s price in " + absYear + "; " + CH.nm + " blocked {his} new programmes that year."); setCh(ch, c => ({ ...c, refused: turnNow.current })); addL("🏛️ You refused " + L.name + "'s price. " + CH.Nm + " will block new spending this year.", "crisis"); return { icon: "🚫", title: CH.Nm + " will block you", text: "No new programme gets money this year.", tone: "bad" }; } },
             ] });
         }
         // 3. A plot against a friendly presiding officer: second or third year of a term, at most once a term.
@@ -8563,7 +8565,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (SYS.hostileSpeaker(SP) && turn > (SP.at || 0) && next.speakerDeal !== turn) {
         const W = SYS.memberOf(L, SP.winner) || { name: cast.speaker.name }, SN = "Rt. Hon. " + String(W.name).replace(/^(Rt\. )?Hon\. /, ""), open = (SP.asks || []).filter(a => !(SP.done || []).includes(a.id));
         const H = next.house || { seats: 24, loyal: 10 }, maj = Math.floor(H.seats / 2) + 1;
-        const deal = (extra) => setStc(p => ({ ...p, speakerDeal: turn, ...extra, house: p.house ? { ...p.house, loyal: Math.max(p.house.loyal, maj) } : p.house }));
+        const deal = (extra) => setStc(p => ({ ...p, speakerDeal: turnNow.current, speakerRefused: null, ...(typeof extra === "function" ? extra(p) : extra), house: p.house ? { ...p.house, loyal: Math.max(p.house.loyal, maj) } : p.house }));
         cards.push({ key: "leg_spprice_" + turn, kicker: "House of Assembly · the Speaker's price", color: CL.pur, art: ["assembly-chamber", "speaker", null, null],
           title: SN + " wants his programmes first",
           brief: "You have no majority: until you deal with " + SN + ", your bills stay off the floor and new programmes get no money. This year he wants " + (open.length ? open.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", or ") : "committee chairs and contracts for his members") + ".",
@@ -8574,12 +8576,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             ...open.filter(a => !SYS.speakerAskType(a)).map(a => ({ label: "Fund it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), note: naira(a.costB) + ". His bloc votes with you this year." + (open.length === 1 ? " It is the last thing he asked for." : ""), chips: [{ text: "−" + naira(a.costB), color: CL.red }].concat(fxChips(a.fx || {})).slice(0, 3), run: () => {
               if (!spendB(a.costB, "The Speaker's " + a.id)) return; scFx(a.fx || {}); houseRec("paid");
               const left = open.filter(x => x.id !== a.id).length;
-              deal({ leg: { ...(next.leg || L), speaker: { ...SP, done: [...(SP.done || []), a.id], hostile: left > 0 } } });
+              deal(p => { const L1 = p.leg || next.leg || L, S1 = L1.speaker || SP; return { leg: { ...L1, speaker: { ...S1, done: [...new Set([...(S1.done || []), a.id])], hostile: left > 0 } } }; });
               addL("🏛️ Funded " + SN + "'s " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " (" + naira(a.costB) + "). " + (left ? "His bloc votes with you this year." : "Both his programmes are funded: the Speaker is with you from now on."), "political");
               scWiki("Legislature", "Funded the Speaker's " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + " to win back the House.");
               return { icon: "🤝", title: left ? "The House is with you this year" : "The Speaker is with you now", text: left ? "His bloc will vote for your budget and bring your bills to the floor. Next year he will want the rest." : "Both of his programmes are funded. The Speaker stops blocking you.", tone: "good" }; } })),
             { label: "Give his members committee chairs and contracts", note: "No money from the Treasury now. The papers will call it a sharing formula.", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); deal(); houseRec("deal"); scWiki("Legislature", "Gave committee chairs and contracts to " + SN + "'s members in " + absYear + " so that the House would pass {his} budget."); addL("🏛️ Shared committee chairs and contracts with " + SN + "'s members for the year.", "political"); return { icon: "🤝", title: "A deal for this year", text: "His members get their chairs and their contracts; your bills reach the floor this year.", tone: "neutral" }; } },
-            { label: "Refuse: govern without him", note: "Your bills stay off the floor this year, new programmes get no money, and the budget vote is his.", chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); scWiki("Legislature", "Refused " + SN + "'s price in " + absYear + "; the House blocked {his} bills and new programmes that year."); setStc(p => ({ ...p, speakerRefused: turn, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house })); addL("🏛️ You refused " + SN + "'s price. The House will block you this year.", "crisis"); return { icon: "🚫", title: "The House will block you", text: "No bills on the floor and no money for new programmes this year. The budget vote will be hard.", tone: "bad" }; } },
+            { label: "Refuse: govern without him", note: "Your bills stay off the floor this year, new programmes get no money, and the budget vote is his.", chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); scWiki("Legislature", "Refused " + SN + "'s price in " + absYear + "; the House blocked {his} bills and new programmes that year."); setStc(p => ({ ...p, speakerRefused: turnNow.current, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house })); addL("🏛️ You refused " + SN + "'s price. The House will block you this year.", "crisis"); return { icon: "🚫", title: "The House will block you", text: "No bills on the floor and no money for new programmes this year. The budget vote will be hard.", tone: "bad" }; } },
           ] });
       }
       // 2. The budget battle, and the promise that comes due the year after.
@@ -13359,14 +13361,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (yes) {
       awardProject(projId, SYS.SPEAKER_FIRM, "open"); scFx({ cor: SYS.SPEAKER_FIRM_COR }); houseRec("paid");
       const left = (SPk.asks || []).filter(x => !(SPk.done || []).includes(x.id) && x.id !== P.speakerAsk).length;
-      setStc(p => ({ ...p, speakerDeal: turn, speakerRefused: null, leg: { ...(p.leg || {}), speaker: { ...SPk, done: [...(SPk.done || []), P.speakerAsk], hostile: left > 0 } }, house: p.house ? { ...p.house, loyal: Math.max(p.house.loyal, maj) } : p.house }));
+      setStc(p => ({ ...p, speakerDeal: turnNow.current, speakerRefused: null, leg: { ...(p.leg || {}), speaker: { ...SPk, done: [...(SPk.done || []), P.speakerAsk], hostile: left > 0 } }, house: p.house ? { ...p.house, loyal: Math.max(p.house.loyal, maj) } : p.house }));
       addL("🏛️ " + P.title + " went to Mace & Gavel Works, " + SN + "'s contractor. " + (left ? "His bloc votes with you this year." : "That was the last thing he asked for: the Speaker is with you from now on."), "political");
       scWiki("Legislature", "Gave " + P.title + " to the Speaker's own contractor to win back the House.");
       setTimeout(() => { try { window.SOP_outcome({ icon: "🤝", img: "./art/backgrounds/assembly-chamber.webp", title: left ? "The House is with you this year" : "The Speaker is with you now", text: "His contractor has the job, and his members have their cut. " + (left ? "Your bills reach the floor and your programmes get their money this year. Next year he will want the rest." : "He stops blocking you."), tone: "neutral",
         rows: [{ l: "Corruption", v: "+" + Math.round(SYS.SPEAKER_FIRM_COR * 100) + "%", good: false }, { l: "The House", v: "With you", good: true }] }); } catch (e) {} }, 900);
     } else {
       setProjects(prev => prev.filter(x => x.id !== projId)); setPflow(null); scFx({ pStab: -2 }); houseRec("firmNo");
-      setStc(p => ({ ...p, speakerRefused: turn, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house }));
+      setStc(p => ({ ...p, speakerRefused: turnNow.current, house: p.house ? { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } : p.house }));
       addL("🏛️ You refused " + SN + "'s contractor for " + P.title + ". The House will block you this year.", "crisis");
       try { window.SOP_outcome({ icon: "🚫", img: "./art/backgrounds/assembly-chamber.webp", title: "Your bills stay blocked", text: "No contractor of his, no project, and no deal. " + SN + " keeps your bills off the floor and your new programmes get no money this year.", tone: "bad", rows: [{ l: "The House", v: "Still his", good: false }] }); } catch (e) {}
     }
