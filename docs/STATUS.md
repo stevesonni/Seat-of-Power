@@ -2180,3 +2180,15 @@ Owner: "we need videos for the rail, and a new programme called Bus Terminals…
 - New programmes: "Modern Bus Terminals" (governor, ₦1.5B, 3 terminals, fixes traffic) and "Interstate bus terminals in every zone" (President, f_bus_terminals, also fixes traffic).
 - The law: railways moved to the Concurrent List in 2023, so a governor's "railway" is now read as their own light rail or metro; only "standard gauge" is refused.
 - Films: rail.mp4, metro.mp4, busterminal.mp4 and interstatebus.mp4 (REEL_BY_POLICY.f_bus_terminals) are briefed in docs/GEMINI-REELS.md.
+
+## The President's two chambers (25 Nov 2026)
+Owner: "for the presidency, the same potential crisis, except the President deals with the House and the Senate separately… they will elect a Senate President and a House of Reps Speaker."
+- Rules: game/systems/nass.js (`CHAMBERS` sen/reps, `chamberLoyal`, `biasFor`, `nassBlocks`, `nassHostile`, `nassImpeaches`) and a new Section 143 trigger in impeach.js, `assembly` ("Both chambers turn on the President").
+- In the presidency (jsx, `NAT` block before the living House), for each chamber, in stc.nass[ch]:
+  - an election of its presiding officer at the start of each term (the second shaped by the first-term record, as for a governor);
+  - a hostile presiding officer's yearly price (fund his asks, committee chairs and contracts, or refuse); while it is unmet, new programmes are blocked ("The Senate will not fund it");
+  - a plot against a friendly one once a term (years 2–3), with the same moves, the party and the governors standing in for Abuja;
+  - a split chamber with two presiding officers until the court rules the next year.
+- Impeachment needs both chambers: both hostile with no deal last year, and approval down over the year (stc.appPrev → stc.appMark), opens the Senate investigation. One hostile chamber only passes a motion of condemnation.
+- The Senate President's name and mood feed the existing Senate character (stc.pres.npcs.nass).
+- Guide: one quick answer. Browser test: tests/e2e/nass-president.mjs (elections, block, impeachment); test switch SOP_TEST.assemblyDip.

@@ -26,8 +26,11 @@ export const IMPEACH_TRIGGERS = {
     when: (c) => !!c.defied },
   collapse: { nm: "The party walks away", charge: "gross misconduct, signed by members of the President's own party who no longer defend him",
     when: (c) => c.app < 30 && c.pStab < 40 },
+  // Both chambers against you, and your approval slipping (owner, 25 Nov 2026; nass.js nassImpeaches).
+  assembly: { nm: "Both chambers turn on the President", charge: "gross misconduct, moved by the Senate President and the Speaker together the moment the President's approval slipped",
+    when: (c) => !!c.assemblyDip },
 };
-const ORDER = ["defiance", "graft", "anarchy", "collapse"];
+const ORDER = ["defiance", "assembly", "graft", "anarchy", "collapse"];
 
 /* Is there a case this year? I: stc.impeach ({ last, active, whistle }).
    Not while one is running, and not within three years of the last. A

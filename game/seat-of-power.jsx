@@ -8297,6 +8297,101 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         ] });
     }
 
+    /* The President's two chambers (owner, 25 Nov 2026: "the President deals with the House and the Senate separately…
+       they will elect a Senate President and a House of Reps Speaker"). SYS.CHAMBERS, nassBlocks, nassImpeaches. */
+    try { if (NAT && !scenId) {
+      const N0 = next.nass || {}, Hs = next.house || { seats: NASS_SEATS, loyal: Math.round(NASS_SEATS * .55) }, ratio = Hs.loyal / Math.max(1, Hs.seats);
+      const term = turn <= 4 ? 1 : 2, termYear = term === 1 ? turn : turn - 4, rec = next.houseRec || {};
+      const nmOf = (ch, tag) => gN(rng(hashStr(ch + tag + turn + pName)), null, NATION);
+      const setCh = (ch, f) => setStc(p => { const N = p.nass || {}; const C = f(N[ch] || {}); const out = { ...p, nass: { ...N, [ch]: C } };
+        if (ch === "sen" && C.leader && p.pres && p.pres.npcs && p.pres.npcs.nass) out.pres = { ...p.pres, npcs: { ...p.pres.npcs, nass: { ...p.pres.npcs.nass, name: C.leader.name, rel: C.leader.hostile ? Math.min(p.pres.npcs.nass.rel, 30) : Math.max(p.pres.npcs.nass.rel, 55) } } };
+        return out; });
+      const kindNow = SYS.houseKind(rec, { gfFreed: next.gf === "freed" });
+      SYS.CHAMBER_IDS.forEach(ch => {
+        const CH = SYS.CHAMBERS[ch], C = N0[ch] || {}, L = C.leader, title = CH.title;
+        // 1. The election of the presiding officer, at the start of each term.
+        if ((term === 1 ? turn <= 2 : turn >= 5 && turn <= 6) && C.race !== term) {
+          const kind = term === 1 ? "dealer" : kindNow, K = SYS.SPEAKER_KINDS[kind];
+          const OLDn = term === 1 ? nmOf(ch, "ours") : (L && L.name), oldFriendly = term === 1 ? true : !!(L && !L.hostile), NMn = nmOf(ch, "house" + term);
+          const run = (backed) => () => { const R = SYS.speakerRace2((next.pseed || 7) + ":" + ch + turn, { kind, oldFriendly, backed, ratio });
+            const name = R.winner === "new" ? NMn : OLDn, hostile = R.winner === "new" ? R.hostile : (term === 2 && L && L.hostile && backed !== "old");
+            const asks = hostile ? SYS.speakerAsks((next.pseed || 7) + ":" + ch + name, true) : [];
+            setCh(ch, c => ({ ...c, race: term, bias: hostile ? SYS.biasFor(ratio, "lost") : Math.max(c.bias || 0, SYS.biasFor(ratio, "held")), leader: { name, hostile, kind: R.winner === "new" ? kind : "incumbent", asks, done: [], at: turn, term } }));
+            track("nass_race_" + ch, kind + "_" + (backed || "out") + "_" + R.winner);
+            addL("🏛️ " + name + " is the new " + title + (hostile ? ": not your man. " + CH.Nm + " will block your budget until you meet his price." : "."), hostile ? "crisis" : "success");
+            scWiki("Presidency", name + " was elected " + title + " in " + absYear + (hostile ? ", against the President's candidate." : "."));
+            return { icon: "🏛️", img: "./art/characters/" + CH.art + (hostile ? "-angry" : "-pleased") + ".webp", title: name + " is " + title, text: hostile ? CH.Nm + " has its own man. He blocks new spending until you meet his price, and if the other chamber turns too, a dip in your approval is all they need to impeach you." : CH.Nm + " is with you.", tone: hostile ? "bad" : "good",
+              rows: [{ l: CH.Nm, v: hostile ? "Against you" : "With you", good: !hostile }] }; };
+          const lead = term === 1 ? "The new " + CH.nm.replace(/^the /, "") + " elects its " + title + " this week. Your party has a candidate; the " + CH.members + " have their own." : ((rec.score || 0) >= 3 ? "You kept faith with the Assembly in your first term." : (rec.score || 0) <= -4 ? "You crossed the Assembly too often in your first term." : "The Assembly found you a hard bargainer in your first term.") + " It puts up " + NMn + ", " + K.nm + ".";
+          cards.push({ key: "nass_race_" + ch + "_" + term, kicker: CH.Nm + " · electing the " + title, color: CL.pur, art: [CH.bg, CH.art, null, null], title: CH.Nm + " elects its " + title,
+            brief: lead + " " + (term === 1 ? NMn + " is " + K.nm + "." : OLDn ? OLDn + " wants a second term in the chair." : ""),
+            stakes: "A hostile " + title + " blocks your budget and new programmes until you meet his price. If both chambers turn against you, they can impeach you the moment your approval slips.",
+            options: [{ label: "Back " + OLDn + (term === 1 ? ", your party's candidate" : " for a second term"), chips: [], run: run("old") }, { label: "Back " + NMn, chips: [], run: run("new") }, { label: "Stay out of it", chips: [], run: run(null) }] });
+        }
+        // 2. A hostile presiding officer's price, every year after the race.
+        if (L && L.hostile && !L.split && turn > (L.at || 0) && C.deal !== turn) {
+          const open = (L.asks || []).filter(a => !(L.done || []).includes(a.id));
+          const deal = (extra) => setCh(ch, c => ({ ...c, deal: turn, bias: Math.max(c.bias || 0, SYS.biasFor(ratio, "held")), ...extra }));
+          cards.push({ key: "nass_price_" + ch + "_" + turn, kicker: CH.Nm + " · the " + title + "'s price", color: CL.pur, art: [CH.bg, CH.art + "-angry", null, null],
+            title: L.name + " wants his programmes first",
+            brief: CH.Nm + " is not yours: until you deal with " + L.name + ", the budget and every new programme wait. This year he wants " + (open.length ? open.map(a => a.l.charAt(0).toLowerCase() + a.l.slice(1)).join(", or ") : "committee chairs and contracts for his " + CH.members) + ".",
+            stakes: "Pay his price and " + CH.nm + " votes with you this year. Refuse, and nothing new gets money.",
+            options: [
+              ...open.map(a => ({ label: "Fund it: " + a.l.charAt(0).toLowerCase() + a.l.slice(1), chips: [{ text: "−" + naira(a.costB), color: CL.red }].concat(fxChips(a.fx || {})).slice(0, 3), run: () => {
+                if (!spendB(a.costB, title + "'s " + a.id)) return; scFx(a.fx || {}); houseRec("paid");
+                const left = open.filter(x => x.id !== a.id).length; deal({ leader: { ...L, done: [...(L.done || []), a.id], hostile: left > 0 } });
+                addL("🏛️ Funded " + L.name + "'s " + a.l.charAt(0).toLowerCase() + a.l.slice(1) + ". " + (left ? CH.Nm + " votes with you this year." : "That was all he asked for: the " + title + " is with you now."), "political");
+                return { icon: "🤝", title: left ? CH.Nm + " is with you this year" : "The " + title + " is with you now", text: left ? "Your budget and programmes pass " + CH.nm + " this year. Next year he will want the rest." : "He stops blocking you.", tone: "good" }; } })),
+              { label: "Give his " + CH.members + " committee chairs and contracts", chips: fxChips({ cor: .02, app: -1 }), run: () => { scFx({ cor: .02, app: -1 }); houseRec("deal"); deal(); addL("🏛️ Committee chairs and contracts for " + L.name + "'s " + CH.members + " this year.", "political"); return { icon: "🤝", title: "A deal for this year", text: CH.Nm + " passes your budget and programmes this year.", tone: "neutral" }; } },
+              { label: "Refuse: govern without " + CH.nm.replace(/^the /, "the "), chips: fxChips({ pStab: -2 }), run: () => { scFx({ pStab: -2 }); houseRec("refused"); setCh(ch, c => ({ ...c, refused: turn })); addL("🏛️ You refused " + L.name + "'s price. " + CH.Nm + " will block new spending this year.", "crisis"); return { icon: "🚫", title: CH.Nm + " will block you", text: "No new programme gets money this year.", tone: "bad" }; } },
+            ] });
+        }
+        // 3. A plot against a friendly presiding officer: second or third year of a term, at most once a term.
+        if (L && !L.hostile && !L.split && turn > (L.at || 0) && (termYear === 2 || termYear === 3) && (C.plot || {})[term] == null) {
+          const P = SYS.speakerPlot((next.pseed || 7) + ":" + ch, turn, { arrears: next.arrears || 0, app: s.app, cor: s.cor, gfFreed: next.gf === "freed", kind: L.kind, termYear, term, sameZone: hashStr(L.name + ch) % 3 === 0, rubber: L.kind === "incumbent" });
+          if (P.go || (window.SOP_TEST && window.SOP_TEST.plotNow && P.why.length)) {
+            next.nass = { ...(next.nass || N0), [ch]: { ...C, plot: { ...(C.plot || {}), [term]: turn } } };
+            const need = Math.ceil(CH.seats * 2 / 3), have = need - 2 - (hashStr(ch + turn) % 6);
+            const fall = () => { const hostile = !["loyalist", "dealer"].includes(kindNow), name = nmOf(ch, "coup"), asks = hostile ? SYS.speakerAsks((next.pseed || 7) + ":" + ch + name, true) : [];
+              setCh(ch, c => ({ ...c, bias: hostile ? SYS.biasFor(ratio, "lost") : c.bias, leader: { name, hostile, kind: kindNow, asks, done: [], at: turn, term, removed: L.name } }));
+              addL("🏛️ " + CH.Nm + " removed " + L.name + " as " + title + "; " + name + " replaces him" + (hostile ? ". He is not your man." : "."), hostile ? "crisis" : "political");
+              setTimeout(() => paper(title.toUpperCase() + " IMPEACHED", L.name + " is out; " + name + " takes the chair", !hostile, "./art/backgrounds/" + CH.bg + ".webp"), 400);
+              return { icon: "🏛️", title: L.name + " is out", text: need + " " + CH.members + " voted to remove him. The new " + title + " is " + name + ", " + SYS.SPEAKER_KINDS[kindNow].nm + ".", tone: hostile ? "bad" : "neutral" }; };
+            const split = () => { const name = nmOf(ch, "rival");
+              setCh(ch, c => ({ ...c, leader: { ...L, split: { at: turn, rival: name } } }));
+              addL("🏛️ Two " + title + "s: " + L.name + " and " + name + " both claim the chair. " + CH.Nm + " is frozen until the court rules.", "crisis");
+              setTimeout(() => paper("TWO " + title.toUpperCase() + "S", CH.Nm + " splits; nothing can pass", false, "./art/backgrounds/" + CH.bg + ".webp"), 400);
+              return { icon: "⚖️", title: "Two " + title + "s", text: "The court said no, and they sat anyway. Until the court rules next year, " + CH.nm + " passes nothing, and no new programme gets money.", tone: "bad" }; };
+            cards.push({ key: "nass_plot_" + ch + "_" + turn, kicker: CH.Nm + " · a plot against the " + title, color: CL.red, urgent: true, art: [CH.bg, CH.art + "-worried", null, null],
+              title: "They are collecting signatures to remove " + L.name,
+              brief: "Your liaison officer writes: " + have + " of the " + need + " signatures needed (two-thirds of " + CH.nm + ") are in. " + P.why.map(w => SYS.PLOT_WHY[w]).join(" "),
+              stakes: "If he falls, who replaces him depends on how you have treated the Assembly.",
+              options: SYS.PLOT_MOVES.map(m => { const odds = SYS.plotOdds(m, { why: P.why, fg: 50 + ((((next.pres || {}).npcs || {}).gov || {}).rel || 50) / 2 }), cost = m.costPerSeat ? Math.round(m.costPerSeat * CH.seats * 10) / 10 : (m.cost || 0) * 8;
+                const label = m.id === "abuja" ? "Have the party and the governors lean on their " + CH.members : m.id === "police" ? "Have the police seal the National Assembly" : m.id === "release" ? "Release the National Assembly's money now, in full" : m.l.replace("members", CH.members);
+                return { label, note: (m.id === "abuja" ? "Works if the party is strong behind you." : m.note) + (m.id !== "let" ? " About " + Math.round(odds * 100) + "% it works." : ""), chips: fxChips({ ...(m.fx || {}), debt: cost }).slice(0, 3), run: () => {
+                  if (cost && !spendB(cost, "Saving the " + title)) return; if (m.fx && Object.keys(m.fx).length) scFx(m.fx); track("nass_plot_" + ch, m.id);
+                  if (m.id === "let") return fall();
+                  if (rng(hashStr("nplot" + ch + turn + m.id + pName))() < odds) { addL("🏛️ " + L.name + " survives as " + title + ".", "success"); return { icon: "🛡️", title: L.name + " survives", text: "The signatures stop short. He stays in the chair, and remembers who saved him.", tone: "good" }; }
+                  if (m.id === "court" && rng(hashStr("nsplit" + ch + turn + pName))() < m.split) return split();
+                  return fall(); } }; }) });
+          }
+        }
+        // 4. Two presiding officers: the court rules the year after (or settle).
+        if (L && L.split && turn > L.split.at) {
+          const rule = (settle) => () => { const ours = settle || SYS.splitRuling((next.pseed || 7) + ":" + ch, turn, ratio) === "ours";
+            if (settle) scFx({ cor: .02, pStab: -1 });
+            setCh(ch, c => ({ ...c, bias: ours ? c.bias : SYS.biasFor(ratio, "lost"), leader: ours ? { ...L, split: null } : { name: L.split.rival, hostile: true, kind: "avenger", asks: SYS.speakerAsks((next.pseed || 7) + ":" + ch + L.split.rival, true), done: [], at: turn, term } }));
+            addL("⚖️ " + (settle ? "A settlement ends the standoff" : "The court rules") + ": " + (ours ? L.name : L.split.rival) + " is " + title + ".", ours ? "success" : "crisis");
+            return { icon: "⚖️", title: (ours ? L.name : L.split.rival) + " is " + title, text: ours ? CH.Nm + " sits as one again, with your man in the chair." : "The court recognised the other faction. " + CH.Nm + " is against you now.", tone: ours ? "good" : "bad" }; };
+          cards.push({ key: "nass_split_" + ch + "_" + turn, kicker: "The courts · two " + title + "s", color: CL.red, art: [CH.bg, CH.art, null, null], title: "The court rules on the two " + title + "s",
+            brief: L.name + " and " + L.split.rival + " have each sat with their own faction for a year, and nothing has passed " + CH.nm + ". The judgment is today.", stakes: "Your man, or theirs.",
+            options: [{ label: "Wait for the judgment", chips: [], run: rule(false) }, { label: "Settle before judgment: chairs and contracts for their faction", chips: fxChips({ cor: .02, pStab: -1 }), run: rule(true) }] });
+        }
+      });
+      // One hostile chamber can shout, but cannot remove you alone (Section 143 needs both).
+      const dip = next.appMark != null && next.appPrev != null && next.appMark < next.appPrev, hostileNow = SYS.nassHostile(next.nass || N0, turn - 1);
+      if (dip && hostileNow.length === 1) notes.push(["🏛️ " + SYS.CHAMBERS[hostileNow[0]].Nm + " passed a motion condemning your government as your approval slipped. It cannot impeach you without the other chamber.", "political"]);
+    } } catch (e) { console.error("[nass]", e); }
     // The living House (SYS.makeMembers): the Speaker race, the budget battle and the promise that
     // comes due, one member's interest a year, a committee hearing, and a cabinet meeting on your flagship.
     try { if (!NAT && !scenId) {
@@ -9460,7 +9555,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (I.emergency) { dApp -= 2; notes.push(["🪖 Emergency rule: the National Assembly is sealed and bills go nowhere. Embassies have recalled their ambassadors.", "crisis"]);
         if (!I.streetsShown) { next.impeach = { ...I, streetsShown: true }; setTimeout(() => paper("LIFE UNDER EMERGENCY RULE", "Checkpoints, curfews and shuttered shops", false, "./art/scenes/emergency-streets.webp"), 1200); }
         if (rE() < .12) { next.removedBy = "coup"; setTimeout(() => { paper("ARMY TAKES OVER: PRESIDENT DETAINED", "“The Constitution is restored,” says the new junta", false, "./art/scenes/coup-night.webp"); setGEnd("impeached"); }, 1500); } }
-      const ctx = { turn, cor: s.cor || 0, nass: (((next.pres.npcs || {}).nass || {}).rel ?? 50), strikeStage: nlc && nlc.on ? nlc.stage || 1 : 0, strikeYears: nlc && nlc.on ? SYS.yearsOn(nlc, turn) : 0,
+      const ctx = { turn, cor: s.cor || 0, nass: (((next.pres.npcs || {}).nass || {}).rel ?? 50), assemblyDip: !!(window.SOP_TEST && window.SOP_TEST.assemblyDip) || SYS.nassImpeaches(next.nass, turn - 1, { app: next.appMark, appMark: next.appPrev }), strikeStage: nlc && nlc.on ? nlc.stage || 1 : 0, strikeYears: nlc && nlc.on ? SYS.yearsOn(nlc, turn) : 0,
         worstFront: Math.max(0, ...Object.values(next.fronts || {}).map(Number).filter(x => !isNaN(x))), app: s.app, pStab: s.pStab,
         defied: !!(window.SOP_TEST && window.SOP_TEST.impeach) || (next.defied != null && next.defied >= turn - 1) || (next.bakunda && next.bakunda.override === "defied" && !I.defiedSeen) || ((next.pres.seeds || []).some(x => x.key === "court_defied" && x.due >= turn - 1)) };
       const trig = !I.emergency && SYS.impeachCheck(ctx, I);
@@ -10791,6 +10886,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const startPolicy = (p) => {
     if (pol.find(a => a.id === p.id)) return;
     // A hostile Speaker with no deal this year: the House will not appropriate money for anything new.
+    { const ch = NAT && SYS.nassBlocks(stc.nass, turn); if (ch) { const CH = SYS.CHAMBERS[ch], L = stc.nass[ch].leader;
+      try { window.SOP_outcome({ icon: L.split ? "⚖️" : "🏛️", img: "./art/backgrounds/" + CH.bg + ".webp", title: CH.Nm + " will not fund it", text: L.split ? "Two men claim the " + CH.title + "'s chair. Until the court rules, " + CH.nm + " passes nothing." : CH.Nm + " is not yours, and " + L.name + ", the " + CH.title + ", is blocking new spending. " + (stc.nass[ch].refused === turn ? "You refused his price this year." : "Meet his price (his letter is in your mail) and it passes this year."), tone: "bad" }); } catch (e) {} return; } }
     if (speakerBlocks() && (((stc.leg || {}).speaker) || {}).split) { try { window.SOP_outcome({ icon: "⚖️", img: "./art/backgrounds/assembly-chamber.webp", title: "The House is frozen", text: "Two men claim the Speaker's chair, and each faction sits on its own. Until the court rules, the House passes nothing and no new programme gets money.", tone: "bad" }); } catch (e) {} return; }
     if (speakerBlocks()) { const refused = stc.speakerRefused === turn, nm = String(cast.speaker.name || "The Speaker");
       try { window.SOP_outcome({ icon: "🏛️", img: "./art/backgrounds/assembly-chamber.webp", title: "The House will not fund it",
@@ -11532,7 +11629,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (!NAT && s.pStab < 20 && s.app < 50) { setPhase("impeach"); addL("⚠️ Party stability collapsed AND approval low! House of Assembly moves to impeach.", "crisis"); return; }
     if (advancedFrom.current >= turn) return; // the year has already moved on
     advancedFrom.current = turn;
-    setStc(p => ({ ...p, appMark: Math.round(s.app) })); // a hostile Speaker watches for the next dip
+    setStc(p => ({ ...p, appPrev: p.appMark, appMark: Math.round(s.app) })); // a hostile Speaker (or two hostile chambers) watches for the next dip
     setTurn(t => t + 1);
     // The new year's budget arrives as a letter.
     mailOn.current = true;
@@ -12576,7 +12673,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : k === "investor" ? 56 /* investors bring money, and their land deals bring the lawsuits */ : k === "house_bill" ? 45 : k === "media" ? 35 : k.startsWith("desk:") ? 30 : k === "intl_invite" ? 28 : 20;
     const ranked = q.map((k, i) => ({ k, i, p: pri(k) })).sort((a, b) => b.p - a.p || a.i - b.i);
     const TRIP = (k) => k === "intl_invite" || k === "abuja" || k === "netherlands" || k === "wedding";
-    const WAR = (k) => k === "judiciary" || k === "nic_ruling" /* a lawsuit is never handled away (owner, 23 Nov 2026: "we could fight it all the way to the Supreme Court") */ || k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#rplan_") /* the plan you asked a minister for */ || k.startsWith("sc#japa_remind_") /* money a contractor fled with */ || k.startsWith("sc#leg_spprice_") /* the hostile Speaker's price */ || k === "sc#leg_speaker2" || k.startsWith("sc#leg_spplot_") || k.startsWith("sc#leg_split_") /* the House remembers */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
+    const WAR = (k) => k === "judiciary" || k === "nic_ruling" /* a lawsuit is never handled away (owner, 23 Nov 2026: "we could fight it all the way to the Supreme Court") */ || k.startsWith("sc#calendar") /* the 9th letter, always */ || k.startsWith("sc#infl_cbn") /* printed money: the Central Bank's answer */ || k.startsWith("sc#rplan_") /* the plan you asked a minister for */ || k.startsWith("sc#japa_remind_") /* money a contractor fled with */ || k.startsWith("sc#leg_spprice_") /* the hostile Speaker's price */ || k === "sc#leg_speaker2" || k.startsWith("sc#nass_") || k.startsWith("sc#leg_spplot_") || k.startsWith("sc#leg_split_") /* the House remembers */ || k.startsWith("sc#pres_bk") || k === "flagship" || k.startsWith("sc#fin_") || k.startsWith("sc#pil_qw") || k === "sc#leg_speaker"; // the lenders' letters too: an unseen tranche would be an unfair penalty // the war's two decisions and one trip never crowd out the rest of the year; your flagship is never crowded out either
     // A district's request is always seen (an unseen one could lapse unfairly), and one House or cabinet matter a year has its own slot.
     const ASK = (k) => k.startsWith("sc#zask_"), PEOPLE = (k) => /^sc#(exco_|leg_member_|leg_hearing_|chair_)/.test(k);
     const pType = (k) => k.startsWith("sc#exco_") ? 0 : k.startsWith("sc#chair_") ? 2 : 1; // the slot turns: the House, then the cabinet, then the party
