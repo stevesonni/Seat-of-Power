@@ -309,6 +309,14 @@ const SECURITY = (P) => {
    of differing based on where it's being constructed"). The South-East's gullies, the creeks, Lagos's lagoon, the big
    river floodplains (the Niger and the Benue), and every other town's blocked drains. */
 const FLOOD = (P) => {
+  // Both: the river floods the riverside towns, and gullies eat the uplands (Anambra: the Niger at Anambra East and Ogbaru).
+  if (P.land === "gully" && P.floods) return { nm: "Flood & Gully Control", head: "Floods and gullies in " + P.name, art: "bill-flood", d: "Embankments for the riverside towns the Niger floods, and channels for the gullies inland.",
+    why: "In " + P.name + " the water does two kinds of harm: the Niger floods the riverside towns, and gullies swallow roads and houses inland.", fact: "The 2012 and 2022 Niger floods drowned Anambra's riverside towns; the state also has hundreds of active erosion gullies.",
+    q: "Where does the money go first?", opts: [
+      opt("dyke", "Embankments for the riverside towns", "The river towns stay dry; the gullies wait.", { costF: 1.1, good: { text: "The embankments held when the Niger rose.", fx: { app: 3 } } }),
+      opt("gully", "Concrete channels at the worst gullies", "The gullies stop growing; the river towns still flood.", { costF: 1.1, good: { text: "The gullies held through the rains.", fx: { infra: .01, app: 2 } } }),
+      opt("both", "Both, spread thin, with early warning", "Something everywhere, not enough anywhere.", { costF: 1, risk: { p: .35, title: "Spread too thin", text: "Half-finished embankments failed and the river came through.", fx: { app: -3 } } }),
+    ] };
   if (P.land === "gully") return { nm: "Gully Erosion Control", head: "Gullies in " + P.name, art: "bill-erosion", d: "Stop the gullies eating " + P.name + "'s towns: channels, check dams and replanting at the worst sites.",
     why: "In " + P.name + " the danger is not water standing but water running: gullies swallow roads and houses every rainy season.", fact: "The South-East has hundreds of active erosion gullies; the World Bank-backed NEWMAP project has repaired some of them.",
     q: "How do you stop the gullies?", opts: [

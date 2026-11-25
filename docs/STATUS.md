@@ -2495,7 +2495,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 
 ## 25 Nov 2026: Flood & Erosion Control
 - Owner: "How does a mass estate solve flooding? We need a new programme here." New programme flood_ctrl (₦4B, 2 years), with its own version by the land (SYS.localProgramme, game/systems/stateprofile.js FLOOD):
-  - South-East gully states: Gully Erosion Control (concrete channels and check dams / vetiver and trees / move families from the gully edges);
+  - Anambra (gullies and the Niger): Flood & Gully Control (embankments for the river towns / gully channels / both, spread thin);
+  - the other South-East gully states: Gully Erosion Control (concrete channels and check dams / vetiver and trees / move families from the gully edges);
   - the creeks: Flood Defences for the Creeks (embankments / early warning, boats and raised shelters / dredging);
   - Lagos: Storm Drains & Canals (dredge and clear / clear buildings off the channels / new channels and ponds);
   - the Niger and Benue floodplains (Kogi, Benue, Niger, Kebbi, Jigawa, Adamawa): River Embankments & Flood Warning (embankments / NIHSA warning and shelters / resettle riverbank villages);
