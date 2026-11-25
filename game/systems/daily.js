@@ -158,7 +158,7 @@ const D = [
   { id: "waterfront", icon: "🏘️", title: "Bulldozers are ready at the waterfront", brief: "Your planners want to clear a waterfront settlement for a new road. Ten thousand people live there.", bg: "waterfront-settlement", who: "lg-chairman",
     options: [
       { label: "Clear it, with compensation", fx: { app: -2, cash: -0.5, party: 1 }, out: "The road goes ahead. The compensation reaches about half of them." },
-      { label: "Re-route the road", fx: { app: 2, cash: -0.3, party: 0 }, out: "Longer and dearer, and nobody loses a home." },
+      { label: "Re-route the road", fx: { app: 2, cash: -0.3, party: 0 }, out: "Longer and costlier, and nobody loses a home." },
       { label: "Upgrade the settlement instead", fx: { app: 3, cash: -0.4, party: 0 }, out: "Water, drains and titles. The planners are sulking." } ] },
 ];
 
@@ -199,7 +199,7 @@ const D2 = [
   { id: "tanker", icon: "🛢️", title: "A tanker explodes on the bridge", brief: "A fuel tanker lost its brakes and exploded on the main bridge. Twenty dead. The bridge is cracked and closed.", bg: "rural-road-mud", who: "contractor",
     options: [
       { label: "Pay the families, close the bridge for repairs", fx: { app: 3, cash: -0.7, party: 0 }, out: "Repairs take four months. Traffic chokes, but nobody dies on it." },
-      { label: "Ban tankers from the city by day", fx: { app: 2, cash: 0, party: 0 }, out: "Tankers move at night. Fuel gets a little dearer." },
+      { label: "Ban tankers from the city by day", fx: { app: 2, cash: 0, party: 0 }, out: "Tankers move at night. Fuel costs a little more." },
       { label: "Reopen it after a quick inspection", fx: { app: -2, cash: -0.1, party: 1 }, out: "It is open. The engineers who signed it off are nervous." } ] },
   { id: "pension", icon: "👴", title: "Pensioners march on Government House", brief: "Retired teachers and nurses are owed eighteen months of pension. Two collapsed in the sun at the gate.", bg: "street-protest", who: "civil-servant",
     options: [
@@ -258,7 +258,7 @@ const D2 = [
       { label: "Let those LGAs be estimated", fx: { app: -2, cash: 0, party: 0 }, out: "Estimated low. Less federal money for them, for ten years." } ] },
   { id: "gasexplosion", icon: "💥", title: "A gas plant explodes in a neighbourhood", brief: "A cooking-gas refilling plant exploded in a residential street. Nine dead. It had a permit it should never have got.", bg: "flooded-community", who: "police-commissioner",
     options: [
-      { label: "Close every gas plant in a residential area", fx: { app: 3, cash: 0, party: -1 }, out: "Sixty plants closed. Gas is dearer for a month." },
+      { label: "Close every gas plant in a residential area", fx: { app: 3, cash: 0, party: -1 }, out: "Sixty plants closed. Gas costs more for a month." },
       { label: "Inspect them all within a month", fx: { app: 2, cash: -0.1, party: 0 }, out: "Twelve closed, the rest fixed." },
       { label: "Punish this one owner", fx: { app: -1, cash: 0, party: 0 }, out: "One owner jailed. The others wait for the noise to pass." } ] },
   { id: "bursary", icon: "🎒", title: "Students want their bursaries", brief: "The state's university students have not received bursaries for two years. They have blocked the road to Government House.", bg: "street-protest", who: "student-leader",

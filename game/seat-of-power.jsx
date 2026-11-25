@@ -7193,7 +7193,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     addL("🚪 You walked away from the IMF programme. The loan is called in; the rating agencies cut Nigeria.", "crisis"); scWiki("Controversies", "Walked away from an IMF programme in " + absYear + "; Nigeria's credit rating was cut.");
     setTimeout(() => paper("NIGERIA QUITS IMF PROGRAMME; RATINGS CUT", "The loan is called in at once", false, "./art/scenes/imf-walkout.webp"), 400);
     track("imf", "walked");
-    return { icon: "🚪", img: "./art/scenes/imf-walkout.webp", title: "You walked away", text: "The conditions end, but the loan is called in: " + naira(fromBank) + " from the bank" + (rest ? ", and " + naira(rest) + " rolled into dearer debt (+" + naira(pen) + ")" : "") + ". Borrowing abroad costs more now.", tone: "bad", rows: [{ l: "Paid", v: naira(fromBank), good: false }].concat(pen ? [{ l: "Penalty", v: naira(pen), good: false }] : [], [{ l: "Credit rating", v: "Cut", good: false }]) }; });
+    return { icon: "🚪", img: "./art/scenes/imf-walkout.webp", title: "You walked away", text: "The conditions end, but the loan is called in: " + naira(fromBank) + " from the bank" + (rest ? ", and " + naira(rest) + " rolled into costlier debt (+" + naira(pen) + ")" : "") + ". Borrowing abroad costs more now.", tone: "bad", rows: [{ l: "Paid", v: naira(fromBank), good: false }].concat(pen ? [{ l: "Penalty", v: naira(pen), good: false }] : [], [{ l: "Credit rating", v: "Cut", good: false }]) }; });
   // The Fund's letters at the year's end (statecraft): the board's decision, the Senate's probe.
   const imfBoardCard = () => ({ key: "fin_imf_board_" + turn, kicker: "🌐 The International Monetary Fund", color: CL.blu, from: "The IMF mission chief", art: ["finance-ministry-office", "imf-mission-chief", null, "imf-negotiations"], seal: "seal-fund", enclosure: "letter-of-intent", office: "International Monetary Fund · Washington, D.C.",
     title: "The Fund's prior actions", brief: "The board will approve " + naira(stc.imf.trancheB * SYS.IMF_TRANCHES) + " in three tranches once Nigeria has taken these actions: " + SYS.IMF_CONDITIONS.map(c => c.l.replace(/^(\w)(?=[a-z])/, x => x.toLowerCase())).join("; ") + ".",
@@ -8633,7 +8633,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       if (Y.food) { dApp -= 2; setTimeout(() => paper("FOOD PRICE PROTESTS SPREAD", "A bag of rice now costs a month's minimum wage", false, "./art/scenes/market-inflation.webp"), 700); }
       if (Y.now >= 20) cards.push({ key: "infl_cbn_" + turn, kicker: "The Central Bank · inflation " + Math.round(Y.was) + "%", color: CL.red, art: ["villa-office", "cbn-governor", "printed-naira"], title: "The Central Bank wants to raise interest rates",
         brief: "Inflation is " + Math.round(Y.was) + "%. Everything the government buys costs " + Math.round((SYS.priceF({ rate: Y.was }) - 1) * 100) + "% more, and families feel it at the market. The Governor of the Central Bank wants to raise interest rates sharply to bring it down.",
-        stakes: "Dear loans slow business and cost jobs this year. Doing nothing lets prices keep eating every budget.",
+        stakes: "Costly loans slow business and cost jobs this year. Doing nothing lets prices keep eating every budget.",
         options: [
           { label: "Back the Central Bank: raise rates", note: "Inflation falls three times faster next year. Business and jobs slow now.", chips: fxChips({ app: -2 }).concat([{ text: "Inflation falls faster", color: CL.grn }]), run: () => { scFx({ app: -2 }); setStc(p => ({ ...p, cbnTight: turn })); addL("🏦 Backed the Central Bank: interest rates up to fight inflation.", "policy"); scWiki("Presidency", "Backed the Central Bank's interest rate rise to fight inflation of " + Math.round(Y.was) + "%."); } },
           { label: "Overrule it: keep rates low", note: "Business is happy this year. Inflation stays high.", chips: fxChips({ app: 1 }), run: () => { scFx({ app: 1 }); setStc(p => ({ ...p, inflation: { ...(p.inflation || {}), rate: SYS.infl(p.inflation) + 3 } })); addL("🏦 Overruled the Central Bank: rates stay low, and so does the naira.", "political"); } },
@@ -11321,7 +11321,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         terms: "No debt. Revenue for other things drops by ₦" + (A / 2).toFixed(1) + "B for two years.",
         why: tb * 1.5 >= A ? ["You have the surplus: ₦" + tb.toFixed(1) + "B a year."] : ["Your surplus is ₦" + tb.toFixed(1) + "B a year; you need about ₦" + (A / 1.5).toFixed(1) + "B to pay ₦" + A.toFixed(1) + "B in cash."] },
       { id: "bank", icon: "🏦", nm: "Commercial bank loan", lender: "A syndicate of three commercial banks", share: .4 * 1.3, odds: pc(.95 - dsr * 1.8 - (cor > .5 ? .1 : 0)),
-        terms: "Quick, but dear: about 30% more in interest, repaid from your FAAC by deduction.",
+        terms: "Quick, but costly: about 30% more in interest, repaid from your FAAC by deduction.",
         why: [(dsr < .2 ? "✓ Your debt service is " : "✗ Debt service already takes ") + Math.round(dsr * 100) + "% of revenue (banks like under 35%).", cor > .5 ? "✗ Your corruption record makes them nervous." : null] },
       { id: "bond", icon: "📈", nm: "State bond", lender: "Investors, via the SEC and the DMO", share: .4 * 1.15, odds: s.igr < 3 ? 0 : pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) + (billsPassed.some(b => b.id === "fiscal_resp") ? .1 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0)),
         terms: "Cheaper than banks (about 15% interest). Needs a credit rating and the House's approval.",
@@ -11340,7 +11340,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         why: ["Always available. It is how many states build, and why their projects cost so much."] },
     ].map(o => !NAT ? o : o.id === "cash" ? { ...o, lender: "The Federal Treasury" }
       // The President borrows for the nation: no Abuja guarantee, no federal fund to apply to.
-      : o.id === "bank" ? { ...o, nm: "Treasury bills and FGN bonds", lender: "Nigerian banks and pension funds, via the Debt Management Office", terms: "Quick, but dear: about 30% more in interest, and it crowds out lending to business." }
+      : o.id === "bank" ? { ...o, nm: "Treasury bills and FGN bonds", lender: "Nigerian banks and pension funds, via the Debt Management Office", terms: "Quick, but costly: about 30% more in interest, and it crowds out lending to business." }
       : o.id === "bond" ? { ...o, nm: "Eurobond", lender: "International investors, via the Debt Management Office", odds: pc(.8 - Math.max(0, cor - .3) * 1.5 - (dsr > .3 ? .2 : 0) - (hs.loyal < hs.seats / 2 ? .3 : 0) + Math.min(0, ((stc.imf || {}).rating || 0)) * .15),
           terms: "Dollar debt at about 15%: cheap until the naira falls. The National Assembly must approve the borrowing plan.", why: [cor > .4 ? "✗ Rating agencies mark Nigeria down for corruption." : "✓ Nigeria's rating is acceptable.", hs.loyal < hs.seats / 2 ? "✗ The National Assembly is hostile and may refuse the borrowing plan." : "✓ The National Assembly will approve it."] }
       : o.id === "dfi" ? { ...o, nm: "World Bank / African Development Bank loan", lender: "The World Bank and the African Development Bank", odds: !multi ? 0 : pc(.85 - Math.max(0, cor - .3) * 2 - (proj.needsEIA && !proj.eiaDone ? .4 : 0)),
@@ -16723,7 +16723,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               <p style={{ margin: "0 0 8px", fontSize: 15, color: CL.tm, lineHeight: 1.45 }}>{localAsk.local.why}</p>
               {localAsk.local.fact && <p style={{ margin: "0 0 12px", fontSize: 13, color: CL.td, lineHeight: 1.4 }}>📚 {localAsk.local.fact}</p>}
               <div style={{ display: "grid", gap: 8 }}>
-                {localAsk.ask.opts.map(o => { /* a President's answer can choose the site (the Lagos end of the coastal highway) */ const f = o.costF || 1, cost = f > 1.001 ? Math.round((f - 1) * 100) + "% dearer" : f < .999 ? Math.round((1 - f) * 100) + "% cheaper" : "the standard cost";
+                {localAsk.ask.opts.map(o => { /* a President's answer can choose the site (the Lagos end of the coastal highway) */ const f = o.costF || 1, cost = f > 1.001 ? Math.round((f - 1) * 100) + "% more" : f < .999 ? Math.round((1 - f) * 100) + "% less" : "the standard cost";
                   return <button key={o.id} data-sop-local-opt={o.id} className="sp-opt" onClick={() => answerLocal(localAsk, o)} style={{ textAlign: "left" }}>
                     <b style={{ fontSize: 16, display: "block" }}>{o.l}</b>
                     <span style={{ fontSize: 14, color: CL.tm }}>{o.d} <b style={{ color: f > 1.001 ? CL.org : f < .999 ? CL.grn : CL.td }}>{cost.charAt(0).toUpperCase() + cost.slice(1)}{o.tAdd ? ", " + o.tAdd + " more year" + (o.tAdd > 1 ? "s" : "") : ""}.</b></span>

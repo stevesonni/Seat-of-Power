@@ -657,7 +657,7 @@ const AG2 = {
       ["A state apprenticeship with tech firms", "Five hundred apprentices placed."], ["A Digital Economy Bill", "Digital Economy Bill"], ["Executive order: state IT jobs go to the graduates first", "the Digital Jobs Order"], ["Leave it: their problem now", "They leave for Lagos."]],
   ],
   housing: [
-    ["Cement is too dear", "Cement prices doubled; the estate is half-built and the contractor wants more money.",
+    ["Cement costs too much", "Cement prices doubled; the estate is half-built and the contractor wants more money.",
       ["Pay the variation after review", "Reviewed and paid. Work resumes."], ["A Local Building Materials Bill", "Local Building Materials Bill"], ["Executive order: use local bricks and laterite blocks", "the Local Materials Order"], ["Build smaller houses", "Smaller houses. The same price."]],
     ["The estate has no water", "The first estate is finished, but there is no water connection; the water board says it was never told.",
       ["Connect it now, at full cost", "Connected. The residents move in."], ["A bill: no estate without utilities first", "Housing Utilities Bill"], ["Executive order: the water board connects within 30 days", "the Utilities Order"], ["Sell them water tankers", "Tankers every week."]],

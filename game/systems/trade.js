@@ -95,12 +95,12 @@ export const TRADE_STORIES = {
           A("ignore", "Look the other way", { weak: true, fx: { cor: .03 }, next: "factory", past: "looked away from the black market", say: "Someone is getting rich on the gap." })] },
       factory: { t: "A factory in Agbara closes", who: "manufacturers-rep-angry", bg: "finance-ministry-office", scene: "factory-closed", d: "A plastics factory in Agbara has shut: it could not import machine parts. Five thousand workers are laid off, and the NLC has written to you.",
         opts: [P("credit", "A dollar window for manufacturers' raw materials", { cost: 30, fx: { app: 2 }, tr: { factories: 8 }, next: "local", past: "opened a dollar window for manufacturers", say: "The factory reopens in a month." }),
-          A("float", "Unify the rates so they can buy dollars openly", { fx: { app: -2, igr: 10 }, tr: { floated: true, factories: 4 }, next: "local", past: "unified the rates after the Agbara closure", say: "Dearer, but available. The factory reopens." }),
+          A("float", "Unify the rates so they can buy dollars openly", { fx: { app: -2, igr: 10 }, tr: { floated: true, factories: 4 }, next: "local", past: "unified the rates after the Agbara closure", say: "Costlier, but available. The factory reopens." }),
           A("nothing", "Tell them to source locally", { weak: true, fx: { app: -2 }, hook: "nlc_fuel", next: "riots", past: "told the manufacturers to source locally", say: "There is no local source for machine parts." })] },
       conditions: { t: "The IMF's conditions arrive", who: "foreign-head-of-state", bg: "foreign-ministry-meeting", d: "The IMF's second tranche needs a floating naira, the fuel subsidy gone and VAT raised to 10%. Your party says it will lose the next election.",
         opts: [A("accept", "Accept the conditions", { fx: { igr: 20 }, hook: "imf_accept", next: "local", past: "accepted the IMF's conditions", say: "The programme starts. So do the conditions." }),
           A("refuse", "Refuse the conditions", { fx: { app: 2 }, tr: { reserves: -3 }, hook: "imf_refuse", next: "riots", past: "refused the IMF's conditions", say: "Popular at home. The markets wobble." })] },
-      local: { t: "Made in Nigeria, by necessity", who: "trade-minister-pleased", bg: "finance-ministry-office", endOnly: true, d: "Dear dollars have done what speeches could not: local factories are making what used to be imported. The reserves are recovering.",
+      local: { t: "Made in Nigeria, by necessity", who: "trade-minister-pleased", bg: "finance-ministry-office", endOnly: true, d: "Costly dollars have done what speeches could not: local factories are making what used to be imported. The reserves are recovering.",
         opts: [P("zones", "Special economic zones for import substitutes", { cost: 40, fx: { app: 3 }, tr: { factories: 10, exportPush: 1 }, close: true, past: "built special economic zones for local manufacturing", say: "Three zones, forty factories." }),
           A("steady", "Hold steady", { close: true, past: "held steady as the dollar shortage eased", say: "The shortage is over." })] },
       riots: { t: "Prices bring people to the streets", who: "labour-leader", scene: "news-protest", d: "Imported goods cost twice what they did a year ago. Crowds blocked the expressway in Lagos, and warehouses were looted in Kano.",
@@ -210,7 +210,7 @@ export const cropText = (x, c) => typeof x === "string" ? x.replace(/\{c\}/g, c)
 
 // What the President's stance does to a state's exports (the governor sees it as Abuja's policy).
 export const FED_STANCE_FX = {
-  protect: { raw: 1.15, zone: .85, hub: 1, border: .85, d: "Abuja has banned many imports: local food prices are high, so farmers earn more, but machines for processing are dear, and the border markets are dead." },
+  protect: { raw: 1.15, zone: .85, hub: 1, border: .85, d: "Abuja has banned many imports: local food prices are high, so farmers earn more, but machines for processing are costly, and the border markets are dead." },
   open: { raw: .85, zone: 1.15, hub: 1.05, border: 1.05, d: "Abuja has opened the borders: imported food undercuts the farmers, but machines and packaging are cheap." },
   targeted: { raw: 1, zone: 1, hub: 1, border: 1, d: "Abuja protects only what local farms can supply. Your exports are neither helped nor hurt." },
 };

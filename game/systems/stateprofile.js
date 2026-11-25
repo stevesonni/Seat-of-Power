@@ -106,7 +106,7 @@ const ELEC = (P) => {
     opts: [
       opt("ring", "Meters inside the Aba ring", "Fund prepaid meters with the ring's operator: no more estimated bills in Aba's factories and shops.", { costF: .9, fx: { app: 3 }, risk: { p: .35, title: "Aba went dark", text: "Gas ran short at the ring's plant and Aba went dark for a week. Traders blame you for the meters they paid for.", fx: { app: -4 } }, good: { text: "Aba's metered shops and factories now pay for what they use. Manufacturers say so on television.", fx: { app: 3, infra: .01 } } }),
       opt("outside", "Solar mini-grids in the eight LGAs outside the ring", "The villages the ring does not reach, and the grid forgot.", { risk: { p: .2, title: "Panels stolen", text: "Thieves took panels from two of the new mini-grids before the communities set up guards.", fx: { infra: -.01, app: -2 } }, good: { text: "Villages outside the Aba ring have light for the first time.", fx: { app: 3 } } }),
-      opt("both", "Both, phased over a longer time", "Meters in Aba and mini-grids outside, one after the other. Slower and dearer, with half the risk of each.", { costF: 1.3, tAdd: 1, risk: { p: .15, title: "A rough start", text: "A gas shortfall in Aba and two stolen panels made a rough first year.", fx: { app: -2 } }, good: { text: "Aba is metered and the villages outside the ring are lit.", fx: { app: 4, infra: .01 } } }),
+      opt("both", "Both, phased over a longer time", "Meters in Aba and mini-grids outside, one after the other. Slower and costlier, with half the risk of each.", { costF: 1.3, tAdd: 1, risk: { p: .15, title: "A rough start", text: "A gas shortfall in Aba and two stolen panels made a rough first year.", fx: { app: -2 } }, good: { text: "Aba is metered and the villages outside the ring are lit.", fx: { app: 4, infra: .01 } } }),
     ],
   };
   if (P.bandits || P.insurgency) return {
@@ -127,7 +127,7 @@ const ELEC = (P) => {
     art: "rural_elec-creek", q: "What powers the creek villages?",
     opts: [
       opt("gas", "Gas from the oil company's flow station", "Use gas that is now flared. Cheaper, if the oil company and the youths agree.", { costF: .8, risk: { p: .3, title: "Youths shut the gas line", text: "Youths shut the gas line to the villages until the oil company paid them. The lights went out for a month.", fx: { app: -3, sec: -.02 } }, good: { text: "Gas that was burnt off now lights the creek villages.", fx: { app: 4, hp: .01 } } }),
-      opt("stilts", "Solar on stilts above the flood line", "Raised platforms, by boat. Dearer to build, nothing to block.", { risk: { p: .15, title: "The flood rose higher", text: "This year's flood rose above two platforms and drowned the batteries.", fx: { infra: -.01, app: -2 } }, good: { text: "The stilted solar grids rode out the flood season.", fx: { app: 3 } } }),
+      opt("stilts", "Solar on stilts above the flood line", "Raised platforms, by boat. Costs more to build, nothing to block.", { risk: { p: .15, title: "The flood rose higher", text: "This year's flood rose above two platforms and drowned the batteries.", fx: { infra: -.01, app: -2 } }, good: { text: "The stilted solar grids rode out the flood season.", fx: { app: 3 } } }),
     ],
   };
   if (P.ownMarket) return {
@@ -147,7 +147,7 @@ const ELEC = (P) => {
     fact: "The South-East has thousands of active erosion gullies. The World Bank's NEWMAP programme has worked on them in Abia, Anambra, Enugu, Imo and Ebonyi.",
     art: "rural_elec-gully", q: "Where do the lines go?",
     opts: [
-      opt("round", "Route the lines round the gullies", "Longer lines, dearer, nothing falls.", { costF: 1.15, good: { text: "The new lines stood through the rains.", fx: { app: 3 } } }),
+      opt("round", "Route the lines round the gullies", "Longer lines, costlier, nothing falls.", { costF: 1.15, good: { text: "The new lines stood through the rains.", fx: { app: 3 } } }),
       opt("straight", "Straight lines now, fix the gullies later", "Cheapest and fastest.", { risk: { p: .35, title: "Poles fell into a gully", text: "The rains widened a gully and took six poles with it. Two villages are dark again.", fx: { infra: -.02, app: -3 } } }),
       opt("newmap", "Do it with the erosion programme", "Gully control and the lines together, with the World Bank's NEWMAP.", { costF: 1.05, tAdd: 1, fx: { infra: .01 }, good: { text: "The gullies were closed and the lines went in beside them.", fx: { app: 3, infra: .02 } } }),
     ],
@@ -168,20 +168,20 @@ const ELEC = (P) => {
 const WATER = (P) => {
   if (P.land === "dry") return { head: "Clean water in " + P.name, why: "In the dry north the water table is deep and falling. Shallow wells dry up by March.", fact: "Northern Nigeria's groundwater lies deep under the Chad and Sokoto basins; many hand-pump boreholes fail in the dry season.", art: "water-deep", q: "What kind of water scheme?",
     opts: [
-      opt("deep", "Deep solar boreholes with tanks", "150 metres down, solar pumps. Dear, and they last.", { costF: 1.1, good: { text: "The deep boreholes kept running through the dry season.", fx: { hp: .01, app: 3 } } }),
+      opt("deep", "Deep solar boreholes with tanks", "150 metres down, solar pumps. Costly, but they last.", { costF: 1.1, good: { text: "The deep boreholes kept running through the dry season.", fx: { hp: .01, app: 3 } } }),
       opt("shallow", "Many shallow hand-pump boreholes", "Twice as many villages, for now.", { costF: .75, risk: { p: .5, title: "The boreholes ran dry", text: "By March half the shallow boreholes were dry. Women walk for water again.", fx: { hp: -.01, app: -3 } } }),
       opt("dams", "Small earth dams for the towns", "Water for people and farms; a year more.", { costF: 1.05, tAdd: 1, fx: { agr: .02 }, good: { text: "The earth dams filled in the rains and fed the towns all year.", fx: { app: 3, agr: .01 } } }),
     ] };
   if (P.land === "creek") return { head: "Clean water in " + P.name, why: "Water everywhere and none of it safe: boreholes in the creeks come up salty, and some taste of crude oil.", fact: "Oil spills have poisoned drinking water in parts of the Niger Delta; in Ogoniland, the UN found benzene in well water.", art: "water-creek", q: "How do you make it safe?",
     opts: [
-      opt("plants", "A treatment plant for each town", "Dear, and safe.", { costF: 1.15, good: { text: "Creek towns drink treated water for the first time.", fx: { hp: .02, app: 3 } } }),
+      opt("plants", "A treatment plant for each town", "Costly, but safe.", { costF: 1.15, good: { text: "Creek towns drink treated water for the first time.", fx: { hp: .02, app: 3 } } }),
       opt("rain", "Rainwater tanks on every school and clinic", "Cheap; dry in the dry season.", { costF: .7, risk: { p: .3, title: "The tanks ran dry", text: "The rains stopped early and the tanks ran dry by January.", fx: { app: -2 } }, good: { text: "Schools and clinics have their own clean water.", fx: { hp: .01, app: 2 } } }),
       opt("bore", "Boreholes anyway", "The cheapest. The water may not be safe.", { costF: .9, risk: { p: .5, title: "Salty, oily water", text: "Tests show oil in the new boreholes. Families went back to buying sachet water.", fx: { hp: -.02, app: -3 } } }),
     ] };
   if (P.land === "lagoon") return { head: "Clean water in Lagos", why: "The water corporation's old pipes lose half the water before it reaches a tap. Most Lagosians buy water from vendors.", fact: "Lagos depends on boreholes and water vendors for most of its water; the public network serves a small share of the city.", art: "water-city", q: "Where do you start?",
     opts: [
       opt("pipes", "Fix the leaking pipes first", "Half the water is lost; stop that first.", { good: { text: "Fixed pipes doubled what reaches the taps.", fx: { hp: .01, infra: .01, app: 3 } } }),
-      opt("plant", "A new treatment plant", "More water, a year more, dearer.", { costF: 1.3, tAdd: 1, good: { text: "The new waterworks is running.", fx: { hp: .02, app: 4 } } }),
+      opt("plant", "A new treatment plant", "More water, a year more, and costlier.", { costF: 1.3, tAdd: 1, good: { text: "The new waterworks is running.", fx: { hp: .02, app: 4 } } }),
       opt("private", "License private water companies", "Their money; their prices.", { costF: .7, risk: { p: .4, title: "Water prices doubled", text: "The new water companies doubled the price. Vendors and families protest at the Secretariat.", fx: { app: -4 } } }),
     ] };
   if (P.land === "gully") return { head: "Clean water in " + P.name, why: "The towns sit on hills above the gullies: water must be pumped uphill, and pipes laid near a gully are swallowed by it.", fact: "Many South-East towns rely on springs and streams in the valleys; erosion gullies have cut water mains in Anambra and Imo.", art: "water-hill", q: "How do you bring the water up?",
@@ -193,33 +193,33 @@ const WATER = (P) => {
   if (P.land === "plateau") return { head: "Clean water in Plateau", why: "Old tin-mining ponds hold water all year, and some of it carries lead and other metals from the mines.", fact: "Decades of tin mining around Jos left hundreds of abandoned mining ponds; tests have found heavy metals in some of them.", art: null, q: "What water do you use?",
     opts: [
       opt("treat", "Treat the mining-pond water", "Plenty of water; the treatment must be good.", { costF: 1.1, risk: { p: .2, title: "Lead in the water", text: "Tests found lead in one town's treated water. The plant is shut while it is fixed.", fx: { hp: -.01, app: -3 } } }),
-      opt("dam", "A clean reservoir in the hills", "Dearer, and a year more.", { costF: 1.2, tAdd: 1, good: { text: "The new hill reservoir sends clean water to Jos.", fx: { hp: .02, app: 3 } } }),
+      opt("dam", "A clean reservoir in the hills", "Costs more, and a year more.", { costF: 1.2, tAdd: 1, good: { text: "The new hill reservoir sends clean water to Jos.", fx: { hp: .02, app: 3 } } }),
     ] };
   return null;
 };
 
 const ROADS = (P) => {
-  if (P.land === "creek") return { head: "Roads in " + P.name, why: "A road in the creeks starts with sand: the swamp must be filled before anything is built on it, and one bad flood can wash the sand away.", fact: "Delta roads are among Nigeria's dearest per kilometre: sand-filling, culverts and bridges over creeks.", art: "roads-swamp", q: "How do you cross the swamp?",
+  if (P.land === "creek") return { head: "Roads in " + P.name, why: "A road in the creeks starts with sand: the swamp must be filled before anything is built on it, and one bad flood can wash the sand away.", fact: "Delta roads are among Nigeria's costliest per kilometre: sand-filling, culverts and bridges over creeks.", art: "roads-swamp", q: "How do you cross the swamp?",
     opts: [
       opt("sand", "Sand-fill and build on the swamp", "The usual way.", { risk: { p: .3, title: "The flood took the sand", text: "The flood washed away a third of the new sand-filled road before it was paved.", fx: { infra: -.02, app: -3 } } }),
-      opt("raised", "Raised roads and bridges", "Dearer; floods pass under.", { costF: 1.25, good: { text: "The raised roads stayed open through the flood.", fx: { infra: .02, app: 3 } } }),
+      opt("raised", "Raised roads and bridges", "Costs more; floods pass under.", { costF: 1.25, good: { text: "The raised roads stayed open through the flood.", fx: { infra: .02, app: 3 } } }),
       opt("water", "Jetties and passenger boats instead", "Use the water: cheaper, quick, fewer km of road.", { costF: .55, fx: { app: 2 }, good: { text: "New jetties and boats link the creek towns.", fx: { app: 2 } } }),
     ] };
   if (P.land === "gully") return { head: "Roads in " + P.name, why: "In this soil the drains matter more than the tar. A road without drains becomes a gully.", fact: "In the South-East, a tarred road without side drains can turn into an erosion gully within a few rainy seasons. A World Bank NEWMAP road in Abia cost over ₦238 million for 1.2 km, most of it in drains.", art: "roads-gully", q: "Drains first, or tar first?",
     opts: [
-      opt("drains", "Drains and erosion control first", "Dearer; the road lasts.", { costF: 1.15, good: { text: "The roads with deep drains came through the rains whole.", fx: { infra: .02, app: 3 } } }),
+      opt("drains", "Drains and erosion control first", "Costs more; the road lasts.", { costF: 1.15, good: { text: "The roads with deep drains came through the rains whole.", fx: { infra: .02, app: 3 } } }),
       opt("tar", "Tar now, drains later", "More km now.", { costF: .9, risk: { p: .45, title: "The road washed away", text: "The rains cut a gully across the new road. It is closed.", fx: { infra: -.03, app: -4 } } }),
       opt("newmap", "With the World Bank's erosion programme", "Shared money for the drains; a year more.", { tAdd: 1, good: { text: "NEWMAP's engineers closed the gullies along the new roads.", fx: { infra: .02, app: 3 } } }),
     ] };
   if (P.land === "lagoon") return { head: "Roads in Lagos", why: "In Lagos the land costs more than the road: every widening goes through people's homes and shops, and every closure jams the city.", fact: "Lagos road projects often stall in court over demolitions and compensation.", art: "roads-city", q: "How do you clear the way?",
     opts: [
-      opt("pay", "Pay full compensation before you build", "Dearer, and fair.", { costF: 1.15, good: { text: "Families paid in full moved out without a fight.", fx: { app: 3 } } }),
+      opt("pay", "Pay full compensation before you build", "Costs more, but fair.", { costF: 1.15, good: { text: "Families paid in full moved out without a fight.", fx: { app: 3 } } }),
       opt("demolish", "Demolish now, pay later", "Faster and cheaper, now.", { costF: .9, risk: { p: .5, title: "In court over the demolitions", text: "A court stopped the work after families sued over demolitions without payment.", fx: { app: -5 } } }),
-      opt("night", "Work at night, with diversions", "A little dearer; the city keeps moving.", { costF: 1.05, fx: { app: -1 }, good: { text: "Night shifts finished the road without jamming the city.", fx: { app: 3 } } }),
+      opt("night", "Work at night, with diversions", "Costs a little more; the city keeps moving.", { costF: 1.05, fx: { app: -1 }, good: { text: "Night shifts finished the road without jamming the city.", fx: { app: 3 } } }),
     ] };
   if (P.bandits || P.insurgency) return { head: "Roads in " + P.name, why: "Remote roads here are ambush ground. Crews will not work without protection.", fact: "In the North-West and North-East, road contractors have been kidnapped on site; many projects work only with escorts.", art: "roads-savannah", q: "How do you protect the crews?",
     opts: [
-      opt("escort", "Police and army escort", "Dearer; the crews come back.", { costF: 1.1, good: { text: "The road was built without one attack.", fx: { app: 3, sec: .01 } } }),
+      opt("escort", "Police and civil defence escort", "Costs more; the crews come back.", { costF: 1.1, good: { text: "The road was built without one attack.", fx: { app: 3, sec: .01 } } }),
       opt("clear", "Clear the bush 50 metres on each side", "Fewer places to hide; farmers lose some land.", { costF: 1.05, fx: { sec: .01 }, good: { text: "The cleared roads are safer to travel.", fx: { sec: .01, app: 2 } } }),
       opt("none", "No escort", "Cheapest.", { costF: .95, risk: { p: .4, title: "Crew kidnapped", text: "Gunmen kidnapped four of the road crew. The contractor stopped work.", fx: { app: -4, sec: -.02 } } }),
     ] };
@@ -227,7 +227,7 @@ const ROADS = (P) => {
     opts: [
       opt("tar", "Tar the main roads", "The standard.", { good: { text: "The tarred roads are open.", fx: { app: 3 } } }),
       opt("laterite", "Many more km of laterite feeder roads", "Reach every village; they wash out.", { costF: .6, risk: { p: .3, title: "The rains took the feeder roads", text: "Laterite feeder roads washed out in the rains.", fx: { infra: -.02, app: -2 } }, good: { text: "Farmers' produce reaches market on the new feeder roads.", fx: { agr: .02, app: 3 } } }),
-      opt("concrete", "Concrete roads that last 40 years", "Dearer now, cheap forever.", { costF: 1.25, fx: { infra: .02 }, good: { text: "The concrete roads came through without a pothole.", fx: { app: 3 } } }),
+      opt("concrete", "Concrete roads that last 40 years", "Costs more now, cheap forever.", { costF: 1.25, fx: { infra: .02 }, good: { text: "The concrete roads came through without a pothole.", fx: { app: 3 } } }),
     ] };
   return null;
 };
@@ -244,7 +244,7 @@ const IRRIG = (P) => {
   if (P.land === "dry") return { head: "Irrigation in " + P.name, why: "The dry season lasts seven months. River valleys (fadama) can carry a second harvest if they get water.", fact: "Kano and Jigawa grow much of Nigeria's dry-season tomatoes, onions and wheat on irrigated fadama land.", art: "irrigation-fadama", q: "Big scheme or small?",
     opts: [
       opt("pumps", "Solar pumps for farmer groups", "Quick, small, many farmers.", { good: { text: "Solar pumps gave the fadama farmers a second harvest.", fx: { agr: .02, app: 3 } } }),
-      opt("dam", "A big dam and canals", "Dearer, a year more, the whole valley.", { costF: 1.4, tAdd: 1, fx: { agr: .02 }, good: { text: "The new canals water the whole valley.", fx: { agr: .03, app: 3 } } }),
+      opt("dam", "A big dam and canals", "Costs more, a year more, the whole valley.", { costF: 1.4, tAdd: 1, fx: { agr: .02 }, good: { text: "The new canals water the whole valley.", fx: { agr: .03, app: 3 } } }),
       opt("revive", "Revive the old dam's silted canals", "Cheap: the dam is already there.", { costF: .7, risk: { p: .3, title: "The canals silted again", text: "The canals silted up again within a year.", fx: { agr: -.01, app: -2 } } }),
     ] };
   return null;
@@ -253,12 +253,12 @@ const IRRIG = (P) => {
 const SCHOOLS = (P, id) => {
   if (id === "classrooms" && (P.land === "creek" || P.floods)) return { head: "Classrooms in " + P.name, why: "Floods close schools here every year. A block on the ground is a block under water.", fact: "The 2022 floods closed schools across Bayelsa, Kogi, Anambra and Delta for months.", art: "classrooms-raised", q: "Build for the floods?",
     opts: [
-      opt("raised", "Raise every block on pillars", "Dearer; school goes on in the flood.", { costF: 1.2, good: { text: "The raised classrooms stayed open through the flood.", fx: { lit: .01, app: 3 } } }),
+      opt("raised", "Raise every block on pillars", "Costs more; school goes on in the flood.", { costF: 1.2, good: { text: "The raised classrooms stayed open through the flood.", fx: { lit: .01, app: 3 } } }),
       opt("ground", "Build on the ground", "More blocks for the money.", { risk: { p: .4, title: "The flood closed the new schools", text: "The flood filled the new classroom blocks. Pupils are at home again.", fx: { lit: -.01, app: -3 } } }),
     ] };
   if (id === "classrooms" && (P.bandits || P.insurgency)) return { head: "Classrooms in " + P.name, why: "Schools here have been attacked and pupils kidnapped. Parents will not send children to a school with no wall.", fact: "Since 2014, gunmen have kidnapped hundreds of pupils from schools in the North-East and North-West.", art: "classrooms-fenced", q: "How do you keep pupils safe?",
     opts: [
-      opt("walls", "Perimeter walls and guards for every school", "Dearer; parents send their children.", { costF: 1.15, good: { text: "Parents send their children to the walled schools.", fx: { lit: .01, app: 3 } } }),
+      opt("walls", "Perimeter walls and guards for every school", "Costs more; parents send their children.", { costF: 1.15, good: { text: "Parents send their children to the walled schools.", fx: { lit: .01, app: 3 } } }),
       opt("merge", "Fewer, bigger, safer schools in the towns", "Safer; some children walk far.", { risk: { p: .3, title: "Too far to walk", text: "Village children now walk two hours to school. Many stopped going.", fx: { lit: -.01, app: -2 } } }),
       opt("plain", "Build the blocks; security later", "The most blocks for the money.", { costF: .9, risk: { p: .3, title: "A school was attacked", text: "Gunmen attacked one of the new schools at night. Classes stopped across the area.", fx: { lit: -.02, app: -6, sec: -.02 } } }),
     ] };
@@ -275,12 +275,12 @@ const SCHOOLS = (P, id) => {
 const HEALTH = (P, id) => {
   if (id === "phc" && P.land === "creek") return { head: "Health in " + P.name, why: "A woman in labour in the creeks needs a boat, not a road. Many health centres are a day away by water.", fact: "Maternal deaths in the riverine Delta are among the worst in the south, largely from the time it takes to reach care.", art: "phc-boat", q: "How do you reach the creek villages?",
     opts: [
-      opt("boats", "Boat ambulances and a floating clinic", "Dearer; it reaches them.", { costF: 1.1, good: { text: "The boat ambulances saved mothers in labour this year.", fx: { hp: .02, app: 4 } } }),
+      opt("boats", "Boat ambulances and a floating clinic", "Costs more; it reaches them.", { costF: 1.1, good: { text: "The boat ambulances saved mothers in labour this year.", fx: { hp: .02, app: 4 } } }),
       opt("centres", "Renovate the health centres only", "Cheaper; still far away.", { costF: .9, risk: { p: .35, title: "Too far to reach", text: "Two women died in labour on the way to a renovated centre a day away by boat.", fx: { hp: -.01, app: -3 } } }),
     ] };
   if (id === "phc" && (P.bandits || P.insurgency)) return { head: "Health in " + P.name, why: "Nurses will not stay in villages where gunmen come at night.", fact: "Health workers have been kidnapped and clinics closed across the North-West and North-East.", art: null, q: "How do you staff the clinics?",
     opts: [
-      opt("quarters", "Staff quarters inside walled clinics", "Dearer; nurses stay.", { costF: 1.1, good: { text: "Nurses stayed in the walled clinics all year.", fx: { hp: .02, app: 3 } } }),
+      opt("quarters", "Staff quarters inside walled clinics", "Costs more; nurses stay.", { costF: 1.1, good: { text: "Nurses stayed in the walled clinics all year.", fx: { hp: .02, app: 3 } } }),
       opt("mobile", "Mobile clinics with escorts, by day", "No nights in the village.", { good: { text: "Escorted mobile clinics reached the villages every week.", fx: { hp: .01, app: 3 } } }),
       opt("plain", "Renovate and post the nurses", "The cheapest.", { costF: .9, risk: { p: .35, title: "The nurses left", text: "Gunmen kidnapped a nurse; the others left. Three clinics are shut.", fx: { hp: -.01, app: -3 } } }),
     ] };
@@ -432,14 +432,14 @@ export const siteProblem = (type, place, text = "") => {
 const FED_ASKS = {
   f_coastal: { q: "How do you build 700 km along the coast?", why: "The route runs along the beach from Lagos to Calabar: homes, resorts and fishing villages are in the way, and so are the creeks.", fact: "Coastal highways in Nigeria have meant demolitions on the Lekki coast, and court cases from the owners.",
     opts: [opt("lagos", "Start at the Lagos end, along the beach", "Fast where the money is. Homes and beach resorts in the way come down.", { site: "Lagos", risk: { p: .5, title: "Demolitions in court", text: "Owners of demolished homes and resorts on the Lagos coast took the government to court. The pictures went round the world.", fx: { app: -5 } }, good: { text: "The first section of the coastal highway opened from Lagos.", fx: { app: 4, infra: .02 } } }),
-      opt("inland", "Re-route inland around the communities", "Dearer and a year more; nobody loses a home.", { costF: 1.2, tAdd: 1, good: { text: "The re-routed coastal highway opened without a demolition.", fx: { app: 4 } } }),
+      opt("inland", "Re-route inland around the communities", "Costs more and takes a year more; nobody loses a home.", { costF: 1.2, tAdd: 1, good: { text: "The re-routed coastal highway opened without a demolition.", fx: { app: 4 } } }),
       opt("toll", "A toll road with a private partner", "Their money builds it; drivers pay for forty years.", { costF: .7, risk: { p: .4, title: "Tolls too high", text: "The concessionaire's tolls are the highest in West Africa. Truckers block the toll gates.", fx: { app: -4 } }, good: { text: "The tolled coastal highway is open and the Treasury paid little.", fx: { app: 2, infra: .02 } } })] },
   f_rail: { q: "How is the railway paid for?", why: "A standard-gauge line costs more than a year of the federal capital budget.", fact: "Nigeria's standard-gauge lines (Lagos–Ibadan, Abuja–Kaduna) were built largely with Chinese loans.",
     opts: [opt("loan", "A foreign loan with the lender's contractor", "Cheaper now; the loan's terms will be read in the newspapers.", { costF: .85, risk: { p: .35, title: "The loan's clauses", text: "A newspaper published the loan agreement: the lender can take assets if Nigeria defaults. The Senate wants answers.", fx: { app: -3 } }, good: { text: "The lender's contractor laid the track on time.", fx: { infra: .02, app: 3 } } }),
       opt("budget", "Budget money, phased over more years", "Nobody else's terms; a year more.", { tAdd: 1, good: { text: "The railway, paid for at home, is carrying freight.", fx: { app: 3 } } }),
       opt("ppp", "A private concession: they build it and run it", "The cheapest for the Treasury, if the investors come.", { costF: .6, risk: { p: .4, title: "The investors stalled", text: "The concessionaire could not raise the money. Work stopped for a year.", fx: { infra: -.02, app: -3 } } })] },
   f_gas: { q: "Who guards the pipeline?", why: "A pipeline through the Delta and the bandit corridors is a target the whole way.", fact: "Pipeline surveillance contracts have been given to ex-militant leaders in the Delta; critics call it paying the people who blew them up.",
-    opts: [opt("army", "The army and the civil defence", "Dearer; under the government's command.", { costF: 1.1, good: { text: "The pipeline ran a year without a breach.", fx: { app: 3, sec: .01 } } }),
+    opts: [opt("army", "The police and the civil defence", "Costs more; under the state's eye.", { costF: 1.1, good: { text: "The pipeline ran a year without a breach.", fx: { app: 3, sec: .01 } } }),
       opt("militants", "Surveillance contracts with ex-militant groups", "They know the creeks. Some will call it a bribe.", { costF: .9, risk: { p: .35, title: "Paying the militants", text: "Newspapers reveal the surveillance contracts went to men who once blew up pipelines. The opposition calls it protection money.", fx: { app: -3, cor: .01 } }, good: { text: "The creeks stayed quiet and the gas flowed north.", fx: { app: 2, sec: .01 } } }),
       opt("communities", "Pay the host communities to guard it", "They gain from it staying whole.", { good: { text: "Host communities guarded the pipeline as their own.", fx: { app: 3, sec: .01 } }, risk: { p: .2, title: "A community dispute", text: "Two communities fought over who gets the guarding money; the line was cut for a week.", fx: { app: -2 } } })] },
   f_refinery: { q: "Who owns the refineries?", why: "Government refineries have run below capacity for decades; illegal refineries in the creeks make fuel and pollution every night.", fact: "Nigeria's state refineries have spent billions on repairs and run at a fraction of capacity for years.",
@@ -450,7 +450,7 @@ const FED_ASKS = {
     opts: [opt("free", "Free, paid from the budget", "Everybody crosses free.", { good: { text: "Traders cross the new bridge free.", fx: { app: 4 } } }),
       opt("toll", "A tolled concession", "Cheaper for the Treasury; traders pay.", { costF: .7, risk: { p: .4, title: "Traders protest the toll", text: "Onitsha traders shut the market over the bridge toll.", fx: { app: -3 } } })] },
   f_mambilla: { q: "The old contract is in arbitration. What now?", why: "A great dam on the Mambilla Plateau has been planned since the 1980s. The last contract ended in a billion-dollar arbitration claim.", fact: "The Mambilla hydropower project has been delayed for decades by contract disputes and arbitration.",
-    opts: [opt("settle", "Settle with the old contractor and go on", "Dearer; no court in Paris.", { costF: 1.1, good: { text: "Work started on the plateau at last.", fx: { app: 3, infra: .02 } } }),
+    opts: [opt("settle", "Settle with the old contractor and go on", "Costs more; no court in Paris.", { costF: 1.1, good: { text: "Work started on the plateau at last.", fx: { app: 3, infra: .02 } } }),
       opt("restart", "Start again with a new contractor", "Clean start; the old contractor goes to arbitration.", { risk: { p: .45, title: "The arbitration award", text: "An arbitration tribunal ordered Nigeria to pay the old contractor damages.", fx: { app: -3 } } }),
       opt("bank", "With a foreign export bank's loan", "Cheaper money; a year more for the paperwork.", { costF: .85, tAdd: 1, good: { text: "The export bank's money is building the dam.", fx: { app: 3 } } })] },
   f_grid: { q: "Who builds the new lines?", why: "Power is generated but cannot reach homes: the transmission lines are the bottleneck.", fact: "Since the Electricity Act 2023, fifteen states run their own power markets; transmission is still federal.",

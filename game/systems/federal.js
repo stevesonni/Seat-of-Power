@@ -357,7 +357,7 @@ export const nassCake = (revB, hist = []) => {
 export const defenceDelivery = (proc, hon = 50, r = Math.random) => {
   const x = r();
   if (proc.mode === "buy") return x < hon / 200
-    ? { ok: true, sec: .025, cor: 0, app: 1, army: 4, title: "The jets and drones are here", line: "The direct award delivered: the aircraft arrived, a little dear, but they fly." }
+    ? { ok: true, sec: .025, cor: 0, app: 1, army: 4, title: "The jets and drones are here", line: "The direct award delivered: the aircraft arrived, a little costly, but they fly." }
     : { ok: false, sec: .015, cor: .02, app: -2, army: 2, title: "Refurbished jets, new prices", line: "The supplier sent refurbished jets at new prices. The ministry signed for them anyway." };
   return x < .55 + hon / 250
     ? { ok: true, sec: .03, cor: -.005, app: 2, army: 5, title: "Delivered on time and on budget", line: "Open tender worked: every jet and drone arrived on time, on budget, with spares and training." }

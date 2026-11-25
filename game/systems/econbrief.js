@@ -77,7 +77,7 @@ const NAT = [
       O("navy", "Send the Navy and the Joint Task Force", { sec: .01 }, { later: { text: "Arrests made; the theft halved.", tr: { reserves: 2 } }, past: "sent the Navy into the creeks" })] },
   { id: "rating", pri: (c) => c.debt > 35 ? 65 : -1, when: (c) => c.debt > 35,
     t: () => "A rating agency may downgrade Nigeria",
-    d: (c) => "Debt of " + nB(c.debt) + " worries the lenders. A downgrade makes every new loan dearer.",
+    d: (c) => "Debt of " + nB(c.debt) + " worries the lenders. A downgrade makes every new loan cost more.",
     opts: [O("plan", "Publish a debt plan and borrow less", { app: -1, pStab: -2 }, { later: { text: "The rating held.", tr: { reserves: 1 } }, past: "published a debt plan" }),
       O("ignore", "Ignore them", {}, { later: { text: "Nigeria was downgraded: loans now cost more.", fx: { cost: .8 } }, past: "ignored the rating agency" })] },
 ];

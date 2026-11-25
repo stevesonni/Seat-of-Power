@@ -2236,3 +2236,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - The lead names "a running battle with the House/National Assembly" and "the war with X".
   - Lines no longer carry their own year beside the biography's date, and {him} is filled in.
 - Test: tests/bio-prose.test.mjs (order, both sections, the lead).
+
+## Plain words: no more "dearer" (25 Nov 2026)
+- "Dearer" and "dear" (British for "more expensive") are gone. They now say "costs more", "costlier" or "costly".
+- Project option chips now say "10% more" or "5% less" instead of "10% dearer" or "5% cheaper".
+- Two governor options no longer name the army: "Police and civil defence escort", and "The police and the civil defence" for the pipeline. Only the President commands the forces.
