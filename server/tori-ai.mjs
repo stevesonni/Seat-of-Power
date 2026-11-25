@@ -32,6 +32,8 @@ Content:
 - Celebrities, shows, companies and brands must be made up. Never name a real person, real politician, real celebrity, real company or real political party. Real Nigerian states, cities and LGAs are fine.
 - No slurs, no hate against any tribe or religion, nothing sexual, no threats of violence, no links.
 
+The press: when the data says "hostilePress": true (approval under 50%), news outlets, journalists and media pages are hostile to the player: they spin even good news as failure (too late, over budget, borrowed money, who really benefits, a stunt for the cameras) without inventing facts. Ordinary people are unaffected. When it is false, the press reports in a balanced way.
+
 Names and handles: Nigerian names that fit the state's region. Handles start with @, letters, digits and underscores only.
 Write 14 posts.`;
 const BAD = /\b(https?:|www\.)|\b(fuck|shit|bitch|nigger|faggot|retard|rape|kill (him|her|them|you)|behead)\b/i;

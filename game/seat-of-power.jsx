@@ -6143,12 +6143,19 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // A comeback after defeat is the final term (S.182: two terms in all): it starts at year 5.
   const [turn, setTurn] = useState(ld?.turn || (setup?.comeback ? 5 : 1));
   const campaignGfDebt = setup?.gfDebt || 0;
-  const [s, setS] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: pillarOn("front") && !ld ? SYS.firstYearCushion(sd.faac) : 0, cashYear: 0, zoneMood: {} /* the other districts ask first (statecraftTurn, SYS.makeAsk "start") instead of starting at −2 */, pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
+  const [s, _setSRaw] = useState(() => ld?.s || ({ lit: Math.max(.05, sd.lit + (scenarioStart(setup).lit || 0)), hp: Math.max(.05, sd.hp + (scenarioStart(setup).hp || 0)), infra: Math.max(.05, sd.infra + (scenarioStart(setup).infra || 0)), sec: Math.max(.05, sd.sec + (scenarioStart(setup).sec || 0)), agr: Math.max(.05, sd.agr + (scenarioStart(setup).agr || 0)), igr: Math.round(sd.igr * (scenarioStart(setup).igrMul || 1) * 10) / 10, faac: sd.faac * (scenarioStart(setup).faacMul || 1), cor: .30 + campaignGfDebt * .05 + (setup?.favours || 0) + (scenarioStart(setup).cor || 0), app: 55 + (scenarioStart(setup).app || 0), debt: Math.round(SYS.inheritedDebtB({ igr: sd.igr, faac: sd.faac }) * (scenarioStart(setup).debtMul || 1) * 10) / 10, cash: pillarOn("front") && !ld ? SYS.firstYearCushion(sd.faac) : 0, cashYear: 0, zoneMood: {} /* the other districts ask first (statecraftTurn, SYS.makeAsk "start") instead of starting at −2 */, pStab: (startingStab || 65) + (scenarioStart(setup).pStab || 0),
     econ: Object.fromEntries(Object.entries(sd.econ).map(([k, v]) => [k, { out: v.out, jobs: v.jobs }])),
     gdp: Object.values(sd.econ).reduce((sum, v) => sum + v.out * sd.pop * 2, 0),
     totalJobs: Object.values(sd.econ).reduce((sum, v) => sum + v.jobs, 0) * 1000, // people (sector jobs are kept in thousands)
     invJobs: 0, invIGR: 0, // jobs and yearly revenue from investors and finished projects you brought in
   }));
+  /* The press (SYS.pressHostile): below 50% approval it turns hostile and good news earns only half its approval; it
+     reports balanced again from 52% (owner, 25 Nov 2026). Only step changes are touched, never a loaded record. */
+  const pressRef = React.useRef(SYS.pressHostile(s.app, false));
+  const setS = React.useCallback((u) => _setSRaw(prev => { if (typeof u !== "function") return u; const next = u(prev);
+    if (next && prev && typeof next.app === "number" && typeof prev.app === "number" && next.app > prev.app && pressRef.current) return { ...next, app: Math.round((prev.app + SYS.pressGain(next.app - prev.app, true)) * 10) / 10 };
+    return next; }), []);
+  pressRef.current = SYS.pressHostile(s.app, pressRef.current);
   const [cab, setCab] = useState(() => ld?.cab || genCab(state, 42, sd.zone));
   const [ps, setPS] = useState(() => ld?.ps || genPS(state.length * 55, sd.zone, state));
   const [csReformsDone, setCSReformsDone] = useState(ld?.csReformsDone || []);
@@ -6342,6 +6349,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       carryNow: () => ({ turn, carried: scCarry.current.map(c => c.key) }),
       worksNow: () => ({ pol: (pol || []).map(p => p.nm), projects: (projects || []).map(p => ({ id: p.id, status: p.status, courtStopped: p.courtStopped })), recalls: stc.recalls || [], loans: (loans || []).map(L => ({ key: L.key, recalled: L.recalled, out: L.outstandingM })), cash: s.cash, debt: s.debt }),
       // named: a road you named, on a bank loan, is the one the court halts (tests/e2e/court-stop.mjs).
+      paperTest: (h, sub, good) => { if (!window.SOP_TEST) return null; const o = window.SOP_outcome; let got = null; window.SOP_outcome = (x) => { if (x && x.paper) got = x.paper; return o && o(x); }; try { paper(h, sub, good); } finally { window.SOP_outcome = o; } return got; },
+      pressNow: () => ({ hostile: !!pressRef.current, app: s.app }),
       injunctionTest: (nm, sites, named) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0];
         if (named) { const L = { key: "loan:p_ikwo:bank", lenderId: "bank", lender: "A syndicate of three commercial banks", nm: "Commercial bank loan", principalM: 1800, rate: .22, years: 4, tranches: 3, drawn: 1, trancheM: 600, drawnM: 600, outstandingM: 600, projId: "p_ikwo", disbursedYear: turn };
           setProjects(prev => [...(prev || []), { id: "p_ikwo", title: named, type: "road", lga: getLGAs(state)[0], status: "in_progress", progress: 30, events: [], decisions: [], spentM: 600, loanKey: L.key }]); setLoans(ls => [...(ls || []), L]);
@@ -7991,7 +8000,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const weak = (ministries || []).filter(m => m.minister).sort((a, b) => (a.perf || 50) - (b.perf || 50))[0];
     const PT = stc.petition, court = PT && PT.at != null && PT.at >= turn - 1 && PT.court ? { court: PT.court, won: !!PT.won, final: PT.stage >= 3, quit: !!PT.quit, opp: PT.opp } : null;
     const buzz = (stc.buzz || []).filter(B => B.turn >= turn - 1).slice(-3).flatMap(B => /^club_/.test(B.stage) ? SYS.clubBuzz(B.stage.slice(5), B.ctx) : SYS.sportsBuzz(B.stage, B.ctx));
-    return { buzz, court, nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
+    return { buzz, court, hostilePress: !!pressRef.current, nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
       stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, ...(() => { const T = SYS.toriOpponent({ turn, R: stc.rival, dep: depGov && depGov.nm, rival: cast.rival && cast.rival.name, rivalParty: setup?.election?.oppParty, reOpp: stc.reOpp, reOppParty: stc.reOppParty }); return { oppName: T.name, oppParty: T.party, oppDeputy: !!T.deputy }; })(), reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints,
       // The President's world: the war (once the storyline starts) and this year's crackdown, for foreign accounts.
       war: NAT && stc.bakunda && (stc.bakunda.stage || 0) >= 2 ? (() => { const B = stc.bakunda, K = SYS.bkCountry(B); return { nm: K.nm, adj: K.adj, cap: K.cap, gen: K.gen, art: K.art, stage: B.stage, atWar: !!B.atWar, progress: B.progress || 0, done: !!B.done, treaty: B.treaty }; })() : null,
@@ -8022,7 +8031,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
      record goes: the state, the numbers, the events in the third person. Never the player's name. If it fails, the
      game's own posts stay. */
   // The record as the AI sees it (no player name): shared by the year's posts and the reply drafts.
-  const toriAiCtx = () => { let c; try { c = toriCtx(); } catch (e) { return null; } const H = toriH(); return { office: NAT ? "President of Nigeria" : "state governor", st: c.st, nat: !!c.nat, turn: c.turn, year: c.year, handle: SYS.toriHandle(state), approval: Math.round(c.app), approvalLastYear: c.appPrev == null ? null : Math.round(c.appPrev), corruptionPct: Math.round((c.cor || 0) * 100), salaryMonthsOwed: c.arrears,
+  const toriAiCtx = () => { let c; try { c = toriCtx(); } catch (e) { return null; } const H = toriH(); return { office: NAT ? "President of Nigeria" : "state governor", hostilePress: !!c.hostilePress, st: c.st, nat: !!c.nat, turn: c.turn, year: c.year, handle: SYS.toriHandle(state), approval: Math.round(c.app), approvalLastYear: c.appPrev == null ? null : Math.round(c.appPrev), corruptionPct: Math.round((c.cor || 0) * 100), salaryMonthsOwed: c.arrears,
       strikes: (c.strikes || []).map(x => ({ union: x.short, year: x.years, metThisYear: !!x.talks })), finished: c.done, contractorsFled: (c.fled || []).map(f => ({ firm: f.firm, to: f.to, amountM: f.lossM, project: f.proj, reported: !!f.asked })),
       needs: (c.needs || []).map(n => ({ need: n.title, started: !!n.inWork, overdue: !!n.late })), news: SYS.toriNews(c).map(e => e.text + " (" + e.mood + ")"), trending: H.stories.slice(0, 3).map(x => x.tag + ": " + x.cause), heat: SYS.HEAT_STAGES[H.stage].nm,
       places: (c.places || []).slice(0, 8), opposition: c.oppName || null, brokenPromises: c.broken || 0, abandonedProjects: c.stalled || 0, war: c.war ? { country: c.war.nm, atWar: c.war.atWar, progress: c.war.progress } : null }; };
@@ -13843,10 +13852,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const papersRef = React.useRef({ turn: 0, n: 0 });
   const localBusy = React.useRef({}); // neighbourhood jobs already tapped (pillar "local")
   const [mapFocus, setMapFocus] = useState(null); // the place the map opens on (leak 6: "See it on the map")
-  const paper = (headline0, sub0, good = true, img) => { if (silentRef.current) return; const T = SYS.tidyPaper(headline0, sub0); if (!T) return; const headline = T.headline, sub = T.sub;
+  const paper = (headline1, sub1, good1 = true, img) => { if (silentRef.current) return;
+    // A hostile press (below 50% approval, SYS.pressHostile) spins good news into failure and makes bad news worse.
+    const SP = pressRef.current ? SYS.spinPaper(headline1, sub1, good1, turn) : null, headline0 = SP ? SP.headline : headline1, sub0 = SP ? SP.sub : sub1, good = SP ? SP.good : good1;
+    const T = SYS.tidyPaper(headline0, sub0); if (!T) return; const headline = T.headline, sub = T.sub;
     const pr = papersRef.current; if (pr.turn !== turn) { pr.turn = turn; pr.n = 0; } pr.n++; if (fcRef.current) setTimeout(() => fcPublish({ paper: { headline, sub, good, img } }), 0); try { window.SOP_outcome && window.SOP_outcome({ paper: { masthead: NAT ? "The Daily Impact" : "The " + stName + " Daily Tribune", date: (NAT ? "Abuja" : stName) + " · " + ((setup && setup.startYear || 2027) - 1 + (turn || 1)), headline, sub, good, img } }); } catch (e) {} };
   const [anchorNews, setAnchorNews] = useState(null);
-  const anchors = (m, f) => { if (silentRef.current) return; try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
+  const anchors = (m, f0) => { if (silentRef.current) return; const f = pressRef.current ? SYS.anchorSneer(m, turn) : f0; try { window.SOP_hold && window.SOP_hold(true); } catch (e) {} return setAnchorNews([{ who: "m", t: m }, { who: "f", t: f }]); };
   const anchorEl = anchorNews ? <AnchorDesk lines={anchorNews} onDone={() => setAnchorNews(null)} /> : null;
   const present = (text, mood = "urgent", fn, ok, alt) => { try { const nm = cast.adviser.name; window.SOP_outcome && window.SOP_outcome({ present: { img: saPose(nm, mood) || saPortrait(nm), name: nm + " · Special Adviser", text, urgent: mood === "urgent", fn, ok, alt } }); } catch (e) {} };
   /* New this year: each system the adviser introduces the first year it

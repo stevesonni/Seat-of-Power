@@ -2467,3 +2467,10 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 
 ## 25 Nov 2026: the FIFA official
 - Installed public/art/characters/fifa-official.webp as delivered. Every FIFA letter (World Cup qualifier, Under-17 World Cup) shows him; CAF letters keep the football official.
+
+## 25 Nov 2026: a hostile press below 50%
+- game/systems/press.js. Below 50% approval the press turns hostile; it reports balanced again only from 52% (the buffer stops it flipping every month).
+- Front pages: good news is spun into failure by kind (a deal: "THE HAGUE DEAL: CRITICS ASK WHO REALLY BENEFITS"; money: "WHERE WILL THE MONEY GO?"; a project: "YEARS LATE AND OVER BUDGET"; a court win: "WON ON A TECHNICALITY"; sport, appointments, security, laws, and a fallback). The facts stay in the line beneath. Bad news is made worse ("ANOTHER FAILURE: …").
+- The TV desk's second anchor turns sour; Tori's news and press accounts (and the sports desk's buzz) add a sneer to good news; ordinary people are unchanged. The AI-written Tori is told when the press is hostile.
+- While hostile, every approval gain counts half; losses are untouched.
+- Tests: tests/press.test.mjs; tests/e2e/press.mjs (the same Hague deal at 55% and 45%, a halved gain, hostile at 51% while climbing, balanced at 52%).

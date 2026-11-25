@@ -1,4 +1,5 @@
 import { planSector } from "./plans.js";
+import { spinPost } from "./press.js";
 /* Tori: the state's own Twitter-style feed (owner's design, 20 Nov 2026). Citizens, the press, the party and the
    opposition post about how the state is run; the governor has an account (@EbonyiGov…) and can post and reply.
    Everything is written by the game from the state of play, in English and Pidgin: no live AI, nothing per player.
@@ -99,6 +100,12 @@ export function toriNews(c) {
 
 // Was a promise made on Tori kept? true / false, or null when the record can't tell.
 export const promiseKept = (b, c) => b.kind === "arrears" ? !(c.arrears > 0) : b.kind === "talks" ? !(c.strikes || []).some(s => s.id === b.strike && !s.talks) : b.kind === "need" ? !(c.needs || []).some(n => n.title === b.need && !n.inWork) : b.kind === "japa" ? !(c.fled || []).some(f => f.proj === b.proj && !f.asked) : b.kind === "openbook" ? c.cor < .4 : null;
+/* Below 50% approval the press is hostile (SYS.pressHostile; owner, 25 Nov 2026): news and press accounts spin even
+   good news; ordinary people's posts are left as they are. */
+const PRESS_ART = /^(reporter|anchor-)/;
+export const isPress = (x) => !!x && (x.kind === "news" || x.kind === "press" || PRESS_ART.test(x.art || "")) && x.kind !== "citizen" || (!!x && x.buzz && PRESS_ART.test(x.art || ""));
+export const pressSpin = (posts, c) => !c || !c.hostilePress ? posts : (posts || []).map(x => isPress(x) && x.tone !== "bad" ? { ...x, text: spinPost(x.text, c.turn), tone: "bad", topic: x.topic === "praise" ? "general" : x.topic } : x);
+
 export function toriFeed(c) {
   const r = rngOf("feed" + c.st + c.turn), S = tagSt(c.st), N = stNm(c.st), me = toriHandle(c.st), boss = c.nat ? "the President" : "the Governor", HQ = c.nat ? "Aso Rock" : "Government House";
   const names = new Set(), regulars = castFor(c, "regular" + c.st, 3, names), cast = [...regulars, ...castFor(c, "cast" + c.st + c.turn, 12, names)];
@@ -189,7 +196,7 @@ export function toriFeed(c) {
   const q = out.filter(x => x.kind === "complaint"), fu = out.filter(x => x.followUp), news = out.filter(x => x.kind === "news" || x.quote), rest = out.filter(x => x.kind !== "complaint" && !x.followUp && x.kind !== "news" && !x.quote).sort((a, b) => b.likes - a.likes);
   const mixed = []; let ni = 0; rest.forEach((x, i) => { if (i % 2 === 0 && ni < news.length) { mixed.push(news[ni++]); if (news[ni] && news[ni].quote) mixed.push(news[ni++]); } mixed.push(x); });
   while (ni < news.length) mixed.push(news[ni++]);
-  return [...q, ...fu, ...mixed];
+  return pressSpin([...q, ...fu, ...mixed], c);
 }
 
 // Everyday-life posts: what they are about.
