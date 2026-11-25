@@ -14,7 +14,7 @@ const B = (x) => "₦" + (Math.round((x || 0) * 10) / 10) + "B";
 export const ACHIEVEMENTS = [
   { id: "junketer", art: "badge-junketer", t: "Junketer-in-chief", test: (c) => c.trips >= 4 && c.trips, big: (n) => n + " trips abroad", line: () => "Your passport needs its own budget line." },
   { id: "stay_home", art: "badge-stay-at-home", t: "Stay-at-home Governor", test: (c) => c.office === "governor" && c.termDone && c.trips === 0 && 4, line: () => "Four years and not one trip abroad. Your people always knew where to find you." },
-  { id: "ribbon", art: "badge-builder", t: "Ribbon Cutter", test: (c) => c.delivered >= 8 && c.delivered, big: (n) => n + " ribbons cut", line: () => "Projects opened and in use. The scissors are tired." },
+  { id: "ribbon", art: "badge-builder", t: "Mr. Projects", tF: "Madam Projects" /* owner, 25 Nov 2026: by who is playing */, test: (c) => c.delivered >= 8 && c.delivered, big: (n) => n + " ribbons cut", line: () => "Projects opened and in use. The scissors are tired." },
   { id: "quick_fix", art: "badge-quick-fix", t: "Quick Fix", test: (c) => c.quickWins >= 5 && c.quickWins, big: (n) => n + " quick jobs", line: () => "Every one finished inside the year. People saw it happen." },
   { id: "ghostbuster", art: "badge-ghostbuster", t: "Ghostbuster", test: (c) => c.plugYears >= 3 && c.plugYears, big: (n) => n + " years ghost-free", line: () => "Ghost workers struck off the payroll, and kept off." },
   { id: "leak_plumber", art: "badge-leak-plumber", t: "Leak Plumber", test: (c) => c.turn >= 3 && c.leakPct != null && c.leakPct <= 3 && Math.max(1, c.leakPct), big: (n) => "Only " + n + "% leaked", line: () => "The money from Abuja arrives where it is sent." },
@@ -39,5 +39,5 @@ export const ACHIEVEMENTS = [
 ];
 export const ACH_IDS = ACHIEVEMENTS.map(a => a.id);
 /* The cards this ctx earns that the player does not have yet: [{ id, t, art, n, line }]. */
-export const cardsEarned = (ctx = {}, have = {}) => ACHIEVEMENTS.filter(a => !have[a.id]).map(a => { let n = false; try { n = a.test(ctx); } catch (e) {} return n ? { id: a.id, t: a.t, art: a.art, n, big: a.big ? a.big(n, ctx) : null, line: a.line(n, ctx) } : null; }).filter(Boolean);
+export const cardsEarned = (ctx = {}, have = {}) => ACHIEVEMENTS.filter(a => !have[a.id]).map(a => { let n = false; try { n = a.test(ctx); } catch (e) {} return n ? { id: a.id, t: (ctx.female && a.tF) || a.t, art: a.art, n, big: a.big ? a.big(n, ctx) : null, line: a.line(n, ctx) } : null; }).filter(Boolean);
 export const CARD_ART = ["card-backdrop", "card-sunburst", "card-plaque", "card-confetti"];

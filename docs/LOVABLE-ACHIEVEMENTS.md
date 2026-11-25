@@ -58,7 +58,7 @@ Already in the game and reused (no new art):
 - `badge-survivor` → **Survivor**
 - `badge-peacemaker` → **Peacemaker**
 - `badge-clean-hands` → **Clean Hands**
-- `badge-builder` → **Ribbon Cutter**
+- `badge-builder` → **Mr. Projects** (Madam Projects when the player is a woman)
 
 ## 2. The card itself (4) · public/art/brand/
 | File | Size | The picture | Used for |

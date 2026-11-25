@@ -21,3 +21,9 @@ test("each card is earned by what it says, once, with the player's own number", 
   assert.equal(SYS.cardsEarned(all).length, 16);
   SYS.ACHIEVEMENTS.forEach(a => { assert.ok(a.t.length <= 24, a.t); assert.ok(!/\b(purchase|initiate|utilise)\b/i.test(a.t + a.line(5, {})), "plain words"); });
 });
+
+test("the projects badge: Mr. Projects, or Madam Projects when a woman is playing (owner, 25 Nov 2026)", async () => {
+  const { cardsEarned } = await import("../game/systems/achievements.js");
+  assert.equal(cardsEarned({ delivered: 8 }).find(c => c.id === "ribbon").t, "Mr. Projects");
+  assert.equal(cardsEarned({ delivered: 8, female: true }).find(c => c.id === "ribbon").t, "Madam Projects");
+});

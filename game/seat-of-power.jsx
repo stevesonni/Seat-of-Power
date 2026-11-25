@@ -5282,7 +5282,7 @@ const achNext = () => {
 };
 // Award whatever this moment earns. who: the name and place printed on the card.
 const earnCards = (ctx, who) => { const have = loadCards(), fresh = SYS.cardsEarned(ctx, have); if (!fresh.length) return [];
-  fresh.forEach(c => { have[c.id] = { n: c.n, big: c.big, line: c.line, who: who || whoDefault(), at: Date.now() }; track("card_earned", c.id); }); saveCards(have);
+  fresh.forEach(c => { have[c.id] = { t: c.t, n: c.n, big: c.big, line: c.line, who: who || whoDefault(), at: Date.now() }; track("card_earned", c.id); }); saveCards(have);
   fresh.forEach(c => showAchCard({ ...c, who: who || whoDefault() })); return fresh; };
 if (typeof window !== "undefined") { window.SOP_earnCards = earnCards; window.SOP_achPng = achCardPng; }
 const CardAlbum = () => { const have = loadCards(), n = SYS.ACH_IDS.filter(id => have[id]).length;
@@ -5290,7 +5290,7 @@ const CardAlbum = () => { const have = loadCards(), n = SYS.ACH_IDS.filter(id =>
     <b style={{ display: "block", fontFamily: F.d, fontSize: TS(32), margin: "6px 0 4px" }}>🃏 My cards</b>
     <div style={{ fontSize: DS.t.meta, color: UI.sub, marginBottom: 8 }}>{n} of {SYS.ACHIEVEMENTS.length} earned. Tap one to share it again.</div>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>{SYS.ACHIEVEMENTS.map(a => { const h = have[a.id];
-      return <button key={a.id} disabled={!h} onClick={() => h && showAchCard({ id: a.id, t: a.t, art: a.art, n: h.n, big: h.big, line: h.line, who: h.who })} title={a.t} style={{ border: 0, background: "transparent", padding: 2, cursor: h ? "pointer" : "default", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+      return <button key={a.id} disabled={!h} onClick={() => h && showAchCard({ id: a.id, t: h.t || a.t, art: a.art, n: h.n, big: h.big, line: h.line, who: h.who })} title={a.t} style={{ border: 0, background: "transparent", padding: 2, cursor: h ? "pointer" : "default", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
         <img src={"./art/badges/" + a.art + ".webp"} alt="" style={{ width: "100%", maxWidth: 72, aspectRatio: "1", objectFit: "contain", filter: h ? "none" : "grayscale(1) opacity(.35)" }} />
         <span style={{ fontSize: 11, fontWeight: 700, lineHeight: 1.15, color: h ? UI.dark : UI.sub, textAlign: "center" }}>{a.t}</span>
       </button>; })}</div>
@@ -6570,7 +6570,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // Achievement cards (Pack 30): checked as the year moves on, and once more when the term ends.
   useEffect(() => { try {
     const RV = stc.rivalry || {}, P = (stc.plugs || {}).payroll, last = (stc.leakHist || []).slice(-1)[0], ids = (pol || []).map(a => a.id);
-    const ctx = { office: NAT ? "president" : "governor", turn, trips: stc.trips || 0, termDone: turn >= 5 || gEnd === "complete", delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length,
+    const ctx = { office: NAT ? "president" : "governor", female: isFemaleAvatar(setup?.avatar), turn, trips: stc.trips || 0, termDone: turn >= 5 || gEnd === "complete", delivered: (projects || []).filter(p => p.status === "delivered").length + (completedProjects || []).length,
       quickWins: (stc.qwDone || []).length, plugYears: P && SYS.plugStrength(P) > 0 ? turn - P.since : 0, leakPct: last ? last.pct : null, arrearsMax: stc.arrearsMax || 0, impSurv: !!impSurv, petitionWon: !!(stc.petition && stc.petition.result === "won"),
       whistleTrue: Object.values(stc.integ || {}).filter(v => v === "exposed").length, rivalUs: RV.us || 0, rivalThem: RV.them || 0, nb: RV.nb ? RV.nb.replace(/_/g, " ") : null, state: stName,
       combos: SYS.COMBOS.filter(c => ids.includes(c.a) && ids.includes(c.b)).length, gEnd, debt: s.debt || 0, oldDebt: (stc.oldDebt || {}).total || 0, peace: !!(stc.bakunda && stc.bakunda.done) || (stc.peaceClosed || 0) > 0,
