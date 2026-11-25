@@ -69,7 +69,7 @@ const D = [
     options: [
       { label: "Ban open grazing in the state", fx: { app: 3, cash: 0, party: -1 }, out: "Farmers cheer. Herders' groups go to court." },
       { label: "Set up grazing reserves with water", fx: { app: 1, cash: -0.6, party: 1 }, out: "It takes a year to build. The clashes slow down." },
-      { label: "Send soldiers to keep the peace", fx: { app: 0, cash: -0.2, party: 0 }, out: "Quiet returns, for now. Nothing is solved." } ] },
+      { label: "Ask Abuja for soldiers to keep the peace", fx: { app: 0, cash: -0.2, party: 0 }, out: "Quiet returns, for now. Nothing is solved." } ] },
   { id: "doctor", icon: "🩺", title: "Your doctors are leaving for abroad", brief: "Forty doctors resigned this month to work in other countries. Two hospitals have no surgeon at all.", bg: "hospital-ward", who: null,
     options: [
       { label: "Double their allowances", fx: { app: 3, cash: -0.7, party: 0 }, out: "Resignations slow to a trickle. Teachers ask why not them." },

@@ -155,7 +155,8 @@ export const PLUG_DECAY = 1 / 3;
 export const plugStrength = (P) => !P ? 0 : Math.max(0, Math.min(1, P.str == null ? 1 : P.str));
 export const leakOf = (plugs = {}, faacB = 10) => { const parts = LEAK_IDS.map(id => ({ id, nm: LEAKS[id].nm, b: r2(faacB * LEAKS[id].share * (1 - plugStrength(plugs[id]))) }));
   return { parts, total: r2(parts.reduce((a, x) => a + x.b, 0)), pct: Math.round(parts.reduce((a, x) => a + x.b, 0) / Math.max(.1, faacB) * 100) }; };
-/* A year passes: kept-up plugs stay strong, the rest wear out. */
+/* A year passes: kept-up plugs stay strong, the rest wear out. (Since 25 Nov 2026 the game keeps every installed plug
+   and takes its running cost on FAAC day, so nobody has to redo a reform every year.) */
 export const plugsAge = (plugs = {}, kept = []) => Object.fromEntries(Object.entries(plugs).map(([id, P]) => [id, { ...P, str: kept.includes(id) ? 1 : (x => x < .05 ? 0 : x)(r2(plugStrength(P) - PLUG_DECAY)) }]));
 export const upkeepOf = (plugs = {}) => r2(Object.entries(plugs).filter(([, P]) => plugStrength(P) > 0).reduce((a, [id]) => a + LEAKS[id].upkeep, 0));
 export const worstLeak = (plugs = {}, faacB = 10) => leakOf(plugs, faacB).parts.slice().sort((a, b) => b.b - a.b)[0];

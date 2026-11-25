@@ -1162,7 +1162,7 @@ const STATE_CRISES = [
     opts: [
       { l: "Sue the oil company and fund the clean-up", note: "Slow, expensive and right. The community sees you on their side.", fx: { app: 3, debt: 1.5, hp: .01 }, zone: 3, log: "sued the oil company and paid for the clean-up" },
       { l: "Negotiate with the youths: stipends to free the flow station", note: "Fast. It also teaches every creek that seizing a station pays.", fx: { app: 1, debt: .6, cor: .02, sec: -.02 }, zone: 1, log: "paid stipends to the youths holding the flow station", wiki: "Paid stipends to youths who seized a flow station, a deal critics said rewarded militancy." },
-      { l: "Send in the Joint Task Force", note: "The station is back in a day. So are the funerals.", fx: { app: -3, sec: .02, pStab: 2 }, zone: -5, log: "sent soldiers to retake the flow station", wiki: "Ordered a military operation in the creeks that left several youths dead." },
+      { l: "Ask the President to send in the Joint Task Force", note: "Only the Commander-in-Chief can order it. Abuja agrees: the station is back in a day. So are the funerals.", fx: { app: -3, sec: .02, pStab: 2 }, zone: -5, log: "sent soldiers to retake the flow station", wiki: "Ordered a military operation in the creeks that left several youths dead." },
     ] },
   { id: "illegal_refinery", keys: /oil theft|youth restiveness|pipeline|militancy|youth unemployment/i, icon: "🔥", bg: "illegal-refinery-night", who: "police-commissioner",
     title: (l) => "Illegal refinery explodes near " + l,
@@ -1185,7 +1185,7 @@ const STATE_CRISES = [
     d: (l) => "Gunmen stormed a boarding school in " + l + " before dawn and took 80 pupils. The parents are at Government House. CNN is calling. Ransom middlemen are already phoning your chief of staff.",
     opts: [
       { l: "Quietly pay the ransom through middlemen", note: "The children come home. The next school is already being scouted.", fx: { app: 4, debt: 1, sec: -.03, cor: .02 }, zone: 3, log: "secured the pupils' release through a quiet ransom", wiki: "Secured the release of abducted pupils; reports later said a ransom was paid." },
-      { l: "Back a rescue operation with the army", note: "If it works you are a hero. If it fails, children die on camera.", fx: { app: 0, sec: .02 }, zone: 0, log: "backed a military rescue for the abducted pupils", gamble: { p: .55, win: { app: 7, zone: 6, log: "The rescue worked. Every pupil is home." }, lose: { app: -9, zone: -8, log: "The rescue went wrong. Three pupils died.", wiki: "A rescue operation for abducted pupils ended with three children dead." } } },
+      { l: "Ask the President for a military rescue", note: "Only the Commander-in-Chief can order it (Section 218). If it works you are a hero. If it fails, children die on camera.", fx: { app: 0, sec: .02 }, zone: 0, log: "backed a military rescue for the abducted pupils", gamble: { p: .55, win: { app: 7, zone: 6, log: "The rescue worked. Every pupil is home." }, lose: { app: -9, zone: -8, log: "The rescue went wrong. Three pupils died.", wiki: "A rescue operation for abducted pupils ended with three children dead." } } },
       { l: "Close all boarding schools in the area", note: "Safe today. A generation out of school tomorrow.", fx: { app: -2, lit: -.03, sec: .01 }, zone: -4, log: "closed boarding schools in the danger zone", wiki: "Closed rural boarding schools after a mass abduction, keeping thousands of children out of school." },
     ] },
   { id: "insurgent_attack", keys: /Boko Haram|insurgency|IDPs/i, icon: "💥", bg: "idp-camp", who: "soldier",
@@ -1827,7 +1827,7 @@ const GODFATHER_DEMANDS = [
 // 6 new dilemmas (adding to existing 6)
 const DILEMMAS_EXTRA = [
   { id: "religious2", nm: "Religious Crisis", d: "A blasphemy accusation sparks riots. 3 churches and 2 mosques burned. 8 dead.", ch: [{ l: "Impose curfew + deploy Amotekun/VGN", fx: { sec: .03, app: 3 }, sk: { religious: -5, youth: -6 }, rk: "Civil liberties concerns" }, { l: "Emergency interfaith dialogue", fx: { sec: .01, app: 4 }, sk: { religious: 10, traditional: 8 }, rk: "Slow while people die" }, { l: "Arrest ringleaders on both sides", fx: { sec: .04, app: 2 }, sk: { religious: -8, media: 5 }, rk: "Both sides hate you" }] },
-  { id: "kidnap", nm: "Schoolchildren Kidnapped", d: "Armed men abduct 87 students from a secondary school. Parents are at Government House.", ch: [{ l: "Pay ransom secretly", fx: { app: 5, sec: -.03 }, sk: { media: -10, youth: 8 }, rk: "Encourages more kidnapping", dc: 2 }, { l: "Military rescue operation", fx: { sec: .04, app: 3 }, sk: { media: 8, youth: 5 }, rk: "Children could die" }, { l: "Negotiate without paying", fx: { app: -2, sec: .01 }, sk: { media: 3 }, rk: "Takes weeks. Parents suffer." }] },
+  { id: "kidnap", nm: "Schoolchildren Kidnapped", d: "Armed men abduct 87 students from a secondary school. Parents are at Government House.", ch: [{ l: "Pay ransom secretly", fx: { app: 5, sec: -.03 }, sk: { media: -10, youth: 8 }, rk: "Encourages more kidnapping", dc: 2 }, { l: "Ask the President for a military rescue", fx: { sec: .04, app: 3 }, sk: { media: 8, youth: 5 }, rk: "Children could die" }, { l: "Negotiate without paying", fx: { app: -2, sec: .01 }, sk: { media: 3 }, rk: "Takes weeks. Parents suffer." }] },
   { id: "asuu", nm: "ASUU Strike", d: "State university lecturers join nationwide ASUU strike. 45,000 students stuck at home. Parents furious. Young people turn on you.", ch: [{ l: "Pay state university lecturers separately", fx: { app: 6, lit: .02 }, sk: { youth: 12, unions: 8 }, rk: "₦1.5B cost. Other states may resent you.", dc: 1.5 }, { l: "Wait for federal resolution", fx: { app: -4 }, sk: { youth: -12, unions: -5 }, rk: "Students lose a year. You look helpless." }, { l: "Sack striking lecturers — hire replacements", fx: { app: -8, lit: -.03 }, sk: { youth: -15, unions: -25, media: -12, religious: -5 }, rk: "NIC WILL order reinstatement. Education quality collapses. National outrage.", nicTrigger: true }, { l: "Convert to state university system", fx: { lit: .03, app: 2 }, sk: { youth: 5, unions: -8 }, rk: "Constitutional grey area. ₦3B cost.", dc: 3 }] },
   { id: "oil_spill", nm: "Oil Spill Disaster", d: "Pipeline explosion contaminates 30km of farmland and water sources. Fishing communities devastated.", ch: [{ l: "Demand federal compensation + clean up", fx: { app: 5, agr: -.02 }, sk: { media: 6, traditional: 5 }, rk: "FG drags feet" }, { l: "State funds emergency cleanup", fx: { app: 8, agr: .01, hp: .01 }, sk: { media: 10, business: 5 }, rk: "₦3B cost", dc: 3 }, { l: "Sue the oil company", fx: { app: 3 }, sk: { media: 8, business: -5 }, rk: "Case takes years" }] },
   { id: "market_fire", nm: "Central Market Fire", d: "The state's largest market burns. 2,000 traders lose everything. ₦15B in goods destroyed.", ch: [{ l: "Emergency relief fund", fx: { app: 10 }, sk: { business: 12, unions: 8, media: 5 }, rk: "₦2B cost", dc: 2 }, { l: "Promise to rebuild (later)", fx: { app: -3 }, sk: { business: -10, media: -8 }, rk: "Traders feel abandoned" }, { l: "Rebuild immediately with modern design", fx: { app: 8, infra: .03 }, sk: { business: 15, youth: 5 }, rk: "₦5B heavy cost", dc: 5 }] },
@@ -9703,20 +9703,25 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       }
       // 3. Money as an enemy: part of every FAAC leaks before it reaches anyone. Reforms plug it; without upkeep they wear out.
       if (pillarOn("money") && turn >= 2) {
-        const old = next.plugs || {}, kept = next.keptTurn === turn - 1 ? Object.keys(old) : Object.keys(old).filter(id => old[id].since === turn - 1);
-        next.plugs = SYS.plugsAge(old, kept);
+        /* No more doing the same reform every year (owner, 25 Nov 2026: "so many repetitive tasks… Treasury Single Account,
+           e-contract, etc."): a fix once installed stays, its running cost is taken on FAAC day, and the same reform done
+           anywhere else counts here (the TSA or payroll audit as a revenue reform, Digitize Civil Service, IPPIS). */
+        const rev0 = next.rev || {}, polIds = (pol || []).map(x => x.id), linked = { accounts: rev0.tsa != null, payroll: rev0.payroll != null || (csReformsDone || []).includes("cs_digital") || polIds.includes("f_ippis"), levies: rev0.irs != null || polIds.includes("digi_gov") };
+        const old = { ...(next.plugs || {}) }; Object.entries(linked).forEach(([id, on]) => { if (on && !old[id]) old[id] = { str: 1, since: turn, via: "reform" }; });
+        next.plugs = SYS.plugsAge(old, Object.keys(old));
         const L = SYS.leakOf(next.plugs, s.faac || 10), W = L.parts.filter(x => SYS.plugStrength(next.plugs[x.id]) < .5).sort((a, b) => b.b - a.b)[0], up = SYS.upkeepOf(next.plugs);
         const worn = Object.keys(old).filter(id => SYS.plugStrength(next.plugs[id]) < SYS.plugStrength(old[id]));
-        if (L.total > 0) setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) - L.total) * 100) / 100) }));
+        if (L.total + up > 0) setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) - L.total - up) * 100) / 100) }));
         next.leakHist = [...(next.leakHist || []), { turn, total: L.total, pct: L.pct }];
         track("pil_leak", L.pct + "%");
         const opts = [];
-        if (W) { const F = SYS.leakNames(W.id, NAT); opts.push({ label: F.fix + " (" + naira(F.cost) + ")", note: "Stops most of the " + F.nm.toLowerCase() + " (" + naira(W.b) + " a year). Needs " + naira(F.upkeep) + " a year to stay strong.", chips: fxChips({ debt: F.cost }), run: () => { scFx({ debt: F.cost }); setStc(p => ({ ...p, plugs: { ...(p.plugs || {}), [W.id]: { str: 1, since: turn } } })); track("pil_plug", W.id); addL("🔧 " + F.fix + " started: it plugs " + F.nm.toLowerCase() + ".", "policy");
-          return res("🔧", F.fix, "Next FAAC day, about " + naira(W.b) + " less leaks away. Keep paying the upkeep or it wears out.", [{ l: "Treasury", v: "−" + naira(F.cost), good: false }, { l: "Leak plugged next year", v: naira(W.b), good: true }]); } }); }
-        if (up > 0) opts.push({ label: "Pay the upkeep on your reforms (" + naira(up) + ")", note: "Audits, software and staff. Without them the leaks come back a third at a time.", chips: fxChips({ debt: up }), run: () => { scFx({ debt: up }); setStc(p => ({ ...p, keptTurn: turn })); track("pil_upkeep", "paid"); return res("🛠️", "Your reforms are kept up", "They stay at full strength for another year.", [{ l: "Treasury", v: "−" + naira(up), good: false }]); } });
-        opts.push({ label: "Leave it", note: "No cost now. " + (up > 0 ? "Your reforms wear out by a third." : "The money keeps leaking."), chips: [], run: () => { track("pil_upkeep", "none"); } });
-        cards.push({ key: "pil_leak_" + turn, kicker: "FAAC day · where the money went", color: CL.red, art: ["state-secretariat", null, "salary-slip"], title: naira(L.total) + " of " + naira(s.faac || 10) + " leaked before it reached anyone",
-          brief: L.parts.filter(x => x.b > 0).map(x => SYS.leakNames(x.id, NAT).nm + ": " + naira(x.b)).join(". ") + "." + (worn.length ? " Your " + worn.map(id => SYS.leakNames(id, NAT).fix.toLowerCase()).join(" and ") + " wore down for lack of upkeep." : ""),
+        if (W) { const F = SYS.leakNames(W.id, NAT); opts.push({ label: F.fix + " (" + naira(F.cost) + ")", note: "Stops most of the " + F.nm.toLowerCase() + " (" + naira(W.b) + " a year), for good. Its running cost (" + naira(F.upkeep) + " a year) is taken on FAAC day.", chips: fxChips({ debt: F.cost }), run: () => { scFx({ debt: F.cost }); setStc(p => ({ ...p, plugs: { ...(p.plugs || {}), [W.id]: { str: 1, since: turn } }, ...(!NAT && ({ accounts: "tsa", payroll: "payroll", levies: "irs" })[W.id] && !(p.rev || {})[({ accounts: "tsa", payroll: "payroll", levies: "irs" })[W.id]] ? { rev: { ...(p.rev || {}), [({ accounts: "tsa", payroll: "payroll", levies: "irs" })[W.id]]: turn } } : {}) })); track("pil_plug", W.id); addL("🔧 " + F.fix + " started: it plugs " + F.nm.toLowerCase() + ".", "policy");
+          return res("🔧", F.fix, "Next FAAC day, about " + naira(W.b) + " less leaks away, every year from now on.", [{ l: "Treasury", v: "−" + naira(F.cost), good: false }, { l: "Leak plugged next year", v: naira(W.b), good: true }]); } }); }
+        if (false) opts.push({ label: "Pay the upkeep on your reforms (" + naira(up) + ")", note: "Audits, software and staff. Without them the leaks come back a third at a time.", chips: fxChips({ debt: up }), run: () => { scFx({ debt: up }); setStc(p => ({ ...p, keptTurn: turn })); track("pil_upkeep", "paid"); return res("🛠️", "Your reforms are kept up", "They stay at full strength for another year.", [{ l: "Treasury", v: "−" + naira(up), good: false }]); } });
+        opts.push({ label: "Leave it", note: "No cost now. The money keeps leaking.", chips: [], run: () => { track("pil_upkeep", "none"); } });
+        if (!W || W.b <= 0) notes.push(["🏦 FAAC day: " + naira(L.total) + " leaked (" + L.pct + "%)" + (up > 0 ? "; your reforms' running costs came to " + naira(up) : "") + ".", "info"]);
+        else cards.push({ key: "pil_leak_" + turn, kicker: "FAAC day · where the money went", color: CL.red, art: ["state-secretariat", null, "salary-slip"], title: naira(L.total) + " of " + naira(s.faac || 10) + " leaked before it reached anyone",
+          brief: L.parts.filter(x => x.b > 0).map(x => SYS.leakNames(x.id, NAT).nm + ": " + naira(x.b)).join(". ") + "." + (up > 0 ? " Your reforms' running costs (" + naira(up) + ") were paid from the bank." : ""),
           stakes: "That is " + L.pct + "% of this year's FAAC, gone from the bank." + (next.leakHist.length > 1 ? " Last year: " + next.leakHist[next.leakHist.length - 2].pct + "%." : ""), options: opts });
       }
       // 4. Ministries with integrity: who your commissioners really are.
@@ -16770,11 +16775,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 paper(govShort + " Vetoes " + billNm + ", Exposes Hidden Clause", "Speaker furious · Approval +5 · Corruption −3%", true, "./art/characters/" + SPK + "-angry.webp");
               } else {
                 setS(p => { const n = { ...p, pStab: cl100(p.pStab - 5) }; Object.entries(B.vetoFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); }); return n; });
-                const hs = scHouse(), over = NAT && hs.seats - hs.loyal >= Math.ceil(hs.seats * 2 / 3);
+                const hs = scHouse(), over = hs.seats - hs.loyal >= Math.ceil(hs.seats * 2 / 3); // the President: S.58(5); a governor: two-thirds of the one House of Assembly, S.100(5)
                 if (over) {
                   setS(p => { const n = { ...p }; Object.entries(B.signFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); }); if (badClauses.length) n.cor = cl(n.cor + .04); return n; });
-                  addL("⛔ Vetoed the " + B.nm + ". Two-thirds of both chambers overrode you: it is law anyway (S.58(5)).", "crisis");
-                  paper("National Assembly Overrides " + govShort + "'s Veto", billNm + " becomes law without assent · Party −5", false, "./art/scenes/veto-override.webp");
+                  addL("⛔ Vetoed the " + B.nm + ". " + (NAT ? "Two-thirds of both chambers overrode you: it is law anyway (S.58(5))." : "Two-thirds of the House of Assembly overrode you: it is law anyway (S.100(5))."), "crisis");
+                  paper((NAT ? "National Assembly" : "House of Assembly") + " Overrides " + govShort + "'s Veto", billNm + " becomes law without assent · Party −5", false, "./art/scenes/veto-override.webp");
                 } else {
                 addL("⛔ Vetoed the " + B.nm + ". The House is unhappy.", "political");
                 paper(govShort + " Vetoes " + billNm, (badClauses.length ? "No reason given; members cry spite" : "Members wanted it") + " · Party −5", false, "./art/characters/" + SPK + "-angry.webp");
@@ -17155,7 +17160,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                   </div>)}
                   </div>}
                 <button onClick={() => { if (bs !== 100) return; setPhase("house_vote"); }} disabled={bs !== 100} style={{ width: "100%", marginTop: 16, border: 0, borderRadius: 14, padding: tall ? "14px" : "18px", fontWeight: 800, fontSize: fz.m, fontFamily: F.b, background: "#e9c46a", color: "#1b1404", opacity: bs === 100 ? 1 : .55, cursor: bs === 100 ? "pointer" : "not-allowed" }}>
-                  {bs === 100 ? "Send to the House of Assembly →" : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
+                  {bs === 100 ? (NAT ? "Send to the National Assembly →" : "Send to the House of Assembly →") : bs > 100 ? "Over by " + (bs - 100) + "%: take some out" : remaining + "% still to give out"}
                 </button>
               </div>;
             })()}
