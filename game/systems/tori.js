@@ -226,6 +226,16 @@ export function toriOpposition(c) {
   const me = toriHandle(c.st), boss = c.nat ? "the President" : "the Governor", house = c.nat ? "Aso Rock" : "Government House";
   const post = (text, w, topic) => out.push({ id: "o" + hash(text), kind: "opposition", name: nm, sub: (c.oppDeputy ? (c.nat ? "Vice-President" : "Deputy Governor") + " · " : "") + party + " candidate", handle: "@" + String(nm).replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "").split(" ")[0].toLowerCase() + "4" + S.toLowerCase(), art: "opposition-candidate-alt", text, topic: topic || "approval", w, ago: "", ...counts(r, Math.min(6, 1 + w / 2)), verified: true, fair: w >= 1 });
   const app = Math.round(c.app), prev = c.appPrev == null ? null : Math.round(c.appPrev), T = c.tools || {};
+  // The election petition (owner, 25 Nov 2026: "The Supreme Court dismissed his petition but… I didn't see him tweet
+  // about it saying he won't give up on fighting for the people and will be back"). c.court: this year's ruling.
+  const K = c.court; if (K) {
+    const who = K.opp || nm, sayer = (text, w) => out.push({ id: "oc" + hash(text), kind: "opposition", name: who, sub: party + " candidate · the petitioner", handle: "@" + String(who).replace(/^(Hon\.|Chief|Dr\.|Alhaji|Senator)\s*/, "").split(" ")[0].toLowerCase() + "_" + S.toLowerCase().slice(0, 6), art: "opposition-candidate-alt", text, w, topic: "general", verified: true });
+    if (K.won && K.quit) sayer("I have withdrawn my petition. Not because we were wrong, but because " + N + " cannot wait for the courts. From today, we hold " + me + " to account in the open. We will be back.", 8);
+    else if (K.won && K.final) sayer("The Supreme Court has spoken, and I accept its judgment for the sake of peace in " + N + ". But this fight was never about me. It was about the salaries, the roads and the schools. I will be watching every naira, every day, and in four years we will be back. #" + S + "Decides", 9);
+    else if (K.won) sayer("The " + K.court + " ruled against us today. We respect the court, but we do not agree. We are going to the next court. The mandate of " + N + " will be recovered. #" + S + "Decides", 8);
+    else if (!K.won && K.final) sayer("The Supreme Court has restored the mandate of " + N + ". Justice delayed is not justice denied. Thank you to every polling agent who kept the result sheets. #" + S + "Decides", 9);
+    else sayer("The " + K.court + " has nullified " + me + "'s election. Truth always wins. We will defend this victory all the way. #" + S + "Decides", 9);
+  }
   // Approval: every dip is news.
   if (prev != null && app <= prev - 2) post("Approval down from " + prev + "% to " + app + "% in one year. " + me + ", that is not a dip. That is " + N + " walking away from you. #" + S + "DeservesBetter", 6 + (prev - app) / 2);
   if (app < 40) post(app + "%. Even " + boss + "'s own party is not picking his calls. Fix it or step aside, " + me + ".", 6, "approval");
@@ -271,7 +281,8 @@ export function toriOptions(c) {
   const ev = (c.events || []).filter(e => e && e.text && !/\bon Tori\b|\bTori:/.test(e.text));
   // This year's real events come first: the best one to celebrate, the worst one to own (or spin).
   const good = ev.find(e => e.good), bad = ev.find(e => !e.good && /crisis|scandal/.test(e.tp || ""));
-  if (good) out.push({ id: "ev_" + hash(good.text), text: briefT(good.text, 150) + " That is what we promised " + N + ", and we are not done.", truth: true, about: "praise", fresh: true });
+  if (good && /petition/i.test(good.text)) out.push({ id: "ev_" + hash(good.text), text: (/Supreme Court|for good/.test(good.text) ? "The Supreme Court has upheld the mandate you gave us. I thank the people of " + N + " for their patience, and I extend a hand to my opponent: there is work enough for all of us." : "The court has upheld your mandate again. We respect the process and we keep working.") + " Now, back to the work of " + N + ".", truth: true, about: "praise", fresh: true });
+  else if (good) out.push({ id: "ev_" + hash(good.text), text: briefT(good.text, 150) + " That is what we promised " + N + ", and we are not done.", truth: true, about: "praise", fresh: true });
   if (bad) {
     out.push({ id: "own_" + hash(bad.text), text: "I have seen the reports: “" + briefT(bad.text, 110) + "” It happened on my watch. I am on it, and I will give an update by Friday.", truth: true, about: "general", soft: true, fresh: true });
     out.push({ id: "spin_" + hash(bad.text), text: "What you are reading about “" + briefT(bad.text, 70) + "” is the opposition's exaggeration. Everything is under control. #" + S + "Rising", truth: false, about: "general", fresh: true });

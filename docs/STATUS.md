@@ -2318,3 +2318,14 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - It said: "Padded contracts: ₦0.3B. Money parked in private bank accounts: ₦0.2B. Levies collected in cash, never banked: ₦0.2B."
 - It now says how much came from Abuja this year, and how much was lost before it reached the ministries and the workers (amount and %) and to what, in one sentence. It gives last year's figure, names the biggest hole and the reform that stops it (its cost now and its running cost a year), then asks "Do we fix it?". The President's version names the Federation Account and the federal leaks.
 - tests/e2e/letters-audit.mjs plays long games, as a governor and as a President, and writes every letter that arrives to a file, flagging short, list-like or cut-off letters. It is used to sweep every kind of letter.
+
+## The petitioner answers the court on Tori (25 Nov 2026)
+- Owner: "The Supreme Court dismissed his petition but I checked the opposition and I didn't see him tweet about it saying he won't give up fighting for the people and will be back."
+- The petition now remembers when and where it was last decided (at, court, won, final, quit), and Tori's context carries this year's ruling (c.court).
+- The petitioner posts, at the top of the Opposition tab:
+  - after losing at the Supreme Court: he accepts the judgment for the sake of peace, says the fight was about the salaries, roads and schools, says he will watch every naira, and promises "in four years we will be back";
+  - after losing at a lower court: "We are going to the next court";
+  - after withdrawing: why, and "We will be back";
+  - when the governor loses: he celebrates.
+- The governor's own draft after a court win no longer says "That is what we promised Borno". It thanks the people, extends a hand to the opponent, and turns back to the work.
+- Test: tests/tori-court.test.mjs.

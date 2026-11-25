@@ -7967,7 +7967,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const ratios = ((stc.tori || {}).posts || []).filter(p => p.turn === turn && p.ratio).length;
     const delivered = (projects || []).filter(p => p.status === "delivered" && (p.decisions || []).some(d => d.year === turn)).length;
     const weak = (ministries || []).filter(m => m.minister).sort((a, b) => (a.perf || 50) - (b.perf || 50))[0];
-    return { nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
+    const PT = stc.petition, court = PT && PT.at != null && PT.at >= turn - 1 && PT.court ? { court: PT.court, won: !!PT.won, final: PT.stage >= 3, quit: !!PT.quit, opp: PT.opp } : null;
+    return { court, nat: NAT, debtB: Math.round((s.debt || 0) * 10) / 10, st: state, turn, year: absYear, app: s.app, cor: s.cor, arrears: stc.arrears || 0, house: stc.house || null, strikes, done, fled, needs: needs.map((n, i) => ({ ...n, late: i < late })), events, govName: pName,
       stalled, broken, ratios, delivered, party: typeof party === "string" ? party : (party && party.id) || "", weakest: weak ? "Hon. " + weak.minister + " (" + weak.name + ")" : null, weakId: weak ? weak.id : null, ...(() => { const T = SYS.toriOpponent({ turn, R: stc.rival, dep: depGov && depGov.nm, rival: cast.rival && cast.rival.name, rivalParty: setup?.election?.oppParty, reOpp: stc.reOpp, reOppParty: stc.reOppParty }); return { oppName: T.name, oppParty: T.party, oppDeputy: !!T.deputy }; })(), reporter: cast.reporter && cast.reporter.name, speaker: cast.speaker && cast.speaker.name, tag, complaints,
       // The President's world: the war (once the storyline starts) and this year's crackdown, for foreign accounts.
       war: NAT && stc.bakunda && (stc.bakunda.stage || 0) >= 2 ? (() => { const B = stc.bakunda, K = SYS.bkCountry(B); return { nm: K.nm, adj: K.adj, cap: K.cap, gen: K.gen, art: K.art, stage: B.stage, atWar: !!B.atWar, progress: B.progress || 0, done: !!B.done, treaty: B.treaty }; })() : null,
@@ -9084,7 +9085,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (lost && final) {
           addL("⚖️ The Supreme Court has nullified your election. " + P0.opp + " is to be sworn in as governor.", "crisis");
           scWiki("Controversies", "The Supreme Court nullified the election on a petition by " + P0.opp + ".");
-          setStc(p => ({ ...p, petition: { ...p.petition, stage: 3, result: "lost" } }));
+          setStc(p => ({ ...p, petition: { ...p.petition, stage: 3, result: "lost", at: turn, court: COURTS[st0], won: false } }));
           setGEnd("nullified");
           gavel();
           return { icon: "⚖️", img: "./art/backgrounds/supreme-court-abuja.webp", title: "Supreme Court: election nullified", text: "Final. " + P0.opp + " will be sworn in.", tone: "bad" };
@@ -9093,14 +9094,14 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           scFx({ app: -3 });
           addL("⚖️ The " + COURTS[st0] + " ruled for " + P0.opp + ". You stay in office pending your appeal to the " + COURTS[st0 + 1] + ".", "crisis");
           scWiki("Controversies", "The " + COURTS[st0] + " nullified the " + (P0.term === 1 ? "election" : "re-election") + "; the governor appealed.");
-          setStc(p => ({ ...p, petition: { ...p.petition, stage: st0 + 1, lostBelow: true } }));
+          setStc(p => ({ ...p, petition: { ...p.petition, stage: st0 + 1, lostBelow: true, at: turn, court: COURTS[st0], won: false } }));
           gavel();
           return { icon: "⚖️", img: "./art/scenes/news-court-steps.webp", title: "You lost at the " + SHORT[st0], text: "You stay in office and appeal to the " + COURTS[st0 + 1] + ".", rows: [{ l: "Approval", v: "−3", good: false }], tone: "bad", learn: st0 === (NAT ? 1 : 0) ? LEARN : undefined };
         }
         const quits = !final && st0 === (NAT ? 1 : 0) && P0.margin >= 4 && Math.random() < .5;
         scFx({ app: final ? 3 : 1, pStab: final ? 3 : 0 });
         addL("⚖️ The " + COURTS[st0] + " dismissed " + P0.opp + "'s petition." + (final ? " The matter is closed for good." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), "success");
-        setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined } }));
+        setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined, at: turn, court: COURTS[st0], won: true, quit: !!quits, final } }));
         gavel(); if (final || quits) setTimeout(() => { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} }, 900);
         return { icon: "⚖️", img: final || quits ? "./art/scenes/news-victory-rally.webp" : "./art/scenes/news-court-steps.webp", title: "You won at the " + SHORT[st0], text: final ? "Final. You keep your seat." : quits ? P0.opp + " has given up. You keep your seat." : P0.opp + " appeals to the " + COURTS[st0 + 1] + ".", tone: "good", learn: st0 === (NAT ? 1 : 0) ? LEARN : undefined };
       };
