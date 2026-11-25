@@ -2291,3 +2291,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - **The President**: places/states.js gives each of the 37 states its own issue for a town hall (the people), the royal fathers, and the troops and the displaced.
 - Tests: tests/place-issues.test.mjs (all 774 councils covered, no repeated words, Chibok is not Aba, audiences differ, all 37 states); tests/e2e/tours.mjs checks that the chairman raises his council's own issue and that Ebonyi's town hall raises Ebonyi's.
 - Note: written from what is known and reported about each place, not from fieldwork. The best-known councils have the most detail; any state can be deepened with more research.
+
+## The budget letter reads as a whole letter (25 Nov 2026)
+- It said only "Every ministry's share, for you to set and send to the House."
+- It now says the budget is drafted, or that Finance drafted it alone and some bids are padded. It gives what money is expected this year (Abuja's allocation plus the state's own taxes and fees, or the Federation Account and taxes for a President), says all the ministries have sent their bids, says you decide the shares and send the bill to the House of Assembly (or the National Assembly), and that nothing new can be paid for until it passes. It asks whether you will set it yourself or leave it to the Chief of Staff.
+- tests/e2e/letters-read.mjs checks it whenever it arrives.

@@ -13220,6 +13220,13 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       return { from: Lt.signed || Lt.who, img: sc.img || "./art/characters/permanent-secretary.webp", office: Lt.who + " · " + Lt.where,
         title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + (sc.title || "A letter"), line: String(Lt.body[0] || "").slice(0, 120), body: Lt.body.join(" ").replace(/^Your Excellency,\s*/, "").replace(/^(\w)/, c => c.toUpperCase()) }; }
     // The agenda letter says what this year's share is, what it costs and what is asked (owner, 25 Nov 2026: "Look at this cut and join too").
+    // The budget letter says what money there is, who asked for it, what you decide and what the House does with it
+    // (owner, 25 Nov 2026: "This letter makes no sense").
+    if (k === "budget") { const inc = (s.faac || 0) + (s.igr || 0), nMin = (ministries || []).length, H = NAT ? "the National Assembly" : "the House of Assembly";
+      const txt = (bm ? "The " + absYear + " budget is drafted." : "Finance has drafted the " + absYear + " budget alone: there is no Commissioner for Budget & Planning, so nobody checked the ministries' bids, and some are padded.")
+        + " We expect about " + naira(inc) + " this year: " + naira(s.faac || 0) + " from " + (NAT ? "the Federation Account" : "Abuja's monthly allocation") + " and " + naira(s.igr || 0) + " from " + (NAT ? "taxes and customs" : "the state's own taxes and fees") + "."
+        + (nMin ? " All " + nMin + " ministries have sent in what they want." : "") + " You decide how much each one gets, then send the bill to " + H + ". Nothing new can be paid for until it passes. Will you set it yourself, or leave it to your Chief of Staff?";
+      return { from, img, title, line: "The " + absYear + " budget is ready for you to set.", body: txt }; }
     if (k === "flagship" && FGl) { let deliv = ""; try { deliv = SYS.flagshipDeliverable(setup.agenda, ((turn - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(turn * 131 + state.length * 7), NAT ? ZN : ZIX.map(zoneName)); } catch (e) {}
       const costB = Math.round((1.4 + turn * 0.15) * 10) / 10, txt = "When you took office, you promised to " + FGl.goal + ", a part of it every year." + (deliv ? " This year's part is " + deliv.replace(/^(\w)/, c => c.toLowerCase()) + "." : "") + " It will cost about ₦" + costB + "B. Will you see to it yourself, or leave it to your Chief of Staff?";
       return { from, img, title, line: "This year's part of your promise is due.", body: txt }; }
