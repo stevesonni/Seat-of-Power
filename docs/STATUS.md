@@ -2394,3 +2394,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - the feud letters about the deputy were signed by the deputy. They are now from the Special Adviser;
   - invitations said "The President of the Pan-African Development Fund of Pan-African Development Fund… has invited you". They now speak as the sender: "I write to invite you to Abidjan… I would be honoured to receive you yourself, though a delegation of your officials is welcome."
 - tests/e2e/letters-read.mjs now flags any letter whose body names its own sender.
+
+## The President's bus terminal film; pictures asked of Lovable (25 Nov 2026)
+- interstatebus.mp4 (Gemini) is installed: the President's interstate terminals now play their own film; a state's town terminals keep busterminal.mp4. Every film asked for is now in.
+- docs/LOVABLE-BUSES-BUYS.md asks Lovable for four pictures: the two bus terminal programmes (the only programmes without a picture), the patrol fleet, and cameras going up.
+- The game checks for each file (SEAT.got) and uses it as soon as it is there.

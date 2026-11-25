@@ -2145,6 +2145,9 @@ const DEC_ALIAS = { f_trunk_roads: "fg_road", f_sez: "ind_park", f_fed_colleges:
 const VARIANT_ART = new Set(SYS.VARIANT_ART_ALL);
 const FAAC_ = "FA\u2060AC"; // the word FAAC on a President's screen (the word swapper would make it "the Federation Account")
 const artOf = (id, art) => art && VARIANT_ART.has(art) ? "./art/variants/" + art + ".webp" : decArt(id);
+// Pictures still being drawn (docs/LOVABLE-BUSES-BUYS.md): the game checks for each file and uses it once it is there.
+SEAT.got = SEAT.got || {};
+try { if (typeof fetch === "function") ["decisions/bus_terminals", "decisions/f_bus_terminals", "scenes/patrol-fleet", "scenes/cctv-install"].forEach(p => fetch("./art/" + p + ".webp", { method: "HEAD" }).then(r => { if (r.ok) { SEAT.got[p] = true; if (p.startsWith("decisions/")) DEC_ART.add(p.slice(10)); } }).catch(() => {})); } catch (e) {}
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
 const DecPic = ({ id, h, art }) => { const src = artOf(id, art); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
 const DILEMMA_ART = {
@@ -5359,7 +5362,7 @@ const MilestoneStrip = ({ at, p }) => <div className="sp-ms" role="list" aria-la
 </div>;
 const Tiles = ({ items }) => <div className="sp-tiles">{items.filter(Boolean).map(([l, v, tone]) => <div key={l} className={"sp-tile" + (tone ? " " + tone : "")}><div className="l">{l}</div><div className="v">{v}</div></div>)}</div>;
 // What a project's site looks like at each stage, and its stage pin (art pack 2).
-const siteArt = (p) => SYS.isBuy(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? SYS.BUY[p.type].art : SYS.isWorks(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? "../" + SYS.WORKS[p.type].art : p.status === "delivered" ? "project-ribbon-cutting" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "project-site-stalled" : (p.status === "in_progress" && (p.progress || 0) >= 35) || p.status === "built" ? "project-site-halfway" : "project-site-cleared";
+const siteArt = (p) => SYS.isBuy(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? (SEAT.got["scenes/" + (p.type === "vehicles" ? "patrol-fleet" : "cctv-install")] ? "../scenes/" + (p.type === "vehicles" ? "patrol-fleet" : "cctv-install") : SYS.BUY[p.type].art) : SYS.isWorks(p.type) && !["stalled", "suspended", "abandoned"].includes(p.status) ? "../" + SYS.WORKS[p.type].art : p.status === "delivered" ? "project-ribbon-cutting" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "project-site-stalled" : (p.status === "in_progress" && (p.progress || 0) >= 35) || p.status === "built" ? "project-site-halfway" : "project-site-cleared";
 const pinOf = (p) => p.status === "delivered" ? "green" : ["stalled", "suspended", "abandoned"].includes(p.status) ? "red" : p.status === "in_progress" || p.status === "built" ? "gold" : "grey";
 const Dossier = ({ icon, kicker, title, place, at, children, wide, pic, thumb, pin, proj }) => <div className="sp-card sp-step" style={{ maxWidth: wide ? 980 : 900, margin: "0 auto", padding: TALL() ? "16px 16px 18px" : "22px 26px 24px" }}>
   {pic && <img src={"./art/backgrounds/" + pic + ".webp"} onError={(e) => { const t = e.currentTarget; if (!t.dataset.f) { t.dataset.f = "1"; t.src = "./art/backgrounds/project-site-cleared.webp"; } }} alt="" style={{ display: "block", width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 16, marginBottom: 14 }} />}
