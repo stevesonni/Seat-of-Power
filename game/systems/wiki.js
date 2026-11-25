@@ -9,6 +9,7 @@
    Output: { lead, sections, refs } where a paragraph is an array of strings
    and { ref: n } markers, sections are { h, paras } or { h, subs }. */
 
+import { proseOf, toPast } from "./prose.js";
 const NUM = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 export const num = (n) => (n >= 0 && n <= 10 ? NUM[n] : String(n));
 const cap = (t) => String(t || "").charAt(0).toUpperCase() + String(t || "").slice(1);
@@ -61,6 +62,7 @@ export const birthOf = (name, startYear) => { const h = hash(name); return (1 + 
 // The subjects a governorship is told by, in this order. The first that matches an entry takes it.
 const THEMES = [
   ["Fiscal policy and the budget", /budget|appropriation|debt|loan|bond|revenue|tax|levy|FAAC|IGR|treasury|salar|arrears|ghost worker|payroll|borrow|bank/i],
+  ["Accountability and corruption", /ICPC|EFCC|investigat|probe|audit|corrupt|bribe|fraud|kickback|anti-graft|whistleblow/i],
   ["Labour relations", /strike|NLC|ASUU|union|ultimatum|roundtable|MoU|NUT|JOHESU|workers/i],
   ["Security", /secur|bandit|kidnap|police|army|troops|insurgen|militan|vigilante|gunmen|herder|curfew|sit-at-home/i],
   ["Infrastructure and public works", /road|bridge|rail|project|contract|contractor|construction|commission|ribbon|power|electric|water|housing|dam|airport|seaport|highway/i],
@@ -73,17 +75,30 @@ const THEMES = [
 ];
 const themeOf = (t) => (THEMES.find(([, rx]) => rx.test(t)) || ["Other matters"])[0];
 
+// Where a governor takes the oath: the state capital.
+export const STATE_CAPITALS = { Abia: "Umuahia", Adamawa: "Yola", "Akwa Ibom": "Uyo", Anambra: "Awka", Bauchi: "Bauchi", Bayelsa: "Yenagoa", Benue: "Makurdi", Borno: "Maiduguri",
+  "Cross River": "Calabar", Delta: "Asaba", Ebonyi: "Abakaliki", Edo: "Benin City", Ekiti: "Ado-Ekiti", Enugu: "Enugu", Gombe: "Gombe", Imo: "Owerri", Jigawa: "Dutse", Kaduna: "Kaduna",
+  Kano: "Kano", Katsina: "Katsina", Kebbi: "Birnin Kebbi", Kogi: "Lokoja", Kwara: "Ilorin", Lagos: "Ikeja", Nasarawa: "Lafia", Niger: "Minna", Ogun: "Abeokuta", Ondo: "Akure",
+  Osun: "Osogbo", Oyo: "Ibadan", Plateau: "Jos", Rivers: "Port Harcourt", Sokoto: "Sokoto", Taraba: "Jalingo", Yobe: "Damaturu", Zamfara: "Gusau", FCT: "Abuja" };
 /* f: the facts (see buildWiki). Returns { lead, sections, refs }. */
 export const writeBio = (f) => {
   const fem = !!f.female;
   const He = fem ? "She" : "He", he = fem ? "she" : "he", His = fem ? "Her" : "His", his = fem ? "her" : "his", him = fem ? "her" : "him";
   const base = f.startYear || 2027, yearOf = (t) => base - 1 + (t || 1);
   const name = f.name, st = f.stateName, party = f.partyName || f.partyId;
+  /* One set of words per office (owner, 25 Nov 2026: the President's page said "gubernatorial election", "governors
+     Nigeria has had" and showed a state slogan). */
+  const nat = !!f.nat;
+  const V = nat ? { role: "President", roleLow: "President", election: "presidential election", places: "geopolitical zones", nPlaces: 6, seat: "at Eagle Square, Abuja", council: "Federal Executive Council", member: "Minister",
+      house: "the National Assembly", revenue: "independent revenue", debtOf: "the federal debt", country: "Nigeria", pool: "Presidents Nigeria has had since the return of civilian rule in 1999", cleaner: "one of the cleaner administrations in the country's history", where: "the country" }
+    : { role: "Governor", roleLow: "governor", election: "gubernatorial election", places: "senatorial districts", nPlaces: 3, seat: "in " + (f.capital || STATE_CAPITALS[st] || "the state capital"), council: "executive council", member: "Commissioner",
+      house: "the House of Assembly", revenue: "internally generated revenue", debtOf: "the state's debt", country: st, pool: "governors " + st + " State has had since the return of civilian rule in 1999", cleaner: "one of the cleaner administrations in the region", where: "the state" };
+  const placesWon = (n) => { const k = Math.max(0, Math.min(V.nPlaces, n || 0)); return k === V.nPlaces ? "all " + num(V.nPlaces) : num(k) + " of the " + num(V.nPlaces); };
   const surname = String(name || "").trim().split(/\s+/).slice(-1)[0] || name;
-  const office = f.office || ("Governor of " + st + " State");
+  const office = f.office || (nat ? "President of the Federal Republic of Nigeria" : "Governor of " + st + " State");
   const ordinal = f.ordinal || governorOrdinal(st);
   const refs = [], refKey = {};
-  const paper = "The " + st + " Daily Tribune";
+  const paper = nat ? "The National Tribune" : "The " + st + " Daily Tribune";
   // A date inside the year an entry happened, the same every time the page is written.
   const dateOf = (t, txt) => { const m = (hash(txt) % 12), d = 1 + (hash(txt + "d") % 28); return { m, d, txt: d + " " + MONTHS[m] + " " + (m < 4 ? yearOf(t) + 1 : yearOf(t)) }; };
   const cite = (head, t, src) => {
@@ -94,7 +109,9 @@ export const writeBio = (f) => {
 
   // ── Sort the record ──
   const evs = [], seen = new Set();
-  (f.events || []).slice().reverse().forEach(e => { if (!e || !e.txt) return; const k = String(e.txt); if (seen.has(k)) return; seen.add(k); evs.push(e); });
+  // Each line of the record told as history: no choice labels, past tense, the pronoun filled in.
+  const tok = (t) => String(t).replace(/\{He\}/g, He).replace(/\{he\}/g, he).replace(/\{His\}/g, His).replace(/\{his\}/g, his);
+  (f.events || []).slice().reverse().forEach(e => { if (!e || !e.txt) return; const txt = tok(proseOf(toPast(e.txt))), k = txt.toLowerCase(); if (seen.has(k)) return; seen.add(k); evs.push({ ...e, txt }); });
   const warn = [], broken = [], kept = [], honours = [], rest = [];
   evs.forEach(e => {
     const t = String(e.txt).trim();
@@ -115,7 +132,7 @@ export const writeBio = (f) => {
   // How the record judges the administration, 0–100: approval, honesty, debt and delivery.
   const debtTrend = f.debtStart ? (f.debt <= f.debtStart * .8 ? 1 : f.debt >= f.debtStart * 1.2 ? -1 : 0) : 0;
   const score = Math.max(0, Math.min(100, Math.round(appEnd * .45 + (1 - (f.cor || 0)) * 30 + debtTrend * 8 + Math.min(10, (f.projects.delivered || 0) * 2.5) + Math.min(8, (f.needs.met || 0) * 2) - (f.needs.failed || 0) * 2)));
-  const verdict = score >= 70 ? "one of the most effective in the state's history" : score >= 55 ? "above average" : score >= 40 ? "unremarkable" : score >= 28 ? "below average" : "one of the least effective in the state's history";
+  const verdict = score >= 70 ? "one of the most effective in " + (nat ? "the country's" : "the state's") + " history" : score >= 55 ? "above average" : score >= 40 ? "unremarkable" : score >= 28 ? "below average" : "one of the least effective in " + (nat ? "the country's" : "the state's") + " history";
 
   // A sentence from the record, opened with its date.
   const dated = (e, first) => { const D = dateOf(e.t, e.txt), s = sentenceOf(e.txt, He); return (first ? "On " + D.txt + ", " : "In " + MONTHS[D.m] + " " + (D.m < 4 ? yearOf(e.t) + 1 : yearOf(e.t)) + ", ") + lowStart(s); };
@@ -124,20 +141,21 @@ export const writeBio = (f) => {
   const lead = [];
   const served = f.ended ? "served as the " + ORD[ordinal] + " " + office + " from " + base + " to " + f.endYear : "has served as the " + ORD[ordinal] + " " + office + " since " + base;
   const born = f.born ? " (born " + f.born + ")" : "";
-  const p1 = [name + born + " is a Nigerian politician who " + served + ". A member of the " + party + ", " + he + " " + (f.prior ? "previously " + f.prior + "." : "rose through the party's ranks in " + st + " before seeking the governorship.") + " "];
+  const p1 = [name + born + " is a Nigerian politician who " + served + ". A member of the " + party + ", " + he + " " + (f.prior ? "previously " + f.prior + "." : (nat ? "rose through the party's ranks before seeking the presidency." : "rose through the party's ranks in " + st + " before seeking the governorship.")) + " "];
   lead.push(p1);
+  // The lead sums up; the details (the margin, the flagship's targets) are told once, in their own sections.
   const p2 = [];
-  if (f.election) p2.push(surname + " was elected governor in " + base + ", defeating " + f.election.opp + (f.election.oppParty ? " of the " + f.election.oppParty : "") + " by " + f.election.marginPct + " percentage points" + (f.election.zonesWon === 3 ? " and carrying all three senatorial districts" : "") + ". ");
-  if (twoTerms) p2.push(He + " was re-elected in " + (base + 4) + ". ");
-  if (f.flag) p2.push(His + " administration was defined by " + f.flag.nm + ", a pledge to " + f.flag.goal + (fm.length ? "; " + (fm.length === 1 ? "its one yearly target " + (fDone ? "was met" : "was missed") : fDone === fm.length ? "all " + num(fm.length) + " of its yearly targets were met" : num(fDone) + " of its " + num(fm.length) + " yearly targets " + (fDone === 1 ? "was" : "were") + " met") + (fCut ? ", " + num(fCut) + " of them by cutting corners" : "") : "") + ". ");
+  if (f.election) p2.push(surname + " was elected " + V.roleLow + " in " + base + (twoTerms ? " and re-elected in " + (base + 4) : "") + ". ");
+  else if (twoTerms) p2.push(He + " was re-elected in " + (base + 4) + ". ");
+  if (f.flag) p2.push(His + " administration was defined by " + f.flag.nm + ". ");
   if (p2.length) lead.push(p2);
   const p3 = [];
   const did = [];
   if (laws.length) did.push("signed " + num(laws.length) + (laws.length === 1 ? " bill" : " bills") + " into law, including the " + laws[0]);
   if (progs.length) did.push("launched " + (progs.length === 1 ? "the " + progs[0] : num(progs.length) + " programmes, among them the " + progs[0]));
   if (f.projects.delivered) did.push("completed " + num(f.projects.delivered) + (f.projects.delivered === 1 ? " capital project" : " capital projects"));
-  if (did.length) p3.push("As governor, " + surname + " " + list(did) + ". ");
-  if (f.debtStart != null && f.ended) p3.push(debtTrend > 0 ? He + " reduced the state's debt from " + f.debtStartTxt + " to " + f.debtTxt + ". " : debtTrend < 0 ? "The state's debt rose from " + f.debtStartTxt + " to " + f.debtTxt + " during " + his + " tenure. " : "");
+  if (did.length) p3.push("As " + V.roleLow + ", " + surname + " " + list(did) + ". ");
+  if (f.debtStart != null && f.ended) p3.push(debtTrend > 0 ? (f.debt <= .05 ? He + " cleared " + V.debtOf + " of " + f.debtStartTxt + ". " : He + " reduced " + V.debtOf + " from " + f.debtStartTxt + " to " + f.debtTxt + ". ") : debtTrend < 0 ? cap(V.debtOf) + " rose from " + f.debtStartTxt + " to " + f.debtTxt + " during " + his + " tenure. " : "");
   const hard = [];
   if (f.strikes && f.strikes.length) hard.push(f.strikes.length === 1 ? "a strike by " + f.strikes[0] : "strikes by " + list(f.strikes));
   if (warn.length) hard.push("criticism that " + his + " government ignored warnings before preventable deaths");
@@ -152,37 +170,40 @@ export const writeBio = (f) => {
   const sections = [];
   // ── Early life and career ──
   const early = [];
-  early.push((f.born ? surname + " was born in " + f.bornPlace + ". " : "") + He + " entered politics through the " + party + " in " + st + ". ");
-  if (f.prior) early.push("Before seeking the governorship, " + he + " " + f.prior + ". ");
+  early.push((f.born ? surname + " was born in " + f.bornPlace + ". " : "") + He + " entered politics through the " + party + (nat ? "" : " in " + st) + ". ");
+  if (f.prior) early.push("Before seeking " + (nat ? "the presidency" : "the governorship") + ", " + he + " " + f.prior + ". ");
   sections.push({ h: "Early life and career", paras: [early] });
 
   // ── The election ──
   const camp = [];
-  camp.push(surname + " won the " + party + " ticket for governor in " + (base - 1) + ", choosing " + (f.deputy || "a running mate") + " as " + his + " running mate" + (f.mateAccepted === false ? ", a choice the party's leadership had opposed" : "") + ". ");
-  camp.push(He + " campaigned on the slogan “" + (f.slogan || "") + "”" + (f.flag ? ", promising to " + f.flag.goal : "") + ". ");
+  camp.push(surname + " won the " + party + " ticket for " + V.roleLow + " in " + (base - 1) + ", choosing " + (f.deputy || "a running mate") + " as " + his + " running mate" + (f.mateAccepted === false ? ", a choice the party's leadership had opposed" : "") + ". ");
+  if (f.slogan && !nat) camp.push(He + " campaigned on the slogan “" + f.slogan + "”" + (f.flag ? ", promising to " + f.flag.goal : "") + ". ");
+  else if (f.flag) camp.push(He + " campaigned on a promise to " + f.flag.goal + ". ");
   if (f.loan) { camp.push("The campaign was partly financed by a " + f.loan.amount + " loan from " + f.godfather + ", a party financier; critics argued that the debt gave him leverage over the incoming administration."); camp.push(cite(f.godfather + " bankrolls " + name + "'s campaign", 1)); camp.push(" "); }
-  if (f.election) camp.push("In the general election, " + he + " defeated " + f.election.opp + (f.election.oppParty ? " of the " + f.election.oppParty : "") + " by a margin of " + f.election.marginPct + " percentage points, carrying " + (f.election.zonesWon === 3 ? "all three" : num(f.election.zonesWon) + " of the three") + " senatorial districts.");
-  sections.push({ h: base + " gubernatorial election", paras: [camp] });
+  if (f.election) camp.push("In the general election, " + he + " defeated " + f.election.opp + (f.election.oppParty ? " of the " + f.election.oppParty : "") + " by a margin of " + f.election.marginPct + " percentage points" + (f.election.zonesWon != null ? ", carrying " + placesWon(f.election.zonesWon) + " " + V.places : "") + ".");
+  sections.push({ h: base + " " + V.election, paras: [camp] });
 
   // ── Governorship, by subject ──
   const subs = [];
-  const first = [He + " was sworn in on 29 May " + base + " in " + (f.capital || st) + ". "];
-  if (f.cabinet && f.cabinet.length) first.push("Within weeks " + he + " had named " + his + " executive council, which included " + list(f.cabinet.slice(0, 4).map(m => m.minister + " (" + m.name + ")")) + ". ");
-  const y1 = rest.filter(e => e.t === 1 && !e.bad).sort((a, b) => b.w - a.w).slice(0, 2);
+  const first = [He + " was sworn in on 29 May " + base + " " + V.seat + ". "];
+  if (f.cabinet && f.cabinet.length) first.push("Within weeks " + he + " had named " + his + " " + V.council + ", which included " + list(f.cabinet.slice(0, 4).map(m => m.minister + " (" + String(m.name).replace(/^Ministry of /, "") + ")")) + ". ");
+  // The inherited debt is told once, in the fiscal section.
+  rest.forEach(e => { if (f.debtStart != null && /^(he |she )?inherited .*debt/i.test(e.txt)) e.used = true; });
+  const y1 = rest.filter(e => e.t === 1 && !e.bad && !e.used).sort((a, b) => b.w - a.w).slice(0, 2);
   y1.forEach((e, i) => { first.push(dated(e, i === 0) + " "); e.used = true; });
   subs.push({ h: "Inauguration and first hundred days", paras: [first] });
   const groups = {};
-  rest.filter(e => !e.used && !(f.debtStart != null && /^Inherited .*debt/i.test(e.txt))).forEach(e => { const th = e.bad ? null : themeOf(e.txt); if (th) (groups[th] = groups[th] || []).push(e); });
+  rest.filter(e => !e.used).forEach(e => { const th = e.bad ? null : themeOf(e.txt); if (th) (groups[th] = groups[th] || []).push(e); });
   [...THEMES.map(x => x[0]), "Other matters"].forEach(th => {
     let es = (groups[th] || []).sort((a, b) => b.w - a.w).slice(0, 4).sort((a, b) => a.t - b.t || dateOf(a.t, a.txt).m - dateOf(b.t, b.txt).m);
     const pp = [];
-    if (th === "Legislation and executive orders" && laws.length) { pp.push("During " + his + " tenure the House of Assembly passed, and " + he + " signed into law, the " + list(laws.slice(0, 5)) + ". "); }
-    if (th === "Infrastructure and public works" && f.flag && fm.length) { pp.push("The centrepiece of " + his + " programme, " + f.flag.nm + ", met " + (fm.length === 1 ? (fDone ? "its one yearly target" : "none of its one yearly target") : fDone === fm.length ? "all " + num(fm.length) + " of its yearly targets" : num(fDone) + " of its " + num(fm.length) + " yearly targets") + (fCut ? "; auditors later found corners had been cut on " + num(fCut) : "") + ". "); pp.push(cite(f.flag.nm + ": " + num(fDone) + " of " + num(fm.length) + " targets met", lastT)); pp.push(" "); }
-    if (th === "Fiscal policy and the budget" && f.debtStart != null) pp.push(He + " inherited a debt of " + f.debtStartTxt + " from the previous administration" + (f.ended || lastT > 1 ? "; by " + yearOf(lastT) + " it stood at " + f.debtTxt + ", and the state collected " + f.igrTxt + " a year in internally generated revenue" : "") + ". ");
+    if (th === "Legislation and executive orders" && laws.length) { pp.push("During " + his + " tenure " + V.house + " passed, and " + he + " signed into law, the " + list(laws.slice(0, 5)) + ". "); }
+    if (th === "Infrastructure and public works" && f.flag && fm.length) { pp.push("The centrepiece of " + his + " programme, " + f.flag.nm + ", " + (fm.length === 1 ? (fDone ? "met its yearly target" : "missed its yearly target") : fDone === fm.length ? "met all " + num(fm.length) + " of its yearly targets" : fDone === 0 ? "missed all " + num(fm.length) + " of its yearly targets" : "met " + num(fDone) + " of its " + num(fm.length) + " yearly targets") + (fCut ? "; auditors later found corners had been cut on " + (fCut === 1 ? "one" : num(fCut)) : "") + (fDone && !f.projects.delivered ? ", although no capital project was finished in that time" : "") + ". "); pp.push(cite(f.flag.nm + ": " + num(fDone) + " of " + num(fm.length) + " targets met", lastT)); pp.push(" "); }
+    if (th === "Fiscal policy and the budget" && f.debtStart != null) pp.push(He + " inherited a debt of " + f.debtStartTxt + " from the previous administration" + (f.ended || lastT > 1 ? "; by " + yearOf(lastT) + " " + (f.debt <= .05 ? "it had been paid off" : "it stood at " + f.debtTxt) + ", and " + (nat ? "the government" : "the state") + " collected " + f.igrTxt + " a year in " + V.revenue : "") + ". ");
     es.forEach((e, i) => { pp.push(dated(e, i === 0 && !pp.length) + " "); if (e.w >= 4) { pp.push(cite(clip(firstSentence(e.txt), 100), e.t)); pp.push(" "); } });
     if (pp.length) subs.push({ h: th, paras: [pp] });
   });
-  sections.push({ h: "Governorship (" + base + "–" + (f.ended ? f.endYear : "present") + ")", subs });
+  sections.push({ h: (nat ? "Presidency (" : "Governorship (") + base + "–" + (f.ended ? f.endYear : "present") + ")", subs });
 
   // ── Re-election ──
   if (twoTerms) sections.push({ h: (base + 4) + " re-election", paras: [[surname + " sought a second term in " + (base + 4) + " and was re-elected. " + His + " second term began on 29 May " + (base + 4) + "."]] });
@@ -223,11 +244,11 @@ export const writeBio = (f) => {
   const img = [];
   if (app.length > 2) {
     const peak = app.reduce((b, v, i) => (v > b.v ? { v, i } : b), { v: -1, i: 0 }), low0 = app.reduce((b, v, i) => (v < b.v ? { v, i } : b), { v: 999, i: 0 });
-    img.push("According to surveys by the " + st + " Centre for Public Opinion Research, " + surname + "'s approval rating peaked at " + Math.round(peak.v) + "%" + (peak.i ? " in " + yearOf(peak.i) : " shortly after " + his + " inauguration") + " and fell to a low of " + Math.round(low0.v) + "%" + (low0.i ? " in " + yearOf(low0.i) : " early in " + his + " term") + ". ");
+    img.push("According to surveys by the " + (nat ? "National" : st) + " Centre for Public Opinion Research, " + surname + "'s approval rating peaked at " + Math.round(peak.v) + "%" + (peak.i ? " in " + yearOf(peak.i) : " shortly after " + his + " inauguration") + " and fell to a low of " + Math.round(low0.v) + "%" + (low0.i ? " in " + yearOf(low0.i) : " early in " + his + " term") + ". ");
     img.push(cite("Polls track " + name + "'s approval", lastT, "Centre for Public Opinion Research"));
     img.push(" ");
   }
-  img.push((f.cor || 0) > .5 ? "Perceptions of corruption weighed on " + his + " standing; transparency groups rated the administration poorly. " : (f.cor || 0) < .25 ? "Anti-corruption groups credited " + him + " with running one of the cleaner administrations in the region. " : "");
+  img.push((f.cor || 0) > .5 ? "Perceptions of corruption weighed on " + his + " standing; transparency groups rated the administration poorly. " : (f.cor || 0) < .25 ? "Anti-corruption groups credited " + him + " with running " + V.cleaner + ". " : "");
   if (honours.length) img.push(He + " received " + (honours.length === 1 ? "the honour" : "the honours") + " " + list(honours.map(h => "“" + h.nm + "”")) + ".");
   sections.push({ h: "Public image", paras: [img] });
 
@@ -235,8 +256,8 @@ export const writeBio = (f) => {
   if (f.ended) {
     const pp = [];
     const n = 7 + (hash(st) % 3), rank = Math.max(1, Math.min(n, Math.round(n - (score / 100) * (n - 1))));
-    pp.push("In a " + (f.endYear + 1) + " survey of journalists and political scientists by the Centre for Governance Studies, " + surname + " was ranked " + ordN(rank) + " of the " + n + " governors " + st + " State has had since the return of civilian rule in 1999. ");
-    pp.push(cite("Survey ranks " + st + "'s governors since 1999", lastT, "Centre for Governance Studies"));
+    pp.push("In a " + (f.endYear + 1) + " survey of journalists and political scientists by the Centre for Governance Studies, " + surname + " was ranked " + ordN(rank) + " of the " + n + " " + V.pool + ". ");
+    pp.push(cite("Survey ranks " + (nat ? "Nigeria's Presidents" : st + "'s governors") + " since 1999", lastT, "Centre for Governance Studies"));
     pp.push(" ");
     pp.push(f.projects.delivered ? "Supporters pointed to " + num(f.projects.delivered) + " completed " + (f.projects.delivered === 1 ? "project" : "projects") + (f.needs.met ? " and " + num(f.needs.met) + " community " + (f.needs.met === 1 ? "need" : "needs") + " met" : "") + " as " + his + " lasting achievements" : "No capital project was completed on " + his + " watch, which critics regarded as " + his + " chief failing");
     pp.push(f.projects.stalled ? ", while critics noted that " + num(f.projects.stalled) + (f.projects.stalled === 1 ? " project" : " projects") + " stalled or " + (f.projects.stalled === 1 ? "was" : "were") + " abandoned. " : ". ");
@@ -247,8 +268,13 @@ export const writeBio = (f) => {
   // ── The record, in figures ──
   const rec = ["Projects: " + f.projects.delivered + " completed, " + f.projects.building + " under construction" + (f.projects.stalled ? ", " + f.projects.stalled + " stalled or abandoned" : "") + ". "];
   if (f.needs.met + f.needs.failed + f.needs.open) rec.push("Community needs: " + f.needs.met + " met, " + f.needs.failed + " unmet, " + f.needs.open + " outstanding. ");
-  rec.push("Debt: " + f.debtTxt + "; internally generated revenue: " + f.igrTxt + " a year. Ministries: " + f.ministries + "; laws signed: " + f.bills + ". Final approval rating: " + appEnd + "%; corruption index: " + Math.round((f.cor || 0) * 100) + "%.");
+  rec.push("Debt: " + (f.debt <= .05 ? "none" : f.debtTxt) + "; " + V.revenue + ": " + f.igrTxt + " a year. Ministries: " + f.ministries + "; laws signed: " + f.bills + ". Final approval rating: " + appEnd + "%; corruption index: " + Math.round((f.cor || 0) * 100) + "%.");
   sections.push({ h: "The administration in figures", paras: [rec] });
 
+  // The consistency pass: no sentence told twice anywhere on the page, and no "one of its one".
+  const said = new Set(), sweep = (para) => para.map(x => { if (typeof x !== "string") return x;
+    return x.replace(/\bone of (its|the|his|her) one\b/g, "$1 one").split(/(?<=[.!?])\s+(?=[A-Z])/).filter(sn => { const k = sn.trim().toLowerCase(); if (k.length < 25) return true; if (said.has(k)) return false; said.add(k); return true; }).join(" ") + (/\s$/.test(x) ? " " : ""); });
+  lead.forEach((p, i) => { lead[i] = sweep(p); });
+  sections.forEach(S => { (S.paras || []).forEach((p, i) => { S.paras[i] = sweep(p); }); (S.subs || []).forEach(sb => (sb.paras || []).forEach((p, i) => { sb.paras[i] = sweep(p); })); });
   return { lead, sections, refs };
 };

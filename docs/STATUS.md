@@ -2207,3 +2207,20 @@ Owner: "there shouldn't be a first budget submitted: either finish the budget yo
 - Films: rail.mp4 (the President's railway) and metro.mp4 (a state's light rail). Both had letterbox bars in their first seconds, so they are cropped slightly and scaled back to 960×540.
 - Tests: tests/inherited.test.mjs; tests/e2e/inherited-budget.mjs. The test bot keeps the inherited budget (lib.mjs PRIO).
 - Film: busterminal.mp4 (the state's Modern Bus Terminals; also the President's until interstatebus.mp4 arrives).
+
+## The biography reads as history, not a log (25 Nov 2026)
+Owner's brief: "the biography generator must stop concatenating event-log lines and start rendering events through prose, with one name per concept and a consistency check before the text is written."
+- game/systems/prose.js: `byDoing(label)` ("Pay the whole fund: ₦368.3B" → "paying the whole fund (₦368.3B)"), `didOf(label)`, `toPast(headline)` ("Bandits have kidnapped" → "Bandits kidnapped"), and `proseOf(line)`, the last clean-up:
+  - a choice label after a colon becomes "by doing", or a second sentence when the first part happened *to* the governor;
+  - money after a colon goes in brackets;
+  - no "Hon. Hon." and no "Nigeria, Nigeria";
+  - "left X for later" becomes "postponed X".
+- The record's producers now write prose: strikes ended ("…by paying…"), project-site crises (past tense, no choice label), the President's front-page crises ("{He} responded by…"), the coup response, recovery plans, state visits, the economy brief, and the ICPC/EFCC line ("Asked the ICPC to investigate Works Commissioner X over a payment irregularity").
+- wiki.js `writeBio`:
+  - Every record line goes through toPast and proseOf, with {He}/{his} filled in; old saves' lines are cleaned too.
+  - One vocabulary per office (`V`): the President's page says presidential election, geopolitical zones (of six), Federal Executive Council, National Assembly, independent revenue, the federal debt, "Presidents Nigeria has had", sworn in at Eagle Square, the 17th President. It has no state slogan, and he was born in his home state, Nigeria.
+  - The lead sums up; the margin and the flagship's targets are told once, in their sections. The inherited debt is told once (fiscal section).
+  - A new theme, "Accountability and corruption".
+  - A consistency pass: no sentence twice on the page, no "one of its one"; a debt of nothing reads "paid off" / "none"; a met target beside no finished project is explained.
+- Tests: tests/bio-prose.test.mjs (the brief's own broken examples in, history out; the President's words).
+- Checked with a real two-year game (the bot to year 4, then the biography read in full). Two more fixes came from it: the oath is taken in the state capital (wiki.js `STATE_CAPITALS`; the game had no capitals), and a recovery plan is "a three-step recovery plan for the Ministry of X", not its steps' labels.

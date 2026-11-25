@@ -7322,7 +7322,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (o.procure === "defence") startDefenceProcurement(o, f.costB);
         if (c.flight && !/^(vp|send|minister|decline|stay)$/.test(o.id)) presTrip(c.flight, c.t.replace(/\u2060/g, "").replace(/^A |^The /, "the ").replace(/^./, x => x.toLowerCase()));
         addL((it.k === "crisis" ? "🚨 " : it.k === "world" ? "🌍 " : "🦅 ") + c.t + ": " + o.l.toLowerCase() + "." + (f.bad ? " It went wrong in public." : ""), f.bad ? "crisis" : "policy");
-        if (it.k !== "callback") scWiki(f.bad ? "Controversies" : "Presidency", c.t.replace(/\.$/, "") + ": " + o.l.replace(/^./, x => x.toLowerCase()) + (f.bad ? ", which went wrong in public." : "."));
+        if (it.k !== "callback") scWiki(f.bad ? "Controversies" : "Presidency", SYS.toPast(c.t).replace(/\.$/, "") + ". {He} responded by " + SYS.byDoing(o.l) + (f.bad ? ", which went wrong in public." : "."));
         track("pres_" + (c.id || it.id), o.id);
         const rows = Object.entries(o.npc || {}).map(([k, v]) => ({ l: (after.npcs[k] || {}).name + " (" + SYS.PRES_NPCS[k].short + ")", v: (v > 0 ? "+" : "") + v, good: v > 0 }))
           .concat(it.k === "crisis" ? [{ l: SYS.PRES_CRISES[it.id].nm, v: after.over ? "Over" : after.sev + "/100", good: f.sev < 0 }] : []);
@@ -7486,7 +7486,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             if (o.stall) stallWork(["roads"]);
             if (o.act === "convene") setTimeout(() => { try { NAT ? conveneEAC() : conveneEcon(); } catch (e) { console.error("[econ convene]", e); } }, 700);
             addL("📊 " + iss.t(ctx) + ": " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".", "policy");
-            if (!o.act) scWiki(NAT ? "Presidency" : "Governorship", o.past.replace(/^\w/, c => c.toUpperCase()) + ", on the economy.");
+            if (!o.act) scWiki(NAT ? "Presidency" : "Governorship", o.past.replace(/^\w/, c => c.toUpperCase()) + ".");
             track("econ_" + id, o.id);
             return o.act ? { icon: "📊", title: NAT ? "The Economic Advisory Council is called" : "The State Economic Council is called", text: "It sits now.", tone: "neutral" }
               : { icon: "📊", img: "./art/backgrounds/finance-ministry-office.webp", title: o.l, text: o.later ? "Done. " + sa.split(" ").slice(-1)[0] + " will report next year on what it led to." : "Done.", tone: (fx.app || 0) < 0 ? "neutral" : "good",
@@ -8200,7 +8200,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (B1.done && !(B0 || {}).done && B1.treaty === "enacted") setTimeout(() => anchors(NEWS_BK.treaty[0], NEWS_BK.treaty[1]), 300);
         if (B1.done && !(B0 || {}).done) { scWiki("Presidency", SYS.bakundaLegacy(B1)); track("bakunda", "peace"); }
         else if (c.id === "bk3") scWiki("Presidency", o.id === "assent" ? "Assented to the National Assembly's resolution and took Nigeria to war against the " + BKC().nm + "–Ostrava Axis." : "Vetoed the resolution for war and answered the " + BKC().nm + "–Ostrava Axis with sanctions and diplomacy.");
-        else if (c.id === "bk2") scWiki("Presidency", "Responded to General " + BKC().gen + "'s coup in " + BKC().nm + ": " + o.l.toLowerCase() + ".");
+        else if (c.id === "bk2") scWiki("Presidency", "Responded to General " + BKC().gen + "'s coup in " + BKC().nm + " by " + SYS.byDoing(o.l) + ".");
         track("bakunda_" + (c.kind === "mission" ? "mission" : c.id), o.id + (c.kind === "mission" ? (wrong ? ":wrong" : ":right") : ""));
         const prog = c.kind === "mission" || c.id.startsWith("bkd_") || c.id.startsWith("bkg_") || c.id === "bk6";
         return { icon: c.id === "bk7" || c.id === "bk8" || c.id === "bk7b" ? "🕊️" : c.kind === "mission" ? BAKUNDA_ICON(o.id) : "🌍", img: o.img ? "./art/" + o.img + ".webp" : c.spill ? "./art/scenes/refugees-border.webp" : c.scene ? "./art/scenes/" + c.scene + ".webp" : undefined, title: o.l, text: (o.note && c.kind !== "mission" ? o.note + " " : "") + (o.result ? o.result + " " : "") + (c.spill ? "Refugees crossed into our northern states before we were ready." : wrong ? "The wrong force for that ground: this push counts for little." : c.fatigue ? "War weariness costs approval every year it lasts." : ""),
@@ -8668,7 +8668,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (P.padB > 0) setS(p0 => ({ ...p0, cor: cl((p0.cor || 0) + .01) }));
         close(steps.length === P.steps.length ? "all" : "part");
         addL("📝 Approved " + who + "'s recovery plan for " + m.name + " (" + label + ", " + naira(E.cost) + ")" + (E.restarts.length ? ": " + E.restarts.length + " stalled project" + (E.restarts.length > 1 ? "s" : "") + " restarted" : "") + ".", "policy");
-        scWiki(NAT ? "Presidency" : "Governorship", "Approved a recovery plan for the " + m.name + ": " + steps.map(y => y.l.toLowerCase()).join("; ") + ".");
+        scWiki(NAT ? "Presidency" : "Governorship", "Approved a " + (["", "one", "two", "three", "four", "five"][steps.length] || steps.length) + "-step recovery plan for " + (/^Ministry/.test(m.name) ? "the " + m.name : "the " + m.name + " ministry") + ".");
         return { icon: "📝", title: "The plan is under way", text: steps.length + " step" + (steps.length > 1 ? "s" : "") + " paid for. " + (E.restarts.length ? E.restarts.length + " stalled site" + (E.restarts.length > 1 ? "s" : "") + " reopen now. " : "") + "You will see the results next year." + (P.padB > 0 ? " About " + naira(P.padB) + " of it was padding." : ""), tone: "good" };
       };
       const fxOf = (steps) => fxChips(SYS.planEffect(P, steps.map(x => x.id)).fx);
@@ -9221,7 +9221,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               else setStc(p => ({ ...p, chains: [...(p.chains || []), { ...b, id: b.id + "_again", due: turn + 1, done: false }] })); // it comes back next year
               if (o.paid) setStc(p => ({ ...p, paidOff: true }));
               addL((o.resume ? "🛡️ " : "🚧 ") + C.title + ": " + o.l.toLowerCase() + ".", o.resume ? "policy" : "crisis");
-              scWiki(o.id === "clear" ? "Governorship" : "Controversies", C.title + ": " + o.l.toLowerCase() + ". " + o.line);
+              scWiki(o.id === "clear" ? (NAT ? "Presidency" : "Governorship") : "Controversies", SYS.toPast(C.title).replace(/\.$/, "") + ". " + SYS.toPast(o.line));
               setTimeout(() => paper(o.paper[0], o.paper[1], o.paper[2], ZS ? "./art/scenes/" + ZS + ".webp" : "./art/backgrounds/project-site-stalled.webp"), 200);
               if (ZW && ZW[2][o.id]) setTimeout(() => { try { window.SOP_outcome({ present: { img: "./art/characters/" + ZW[0] + (o.id === "pay" ? "-pleased" : o.id === "wait" ? "" : "-angry") + ".webp", bg: "./art/scenes/" + ZS + ".webp", name: ZW[1], text: ZW[2][o.id], ok: "Continue" } }); } catch (e) {} }, 500);
               return { icon: o.failed ? "💥" : o.id === "clear" ? "🛡️" : o.id === "pay" ? "💰" : "🚧", title: o.failed ? "It went wrong" : o.l, text: o.line, tone: o.failed ? "bad" : o.id === "clear" || o.id === "palace" ? "good" : o.id === "pay" ? "neutral" : "bad" };
@@ -9924,7 +9924,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       setCases(cs => cs.map(x => x.id === c.id ? SYS.agencyAuthorise(x, turn) : x));
       setS(p => ({ ...p, app: cl100(p.app + 1) }));
       addL("✍️ Signed off the " + A.nm + " investigation of Hon. " + c.officer + " (" + c.ministryName + ").", "policy");
-      scWiki("Governorship", "Authorised the " + A.nm + " to investigate Hon. " + c.officer + " over the " + c.ministryName + " payment.");
+      scWiki(NAT ? "Presidency" : "Governorship", "Asked the " + A.nm + " to investigate " + String(c.ministryName || "").replace(/^Ministry of /, "") + (NAT ? " Minister " : " Commissioner ") + String(c.officer).replace(/^Hon\. /, "") + " over a payment irregularity.");
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "agency_signed", actor: NAT ? "president" : "governor", target: c.officer, gravity: 2, evidence: 0, decision: "Signed off the " + A.nm + " probe", note: c.what }); } catch (e) {}
       paper(A.nm + " PROBES " + c.ministryName.toUpperCase() + " PAYMENT", (NAT ? "President" : "Governor") + " signs off investigation of Hon. " + c.officer, true);
       announce({ icon: "⚖️", img: "./art/characters/" + c.agency + "-chairman-pleased.webp", title: "The " + A.nm + " is on it", text: "You signed. The " + A.nm + " will investigate Hon. " + c.officer + " and report to " + (stc.hos ? stc.hos.name + ", your Head of Service" : "your Head of Service") + ". The findings, and a recommendation, come in next year's brief.", tone: "good",
@@ -11073,7 +11073,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       scFx(R.fx);
       if (zi >= 0) setS(p => { const zm = { ...(p.zoneMood || {}) }; zm[zi] = Math.max(-25, Math.min(25, (zm[zi] || 0) + R.zone)); return { ...p, zoneMood: zm }; });
       addL("🛬 The President visited " + label + ": " + R.title.charAt(0).toLowerCase() + R.title.slice(1) + ".", "success");
-      scWiki("Presidency", "Visited " + label + " State: " + R.title.charAt(0).toLowerCase() + R.title.slice(1) + ". " + R.line);
+      scWiki("Presidency", "Visited " + label + " State (" + R.title.charAt(0).toLowerCase() + R.title.slice(1) + ").");
       try {
         window.SOP_outcome({ icon: R.found ? "🔎" : "🇳🇬", img: "./art/" + R.img + ".webp", title: R.title, text: R.line, tone: "good",
           rows: [{ l: "The " + ({ NW: "North-West", NE: "North-East", NC: "North-Central", SW: "South-West", SE: "South-East", SS: "South-South" }[S.zone] || S.zone), v: "+" + R.zone, good: true }].concat(R.fx.app ? [{ l: "Approval", v: "+" + R.fx.app, good: true }] : [], R.fx.sec ? [{ l: "Security", v: "up", good: true }] : [], R.fx.pStab ? [{ l: "Party", v: "+" + R.fx.pStab, good: true }] : [], R.fx.cor ? [{ l: "Corruption", v: "down", good: true }] : []) });
@@ -11140,7 +11140,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           if (R.fx) scFx(R.fx);
           setStc(p => ({ ...p, labour: { ...(p.labour || {}), strikes: { ...((p.labour || {}).strikes || {}), [id]: R.st } } }));
           addL((R.end ? "🤝 " : "✊ ") + U.short + ": " + tw.t.charAt(0).toLowerCase() + tw.t.slice(1) + ". You chose: " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + "." + (R.end ? " The strike is over." : ""), R.end ? "success" : (R.fx.app || 0) < 0 ? "crisis" : "political");
-          if (R.end) scWiki("Governorship", "Ended the " + U.short + " strike: " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".");
+          if (R.end) scWiki(NAT ? "Presidency" : "Governorship", "Ended the " + U.short + " strike by " + SYS.byDoing(o.l) + ".");
           else if ((R.fx.app || 0) <= -4) scWiki("Controversies", R.paper ? R.paper[0].charAt(0) + R.paper[0].slice(1).toLowerCase() + "." : tw.t + ".");
           if (R.paper) setTimeout(() => paper(R.paper[0], R.paper[1], R.paper[2], "./art/" + tw.bg + ".webp"), 300);
           track("strike_twist_" + tw.id, o.id + (R.won == null ? "" : R.won ? ":won" : ":lost"));
@@ -11177,7 +11177,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const crack = opt.id === "force" && !A_(st); // arresting the leaders: an escalation, never a win
     addL((crack ? "🚨 " : "🤝 ") + "Roundtable with the " + U.short + ": " + opt.l.charAt(0).toLowerCase() + opt.l.slice(1) + ". " + (R.escalated ? "Every union has walked out in solidarity." : R.freed ? "A court freed them; the strike goes on." : R.end ? (crack ? "The strike is broken, and has gone underground." : "The strike is over.") : R.suspend ? "The strike is suspended." : "No deal."), crack ? "crisis" : R.end || R.suspend ? "success" : "political");
     if (crack) scWiki("Controversies", (NAT ? "Ordered soldiers into the grid control rooms and" : "Sent the police in and") + " had the NLC's leaders arrested" + (R.escalated ? "; every union came out in solidarity." : R.freed ? "; a court freed them and called the arrests unlawful." : "; the strike went underground."));
-    if ((R.end || R.suspend) && !crack) scWiki(R.tone === "bad" ? "Controversies" : "Governorship", "Ended " + (id === "asuu" ? "the ASUU strike" : "the NLC strike") + ": " + opt.l.charAt(0).toLowerCase() + opt.l.slice(1) + ".");
+    if ((R.end || R.suspend) && !crack) scWiki(R.tone === "bad" ? "Controversies" : NAT ? "Presidency" : "Governorship", "Ended " + (id === "asuu" ? "the ASUU strike" : "the NLC strike") + " by " + SYS.byDoing(opt.l) + ".");
     try {
       window.SOP_outcome({ present: { img: "./art/characters/" + U.img(NAT) + (R.tone === "good" ? "-pleased" : R.tone === "bad" ? "-angry" : "") + ".webp", bg: "./art/" + U.table + ".webp", name: U.leader(NAT), text: R.say, urgent: R.tone === "bad", ok: "Continue" } });
       if (opt.id === "mou" && R.suspend) window.SOP_outcome({ icon: "📝", img: "./art/objects/mou-document.webp", title: "The MoU is signed", text: "30% paid today; " + naira(R.st.mou.owed) + " falls due next year. Miss it and they are back out.", tone: "neutral" });
@@ -12491,10 +12491,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const exit = ended ? (() => { const out = gEnd === "impeached" ? (stc.removedBy === "coup" ? He + " was removed from office in a military coup." : NAT ? He + " was removed from office by the National Assembly under Section 143 of the Constitution." : He + " was removed from office by the State House of Assembly under Section 188 of the Constitution.") : gEnd === "nullified" ? "The Supreme Court nullified " + his + " election on a petition by " + ((stc.petition && stc.petition.opp) || "the opposition candidate") + ", who was sworn in as governor." : gEnd === "defeated" ? He + " lost the " + (startYear + 4) + " election to " + ini(cast.rival.name) + "." : gEnd === "stepped_down" ? He + " did not seek a second term." : gEnd === "pres_bid" ? He + " resigned to run for president." : gEnd === "bankrupt" ? "The state ran out of money under " + his + " administration." : He + " served the full two terms allowed by Section 182."; return out; })() : null;
     let owed = 0; if (M) { try { owed = M.owed().length; } catch (e) {} }
     const pj = projects || [], nd = needs || [], debtStart = (stc.oldDebt || {}).total;
-    const ordinal = SYS.governorOrdinal(stName), born = SYS.birthOf(pName, startYear);
-    const bornPlace = (setup?.homeLga ? String(setup.homeLga).replace(/_/g, " ") + ", " : "") + stName + " State, Nigeria";
+    // The President's page in the President's words (owner, 25 Nov 2026): his home state, the 17th President, no state slogan.
+    const ordinal = NAT ? 17 : SYS.governorOrdinal(stName), born = SYS.birthOf(pName, startYear);
+    const bornPlace = NAT ? (setup?.homeLga ? String(setup.homeLga).replace(/_/g, " ") + " State, " : "") + "Nigeria" : (setup?.homeLga ? String(setup.homeLga).replace(/_/g, " ") + ", " : "") + stName + " State, Nigeria";
     const bio = SYS.writeBio({
-      female: fem, name: pName, stateName: stName, partyName: pa?.nm, partyId: party, slogan: setup?.slogan, startYear, endYear, turn, ended: !!ended, exit,
+      female: fem, nat: NAT, name: pName, stateName: stName, partyName: pa?.nm, partyId: party, slogan: NAT ? null : setup?.slogan, startYear, endYear, turn, ended: !!ended, exit,
       election: setup?.election ? { marginPct: setup.election.marginPct, zonesWon: setup.election.zonesWon, opp: ini(setup.election.opp), oppParty: setup.election.oppParty } : null,
       deputy: depGov?.nm, mateAccepted: setup?.partyAccepted, flag: flag ? { nm: flag.nm, goal: flag.goal } : null,
       flagMilestones: flagM.map(e => ({ t: e.t, delivered: !!(e.meta && e.meta.delivered), corners: !!(e.meta && e.meta.corners) })),
@@ -12506,7 +12507,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       projects: { delivered: pj.filter(p => p.status === "delivered").length, building: pj.filter(p => p.status === "in_progress").length, stalled: pj.filter(p => ["abandoned", "suspended", "stalled"].includes(p.status)).length },
       needs: { met: nd.filter(n => n.status === "met").length, failed: nd.filter(n => n.status === "failed" || n.status === "abandoned").length, open: nd.filter(n => ["open", "started", "stalled"].includes(n.status)).length },
       ministries: (ministries || []).length, bills: billsPassed.length,
-      office: "Governor of " + stName + " State", ordinal, born, bornPlace, capital: sd?.capital || null,
+      office: NAT ? "President of the Federal Republic of Nigeria" : "Governor of " + stName + " State", ordinal, born, bornPlace, capital: NAT ? "Abuja" : sd?.capital || null,
       laws: billsPassed.map(b => b && b.nm).filter(Boolean),
       programmes: pols.map(e => String(e.decision || "").replace(/^(Enacted|Started)\s+/, "")).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i),
       strikes: Object.keys((stc.labour && stc.labour.strikes) || {}).map(k => SYS.UNIONS[k] && SYS.UNIONS[k].short).filter(Boolean),
@@ -12516,17 +12517,17 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const w = {
       title: pName, stub: !final && turn <= 2, startYear,
       portrait: av ? AVATAR_IMGS[av.id] : null,
-      office: SYS.ordN(ordinal) + " Governor of " + stName + " State",
+      office: SYS.ordN(ordinal) + (NAT ? " President of Nigeria" : " Governor of " + stName + " State"),
       inOffice: "In office · 29 May " + startYear + " – " + (ended ? (endYear === base + 4 || endYear === base + 8 ? "29 May " + endYear : endYear) : "present"),
       // Wikipedia's order: the office, then a "Personal details" block. A row
       // with no value is a header.
-      rows: [["Deputy", depGov?.nm || "—"], ["Preceded by", pre], ["Succeeded by", successor], ["Term", termStr]]
+      rows: [[NAT ? "Vice-President" : "Deputy", depGov?.nm || "—"], ["Preceded by", pre], ["Succeeded by", successor], ["Term", termStr]]
         .concat(flag ? [["Flagship", flag.nm]] : [])
         .concat([["Personal details", null], ["Born", born + "\n" + bornPlace], ["Political party", pa?.nm || party], ["Occupation", "Politician"]])
         .concat((stc.honours || []).length ? [["Honours", (stc.honours || []).map(id => (HONOURS.find(h => h.id === id) || {}).nm).filter(Boolean).join(", ")]] : [])
-        .concat(setup?.slogan ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
+        .concat(setup?.slogan && !NAT ? [["Slogan", "\"" + setup.slogan + "\""]] : []),
       lead, sections, refs,
-      cats: ["Governors of " + stName + " State", (pa?.nm || party) + " politicians", "Living people"].concat(gEnd === "impeached" ? ["Impeached Nigerian governors"] : []),
+      cats: [NAT ? "Presidents of Nigeria" : "Governors of " + stName + " State", (pa?.nm || party) + " politicians", "Living people"].concat(gEnd === "impeached" ? [NAT ? "Impeached heads of state" : "Impeached Nigerian governors"] : []),
       link: (location.origin + location.pathname).replace(/^https?:\/\//, ""),
     };
     w.leadText = lead.map(pp => pp.filter(x => typeof x === "string").join("")).join(" ");
@@ -12537,7 +12538,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const blob = await wikiShareCard(w, kind);
       const file = new File([blob], "seat-of-power-" + kind + ".png", { type: "image/png" });
       const url = location.origin + location.pathname;
-      const text = w.title + ", Governor of " + state.replace(/_/g, " ") + " State: my record in The Seat of Power. Play: " + url;
+      const text = w.title + ", " + (NAT ? "President of Nigeria" : "Governor of " + state.replace(/_/g, " ") + " State") + ": my record in The Seat of Power. Play: " + url;
       if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], text, url }); return; }
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove();
       try { navigator.clipboard && navigator.clipboard.writeText(text); } catch (e) {}

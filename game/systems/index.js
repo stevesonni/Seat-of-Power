@@ -76,3 +76,4 @@ export * from "./guide.js";
 export * from "./farewell.js";
 export * from "./nass.js";
 export * from "./inherited.js";
+export * from "./prose.js";

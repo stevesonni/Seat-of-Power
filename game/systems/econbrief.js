@@ -88,7 +88,7 @@ const GOV = [
     t: (c) => "Sell " + c.stName + "'s " + c.crop + " to the world",
     d: (c) => "Your Excellency, Abuja's allocation will not grow, but what our farms produce can earn every year. The State Economic Council can sit today. Taxes and fees bring in " + nB(c.igr) + " a year.",
     opts: [O("convene", "Convene the State Economic Council now", {}, { act: "convene", past: "convened the State Economic Council" }),
-      O("wait", "Not this year", {}, { later: { text: "A year without an export plan: the buyers went to the next state.", fx: { app: -1 } }, past: "left the export plan for later" })] },
+      O("wait", "Not this year", {}, { later: { text: "A year without an export plan: the buyers went to the next state.", fx: { app: -1 } }, past: "postponed the state's export plan" })] },
   { id: "igr", pri: (c) => c.igr < (c.faac || 1) * .6 ? 85 : 40, when: () => true,
     t: (c) => "Taxes and fees bring in only " + nB(c.igr) + " a year",
     d: (c) => "Most of the money comes from Abuja. Collectors take cash at the counter and much of it never reaches the account.",
