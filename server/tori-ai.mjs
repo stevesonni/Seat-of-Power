@@ -233,7 +233,7 @@ export function makeBioAI({ dataDir }) {
       if (msg.stop_reason === "refusal" || msg.stop_reason === "max_tokens") return { _code: 502, error: "no_bio" };
       let j; try { j = JSON.parse((msg.content || []).filter(x => x.type === "text").map(x => x.text).join("")); } catch (e) { return { _code: 502, error: "bad_output" }; }
       const lead = (j.lead || []).map(t => cl(t, 1500)).filter(Boolean).slice(0, 4);
-      if (/\bthe (record|sources?|page)\b|\bentr(y|ies)\b/i.test(lead.join(" ") + (j.sections || []).map(S => (S.paras || []).join(" ")).join(" "))) return { _code: 502, error: "meta" };
+      if (/\b(the|a separate) (record|sources?|page|entr(y|ies))\b/i.test(lead.join(" ") + (j.sections || []).map(S => (S.paras || []).join(" ")).join(" "))) return { _code: 502, error: "meta" };
       const sections = (j.sections || []).map(S => ({ h: cl(S.h, 80), paras: (S.paras || []).map(t => cl(t, 2000)).filter(Boolean).slice(0, 8), rows: (S.rows || []).slice(0, 16).map(r => ({ k: cl(r.k, 60), v: cl(r.v, 60) })) })).filter(S => S.h && (S.paras.length || S.rows.length)).slice(0, 28);
       const all = lead.join(" ") + sections.map(S => S.paras.join(" ")).join(" ");
       if (!lead.length || sections.length < 3 || BAD.test(all) || !/\{(NAME|SURNAME|FIRST)\}/.test(all)) return { _code: 502, error: "too_thin" };
