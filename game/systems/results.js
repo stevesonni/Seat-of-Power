@@ -10,7 +10,7 @@ const fmtN = (n) => Math.round(n).toLocaleString("en-GB");
 // lgas: the state's local governments; districts: [north, central, south] lists of them.
 export const flagshipDeliverable = (agenda, year, districts, r = Math.random, names = null) => {
   const zi = (year - 1) % (districts.length || 3), ds = districts[zi] && districts[zi].length ? districts[zi] : districts.flat();
-  const a = pick(ds, r) || "the state", b = pick(ds.filter(x => x !== a), r) || a;
+  const a = pick(ds, r) || "the state", b = pick(ds.filter(x => x !== a), r) || pick(districts.flat().filter(x => x !== a), r) || a;
   const zone = (names && names[zi]) || ["North", "Central", "South"][zi];
   const D = {
     infrastructure: () => year <= 3 ? "the " + a + "–" + b + " trunk road in the " + zone + " district (" + (28 + Math.round(r() * 30)) + " km, dualised)" : "street lights and drainage along all three trunk roads",

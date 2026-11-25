@@ -2247,3 +2247,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - It now comes from the Attorney-General (Ministry of Justice). It says who went to court, against what, and what they ask; gives the claim in plain words and the margin as a sentence; says what losing means at this court; and asks how to defend the case.
 - At the appeal stages it says who lost below and which court has the appeal.
 - Test: tests/e2e/petition-letter.mjs.
+
+## The agenda letter, and no repeated lines in any letter (25 Nov 2026)
+- The agenda letter said "This year's share is due. This year's share of your promise is due." It now reads as one letter: the promise, this year's part (for example "500 community guards trained and equipped in Abeokuta North, Abeokuta South and nearby councils, with 19 patrol vans"), the cost, and the question.
+- Every letter: the one-line preview from the mailbox is added under the body only when it says something new (fewer than half its words are already in the body). It was added whenever the exact wording differed, which repeated the same point in other words.
+- This year's part never names one town twice: when a district has a single council, the second town comes from a neighbouring district.
+- Test: tests/e2e/agenda-letter.mjs.

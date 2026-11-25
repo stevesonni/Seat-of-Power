@@ -13150,6 +13150,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     document.addEventListener("visibilitychange", away); window.addEventListener("pagehide", away);
     return () => { document.removeEventListener("visibilitychange", away); window.removeEventListener("pagehide", away); };
   }, []);
+  // The preview line goes under the body only when it adds something: not when most of its words are already there
+  // (owner, 25 Nov 2026: "This year's share is due. This year's share of your promise is due.").
+  const lineAdds = (body, line) => { const W = (t) => String(t).toLowerCase().replace(/[^a-z0-9₦%\s]/g, " ").split(/\s+/).filter(w => w.length > 3);
+    const B = new Set(W(body)), L = W(line); if (!L.length) return false; return L.filter(w => B.has(w)).length / L.length < .5; };
   const letterView = (l) => {
     const sa = cast.adviser.name, k = l.key;
     const sc = k.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === k) : null;
@@ -13205,6 +13209,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     if (sc && sc.letter && sc.letter.body) { const Lt = sc.letter;
       return { from: Lt.signed || Lt.who, img: sc.img || "./art/characters/permanent-secretary.webp", office: Lt.who + " · " + Lt.where,
         title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + (sc.title || "A letter"), line: String(Lt.body[0] || "").slice(0, 120), body: Lt.body.join(" ") }; }
+    // The agenda letter says what this year's share is, what it costs and what is asked (owner, 25 Nov 2026: "Look at this cut and join too").
+    if (k === "flagship" && FGl) { let deliv = ""; try { deliv = SYS.flagshipDeliverable(setup.agenda, ((turn - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(turn * 131 + state.length * 7), NAT ? ZN : ZIX.map(zoneName)); } catch (e) {}
+      const costB = Math.round((1.4 + turn * 0.15) * 10) / 10, txt = "When you took office, you promised to " + FGl.goal + ", a part of it every year." + (deliv ? " This year's part is " + deliv.replace(/^(\w)/, c => c.toLowerCase()) + "." : "") + " It will cost about ₦" + costB + "B. Will you see to it yourself, or leave it to your Chief of Staff?";
+      return { from, img, title, line: "This year's part of your promise is due.", body: txt }; }
     const TL = (k === "netherlands" || k === "abuja" || k === "wedding") ? SYS.TRIP_LETTERS[k] : null;
     if (TL) return { from, img, title, line: String(line || "").slice(0, 120), office: TL.who + " · " + TL.where,
       body: TL.body.join(" ") + ({ netherlands: " Going yourself costs about ₦0.3B and keeps you away for four months: the best chance of the deal. Sending a trade delegation is free, but they wanted to meet you.", abuja: " Going shows loyalty to the party. Staying home pleases voters and annoys the party.", wedding: " Going costs a few days and some money; the guest list is where deals are made." }[k] || "") };
@@ -13648,7 +13656,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <div style={{ fontSize: LS.l, marginBottom: 10 }}>Your Excellency,</div>
             {open.lines ? <div style={{ fontSize: LS.m, lineHeight: 1.55, display: "grid", gap: 8 }}>{open.lines.map((x, i) => <div key={i} style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8 }}><span style={{ color: x.ok ? "#1f7a46" : "#a3271c", fontWeight: 700 }}>{x.ok ? "✓" : "✗"}</span><span>{x.line}</span></div>)}</div>
               : v.full ? <div style={{ fontSize: LS.l, lineHeight: 1.55 }}>{v.full}</div>
-              : <div style={{ fontSize: LS.l, lineHeight: 1.55 }}>{v.body || v.line}{v.body && v.line && !v.line.startsWith(v.body.replace(/…$/, "").slice(0, 40)) && !v.body.includes(v.line.slice(0, 40)) ? " " + v.line : ""}</div>}
+              : <div style={{ fontSize: LS.l, lineHeight: 1.55 }}>{v.body || v.line}{v.body && v.line && lineAdds(v.body, v.line) ? " " + v.line : ""}</div>}
             {(scOf(open) || {}).enclosure && <div data-testid="enclosure" style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, fontSize: LS.s, fontStyle: "italic", color: "#5a4a35" }}><img src={"./art/objects/" + scOf(open).enclosure + ".webp"} alt="" style={{ width: tall ? 72 : 96, height: tall ? 72 : 96, objectFit: "contain", flexShrink: 0, transform: "rotate(-4deg)" }} />Enclosed: {({ "payment-order": "the payment order", "mission-report": "our mission report", "contractor-bill": "our invoice", "letter-of-intent": "the letter of intent, for your signature" })[scOf(open).enclosure] || "the papers"}.</div>}
             <div style={{ marginTop: tall ? 16 : 24, fontSize: LS.l }}>Yours faithfully,</div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
