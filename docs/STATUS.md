@@ -2479,3 +2479,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 ## 25 Nov 2026: paying the Speaker on a kept letter
 - Bug (owner: "I did what the Speaker asked for, still he won't let my programme pass"): a Speaker's letter kept over from last year still carried last year's date, so paying it recorded the deal for last year and the House kept blocking. Deals and refusals (the Speaker, and the President's Senate and House) now count for the year you answer in. Paying also clears an old refusal.
 - tests/e2e/speaker-hostile.mjs: paying a year late wins the House back and a new programme gets its money (fails without the fix); the test also closes a sheet the bot may leave over the letter.
+
+## 25 Nov 2026: they keep asking until you approve
+- The mini-stadia: until you approve the work, a letter comes every year (SYS.miniReminder): "The youths are still asking", "The people have not forgotten", "The young people are in need", "I write to humbly remind you", in turn; the signer alternates between the Youth Assembly's Speaker and your commissioner; a new reason each year ("Since then, the only pitch in … has become a car park"); each "Not this year" costs one more approval point (2, 3, 4, up to 5). Approving (or the Speaker's firm taking a contract) ends it.
+- The Youth Assembly's first ask, for a Ministry of Sports & Youth, comes back the same way while you have no such ministry.
+- Tests: tests/sports.test.mjs; tests/e2e/sports-remind.mjs (refused twice: asked again in years 2 and 3, worded differently).

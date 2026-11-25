@@ -99,3 +99,36 @@ export const clubBuzz = (stage, ctx = {}) => { const C = ctx.club || "the club",
     hosted: [P("Ultra " + C, "ultras_" + tag.slice(1, 9).toLowerCase(), "Supporters' club", "market-women-group-cheering", "A full house for " + C + " in Africa. Thank you! " + tag + " ⚽")],
     moved: [P("Kunle Sports Desk", "kunlesports", "Sports journalist", "reporter", "CAF has moved " + C + "'s home match out of the state: the ground was not ready. " + tag)],
   })[stage] || []; };
+
+/* The yearly reminder until the work is approved (owner, 25 Nov 2026: "I should still get it every year till I approve
+   the work: the youths are still asking; the people haven't forgotten; the people are in need; I wish to humbly remind
+   you. Different ways to present it"). n: how many times they have asked (1 = the first reminder). ctx: { st, two
+   (the two towns), last (the year they last asked), youth (the Youth Assembly's Speaker), comm (the commissioner, if
+   any), ministry (true: the ask is for the ministry, not the grounds) }. Returns { from, kicker, title, brief, byComm }. */
+const OPEN = [
+  { o: "The youths of {st} are still asking.", t: ["The youths are still asking for their mini-stadia", "The youths are still asking for a voice"] },
+  { o: "The people have not forgotten.", t: ["The people have not forgotten the mini-stadia", "The people have not forgotten the youth's request"] },
+  { o: "The young people of {st} are in need.", t: ["The young people are in need of a place to play", "The young people are in need of a voice in government"] },
+  { o: "I write to humbly remind you.", t: ["A humble reminder about the mini-stadia", "A humble reminder about the Youth Ministry"] },
+];
+const SINCE = [
+  "Since then, the only pitch in {a} has become a car park, and the boys play on the expressway at dusk.",
+  "Since then, a football academy from another state has taken our three best players, because they had nowhere to train at home.",
+  "Since then, our athletes have trained on a refuse dump; two were hurt on broken glass.",
+  "Since then, the youth league has had to cancel its season for want of a ground.",
+  "Since then, more of our young people have drifted to the junctions and the gangs, with nothing else to do after school.",
+];
+export const miniReminder = (n = 1, ctx = {}) => {
+  const st = ctx.st || "the state", two = ctx.two || ["the capital", "the other town"], i = Math.max(0, n - 1), O = OPEN[i % OPEN.length];
+  const byComm = !ctx.ministry && !!ctx.comm && i % 2 === 1;
+  const from = byComm ? ctx.comm + ", Commissioner for Sports & Youth Development" : (ctx.youth || "The Speaker") + ", Speaker of the " + st + " State Youth Assembly";
+  const weAsked = n >= 2 ? ", and every year since, we have asked" : " we asked";
+  const asked = ctx.ministry
+    ? "In " + ctx.first + weAsked + " you for a Ministry of Sports & Youth Development, and a commissioner who answers to the young people. We are still waiting."
+    : (byComm ? "In " + ctx.first + " the Youth Assembly asked you for two mini-stadia, in " + two[0] + " and " + two[1] + ", and my ministry backed it" + (n >= 2 ? "; they have asked every year since" : "") + ". The work has still not been approved."
+      : "In " + ctx.first + weAsked + " you for two mini-stadia, in " + two[0] + " and " + two[1] + ". The work has still not been approved.");
+  const since = SINCE[(i + String(st).length) % SINCE.length].replace("{a}", two[0]);
+  const close = ctx.ministry ? "Half of " + st + " is under thirty, and none of us has a seat at your table." : "Two grounds of about 5,000 seats, for football, athletics and a youth league, are all " + (byComm ? "they ask." : "we ask.");
+  return { byComm, from, kicker: (byComm ? "Sports & Youth" : "The State Youth Assembly") + " · " + (n >= 3 ? "asked again, and again" : "asked again"),
+    title: O.t[ctx.ministry ? 1 : 0], brief: O.o.replace("{st}", st) + " " + asked + " " + since + " " + close };
+};

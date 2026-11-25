@@ -23,3 +23,14 @@ test("Tori buzzes at every step", () => {
 test("a stadium answers a sports need, for the President too", () => {
   assert.ok(SYS.FED_NEEDS.sports && /stadium/.test(SYS.FED_NEEDS.sports.title("Nigeria")));
 });
+
+test("the mini-stadia reminder: a different opening each year, alternating signers, the year they first asked", async () => {
+  const { miniReminder } = await import("../game/systems/sports.js");
+  const C = { st: "Ogun", two: ["Abeokuta South", "Ijebu Ode"], first: 2028, youth: "Hon. Kemi Ade", comm: "Hon. Bode Bamgbose" };
+  const R = [1, 2, 3, 4].map(n => miniReminder(n, C));
+  assert.equal(new Set(R.map(r => r.title)).size, 4);
+  assert.match(R[0].brief, /^The youths of Ogun are still asking\. In 2028 we asked you/); assert.match(R[1].brief, /^The people have not forgotten\./);
+  assert.match(R[2].brief, /^The young people of Ogun are in need\./); assert.match(R[3].brief, /^I write to humbly remind you\./);
+  assert.match(R[1].from, /Commissioner/); assert.match(R[0].from, /Youth Assembly/); assert.match(R[1].brief, /my ministry backed it/);
+  const M = miniReminder(2, { ...C, ministry: true }); assert.match(M.title, /voice|youth|Youth/); assert.match(M.brief, /Ministry of Sports/); assert.match(M.from, /Youth Assembly/);
+});
