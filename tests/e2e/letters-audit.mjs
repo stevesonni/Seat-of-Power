@@ -27,7 +27,7 @@ const grab = async () => { try { for (const L of (await g.page.evaluate(() => wi
 await playUntil(g, () => false, { max: +(process.env.STEPS || 700), onStep: grab });
 const flag = (L) => { const b = String(L.body || ""), w = b.split(/\s+/).filter(Boolean).length, F = [];
   if (w < 22) F.push("short(" + w + ")");
-  if (/(^|\. )[A-Z][^.:]{2,60}: ₦[\d.]+[BMK]?\./.test(b)) F.push("label-amount list");
+  if (/(^|\. )[A-Z][^.:]{2,60}: ₦[\d.]+[BMK]?\. [A-Z][^.:]{2,60}: ₦/.test(b)) F.push("label-amount list");
   if (!/[.!?…)"”’]$/.test(b.trim())) F.push("cut off");
   if (/^[a-z]/.test(b)) F.push("starts lowercase");
   return F; };

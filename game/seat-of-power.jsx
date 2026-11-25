@@ -13196,6 +13196,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // (owner, 25 Nov 2026: "This year's share is due. This year's share of your promise is due.").
   const lineAdds = (body, line) => { const W = (t) => String(t).toLowerCase().replace(/[^a-z0-9₦%\s]/g, " ").split(/\s+/).filter(w => w.length > 3);
     const B = new Set(W(body)), L = W(line); if (!L.length) return false; return L.filter(w => B.has(w)).length / L.length < .5; };
+  // A short letter ends with the real choices on the table: "You can A; B; or C."
+  const choicesOf = (opts) => { const L = (opts || []).filter(Boolean).map(o => String(o.label || o.l || "").replace(/^[^A-Za-z₦]+/, "").replace(/\.$/, "").trim()).filter(Boolean).slice(0, 4)
+      .map(x => /^[A-Z][a-z]/.test(x) ? x.charAt(0).toLowerCase() + x.slice(1) : x);
+    return L.length < 2 ? "" : " You can " + L.slice(0, -1).join("; ") + (L.length > 2 ? ";" : "") + " or " + L[L.length - 1] + "."; };
   const letterView = (l) => {
     const sa = cast.adviser.name, k = l.key;
     const sc = k.startsWith("sc#") ? scPending.current.find(c => "sc#" + c.key === k) : null;
@@ -13234,8 +13238,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       : null;
     const [from, img, title, line] = v || [sa, saPortrait(sa), "A letter", ""];
     const FGl = FLAGSHIP[setup?.agenda], gb = k === "gold" && gold ? SYS.beat(gold, turn) : null;
-    const src = { godfather: godfatherDemand && godfatherDemand.d, house_bill: pendingHouseBill && pendingHouseBill.d, investor: curInvestor && curInvestor.desc, federal: curFgEvent && curFgEvent.desc,
-      shock: curShock && curShock.desc, judiciary: curCourt && curCourt.desc, media: curMedia && curMedia.desc, dilemma: curD && (curD.d || curD.desc), intl_invite: curInvite && curInvite.what,
+    const src = { godfather: godfatherDemand && godfatherDemand.d, house_bill: pendingHouseBill && pendingHouseBill.d, investor: curInvestor && (curInvestor.desc + " They have asked to see you at Government House to make their case: they want land, licences and the state's backing. Will you hear them?"), federal: curFgEvent && curFgEvent.desc,
+      shock: curShock && curShock.desc, judiciary: curCourt && (curCourt.desc + " The court wants the state's answer. You can fight the case, and appeal if you lose, or comply with the ruling now."), media: curMedia && curMedia.desc, dilemma: curD && (curD.d || curD.desc), intl_invite: curInvite && ((curInvite.who ? curInvite.who + " of " + curInvite.from + " has invited you. " : "") + curInvite.what + (curInvite.personal ? " They will only meet the Governor in person." : " Going yourself shows you are serious; sending a delegation costs less and keeps you at home.")),
       flagship: FGl ? "You promised to " + FGl.goal + ". This year's share is due." : null, gold: gb && gb.text }[k] || (sc && sc.brief)
       || (l.tip && (l.lines || []).length ? (l.lines || []).map(x => x.line).filter(Boolean).join(" ") : null) || line; // a letter with its own lines reads them
     // The letter's opening: whole sentences, never cut at a title ("Hon.", "Dr.": owner, 22 Nov 2026, a letter that read only
@@ -13250,7 +13254,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // A war letter (the White House, the UN in Geneva…) carries its own letter: its sender and its whole text.
     if (sc && sc.letter && sc.letter.body) { const Lt = sc.letter;
       return { from: Lt.signed || Lt.who, img: sc.img || "./art/characters/permanent-secretary.webp", office: Lt.who + " · " + Lt.where,
-        title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + (sc.title || "A letter"), line: String(Lt.body[0] || "").slice(0, 120), body: Lt.body.join(" ").replace(/^Your Excellency,\s*/, "").replace(/^(\w)/, c => c.toUpperCase()) }; }
+        title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + (sc.title || "A letter"), line: String(Lt.body[0] || "").slice(0, 120), body: (b0 => b0.split(" ").length < 30 ? b0 + choicesOf(sc.options) : b0)(Lt.body.join(" ").replace(/^Your Excellency,\s*/, "").replace(/^(\w)/, c => c.toUpperCase())) }; }
     // The agenda letter says what this year's share is, what it costs and what is asked (owner, 25 Nov 2026: "Look at this cut and join too").
     // The budget letter says what money there is, who asked for it, what you decide and what the House does with it
     // (owner, 25 Nov 2026: "This letter makes no sense").
@@ -13275,8 +13279,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const whole = (t) => { const S = clean(t).replace(/\s+/g, " ").trim().match(/(?:\b(?:Hon|Rt|Dr|Mr|Mrs|Ms|Prof|Gov|Sen|Barr|Alh|Engr|Gen|Col|Maj|Capt|Lt|St|No|Mt|vs|Jr|Sr)\.|\d\.\d|[^.!?])+(?:[.!?]+["\u201d\u2019]?|$)/g) || [];
       const seen = new Set(); let x = "", n = 0; for (const sn0 of S) { const sn = sn0.trim(), key = sn.toLowerCase().replace(/[^a-z0-9]/g, ""); if (!sn || seen.has(key)) continue; seen.add(key);
         const w = sn.split(" ").length; if (x && n + w > 85) break; x = (x ? x + " " : "") + sn; n += w; } return x; };
-    const scBody = sc && !(src && src !== sc.brief) ? whole([sc.brief, sc.stakes].filter(Boolean).join(" ")) : null;
-    return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: scBody || two(clean(src)) };
+    const scBody0 = sc && !(src && src !== sc.brief) ? whole([sc.brief, sc.stakes].filter(Boolean).join(" ")) : null;
+    const scBody = scBody0 && scBody0.split(" ").length < 30 ? scBody0 + choicesOf(sc.options) : scBody0;
+    return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: scBody || whole(src) };
   };
   // The year's matters arrive together after the year closes.
   // A strike that has ended takes its letters with it (owner, 22 Nov 2026: "I paid off ASUU in full once they
@@ -13821,7 +13826,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   const agencyN = cases.filter(c => c.agency && c.stage === "findings" && c.report).length;
   const secrItems = needSetup ? [] : [
     ...cases.filter(c => c.agency && c.stage === "allegation").map(c => ({ key: "secr:agency:" + c.id, secr: { agency: c.id }, ministryId: c.ministryId, title: SYS.agencyLetter(c).title, line: c.what, stakes: 3 })),
-    ...(stc.hos ? stc.hosSigned === turn ? [] : (audiences.length || hosFailingNow.length || agencyN || (stc.hosReport && stc.hosReport.turn === turn && stc.hosSigned !== turn) ? [{ key: "secr:hosbrief:" + turn, secr: { hosBrief: true }, title: "The Head of Service's annual brief", line: [stc.hosReport && stc.hosReport.turn === turn ? "the cabinet report" : null, hosFailingNow.length ? hosFailingNow.length + " failing commissioner" + (hosFailingNow.length === 1 ? "" : "s") : null, audiences.length ? audiences.length + " request" + (audiences.length === 1 ? "" : "s") + ", decided" : null].filter(Boolean).join(" · ") + (agencyN ? (audiences.length || hosFailingNow.length ? " · " : "") + agencyN + " anti-graft finding" + (agencyN === 1 ? "" : "s") : "") + ". Reverse anything before you sign." }] : [])
+    ...(stc.hos ? stc.hosSigned === turn ? [] : (audiences.length || hosFailingNow.length || agencyN || (stc.hosReport && stc.hosReport.turn === turn && stc.hosSigned !== turn) ? [{ key: "secr:hosbrief:" + turn, secr: { hosBrief: true }, title: "The Head of Service's annual brief", line: (P => "The Head of Service has finished the year's work and sends it for your signature: " + (P.length > 1 ? P.slice(0, -1).join(", ") + " and " + P[P.length - 1] : P[0] || "the year's decisions") + ". Read it, and reverse anything you disagree with before you sign.")([stc.hosReport && stc.hosReport.turn === turn ? "the cabinet report" : null, hosFailingNow.length ? hosFailingNow.length + " commissioner" + (hosFailingNow.length === 1 ? " who is" : "s who are") + " failing" : null, audiences.length ? audiences.length + " commissioner" + (audiences.length === 1 ? "'s request" : "s' requests") + ", already decided" : null, agencyN ? agencyN + " anti-graft finding" + (agencyN === 1 ? "" : "s") : null].filter(Boolean)) }] : [])
       : audiences.map(a => ({ key: "secr:aud:" + a.id, secr: { audience: a.id }, ministryId: a.ministryId, title: "A request to see you", line: a.reason }))),
     ...(!stc.hos && (ministries || []).some(m => m.minister) && !(pillarOn("stagger") && turn === 1) ? [{ key: "secr:hosappoint", secr: { hosAppoint: true }, title: "Appoint a Head of Service", line: "The commissioners' requests will go to them. " + cast.adviser.name.split(" ").slice(-2).join(" ") + " has a recommendation." }] : []),
     ...cases.filter(c => c.stage !== "closed" && c.stage !== "decided" && (!c.agency || (c.stage === "findings" && !stc.hos))).map(c => ({ key: "secr:case:" + c.id, secr: { caseId: c.id }, ministryId: c.ministryId, title: "A file on " + c.ministryName, line: c.what + " · " + SYS.STAGE_NAME[c.stage] })),

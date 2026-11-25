@@ -2358,3 +2358,16 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - The picture is the police, not a building site (a proper patrol-fleet picture is still wanted from Lovable).
 - The Speaker's "Buy 40 new patrol vehicles" now goes to the security ministry, not Transport.
 - Test: tests/projects.test.mjs.
+
+## The letter sweep (25 Nov 2026)
+- tests/e2e/letters-audit.mjs played three governor games and two President games (206 letters). Twelve kinds of letter were too short to say what was being asked, for example:
+  - "Students are at home. Our hostels are locked…";
+  - "An invitation to UAE. UAE sovereign wealth fund exploring…";
+  - the junta letters.
+- Fixes:
+  - No letter is cut to its first two sentences any more: every letter's text is shown whole, each sentence once, up to about 85 words.
+  - A short letter ends with its real choices in a sentence: "You can back Hon. A; back Hon. B; or stay out of it."
+  - Investor letters say what they want (land, licences, the state's backing) and ask "Will you hear them?".
+  - Court letters say the court wants the state's answer: fight the case (and appeal if you lose) or comply.
+  - Invitations say who invites you, why, and the trade-off of going yourself or sending a delegation.
+  - The Head of Service's yearly brief says what it contains (the cabinet report, failing commissioners, requests already decided, anti-graft findings) and what to do: read it, and reverse anything before you sign.
