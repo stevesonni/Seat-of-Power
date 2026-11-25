@@ -1,5 +1,7 @@
 # Lovable art: sport and stadiums
 
+**Delivered and installed (25 Nov 2026):** all six pictures.
+
 Six pictures for the new sport stories (the Youth Assembly, the mini-stadia, FIFA and CAF, and the state's club in Africa). The game already checks for each file: until it arrives, it uses a stand-in, and when you drop the file in, the game uses it by itself.
 
 ## Rules (as docs/LOVABLE-DECISIONS.md)

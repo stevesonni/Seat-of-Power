@@ -2436,3 +2436,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - docs/GEMINI-REELS.md asks for the stadium film (stadium.mp4).
   - The game checks for each file (SEAT.got, sportArt/sportImg) and uses it as soon as it is there; the film joins SYS.REELS when it arrives.
 - Sport's letters (the Youth Assembly, the commissioner's memo, FIFA/CAF, the club's CAF letter) now have high priority in the mailbox, so the yearly cap never holds them back.
+- 25 Nov 2026, later: Lovable delivered all six sport pictures. They are installed (scenes at 1280×720, the portrait at 512×640) and in use: the derelict stadium on the FIFA/CAF and club letters and on a front page when a match is moved, the full house and the cracked stand on match-day front pages, the mini-stadium on the mini-stadia letters, the Youth Assembly on its letter, and the football official's face on FIFA and CAF letters. The stadium film is still awaited from Gemini.

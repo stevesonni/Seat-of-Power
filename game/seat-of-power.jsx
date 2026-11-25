@@ -2156,8 +2156,9 @@ const artOf = (id, art) => art && VARIANT_ART.has(art) ? "./art/variants/" + art
 // Sport's pictures and film, still being made (docs/LOVABLE-SPORTS.md, docs/GEMINI-REELS.md): checked for once,
 // used as soon as they are there. sportArt(name, fallback) → the file if it has arrived.
 SEAT.got = SEAT.got || {};
-try { if (typeof fetch === "function") { ["scenes/stadium-derelict", "scenes/stadium-full-house", "scenes/stadium-cracked-stand", "scenes/mini-stadium", "scenes/youth-assembly", "characters/football-official"].forEach(p => fetch("./art/" + p + ".webp", { method: "HEAD" }).then(r => { if (r.ok) SEAT.got[p] = true; }).catch(() => {}));
-  fetch("./art/reels/stadium.mp4", { method: "HEAD" }).then(r => { if (r.ok) SYS.REELS.stadium = 1; }).catch(() => {}); } } catch (e) {}
+// The pictures arrived (Lovable, 25 Nov 2026); the film is still checked for.
+["scenes/stadium-derelict", "scenes/stadium-full-house", "scenes/stadium-cracked-stand", "scenes/mini-stadium", "scenes/youth-assembly", "characters/football-official"].forEach(p => { SEAT.got[p] = true; });
+try { if (typeof fetch === "function") { fetch("./art/reels/stadium.mp4", { method: "HEAD" }).then(r => { if (r.ok) SYS.REELS.stadium = 1; }).catch(() => {}); } } catch (e) {}
 const sportArt = (p, fb) => SEAT.got[p] ? p.split("/").pop() : fb;
 const sportImg = (p, fb) => SEAT.got[p] ? "./art/" + p + ".webp" : fb;
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
