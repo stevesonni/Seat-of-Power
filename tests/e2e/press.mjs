@@ -36,4 +36,30 @@ check(P52.app === 52 && !P52.hostile, "from 52% it is balanced again (" + P52.ap
 const B2 = await front(); check(B2 && B2.good, "and the paper reports the deal as good again");
 
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
-await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);
+await g.browser.close();
+
+// ── The President: The Daily Impact, the same rule (owner: "Same for the President").
+{ const profile = JSON.stringify({ first: "Ada", last: "Okafor", avatar: "agbada", origin: "Enugu", district: 1, leaning: "PFP" });
+  const won = { v: 1, seed: 99, name: "Ada Okafor", avatar: "agbada", state: "Enugu", zone: "SE", party: "PFP", partyNm: "People's Front Party", from: "senator", bio: null, chest: 3, cor: .3,
+    opp: { name: "Musa Bello", party: "UCP", partyNm: "Unity Congress", zone: "NW", state: "Kano" }, rivals: [], del: {}, primaryRound: 3, ious: [], step: "sworn", zones: { NW: 48, NE: 47, NC: 55, SW: 58, SE: 66, SS: 61 },
+    week: 6, log: [], pledges: ["SE"], agents: true, debated: true, lastHit: null, mate: { name: "Ibrahim Danladi", zone: "NC", kind: "partyman" }, scandal: false, k: 1, over: false, res: { nat: 53.4, statesWon: 21, s25: 30 }, outcome: "won" };
+  const p = await open(srv.port, { save: { sop_profile: profile, sop_pres: JSON.stringify(won) }, seed: 5, test: { noStrikes: true } });
+  await p.click(/Road to Aso Rock/); await p.wait(900); await p.click(/Take the oath of office/); await p.wait(1500); await p.click(/^✋ Take the oath$/); await p.wait(600);
+  for (const re of [/Steady electricity/, /Jobs for young people/, /End grand corruption/]) { await p.page.evaluate((src) => { const b = [...document.querySelectorAll("[aria-label=Inauguration] button")].find(x => new RegExp(src).test(x.textContent)); b && b.click(); }, re.source); await p.wait(150); }
+  await p.click(/^Next: the address$/); await p.wait(2500);
+  const fr = () => p.page.evaluate(() => window.SOP.paperTest("NIGERIA SECURES THE HAGUE DEAL", "The court backs Nigeria's claim to the islands", true));
+  await p.page.evaluate(() => window.SOP.setS(q => ({ ...q, app: 55 }))); await p.wait(400);
+  const PB = await fr(); console.log("  President 55%: " + PB.masthead + " · " + PB.headline);
+  check(PB && PB.good && /The Daily Impact/.test(PB.masthead) && !/BENEFITS|PAPER|GIVES AWAY|PHOTO-OP/.test(PB.headline), "President at 55%: The Daily Impact reports the deal as good");
+  await p.page.evaluate(() => window.SOP.setS(q => ({ ...q, app: 45 }))); await p.wait(400);
+  const PH = await fr(); console.log("  President 45%: " + PH.headline + " · " + PH.sub);
+  check(PH && !PH.good && /BENEFITS|PAPER|GIVES AWAY|PHOTO-OP/.test(PH.headline), "President at 45%: the same deal reads as a failure");
+  await p.page.evaluate(() => window.SOP.setS(q => ({ ...q, app: q.app + 4 }))); await p.wait(400);
+  check((await p.page.evaluate(() => window.SOP.pressNow())).app === 47, "President: a +4 gain while hostile counts as +2");
+  await p.page.evaluate(() => window.SOP.setS(q => ({ ...q, app: 55 }))); await p.wait(400); // +8 halved: 51
+  check((await p.page.evaluate(() => window.SOP.pressNow())).hostile, "President at 51%: still hostile");
+  await p.page.evaluate(() => window.SOP.setS(q => ({ ...q, app: 53 }))); await p.wait(400);
+  check(!(await p.page.evaluate(() => window.SOP.pressNow())).hostile, "President at 52%: balanced again");
+  check(!p.errors.length, "President: no page errors (" + p.errors.join(" | ") + ")");
+  await p.browser.close(); }
+srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

@@ -2474,3 +2474,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - The TV desk's second anchor turns sour; Tori's news and press accounts (and the sports desk's buzz) add a sneer to good news; ordinary people are unchanged. The AI-written Tori is told when the press is hostile.
 - While hostile, every approval gain counts half; losses are untouched.
 - Tests: tests/press.test.mjs; tests/e2e/press.mjs (the same Hague deal at 55% and 45%, a halved gain, hostile at 51% while climbing, balanced at 52%).
+- The President: the same rule on The Daily Impact, the TV desk and Tori (tests/e2e/press.mjs plays it as President too).
