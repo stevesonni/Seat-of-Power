@@ -35,8 +35,11 @@ export const visitOdds = (ask, { fg = 50, app = 50, cor = .3 } = {}) =>
 
 export const visitOutcome = (ask, ctx, r = Math.random) => {
   const p = visitOdds(ask, ctx), ok = r() < p;
-  const cashB = ask.grantCash && ok ? Math.max(1, Math.round((ctx.revB || 20) * .08 * 10) / 10) : 0;
-  return { ok, p, cashB, fx: ok ? (ask.grant || {}) : {}, fg: ok ? 3 : 1, line: ok ? ask.yes : ask.no,
+  // A refund worth having (owner, 25 Nov 2026: "I should see that ₦5B has been paid into our treasury, or ₦3B"):
+  // about a fifth of a year's revenue, ₦2B to ₦6B for a state, and the President says the sum.
+  const cashB = ask.grantCash && ok ? Math.min(6, Math.max(2, Math.round((ctx.revB || 20) * .2 * 10) / 10)) : 0;
+  const yes = cashB ? "The President signs the approval on the spot: ₦" + cashB.toFixed(1) + "B is paid into the state's account today." : ask.yes;
+  return { ok, p, cashB, fx: ok ? (ask.grant || {}) : {}, fg: ok ? 3 : 1, line: ok ? yes : ask.no,
     paper: ok ? ["GOVERNOR WINS THE PRESIDENT'S EAR", "Aso Rock grants " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1), true] : ["GOVERNOR RETURNS FROM ASO ROCK EMPTY-HANDED", "The President promises to “look into” " + ask.l.charAt(0).toLowerCase() + ask.l.slice(1), false] };
 };
 

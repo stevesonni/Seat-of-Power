@@ -46,3 +46,14 @@ test("an LGA tour: the chairman's ask, or a town hall that may turn rough", () =
   assert.ok(rough.rough); assert.equal(rough.fx.app, -1);
   assert.equal(SYS.LGA_TOURS_A_YEAR, 2); assert.equal(SYS.LGA_TOUR_PURPOSES.length, 3); // the chairman, a town hall, or the palace (25 Nov 2026)
 });
+
+// A refund worth having, and said out loud (owner, 25 Nov 2026: "I should see that ₦5B has been paid into our treasury").
+test("a granted refund pays ₦2B–₦6B and the President names the sum", () => {
+  const ask = SYS.VISIT_ASKS.find(a => a.id === "refund");
+  for (const revB of [5, 20, 40]) {
+    const R = SYS.visitOutcome(ask, { fg: 100, app: 80, cor: .1, revB }, () => 0);
+    assert.ok(R.ok && R.cashB >= 2 && R.cashB <= 6, "revB " + revB + " → " + R.cashB);
+    assert.match(R.line, new RegExp("₦" + R.cashB.toFixed(1).replace(".", "\\.") + "B is paid into the state's account today"));
+  }
+  assert.equal(SYS.visitOutcome(ask, { fg: 0, app: 10, cor: .9, revB: 20 }, () => .99).cashB, 0, "no refund, no money");
+});

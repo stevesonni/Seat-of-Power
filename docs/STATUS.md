@@ -2329,3 +2329,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - when the governor loses: he celebrates.
 - The governor's own draft after a court win no longer says "That is what we promised Borno". It thanks the people, extends a hand to the opponent, and turns back to the work.
 - Test: tests/tori-court.test.mjs.
+
+## The Aso Rock refund shows up, and is worth having (25 Nov 2026)
+- Owner: "If I go for a refund and it's granted I don't see it reflect. I should see that ₦5B has been paid into our treasury, or ₦3B."
+- A granted refund is now about a fifth of a year's revenue, from ₦2B to ₦6B (it was 8%, often about ₦1B).
+- The President names the sum ("₦3.4B is paid into the state's account today"). The result card is titled "₦3.4B is in the Treasury", coins fall, and a row shows the Treasury before → after. The record line names the amount too.
+- Test: tests/visits.test.mjs.
