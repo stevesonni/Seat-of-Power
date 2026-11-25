@@ -440,7 +440,11 @@ export const REEL_SHARE = { secondary: "school", nursing: "hospital", pipeline: 
 export const REEL_BY_POLICY = { irrigation: "irrigation", kpa_irrigation: "irrigation", rural_elec: "dam", f_bus_terminals: "interstatebus" }; // interstatebus.mp4: the President's interstate terminals; a state's town terminals play busterminal.mp4 // Rural Electrification: the village whose lights come on (dam.mp4), not the town and its market (power.mp4) (owner, 25 Nov 2026)
 // A small one of a type has its own film (mini-stadia: up to 10,000 seats).
 export const REEL_SMALL = { stadium: { film: "ministadium", maxQty: 10000 } };
-export const reelFor = (type, id, src) => {
+/* The President's own films (owner, 25 Nov 2026: "There needs to be a good video of a FEDERAL road for the President;
+   the President currently uses the lesser road"). Used once the file is there (the game checks for it and sets REELS). */
+export const REEL_FED = { road: "fedroad", bridge: "fedroad" };
+export const reelFor = (type, id, src, nat) => {
+  if (nat && REEL_FED[type] && REELS[REEL_FED[type]]) type = REEL_FED[type];
   if (src && REEL_BY_POLICY[src] && REELS[REEL_BY_POLICY[src]]) type = REEL_BY_POLICY[src];
   if (!REELS[type] && REEL_SHARE[type]) type = REEL_SHARE[type];
   const n = REELS[type] || 0; if (!n) return null;

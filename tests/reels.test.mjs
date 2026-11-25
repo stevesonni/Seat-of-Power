@@ -35,3 +35,13 @@ test("reels: no film means no reel; two films alternate by project", () => {
   assert.deepEqual([...a].sort(), ["./art/reels/__t-2.mp4", "./art/reels/__t.mp4"]);
   delete SYS.REELS.__t;
 });
+
+test("the President's roads play the federal highway film once it is there; governors keep the road film", async () => {
+  const P = await import("../game/systems/projects.js");
+  assert.equal(P.reelFor("road", "p1", null, true), "./art/reels/road.mp4");
+  P.REELS.fedroad = 1;
+  assert.equal(P.reelFor("road", "p1", null, true), "./art/reels/fedroad.mp4");
+  assert.equal(P.reelFor("bridge", "p1", null, true), "./art/reels/fedroad.mp4");
+  assert.equal(P.reelFor("road", "p1", null, false), "./art/reels/road.mp4");
+  delete P.REELS.fedroad;
+});

@@ -126,3 +126,12 @@ Same rules as the other films: no words on screen, no logos, no real people; kee
 > Morning in a Nigerian town. A slow tracking shot along the fence of a small new community stadium: one covered stand, open terraces, a fresh green pitch and a red running track. Young men and women in plain training kit run drills and kick footballs; a coach blows a whistle; children press their faces to the fence to watch; okadas and a few cars are parked outside the gate. The camera rises gently over the stand to show the town's rooftops around it. Painted, warm, semi-realistic; no readable words, logos, club crests or sponsor boards; no real people.
 
 **Delivered 25 Nov 2026: stadium.mp4 and ministadium.mp4** (installed at 960×540, no sound). The big stadium plays for the national stadium and the club's ground; the mini-stadium plays for stadiums of up to 10,000 seats (SYS.REEL_SMALL).
+
+## New, 25 Nov 2026: the federal highway film (the President's roads)
+
+**File:** `public/art/reels/fedroad.mp4`. It plays when a President's road or bridge is finished (the trunk roads, the coastal highway, a second Niger bridge). A governor's roads keep `road.mp4`. The game checks for it and uses it as soon as it is there.
+
+**Prompt for Gemini (Veo), 8–10 seconds, 16:9, no sound needed:**
+> A sweeping aerial shot along a brand-new federal expressway in Nigeria in the late-afternoon sun: a wide six-lane dual carriageway with a concrete median and crash barriers, fresh black asphalt and bright white lane markings, cutting through green hills and savannah towards a distant city. Long-distance trucks, luxury coaches and cars flow in both directions. The camera rises over a grand interchange with flyovers and slip roads, then follows the highway as it crosses a long concrete bridge over a wide brown river. A plain green-white-green flag flies beside a toll plaza with no lettering. Painted, warm, semi-realistic; no readable words, signs with lettering, logos or number plates; no real people.
+
+Same rules as the other films: no words on screen, no logos, no real people; keep the subject in the middle of the frame.

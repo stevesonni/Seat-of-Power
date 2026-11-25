@@ -2504,3 +2504,6 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - A flood or erosion problem on your Desk (a tour's "Anambra East's floods", a gully) is now answered by flood control, not the housing estate. The flood-displaced families need offers both: stop the floods, or rehouse them.
 - Pictures: existing art (decisions/flood, variants bill-erosion, bill-flood, bill-waterways).
 - Tests: tests/flood-programme.test.mjs; tests/e2e/flood-programme.mjs.
+
+## 25 Nov 2026: a federal highway film for the President
+- SYS.REEL_FED: a President's finished road or bridge plays reels/fedroad.mp4 (a six-lane expressway, interchange and river bridge) once it is there; governors keep road.mp4. The game checks for the file at start. Prompt in docs/GEMINI-REELS.md.
