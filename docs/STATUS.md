@@ -2421,3 +2421,17 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - No new art: existing portraits and rooms; FIFA and CAF are named, their people are not.
 - Tests: tests/sports.test.mjs; tests/e2e/sports.mjs.
 - Fix (same day): Tori posts queued while the year turned were overwritten when the year's record was saved, so the feed never buzzed. They now go straight into the year's record (buzzNow). tests/e2e/sports.mjs now watches for the letters during play, because its autoplay can hand them to the Chief of Staff before the end.
+
+## The state's club in Africa; sport's pictures and film asked for (25 Nov 2026)
+- Owner: "build the state football club CAF one too, and where are the Lovable images and Gemini".
+- **The governor, year 3, once:** the state's own club (SYS.clubOf: the real state-owned clubs, for example Enyimba, Kano Pillars, El-Kanemi Warriors; "<State> United" where none is known) qualifies for the CAF Champions League or Confederation Cup, but CAF will not approve its ground.
+  - Upgrade the stadium in the capital's council: one year, through a contractor, ready if signed now.
+  - Play home matches in another state: approval −2.
+  - Withdraw: approval −4, CAF fines the club, front page.
+  - A hostile Speaker scuttles the money.
+- **Match day the year after:** the ground is finished, so a full house (approval +3); or not, so CAF moves the match out of the state (approval −3).
+- Tori buzzes at each step (SYS.clubBuzz): the sports desk and the club's supporters.
+- **Art:**
+  - docs/LOVABLE-SPORTS.md asks for six pictures (a derelict national stadium, a full house at night, a cracked stand, a community mini-stadium, the Youth Assembly sitting, a football official's portrait).
+  - docs/GEMINI-REELS.md asks for the stadium film (stadium.mp4).
+  - The game checks for each file (SEAT.got, sportArt/sportImg) and uses it as soon as it is there; the film joins SYS.REELS when it arrives.

@@ -80,3 +80,22 @@ export const sportsBuzz = (stage, ctx = {}) => {
    holding spending. Rushing costs half again of what is left, and a rush job may crack. */
 export const RUSH_X = 1.5, CRACK_P = .35;
 export const rushOutcome = (r = Math.random) => r() < CRACK_P ? { crack: true, app: -5, quality: .45 } : { crack: false, app: 3, quality: .6 };
+
+/* The state's own football club in Africa (owner, 25 Nov 2026: "build the state football club CAF one too"). Most
+   Nigerian states own their clubs; the names are the clubs' real ones (institutions, not people). */
+export const STATE_CLUBS = { Abia: "Enyimba", Akwa_Ibom: "Akwa United", Bauchi: "Wikki Tourists", Bayelsa: "Bayelsa United", Benue: "Lobi Stars", Borno: "El-Kanemi Warriors",
+  Cross_River: "Rovers", Delta: "Warri Wolves", Edo: "Bendel Insurance", Enugu: "Rangers International", Gombe: "Gombe United", Imo: "Heartland", Kaduna: "Kaduna United", Kano: "Kano Pillars",
+  Katsina: "Katsina United", Kwara: "Kwara United", Nassarawa: "Nasarawa United", Niger: "Niger Tornadoes", Ogun: "Gateway United", Ondo: "Sunshine Stars", Oyo: "Shooting Stars",
+  Plateau: "Plateau United", Rivers: "Rivers United", Sokoto: "Sokoto United", Yobe: "Yobe Desert Stars", Zamfara: "Zamfara United" };
+export const clubOf = (st) => STATE_CLUBS[st] || String(st).replace(/_/g, " ") + " United";
+export const CLUB_CUPS = ["the CAF Champions League", "the CAF Confederation Cup"];
+export const clubBuzz = (stage, ctx = {}) => { const C = ctx.club || "the club", tag = "#" + String(C).replace(/[^A-Za-z]/g, ""), cup = ctx.cup || CLUB_CUPS[0];
+  return ({
+    ask: [P("Kunle Sports Desk", "kunlesports", "Sports journalist", "reporter", C + " are in " + cup + "! But CAF has not approved their home ground. Will the Governor fix it, or will they play 'home' games far away? " + tag),
+      P("Ultra " + C, "ultras_" + tag.slice(1, 9).toLowerCase(), "Supporters' club", "market-women-group-cheering", "We have waited years for Africa. Give us a home ground fit for it! " + tag)],
+    fix: [P("Ultra " + C, "ultras_" + tag.slice(1, 9).toLowerCase(), "Supporters' club", "market-women-group-cheering", "The stadium works have started. If it's ready, we will fill it. " + tag)],
+    away: [P("Ultra " + C, "ultras_" + tag.slice(1, 9).toLowerCase(), "Supporters' club", "market-women-group-cheering", "Our 'home' match will be hundreds of kilometres away. The fans cannot follow. " + tag)],
+    quit: [P("Kunle Sports Desk", "kunlesports", "Sports journalist", "reporter", C + " have withdrawn from " + cup + ". CAF will fine them; the players are in tears. " + tag)],
+    hosted: [P("Ultra " + C, "ultras_" + tag.slice(1, 9).toLowerCase(), "Supporters' club", "market-women-group-cheering", "A full house for " + C + " in Africa. Thank you! " + tag + " ⚽")],
+    moved: [P("Kunle Sports Desk", "kunlesports", "Sports journalist", "reporter", "CAF has moved " + C + "'s home match out of the state: the ground was not ready. " + tag)],
+  })[stage] || []; };

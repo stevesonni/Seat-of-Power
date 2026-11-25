@@ -106,3 +106,14 @@ country (for example, a road through northern savannah instead of southern hills
 
 
 **Delivered 25 Nov 2026: interstatebus.mp4** (the President's interstate terminals: coaches under a steel roof, travellers with luggage). Installed at public/art/reels/interstatebus.mp4 (960×540, no sound). Every film asked for is now in.
+
+---
+
+## New, 25 Nov 2026: the stadium film
+
+**File:** `public/art/reels/stadium.mp4`. It plays when a stadium or mini-stadium is finished: the President's national stadium, the state's mini-stadia, the club's upgraded ground. The game checks for it and uses it as soon as it is there.
+
+**Prompt for Gemini (Veo), 8–10 seconds, 16:9, no sound needed:**
+> A slow aerial shot rising over a newly renovated stadium in a Nigerian city at dusk. The floodlights flicker on one tower at a time, lighting a bright green pitch and a running track. Fans in green and white stream through the gates below, waving plain flags; drummers play in the stands. The camera rises to show the city lights and the stadium glowing in the middle. Painted, warm, semi-realistic; no readable words, logos, club crests or sponsor boards; no real people.
+
+Same rules as the other films: no words on screen, no logos, no real people; keep the subject in the middle of the frame.
