@@ -2435,3 +2435,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
   - docs/LOVABLE-SPORTS.md asks for six pictures (a derelict national stadium, a full house at night, a cracked stand, a community mini-stadium, the Youth Assembly sitting, a football official's portrait).
   - docs/GEMINI-REELS.md asks for the stadium film (stadium.mp4).
   - The game checks for each file (SEAT.got, sportArt/sportImg) and uses it as soon as it is there; the film joins SYS.REELS when it arrives.
+- Sport's letters (the Youth Assembly, the commissioner's memo, FIFA/CAF, the club's CAF letter) now have high priority in the mailbox, so the yearly cap never holds them back.

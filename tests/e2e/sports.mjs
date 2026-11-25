@@ -13,7 +13,7 @@ const Y1 = JSON.parse(fs.readFileSync(new URL("./fixtures/year1-save.json", impo
   const g = await open(srv.port, { save: { ...Y1, sop_save: JSON.stringify(sv) }, seed: 3, test: { noStrikes: true } });
   await g.click(/^Continue/); await g.wait(1800);
   await g.page.evaluate(() => { const b = [...document.querySelectorAll("button")].find(x => /Tunde Okafor-Ilesanmi/.test(x.textContent)); b && b.click(); }); await g.wait(800);
-  let L = null; const grab = async () => { if (L) return; try { L = await g.page.evaluate(() => (window.SOP.lettersTest() || []).find(x => x.key === "sc#youth_asm")) || null; } catch (e) {} };
+  let L = null; const grab = async () => { if (L) return; try { L = await g.page.evaluate(() => (window.SOP.lettersTest() || []).find(x => /^sc#youth_asm/.test(x.key))) || null; } catch (e) {} };
   await playUntil(g, () => !!L, { max: 400, onStep: grab });
   check(!!L, "the State Youth Assembly writes");
   console.log("  " + (L && L.body));
