@@ -2386,3 +2386,11 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - Test: tests/e2e/finance.mjs case 3a (the same insecure state with soldiers on the site brings the ordinary tranche letter, not a suspension).
 - tests/e2e/finance.mjs's two picture checks (the signing scene, the boardroom scene) have failed since the mailbox redesign, which shows the letter instead of a scene. They were not caused by this change.
 - The second letter sweep (two governor games, one President game, 122 letters) flagged one letter: a court letter whose case was not loaded yet. Its fallback now says what the case is and what you can do.
+
+## No letter speaks of its own sender in the third person (25 Nov 2026)
+- Owner: "How can Bola Adekunle refer to herself in the third person?" The Head of Service letter, signed by her, said "Bola Adekunle has a candidate to recommend". It now says "I have a candidate to recommend".
+- The same slip, found in the sweep's letters:
+  - the junta letters were signed "Gen. Voko" but reported what "General Voko" did. They are now from the Chief of Army Staff;
+  - the feud letters about the deputy were signed by the deputy. They are now from the Special Adviser;
+  - invitations said "The President of the Pan-African Development Fund of Pan-African Development Fund… has invited you". They now speak as the sender: "I write to invite you to Abidjan… I would be honoured to receive you yourself, though a delegation of your officials is welcome."
+- tests/e2e/letters-read.mjs now flags any letter whose body names its own sender.

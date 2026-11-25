@@ -31,6 +31,8 @@ const bad = [];
 for (const L of seen.values()) {
   const b = L.body, S = (b.match(/(?:\b(?:Hon|Rt|Dr|Mr|Mrs|Prof|St|No)\.|\d\.\d|[^.!?])+(?:[.!?]+["”’]?|$)/g) || []).map(x => x.trim().toLowerCase()).filter(Boolean);
   if (/Your Excellency,/.test(b)) bad.push(L.key + ": a second greeting");
+  { const nm = String(L.from || "").split(/[,·]/)[0].replace(/^(Hon\.|Prof\.|Dr\.|Rt\. Hon\.|Gen\.|Vice-President|Deputy Governor|The)\s*/g, "").trim(), last = nm.split(" ").pop();
+    if (last && last.length > 3 && /^[A-Z]/.test(last) && new RegExp("\\b" + last + "\\b").test(b)) bad.push(L.key + ": the sender (" + nm + ") is named in the third person: " + b.slice(0, 120)); }
   if (new Set(S).size !== S.length) bad.push(L.key + ": a sentence twice: " + b);
   if (!/[.!?…)"”’]$/.test(b.trim())) bad.push(L.key + ": ends mid-sentence: " + b);
 }
