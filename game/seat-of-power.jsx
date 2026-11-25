@@ -9751,8 +9751,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         opts.push({ label: "Leave it", note: "No cost now. The money keeps leaking.", chips: [], run: () => { track("pil_upkeep", "none"); } });
         if (!W || W.b <= 0) notes.push(["🏦 FAAC day: " + naira(L.total) + " leaked (" + L.pct + "%)" + (up > 0 ? "; your reforms' running costs came to " + naira(up) : "") + ".", "info"]);
         else cards.push({ key: "pil_leak_" + turn, kicker: "FAAC day · where the money went", color: CL.red, art: ["state-secretariat", null, "salary-slip"], title: naira(L.total) + " of " + naira(s.faac || 10) + " leaked before it reached anyone",
-          brief: L.parts.filter(x => x.b > 0).map(x => SYS.leakNames(x.id, NAT).nm + ": " + naira(x.b)).join(". ") + "." + (up > 0 ? " Your reforms' running costs (" + naira(up) + ") were paid from the bank." : ""),
-          stakes: "That is " + L.pct + "% of this year's FAAC, gone from the bank." + (next.leakHist.length > 1 ? " Last year: " + next.leakHist[next.leakHist.length - 2].pct + "%." : ""), options: opts });
+          // Told as a letter: how much came, how much was lost and to what, the worst leak and its cure (owner, 25 Nov 2026).
+          brief: (() => { const P = L.parts.filter(x => x.b > 0).map(x => naira(x.b) + " " + (NAT ? { payroll: "to ghost workers on the federal payroll", contracts: "to padded federal contracts", accounts: "kept off the books by agencies", levies: "in port and customs fees taken in cash" } : { payroll: "to ghost workers on the payroll", contracts: "to padded contracts", accounts: "parked in officials' private bank accounts", levies: "in levies collected in cash and never banked" })[x.id]), F = SYS.leakNames(W.id, NAT);
+            return "This year's allocation from " + (NAT ? "the Federation Account" : "Abuja (FAAC)") + " was " + naira(s.faac || 10) + ". Before it reached the ministries and the workers, " + naira(L.total) + " of it, " + L.pct + "%, was lost: " + (P.length > 1 ? P.slice(0, -1).join(", ") + " and " + P[P.length - 1] : P[0]) + "."
+              + (next.leakHist.length > 1 ? " Last year we lost " + next.leakHist[next.leakHist.length - 2].pct + "%." : "")
+              + " The biggest hole is " + F.nm.toLowerCase() + ". " + F.fix + " would stop most of it for good: it costs " + naira(F.cost) + " now and " + naira(F.upkeep) + " a year to run." + (up > 0 ? " The reforms you already have cost " + naira(up) + " to run this year." : ""); })(),
+          stakes: "Do we fix it?", options: opts });
       }
       // 4. Ministries with integrity: who your commissioners really are.
       if (pillarOn("integrity")) {

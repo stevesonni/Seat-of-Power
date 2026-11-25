@@ -2313,3 +2313,8 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - It said: "The commissioners' requests will go to them. Bola Adekunle has a recommendation."
 - It now says the civil service has no head; what the Head of Service (shown as "top civil servant") does: staff, promotions, transfers and discipline for every commissioner, and a yearly report on every ministry; that until one is appointed those requests land on your desk and nobody checks the ministries; that the Special Adviser has a candidate, but the choice is yours. It ends with "Will you choose one now?"
 - tests/e2e/letters-read.mjs checks it.
+
+## The FAAC-day leak letter reads as a letter (25 Nov 2026)
+- It said: "Padded contracts: ₦0.3B. Money parked in private bank accounts: ₦0.2B. Levies collected in cash, never banked: ₦0.2B."
+- It now says how much came from Abuja this year, and how much was lost before it reached the ministries and the workers (amount and %) and to what, in one sentence. It gives last year's figure, names the biggest hole and the reform that stops it (its cost now and its running cost a year), then asks "Do we fix it?". The President's version names the Federation Account and the federal leaks.
+- tests/e2e/letters-audit.mjs plays long games, as a governor and as a President, and writes every letter that arrives to a file, flagging short, list-like or cut-off letters. It is used to sweep every kind of letter.
