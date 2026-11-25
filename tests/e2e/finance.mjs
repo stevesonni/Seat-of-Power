@@ -46,6 +46,7 @@ const withLoan = (mut = {}) => { const sv = JSON.parse(Y1.sop_save);
   const L = SYS.scheduleLoan({ key: "loan:p_road:bank", lenderId: "bank", lender: "A syndicate of three commercial banks", nm: "Commercial bank loan", principalM: 9000, rate: .22, years: 4, serviceM: 2700, repayM: 10800 }, "p_road", 1);
   sv.turn = 2; sv.projTicked = 2; sv.projects = [P]; sv.loans = [{ ...L, ...(mut.loan || {}) }]; sv.stc = { ...sv.stc, lastTurn: 1 };
   if (mut.sec != null) sv.s = { ...sv.s, sec: mut.sec };
+  if (mut.army) sv.stc = { ...sv.stc, armyAt: mut.army };
   return { ...Y1, sop_save: JSON.stringify(sv) }; };
 
 // ── 1. Sign tranche 2 ──
@@ -84,6 +85,15 @@ const withLoan = (mut = {}) => { const sv = JSON.parse(Y1.sop_save);
   await g.click(/^Continue/); await g.wait(2500);
   const sv = await save(g), P = sv.projects.find(p => p.id === "p_road");
   check((P.events || []).some(e => /did not sign the lender's tranche/.test(e)) && (P.builtM || 0) === 0 && P.loanLeftM === 3000 && P.status === "in_progress", "the next year: nothing was built, the money is untouched, and the project says why");
+  check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
+  await g.browser.close(); }
+
+// ── 3a. The same insecurity, but soldiers guard the site (owner, 25 Nov 2026: "Despite the fact that I've asked the
+// President for the army three times, still…"): the bank counts the guard and releases the tranche.
+{ const g = await open(srv.port, { save: withLoan({ loan: { warned: 1 }, sec: .2, army: { "Abeokuta North": 1 } }) });
+  check(await toTray(g), "the Governor reaches the end of year 2, soldiers guarding the site");
+  const keys = await g.page.evaluate(() => (window.SOP.lettersTest() || []).map(x => x.title).join(" | "));
+  check(!/suspended: Abeokuta Ring Road/.test(keys) && /Tranche 2 of 3: Abeokuta Ring Road/.test(keys), "no suspension: the bank's ordinary tranche letter instead (" + keys.slice(0, 160) + ")");
   check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
   await g.browser.close(); }
 

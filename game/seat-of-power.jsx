@@ -9266,6 +9266,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               scFx(o.fx);
               if (o.zone) { const zi = NAT ? NATION_ZONE_IDS.indexOf(b.zone) : null; if (zi != null && zi >= 0) scFx({}, zi, o.zone); }
               if (o.resume) setPol(pp => pp.map(x => x.id === b.polId ? { ...x, blocked: false, tl: (x.tl || 0) + (o.delay || 0) } : x));
+              // Soldiers guarding the site stay, and the banks count it (owner, 25 Nov 2026: "Despite the fact that I've asked
+              // the President for the army three times, still…" the lender suspended the tranche for insecurity).
+              if (o.id === "clear" && o.resume && !o.failed) setStc(p => ({ ...p, armyAt: { ...(p.armyAt || {}), [b.place]: turn, ["pol:" + b.polId]: turn } }));
               else setStc(p => ({ ...p, chains: [...(p.chains || []), { ...b, id: b.id + "_again", due: turn + 1, done: false }] })); // it comes back next year
               if (o.paid) setStc(p => ({ ...p, paidOff: true }));
               addL((o.resume ? "🛡️ " : "🚧 ") + C.title + ": " + o.l.toLowerCase() + ".", o.resume ? "policy" : "crisis");
@@ -9677,7 +9680,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           attack: (next.chains || []).some(b => b.kind === "crisis" && !b.done && (NAT ? b.zone === zoneOf : b.place === P.lga) && (pol || []).some(x => x.id === b.polId && x.blocked)),
           fled: (next.chains || []).some(b => b.kind === "japa" && b.projId === P.id),
           strike: (SYS.strikeBlock(SI, { type: P.type, sector: P.sector }) || {}).status === "stop",
-          insecure: (NAT ? Object.entries(next.fronts || {}).some(([k, v]) => v >= 65 && SYS.FRONTS[k] && SYS.FRONTS[k].zone === zoneOf) : stateInsecure) && L0.guarded !== turn };
+          insecure: (NAT ? Object.entries(next.fronts || {}).some(([k, v]) => v >= 65 && SYS.FRONTS[k] && SYS.FRONTS[k].zone === zoneOf) : stateInsecure) && L0.guarded !== turn && !(A0 => A0[P.lga] || (P._srcPolicy && A0["pol:" + P._srcPolicy.id]) || (!P.lga && A0[stName]))(next.armyAt || {}) };
         const W = SYS.lenderWatch(L0, sig), L = W.L;
         if (W.act === "hold" || W.act === "suspend") cards.push(finHoldCard(L, P, W));
         else if (W.act === "warn") cards.push(finWarnCard(L, P, W));
@@ -10339,7 +10342,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           return { icon: "⏸️", img: "./art/scenes/site-idle-unsigned.webp", title: "Not signed", text: "Nothing is built on " + P.title + " this year. The bank's commitment fee and the contractor's standby bill come to " + SYS.fmtM(pen) + ".", tone: "bad", rows: [{ l: "Penalty", v: SYS.fmtM(pen), good: false }, { l: "The site", v: "Idle this year", good: false }] }; } },
       ].filter(Boolean) }; };
   const finWarnCard = (L, P, W) => finTrancheCard(L, P, W);
-  const finHoldCard = (L, P, W) => { const m = SYS.nextTrancheM(L), odds = Math.max(.1, Math.min(.8, (L.lenderId === "dfi" ? .2 : .35) + ((s.app || 50) - 50) / 200)), fix = W.why === "armed men attacked the site" ? "Deal with the attack on the Desk, and they will release it." : W.why.startsWith("the site is shut") ? "End the strike, and they will release it." : W.why.startsWith("the contractor left") ? "Appoint a new contractor, and they will release it." : W.why === "insecurity around the site" ? "Make the area safe (a Peace Plan step, or the crisis ended), and they will release it." : "Clean up the books, and they will release it.";
+  const finHoldCard = (L, P, W) => { const m = SYS.nextTrancheM(L), odds = Math.max(.1, Math.min(.8, (L.lenderId === "dfi" ? .2 : .35) + ((s.app || 50) - 50) / 200)), fix = W.why === "armed men attacked the site" ? "Deal with the attack on the Desk, and they will release it." : W.why.startsWith("the site is shut") ? "End the strike, and they will release it." : W.why.startsWith("the contractor left") ? "Appoint a new contractor, and they will release it." : W.why === "insecurity around the site" ? "Make the area safe (soldiers guarding the site, a Peace Plan step, or the crisis ended), and they will release it." : "Clean up the books, and they will release it.";
     return { key: "fin_hold_" + L.key + "_" + turn, kicker: "🏦 " + finName(L) + " · tranche suspended", color: CL.red, from: finFrom(L), art: ["finance-ministry-office", finWho(L), null, "lender-suspends"], seal: finSeal(L), office: finOffice(L),
       title: "Tranche " + (L.drawn + 1) + " suspended: " + P.title, brief: "We have suspended the next tranche (" + SYS.fmtM(m) + "): " + W.why + ". " + fix,
       stakes: "The site runs only on the money already drawn and what the bank can pay.",
@@ -13220,7 +13223,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       investor: () => ["An investor's office", "./art/characters/investor-nigerian.webp", (curInvestor && curInvestor.nm) || "An investor wants a meeting", (curInvestor && curInvestor.co) || "They want land and a deal."],
       federal: () => ["The Presidency, Abuja", "./art/characters/permanent-secretary.webp", (curFgEvent && curFgEvent.title) || "A federal matter", "Abuja is waiting for your reply."],
       shock: () => ["The Commissioner of Police", "./art/characters/police-commissioner.webp", (curShock && curShock.title) || "Something has happened", "It needs an answer today."],
-      judiciary: () => ["The High Court Registry", "./art/characters/judge.webp", (curCourt && (curCourt.title || curCourt.nm)) || "A case against the state", "The court wants the state's response."],
+      judiciary: () => [NAT ? "The Federal High Court Registry" : "The High Court Registry", "./art/characters/judge.webp", (curCourt && (curCourt.title || curCourt.nm)) || (NAT ? "A case against the Federal Government" : "A case against the state"), "A case has been filed against " + (NAT ? "the Federal Government" : "the state government") + ", and the court wants " + (NAT ? "its" : "the state's") + " answer. Open it to hear the claim from the Attorney-General; then fight it, appealing if you lose, or comply."],
       nic_ruling: () => ["The National Industrial Court", "./art/characters/judge.webp", "The court has ruled on the sacking", "Comply, appeal or defy."],
       media: () => ["The newsroom", "./art/characters/reporter.webp", (curMedia && (curMedia.title || curMedia.nm)) || "The press wants a word", "They will run it with or without you."],
       dilemma: () => ["A community delegation", "./art/characters/traditional-ruler-oba-obi.webp", (curD && curD.nm) || "A local dispute", "They have travelled to Government House to see you."],

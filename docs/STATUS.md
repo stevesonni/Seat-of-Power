@@ -2377,3 +2377,12 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - Cause: letters held back by the yearly mail cap were put on a carry list (scCarry) that was never emptied, so every carried letter returned every year, even after you answered it.
 - The carry list now empties when its letters are put back in the pile at the year's turn; a letter still unanswered is carried again, and an answered one is gone for good.
 - Test: tests/e2e/letters-no-repeat.mjs plays three years and checks that no letter appears in the mailbox in more than two years. The mail and mail-cap tests still pass. A test hook, SOP.carryNow(), shows the carry list.
+
+## Soldiers on a site count with the banks (25 Nov 2026)
+- Owner: "Despite the fact that I've asked the President for the army three times, still…": the bank suspended a tranche for "insecurity around the site".
+- The lender judged insecurity across the whole state (Borno always counts as insecure) and ignored the soldiers guarding the site.
+- Now, when a site crisis ends with soldiers guarding it, the state remembers (stc.armyAt, by place and by programme). The banks treat that council's sites, and the programme's own projects, as safe.
+- The suspension letter lists soldiers guarding the site as one way to get the money released.
+- Test: tests/e2e/finance.mjs case 3a (the same insecure state with soldiers on the site brings the ordinary tranche letter, not a suspension).
+- tests/e2e/finance.mjs's two picture checks (the signing scene, the boardroom scene) have failed since the mailbox redesign, which shows the letter instead of a scene. They were not caused by this change.
+- The second letter sweep (two governor games, one President game, 122 letters) flagged one letter: a court letter whose case was not loaded yet. Its fallback now says what the case is and what you can do.
