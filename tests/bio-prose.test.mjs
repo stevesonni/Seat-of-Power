@@ -53,3 +53,28 @@ test("biography: the fight with the House and the war each get their own story, 
   const lead = B.lead.flat().filter(x => typeof x === "string").join("");
   assert.ok(/the war with Bakunda/.test(lead) && /battle with the National Assembly/.test(lead), lead);
 });
+
+// Perplexity's review of a Katsina run (owner, 25 Nov 2026): the faults it found are gone.
+test("biography: a promise kept is not also broken; the Speaker's contract told once; the petition's outcome in the election; tours together", () => {
+  const ev = [
+    { turn: 1, section: "Controversies", txt: "The Governorship Election Tribunal nullified the election; the governor appealed." },
+    { turn: 7, section: "Governorship", txt: "Kept the campaign promise to “tar the roads of Katsina North (Daura) zone”." },
+    { turn: 8, section: "Governorship", txt: "Broke the campaign promise to “tar the roads of Katsina North (Daura) zone”." },
+    { turn: 7, section: "Legislature", txt: "Gave State university campus in the Speaker's district to the Speaker's own contractor to win back the House." },
+    { turn: 8, section: "Governorship", txt: "Awarded State university campus in the Speaker's district to Mace & Gavel Works Ltd by open competitive tender." },
+    { turn: 3, section: "Governorship", txt: "Toured Daura Local Government Area and paid homage at the palace; the issue raised was Daura's farmers." },
+    { turn: 4, section: "Governorship", txt: "Toured Bakori Local Government Area and met the council chairman, Hon. Mukhtar Kabir; the issue raised was Bakori's farmers." },
+    { turn: 5, section: "Governorship", txt: "Toured Kankara Local Government Area and held a town hall; the issue raised was Bandits in Kankara." },
+    { turn: 6, section: "Governorship", txt: "Signed an executive order: order: no open grazing." },
+    { turn: 3, section: "Security", txt: "Bandits kidnapped three foreign engineers. Special forces went in at dawn and brought all three home. The army's name rose; work resumes." },
+  ];
+  const t = text(SYS.writeBio(base({ events: ev, needs: { met: 13, failed: 1, open: 3 } })));
+  assert.ok(/kept one campaign promise/i.test(t) && !/broke one/i.test(t), "kept, not also broken");
+  assert.ok(!/Mace & Gavel Works Ltd by open competitive tender/.test(t), "the Speaker's contract is told once");
+  const el = t.slice(t.indexOf("gubernatorial election. ") > -1 ? 0 : 0);
+  assert.ok(/nullified the election/.test(t) && /overturned on appeal, and she remained in office|overturned on appeal, and he remained in office/.test(t), "the petition and its outcome");
+  assert.ok(/toured three local government areas, among them Daura, Bakori and Kankara/.test(t) && /Daura.s farmers, Bakori.s farmers and bandits in Kankara/.test(t) && !/the issue raised was/.test(t), "tours told together");
+  assert.ok(!/order: order:/i.test(t), "no doubled order");
+  assert.ok(!/work resumes/.test(t), "past tense");
+  assert.ok(/Community needs: 13 met, 4 not met \(3 still open\)/.test(t), "needs in plain words");
+});

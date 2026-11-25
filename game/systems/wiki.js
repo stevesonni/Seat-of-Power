@@ -113,7 +113,7 @@ export const writeBio = (f) => {
   // The biography dates each line itself, so a year inside the line ("…was elected Speaker in 2029") is dropped.
   const tok = (t) => String(t).replace(/\{He\}/g, He).replace(/\{he\}/g, he).replace(/\{His\}/g, His).replace(/\{his\}/g, his).replace(/\{him\}/g, him)
     .replace(/^In (19|20)\d\d,? /, "").replace(/ in (19|20)\d\d(?=[;,.]| after| to )/g, "").replace(/^./, c => c.toUpperCase());
-  (f.events || []).slice().reverse().forEach(e => { if (!e || !e.txt) return; const txt = tok(proseOf(toPast(e.txt))), k = txt.toLowerCase(); if (seen.has(k)) return; seen.add(k); evs.push({ ...e, txt }); });
+  (f.events || []).slice().reverse().forEach(e => { if (!e || !e.txt) return; const txt = tok(proseOf(toPast(String(e.txt).replace(/executive order: (executive )?order: /i, "executive order: ")))), k = txt.toLowerCase(); if (seen.has(k)) return; seen.add(k); evs.push({ ...e, txt }); });
   const warn = [], broken = [], kept = [], honours = [], rest = [];
   evs.forEach(e => {
     const t = String(e.txt).trim();
@@ -124,6 +124,18 @@ export const writeBio = (f) => {
     const hn = t.match(/^Earned the honour [“"](.*)[”"]: (.*)$/); if (hn) return honours.push({ t: e.turn, nm: hn[1], why: hn[2].replace(/\byour\b/g, his).replace(/\byou\b/g, he) });
     rest.push({ t: e.turn, txt: t, bad: e.section === "Controversies", w: weightOf(t), sec: e.section });
   });
+  // A promise kept is not also listed as broken (Perplexity's review, 25 Nov 2026): kept wins; each promise once.
+  { const k0 = new Set(kept.map(k => k.what.toLowerCase())); for (let i = broken.length - 1; i >= 0; i--) if (k0.has(broken[i].what.toLowerCase())) broken.splice(i, 1);
+    const seenK = new Set(); for (let i = 0; i < kept.length; i++) { const k = kept[i].what.toLowerCase() + "|" + kept[i].t; if (seenK.has(k)) { kept.splice(i, 1); i--; } else seenK.add(k); } }
+  // A project given to the Speaker's own contractor is told once: the later "awarded … by tender" line for it is dropped.
+  { const gave = rest.map(e => (e.txt.match(/^Gave (.+?) to the Speaker's own contractor/) || [])[1]).filter(Boolean).map(x => x.toLowerCase());
+    if (gave.length) rest.forEach(e => { const m = e.txt.match(/^Awarded (.+?) to /); if (m && gave.includes(m[1].toLowerCase())) e.used = true; }); }
+  // The election petition belongs to the election, with its outcome.
+  const COURT_RX = /nullified the (re-)?election|election petition|upheld (his|her|the) (re-)?election|dismissed .*petition/i;
+  const courtEvs = rest.filter(e => !e.used && COURT_RX.test(e.txt)); courtEvs.forEach(e => { e.used = true; e.story = "court"; });
+  // Tours of local governments: told together, not one line each.
+  const TOUR_RX = /^Toured (.+?) Local Government Area.*?the issue raised was (.+?)\.?$/;
+  const tours = rest.filter(e => !e.used && TOUR_RX.test(e.txt)).map(e => { e.used = true; e.story = "tour"; const m = e.txt.match(TOUR_RX); return { t: e.t, lga: m[1], issue: m[2] }; });
   /* The House (or the National Assembly) and the war are told as their own stories, in order, not scattered across
      themes (owner, 25 Nov 2026: "the biography doesn't chronicle the skirmish with the House or the National Assembly…
      it doesn't even account for the war-time actions"). Older saves' lines are found by what they say. */
@@ -193,6 +205,11 @@ export const writeBio = (f) => {
   else if (f.flag) camp.push(He + " campaigned on a promise to " + f.flag.goal + ". ");
   if (f.loan) { camp.push("The campaign was partly financed by a " + f.loan.amount + " loan from " + f.godfather + ", a party financier; critics argued that the debt gave him leverage over the incoming administration."); camp.push(cite(f.godfather + " bankrolls " + name + "'s campaign", 1)); camp.push(" "); }
   if (f.election) camp.push("In the general election, " + he + " defeated " + f.election.opp + (f.election.oppParty ? " of the " + f.election.oppParty : "") + " by a margin of " + f.election.marginPct + " percentage points" + (f.election.zonesWon != null ? ", carrying " + placesWon(f.election.zonesWon) + " " + V.places : "") + ".");
+  if (courtEvs.length) {
+    const sorted = courtEvs.slice().sort((a, b) => a.t - b.t), upheld = sorted.some(e => /upheld|dismissed/i.test(e.txt)), lostFinal = sorted.some(e => /Supreme Court nullified/i.test(e.txt) && !/appealed/.test(e.txt));
+    sorted.slice(0, 3).forEach(e => camp.push(" " + dated(e, false) + " "));
+    if (!upheld && !lostFinal && (f.ended ? lastT > 1 : true)) camp.push("The ruling was overturned on appeal, and " + he + " remained in office. ");
+  }
   sections.push({ h: base + " " + V.election, paras: [camp] });
 
   // ── Governorship, by subject ──
@@ -215,6 +232,8 @@ export const writeBio = (f) => {
     es.forEach((e, i) => { pp.push(dated(e, i === 0 && !pp.length) + " "); if (e.w >= 4) { pp.push(cite(clip(firstSentence(e.txt), 100), e.t)); pp.push(" "); } });
     if (pp.length) subs.push({ h: th, paras: [pp] });
   });
+  if (tours.length) { const T = tours.slice().sort((a, b) => a.t - b.t), L = [...new Set(T.map(x => x.lga))], I = [...new Set(T.map(x => { const i = x.issue.replace(/\.$/, ""); return i.toLowerCase().startsWith(x.lga.toLowerCase()) ? x.lga + i.slice(x.lga.length) : low(i); }))];
+    subs.push({ h: nat ? "Visits to the states" : "Tours of the local governments", paras: [[He + " toured " + (L.length === 1 ? L[0] + " Local Government Area" : num(L.length) + " local government areas, among them " + list(L.slice(0, 4))) + ", meeting council chairmen, traditional rulers and residents at town halls. The issues raised included " + list(I.slice(0, 4)) + ". "]] }); }
   sections.push({ h: (nat ? "Presidency (" : "Governorship (") + base + "–" + (f.ended ? f.endYear : "present") + ")", subs });
 
   // ── The House (or the National Assembly), and the war: each its own story, in order ──
@@ -289,7 +308,7 @@ export const writeBio = (f) => {
 
   // ── The record, in figures ──
   const rec = ["Projects: " + f.projects.delivered + " completed, " + f.projects.building + " under construction" + (f.projects.stalled ? ", " + f.projects.stalled + " stalled or abandoned" : "") + ". "];
-  if (f.needs.met + f.needs.failed + f.needs.open) rec.push("Community needs: " + f.needs.met + " met, " + f.needs.failed + " unmet, " + f.needs.open + " outstanding. ");
+  if (f.needs.met + f.needs.failed + f.needs.open) rec.push("Community needs: " + f.needs.met + " met, " + (f.needs.failed + f.needs.open) + " not met" + (f.needs.open ? " (" + f.needs.open + " still open)" : "") + ". ");
   rec.push("Debt: " + (f.debt <= .05 ? "none" : f.debtTxt) + "; " + V.revenue + ": " + f.igrTxt + " a year. Ministries: " + f.ministries + "; laws signed: " + f.bills + ". Final approval rating: " + appEnd + "%; corruption index: " + Math.round((f.cor || 0) * 100) + "%.");
   sections.push({ h: "The administration in figures", paras: [rec] });
 

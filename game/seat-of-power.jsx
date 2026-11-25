@@ -9150,6 +9150,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const quits = !final && st0 === (NAT ? 1 : 0) && P0.margin >= 4 && Math.random() < .5;
         scFx({ app: final ? 3 : 1, pStab: final ? 3 : 0 });
         addL("⚖️ The " + COURTS[st0] + " dismissed " + P0.opp + "'s petition." + (final ? " The matter is closed for good." : quits ? " " + P0.opp + " has given up." : " They are appealing to the " + COURTS[st0 + 1] + "."), "success");
+        scWiki("Governorship", "The " + COURTS[st0] + " dismissed " + P0.opp + "'s election petition" + (final ? ", ending the case for good." : quits ? "; " + P0.opp + " gave up." : "; " + P0.opp + " appealed."));
         setStc(p => ({ ...p, petition: { ...p.petition, stage: final || quits ? 3 : st0 + 1, result: final || quits ? "won" : undefined, at: turn, court: COURTS[st0], won: true, quit: !!quits, final } }));
         gavel(); if (final || quits) setTimeout(() => { try { window.SOP_sound && window.SOP_sound("cheer"); } catch (e) {} }, 900);
         return { icon: "⚖️", img: final || quits ? "./art/scenes/news-victory-rally.webp" : "./art/scenes/news-court-steps.webp", title: "You won at the " + SHORT[st0], text: final ? "Final. You keep your seat." : quits ? P0.opp + " has given up. You keep your seat." : P0.opp + " appeals to the " + COURTS[st0 + 1] + ".", tone: "good", learn: st0 === (NAT ? 1 : 0) ? LEARN : undefined };
@@ -11652,7 +11653,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setStc(p => ({ ...p, orders: { ...(p.orders || {}), [o.id]: turn }, chains: SYS.BUSINESS_ORDERS.includes(o.id) ? [...(p.chains || []), ...SYS.orderChain({ id: o.id, nat: NAT, turn })] : p.chains }));
     if (o.need) setNeeds(ns => { const i = ns.findIndex(n => n.status === "open" && n.k === o.need); if (i < 0) return ns; const c = ns.slice(); c[i] = { ...c[i], status: "met", closed: turn }; return c; });
     addL(o.i + " Executive order: " + o.nm + "." + (hit ? " " + o.risk.log : ""), "policy"); fedVoice(o.id, "sign");
-    scWiki(hit ? "Controversies" : "Governorship", "Signed an executive order: " + o.nm.toLowerCase() + "." + (hit ? " " + o.risk.log : ""));
+    scWiki(hit ? "Controversies" : "Governorship", "Signed the executive order “" + String(o.nm).replace(/^(executive )?order:\s*/i, "").replace(/^./, c => c.toUpperCase()) + "”." + (hit ? " " + o.risk.log : ""));
     // A provocation: in the Hostile House the Speaker takes it personally; the godfather's plots were his.
     const why = SYS.PROVOKE_ORDERS[o.id];
     if (why && hostileOn()) {
@@ -12752,6 +12753,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   // ── THE WIKIPEDIA ARTICLE, from the record ──
+  const bioAsked = React.useRef({}); // the biography rewrites already asked for, by page
   const buildWiki = (final) => {
     const M = window.SOP_MEMORY;
     const L = (() => { try { return M ? M.all() : []; } catch (e) { return []; } })();
@@ -12808,7 +12810,27 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       programmes: pols.map(e => String(e.decision || "").replace(/^(Enacted|Started)\s+/, "")).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i),
       strikes: Object.keys((stc.labour && stc.labour.strikes) || {}).map(k => SYS.UNIONS[k] && SYS.UNIONS[k].short).filter(Boolean),
     });
-    const lead = bio.lead, sections = bio.sections, refs = bio.refs;
+    let lead = bio.lead, sections = bio.sections, refs = bio.refs;
+    /* A finished career's page, rewritten by Claude as an encyclopedia editor would (owner, 25 Nov 2026, after
+       Perplexity's rewrite of a Katsina run). The player's name never leaves the game: it is sent as {NAME}, {SURNAME}
+       and {FIRST} and put back here. Until it arrives, or when it fails, the game's own page stands. */
+    if (ended) { try {
+      const nm = String(pName || "").trim(), parts = nm.split(/\s+/), esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const scrub = (t) => { let x = String(t); if (nm) x = x.split(nm).join("{NAME}"); if (parts.length > 1) { x = x.replace(new RegExp("\\b" + esc(parts[parts.length - 1]) + "\\b", "g"), "{SURNAME}"); x = x.replace(new RegExp("\\b" + esc(parts[0]) + "\\b", "g"), "{FIRST}"); parts.slice(1, -1).forEach(m => { if (m.length > 1) x = x.replace(new RegExp("\\b" + esc(m) + "\\b", "g"), "{NAME}"); }); } return x; };
+      const flat = (pp) => pp.filter(x => typeof x === "string").join("").trim();
+      const page = scrub(["# " + nm, ...bio.lead.map(flat), ...bio.sections.flatMap(S => ["## " + S.h, ...(S.paras || []).map(flat), ...(S.subs || []).flatMap(sb => ["### " + sb.h, ...(sb.paras || []).map(flat)])])].filter(Boolean).join("\n\n"));
+      const key = hashStr(page), A = stc.bioAi;
+      if (A && A.key === key && Array.isArray(A.lead) && A.lead.length) {
+        const back = (t) => String(t).split("{NAME}").join(nm).split("{SURNAME}").join(parts[parts.length - 1] || nm).split("{FIRST}").join(parts[0] || nm);
+        lead = A.lead.map(t => [back(t)]);
+        sections = (A.sections || []).map(S => ({ h: back(S.h), paras: (S.paras || []).map(t => [back(t)]).concat((S.rows || []).length ? [[(S.rows || []).map(r => back(r.k) + ": " + back(r.v)).join(". ") + "."]] : []) }));
+        refs = [];
+      } else if (!bioAsked.current[key] && !window.SOP_TEST && /^https?:/.test(location.protocol)) {
+        bioAsked.current[key] = true;
+        fetch("/api/bio/write", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ career: toriCareerKey(), page }) })
+          .then(r => r.ok ? r.json() : null).then(j => { if (j && Array.isArray(j.lead) && j.lead.length) setStc(p => ({ ...p, bioAi: { key, lead: j.lead, sections: j.sections } })); }).catch(() => {});
+      }
+    } catch (e) {} }
     const av = AVATARS.find(a => a.id === setup?.avatar);
     const w = {
       title: pName, stub: !final && turn <= 2, startYear,
@@ -14182,7 +14204,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const finish = () => { const E = SYS.farewellEffect(P);
       scFx({ app: E.fx.app || 0, pStab: E.fx.pStab || 0 }); if (E.fund) setPersonalFund(f => Math.round((f + E.fund / 1000) * 1000) / 1000);
       E.wiki.forEach(w => scWiki("Controversies", w));
-      const B = SYS.BROADCAST.find(b => b.id === P.broadcast); if (B) scWiki(NAT ? "Presidency" : "Governorship", "In a " + B.id + " farewell broadcast, said: " + B.line);
+      const B = SYS.BROADCAST.find(b => b.id === P.broadcast); if (B) scWiki(NAT ? "Presidency" : "Governorship", "In {his} farewell broadcast, {he} said: “" + String(B.line).replace(/^[“"]|[”"]$/g, "") + "”");
       track("farewell", [P.broadcast || "-", (P.midnight || []).length, P.ask || "-"].join(":"));
       setF(o => ({ done: true, efcc: E.efcc })); try { window.scrollTo(0, 0); } catch (e) {} };
     if (step === 0) { const C = SYS.commissionChoices(projects || []), sel = P.commission || [];

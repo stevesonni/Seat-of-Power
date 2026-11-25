@@ -38,7 +38,7 @@ export const didOf = (label) => { const { act, money } = actionOf(label), w = ac
 
 /* A headline or a present-tense line, told as history: "Bandits have kidnapped three engineers" → "Bandits kidnapped
    three engineers"; "The rescue goes wrong: two engineers are killed" → "The rescue went wrong: two engineers were killed". */
-const PRESENT = [[/\b(have|has) been\b/g, "were"], [/\b(have|has) (\w+ed|\w+en|taken|seized|kidnapped|stolen|fled|burnt|burned|left|sent|found|lost|built|shut|cut|set|put|struck)\b/g, "$2"],
+const PRESENT = [[/\bwork resumes\b/g, "work resumed"], [/\bresumes\b/g, "resumed"], [/\b(have|has) been\b/g, "were"], [/\b(have|has) (\w+ed|\w+en|taken|seized|kidnapped|stolen|fled|burnt|burned|left|sent|found|lost|built|shut|cut|set|put|struck)\b/g, "$2"],
   [/\bis\b/g, "was"], [/\bare\b/g, "were"], [/\bgoes\b/g, "went"], [/\bcomes\b/g, "came"], [/\bgo in\b/g, "went in"], [/\bbring\b/g, "brought"], [/\bprotests\b/g, "protested"],
   [/\brises\b/g, "rose"], [/\bfalls\b/g, "fell"], [/\bwants\b/g, "wanted"], [/\bsays\b/g, "said"], [/\bstays\b/g, "stayed"], [/\bmoves\b/g, "moved"], [/\breturns?\b/g, "returned"], [/\bopens\b/g, "opened"], [/\bcloses\b/g, "closed"]];
 export const toPast = (t) => PRESENT.reduce((s, [rx, to]) => s.replace(rx, to), String(t || ""));
