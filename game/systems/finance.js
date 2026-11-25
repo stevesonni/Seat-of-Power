@@ -111,3 +111,16 @@ export const imfDrag = (I, turn) => { if (!I || I.stage !== "active") return nul
 export const imfCanRepay = (I, cashB) => !!I && I.stage === "active" && (cashB || 0) >= (I.outstandingB || 0);
 export const imfOn = (I) => !!I && (I.stage === "applied" || I.stage === "active");
 export const imfActive = (I) => !!I && I.stage === "active";
+
+/* When a court stops a project, the lender calls in its loan (owner, 25 Nov 2026: "if the court says the project should
+   be stopped, it's stopped, and the syndicates or banks send a letter asking for repayment; otherwise they escalate to
+   the Federal Government and have the international community force payment, so you pay back what they have spent plus
+   interest"). recallTerms: what is owed now. RECALL_PENALTY: what the forced route adds on top. */
+export const RECALL_PENALTY = .25, RESTRUCTURE_X = 1.2;
+export const recallTerms = (L) => { if (!L || L.pre) return null; const outM = Math.round(L.outstandingM != null ? L.outstandingM : (L.drawnM || 0)); if (outM <= 0) return null;
+  const interestM = Math.round(outM * (L.rate || .2)); return { outM, interestM, totalM: outM + interestM, forcedM: Math.round((outM + interestM) * (1 + RECALL_PENALTY)), restructM: Math.round((outM + interestM) * RESTRUCTURE_X) }; };
+// Who forces it: a governor's lender goes to Abuja (the deduction from FAAC that backs every state loan); a federal
+// lender goes abroad (a foreign court, Nigeria's assets frozen) and the development banks rally the donors.
+export const recallEscalation = (lenderId, nat) => nat
+  ? { who: lenderId === "dfi" ? "The World Bank and the African Development Bank, with the donor governments" : "The creditors, in a London commercial court", how: lenderId === "dfi" ? "suspended every other loan to Nigeria until it is paid, and the donors joined them" : "won an order freezing Nigerian government accounts abroad until it is paid", fg: 0, app: -4 }
+  : { who: "The Federal Ministry of Finance", how: lenderId === "dfi" ? "deducted it from the state's FAAC allocation under the loan's federal guarantee, after the World Bank complained to Abuja" : "deducted it from the state's FAAC allocation under the irrevocable standing payment order that backs the loan", fg: -6, app: -2 };

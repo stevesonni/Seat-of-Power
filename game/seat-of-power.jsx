@@ -6341,8 +6341,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
       carryNow: () => ({ turn, carried: scCarry.current.map(c => c.key) }),
-      worksNow: () => ({ pol: (pol || []).map(p => p.nm), projects: (projects || []).map(p => ({ id: p.id, status: p.status, courtStopped: p.courtStopped })) }),
-      injunctionTest: (nm, sites) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0]; if (!P) return false;
+      worksNow: () => ({ pol: (pol || []).map(p => p.nm), projects: (projects || []).map(p => ({ id: p.id, status: p.status, courtStopped: p.courtStopped })), recalls: stc.recalls || [], loans: (loans || []).map(L => ({ key: L.key, recalled: L.recalled, out: L.outstandingM })), cash: s.cash, debt: s.debt }),
+      // named: a road you named, on a bank loan, is the one the court halts (tests/e2e/court-stop.mjs).
+      injunctionTest: (nm, sites, named) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0]; if (!P) return false;
+        if (named) { const L = { key: "loan:p_ikwo:bank", lenderId: "bank", lender: "A syndicate of three commercial banks", nm: "Commercial bank loan", principalM: 1800, rate: .22, years: 4, tranches: 3, drawn: 1, trancheM: 600, drawnM: 600, outstandingM: 600, projId: "p_ikwo", disbursedYear: turn };
+          setProjects(prev => [...(prev || []), { id: "p_ikwo", title: named, type: "road", lga: getLGAs(state)[0], status: "in_progress", progress: 30, events: [], decisions: [], spentM: 600, loanKey: L.key }]); setLoans(ls => [...(ls || []), L]);
+          setJudEvent({ ...JUDICIARY_EVENTS[2], nm: "The court halts the " + named, d: "A group of landowners has sued to stop the " + named + ", saying the law was not followed. The High Court has ordered the work to stop until the case is heard.", penalty: { app: -2 }, target: null, proj: "p_ikwo", projTitle: named, cause: null }); setPhase("judiciary"); return named; }
         if (sites) setProjects(prev => [...(prev || []), ...Array.from({ length: sites }, (_, i) => ({ id: "p_court_" + i, title: P.nm + " site " + (i + 1), type: "school", status: "in_progress", progress: 30, events: [], _srcPolicy: { id: P.id, nm: P.nm } }))]);
         setJudEvent({ ...JUDICIARY_EVENTS[2], nm: "The court halts the " + P.nm.replace(/^⭐\s*/, ""), d: "A civil society group has sued to stop the " + P.nm.replace(/^⭐\s*/, "") + ", saying the law was not followed. The High Court has ordered the work to stop until the case is heard.", penalty: { app: -2 }, target: P.nm, cause: null }); setPhase("judiciary"); return P.nm; },
       policyTest: (id) => { const p = POL().find(x => (!id || x.id === id) && !pol.find(a => a.id === x.id)); if (p) startPolicy(p); return !!p; }, postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
@@ -9466,6 +9470,37 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (F1.news && F1.news.kind === "rejected") notes.push(["📜 The House threw out the " + F1.news.nm + " a second time.", "political"]);
       }
     }
+    /* A loan on a project the court stopped falls due (SYS.recallTerms; owner, 25 Nov 2026). The lender writes: repay
+       what was drawn plus interest, restructure, or refuse. Refuse, and next year it is taken anyway, with a penalty:
+       Abuja deducts it from a governor's allocation; a President's creditors go to a foreign court or the donors. */
+    try { const RC = (next.recalls || stc.recalls || []);
+      if (RC.length) { const upd = (key, ch) => { next.recalls = (next.recalls || RC).map(x => x.key === key ? { ...x, ...ch } : x); };
+        const settle = (L, cashOutB, ch) => { setS(p => { const cash = (p.cash || 0) - cashOutB; return { ...p, cash: Math.max(0, Math.round(cash * 100) / 100), debt: Math.max(0, Math.round(((p.debt || 0) - (L.outstandingM || 0) / 1000 + Math.max(0, -cash)) * 100) / 100) }; });
+          setLoans(ls => ls.map(x => x.key === L.key ? { ...x, recalled: turn, outstandingM: 0 } : x)); setStc(p => ({ ...p, recalls: (p.recalls || []).map(x => x.key === L.key ? { ...x, ...ch } : x) })); };
+        RC.forEach(R => { const L = (loans || []).find(x => x.key === R.key); if (!L) return; const T = SYS.recallTerms(L); if (!T) return; const B = (m) => Math.round(m / 100) / 10, nm = SYS.LENDERS[L.lenderId] ? SYS.LENDERS[L.lenderId].nm : "the loan";
+          if (R.stage === "due" && R.turn < turn) { upd(R.key, { stage: "asked", asked: turn });
+            cards.push({ key: "recall_" + L.key.replace(/\W/g, "_") + "_" + turn, kicker: "🏦 " + (L.lender || nm) + " · the loan falls due", color: CL.red, from: (SYS.TRANCHE_RULES[L.lenderId] || {}).from || L.lender || "The lender", img: "./art/characters/" + ((SYS.TRANCHE_RULES[L.lenderId] || {}).who || "bank-relationship-manager") + ".webp", art: ["finance-ministry-office", null, null, "lender-suspends"],
+              title: "The court stopped " + R.title + ": repay what was drawn",
+              brief: "The High Court has stopped " + R.title + ", so it will not be finished, and under our agreement the loan falls due at once. You drew " + naira(B(T.outM)) + "; with " + naira(B(T.interestM)) + " of interest, " + naira(B(T.totalM)) + " is owed now.",
+              stakes: "If you do not pay, we will go to " + (NAT ? "court abroad and to Nigeria's other lenders" : "the Federal Ministry of Finance, which guarantees the loan and can take it from your allocation") + ", with a penalty.",
+              options: [
+                { label: "Repay it now: " + naira(B(T.totalM)), note: "From the bank; the loan is closed.", chips: [{ text: naira(B(T.totalM)), color: CL.org }], run: () => { settle(L, B(T.totalM), { stage: "paid" }); addL("🏦 You repaid " + naira(B(T.totalM)) + " to " + (L.lender || nm) + " for " + R.title + ".", "policy");
+                  return { icon: "🏦", title: "Repaid", text: naira(B(T.totalM)) + " has gone back to " + (L.lender || "the lender") + ". The loan is closed.", tone: "neutral", rows: [{ l: "Treasury", v: "−" + naira(B(T.totalM)), good: false }] }; } },
+                { label: "Ask to restructure: two years", note: "Half now, half next year, " + naira(B(T.restructM)) + " in all.", chips: [{ text: naira(B(T.restructM / 2)) + " now", color: CL.org }], run: () => { setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) - B(T.restructM / 2)) * 100) / 100) })); setStc(p => ({ ...p, recalls: (p.recalls || []).map(x => x.key === L.key ? { ...x, stage: "restruct", restAt: turn + 1, restB: B(T.restructM / 2) } : x) }));
+                  addL("🏦 " + (L.lender || nm) + " agreed to spread the repayment for " + R.title + " over two years.", "policy");
+                  return { icon: "🏦", title: "Restructured", text: "You paid " + naira(B(T.restructM / 2)) + " now; the other " + naira(B(T.restructM / 2)) + " is taken next year.", tone: "neutral" }; } },
+                { label: "Refuse to pay", note: "They will escalate. It will cost more.", chips: fxChips({ app: 1 }), run: () => { scFx({ app: 1 }); setStc(p => ({ ...p, recalls: (p.recalls || []).map(x => x.key === L.key ? { ...x, stage: "refused", escAt: turn + 1 } : x) })); addL("🏦 You refused to repay " + (L.lender || nm) + " for " + R.title + ".", "political");
+                  return { icon: "🏦", title: "You refused", text: "The lender says it will escalate. Next year it will take what it is owed, and more.", tone: "bad" }; } },
+              ] }); }
+          else if (R.stage === "restruct" && R.restAt <= turn) { upd(R.key, { stage: "paid" }); setS(p => ({ ...p, cash: Math.max(0, Math.round(((p.cash || 0) - R.restB) * 100) / 100), debt: Math.max(0, Math.round(((p.debt || 0) - (L.outstandingM || 0) / 1000) * 100) / 100) })); setLoans(ls => ls.map(x => x.key === L.key ? { ...x, recalled: turn, outstandingM: 0 } : x));
+            notes.push(["🏦 The second half of the restructured loan for " + R.title + " (" + naira(R.restB) + ") was paid. The loan is closed.", "info"]); }
+          else if (R.stage === "refused" && R.escAt <= turn) { const E = SYS.recallEscalation(L.lenderId, NAT); upd(R.key, { stage: "forced" });
+            setS(p => { const cash = (p.cash || 0) - B(T.forcedM); return { ...p, cash: Math.max(0, Math.round(cash * 100) / 100), debt: Math.max(0, Math.round(((p.debt || 0) - (L.outstandingM || 0) / 1000 + Math.max(0, -cash)) * 100) / 100), app: Math.max(0, Math.min(100, p.app + E.app)) }; });
+            setLoans(ls => ls.map(x => x.key === L.key ? { ...x, recalled: turn, outstandingM: 0 } : x)); if (E.fg) setFgRelation(f => Math.max(0, Math.min(100, f + E.fg)));
+            notes.push(["⚖️ " + E.who + " " + E.how + ": " + naira(B(T.forcedM)) + " for " + R.title + ", a quarter more than you were asked for.", "crisis"]);
+            scWiki("Controversies", "Refused to repay the loan for " + R.title + " after the court stopped it; " + E.who.charAt(0).toLowerCase() + E.who.slice(1) + " " + E.how + ".");
+            setTimeout(() => paper(NAT ? "NIGERIA FORCED TO PAY" : "ABUJA DEDUCTS STATE'S UNPAID LOAN", naira(B(T.forcedM)) + " for the stopped " + R.title, false), 300); }
+        }); } } catch (e) { console.error("[recall]", e); }
     /* Sport and stadiums (SYS.sports; owner, 25 Nov 2026). The governor: the State Youth Assembly asks for a voice
        (the ministry) or, once there is a commissioner, two mini-stadia; the commissioner's first memo asks for them
        too. The President: FIFA or CAF wants Nigeria to host a match next year, and no stadium passes. A hostile
@@ -11696,8 +11731,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     if (pol.length > 2 && !courtDone(JUDICIARY_EVENTS[2]) && r() < .15) {
       const target = pol[Math.floor(r() * pol.length)];
-      { const tn = String(target?.nm || "programme").replace(/^⭐\s*/, ""), who = ["A residents' association", "A civil society group", "A group of landowners", "The opposition party"][Math.floor(r() * 4)];
-        return openCourt({ ...JUDICIARY_EVENTS[2], nm: "The court halts the " + tn, d: who + " has sued to stop the " + tn + ", saying the law was not followed. The High Court has ordered the work to stop until the case is heard.", penalty: { app: -2 }, target: target?.nm, cause: null }); }
+      // The court names the project you named (owner, 25 Nov 2026: "if I named it Ikwo Road it should appear as such"),
+      // and stops that one; a programme with no project of its own is stopped whole.
+      { const live = (projects || []).filter(p => ["in_progress", "pending_procurement", "stalled", "pending_finance"].includes(p.status) && p.title), PJ = live.length ? live[Math.floor(r() * live.length)] : null;
+        const tn = PJ ? PJ.title : String(target?.nm || "programme").replace(/^⭐\s*/, ""), who = ["A residents' association", "A civil society group", "A group of landowners", "The opposition party"][Math.floor(r() * 4)];
+        return openCourt({ ...JUDICIARY_EVENTS[2], nm: "The court halts the " + tn, d: who + " has sued to stop the " + tn + (PJ && PJ.lga ? " in " + PJ.lga : "") + ", saying the law was not followed. The High Court has ordered the work to stop until the case is heard.", penalty: { app: -2 }, target: PJ ? null : target?.nm, proj: PJ ? PJ.id : null, projTitle: PJ ? PJ.title : null, cause: null }); }
     }
     return false;
   };
@@ -11723,8 +11761,11 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
   // A court order stops the programme and every site it started (owner, 25 Nov 2026: "if I comply and the court
   // strikes down the project… the project is still going on").
-  const courtStop = (nm) => { if (!nm) return 0; const P = (pol || []).find(p => p.nm === nm); if (P) dropPol(P.id);
-    const hit = (projects || []).filter(x => x._srcPolicy && (x._srcPolicy.nm === nm || (P && x._srcPolicy.id === P.id)) && !["delivered", "built", "abandoned"].includes(x.status));
+  const courtStop = (nm, projId) => { if (!nm && !projId) return 0; const P = nm ? (pol || []).find(p => p.nm === nm) : null; if (P) dropPol(P.id);
+    const hit = (projects || []).filter(x => (projId ? x.id === projId : x._srcPolicy && (x._srcPolicy.nm === nm || (P && x._srcPolicy.id === P.id))) && !["delivered", "built", "abandoned"].includes(x.status));
+    // A loan on a stopped project falls due: its lender writes next (SYS.recallTerms).
+    const owed = hit.filter(x => x.loanKey && (loans || []).some(L => L.key === x.loanKey && !L.recalled && SYS.recallTerms(L)));
+    if (owed.length) setStc(p => ({ ...p, recalls: [...(p.recalls || []), ...owed.map(x => ({ key: x.loanKey, projId: x.id, title: x.title, turn, stage: "due" }))] }));
     if (hit.length) setProjects(prev => (prev || []).map(x => hit.some(h => h.id === x.id) ? { ...SYS.abandon({ ...x, decisions: x.decisions || [], spentM: x.spentM || 0 }, turn), courtStopped: turn } : x));
     return hit.length; };
   const resolveJudiciary = (mode) => decide(() => {
@@ -11743,7 +11784,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     };
     if (mode === true) {
       applyPenalty(1);
-      const tn = String(judEvent.target || "").replace(/^⭐\s*/, ""), sites = courtStop(judEvent.target);
+      const tn = judEvent.projTitle || String(judEvent.target || "").replace(/^⭐\s*/, ""), sites = courtStop(judEvent.target, judEvent.proj);
       setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 5) }));
       addL("⚖️ You obeyed the court" + (tn ? ": the " + tn + " has stopped" + (sites ? ", and " + sites + " site" + (sites === 1 ? " is" : "s are") + " closed" : "") + "." : " on " + judEvent.nm + ".") + " The press praises the rule of law.", "judicial");
       out = { icon: "⚖️", title: "You obeyed the court", text: tn ? "The " + tn + " has stopped. " + (sites ? "Work has ended at " + sites + " site" + (sites === 1 ? "" : "s") + "; the contractors have left. " : "") + "The press and civil society praise you for respecting the courts." : "The ruling is carried out. The press and civil society praise you for respecting the courts.", tone: "neutral" };
@@ -11754,10 +11795,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const win = Math.random() < 0.6;
       if (win) {
         addL("⚖️ The Court of Appeal ruled for you: " + judEvent.nm.charAt(0).toLowerCase() + judEvent.nm.slice(1) + " is set aside, and the work goes on. Legal fees: ₦0.5B.", "judicial");
-        out = { icon: "⚖️", title: "The Court of Appeal ruled for you", text: "The order is set aside" + (judEvent.target ? " and the " + String(judEvent.target).replace(/^⭐\s*/, "") + " goes on" : "") + ". Legal fees: ₦0.5B.", tone: "good" };
+        out = { icon: "⚖️", title: "The Court of Appeal ruled for you", text: "The order is set aside" + ((judEvent.projTitle || judEvent.target) ? " and the " + (judEvent.projTitle || String(judEvent.target).replace(/^⭐\s*/, "")) + " goes on" : "") + ". Legal fees: ₦0.5B.", tone: "good" };
         setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 3) }));
       } else {
-        applyPenalty(2); const sites = courtStop(judEvent.target), tn = String(judEvent.target || "").replace(/^⭐\s*/, "");
+        applyPenalty(2); const sites = courtStop(judEvent.target, judEvent.proj), tn = judEvent.projTitle || String(judEvent.target || "").replace(/^⭐\s*/, "");
         addL("⚖️ The Court of Appeal ruled against you" + (tn ? ": the " + tn + " must stop" + (sites ? " and " + sites + " site" + (sites === 1 ? " closes" : "s close") : "") : "") + ". ₦0.5B in legal fees lost.", "judicial");
         out = { icon: "⚖️", title: "The Court of Appeal ruled against you", text: (tn ? "The " + tn + " must stop" + (sites ? ", and work ends at " + sites + " site" + (sites === 1 ? "" : "s") : "") + ". " : "The ruling stands. ") + "The damage to your standing is double, and ₦0.5B in legal fees is lost.", tone: "bad" };
       }
@@ -11771,8 +11812,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     } else {
       setS(p => ({ ...p, pStab: cl100(p.pStab - 12), app: cl100(p.app - 5), cor: cl(p.cor + 0.05) }));
       setSkApp(p => ({ ...p, media: cl100((p.media || 50) - 10) }));
-      addL("⚠️ You ignored the court order" + (judEvent.target ? ": the " + String(judEvent.target).replace(/^⭐\s*/, "") + " goes on" : "") + ". Lawyers call it contempt; a constitutional crisis is building.", "judicial");
-      out = { icon: "⚠️", title: "You ignored the court", text: (judEvent.target ? "The work goes on, " : "") + "but the Constitution says court orders must be obeyed (S.287). The Bar, the press and your own party are up in arms.", tone: "bad" };
+      addL("⚠️ You ignored the court order" + ((judEvent.projTitle || judEvent.target) ? ": the " + (judEvent.projTitle || String(judEvent.target).replace(/^⭐\s*/, "")) + " goes on" : "") + ". Lawyers call it contempt; a constitutional crisis is building.", "judicial");
+      out = { icon: "⚠️", title: "You ignored the court", text: ((judEvent.target || judEvent.proj) ? "The work goes on, " : "") + "but the Constitution says court orders must be obeyed (S.287). The Bar, the press and your own party are up in arms.", tone: "bad" };
       try { window.SOPX_onDecision && window.SOPX_onDecision("court_defied", { ruling: judEvent.nm }); } catch(e){}
       setStc(p => ({ ...p, defied: turn }));
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_defiance", target: judEvent.nm, gravity:5, evidence:5, approvalDelta:-5, corruptionDelta:+5, note:"Defied court ruling: "+judEvent.nm }); } catch(e){}
@@ -15456,7 +15497,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{judEvent.d}</p>
             {judEvent.cause && <p style={{ color: CL.txt, fontSize: TS(34), marginBottom: 29 }}><b>Why this case:</b> {judEvent.cause}</p>}
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
-            {(() => { const tn = String(judEvent.target || "").replace(/^⭐\s*/, ""), nSites = tn ? (projects || []).filter(x => x._srcPolicy && x._srcPolicy.nm === judEvent.target && !["delivered", "built", "abandoned"].includes(x.status)).length : 0;
+            {(() => { const tn = judEvent.projTitle || String(judEvent.target || "").replace(/^⭐\s*/, ""), nSites = judEvent.proj ? 0 : tn ? (projects || []).filter(x => x._srcPolicy && x._srcPolicy.nm === judEvent.target && !["delivered", "built", "abandoned"].includes(x.status)).length : 0;
               const O = [
                 [true, CL.grn, "✅ Obey the court", tn ? "Stop the " + tn + " now" + (nSites ? ": work ends at " + nSites + " site" + (nSites === 1 ? "" : "s") + " and the contractors leave" : "") + ". The press and the courts respect you for it." : "Carry out the ruling today. The press and the courts respect you for it."],
                 ["fasttrack", CL.blu, "⚖️ Ask the Court of Appeal for a quick hearing", "Lawyers cost ₦0.5B. About 6 times in 10 you win and " + (tn ? "the work goes on" : "the case is dismissed") + ". If you lose, " + (tn ? "the work stops and " : "") + "the damage is double."],
@@ -15468,7 +15509,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               </Cd>); })()}
               <Cd onClick={() => resolveJudiciary(false)} style={{ padding: 36, borderColor: CL.red + "44" }}>
                 <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.red, marginBottom: 7 }}>⚠️ Ignore the court</div>
-                <div style={{ fontSize: TS(34), color: CL.td }}>{judEvent.target ? "The work goes on. " : ""}But the Constitution says court orders must be obeyed (S.287): your party turns on you (−12), approval falls 5 points, corruption rises, and a constitutional crisis begins.</div>
+                <div style={{ fontSize: TS(34), color: CL.td }}>{judEvent.target || judEvent.proj ? "The work goes on. " : ""}But the Constitution says court orders must be obeyed (S.287): your party turns on you (−12), approval falls 5 points, corruption rises, and a constitutional crisis begins.</div>
               </Cd>
             </div>
           </Cd>}

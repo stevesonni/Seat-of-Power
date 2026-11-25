@@ -2439,3 +2439,16 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - 25 Nov 2026, later: Lovable delivered all six sport pictures. They are installed (scenes at 1280×720, the portrait at 512×640) and in use: the derelict stadium on the FIFA/CAF and club letters and on a front page when a match is moved, the full house and the cracked stand on match-day front pages, the mini-stadium on the mini-stadia letters, the Youth Assembly on its letter, and the football official's face on FIFA and CAF letters. The stadium film is still awaited from Gemini.
 - FIFA gets its own face: docs/LOVABLE-SPORTS.md asks Lovable for characters/fifa-official.webp (a white European official). FIFA's letters use it as soon as it arrives; CAF keeps football-official.webp. docs/GEMINI-REELS.md now also asks for ministadium.mp4, which plays for stadiums of up to 10,000 seats once it arrives; stadium.mp4 plays for the big ones.
 - Gemini delivered stadium.mp4 (the floodlit national stadium) and ministadium.mp4 (the town ground, children at the fence). Both are installed and listed in SYS.REELS. A stadium of up to 10,000 seats plays the mini-stadium film (SYS.REEL_SMALL). The FIFA portrait came only as a picture in the chat, not as a file; it is still to be installed.
+
+## The court names the project; a stopped project's loan falls due (25 Nov 2026)
+- Owner: "Which road? Normally I name all my 500km road projects… if I named it Ikwo Road it should appear as such. Then make sure that if the court says the project should be stopped it's stopped, and the syndicates or banks send a letter asking for repayment; otherwise they escalate to the Federal Government and have the international community force payment, so you pay back what they have spent plus interest."
+- **The court names the project:** a policy injunction now names one of your live projects by the name you gave it ("The court halts the Ikwo Road… in Ikwo"), and obeying stops that project only. A programme with no project of its own is stopped whole, as before.
+- **The loan falls due** (SYS.recallTerms, RECALL_PENALTY, RESTRUCTURE_X, recallEscalation). If the stopped project was on a loan, its lender writes the next year: "The court stopped Ikwo Road: repay what was drawn", giving what was drawn and the interest. You can:
+  - **repay now:** the loan closes and debt falls;
+  - **restructure:** half now and half next year, 20% more in all;
+  - **refuse:** approval +1 now.
+- **If you refuse, it is taken anyway the next year, with a 25% penalty:**
+  - a governor's lender goes to the Federal Ministry of Finance, which deducts it from the state's FAAC allocation under the loan's standing payment order (standing with Abuja −6);
+  - a President's creditors win an order abroad freezing Nigerian accounts, or the World Bank and AfDB suspend every other loan until it is paid (approval −4).
+  - There is a front page and an entry in the record.
+- Test: tests/e2e/court-loan.mjs (a named road on a bank loan; the court halts it by name; obeying stops it and its loan falls due; the bank writes the next year asking for ₦0.6B plus interest).
