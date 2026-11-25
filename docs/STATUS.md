@@ -2266,3 +2266,11 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - "Fishing grounds" appears only for a state that exports seafood.
 - The raw-export plan no longer says "you earn from the first year" next to a chip saying "Earns from next year".
 - tests/e2e/econ-letter.mjs goes on through the inherited-debt question into the Council and checks these.
+
+## Every letter reads as a letter (25 Nov 2026)
+- Owner: "This letter makes no sense. Remember what Perplexity's guide was this morning." The guide asks for whole sentences, each fact once, and no fragments glued together.
+- The cause, for every letter: a matter's letter showed only the first two sentences of its card, and the stakes never reached the letter.
+- Now a letter has the whole matter: the brief, then what is at stake, in whole sentences, each sentence once, up to about 85 words.
+- The Speaker race letter now says what is happening (the new House elects its Speaker this week, and the Speaker decides which bills reach the floor), who is standing and what each means, what is at stake, and asks "Whom do you back?". Its results no longer assume the Speaker is a man.
+- Two Head of Service letters ended without a full stop. Fixed.
+- Test: tests/e2e/letters-read.mjs plays two years, reads every letter that arrives, and checks for one greeting, each sentence once and whole sentences. It also checks the Speaker letter word for word.
