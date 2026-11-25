@@ -7475,6 +7475,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const sa = cast.adviser.name, recall = SYS.econRecall(E, turn, landed);
     return { key: "econ_" + id + "_" + turn, kicker: (NAT ? "The national economy" : "The state's economy") + " · " + absYear, color: CL.gold, from: sa + " · Special Adviser", art: [NAT ? "finance-ministry-office" : "finance-ministry-office", saPortrait(sa).split("/").pop().replace(/\.webp$/, ""), null, null],
       title: iss.t(ctx), brief: (recall ? recall + " " : "") + iss.d(ctx),
+      // The whole letter, not the first two sentences (owner, 25 Nov 2026: "This letter makes no sense").
+      letter: { who: "Office of the Special Adviser to the " + (NAT ? "President" : "Governor"), where: NAT ? "State House, Abuja" : "Government House", signed: sa + ", Special Adviser",
+        body: ((recall ? recall + " " : "") + iss.d(ctx)).match(/(?:\d\.\d|[^.!?])+(?:[.!?]+|$)/g).map(x => x.trim()).filter(Boolean) },
       stakes: NAT && ctx.stance ? tradeFigures(ctx.T) + "." : !NAT ? "Taxes and fees " + naira(ctx.igr) + " a year · in the treasury " + naira(ctx.cash) + (ctx.debt ? " · debt " + naira(ctx.debt) : "") + "." : undefined,
       options: iss.opts.map(o => { const fx = o.fx || {};
         return { label: o.l, note: o.act ? "It sits now." : undefined, chips: fxChips({ app: fx.app, pStab: fx.pStab, cor: fx.cor, sec: fx.sec, igr: fx.igr > 0 ? fx.igr : 0, debt: fx.cost || 0 })
@@ -13208,7 +13211,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // A war letter (the White House, the UN in Geneva…) carries its own letter: its sender and its whole text.
     if (sc && sc.letter && sc.letter.body) { const Lt = sc.letter;
       return { from: Lt.signed || Lt.who, img: sc.img || "./art/characters/permanent-secretary.webp", office: Lt.who + " · " + Lt.where,
-        title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + (sc.title || "A letter"), line: String(Lt.body[0] || "").slice(0, 120), body: Lt.body.join(" ") }; }
+        title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + (sc.title || "A letter"), line: String(Lt.body[0] || "").slice(0, 120), body: Lt.body.join(" ").replace(/^Your Excellency,\s*/, "").replace(/^(\w)/, c => c.toUpperCase()) }; }
     // The agenda letter says what this year's share is, what it costs and what is asked (owner, 25 Nov 2026: "Look at this cut and join too").
     if (k === "flagship" && FGl) { let deliv = ""; try { deliv = SYS.flagshipDeliverable(setup.agenda, ((turn - 1) % 4) + 1, ZIX.map(z => lgaCluster(getLGAs(state), z)), rng(turn * 131 + state.length * 7), NAT ? ZN : ZIX.map(zoneName)); } catch (e) {}
       const costB = Math.round((1.4 + turn * 0.15) * 10) / 10, txt = "When you took office, you promised to " + FGl.goal + ", a part of it every year." + (deliv ? " This year's part is " + deliv.replace(/^(\w)/, c => c.toLowerCase()) + "." : "") + " It will cost about ₦" + costB + "B. Will you see to it yourself, or leave it to your Chief of Staff?";
@@ -13216,7 +13219,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const TL = (k === "netherlands" || k === "abuja" || k === "wedding") ? SYS.TRIP_LETTERS[k] : null;
     if (TL) return { from, img, title, line: String(line || "").slice(0, 120), office: TL.who + " · " + TL.where,
       body: TL.body.join(" ") + ({ netherlands: " Going yourself costs about ₦0.3B and keeps you away for four months: the best chance of the deal. Sending a trade delegation is free, but they wanted to meet you.", abuja: " Going shows loyalty to the party. Staying home pleases voters and annoys the party.", wedding: " Going costs a few days and some money; the guest list is where deals are made." }[k] || "") };
-    return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: two(src) };
+    return { from, img, title: (String(l.key).startsWith("sc#pres_bk") ? "URGENT: " + BKC().nm.toUpperCase() + " 🚨 · " : "") + title, line: String(line || "").slice(0, 120), body: two(String(src || "").replace(/^Your Excellency,\s*/, "").replace(/^(\w)/, c => c.toUpperCase())) };
   };
   // The year's matters arrive together after the year closes.
   // A strike that has ended takes its letters with it (owner, 22 Nov 2026: "I paid off ASUU in full once they

@@ -2253,3 +2253,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - Every letter: the one-line preview from the mailbox is added under the body only when it says something new (fewer than half its words are already in the body). It was added whenever the exact wording differed, which repeated the same point in other words.
 - This year's part never names one town twice: when a district has a single council, the second town comes from a neighbouring district.
 - Test: tests/e2e/agenda-letter.mjs.
+
+## The economic letter reads as a whole letter (25 Nov 2026)
+- The letter said "Your Excellency," twice, was cut after two sentences, and never said what the plan was.
+- The Special Adviser's yearly economic letter now shows in full, from the Adviser's office. The export letter says what can be sold abroad and why, and what the State Economic Council would do if called.
+- No letter says "Your Excellency," twice: a greeting at the start of a text is dropped, because the letter already has one.
+- Test: tests/e2e/econ-letter.mjs.

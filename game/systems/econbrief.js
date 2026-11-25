@@ -20,7 +20,7 @@ const O = (id, l, fx = {}, extra = {}) => ({ id, l, fx, ...extra });
 const NAT = [
   { id: "eac", pri: (c) => c.stance ? -1 : 100, when: (c) => !c.stance,
     t: () => "The economy needs your trade policy",
-    d: (c) => "Your Excellency, nobody has told the markets what this government wants. Reserves are $" + c.T.reserves + "bn and food prices are " + pc(c.T.food) + ". The Economic Advisory Council can sit today and set the trade policy.",
+    d: (c) => "Nobody has told the markets what this government wants. Reserves are $" + c.T.reserves + "bn and food prices are " + pc(c.T.food) + ". The Economic Advisory Council can sit today and set the trade policy.",
     opts: [O("convene", "Convene the Economic Advisory Council now", {}, { act: "convene", past: "convened the Economic Advisory Council" }),
       O("wait", "Not yet: let the markets settle first", { app: -1 }, { later: { text: "A year without a trade policy: importers hoarded dollars and the naira slid.", tr: { premium: 8, reserves: -2 } }, past: "left the trade policy unset" })] },
   { id: "subsidy", pri: (c) => c.turn <= 2 ? 80 : 40, when: () => true,
@@ -86,7 +86,7 @@ const NAT = [
 const GOV = [
   { id: "econ", pri: (c) => c.exportsOn ? -1 : 100, when: (c) => !c.exportsOn,
     t: (c) => "Sell " + c.stName + "'s " + c.crop + " to the world",
-    d: (c) => "Your Excellency, Abuja's allocation will not grow, but what our farms produce can earn every year. The State Economic Council can sit today. Taxes and fees bring in " + nB(c.igr) + " a year.",
+    d: (c) => "The allocation from Abuja will not grow, but what " + c.stName + "'s farms grow can be sold abroad, for dollars, every year. Buyers overseas want our " + c.crop + ", yet almost all of it leaves the state raw and cheap, through middlemen. If you call the State Economic Council, your commissioners and the state's business people will sit today and draw up a plan to sell it abroad: where to clean and pack it, the road to the port, and the buyers. Today, taxes and fees bring in only " + nB(c.igr) + " a year.",
     opts: [O("convene", "Convene the State Economic Council now", {}, { act: "convene", past: "convened the State Economic Council" }),
       O("wait", "Not this year", {}, { later: { text: "A year without an export plan: the buyers went to the next state.", fx: { app: -1 } }, past: "postponed the state's export plan" })] },
   { id: "igr", pri: (c) => c.igr < (c.faac || 1) * .6 ? 85 : 40, when: () => true,
