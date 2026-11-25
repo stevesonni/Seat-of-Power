@@ -6324,6 +6324,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     window.SOP = Object.assign(window.SOP || {}, {
       React, useState, useEffect,
       // Tests only: post letters (tests/e2e/mail-cap.mjs) and read the mailbox.
+      worksNow: () => ({ pol: (pol || []).map(p => p.nm), projects: (projects || []).map(p => ({ id: p.id, status: p.status, courtStopped: p.courtStopped })) }),
+      injunctionTest: (nm, sites) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0]; if (!P) return false;
+        if (sites) setProjects(prev => [...(prev || []), ...Array.from({ length: sites }, (_, i) => ({ id: "p_court_" + i, title: P.nm + " site " + (i + 1), type: "school", status: "in_progress", progress: 30, events: [], _srcPolicy: { id: P.id, nm: P.nm } }))]);
+        setJudEvent({ ...JUDICIARY_EVENTS[2], nm: "The court halts the " + P.nm.replace(/^⭐\s*/, ""), d: "A civil society group has sued to stop the " + P.nm.replace(/^⭐\s*/, "") + ", saying the law was not followed. The High Court has ordered the work to stop until the case is heard.", penalty: { app: -2 }, target: P.nm, cause: null }); setPhase("judiciary"); return P.nm; },
       policyTest: (id) => { const p = POL().find(x => (!id || x.id === id) && !pol.find(a => a.id === x.id)); if (p) startPolicy(p); return !!p; }, postTest: (arr) => { if (window.SOP_TEST) postMail(arr.map(x => letterOf(x.key, x))); }, lettersTest: () => mailRef.current.map(x => { try { const v = letterView(x); return { key: x.key, title: v.title, from: v.from, body: v.body || v.line || "" }; } catch (e) { return { key: x.key, err: String(e) }; } }), openLetterTest: (part) => { const l = mailRef.current.find(x => { try { const v = letterView(x); return (v.title + " " + v.line).includes(part) || String(x.key).includes(part); } catch (e) { return false; } }); if (!l) return false; setMailOpen(true); setLetterOpen(l.id); return true; }, mailWaitNow: () => (mailWait.current || []).map(l => l.key), clearMailTest: () => { if (window.SOP_TEST) setMail([]); }, mailYearNow: () => ({ used: mailYear8.current.n, envelopes: new Set(mailRef.current.map(l => l.slot || l.id)).size }), mailNow: () => mailRef.current.map(l => ({ key: l.key, note: isNote(l), lines: (l.lines || []).length, merged: l.merged || 0 })),
       pName, party, state, sd, setup, turn, s, setS, stc, stcTest: (f) => { if (window.SOP_TEST) setStc(f); }, toriFeedTest: () => window.SOP_TEST ? SYS.toriCabinet(toriCtx()) : null, endTest: (k) => { if (window.SOP_TEST) setGEnd(k); }, spendTest: (b, what) => window.SOP_TEST ? spendB(b, what || "A test payment") : null,
       cab: (ministries && ministries.length ? Object.fromEntries(ministries.map(m => [m.id, { nm: m.minister, co: m.perf, lo: m.loyalty || 55, cr: m.cor, pu: m.perf, role: m.id, bio: "Commissioner for " + m.name }])) : cab), setCab, ps, setPS,
@@ -11516,7 +11520,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     }
     if (pol.length > 2 && !courtDone(JUDICIARY_EVENTS[2]) && r() < .15) {
       const target = pol[Math.floor(r() * pol.length)];
-      return openCourt({ ...JUDICIARY_EVENTS[2], penalty: { app: -2 }, target: target?.nm, cause: "Filed against the " + String(target?.nm || "policy").replace(/^⭐\s*/, "") + ", which you enacted." });
+      { const tn = String(target?.nm || "programme").replace(/^⭐\s*/, ""), who = ["A residents' association", "A civil society group", "A group of landowners", "The opposition party"][Math.floor(r() * 4)];
+        return openCourt({ ...JUDICIARY_EVENTS[2], nm: "The court halts the " + tn, d: who + " has sued to stop the " + tn + ", saying the law was not followed. The High Court has ordered the work to stop until the case is heard.", penalty: { app: -2 }, target: target?.nm, cause: null }); }
     }
     return false;
   };
@@ -11540,6 +11545,12 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     else if (T && T.kind === "budget") { stallWork(null); refundDesc = "The forced budget is void: new work is frozen until the House passes next year's budget."; }
     return { refund, refundDesc };
   };
+  // A court order stops the programme and every site it started (owner, 25 Nov 2026: "if I comply and the court
+  // strikes down the project… the project is still going on").
+  const courtStop = (nm) => { if (!nm) return 0; const P = (pol || []).find(p => p.nm === nm); if (P) dropPol(P.id);
+    const hit = (projects || []).filter(x => x._srcPolicy && (x._srcPolicy.nm === nm || (P && x._srcPolicy.id === P.id)) && !["delivered", "built", "abandoned"].includes(x.status));
+    if (hit.length) setProjects(prev => (prev || []).map(x => hit.some(h => h.id === x.id) ? { ...SYS.abandon({ ...x, decisions: x.decisions || [], spentM: x.spentM || 0 }, turn), courtStopped: turn } : x));
+    return hit.length; };
   const resolveJudiciary = (mode) => decide(() => {
     let out = null;
     // mode: true = comply, false = defy, "fasttrack" = pay lawyers, "appeal" = delay
@@ -11556,36 +11567,36 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     };
     if (mode === true) {
       applyPenalty(1);
-      if (judEvent.target) { const P = (pol || []).find(p => p.nm === judEvent.target); if (P) dropPol(P.id); }
+      const tn = String(judEvent.target || "").replace(/^⭐\s*/, ""), sites = courtStop(judEvent.target);
       setSkApp(p => ({ ...p, media: cl100((p.media || 50) + 5) }));
-      addL("⚖️ COURT RULING: Complied swiftly with " + judEvent.nm + ". Media and civil society applaud rule of law.", "judicial");
-      out = { icon: "⚖️", title: "You obeyed the court", text: judEvent.nm + ": ruling carried out" + (judEvent.target ? "; " + judEvent.target + " is struck down." : ".") + " The press and civil society applaud.", tone: "neutral" };
+      addL("⚖️ You obeyed the court" + (tn ? ": the " + tn + " has stopped" + (sites ? ", and " + sites + " site" + (sites === 1 ? " is" : "s are") + " closed" : "") + "." : " on " + judEvent.nm + ".") + " The press praises the rule of law.", "judicial");
+      out = { icon: "⚖️", title: "You obeyed the court", text: tn ? "The " + tn + " has stopped. " + (sites ? "Work has ended at " + sites + " site" + (sites === 1 ? "" : "s") + "; the contractors have left. " : "") + "The press and civil society praise you for respecting the courts." : "The ruling is carried out. The press and civil society praise you for respecting the courts.", tone: "neutral" };
       try { window.SOPX_onDecision && window.SOPX_onDecision("court_complied", { ruling: judEvent.nm }); } catch(e){}
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_compliance", target: judEvent.nm, gravity:1, evidence:3, note:"Complied with ruling: "+judEvent.nm }); } catch(e){}
     } else if (mode === "fasttrack") {
       spendB(0.5, "Fast-tracking compliance", { force: true });
       const win = Math.random() < 0.6;
       if (win) {
-        addL("⚖️ FAST-TRACK WIN: Court of Appeal ruled in your favour on " + judEvent.nm + ". Case dismissed. ₦0.5B in legal fees.", "judicial");
-        out = { icon: "⚖️", title: "Case dismissed!", text: "The Court of Appeal ruled for you on " + judEvent.nm + ". Legal fees: ₦0.5B.", tone: "good" };
+        addL("⚖️ The Court of Appeal ruled for you: " + judEvent.nm.charAt(0).toLowerCase() + judEvent.nm.slice(1) + " is set aside, and the work goes on. Legal fees: ₦0.5B.", "judicial");
+        out = { icon: "⚖️", title: "The Court of Appeal ruled for you", text: "The order is set aside" + (judEvent.target ? " and the " + String(judEvent.target).replace(/^⭐\s*/, "") + " goes on" : "") + ". Legal fees: ₦0.5B.", tone: "good" };
         setSkApp(p => ({ ...p, business: cl100((p.business || 50) + 3) }));
       } else {
-        applyPenalty(2);
-        addL("⚖️ FAST-TRACK LOSS: Court of Appeal upheld the ruling on " + judEvent.nm + ". Penalty doubled. ₦0.5B wasted.", "judicial");
-        out = { icon: "⚖️", title: "The Court of Appeal ruled against you", text: judEvent.nm + ": the ruling stands and the penalty is doubled. ₦0.5B in fees wasted.", tone: "bad" };
+        applyPenalty(2); const sites = courtStop(judEvent.target), tn = String(judEvent.target || "").replace(/^⭐\s*/, "");
+        addL("⚖️ The Court of Appeal ruled against you" + (tn ? ": the " + tn + " must stop" + (sites ? " and " + sites + " site" + (sites === 1 ? " closes" : "s close") : "") : "") + ". ₦0.5B in legal fees lost.", "judicial");
+        out = { icon: "⚖️", title: "The Court of Appeal ruled against you", text: (tn ? "The " + tn + " must stop" + (sites ? ", and work ends at " + sites + " site" + (sites === 1 ? "" : "s") : "") + ". " : "The ruling stands. ") + "The damage to your standing is double, and ₦0.5B in legal fees is lost.", tone: "bad" };
       }
     } else if (mode === "appeal") {
       setS(p => ({ ...p, app: cl100(p.app - 3) }));
       // re-queue for next turn
       const pending = { ...judEvent, appealed: true };
       setTimeout(() => setJudEvent(pending), 100);
-      addL("⏳ APPEAL FILED: Delayed judgment on " + judEvent.nm + ". Civil society mobilising. Case returns next turn.", "judicial");
-      out = { icon: "⏳", title: "Appeal filed", text: judEvent.nm + " comes back next year. Civil society is mobilising.", tone: "neutral" };
+      addL("⏳ You appealed. The case comes back next year; civil society groups are protesting.", "judicial");
+      out = { icon: "⏳", title: "You appealed", text: "The case comes back next year. Until then the order is suspended, but civil society groups are protesting outside the court.", tone: "neutral" };
     } else {
       setS(p => ({ ...p, pStab: cl100(p.pStab - 12), app: cl100(p.app - 5), cor: cl(p.cor + 0.05) }));
       setSkApp(p => ({ ...p, media: cl100((p.media || 50) - 10) }));
-      addL("⚠️ CONTEMPT: Defied court ruling on " + judEvent.nm + ". Constitutional crisis unfolding.", "judicial");
-      out = { icon: "⚠️", title: "You defied the court", text: judEvent.nm + ": contempt of court. A constitutional crisis is unfolding.", tone: "bad" };
+      addL("⚠️ You ignored the court order" + (judEvent.target ? ": the " + String(judEvent.target).replace(/^⭐\s*/, "") + " goes on" : "") + ". Lawyers call it contempt; a constitutional crisis is building.", "judicial");
+      out = { icon: "⚠️", title: "You ignored the court", text: (judEvent.target ? "The work goes on, " : "") + "but the Constitution says court orders must be obeyed (S.287). The Bar, the press and your own party are up in arms.", tone: "bad" };
       try { window.SOPX_onDecision && window.SOPX_onDecision("court_defied", { ruling: judEvent.nm }); } catch(e){}
       setStc(p => ({ ...p, defied: turn }));
       try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind:"court_defiance", target: judEvent.nm, gravity:5, evidence:5, approvalDelta:-5, corruptionDelta:+5, note:"Defied court ruling: "+judEvent.nm }); } catch(e){}
@@ -15256,25 +15267,22 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             {decArt(judEvent.id) ? <DecPic id={judEvent.id} /> : <SceneArt bg="courtroom" who="judge" alt="The judge" h={TALL() ? 180 : 220} />}
             <Bg text="Judicial Review" color={CL.pur} />
             <h3 style={{ fontFamily: F.d, color: CL.txt, margin: "22px 0", fontSize: TS(65), fontWeight: 600 }}>{judEvent.nm}</h3>
-            <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{briefly(judEvent.d, 120)}</p>
-            {judEvent.target && <p style={{ color: CL.org, fontSize: TS(36), marginBottom: 14 }}>Affected policy: {judEvent.target}</p>}
+            <p style={{ color: CL.tm, fontSize: TS(38), marginBottom: 36 }}>{judEvent.d}</p>
             {judEvent.cause && <p style={{ color: CL.txt, fontSize: TS(34), marginBottom: 29 }}><b>Why this case:</b> {judEvent.cause}</p>}
             <div style={{ display: "grid", gap: 29, maxWidth: 804, margin: "0 auto" }}>
-              <Cd onClick={() => resolveJudiciary(true)} style={{ padding: 36 }}>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.grn, marginBottom: 7 }}>✅ Comply Fully & Swiftly</div>
-                <div style={{ fontSize: TS(34), color: CL.td }}>Respect rule of law. Accept penalties immediately. Media +5, judiciary trust +8, closes the case in this turn.</div>
-              </Cd>
-              <Cd onClick={() => { if (s.debt !== undefined && (s.igr || 0) < 0.5) { alert("Treasury too thin for a full legal defence."); return; } resolveJudiciary("fasttrack"); }} style={{ padding: 36, borderColor: CL.blu + "44" }}>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.blu, marginBottom: 7 }}>⚖️ Fast-Track Judicial Review (₦0.5B legal fees)</div>
-                <div style={{ fontSize: TS(34), color: CL.td }}>File an accelerated hearing at the Court of Appeal. ~60% you win (no penalty), 40% you lose (penalty doubles). Debt +₦0.5B either way.</div>
-              </Cd>
-              <Cd onClick={() => resolveJudiciary("appeal")} style={{ padding: 36, borderColor: CL.org + "44" }}>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.org, marginBottom: 7 }}>⏳ Appeal & Delay (buy time)</div>
-                <div style={{ fontSize: TS(34), color: CL.td }}>Kick to the Court of Appeal. Case reopens next turn — but civil society ramps up. -3 approval now, penalty postponed.</div>
-              </Cd>
+            {(() => { const tn = String(judEvent.target || "").replace(/^⭐\s*/, ""), nSites = tn ? (projects || []).filter(x => x._srcPolicy && x._srcPolicy.nm === judEvent.target && !["delivered", "built", "abandoned"].includes(x.status)).length : 0;
+              const O = [
+                [true, CL.grn, "✅ Obey the court", tn ? "Stop the " + tn + " now" + (nSites ? ": work ends at " + nSites + " site" + (nSites === 1 ? "" : "s") + " and the contractors leave" : "") + ". The press and the courts respect you for it." : "Carry out the ruling today. The press and the courts respect you for it."],
+                ["fasttrack", CL.blu, "⚖️ Ask the Court of Appeal for a quick hearing", "Lawyers cost ₦0.5B. About 6 times in 10 you win and " + (tn ? "the work goes on" : "the case is dismissed") + ". If you lose, " + (tn ? "the work stops and " : "") + "the damage is double."],
+                ["appeal", CL.org, "⏳ Appeal, and buy a year", "The order is suspended until the case comes back next year, but civil society groups protest: approval falls 3 points now."],
+              ];
+              return O.map(([m, c, l, d]) => <Cd key={String(m)} onClick={() => { if (m === "fasttrack" && s.debt !== undefined && (s.igr || 0) < 0.5) { alert("The treasury is too thin to pay the lawyers."); return; } resolveJudiciary(m); }} style={{ padding: 36, borderColor: c + "44" }}>
+                <div style={{ fontWeight: 600, fontSize: TS(43), color: c, marginBottom: 7 }}>{l}</div>
+                <div style={{ fontSize: TS(34), color: CL.td }}>{d}</div>
+              </Cd>); })()}
               <Cd onClick={() => resolveJudiciary(false)} style={{ padding: 36, borderColor: CL.red + "44" }}>
-                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.red, marginBottom: 7 }}>⚠️ Defy the Court (S.287 breach)</div>
-                <div style={{ fontSize: TS(34), color: CL.td }}>Ignore the ruling. -12 party stability, -5 approval, +5% corruption. Triggers constitutional crisis path.</div>
+                <div style={{ fontWeight: 600, fontSize: TS(43), color: CL.red, marginBottom: 7 }}>⚠️ Ignore the court</div>
+                <div style={{ fontSize: TS(34), color: CL.td }}>{judEvent.target ? "The work goes on. " : ""}But the Constitution says court orders must be obeyed (S.287): your party turns on you (−12), approval falls 5 points, corruption rises, and a constitutional crisis begins.</div>
               </Cd>
             </div>
           </Cd>}

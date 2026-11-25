@@ -2296,3 +2296,15 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - It said only "Every ministry's share, for you to set and send to the House."
 - It now says the budget is drafted, or that Finance drafted it alone and some bids are padded. It gives what money is expected this year (Abuja's allocation plus the state's own taxes and fees, or the Federation Account and taxes for a President), says all the ministries have sent their bids, says you decide the shares and send the bill to the House of Assembly (or the National Assembly), and that nothing new can be paid for until it passes. It asks whether you will set it yourself or leave it to the Chief of Staff.
 - tests/e2e/letters-read.mjs checks it whenever it arrives.
+
+## A court order really stops the work, in plain words (25 Nov 2026)
+- Owner: "if I comply and the court strikes down the project… the project is still going on, which means this is for fancy??? Also it still reads like raw strings."
+- Obeying the court (or losing the quick appeal) now stops the programme and closes every site it started (courtStop: the sites are abandoned and marked courtStopped). It used to drop only the programme, so its building work went on.
+- The case now reads as a story: "A civil society group has sued to stop the Build Ultramodern Classroom Blocks, saying the law was not followed. The High Court has ordered the work to stop until the case is heard."
+- The four choices are in plain words, with no "Media +5" or "judiciary trust +8":
+  - Obey the court: say what stops, and how many sites.
+  - Ask the Court of Appeal for a quick hearing: ₦0.5B, about 6 times in 10 the work goes on, otherwise it stops and the damage is double.
+  - Appeal, and buy a year.
+  - Ignore the court: the work goes on, but S.287 says court orders must be obeyed.
+- The results say what happened in the same words.
+- Test: tests/e2e/court-stop.mjs (a programme with two sites under way; obey; both sites close and the programme leaves the list).
