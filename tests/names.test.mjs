@@ -28,3 +28,15 @@ test("no real politician's or famous family's surname", () => {
   const all = Object.values(NAME_GROUPS).flatMap(g => g.ln);
   BAN.forEach(b => assert.ok(!all.some(x => x.toLowerCase().split(/[-\s]/).includes(b.toLowerCase())), b + " is in the names"));
 });
+
+test("a date of birth always has its month (Perplexity found '27 undefined 1994')", async () => {
+  const { birthOf } = await import("../game/systems/wiki.js");
+  for (let i = 0; i < 3000; i++) assert.match(birthOf("Person " + i + " Okafor", 2027), /^\d{1,2} (January|February|March|April|May|June|July|August|September|October|November|December) \d{4}$/);
+});
+test("Tori's people carry the place's names", async () => {
+  const T = await import("../game/systems/tori.js");
+  const f = T.toriFeed({ st: "Rivers", zone: "SS", turn: 3, year: 2029, app: 50, cor: .3, places: ["Khana"], events: [] });
+  const R = ["ikwerre", "ogoni", "kalabari"].flatMap(g => [...NAME_GROUPS[g].m, ...NAME_GROUPS[g].f]);
+  const names = f.filter(x => x.kind === "citizen" && x.name).map(x => x.name.replace(/^(Mama|Iya|Baba|Nurse|Dr|Mr|Mrs) /, "").split(" ")[0]);
+  assert.ok(names.length >= 3 && names.filter(n => R.includes(n)).length >= names.length * .6, names.join(", "));
+});

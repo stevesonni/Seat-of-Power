@@ -58,7 +58,7 @@ const hash = (t) => { let h = 7; for (const c of String(t || "")) h = (h * 31 + 
 // Which governor of the state since 1999 the player is: the same everywhere it is shown.
 export const governorOrdinal = (stateName) => 4 + hash(stateName) % 4;
 // A birth date for the infobox, fixed by the name so it never changes between reads.
-export const birthOf = (name, startYear) => { const h = hash(name); return (1 + h % 28) + " " + MONTHS[(h >> 5) % 12] + " " + ((startYear || 2027) - 45 - (h >> 9) % 13); };
+export const birthOf = (name, startYear) => { const h = hash(name); return (1 + h % 28) + " " + MONTHS[(h >>> 5) % 12] + " " + ((startYear || 2027) - 45 - (h >>> 9) % 13); };
 // The subjects a governorship is told by, in this order. The first that matches an entry takes it.
 const THEMES = [
   ["Fiscal policy and the budget", /budget|appropriation|debt|loan|bond|revenue|tax|levy|FAAC|IGR|treasury|salar|arrears|ghost worker|payroll|borrow|bank/i],

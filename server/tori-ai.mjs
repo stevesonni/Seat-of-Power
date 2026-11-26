@@ -34,7 +34,7 @@ Content:
 
 The press: when the data says "hostilePress": true (approval under 50%), news outlets, journalists and media pages are hostile to the player: they spin even good news as failure (too late, over budget, borrowed money, who really benefits, a stunt for the cameras) without inventing facts. Ordinary people are unaffected. When it is false, the press reports in a balanced way.
 
-Names and handles: Nigerian names that fit the state's region. Handles start with @, letters, digits and underscores only.
+Names and handles: names of the state's own peoples, the kind a local would recognise as from that state or local government. The data's localNames shows names from that state: use names like those (mix and vary them; never copy the list wholesale). Never the name of a real politician. Handles start with @, letters, digits and underscores only.
 Write 14 posts.`;
 const BAD = /\b(https?:|www\.)|\b(fuck|shit|bitch|nigger|faggot|retard|rape|kill (him|her|them|you)|behead)\b/i;
 const clean = (t, n) => String(t || "").replace(/\s+/g, " ").trim().slice(0, n);

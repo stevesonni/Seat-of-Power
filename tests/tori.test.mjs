@@ -113,8 +113,9 @@ test("the opposition watches like a hawk: approval dips, ignored and lied-to com
 test("the feed is alive: regional people who change each year, replies under posts, news in the third person", () => {
   const c = { ...base, st: "Ogun", zone: "SW", places: ["Abeokuta North", "Ijebu Ode"], events: [{ text: "Your adviser has flagged two urgent needs.", tp: "info" }, { text: "You appointed Dr. Bello as your Chief of Staff.", tp: "political" }, { text: "Flood destroys 40 homes in Ijebu Ode.", tp: "crisis" }] };
   const f1 = SYS.toriFeed(c), f2 = SYS.toriFeed({ ...c, turn: 4 });
-  const yoruba = /Tunde|Segun|Kunle|Wale|Femi|Bayo|Dapo|Lekan|Bisi|Funke|Yetunde|Kemi|Bukola|Iya Sade|Tolani|Morenike|Baba Lati/;
-  assert.ok(f1.filter(x => x.kind === "citizen").every(x => yoruba.test(x.name)), "Ogun's people have Yoruba names");
+  // Ogun's own peoples (owner, 26 Nov 2026: names from the state and its local governments): Egba, Ijebu, Remo, Yewa, Awori.
+  const OG = ["egba", "ijebu", "remo", "yewa", "lagos"].flatMap(g => [...SYS.NAME_GROUPS[g].m, ...SYS.NAME_GROUPS[g].f]);
+  assert.ok(f1.filter(x => x.kind === "citizen").every(x => /^(Mama|Iya|Baba) /.test(x.name) || OG.includes(x.name.split(" ")[0])), "Ogun's people have Ogun's names: " + f1.filter(x => x.kind === "citizen").map(x => x.name).join(", "));
   const names = (f) => f.filter(x => x.kind === "citizen").map(x => x.name).join(",");
   assert.notEqual(names(f1), names(f2), "different people next year");
   assert.ok(f1.some(x => (x.thread || []).length > 0), "people reply under posts");

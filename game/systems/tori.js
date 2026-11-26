@@ -1,5 +1,6 @@
 import { planSector } from "./plans.js";
 import { spinPost } from "./press.js";
+import { NAME_GROUPS, STATE_NAMES, groupOf } from "./names.js";
 /* Tori: the state's own Twitter-style feed (owner's design, 20 Nov 2026). Citizens, the press, the party and the
    opposition post about how the state is run; the governor has an account (@EbonyiGov…) and can post and reply.
    Everything is written by the game from the state of play, in English and Pidgin: no live AI, nothing per player.
@@ -75,9 +76,20 @@ const ROLES = [
   { what: "village head", art: "village-head", g: "m" }, { what: "vigilante", art: "vigilante-guard", g: "m" }, { what: "small contractor", art: "contractor", g: "m" }, { what: "pensioner", art: "grieving-mother", g: "f" },
 ];
 const HSUF = ["", "_", "01", "_ng", "x", "jnr", "247", "official", "_the1st", "dey_ask"];
+/* Tori's people carry the place's own names (owner, 26 Nov 2026, "including Tori"): the state's peoples from
+   names.js, a local government's people when the feed knows its places; a President's feed draws from every state. */
+const placeNames = (c, r) => {
+  const st = c.nat || /^nigeria$/i.test(String(c.st)) ? pick(r, Object.keys(STATE_NAMES)) : c.st;
+  const lga = !c.nat && c.places && c.places.length && r() < .7 ? pick(r, c.places) : null;
+  const D = STATE_NAMES[st]; if (!D) return null;
+  let g = lga ? groupOf(st, lga) : null;
+  if (!g) { const all = [D.main, ...Object.keys(D.by || {}), ...(D.mix || [])]; g = pick(r, all); }
+  const P = NAME_GROUPS[g]; return P ? { f: P.f, m: P.m, l: P.ln } : null;
+};
 function castFor(c, seed, n, used0) {
-  const z = NAMES[c.zone] || (c.nat ? NAMES.NAT : NAMES.SE), r = rngOf(seed), used = used0 || new Set(), out = [];
+  const z0 = NAMES[c.zone] || (c.nat ? NAMES.NAT : NAMES.SE), r = rngOf(seed), used = used0 || new Set(), out = [];
   for (let i = 0; out.length < n && i < n * 6; i++) {
+    const z = { ...z0, ...(placeNames(c, r) || {}) };
     const role = ROLES[Math.floor(r() * ROLES.length)], first = pick(r, z[role.g]), last = pick(r, z.l);
     if (used.has(first)) continue; used.add(first);
     const nick = /^(Mama|Iya|Baba)/.test(first) ? first : r() < .5 ? first : first + " " + last;
