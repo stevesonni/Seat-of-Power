@@ -43,12 +43,12 @@ test("paying everything ends it, and the bill comes next year; printing brings i
   assert.ok(!R.end); assert.equal(R.st.trust, st.trust - 10); assert.ok(R.st.on);
 });
 
-test("ASUU: the first offer is an insult, no MoU in the first year, and a missed instalment brings them back", () => {
+test("ASUU: the first offer is an insult, an MoU can be signed from the first year, and a missed instalment brings them back", () => {
   const st = L.startStrike("asuu", null, 2), ctx = { nat: true, cash: 300, rev: 600, cor: .3, minister: 80, turn: 2 };
   assert.equal(L.offerOdds(st, ctx), 0);
   const O = L.resolve(st, { id: "offer" }, ctx, () => 0);
   assert.ok(!O.end); assert.match(O.say, /insult/);
-  assert.ok(!L.mouOk(st, 2)); assert.ok(L.resolve(st, { id: "mou" }, ctx).st.on);
+  assert.ok(L.mouOk(st, 2)); const M1 = L.resolve(st, { id: "mou" }, ctx); assert.ok(M1.end || !M1.st.on, "ASUU signs in the first year and suspends the strike");
   assert.ok(L.mouOk(st, 3));
   const M = L.resolve({ ...st, sessions: 3 }, { id: "mou" }, { ...ctx, turn: 3 });
   assert.ok(M.suspend); assert.equal(M.st.mou.due, 4); assert.ok(!M.st.on);

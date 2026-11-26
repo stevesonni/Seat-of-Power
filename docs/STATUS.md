@@ -2522,3 +2522,6 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 - Tests: tests/names.test.mjs (every state covered, every mapped local government exists in the game, the local government decides the people, no politicians' surnames).
 - Tori too: the people who post (castFor) carry the state's own names, a local government's when the feed knows its places; a President's feed draws from every state. The AI-written Tori is sent 14 sample names from the state (localNames) and told to use names like them.
 - Bug fixed (Perplexity's "27 undefined 1994"): about half of all names got a birth month of "undefined" (a signed shift gave a negative index). Fixed in SYS.birthOf; a test checks 3,000 names.
+
+## 26 Nov 2026: ASUU signs in the first year
+- Owner: "ASUU must be able to sign in the first year regardless." SYS.mouOk is true for every union: the MoU (30% now, the rest next year) suspends an ASUU strike from its first year. A missed instalment still brings them back out.

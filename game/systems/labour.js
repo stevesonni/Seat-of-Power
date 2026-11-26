@@ -97,8 +97,9 @@ export const offerOdds = (st, ctx = {}) => {
   if (st.id === "asuu" && y < 1) p *= .3;
   return Math.max(0, Math.min(.85, p));
 };
-// ASUU signs an MoU only in the strike's second year; the NLC will take one any time.
-export const mouOk = (st, turn) => st.id !== "asuu" || yearsOn(st, turn) >= 1;
+// Every union, ASUU included, will sign an MoU from the first year (owner, 26 Nov 2026: "ASUU must be able to sign in
+// the first year regardless"). A missed instalment still brings them back out.
+export const mouOk = () => true;
 
 /* The options at the table. ctx: { nat, cash, rev, cor, minister, turn,
    divert: [{ id, nm, kind }] (running work that could be cancelled) }. */
