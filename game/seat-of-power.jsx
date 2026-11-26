@@ -2164,8 +2164,6 @@ const artOf = (id, art) => art && VARIANT_ART.has(art) ? "./art/variants/" + art
 SEAT.got = SEAT.got || {};
 // The pictures arrived (Lovable, 25 Nov 2026); the film is still checked for.
 ["scenes/stadium-derelict", "scenes/stadium-full-house", "scenes/stadium-cracked-stand", "scenes/mini-stadium", "scenes/youth-assembly", "characters/football-official", "characters/fifa-official"].forEach(p => { SEAT.got[p] = true; });
-// The federal highway film (docs/GEMINI-REELS.md): checked for once; the President's roads use it as soon as it is there.
-try { if (typeof fetch === "function") fetch("./art/reels/fedroad.mp4", { method: "HEAD" }).then(r => { if (r.ok && (r.headers.get("content-type") || "").includes("video")) SYS.REELS.fedroad = 1; }).catch(() => {}); } catch (e) {}
 const sportArt = (p, fb) => SEAT.got[p] ? p.split("/").pop() : fb;
 const sportImg = (p, fb) => SEAT.got[p] ? "./art/" + p + ".webp" : fb;
 const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };

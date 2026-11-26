@@ -12,7 +12,8 @@ test("reels: listed films exist and every film is listed", () => {
   files.forEach(f => assert.ok(want.includes(f), f + " is on disk but not listed in REELS"));
   const byPolicy = new Set(Object.values(SYS.REEL_BY_POLICY || {}));
   const small = new Set(Object.values(SYS.REEL_SMALL || {}).map(x => x.film));
-  Object.keys(SYS.REELS).forEach(t => assert.ok(SYS.UNIT[t] || byPolicy.has(t) || small.has(t), t + " is a project type, a programme's own film, or a small one's"));
+  const fed = new Set(Object.values(SYS.REEL_FED || {}));
+  Object.keys(SYS.REELS).forEach(t => assert.ok(SYS.UNIT[t] || byPolicy.has(t) || small.has(t) || fed.has(t), t + " is a project type, a programme's own film, a small one's or the President's"));
   // The Irrigation Network builds a dam, but shows water reaching the fields (owner, 23 Nov 2026).
   assert.equal(SYS.reelFor("dam", "p1", "irrigation"), "./art/reels/irrigation.mp4");
   assert.equal(SYS.reelFor("dam", "p1", "f_mambilla"), "./art/reels/dam.mp4");
@@ -36,12 +37,10 @@ test("reels: no film means no reel; two films alternate by project", () => {
   delete SYS.REELS.__t;
 });
 
-test("the President's roads play the federal highway film once it is there; governors keep the road film", async () => {
+test("the President's roads and bridges play the federal highway film; governors keep the road film", async () => {
   const P = await import("../game/systems/projects.js");
-  assert.equal(P.reelFor("road", "p1", null, true), "./art/reels/road.mp4");
-  P.REELS.fedroad = 1;
+  assert.equal(P.REELS.fedroad, 1, "the federal highway film is installed");
   assert.equal(P.reelFor("road", "p1", null, true), "./art/reels/fedroad.mp4");
   assert.equal(P.reelFor("bridge", "p1", null, true), "./art/reels/fedroad.mp4");
   assert.equal(P.reelFor("road", "p1", null, false), "./art/reels/road.mp4");
-  delete P.REELS.fedroad;
 });
