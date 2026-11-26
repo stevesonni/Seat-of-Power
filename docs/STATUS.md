@@ -2508,3 +2508,9 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 ## 25 Nov 2026: a federal highway film for the President
 - SYS.REEL_FED: a President's finished road or bridge plays reels/fedroad.mp4 (a six-lane expressway, interchange and river bridge) once it is there; governors keep road.mp4. The game checks for the file at start. Prompt in docs/GEMINI-REELS.md.
 - Delivered: reels/fedroad.mp4 installed; REELS lists it, so the check at start is gone.
+
+## 26 Nov 2026: the House of Assembly votes, seat by seat
+- Owner: "Instead of it just being passed, let each circle light up green and the people against red, so you see it in real time… It all starts grey, and they call the vote." A semicircle of the House's seats (one circle per member, its real size), all grey; the vote is called; seats light up in a random order, green for yes and red for no, over about 3.4 seconds; abstainers stay grey; a tap skips to the end; then the verdict and the count ("Rejected: 7 for, 16 against, 1 abstained"). Two-thirds votes say what is needed. No party colours.
+- Plays at: bills sent to the House (passed or voted down), the flagship's bill, the budget, the Speaker's election (first House and new House), a motion to remove the Speaker (survives or falls), impeachment, and overriding your veto. Governor only for now; the President's Senate and House of Representatives next.
+- Rules: game/systems/chamber.js (seatLayout, voteSplit: the count always agrees with the result the game decided; seatVotes). It plays above the result card, which waits underneath. Browser tests record the votes (window.SOP_votes) without showing the chamber unless a test asks.
+- Tests: tests/chamber.test.mjs; tests/e2e/chamber.mjs (grey at start, half lit midway, red majority when against you, tap to skip, two-thirds, and the budget's vote in play over the House's 30 seats).

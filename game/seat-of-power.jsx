@@ -4806,7 +4806,53 @@ const SeatStrip = ({ house }) => { if (!house) return null; const per = house.se
   </div>
   <div style={{ fontSize: TS(30), color: "#fff8e6", marginTop: 8, textShadow: "0 1px 2px rgba(0,0,0,.6)" }}><b style={{ color: house.loyal > house.seats / 2 ? "#9be7b4" : "#ffb4a9" }}>{house.loyal} of {house.seats}</b> members back you · {Math.floor(house.seats / 2) + 1} needed{per > 1 ? " · each dot ≈ " + per : ""}</div>
 </div>; };
-const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, onDrop, grudges = [], speakerName = "The Speaker", addL, house, onClear, fixLabel }) => {
+/* The chamber votes, seat by seat (owner, 26 Nov 2026): every seat grey; the Speaker calls the vote; seats light up
+   in a random order, green for yes and red for no, abstainers stay grey; about 3.4 seconds, a tap skips to the end;
+   then the verdict and the count. It plays above the result card, which waits underneath. SYS.seatLayout, voteSplit
+   and seatVotes keep the count in step with the result the game has already decided. */
+const ChamberVote = ({ o, onDone }) => {
+  const N = Math.max(1, o.split.yes + o.split.no + o.split.abst), L = React.useMemo(() => SYS.seatLayout(N), [N]), R = SYS.seatRadius(N);
+  const S = React.useMemo(() => SYS.seatVotes(o.split, o.seed || o.title), [o]);
+  const calm = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches || !!window.SOP_TEST && !window.SOP_TEST.chamber; } catch (e) { return false; } })();
+  const [lit, setLit] = useState(calm ? N : 0), [called, setCalled] = useState(calm);
+  useEffect(() => { if (calm) return; let i = 0, t0 = setTimeout(() => { setCalled(true); const step = Math.max(8, SYS.VOTE_MS / N), iv = setInterval(() => { i++; setLit(l => Math.max(l, i)); if (i >= N) clearInterval(iv); }, step); T.iv = iv; }, 700); const T = { iv: null }; return () => { clearTimeout(t0); if (T.iv) clearInterval(T.iv); }; }, []);
+  const done = lit >= N;
+  useEffect(() => { if (done && !calm) try { window.SOP_sound && window.SOP_sound("gavel"); } catch (e) {} }, [done]);
+  const shown = new Set(S.order.slice(0, lit)); let y = 0, n = 0, a = 0; S.votes.forEach((v, i) => { if (!shown.has(i)) return; if (v === "yes") y++; else if (v === "no") n++; else a++; });
+  const tap = () => { if (!done) { setCalled(true); setLit(N); } else onDone(); };
+  const G = "#1f8a4c", RD = "#c62828", GR = "#c9c3b4";
+  const need = o.need === "two_thirds" ? "Two-thirds of the " + N + " members needed: " + Math.ceil(N * 2 / 3) + "." : null;
+  return <div data-sop-chamber role="dialog" aria-modal="true" aria-label={o.title} onClick={tap} style={{ position: "fixed", inset: 0, zIndex: 10040, background: "rgba(6,14,10,.82)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, cursor: "pointer" }}>
+    <div style={{ background: "#fffaf0", color: "#13261c", borderRadius: 22, width: "100%", maxWidth: 560, padding: "18px 18px 16px", boxShadow: "0 28px 70px rgba(0,0,0,.45)", textAlign: "center" }}>
+      <div style={{ fontSize: 13, letterSpacing: ".08em", textTransform: "uppercase", fontWeight: 800, color: "#7a6a3f" }}>{o.house || "House of Assembly"}</div>
+      <div style={{ font: "700 22px/1.25 Fraunces, Georgia, serif", margin: "4px 0 2px" }}>{o.title}</div>
+      <div style={{ fontSize: 15, color: "#4f5d54", minHeight: 20 }}>{called ? (o.caller || "The Speaker calls the vote.") : "The members take their seats…"}</div>
+      <svg viewBox={(-R * 1.3) + " " + (-R * 1.3) + " " + (1 + R * 2.6) + " " + (.51 + R * 2.6)} style={{ display: "block", width: "100%", margin: "10px 0 6px" }} aria-hidden="true">
+        {L.map((p, i) => { const on = shown.has(i), v = S.votes[i]; return <circle key={i} cx={p.x} cy={p.y + .01} r={R} fill={on && v === "yes" ? G : on && v === "no" ? RD : GR} stroke={on && v === "abst" ? "#9b9483" : "none"} strokeWidth={R * .25} style={{ transition: "fill .18s" }} />; })}
+      </svg>
+      <div style={{ display: "flex", justifyContent: "center", gap: 14, fontWeight: 800, fontSize: 16 }}>
+        <span style={{ color: G }}>● For {y}</span><span style={{ color: RD }}>● Against {n}</span>{(done ? o.split.abst : a) > 0 && <span style={{ color: "#7d7666" }}>○ Abstained {a}</span>}
+      </div>
+      {done ? <>
+        <div data-sop-chamber-verdict style={{ font: "800 26px/1.2 Fraunces, Georgia, serif", color: o.passed ? G : RD, margin: "10px 0 2px" }}>{o.passed ? (o.yesWord || "Passed") : (o.noWord || "Rejected")}</div>
+        <div style={{ fontSize: 15, color: "#4f5d54" }}>{o.split.yes} for, {o.split.no} against{o.split.abst ? ", " + o.split.abst + " abstained" : ""}.{need ? " " + need : ""}</div>
+        <button type="button" onClick={(e) => { e.stopPropagation(); onDone(); }} style={{ marginTop: 12, width: "100%", minHeight: 50, borderRadius: 999, border: 0, background: "#12301f", color: "#fff", fontWeight: 800, fontSize: 17, cursor: "pointer" }}>Continue</button>
+      </> : <div style={{ fontSize: 13, color: "#8a8270", marginTop: 8 }}>Tap to see the result</div>}
+    </div>
+  </div>;
+};
+/* Show a vote. o: { title, house?, caller?, seats, passed, favour (expected yes share), need ("majority" | "two_thirds"),
+   yesWord?, noWord?, seed? }. Returns at once; the chamber closes itself when the player taps Continue. */
+const chamberVote = (o) => { try {
+  if (!o || !o.seats || typeof document === "undefined") return; const split = SYS.voteSplit({ seats: o.seats, favour: o.favour, passed: !!o.passed, need: o.need, seed: (o.seed || o.title) + "|" + o.seats });
+  try { window.SOP_votes = [...(window.SOP_votes || []), { title: o.title, passed: !!o.passed, need: o.need || "majority", ...split }].slice(-20); } catch (e) {}
+  if (window.SOP_TEST && !window.SOP_TEST.chamber) return; // other browser tests are not held up by it
+  const host = document.createElement("div"); document.body.appendChild(host); const r = ReactDOM.createRoot(host);
+  const close = () => { try { r.unmount(); } catch (e) {} host.remove(); };
+  r.render(React.createElement(ChamberVote, { o: { ...o, split }, onDone: close }));
+} catch (e) {} };
+
+const HouseVote = ({ nat, pStab, bud, level, onPass, onAmend, onForce, onNegotiate, onDrop, grudges = [], speakerName = "The Speaker", addL, house, onClear, fixLabel }) => {
   const [voted, setVoted] = useState(false);
   const [result, setResult] = useState(null);
   const [reasons, setReasons] = useState([]);
@@ -4856,6 +4902,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
   const autoPass = !hardBlockers.length && !concerns.length;
   useEffect(() => { if (!autoPass) return; const t = setTimeout(() => {
     addL && addL("✅ The House passed your budget law without objections.", "policy");
+    if (!nat && house && house.seats) chamberVote({ title: "The Appropriation Bill", seats: house.seats, favour: Math.max(.6, house.loyal / house.seats), passed: true, seed: "budget" + bs });
     try { window.SOP_impact && window.SOP_impact({ icon: "🏛️", title: "The House passes your budget law", text: "No objections from members.", tone: "good" }); } catch (e) {}
     onPass(); }, 60); return () => clearTimeout(t); }, []);
   const doVote = () => {
@@ -4868,6 +4915,7 @@ const HouseVote = ({ pStab, bud, level, onPass, onAmend, onForce, onNegotiate, o
     }
     setResult(passed ? "pass" : "reject");
     setVoted(true);
+    if (!nat && house && house.seats) chamberVote({ title: "The Appropriation Bill", seats: house.seats, favour: house.loyal / house.seats + (passed ? .05 : -.15), passed, seed: "budget" + bs + hardBlockers.length });
   };
 
   if (!voted) return (
@@ -6358,6 +6406,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       // named: a road you named, on a bank loan, is the one the court halts (tests/e2e/court-stop.mjs).
       paperTest: (h, sub, good) => { if (!window.SOP_TEST) return null; const o = window.SOP_outcome; let got = null; window.SOP_outcome = (x) => { if (x && x.paper) got = x.paper; return o && o(x); }; try { paper(h, sub, good); } finally { window.SOP_outcome = o; } return got; },
       pressNow: () => ({ hostile: !!pressRef.current, app: s.app }),
+      chamberTest: (o) => { if (window.SOP_TEST) chamberVote(o); },
       turnTest: (n) => { if (window.SOP_TEST) setTurn(n); },
       injunctionTest: (nm, sites, named) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0];
         if (named) { const L = { key: "loan:p_ikwo:bank", lenderId: "bank", lender: "A syndicate of three commercial banks", nm: "Commercial bank loan", principalM: 1800, rate: .22, years: 4, tranches: 3, drawn: 1, trancheM: 600, drawnM: 600, outstandingM: 600, projId: "p_ikwo", disbursedYear: turn };
@@ -8467,6 +8516,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             ...(R.hostile && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, Math.floor(p.house.seats / 2) - 1) } } : {}) }));
           if (!R.hostile) houseBy(R.owes ? 2 : 0);
           setCast(c => ({ ...c, speaker: { ...c.speaker, name: "Rt. Hon. " + W.name.replace(/^Hon\. /, "") } }));
+          if (!NAT) chamberVote({ title: "Election of the Speaker", caller: "The Clerk calls the vote for Speaker.", seats: H0.seats, favour: id ? ratio : .6, passed: id ? id === R.winner : true, seed: "sp1" + R.winner,
+            yesWord: W.name.replace(/^Hon\. /, "Rt. Hon. ") + " is Speaker" + (id ? ": your candidate won" : ""), noWord: "Your candidate lost: " + W.name.replace(/^Hon\. /, "Rt. Hon. ") + " is Speaker" });
           scWiki("Legislature", W.name.replace(/^Hon\. /, "Rt. Hon. ") + " was elected Speaker of the House of Assembly in " + absYear + (R.hostile ? "; the governor's candidate lost, and with that the governor's majority." : id && id === R.winner ? ", with the governor's backing." : "."));
           track("leg_speaker", (id ? (id === R.winner ? "backed_winner" : "backed_loser") : "stayed_out") + "_" + R.kind);
           addL("🏛️ " + W.name + " is the new Speaker" + (R.owes ? ", and owes you." : R.crossed ? ". You backed the other candidate, and the new Speaker knows it." : "."), R.crossed ? "political" : "success");
@@ -8500,6 +8551,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
             ...(hostile && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } } : {}) }));
           setCast(c => ({ ...c, speaker: { ...c.speaker, name: spNm(W) } })); track("leg_speaker2", kind + "_" + (backed || "out") + "_" + R.winner);
           addL("🏛️ " + spNm(W) + " is Speaker of the new House" + (hostile ? ". He is not your man: you have lost the House." : R.owes ? ", and owes you." : "."), hostile ? "crisis" : "success");
+          if (!NAT) chamberVote({ title: "Election of the Speaker of the new House", caller: "The Clerk calls the vote for Speaker.", seats, favour: loyal2 / seats, passed: backed ? backed === R.winner : true, seed: "sp2" + R.winner + turn,
+            yesWord: spNm(W) + " is Speaker" + (backed ? ": your candidate won" : ""), noWord: "Your candidate lost: " + spNm(W) + " is Speaker" });
           scWiki("Legislature", spNm(W) + " was elected Speaker of the new House of Assembly in " + absYear + (hostile ? ", against the governor." : "."));
           return { icon: "🏛️", title: spNm(W) + " is Speaker of the new House", text: hostile ? "He is the House's man, not yours: your bills wait on his price, and if your approval slips he will move to impeach you." : R.winner === "old" ? "The old Speaker keeps his chair for your second term." : "The new Speaker is on your side.", tone: hostile ? "bad" : "good",
             rows: [{ l: "The House", v: hostile ? "Against you" : "With you", good: !hostile }, { l: "What they think of your first term", v: K.nm, good: kind === "loyalist" }] }; };
@@ -8518,6 +8571,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (P.go || (window.SOP_TEST && window.SOP_TEST.plotNow && P.why.length)) { next.spPlotTerm = term;
           const OLDm = SYS.memberOf(L, SP1.winner), SN = spNm(OLDm), need = Math.ceil(seats * 2 / 3), have = need - 1 - (hashStr(state + turn) % 3);
           const fall = (how) => { const kind = SYS.houseKind(next.houseRec, { gfFreed: next.gf === "freed" }), K = SYS.SPEAKER_KINDS[kind], hostile = !["loyalist", "dealer"].includes(kind);
+            if (!NAT && how === "vote") chamberVote({ title: "Motion to remove the Speaker", caller: "The motion is put to the vote. Removal needs two-thirds.", seats, need: "two_thirds", favour: .75, passed: true, seed: "plotfall" + turn, yesWord: "The Speaker is removed" });
             const NM = newMember("spx", K.bloc), asks = hostile ? SYS.speakerAsks((next.pseed || 7) + ":" + NM.id, NAT) : [], maj = Math.floor(seats / 2) + 1;
             setStc(p => ({ ...p, leg: { ...(p.leg || L), members: next.leg.members, speaker: { winner: NM.id, kind, hostile, at: turn, asks, done: [], term, removed: SP1.winner } }, ...(hostile && p.house ? { house: { ...p.house, loyal: Math.min(p.house.loyal, maj - 2) } } : {}) }));
             setCast(c => ({ ...c, speaker: { ...c.speaker, name: spNm(NM) } }));
@@ -8542,7 +8596,8 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 track("leg_spplot", m.id + ":" + P.why.join("+"));
                 if (m.id === "let") return fall("vote");
                 const roll = rng(hashStr("plot" + turn + m.id + pName))();
-                if (roll < odds) { addL("🏛️ " + SN + " survives: the plot against him collapsed after you " + m.l.charAt(0).toLowerCase() + m.l.slice(1) + ".", "success"); scWiki("Legislature", "Saved Speaker " + SN + " from a removal plot in " + absYear + ".");
+                if (roll < odds) { if (!NAT) chamberVote({ title: "Motion to remove the Speaker", caller: "The motion is put to the vote. Removal needs two-thirds.", seats, need: "two_thirds", favour: .55, passed: false, seed: "plot" + turn, noWord: SN + " survives" });
+                  addL("🏛️ " + SN + " survives: the plot against him collapsed after you " + m.l.charAt(0).toLowerCase() + m.l.slice(1) + ".", "success"); scWiki("Legislature", "Saved Speaker " + SN + " from a removal plot in " + absYear + ".");
                   if (m.id === "release") houseRec("funded"); if (m.id === "police") setTimeout(() => paper("POLICE SEAL ASSEMBLY", "Lawmakers locked out; the Speaker's foes cry foul", false, "./art/backgrounds/assembly-chamber.webp"), 400);
                   return { icon: "🛡️", title: SN + " survives", text: "The signatures stop at " + have + ". He stays in the chair, and remembers who saved him.", tone: "good", rows: [{ l: "The Speaker", v: "Still yours", good: true }] }; }
                 if (m.id === "court" && rng(hashStr("split" + turn + pName))() < m.split) return split();
@@ -9484,6 +9539,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         const H = scHouse(), F1 = SYS.storyTurn(fd, next.flagStory || { ...SYS.storyStart(fd, state + ":" + pName), v: fv }, turn, { house: Math.round(H.loyal / Math.max(1, H.seats) * 100), nat: NAT }, rE);
         next.flagStory = F1;
         if (F1.news && F1.news.kind === "house_passed") notes.push(["📜 The House passed the " + F1.news.nm + ". It is on your desk to sign.", "political"]);
+        // The flagship bill's vote, seat by seat (owner, 26 Nov 2026).
+        if (!NAT && F1.news && (F1.news.kind === "house_passed" || F1.news.kind === "rejected" || F1.news.kind === "stalled")) { const H = next.house || stc.house || { seats: 24, loyal: 12 }, ok = F1.news.kind === "house_passed";
+          setTimeout(() => chamberVote({ title: "The " + F1.news.nm, seats: H.seats, favour: H.loyal / Math.max(1, H.seats), passed: ok, seed: "flag" + F1.news.nm + turn, noWord: F1.news.kind === "stalled" ? "Not passed: it goes back to committee" : "Rejected" }), 900); }
         if (F1.news && F1.news.kind === "passed") { dApp += 2; notes.push(["📜 The " + F1.news.nm + " passed: it is law now (approval +2).", "success"]); scWiki("Governorship", "Signed the " + F1.news.nm.replace(/ Bill$/, " Law") + " into law."); }
         if (F1.news && F1.news.kind === "rejected") notes.push(["📜 The House threw out the " + F1.news.nm + " a second time.", "political"]);
       }
@@ -11722,6 +11780,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       addL("❌ House rejects " + bill.nm + ". " + objections.slice(0, 2).map(o => o.who + " voted no: " + o.why).join(" "), "political");
       setS(p => ({ ...p, pStab: cl100(p.pStab - 3) }));
       setBillReject({ bill, reasons: objections });
+      if (!NAT) { const H = scHouse(); chamberVote({ title: "The " + bill.nm, seats: H.seats, favour: H.loyal / Math.max(1, H.seats) - .1, passed: false, seed: bill.id + turn }); }
       return { icon: "🏛️", title: "The House voted it down", text: bill.nm + ": " + objections[0].who + " voted no because " + objections[0].why, tone: "bad" };
     }
     setBillReject(null);
@@ -11729,6 +11788,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const note = s.pStab < 40 ? " after tense caucus horse-trading" : "";
     addL("📜 The " + (NAT ? "National Assembly" : "House") + " passed the " + bill.nm + note + ". It is on your desk for assent.", "political");
     setAssentBill({ bill, note });
+    if (!NAT) { const H = scHouse(); chamberVote({ title: "The " + bill.nm, seats: H.seats, favour: H.loyal / Math.max(1, H.seats), passed: true, seed: bill.id + turn }); }
     return null;
   });
   const signBill = (bill, note) => {
@@ -11947,6 +12007,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // Fight chance scales with approval — high approval = almost guaranteed survival
     const fightChance = s.app > 70 ? 0.95 : s.app > 50 ? 0.8 : s.app > 40 ? 0.65 : 0.5;
     const won = Math.random() < fightChance;
+    if (!NAT) { const H = scHouse(); chamberVote({ title: "Impeachment of the Governor", caller: "The Speaker puts the motion to remove you. It needs two-thirds of the House.", seats: H.seats, need: "two_thirds", favour: 1 - H.loyal / Math.max(1, H.seats), passed: !(surv && won), seed: "imp" + turn, yesWord: "Impeached: you are removed", noWord: "The motion fails: you survive" }); }
     if (surv && won) {
       setImpSurv(true);
       setS(p => ({ ...p, app: cl100(p.app + 5), pStab: cl100(p.pStab + 15) })); // Boost pStab so it doesn't re-trigger
@@ -17134,6 +17195,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
               } else {
                 setS(p => { const n = { ...p, pStab: cl100(p.pStab - 5) }; Object.entries(B.vetoFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); }); return n; });
                 const hs = scHouse(), over = hs.seats - hs.loyal >= Math.ceil(hs.seats * 2 / 3); // the President: S.58(5); a governor: two-thirds of the one House of Assembly, S.100(5)
+                if (!NAT) chamberVote({ title: "Overriding your veto: the " + B.nm, caller: "The House votes to override. It needs two-thirds.", seats: hs.seats, need: "two_thirds", favour: 1 - hs.loyal / Math.max(1, hs.seats), passed: over, seed: "ovr" + B.id + turn, yesWord: "Veto overridden: it is law", noWord: "Your veto stands" });
                 if (over) {
                   setS(p => { const n = { ...p }; Object.entries(B.signFx || {}).forEach(([k, v]) => { if (k === "app") n.app = cl100(n.app + v); else if (k === "corM") n.cor = cl(n.cor + v); }); if (badClauses.length) n.cor = cl(n.cor + .04); return n; });
                   scWiki("Legislature", "Vetoed the " + B.nm + "; " + (NAT ? "the National Assembly" : "the House of Assembly") + " overrode the veto by a two-thirds vote, and it became law without {his} assent.");
@@ -17560,7 +17622,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
                 onForce={() => { try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_forced", actor: "governor", gravity: 4, evidence: 4, decision: "Forced the budget through by executive order", note: "Spent without the House's approval (S.121)", meta: { total: tb } }); } catch (e) {} setForcedBudget(true); setS(p => ({ ...p, pStab: cl100(p.pStab - 15), app: cl100(p.app - 5) })); addL("⚠️ Budget FORCED through without House approval! (-15 party, -5 approval)", "political"); setPhase("policy"); }}
                 onNegotiate={(cost, reasons) => { if (houseDeal(cost, reasons, "The appropriation bill")) setPhase("policy"); }}
                 onDrop={() => { setS(p => ({ ...p, app: cl100(p.app - 3), pStab: cl100(p.pStab - 3) })); addL("🗑️ Appropriation bill withdrawn. The state runs on last year's figures; nothing new is funded.", "political"); try { window.SOP_LEDGER && window.SOP_LEDGER.append({ kind: "budget_withdrawn", actor: "governor", gravity: 1, evidence: 2, approvalDelta: -3, note: "Withdrew the appropriation bill after the House rejected it" }); } catch (e) {} setPhase("policy"); }}
-                grudges={houseGrudges()} speakerName={cast.speaker.name} house={scHouse()} onClear={clearGrudge} fixLabel={fixLabel}
+                nat={NAT} grudges={houseGrudges()} speakerName={cast.speaker.name} house={scHouse()} onClear={clearGrudge} fixLabel={fixLabel}
                 addL={addL} />
             </Cd>}
             {phase === "policy" && <Cd style={{ padding: TALL() ? "18px 16px" : "32px 36px" }}>
