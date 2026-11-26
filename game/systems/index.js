@@ -81,3 +81,4 @@ export * from "./placeissues.js";
 export * from "./sports.js";
 export * from "./press.js";
 export * from "./chamber.js";
+export * from "./names.js";

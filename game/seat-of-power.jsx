@@ -752,14 +752,17 @@ window.SNAMES_REF = SNAMES;
 const BIO_JOBS = ["Former teacher","Ex-banker","Retired civil servant","Businessperson","Former journalist","Community organizer","Legal practitioner","Engineer","Medical doctor","Ex-military officer","Academic professor","NGO director","Former LGA chairman","Trade union leader","Pharmacist","Quantity surveyor","Ex-NYSC director","Returnee from diaspora","Town union president","Former PA to a senator"];
 const BIO_LINKS = ["connected to the state farmers association","with links to the market women alliance","known associate of the transport workers union","well-regarded by traditional rulers","active in the traders association","with strong ties to the youth council","connected to religious leaders across the state","known in the construction industry","with deep party connections at ward level","a protege of a former commissioner","linked to the civil service establishment","active in the women's cooperative network","with quiet influence at the Government Lodge","funded by a powerful contractors' cartel","trusted by the okada/keke riders union","raised in a prominent ruling-house compound"];
 
-function gN(r, zone, stateId) {
-  if (stateId === NATION) { const z = ZNAMES[pick(NATION_ZONE_IDS, r)] || ZNAMES.NC; return pick(z.fn, r) + " " + pick(z.ln, r); }
+/* Names that belong to the place (SYS.nameFor; owner, 26 Nov 2026): each state's own peoples, and in a mixed state the
+   people of the local government (Kogi: Igala, Ebira or Okun). lga is optional; female asks for a woman's name. */
+function gN(r, zone, stateId, lga, female) {
+  if (stateId === NATION) { const S0 = Object.keys(SYS.STATE_NAMES), st = S0[Math.floor(r() * S0.length)]; const n0 = SYS.nameFor(r, st, null, getLGAs(st), female); if (n0) return n0; const z = ZNAMES[pick(NATION_ZONE_IDS, r)] || ZNAMES.NC; return pick(z.fn, r) + " " + pick(z.ln, r); }
+  { const n = stateId && SYS.nameFor(r, stateId, lga, getLGAs(stateId), female); if (n) return n; }
   if (stateId && SNAMES[stateId]) { const z = SNAMES[stateId]; return pick(z.fn, r) + " " + pick(z.ln, r); }
   const z = ZNAMES[zone] || ZNAMES.SW; return pick(z.fn, r) + " " + pick(z.ln, r);
 }
 // A name that fits a fixed portrait: a man's name for a man's picture, a woman's for a woman's.
 const isFemaleName = (nm) => FEMALE_FIRST.includes(String(nm || "").split(" ")[0]);
-function gNAs(r, zone, stateId, female) { let n = gN(r, zone, stateId); for (let i = 0; i < 40 && isFemaleName(n) !== !!female; i++) n = gN(r, zone, stateId); return n; }
+function gNAs(r, zone, stateId, female, lga) { let n = gN(r, zone, stateId, lga, !!female); for (let i = 0; i < 40 && isFemaleName(n) !== !!female; i++) n = gN(r, zone, stateId, lga, !!female); return n; }
 // ─── SLOGANS ───
 // A slogan does two jobs. In the campaign, moves that match it carry an
 // extra 2 points in the zone they target. In office, once a year voters
@@ -1535,7 +1538,7 @@ function gfPersona(def) {
 }
 // Portraits (public/art). The deputy's picture follows the deputy's first name.
 const CAST_ART = { godfather: "godfather", adviser: "special-adviser", speaker: "speaker", reporter: "reporter", efcc: "efcc-investigator", rival: "rival", labour: "labour-leader" };
-const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu", "Binta", "Bisola", "Bukola", "Chiamaka", "Chidinma", "Damilola", "Ekaette", "Fatima", "Folake", "Folashade", "Funmilayo", "Hadiza", "Halima", "Hannatu", "Hauwa", "Kemi", "Khadija", "Maryam", "Ngozi", "Sade", "Titi", "Yemisi", "Zainab", "Adeola", "Aishatu", "Aminat", "Falmata", "Bintu", "Yagana", "Ifeoma", "Chioma", "Nkechi", "Uche", "Modupe", "Bisi", "Funke", "Omolara", "Yetunde", "Adaobi", "Chinyere", "Amaka", "Ogechi", "Fanna", "Iquo", "Mbang", "Ebiere", "Ibinabo", "Chinwe", "Ivie", "Doosuur", "Nguavese", "Mngusoor", "Hanatu", "Kaneng", "Ladi", "Ochanya", "Onyeche", "Ojone", "Ene", "Ozavize", "Laraba", "Martha", "Deborah", "Grace", "Blessing", "Mercy", "Imaobong", "Emem"];
+const FEMALE_FIRST = ["Adaeze", "Adunni", "Aisha", "Amina", "Ayomide", "Bilkisu", "Binta", "Bisola", "Bukola", "Chiamaka", "Chidinma", "Damilola", "Ekaette", "Fatima", "Folake", "Folashade", "Funmilayo", "Hadiza", "Halima", "Hannatu", "Hauwa", "Kemi", "Khadija", "Maryam", "Ngozi", "Sade", "Titi", "Yemisi", "Zainab", "Adeola", "Aishatu", "Aminat", "Falmata", "Bintu", "Yagana", "Ifeoma", "Chioma", "Nkechi", "Uche", "Modupe", "Bisi", "Funke", "Omolara", "Yetunde", "Adaobi", "Chinyere", "Amaka", "Ogechi", "Fanna", "Iquo", "Mbang", "Ebiere", "Ibinabo", "Chinwe", "Ivie", "Doosuur", "Nguavese", "Mngusoor", "Hanatu", "Kaneng", "Ladi", "Ochanya", "Onyeche", "Ojone", "Ene", "Ozavize", "Laraba", "Martha", "Deborah", "Grace", "Blessing", "Mercy", "Imaobong", "Emem"].concat(SYS.FEMALE_GIVEN || []);
 // The deputy's dress follows the state's region: a northern deputy in a
 // kaftan or hijab, an eastern or south-south man in isiagu, a western man
 // in a suit.
@@ -11433,7 +11436,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     setLgaTour(null); if (NAT || lgaToursLeft() <= 0 || !lga) return;
     const L = getLGAs(state), zi = [0, 1, 2].find(i => lgaCluster(L, i).includes(lga)) ?? 0;
     const jit = (v, k) => v == null ? .5 : Math.max(0, Math.min(1, v + ((hashStr(lga + k) % 21) - 10) / 100)); // each LGA a little better or worse than the state
-    const chairman = "Hon. " + gNAs(rng(hashStr("lgc" + lga)), sd.zone, state, false);
+    const chairman = "Hon. " + gNAs(rng(hashStr("lgc" + lga)), sd.zone, state, false, lga);
     // The place's own issue (SYS.lgaIssue), by who you meet and how often you have been (owner, 25 Nov 2026).
     const seen = ((stc.lgaSeen || {})[lga]) || 0, issue = SYS.lgaIssue(state, lga, purposeId, seen);
     const ask = visitNeed(lga, zi, { sec: jit(s.sec, "s"), infra: jit(s.infra, "i"), hp: jit(s.hp, "h"), lit: jit(s.lit, "l"), agr: jit(s.agr, "a"), unemp: jit(s.unemp, "u"), pov: jit(s.pov, "p") }, "lt" + turn + lga + purposeId, issue && issue.k, issue);
@@ -19118,7 +19121,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   // ── Starting: how you got the ticket, then the council election ──
   const begin = (b, k) => {
     const lgas = getLGAs(profile.origin || "Lagos"), lga = profile.lga || lgas[0] || "Central";
-    const seed = Date.now(), rn = SYS.seeded(seed, "names"), zone = STATES[profile.origin]?.zone || "SW", usedNm = new Set([String(profile.last || "")]), nm = () => { let x = ""; for (let i = 0; i < 12 && (!x || usedNm.has(x)); i++) x = String(gN(rn, zone, profile.origin)).split(" ").pop(); usedNm.add(x); return x; }; // surnames only (the portraits are men), all different
+    const seed = Date.now(), rn = SYS.seeded(seed, "names"), zone = STATES[profile.origin]?.zone || "SW", usedNm = new Set([String(profile.last || "")]), nm = () => { let x = ""; for (let i = 0; i < 12 && (!x || usedNm.has(x)); i++) x = String(gN(rn, zone, profile.origin, lga)).split(" ").pop(); usedNm.add(x); return x; }; // surnames of the LGA itself (SYS.nameFor); surnames only (the portraits are men), all different
     const S = { v: 2, seed, name: profile.first + " " + profile.last, avatar: profile.avatar, state: profile.origin || "Lagos", lga, from: k,
       people: b.people, gov: b.gov, council: b.council, cor: b.cor, purse: b.purse, n: 1, step: "promise", items: [], seen: [], seenOpt: [], story: [], fixed: 0, log: [], courtWon: 0, road: {}, trayDone: 0,
       govName: "Gov. " + nm(), seeds: [], elecMod: 0,
@@ -19136,7 +19139,7 @@ const ChairmanCareer = ({ profile, onExit, onGovernor }) => {
   };
 
   // Your own plan (pillar "plan"): one ambition for the term, and a rival who wants your seat.
-  const pickAmbition = (k) => { trk("lga_ambition", k); const rn = SYS.seeded(g.seed, "rival"), zone = STATES[g.state]?.zone || "SW"; let nm = ""; for (let i = 0; i < 8 && (!nm || JSON.stringify(g.npcs).includes(nm)); i++) nm = String(gN(rn, zone, g.state)).split(" ").pop();
+  const pickAmbition = (k) => { trk("lga_ambition", k); const rn = SYS.seeded(g.seed, "rival"), zone = STATES[g.state]?.zone || "SW"; let nm = ""; for (let i = 0; i < 8 && (!nm || JSON.stringify(g.npcs).includes(nm)); i++) nm = String(gN(rn, zone, g.state, g.lga)).split(" ").pop();
     up(p => ({ ambition: k, step: "half", npcs: { ...p.npcs, rival: { name: "Hon. " + nm, role: "Your rival", rel: 30 } } })); };
   const rivalItem = (S, n) => { if (!pillarOn("plan") || !S.ambition) return []; const m = SYS.rivalMoveFor(S.seed, n, S.seen || []); return m ? [{ k: "rival", id: m.id }] : []; };
   // ── The half-year's items ──
