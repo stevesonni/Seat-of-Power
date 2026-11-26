@@ -93,8 +93,11 @@ export const demandOf = (st, { cash = 0, rev = 20 } = {}) => Math.round(Math.max
 export const offerOdds = (st, ctx = {}) => {
   const y = yearsOn(st, ctx.turn || st.start);
   if (st.id === "asuu" && st.sessions === 0) return 0; // the first offer is always "an insult"
-  let p = (st.id === "asuu" ? .12 : .35) + (st.trust - 30) / 150 + (ctx.minister == null ? -.1 : (ctx.minister - 50) / 200) - Math.max(0, (ctx.cor || 0) - .5) * 1.2 + y * .12;
-  if (st.id === "asuu" && y < 1) p *= .3;
+  // ASUU after its first "insult" round: UTAS was its own demand, so conceding it with a raise has a real chance from
+  // year one (owner, 26 Nov 2026: "Why do they always refuse UTAS?"): about 35% through the Chief of Staff, 40% with an
+  // average Labour commissioner, 55% with a strong one, more the longer the strike runs.
+  if (st.id === "asuu") { const q = .4 + (st.trust - 20) / 150 + (ctx.minister == null ? -.05 : (ctx.minister - 50) / 200) - Math.max(0, (ctx.cor || 0) - .5) * 1.2 + y * .12; return Math.max(.1, Math.min(.85, q)); }
+  let p = .35 + (st.trust - 30) / 150 + (ctx.minister == null ? -.1 : (ctx.minister - 50) / 200) - Math.max(0, (ctx.cor || 0) - .5) * 1.2 + y * .12;
   return Math.max(0, Math.min(.85, p));
 };
 // Every union, ASUU included, will sign an MoU from the first year (owner, 26 Nov 2026: "ASUU must be able to sign in

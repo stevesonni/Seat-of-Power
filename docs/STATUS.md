@@ -2525,3 +2525,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 
 ## 26 Nov 2026: ASUU signs in the first year
 - Owner: "ASUU must be able to sign in the first year regardless." SYS.mouOk is true for every union: the MoU (30% now, the rest next year) suspends an ASUU strike from its first year. A missed instalment still brings them back out.
+- UTAS (owner: "Why do they always refuse UTAS?"): after the first "insult" round, ASUU accepts UTAS with a 10% raise about 35% of the time through the Chief of Staff, 40% with an average Labour commissioner, 55% with a strong one, rising each year the strike runs (it was 0–6% in year one). The cost is unchanged: lecturers leave IPPIS.

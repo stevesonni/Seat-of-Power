@@ -61,3 +61,11 @@ test("ASUU: the first offer is an insult, an MoU can be signed from the first ye
   // The NUEE year costs jobs; ASUU's second year brings the student protests.
   assert.ok(L.yearlyToll({ ...st, start: 2 }, { nat: true, turn: 3 }).protest);
 });
+
+test("ASUU: after the first round, conceding UTAS has a real chance from year one (owner, 26 Nov 2026)", () => {
+  const st = { ...L.startStrike("asuu", null, 2), sessions: 1 };
+  assert.ok(Math.abs(L.offerOdds(st, { minister: null, cor: .3, turn: 2 }) - .35) < .02, "about 35% through the Chief of Staff");
+  assert.ok(L.offerOdds(st, { minister: 80, cor: .3, turn: 2 }) > .5, "better with a strong Labour commissioner");
+  assert.ok(L.offerOdds(st, { minister: 50, cor: .3, turn: 3 }) > L.offerOdds(st, { minister: 50, cor: .3, turn: 2 }), "better the longer the strike runs");
+  assert.equal(L.offerOdds({ ...st, sessions: 0 }, { minister: 80, cor: .3, turn: 2 }), 0, "the first offer is still an insult");
+});
