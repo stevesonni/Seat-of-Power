@@ -65,3 +65,10 @@ test("projects show an expected build time in months, inside their last year in 
   assert.equal(SYS.expectedMonths("road", 3), 30, "a bigger road, a year longer");
   for (const t of Object.keys(SYS.UNIT)) { const y = SYS.UNIT[t].years, m = SYS.expectedMonths(t, y); assert.ok(m > (y - 1) * 12 && m <= y * 12, t + " " + m); }
 });
+test("speeding a project up halves the expected months, for 25% more", () => {
+  const r = SYS.estimate("road", 10), f = SYS.estimate("road", 10, { second: true });
+  assert.equal(r.months, 18); assert.equal(f.months, 9); assert.equal(f.years, 1);
+  assert.equal(f.buildM, Math.round(r.buildM * 1.25));
+  const rail = SYS.estimate("rail", 120, { federal: true }), fr = SYS.estimate("rail", 120, { federal: true, second: true });
+  assert.ok(rail.years >= 4 && fr.months === Math.ceil(rail.months / 2) && fr.years <= 2, rail.months + " → " + fr.months);
+});

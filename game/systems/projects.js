@@ -114,22 +114,24 @@ export const terrainOf = (place) => { const x = String(place || ""); return RIVE
 // minister (perf 100) manages a quarter more; a weak one (perf 40) a quarter less.
 export const CAPACITY = { metro: 15, busterminal: 8, secondary: 200, nursing: 600, coe: 3000, polytechnic: 4000, university: 5000, road: 150, bridge: 2, hospital: 250, school: 200, water: 60, dam: 1, power: 15, market: 2000, housing: 1500, vehicles: 200, cctv: 2000, landfill: 2, industrial: 150, stadium: 30000, esports: 3000, tourist: 2, rail: 120, pipeline: 250, refinery: 50, seaport: 3, airport: 1 };
 export const capacityOf = (type, { perf = 70, federal = false } = {}) => Math.max(1, Math.round((CAPACITY[type] || (WORKS[type] ? 1000 : 100)) * (federal ? 2.5 : 1) * (.75 + Math.max(0, Math.min(100, perf)) / 200)));
-// A second contractor doubles what can be built in a year, for 12% more.
-export const SECOND_CONTRACTOR = 1.12;
+/* Speed it up (owner, 27 Nov 2026: "most projects may not be completed before I leave office. If I choose to speed it
+   up, it cuts the time by half"): a second contractor on site halves the expected months, for 25% more. */
+export const SECOND_CONTRACTOR = 1.25;
 /* opts.places: where it goes (spread evenly); opts.perf, opts.federal: the
-   ministry's capacity; opts.second: a second contractor. */
+   ministry's capacity; opts.second: sped up, with a second contractor. */
 export const estimate = (type, qty, opts = {}) => {
   const U = UNIT[type] || UNIT.road, F = FACILITY[type], q = Math.max(0, Number(qty) || U.def);
   // For the President a place is a state: its own land decides (a road in Anambra's gullies, solar in Sokoto's sun).
   const places = (opts.places || []).filter(Boolean), terr = places.map(x => terrainFor(x, opts.state || (opts.federal ? String(x).replace(/ /g, "_") : null), type));
   const tf = places.length ? terr.reduce((a, t) => a + (t ? TERRAIN[t].f : 1), 0) / places.length : 1;
-  const cap = capacityOf(type, opts) * (opts.second ? 2 : 1), capYears = Math.ceil(q / cap);
+  const cap = capacityOf(type, opts), capYears = Math.ceil(q / cap);
   // Spread thin, a programme takes longer: every three more places, a year more.
   const spread = places.length > 1 ? Math.floor((places.length - 1) / 3) : 0;
   // opts.costF: the answer to the programme's local question (SYS.applyLocalPick), e.g. escorts for the crews.
   const buildM = Math.round(U.per * q * tf * (opts.second ? SECOND_CONTRACTOR : 1) * (opts.costF || 1));
   const odd = places.filter((x, i) => terr[i]);
-  return { qty: q, unit: U.unit, buildM, equipM: F ? Math.round(buildM * F.equip) : 0, opsPerYearM: F ? Math.round(F.opsPer * q) : 0, years: Math.max(U.years, capYears) + spread, facility: !!F,
+  const years0 = Math.max(U.years, capYears) + spread, months0 = expectedMonths(type, years0), months = opts.second ? Math.ceil(months0 / 2) : months0;
+  return { qty: q, unit: U.unit, buildM, equipM: F ? Math.round(buildM * F.equip) : 0, opsPerYearM: F ? Math.round(F.opsPer * q) : 0, years: opts.second ? Math.max(1, Math.ceil(months / 12)) : years0, months, months0, facility: !!F,
     cap, capYears, overCap: capYears > U.years, spread, terrainF: Math.round(tf * 100) / 100, hard: odd.map((x, i) => ({ place: x, kind: terr[places.indexOf(x)] })) };
 };
 // The size a slider offers: from a small pilot to ten times the starting size.

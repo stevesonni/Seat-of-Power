@@ -11,7 +11,7 @@
   - **Sectors:** six cards (education, health, agriculture, economy, infrastructure, security) in measures people know, each with "what moves it".
   - **Industries:** up to four per state, from what it grows and digs (cassava, cocoa, cement on limestone, Nasarawa lithium, Ondo bitumen, the Aba hub). Build asks who owns it: the state (full cost, white-elephant risk), a partnership, or the investor (tax holidays, walk-away risk).
   - **Credit rating:** rated every year from debt against revenue, arrears, unpaid loans, corruption and a late budget. States are rated by Agusto & Co.; Nigeria by S&P and Fitch, on the global scale (B at the start). A bond needs BBB or better; every loan's interest moves with the grade; a change makes the front page.
-- **Build time:** a project's proposal shows "Expected: 18 months" (`SYS.expectedMonths`, `BUILD_MONTHS` in projects.js) in place of "Takes about 2 years". Each figure falls inside the project's last year in play, and a bigger job adds 12 months a year.
+- **Build time:** a project's proposal shows "Expected: 18 months" (`SYS.expectedMonths`, `BUILD_MONTHS` in projects.js) in place of "Takes about 2 years". Each figure falls inside the project's last year in play, and a bigger job adds 12 months a year. **Speed it up** (every project): a second contractor on site halves the months, for 25% more (was: a second contractor only on jobs too big for the ministry, +12%).
 - **Tests:** `tests/economy.test.mjs`, `tests/e2e/economy.mjs`, `tests/e2e/build-time.mjs`.
 
 ## Money that says what it does; bankruptcy that means something (23 Nov)

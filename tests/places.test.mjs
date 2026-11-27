@@ -12,7 +12,7 @@ test("terrain: creeks and highlands cost more; the rest is plain", () => {
   assert.ok(wet.buildM > plain.buildM * 1.25, "a riverine road costs about 30% more");
   assert.deepEqual(wet.hard, [{ place: "Ilaje", kind: "riverine" }]);
 });
-test("capacity: a big road takes longer, a second contractor speeds it for 12% more", () => {
+test("capacity: a big road takes longer, speeding it up halves the time for 25% more", () => {
   const one = estimate("road", 600, { perf: 70 }), two = estimate("road", 600, { perf: 70, second: true });
   assert.ok(one.overCap && one.years > two.years, one.years + " vs " + two.years);
   assert.equal(two.buildM, Math.round(one.buildM * SECOND_CONTRACTOR));
