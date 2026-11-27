@@ -1,5 +1,5 @@
 /* The House of Assembly votes, seat by seat (owner, 26 Nov 2026): all grey, the vote is called, seats light up green
-   (yes) and red (no) in real time, abstainers stay grey; a House against you shows red in the majority; a tap skips;
+   (yes) and red (no) in real time, every member votes; a House against you shows red in the majority; a tap skips;
    then the verdict and the count. Also: a real bill sent to the House plays it.
    Run: npm run build:game, then node tests/e2e/chamber.mjs (SH=<folder> saves screenshots) */
 import fs from "node:fs";
@@ -21,7 +21,7 @@ await g.wait(1900); const c1 = await colours();
 check(c1.green + c1.red > 0 && c1.grey > 0, "half way, some seats have voted and some have not (" + JSON.stringify(c1) + ")");
 if (process.env.SH) await g.page.screenshot({ path: process.env.SH + "/chamber-mid.png" });
 await g.wait(2600); const c2 = await colours(), t2 = (await g.txt()).replace(/\s+/g, " ");
-check(c2.red > c2.green && c2.grey <= 2, "the House is against you: red is the majority (" + JSON.stringify(c2) + ")");
+check(c2.red > c2.green && c2.grey === 0, "the House is against you: red is the majority (" + JSON.stringify(c2) + ")");
 check(/Rejected/.test(t2) && new RegExp("For " + c2.green + " .*Against " + c2.red).test(t2) && !/\d+ for, \d+ against/.test(t2), "the verdict, with the count only in the tally above it");
 if (process.env.SH) await g.page.screenshot({ path: process.env.SH + "/chamber-against.png" });
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-sop-chamber] button")].find(x => /Continue/.test(x.textContent)); b && b.click(); }); await g.wait(400);

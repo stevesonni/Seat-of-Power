@@ -10,7 +10,7 @@ test("the count always agrees with the result the game decided", () => {
   for (let i = 0; i < 300; i++) {
     const seats = 20 + (i % 21), favour = (i % 11) / 10, passed = i % 2 === 0, need = i % 3 ? "majority" : "two_thirds";
     const v = voteSplit({ seats, favour, passed, need, seed: "t" + i });
-    assert.equal(v.yes + v.no + v.abst, seats); assert.ok(v.abst <= 2);
+    assert.equal(v.yes + v.no + v.abst, seats); assert.equal(v.abst, 0, "no abstentions");
     if (need === "two_thirds") assert.equal(v.yes >= Math.ceil(seats * 2 / 3), passed, JSON.stringify({ seats, passed, v }));
     else assert.equal(v.yes > v.no, passed, JSON.stringify({ seats, passed, v }));
   }

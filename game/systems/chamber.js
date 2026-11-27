@@ -1,7 +1,7 @@
 /* The chamber, seat by seat (owner, 26 Nov 2026: "In the House of Assembly… instead of it just being passed, let each
    circle light up green and the people against red, so you see it in real time. When the House is against you, you see
    the red in majority and green in minority. It all starts grey, and they call the vote and you see." Random order,
-   3 to 4 seconds, tap to skip; abstentions stay grey; no party colours).
+   3 to 4 seconds, tap to skip; no party colours; no abstentions: every member votes, 27 Nov 2026).
    Rules only: where each seat sits, and a count that always agrees with the result the game has already decided. */
 
 const hash = (x) => { let h = 2166136261; for (const ch of String(x)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; return h; };
@@ -29,8 +29,9 @@ export const seatRadius = (n) => Math.max(.006, Math.min(.042, .8 / Math.sqrt(Ma
    abstain. The count always agrees with passed. Returns { yes, no, abst }. */
 export const voteSplit = ({ seats, favour = .5, passed, need = "majority", seed = "" }) => {
   const N = Math.max(1, Math.round(seats || 1)), r = rnd("split|" + seed + "|" + N);
-  let abst = Math.min(Math.floor(N * .08), Math.floor(r() * 3)); // 0–2 sit it out
-  let present = N - abst, yes = Math.round(present * Math.max(0, Math.min(1, favour)));
+  const abst = 0; // every member votes (owner, 27 Nov 2026: "I don't want any abstentions in the House votes"); r() is still drawn so counts keep their seeds
+  r();
+  const present = N - abst; let yes = Math.round(present * Math.max(0, Math.min(1, favour)));
   const twoThirds = Math.ceil(N * 2 / 3);
   if (need === "two_thirds") {
     if (passed && yes < twoThirds) yes = Math.min(present, twoThirds + Math.floor(r() * 2));
