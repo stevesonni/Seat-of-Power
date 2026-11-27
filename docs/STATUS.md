@@ -3,7 +3,17 @@
 
 
 
-## Money that says what it does; bankruptcy that means something (23 Nov, latest)
+## The economy page: real GDP, sectors, industries, credit rating (27 Nov, latest)
+
+- **What a player asked for:** the real GDP of the state and the country, more on each sector, industries at state level, and a credit rating.
+- **Built** (`game/systems/economy.js`, the `EconOverview` panel at the top of the Economy page):
+  - **GDP:** Nigeria starts at ₦372.8 trillion (NBS, rebased, 2024). A state starts at its share of BudgIT's 2021 state estimates; 13 states are published, and the rest are estimated from their rank and marked as estimates. GDP then moves with the game's economy, and the page shows the rank and the change since taking office.
+  - **Sectors:** six cards (education, health, agriculture, economy, infrastructure, security) in measures people know, each with "what moves it".
+  - **Industries:** up to four per state, from what it grows and digs (cassava, cocoa, cement on limestone, Nasarawa lithium, Ondo bitumen, the Aba hub). Build asks who owns it: the state (full cost, white-elephant risk), a partnership, or the investor (tax holidays, walk-away risk).
+  - **Credit rating:** rated every year from debt against revenue, arrears, unpaid loans, corruption and a late budget. States are rated by Agusto & Co.; Nigeria by S&P and Fitch, on the global scale (B at the start). A bond needs BBB or better; every loan's interest moves with the grade; a change makes the front page.
+- **Tests:** `tests/economy.test.mjs`, `tests/e2e/economy.mjs`.
+
+## Money that says what it does; bankruptcy that means something (23 Nov)
 
 - **What the owner saw:**
   - "How does the state become bankrupt, and what happens?"

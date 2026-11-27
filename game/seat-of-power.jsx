@@ -928,7 +928,8 @@ const needMin = (k) => SEAT.nat ? SYS.FED_NEED_MINISTRY[k] : NEED_MINISTRY[k];
 const projMin = (k) => SEAT.nat ? SYS.FED_PROJECT_MINISTRY[k] : NEEDS_MINISTRY[k];
 const MIN_CAT = () => SEAT.nat ? SYS.FED_MINISTRIES : MINISTRY_CATALOGUE;
 // Each state's own version of a programme or bill (SYS.localProgrammes, owner 22 Nov 2026: "rural electrification in Abia is not the same as in Lagos").
-const POL = () => SEAT.nat ? SYS.fedProgrammes(SYS.FED_POLICIES) : SEAT.state ? SYS.localProgrammes(POLICIES, SEAT.state, SEAT.ctx) : POLICIES;
+// A governor's programmes include the industries the state can build from what it grows and digs (SYS.industriesFor).
+const POL = () => SEAT.nat ? SYS.fedProgrammes(SYS.FED_POLICIES) : SEAT.state ? SYS.localProgrammes(POLICIES.concat(SYS.industriesFor(SEAT.state)), SEAT.state, SEAT.ctx) : POLICIES;
 const BILLS_ = () => SEAT.nat ? SYS.FED_BILLS : SEAT.state ? SYS.localBills(BILLS, SEAT.state, SEAT.ctx) : BILLS;
 const ORDERS_ = () => SEAT.nat ? SYS.FED_ORDERS : ORDERS;
 const HBILLS = () => SEAT.nat ? SYS.FED_HOUSE_BILLS : SEAT.state ? SYS.localHouseBills(HOUSE_BILLS, SEAT.state, SEAT.ctx) : HOUSE_BILLS;
@@ -2169,7 +2170,7 @@ SEAT.got = SEAT.got || {};
 ["scenes/stadium-derelict", "scenes/stadium-full-house", "scenes/stadium-cracked-stand", "scenes/mini-stadium", "scenes/youth-assembly", "characters/football-official", "characters/fifa-official"].forEach(p => { SEAT.got[p] = true; });
 const sportArt = (p, fb) => SEAT.got[p] ? p.split("/").pop() : fb;
 const sportImg = (p, fb) => SEAT.got[p] ? "./art/" + p + ".webp" : fb;
-const decArt = (id) => { const k = DEC_ALIAS[id] || id; return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
+const decArt = (id) => { const k = DEC_ALIAS[id] || (/^ind_/.test(id) ? "ind_park" : id); return DEC_ART.has(k) ? "./art/decisions/" + k + ".webp" : null; };
 const DecPic = ({ id, h, art }) => { const src = artOf(id, art); return src ? <img src={src} alt="" style={{ display: "block", width: "100%", height: h || "auto", aspectRatio: h ? undefined : "16 / 9", objectFit: "cover", borderRadius: 14, marginBottom: 10 }} /> : null; };
 const DILEMMA_ART = {
   herder: ["emirs-palace-courtyard", "police-commissioner"], strike: ["rally", "labour-leader"], land: ["back-room", "permanent-secretary"],
@@ -6410,6 +6411,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       paperTest: (h, sub, good) => { if (!window.SOP_TEST) return null; const o = window.SOP_outcome; let got = null; window.SOP_outcome = (x) => { if (x && x.paper) got = x.paper; return o && o(x); }; try { paper(h, sub, good); } finally { window.SOP_outcome = o; } return got; },
       pressNow: () => ({ hostile: !!pressRef.current, app: s.app }),
       chamberTest: (o) => { if (window.SOP_TEST) chamberVote(o); },
+      navTest: (k) => { if (window.SOP_TEST) { setPhase && setPhase("policy"); setNav(k); } },
       turnTest: (n) => { if (window.SOP_TEST) setTurn(n); },
       injunctionTest: (nm, sites, named) => { if (!window.SOP_TEST) return false; const P = (pol || []).find(p => p.nm === nm) || (pol || [])[0];
         if (named) { const L = { key: "loan:p_ikwo:bank", lenderId: "bank", lender: "A syndicate of three commercial banks", nm: "Commercial bank loan", principalM: 1800, rate: .22, years: 4, tranches: 3, drawn: 1, trancheM: 600, drawnM: 600, outstandingM: 600, projId: "p_ikwo", disbursedYear: turn };
@@ -7119,6 +7121,40 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       </div>
       <div style={{ marginTop: 12 }}>{done ? <div style={{ fontSize: fz.s, color: CL.grn, fontWeight: 700 }}>✓ This year's mission is done. The next one, next year.</div> : <Bt onClick={startVisit}>Plan a trade mission</Bt>}</div>
     </div>; };
+  /* The economy at a glance (a player's feedback, 27 Nov 2026: "real GDP of a state and the country, more information on
+     the sectors, industries, credit rating"). GDP starts from the published figures (SYS.startGdpTn) and moves with the
+     game's own economy; the sectors are told in measures people know; the rating is the year's (SYS.creditRating). */
+  const EconOverview = () => { const where = NAT ? "Nigeria" : state, start = SYS.startGdpTn(where), now = SYS.gdpNowTn(where, s.gdp, stc.gdp0 || s.gdp), ch = start ? Math.round((now / start - 1) * 1000) / 10 : 0;
+    const rank = NAT ? null : SYS.gdpRank(state), est = !NAT && SYS.gdpEstimated(state), R = stc.rating || SYS.creditRating({ debtB: s.debt || 0, revB: SYS.revenueB(s), arrears: stc.arrears || 0, cor: s.cor || 0, sovereign: NAT });
+    const cards = SYS.sectorCards(s, { popM: NAT ? 230 : (sd.pop || 5), crops: NAT ? ["rice", "cassava", "maize"] : SYS.produceOf(state), igrB: s.igr, nat: NAT }), inds = NAT ? [] : SYS.industriesFor(state);
+    const box = { background: "#fff", border: "1px solid " + UI.line, borderRadius: 16, padding: "12px 14px" }, big = { font: "800 " + TS(TALL() ? 30 : 40) + "px/1.1 " + F.d, color: UI.ink }, sm = { fontSize: DS.t.meta, color: UI.sub };
+    const gc = SYS.investmentGrade(R.grade) ? CL.grn : CL.red;
+    return <div data-sop-econ-overview style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={box}><div style={sm}>GDP{NAT ? "" : ", " + stName}</div><div style={big}>{SYS.fmtTn(now)}</div>
+          <div style={sm}>{rank ? SYS.ordN(rank) + " of 36 states · " : ""}{ch >= 0 ? "+" : ""}{ch}% since you took office</div>
+          <div style={{ ...sm, fontSize: TS(15), marginTop: 4 }}>{NAT ? "NBS, rebased: ₦372.8 trillion in 2024." : "From BudgIT's 2021 state estimates" + (est ? " (this state's figure estimated from its rank)" : "") + ", at 2024 prices."}</div></div>
+        <div style={box}><div style={sm}>Credit rating{NAT ? " (S&P, Fitch)" : " (Agusto & Co.)"}</div><div style={{ ...big, color: gc }}>{R.grade}</div>
+          <div style={sm}>{SYS.investmentGrade(R.grade) ? (NAT ? "Investment grade: borrowing is cheaper." : "Investment grade: a state bond is possible.") : "Below investment grade: loans cost more" + (NAT ? "." : ", and no bond.")}</div>
+          {R.why && R.why.length ? <div style={{ ...sm, fontSize: TS(15), marginTop: 4 }}>Because: {R.why.join("; ")}.</div> : null}</div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 260px), 1fr))", gap: 10 }}>
+        {cards.map(c => <div key={c.id} data-sop-sector={c.id} style={box}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, color: UI.ink }}><span>{c.icon}</span><span style={{ flex: 1 }}>{c.nm}</span>
+            <span style={{ width: 70, height: 8, borderRadius: 99, background: "#eee", overflow: "hidden" }}><span style={{ display: "block", width: Math.round(c.score * 100) + "%", height: "100%", background: c.score >= .6 ? CL.grn : c.score >= .4 ? CL.org : CL.red }} /></span></div>
+          {c.rows.map(([k, v]) => <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 6, fontSize: DS.t.meta }}><span style={{ color: UI.sub }}>{k}</span><b style={{ color: UI.ink, textAlign: "right" }}>{v}</b></div>)}
+          <div style={{ ...sm, fontSize: TS(15), marginTop: 6 }}>What moves it: {c.moves}</div>
+        </div>)}
+      </div>
+      {inds.length > 0 && <div style={box}><div style={{ fontWeight: 800, color: UI.ink }}>🏭 Industries {stName} can build</div>
+        <div style={{ ...sm, margin: "2px 0 8px" }}>From what the state grows and digs. Each is a programme: choose who owns it.</div>
+        {inds.map(x => { const on = (pol || []).some(a => a.id === x.id); return <div key={x.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderTop: "1px solid " + UI.line, fontSize: DS.t.meta }}>
+          <span><b style={{ color: UI.ink }}>{x.nm}</b><br /><span style={{ color: UI.sub }}>{x.d} About {(x.jobsAdd || 0).toLocaleString()} jobs.</span></span>
+          {on ? <span style={{ color: CL.grn, fontWeight: 800, whiteSpace: "nowrap" }}>✓ Under way</span> : <button type="button" onClick={() => { setNav("gov"); try { setPolTab && setPolTab("pol"); } catch (e) {} setTimeout(() => startPolicy(POL().find(p => p.id === x.id) || x), 300); }} style={{ alignSelf: "center", whiteSpace: "nowrap", border: 0, borderRadius: 999, background: UI.dark, color: "#fff", fontWeight: 800, padding: "8px 14px", cursor: "pointer" }}>Build · {naira(x.c)}</button>}
+        </div>; })}</div>}
+    </div>; };
+  // The economy's starting point, for "since you took office".
+  useEffect(() => { if (!stc.gdp0 && s.gdp) setStc(p => p.gdp0 ? p : ({ ...p, gdp0: s.gdp })); }, [s.gdp]);
   const StateEconPanel = () => { const E = stc.exports, big = !TALL(), crops = SYS.produceOf(state), FS = SYS.STANCES[fedStanceNow()];
     return <div style={{ background: CL.card, border: "1px solid " + CL.bdr, borderRadius: 16, overflow: "hidden", margin: big ? "24px auto 14px" : "8px auto 14px", maxWidth: big ? 1100 : 900 }}>
       <div style={{ height: big ? 200 : 120, background: "url(./art/scenes/money-agric-exports.webp) center/cover" }} />
@@ -9548,6 +9584,16 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         if (F1.news && F1.news.kind === "rejected") notes.push(["📜 The House threw out the " + F1.news.nm + " a second time.", "political"]);
       }
     }
+    /* The credit rating, once a year (SYS.creditRating; a player's feedback, 27 Nov 2026). A state is rated like Agusto & Co.
+       rates states; the country by the international agencies. A change makes the front page; loans price it in. */
+    try { const RT = SYS.creditRating({ debtB: s.debt || 0, revB: SYS.revenueB(s), arrears: next.arrears || 0, defaults: (next.recalls || []).filter(x => x.stage === "refused" || x.stage === "forced").length, cor: s.cor || 0, imfFails: NAT ? ((next.imf || {}).fails || 0) : 0, sovereign: NAT }), R0 = next.rating;
+      if (!R0 || R0.grade !== RT.grade) {
+        if (R0) { const up = SYS.GRADES.indexOf(RT.grade) < SYS.GRADES.indexOf(R0.grade), who = NAT ? "S&P and Fitch" : "Agusto & Co.", where = NAT ? "Nigeria" : stName;
+          notes.push(["📊 " + who + " " + (up ? "upgraded " : "downgraded ") + where + " from " + R0.grade + " to " + RT.grade + (RT.why.length ? ": " + RT.why.join(", ") : "") + ". " + (up ? "Loans get cheaper." : "Loans cost more" + (SYS.investmentGrade(R0.grade) && !SYS.investmentGrade(RT.grade) ? ", and a bond is off the table." : ".")), up ? "success" : "crisis"]);
+          setTimeout(() => paper((up ? "UPGRADE: " : "DOWNGRADE: ") + where.toUpperCase() + " NOW RATED " + RT.grade, who + (up ? " cites " : " cites ") + (RT.why[0] || (up ? "stronger finances" : "weaker finances")), up), 1400); }
+        next.rating = { grade: RT.grade, score: RT.score, turn, why: RT.why };
+      } else next.rating = { ...R0, score: RT.score, why: RT.why };
+    } catch (e) {}
     /* A loan on a project the court stopped falls due (SYS.recallTerms; owner, 25 Nov 2026). The lender writes: repay
        what was drawn plus interest, restructure, or refuse. Refuse, and next year it is taken anyway, with a penalty:
        Abuja deducts it from a governor's allocation; a President's creditors go to a foreign court or the donors. */
@@ -10561,7 +10607,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // The approval is recorded; the dossier shows it, and the adviser names the next step.
     setPflow({ step: "done", kind: "approved", projId: id, fromAt: 0, at: Date.now() });
   };
-  const loanCtx = () => ({ debtM: SYS.toM(s.debt), revenueM: SYS.toM((s.igr || 0) + (s.faac || 0)), revenueIgrM: SYS.toM(s.igr || 0), cor: s.cor || 0, fgRelation, rateCut: saOffice.adviser && SYS.lensOf(saOffice.adviser.name).loanRateCut || 0 });
+  const loanCtx = () => ({ grade: (stc.rating || {}).grade || null, ratingAdj: SYS.ratingRateAdj((stc.rating || {}).grade), debtM: SYS.toM(s.debt), revenueM: SYS.toM((s.igr || 0) + (s.faac || 0)), revenueIgrM: SYS.toM(s.igr || 0), cor: s.cor || 0, fgRelation, rateCut: saOffice.adviser && SYS.lensOf(saOffice.adviser.name).loanRateCut || 0 });
   const applyLoan = (F0, lenderId) => {
     const p = (projects || []).find(x => x.id === F0.projId); if (!p) return;
     const r = SYS.assessLoan(lenderId, { projectId: p.id, amountM: Math.max(100, F0.needM || 0), year: turn }, { ...loanCtx(), eia: true });
@@ -17869,6 +17915,7 @@ const ranked = avail.slice().sort((a, b) => rankOf(a) - rankOf(b)); const shown 
           </div>;
         })()}
         {/* Trade sits where a player looks for it: State → Economy (and under People → Council). */}
+        {nav === "econ" && EconOverview()}
         {nav === "econ" && NAT && FedCouncilsPanel()}
         {nav === "econ" && !NAT && !needSetup && StateEconPanel()}
         {nav === "econ" && !NAT && !needSetup && NeighboursPanel()}

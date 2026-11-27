@@ -25,11 +25,15 @@ export const assessLoan = (lenderId, { projectId, amountM, year }, ctx) => {
   if (lenderId !== "pre") { p -= Math.max(0, dsr - .2) * 1.8; reasons.push((dsr < .3 ? "✓" : "✗") + " Debt service takes " + Math.round(dsr * 100) + "% of revenue."); }
   if (lenderId !== "pre" && ctx.cor > .4) { p -= (ctx.cor - .4) * 1.5; reasons.push("✗ Your corruption record makes them nervous."); }
   if (lenderId === "bond" && ctx.revenueIgrM < L.minIgrM) { p = 0; reasons.push("✗ Own revenue is below " + fmtM(L.minIgrM) + "; a bond cannot be rated."); }
+  // The credit rating (SYS.creditRating; a player's feedback, 27 Nov 2026): a bond needs BBB or better; every lender
+  // prices the grade into the interest (ctx.ratingAdj, percentage points).
+  if (ctx.grade) reasons.push((["AA", "A", "BBB"].includes(ctx.grade) ? "✓" : "✗") + " Credit rating: " + ctx.grade + ".");
+  if (lenderId === "bond" && ctx.grade && !["AA", "A", "BBB"].includes(ctx.grade)) { p = 0; reasons.push("✗ A bond needs a rating of BBB or better."); }
   if (lenderId === "dfi" && ctx.fgRelation < 45) { p -= .35; reasons.push("✗ Abuja will not sign the federal guarantee."); }
   if (lenderId === "dfi" && ctx.eia === false) { p -= .25; reasons.push("✗ No environmental assessment: safeguards fail."); }
   const ok = seeded("loan", projectId, lenderId)() < Math.max(.03, Math.min(.97, p));
   if (!ok) return { ok: false, odds: p, reasons };
-  const rate = Math.max(.02, L.rate - (ctx.rateCut || 0) + Math.max(0, ctx.cor - .35) * .1);
+  const rate = Math.max(.02, L.rate - (ctx.rateCut || 0) + (ctx.ratingAdj || 0) + Math.max(0, ctx.cor - .35) * .1);
   const amt = Math.round(amountM);
   return { ok: true, odds: p, reasons, offer: { key: "loan:" + projectId + ":" + lenderId, lenderId, lender: L.lender, nm: L.nm, principalM: amt, rate: Math.round(rate * 1000) / 1000, years: L.years,
     serviceM: annualServiceM(amt, rate, L.years), repayM: totalRepayM(amt, rate, L.years), conditions: lenderId === "dfi" ? "Paid out as each milestone is checked; safeguard reviews." : lenderId === "pre" ? "Repaid from the state's FAAC; the contractor keeps the margin." : "Repaid by deduction from FAAC.", year } };
