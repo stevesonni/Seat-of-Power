@@ -3,7 +3,13 @@
 
 
 
-## The economy page: real GDP, sectors, industries, credit rating (27 Nov, latest)
+## The adviser's "Unblock…" works (27 Nov, latest)
+
+- **What the owner saw:** "Unblock Patch the potholes on the busiest road" → Open Projects did nothing useful, many times.
+- **Why:** the button only opened the list; a suspended project had no button to resume it (a dead end); and an abandoned project kept the advice up forever, though nothing could be done.
+- **Fixed:** the advice covers only stalled and suspended sites ("Resume …" for a suspended one) and opens that project. A suspended project has **Resume the work** (the bank pays this year's share at the year's end) and **Abandon**. Test: `tests/e2e/unblock.mjs`.
+
+## The economy page: real GDP, sectors, industries, credit rating (27 Nov)
 
 - **What a player asked for:** the real GDP of the state and the country, more on each sector, industries at state level, and a credit rating.
 - **Built** (`game/systems/economy.js`, the `EconOverview` panel at the top of the Economy page):
