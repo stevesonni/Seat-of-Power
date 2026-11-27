@@ -59,3 +59,9 @@ test("Nigeria is rated on the global scale: B at the start, as S&P and Fitch rat
   assert.ok(["BB", "B"].includes(n.grade), n.grade);
   assert.ok(!SYS.investmentGrade(SYS.creditRating({ debtB: 140000, revB: 30000, cor: .4, sovereign: true }).grade));
 });
+test("projects show an expected build time in months, inside their last year in play", () => {
+  assert.equal(SYS.expectedMonths("road", 2), 18);
+  assert.equal(SYS.expectedMonths("school", 1), 9);
+  assert.equal(SYS.expectedMonths("road", 3), 30, "a bigger road, a year longer");
+  for (const t of Object.keys(SYS.UNIT)) { const y = SYS.UNIT[t].years, m = SYS.expectedMonths(t, y); assert.ok(m > (y - 1) * 12 && m <= y * 12, t + " " + m); }
+});

@@ -5556,7 +5556,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
       {gate && <Situation tone="warn" head={(adviser || "Your adviser") + ": “Your Excellency, who will run it? We have no Commissioner for " + gate.name + ".”"} text={"A " + SYS.UNIT[d.type].nm.toLowerCase() + " needs its own ministry to plan it and run it after the ribbon. Create the Ministry of " + gate.name + " (" + naira(gate.cost) + " a year) and this project can start."} />}
       {gate && onNeedMinistry && <Actions><button className="sp-btn" onClick={() => onNeedMinistry(gate)}>{gate.icon} Create the Ministry of {gate.name}</button></Actions>}
       {d.type && est && <>
-        <Tiles items={[["Cost to build", SYS.fmtM(est.buildM)], est.facility && ["To equip", SYS.fmtM(est.equipM)], est.facility && ["To run", SYS.fmtM(est.opsPerYearM) + "/yr"], ["Takes about", est.years + (est.years === 1 ? " year" : " years")]]} />
+        <Tiles items={[["Cost to build", SYS.fmtM(est.buildM)], est.facility && ["To equip", SYS.fmtM(est.equipM)], est.facility && ["To run", SYS.fmtM(est.opsPerYearM) + "/yr"], ["Expected", SYS.expectedMonths(d.type, est.years) + " months"]]} />
         <div style={{ display: "grid", gridTemplateColumns: TALL() ? "1fr" : "1fr 1fr", gap: "0 12px" }}>
           <div>{spLab("Name")}<input value={d.title || ""} onChange={e => onFlow({ ...F0, draft: { ...d, title: e.target.value } })} style={spField} /></div>
 

@@ -53,6 +53,13 @@ export const UNIT = {
   metro: { unit: "km", per: 900, def: 20, years: 3, nm: "Light rail / metro line" },
   busterminal: { unit: "terminal", per: 500, def: 3, years: 1, nm: "Bus terminal", fed: "Interstate bus terminal" },
 };
+/* Expected build time in months (owner, 27 Nov 2026: a player asked how long projects should take; "just show
+   Expected: 18 months"). Each figure sits inside the project's last year in play, so a 2-year job says 13 to 24 months. */
+export const BUILD_MONTHS = { road: 18, bridge: 20, hospital: 20, school: 9, secondary: 10, nursing: 18, coe: 20, polytechnic: 30, university: 32,
+  water: 8, dam: 30, power: 20, market: 10, housing: 18, vehicles: 4, cctv: 8, landfill: 15, industrial: 18, stadium: 30, esports: 10, tourist: 16,
+  rail: 42, pipeline: 30, refinery: 28, seaport: 44, airport: 32, metro: 32, busterminal: 10 };
+export const expectedMonths = (type, years) => { const U = UNIT[type] || {}, base = BUILD_MONTHS[type] || (U.years || 1) * 12 - 4, y = years || U.years || 1;
+  return Math.max((y - 1) * 12 + 1, Math.min(y * 12, base + (y - (U.years || 1)) * 12)); };
 /* Small works (owner, 23 Nov 2026: "let projects needing contractors go through contractors… we have many click and
    click"): the neighbourhood jobs, the quick wins and the small repairs in letters are tendered like any project, in one
    year, and pay off when they are finished, as well as the contractor did them. art: the picture on the projects screen
