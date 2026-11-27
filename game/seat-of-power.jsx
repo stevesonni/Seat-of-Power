@@ -8504,7 +8504,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     // comes due, one member's interest a year, a committee hearing, and a cabinet meeting on your flagship.
     try { if (!NAT && !scenId) {
       if (!next.leg) { const rn = rng((next.pseed || 7) % 99991 + 31), used = new Set([pName]), names = [];
-        for (let i = 0; i < 6; i++) { let x = ""; for (let j = 0; j < 12 && (!x || used.has(x)); j++) x = gN(rn, sd.zone, state); used.add(x); names.push(x); }
+        for (let i = 0; i < 6; i++) { let x = ""; for (let j = 0; j < 12 && (!x || used.has(x)); j++) x = gN(rn, sd.zone, state, null, false); used.add(x); names.push(x); }
         next.leg = { members: SYS.makeMembers(next.pseed || 7, names), promises: [], asked: [] }; }
       const L = next.leg, H0 = next.house || { seats: 24, loyal: 12 }, ratio = H0.loyal / Math.max(1, H0.seats);
       const houseBy = (k) => { if (k) setStc(p => p.house ? ({ ...p, house: { ...p.house, loyal: Math.max(0, Math.min(p.house.seats, p.house.loyal + k * MEM)) } }) : p); };
@@ -8537,7 +8537,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       const term = turn <= 4 ? 1 : 2, termYear = term === 1 ? turn : turn - 4, SP0 = L.speaker, seats = H0.seats;
       if ((next.arrears || 0) >= 2 && next.lateNote !== turn) { next.lateNote = turn; next.houseRec = SYS.houseNote(next.houseRec, "late"); }
       const newMember = (tag, bloc) => { const id = "m_" + tag + "_" + turn; if (SYS.memberOf(next.leg, id)) return SYS.memberOf(next.leg, id);
-        const nm = "Hon. " + gN(rng(hashStr(tag + turn + state + pName)), sd.zone, state), m = { id, name: nm, bloc, interest: bloc === "opp" ? "policy" : bloc === "swing" ? "money" : "ambition", rel: bloc === "ours" ? 60 : bloc === "opp" ? 30 : 45 };
+        const nm = "Hon. " + gN(rng(hashStr(tag + turn + state + pName)), sd.zone, state, null, false), m = { id, name: nm, bloc, interest: bloc === "opp" ? "policy" : bloc === "swing" ? "money" : "ambition", rel: bloc === "ours" ? 60 : bloc === "opp" ? 30 : 45 };
         next.leg = { ...next.leg, members: [...next.leg.members, m] }; return m; };
       const spNm = (m) => "Rt. Hon. " + String((m && m.name) || cast.speaker.name || "The Speaker").replace(/^(Rt\. )?Hon\. /, "");
       // The new House's Speaker: the old one (if any) against the House's own choice, by the record of your first term.
@@ -8560,11 +8560,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
           return { icon: "🏛️", title: spNm(W) + " is Speaker of the new House", text: hostile ? "He is the House's man, not yours: your bills wait on his price, and if your approval slips he will move to impeach you." : R.winner === "old" ? "The old Speaker keeps his chair for your second term." : "The new Speaker is on your side.", tone: hostile ? "bad" : "good",
             rows: [{ l: "The House", v: hostile ? "Against you" : "With you", good: !hostile }, { l: "What they think of your first term", v: K.nm, good: kind === "loyalist" }] }; };
         cards.push({ key: "leg_speaker2", kicker: "The new House of Assembly · the Speaker race", color: CL.pur, art: ["assembly-chamber", "speaker", null, null], title: "The new House elects its Speaker",
-          brief: recLine + " " + (OLD ? spNm(OLD) + " wants a second term in the chair. " : "") + K.line,
-          stakes: "A hostile Speaker blocks your bills until you pay his price, and moves to impeach you the moment your approval slips.",
-          options: [...(OLD ? [{ label: "Back " + spNm(OLD) + " for a second term", note: oldFriendly ? "He has been with you. The new members may not be." : "He fought you, but backing him now would put him in your debt.", chips: [], run: run2("old") }] : []),
-            { label: "Back " + NM.name, note: kind === "loyalist" ? "Your own man, and the House's." : "Make a friend of him before he makes an enemy of you.", chips: [], run: run2("new") },
-            { label: "Stay out of it", note: "Whoever wins owes you nothing.", chips: [], run: run2(null) }] });
+          ...(() => { const RL = SYS.speakerRaceLetter({ kind, rec: next.houseRec || {}, old: OLD ? { name: spNm(OLD), friendly: oldFriendly } : null, rival: NM.name }); raceLbl.current = RL.labels; return { brief: RL.brief, stakes: RL.stakes }; })(),
+          options: [...(OLD ? [{ label: raceLbl.current.old, note: oldFriendly ? "He has been with you. The new members may not be." : "He fought you, but backing him now would put him in your debt.", chips: [], run: run2("old") }] : []),
+            { label: raceLbl.current.rival, note: kind === "loyalist" ? "Your own man, and the House's." : "Make a friend of him before he makes an enemy of you.", chips: [], run: run2("new") },
+            { label: raceLbl.current.out, note: "Whoever wins owes you nothing.", chips: [], run: run2(null) }] });
       }
       /* A plot against a friendly Speaker, in the second or third year of a term, at most once a term. Two-thirds of
          the members can remove him; a court can leave the House with two Speakers. */
@@ -12823,6 +12822,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   };
 
   // ── THE WIKIPEDIA ARTICLE, from the record ──
+  const raceLbl = React.useRef({}); // the Speaker race letter's button labels (SYS.speakerRaceLetter)
   const bioAsked = React.useRef({}); // the biography rewrites already asked for, by page
   const buildWiki = (final) => {
     const M = window.SOP_MEMORY;

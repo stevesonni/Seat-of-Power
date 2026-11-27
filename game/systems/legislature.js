@@ -208,3 +208,32 @@ export const PLOT_MOVES = [
 export const plotOdds = (m, { why = [], fg = 50 } = {}) => m.id === "release" && why.includes("money") ? m.oddsIf.money : m.id === "abuja" && fg >= 60 ? m.oddsFg : m.odds;
 /* Two Speakers: when the court ruling comes the next year. yourSide: how strong your faction is (0–1). */
 export const splitRuling = (seed, turn, yourSide = .5) => seeded(seed, "split", turn)() < .35 + yourSide * .3 ? "ours" : "theirs";
+
+/* The new House's Speaker race, as one letter (owner, 27 Nov 2026, with a rewrite: "Some members of the House feel you
+   walked all over Speaker Orshi and turned them into a rubber stamp. They want that to end…"). The sitting Speaker is
+   at its centre; the opening follows how the first term went with him; the rival is named with what he will do; the
+   godfather, if he is behind the rival, is said once. kind: houseKind (the rival's kind); rec: the first term's record;
+   old: { name, friendly } or null (no sitting Speaker); rival: his name. Returns { brief, stakes, labels }. */
+export const speakerRaceLetter = ({ kind, rec = {}, old = null, rival }) => {
+  const mood = houseKind(rec), O = old && old.name, sp = O ? "Speaker " + String(O).replace(/^(Rt\. )?Hon\. /, "").split(" ").pop() : null;
+  const open = mood === "loyalist" ? "The House believes you kept faith with it in your first term" + (sp ? ", and with " + sp + "." : ".")
+    : mood === "avenger" ? "You crossed the House too often in your first term, and the members have not forgotten."
+    : old && old.friendly ? "Some members of the House feel you walked all over " + sp + " and turned them into a rubber stamp. They want that to end."
+    : mood === "reformer" ? "Some members feel you went over their heads too often in your first term. They want that to end."
+    : sp ? "Members say " + sp + " made you pay for every bill in your first term, and you paid." : "Members say you drove a hard bargain with the House in your first term.";
+  const oldLine = O ? (old.friendly ? "Rt. Hon. " + String(O).replace(/^(Rt\. )?Hon\. /, "") + " still wants another term in the chair." : "Rt. Hon. " + String(O).replace(/^(Rt\. )?Hon\. /, "") + ", who fought you in your first term, still wants another term in the chair.") : "";
+  const rivalLine = kind === "loyalist" ? "The House puts up " + rival + ", one of your own, to keep it that way."
+    : kind === "avenger" ? (O ? "But the House has found a rival: " : "The House puts up ") + rival + ", who talks about impeachment in the canteen."
+    : kind === "reformer" ? (O ? "But the House has found a rival: " : "The House puts up ") + rival + ", who owes you nothing and promises hearings on every naira you spend."
+    : kind === "godfather" ? (O ? "But the House has found a rival: " : "The House puts up ") + rival + ", who owes you nothing and will make you fight for every bill. Your former godfather, who never forgave the break, is behind him."
+    : (O ? "But the House has found a rival: " : "The House puts up ") + rival + ", who owes you nothing and will make you fight for every bill.";
+  const brief = [open, oldLine, rivalLine].filter(Boolean).join(" ");
+  const stakes = "A Speaker you cannot control will hold your bills until you pay his price. If your approval slips, he will move to impeach.";
+  const nm = String(rival).replace(/^Hon\. /, "");
+  const labels = {
+    old: O ? "Back " + String(O).replace(/^(Rt\. )?Hon\. /, "") + " for another term" : null,
+    rival: "Back " + nm + (kind === "godfather" ? " and make peace with your old godfather" : kind === "avenger" ? " and try to win him over" : kind === "loyalist" ? "" : kind === "reformer" || (old && old.friendly && mood !== "loyalist") ? " and give the House its voice" : " and do business with him"),
+    out: "Stay out of the race",
+  };
+  return { brief, stakes, labels };
+};
