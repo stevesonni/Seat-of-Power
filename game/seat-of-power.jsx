@@ -12545,7 +12545,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
     const hlOpts = [];
     // Turn-specific
     if (turn === 1) hlOpts.push(pName.split(" ").pop().toUpperCase() + " BEGINS: New governor promises " + (setup?.agenda === "education" ? "education revolution" : setup?.agenda === "health" ? "healthcare for all" : setup?.agenda === "infrastructure" ? "massive road projects" : setup?.agenda === "security" ? "peace and security" : setup?.agenda === "agriculture" ? "farming transformation" : "clean governance"));
-    if (turn === 1) hlOpts.push("NEW ERA: " + pName + "/" + (depGov?.nm?.split(" ").pop() || "") + " ticket takes over " + state.replace("_", " "));
+    if (turn === 1) { const sur = (n) => String(n || "").trim().split(/\s+/).pop(), dep = sur(depGov?.nm); hlOpts.push("NEW ERA: " + sur(pName) + (dep ? "/" + dep : "") + " ticket takes over " + state.replace(/_/g, " ")); } // surnames, as papers write a ticket (owner, 27 Nov 2026)
     // Event-reactive
     if (lastLog?.tp === "scandal") hlOpts.push("BREAKING: Procurement fraud exposed in Government House!");
     if (lastLog?.tp === "success") hlOpts.push("COMMISSIONED! " + (lastLog.tx.includes("—") ? lastLog.tx.split("— ")[1] : "New project delivered"));
