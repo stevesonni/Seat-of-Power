@@ -8,6 +8,14 @@
 - **What the owner saw:** "Unblock Patch the potholes on the busiest road" → Open Projects did nothing useful, many times.
 - **Why:** the button only opened the list; a suspended project had no button to resume it (a dead end); and an abandoned project kept the advice up forever, though nothing could be done.
 - **Fixed:** the advice covers only stalled and suspended sites ("Resume …" for a suspended one) and opens that project. A suspended project has **Resume the work** (the bank pays this year's share at the year's end) and **Abandon**. Test: `tests/e2e/unblock.mjs`.
+- **The other adviser buttons, checked:**
+  - Most were sound: each calls its action, or opens another page that has what it promises.
+  - "Publish an audit before EFCC does" opened the Wiki biography, which has no audit. It is now "Audit a ministry" and opens a commissioner's meeting, where "Audit their books" is (Ministries if none is appointed).
+  - "Inbox clear enough to sponsor a bill" now opens the Bills tab.
+  - The non-urgent "Start a visible flagship project" came before the urgent notes (corruption, approval crisis, stalled sites) and kept them from ever showing; it now comes after them.
+  - The desk passes over the notes shown elsewhere on it (budget, allegations) to the next one instead of going silent.
+  - An old "Award a contractor" note that saves no longer reach was removed.
+  - Test: `tests/e2e/adviser-buttons.mjs`.
 
 ## The economy page: real GDP, sectors, industries, credit rating (27 Nov)
 
