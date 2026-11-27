@@ -2533,3 +2533,4 @@ Owner: "The biography doesn't chronicle the skirmish with the House or National 
 
 ## 27 Nov 2026: the ticket in the headline
 - "NEW ERA: Emmanuel/Asuquo ticket takes over Akwa Ibom": surnames, as Nigerian papers write a ticket (was the full name "Steve Sunny Emmanuel/Asuquo"). No trailing slash if there is no deputy.
+- The chamber: the small "10 for, 20 against." line under the verdict is gone (the live tally above it already says it); a two-thirds vote still says how many were needed.

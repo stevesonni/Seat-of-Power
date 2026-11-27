@@ -4838,7 +4838,7 @@ const ChamberVote = ({ o, onDone }) => {
       </div>
       {done ? <>
         <div data-sop-chamber-verdict style={{ font: "800 26px/1.2 Fraunces, Georgia, serif", color: o.passed ? G : RD, margin: "10px 0 2px" }}>{o.passed ? (o.yesWord || "Passed") : (o.noWord || "Rejected")}</div>
-        <div style={{ fontSize: 15, color: "#4f5d54" }}>{o.split.yes} for, {o.split.no} against{o.split.abst ? ", " + o.split.abst + " abstained" : ""}.{need ? " " + need : ""}</div>
+        {need ? <div style={{ fontSize: 15, color: "#4f5d54" }}>{need}</div> : null /* the count is in the live tally above (owner, 27 Nov 2026) */}
         <button type="button" onClick={(e) => { e.stopPropagation(); onDone(); }} style={{ marginTop: 12, width: "100%", minHeight: 50, borderRadius: 999, border: 0, background: "#12301f", color: "#fff", fontWeight: 800, fontSize: 17, cursor: "pointer" }}>Continue</button>
       </> : <div style={{ fontSize: 13, color: "#8a8270", marginTop: 8 }}>Tap to see the result</div>}
     </div>

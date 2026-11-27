@@ -22,7 +22,7 @@ check(c1.green + c1.red > 0 && c1.grey > 0, "half way, some seats have voted and
 if (process.env.SH) await g.page.screenshot({ path: process.env.SH + "/chamber-mid.png" });
 await g.wait(2600); const c2 = await colours(), t2 = (await g.txt()).replace(/\s+/g, " ");
 check(c2.red > c2.green && c2.grey <= 2, "the House is against you: red is the majority (" + JSON.stringify(c2) + ")");
-check(/Rejected/.test(t2) && new RegExp(c2.green + " for, " + c2.red + " against").test(t2), "the verdict and the count: " + (t2.match(/Rejected[^.]*\./) || [""])[0] + " " + (t2.match(/\d+ for, \d+ against[^.]*\./) || [""])[0]);
+check(/Rejected/.test(t2) && new RegExp("For " + c2.green + " .*Against " + c2.red).test(t2) && !/\d+ for, \d+ against/.test(t2), "the verdict, with the count only in the tally above it");
 if (process.env.SH) await g.page.screenshot({ path: process.env.SH + "/chamber-against.png" });
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-sop-chamber] button")].find(x => /Continue/.test(x.textContent)); b && b.click(); }); await g.wait(400);
 check(!(await g.page.$("[data-sop-chamber]")), "Continue closes it");
