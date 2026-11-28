@@ -46,7 +46,7 @@ Claude adds `irrigation: 1` to REELS when the file is in public/art/reels/; `REE
 ## Delivered 22 Nov 2026 (second batch)
 
 - `power.mp4` (a town lights up at night, the market first): power plants, solar, gas and mini-grids. **Rural Electrification plays the village film, `dam.mp4`, instead (owner, 25 Nov 2026).**
-- `seaport.mp4` and `refinery.mp4`. The refinery film was cut from the second half of a 20-second clip that also held the seaport. A gas pipeline borrows the refinery film.
+- `seaport.mp4` and `refinery.mp4`. The refinery film was cut from the second half of a 20-second clip that also held the seaport. A gas pipeline has its own film (pipeline.mp4, delivered 28 Nov 2026).
 - **`vehicles.mp4` (the patrol fleet): installed at the owner's request (22 Nov 2026), badges and all.** If a cleaner version is wanted later: The pickups carry real Toyota badges and the building has a crest, and the game uses no real logos. Ask Gemini again with: *"pickups with plain smooth grilles, no manufacturer badge or emblem anywhere; the building has no crest, sign or lettering"*.
 
 ## Night films (dam.mp4, power.mp4)
@@ -81,7 +81,7 @@ For these two, replace "Late-afternoon golden light" in the style block with "Ni
 | esports.mp4 | Esports arena | A new esports arena with rows of glowing gaming stations and young players with headsets. A slow dolly down the rows. |
 | tourist.mp4 | Tourist attraction | A restored waterfall or hilltop viewpoint with a new walkway and railings, where visitors take photos. A slow aerial reveal. |
 | rail.mp4 | Railway | A modern passenger train on a new standard-gauge line, crossing open savannah past a village. The camera follows alongside. |
-| pipeline.mp4 | Gas pipeline | A new gas pipeline running across countryside to a clean processing station. A slow aerial pass along the line. |
+| pipeline.mp4 (**delivered 28 Nov 2026**) | Gas pipeline | A new gas pipeline running across countryside to a clean processing station. A slow aerial pass along the line. |
 | refinery.mp4 | Modular refinery | A compact new modular refinery with tanks and towers by a creek, with workers in hard hats. A slow aerial pass. |
 | seaport.mp4 | Deep seaport | A new deep seaport with container cranes loading a ship. A slow aerial sweep across the quay. |
 | airport.mp4 | Airport terminal | A new airport terminal with glass walls, and a plane taxiing past. A slow aerial pass towards the terminal. |

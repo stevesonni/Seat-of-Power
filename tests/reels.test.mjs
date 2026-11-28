@@ -29,7 +29,7 @@ test("reels: no film means no reel; two films alternate by project", () => {
   assert.equal(SYS.reelFor("power", "p1"), "./art/reels/power.mp4", "power plants, solar and rural electrification have their own film");
   assert.equal(SYS.reelFor("seaport", "p1"), "./art/reels/seaport.mp4");
   assert.equal(SYS.reelFor("refinery", "p1"), "./art/reels/refinery.mp4");
-  assert.equal(SYS.reelFor("pipeline", "p1"), "./art/reels/refinery.mp4", "a gas pipeline borrows the refinery film");
+  assert.equal(SYS.reelFor("pipeline", "p1"), "./art/reels/pipeline.mp4", "a gas pipeline has its own film");
   assert.equal(SYS.reelFor("vehicles", "p1"), "./art/reels/vehicles.mp4", "the patrol fleet (installed at the owner's request, 22 Nov 2026)");
   SYS.REELS.__t = 2;
   const a = new Set(["p1", "p2", "p3", "p4", "p5", "p6"].map(id => SYS.reelFor("__t", id)));
@@ -43,4 +43,8 @@ test("the President's roads and bridges play the federal highway film; governors
   assert.equal(P.reelFor("road", "p1", null, true), "./art/reels/fedroad.mp4");
   assert.equal(P.reelFor("bridge", "p1", null, true), "./art/reels/fedroad.mp4");
   assert.equal(P.reelFor("road", "p1", null, false), "./art/reels/road.mp4");
+});
+test("a gas pipeline plays its own film (28 Nov 2026), not the refinery's", () => {
+  assert.equal(SYS.reelFor("pipeline", "p1", null, true), "./art/reels/pipeline.mp4");
+  assert.ok(fs.existsSync(new URL("../public/art/reels/pipeline.mp4", import.meta.url)));
 });
