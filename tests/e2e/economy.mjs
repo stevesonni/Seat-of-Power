@@ -22,5 +22,9 @@ if (process.env.SH) await g.page.screenshot({ path: process.env.SH + "/economy.p
 await g.page.evaluate(() => { const b = [...document.querySelectorAll("[data-sop-econ-overview] button")].find(x => /^Build/.test(x.textContent.trim())); b && b.click(); }); await g.wait(1500);
 const t2 = (await g.txt()).replace(/\s+/g, " ");
 check(/Who owns the (cassava processing plant|cocoa processing plant|cement plant)\?/.test(t2) && /The state builds and runs it/.test(t2) && /A partnership with an investor/.test(t2), "Build asks who owns it: the state, a partnership, or the investor");
+// The state builds it: it goes to contract like any project (owner, 28 Nov 2026: "This didn't go through the normal contract procedure").
+await g.page.evaluate(() => { const b = document.querySelector('[data-sop-local-opt="state"]'); b && b.click(); }); await g.wait(1500);
+const t3 = (await g.txt()).replace(/\s+/g, " ");
+check(/NEW PROJECT/i.test(t3) && /(Cassava processing plant|Cocoa processing plant|Cement plant)/.test(t3) && /Next: the budget/.test(t3), "the state's plant opens as a project proposal: budget, then a contractor");
 check(!g.errors.length, "no page errors (" + g.errors.join(" | ") + ")");
 await g.browser.close(); srv.close(); console.log(fails ? fails + " FAILED" : "ALL PASSED"); process.exit(fails ? 1 : 0);

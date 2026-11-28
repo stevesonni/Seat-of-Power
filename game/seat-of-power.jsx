@@ -5553,7 +5553,7 @@ const ProjectsView = ({ year, projects, loans = [], flow, onFlow, needs, lgas, g
         {P && P.status === "clarify" && <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>{P.choices.map(c => <button key={c} className="sp-btn ghost" style={{ minHeight: 40, padding: "6px 14px", fontSize: 15 }} onClick={() => { const r = SYS.parseProposal(c + " " + (F0.text || ""), { lgas, federal: SEAT.nat, type: c }); onFlow({ ...F0, parsed: r, draft: { ...r.proposal, title: r.proposal.name } }); }}>{SYS.UNIT[c].nm}</button>)}</div>}
         {P && P.status === "unsupported" && <Situation tone="bad" head="Not something the state can build" text={P.why} />}
       </>}
-      {gate && <Situation tone="warn" head={(adviser || "Your adviser") + ": “Your Excellency, who will run it? We have no Commissioner for " + gate.name + ".”"} text={"A " + SYS.UNIT[d.type].nm.toLowerCase() + " needs its own ministry to plan it and run it after the ribbon. Create the Ministry of " + gate.name + " (" + naira(gate.cost) + " a year) and this project can start."} />}
+      {gate && <Situation tone="warn" head={(adviser || "Your adviser") + ": “Your Excellency, who will run it? We have no Commissioner for " + gate.name + ".”"} text={(/^[aeiou]/i.test(SYS.UNIT[d.type].nm) ? "An " : "A ") + SYS.UNIT[d.type].nm.toLowerCase() + " needs its own ministry to plan it and run it after the ribbon. Create the Ministry of " + gate.name + " (" + naira(gate.cost) + " a year) and this project can start."} />}
       {gate && onNeedMinistry && <Actions><button className="sp-btn" onClick={() => onNeedMinistry(gate)}>{gate.icon} Create the Ministry of {gate.name}</button></Actions>}
       {d.type && est && <>
         <Tiles items={[["Cost to build", SYS.fmtM(est.buildM)], est.facility && ["To equip", SYS.fmtM(est.equipM)], est.facility && ["To run", SYS.fmtM(est.opsPerYearM) + "/yr"], ["Expected", est.months + " months"]]} />
@@ -7149,10 +7149,10 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
         </div>)}
       </div>
       {inds.length > 0 && <div style={box}><div style={{ fontWeight: 800, color: UI.ink }}>🏭 Industries {stName} can build</div>
-        <div style={{ ...sm, margin: "2px 0 8px" }}>From what the state grows and digs. Each is a programme: choose who owns it.</div>
-        {inds.map(x => { const on = (pol || []).some(a => a.id === x.id); return <div key={x.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderTop: "1px solid " + UI.line, fontSize: DS.t.meta }}>
+        <div style={{ ...sm, margin: "2px 0 8px" }}>From what the state grows and digs. Choose who owns it: if the state builds it or shares it, it goes to contract like any project.</div>
+        {inds.map(x => { const PJ = (projects || []).find(q => q.srcPolicy === x.id && q.status !== "abandoned"), on = !!PJ || (pol || []).some(a => a.id === x.id && !a.pending); const onTxt = !PJ ? "✓ Under way" : PJ.status === "pending_procurement" ? "Awaiting a contractor" : PJ.status === "pending_finance" ? "Awaiting money" : ["built", "delivered"].includes(PJ.status) ? "✓ Open" : "Being built"; return <div key={x.id} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderTop: "1px solid " + UI.line, fontSize: DS.t.meta }}>
           <span><b style={{ color: UI.ink }}>{x.nm}</b><br /><span style={{ color: UI.sub }}>{x.d} About {(x.jobsAdd || 0).toLocaleString()} jobs.</span></span>
-          {on ? <span style={{ color: CL.grn, fontWeight: 800, whiteSpace: "nowrap" }}>✓ Under way</span> : <button type="button" onClick={() => { setNav("gov"); try { setPolTab && setPolTab("pol"); } catch (e) {} setTimeout(() => startPolicy(POL().find(p => p.id === x.id) || x), 300); }} style={{ alignSelf: "center", whiteSpace: "nowrap", border: 0, borderRadius: 999, background: UI.dark, color: "#fff", fontWeight: 800, padding: "8px 14px", cursor: "pointer" }}>Build · {naira(x.c)}</button>}
+          {on ? <span style={{ color: CL.grn, fontWeight: 800, whiteSpace: "nowrap" }}>{onTxt}</span> : <button type="button" onClick={() => { setNav("gov"); try { setPolTab && setPolTab("pol"); } catch (e) {} setTimeout(() => startPolicy(POL().find(p => p.id === x.id) || x), 300); }} style={{ alignSelf: "center", whiteSpace: "nowrap", border: 0, borderRadius: 999, background: UI.dark, color: "#fff", fontWeight: 800, padding: "8px 14px", cursor: "pointer" }}>Build · {naira(x.c)}</button>}
         </div>; })}</div>}
     </div>; };
   // The economy's starting point, for "since you took office".
@@ -11281,7 +11281,9 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
   // proj lives in `projects[]` so it appears in the Projects tab, the sop-v2
   // Projects sheet, and gets Wikipedia entries at each stage.
   const CAPITAL_IDS = new Set(["roads","mega_airport","mega_hospital","housing","rail","ind_park","tech_hub","uni","new_uni","rural_elec","water","irrigation","phc","bus_terminals","f_bus_terminals"]);
-  const isCapital = (p) => CAPITAL_IDS.has(p.id) || (p.nm||"").startsWith("⭐") || (p.t >= 3);
+  // An industry is a project when the state builds it or shares it with an investor; the investor's own plant is not the
+  // state's contract (owner, 28 Nov 2026: "This didn't go through the normal contract procedure. I didn't even get to award it").
+  const isCapital = (p) => CAPITAL_IDS.has(p.id) || (p.nm||"").startsWith("⭐") || (p.t >= 3) || (!!p.industry && p.pick !== "private");
   const POLICY_TYPE = { roads:"road", mega_airport:"industrial", mega_hospital:"hospital", housing:"housing", rail:"metro", bus_terminals:"busterminal", f_bus_terminals:"busterminal", ind_park:"industrial", tech_hub:"industrial", uni:"university", new_uni:"university", rural_elec:"power", water:"water", irrigation:"dam", phc:"hospital", f_coastal:"road", f_rail:"rail", f_gas:"pipeline", f_refinery:"refinery", f_second_bridge:"bridge", f_mambilla:"dam", f_trunk_roads:"road", f_sez:"industrial" };
   const EIA_TYPES = new Set(["metro","road","bridge","dam","market","housing","hospital","landfill","power","industrial"]);
   const startPolicy = (p) => {
@@ -11319,7 +11321,7 @@ const GovScreen = ({ setup: rawSetup, onEnd, onHelp, loadedSave }) => {
       learn: "Printing money pays today's bills with tomorrow's prices. Nigeria's Ways and Means overdrafts topped ₦20 trillion by 2023; inflation passed 30% the next year." }; };
   const answerLocal = (p, o) => {
     setLocalAsk(null);
-    const cap = isCapital(p), r = SYS.applyLocalPick(p, o, { state, turn, capital: cap });
+    const cap = isCapital({ ...p, pick: o.id }), r = SYS.applyLocalPick(p, o, { state, turn, capital: cap });
     const np = { ...r.p, later: r.later, tAdd: o.tAdd || 0 };
     track("local_pick", p.id + ":" + o.id);
     addL("📍 " + p.nm.replace(/^⭐\s*/, "") + ": you chose to " + o.l.charAt(0).toLowerCase() + o.l.slice(1) + ".", "policy");

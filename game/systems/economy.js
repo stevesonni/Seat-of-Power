@@ -93,7 +93,7 @@ const MINERAL = { Nassarawa: { id: "lithium", nm: "Lithium processing plant", d:
 export const industriesFor = (state) => {
   if (!state || state === "Nigeria") return [];
   const crops = produceOf(state).map(x => String(x).toLowerCase()), out = [], seen = new Set();
-  const mk = (x, sec) => ({ id: "ind_" + x.id, nm: x.nm, s: sec === "agriculture" ? "agriculture" : "infrastructure", c: x.c, t: 2, fx: { infra: .01, app: 5 }, d: x.d, cr: .1, ecoSec: sec || "manufacturing", ecoBoost: .04, jobsAdd: x.jobs, compDesc: x.nm + " running", industry: true,
+  const mk = (x, sec) => ({ id: "ind_" + x.id, nm: x.nm, s: sec === "agriculture" ? "agriculture" : "infrastructure", c: x.c, t: 2, fx: { infra: .01, app: 5 }, d: x.d, cr: .1, ecoSec: sec || "manufacturing", ecoBoost: .04, jobsAdd: x.jobs, compDesc: x.nm + " running", industry: true, ptype: "industrial", // the state's or a partnership's plant is a project: budget, contractor, build (owner, 28 Nov 2026)
     local: { head: x.nm, why: x.d + " About " + Number(x.jobs).toLocaleString("en-US") + " jobs once it runs.", fact: null },
     ask: { q: "Who owns the " + x.nm.toLowerCase() + "?", opts: [
       { id: "state", l: "The state builds and runs it", d: "All the profit is the state's, and all the risk. State factories often stall.", costF: 1, tAdd: 0, risk: { p: .35, title: "A white elephant", text: "The " + x.nm.toLowerCase() + " stands idle half the year: no power, no working capital, a board of party men.", fx: { app: -3 } }, good: { text: "The " + x.nm.toLowerCase() + " is running, and its profits go to the state.", fx: { app: 3 } } },
